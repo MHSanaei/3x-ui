@@ -7,9 +7,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/xray"
 )
 
 // remarkContext carries the per-client data a remark template can interpolate.

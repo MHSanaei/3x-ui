@@ -61,15 +61,15 @@
 }
 
 .client-traffic-cell.is-unlimited .client-traffic-cell-bar .ant-progress-inner .ant-progress-bg {
-  background-color: color-mix(in srgb, #722ed1 35%, transparent);
-  border: 1px solid color-mix(in srgb, #722ed1 55%, transparent);
+  background-color: color-mix(in srgb, var(--dune-gold, #c9a84c) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dune-gold, #c9a84c) 55%, transparent);
 }
 
 .client-traffic-cell-infinity {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  color: var(--ant-color-purple);
+  color: var(--dune-gold-muted, #b8860b);
   font-size: 14px;
   line-height: 1;
 }

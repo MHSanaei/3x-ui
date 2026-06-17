@@ -1,4 +1,4 @@
-// Package logger provides logging functionality for the 3x-ui panel with
+// Package logger provides logging functionality for the dune panel with
 // dual-backend logging (console/syslog and file) and buffered log storage for web UI.
 package logger
 
@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/gary/dune/internal/config"
 	"github.com/op/go-logging"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -18,7 +18,7 @@ import (
 
 const (
 	maxLogBufferSize = 10240                 // Maximum log entries kept in memory
-	logFileName      = "3xui.log"            // Log file name
+	logFileName      = "dune.log"            // Log file name
 	timeFormat       = "2006/01/02 15:04:05" // Log timestamp format
 
 	// On-disk rotation limits — single file capped, old segments pruned automatically.
@@ -45,20 +45,20 @@ var (
 // InitLogger initializes dual logging backends: console/syslog and file.
 // Console logging uses the specified level, file logging always uses DEBUG level.
 func InitLogger(level logging.Level) {
-	newLogger := logging.MustGetLogger("x-ui")
+	newLogger := logging.MustGetLogger("dune")
 	backends := make([]logging.Backend, 0, 2)
 
 	// Console/syslog backend with configurable level
 	if consoleBackend := initDefaultBackend(); consoleBackend != nil {
 		leveledBackend := logging.AddModuleLevel(consoleBackend)
-		leveledBackend.SetLevel(level, "x-ui")
+		leveledBackend.SetLevel(level, "dune")
 		backends = append(backends, leveledBackend)
 	}
 
 	// File backend with DEBUG level for comprehensive logging
 	if fileBackend := initFileBackend(); fileBackend != nil {
 		leveledBackend := logging.AddModuleLevel(fileBackend)
-		leveledBackend.SetLevel(logging.DEBUG, "x-ui")
+		leveledBackend.SetLevel(logging.DEBUG, "dune")
 		backends = append(backends, leveledBackend)
 	}
 

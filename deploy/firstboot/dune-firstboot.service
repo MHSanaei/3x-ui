@@ -1,22 +1,22 @@
 [Unit]
-Description=3x-ui first-boot per-instance credential generation
-Documentation=https://github.com/MHSanaei/3x-ui
+Description=dune first-boot per-instance credential generation
+Documentation=https://github.com/leto217/DUNE
 # Run after the network and cloud-init are up, but BEFORE the panel starts, so
 # the panel never serves the default admin/admin account.
 After=network-online.target cloud-init.service
 Wants=network-online.target
-Before=x-ui.service
+Before=dune.service
 # Skip entirely once the sentinel exists (cheap guard; the script re-checks too).
-ConditionPathExists=!/etc/x-ui/.firstboot-done
+ConditionPathExists=!/etc/dune/.firstboot-done
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 # Inherit the same DB configuration the panel uses (sqlite default / postgres).
-EnvironmentFile=-/etc/default/x-ui
-EnvironmentFile=-/etc/conf.d/x-ui
-EnvironmentFile=-/etc/sysconfig/x-ui
-ExecStart=/usr/local/x-ui/x-ui-firstboot.sh
+EnvironmentFile=-/etc/default/dune
+EnvironmentFile=-/etc/conf.d/dune
+EnvironmentFile=-/etc/sysconfig/dune
+ExecStart=/usr/local/dune/dune-firstboot.sh
 
 [Install]
 WantedBy=multi-user.target

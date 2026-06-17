@@ -1,5 +1,5 @@
 // Package database provides database initialization, migration, and management utilities
-// for the 3x-ui panel using GORM with SQLite or PostgreSQL.
+// for the dune panel using GORM with SQLite or PostgreSQL.
 package database
 
 import (
@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/util/crypto"
+	"github.com/gary/dune/internal/util/random"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -55,6 +55,30 @@ const (
 	defaultUsername = "admin"
 	defaultPassword = "admin"
 )
+
+// ensurePerformanceIndexes creates the hot-path indexes that GORM struct tags
+// can't express portably — notably the partial index on client_traffics
+// (expiry_time). They back the 5s traffic cron's disable/renew scans:
+//   - idx_ct_enable lets the planner skip already-disabled rows early.
+//   - idx_ct_expiry_time narrows the expiry scan to rows that carry a deadline.
+//   - idx_cgt_email lets the correlated EXISTS subquery (g.email = ...) seek.
+//
+// CREATE INDEX IF NOT EXISTS and the WHERE-partial syntax are both supported by
+// SQLite (3.8+) and PostgreSQL, so the statements run on either backend and are
+// no-ops once the index exists.
+func ensurePerformanceIndexes(db *gorm.DB) error {
+	stmts := []string{
+		`CREATE INDEX IF NOT EXISTS idx_ct_enable ON client_traffics (enable)`,
+		`CREATE INDEX IF NOT EXISTS idx_ct_expiry_time ON client_traffics (expiry_time) WHERE expiry_time > 0`,
+		`CREATE INDEX IF NOT EXISTS idx_cgt_email ON client_global_traffics (email)`,
+	}
+	for _, stmt := range stmts {
+		if err := db.Exec(stmt).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func initModels() error {
 	models := []any{
@@ -852,7 +876,7 @@ func isTableEmpty(tableName string) (bool, error) {
 }
 
 // InitDB sets up the database connection, migrates models, and runs seeders.
-// When XUI_DB_TYPE=postgres, dbPath is ignored and XUI_DB_DSN is used instead.
+// When DUNE_DB_TYPE=postgres, dbPath is ignored and DUNE_DB_DSN is used instead.
 func InitDB(dbPath string) error {
 	var gormLogger logger.Interface
 	if config.IsDebug() {
@@ -875,7 +899,7 @@ func InitDB(dbPath string) error {
 	case "postgres":
 		dsn := config.GetDBDSN()
 		if dsn == "" {
-			return errors.New("XUI_DB_TYPE=postgres but XUI_DB_DSN is empty")
+			return errors.New("DUNE_DB_TYPE=postgres but DUNE_DB_DSN is empty")
 		}
 		db, err = gorm.Open(postgres.Open(dsn), c)
 		if err != nil {
@@ -913,11 +937,11 @@ func InitDB(dbPath string) error {
 	var maxOpen, maxIdle int
 	switch config.GetDBKind() {
 	case "postgres":
-		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 25)
-		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 25)
+		maxOpen = envInt("DUNE_DB_MAX_OPEN_CONNS", 25)
+		maxIdle = envInt("DUNE_DB_MAX_IDLE_CONNS", 5)
 	default:
-		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 8)
-		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 4)
+		maxOpen = envInt("DUNE_DB_MAX_OPEN_CONNS", 8)
+		maxIdle = envInt("DUNE_DB_MAX_IDLE_CONNS", 4)
 	}
 	sqlDB.SetMaxOpenConns(maxOpen)
 	sqlDB.SetMaxIdleConns(maxIdle)
@@ -925,6 +949,10 @@ func InitDB(dbPath string) error {
 	sqlDB.SetConnMaxIdleTime(30 * time.Minute)
 
 	if err := initModels(); err != nil {
+		return err
+	}
+
+	if err := ensurePerformanceIndexes(db); err != nil {
 		return err
 	}
 

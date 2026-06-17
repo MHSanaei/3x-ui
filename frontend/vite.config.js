@@ -8,18 +8,18 @@ const outDir = path.resolve(__dirname, '../internal/web/dist');
 const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
-  const envFolder = process.env.XUI_DB_FOLDER;
+  const envFolder = process.env.DUNE_DB_FOLDER;
   if (envFolder) {
     const abs = path.isAbsolute(envFolder)
       ? envFolder
       : path.resolve(__dirname, '..', envFolder);
-    return path.join(abs, 'x-ui.db');
+    return path.join(abs, 'dune.db');
   }
-  const repoSubDB = path.resolve(__dirname, '..', 'x-ui', 'x-ui.db');
+  const repoSubDB = path.resolve(__dirname, '..', 'dune', 'dune.db');
   if (fs.existsSync(repoSubDB)) return repoSubDB;
-  const repoDB = path.resolve(__dirname, '..', 'x-ui.db');
+  const repoDB = path.resolve(__dirname, '..', 'dune.db');
   if (fs.existsSync(repoDB)) return repoDB;
-  return '/etc/x-ui/x-ui.db';
+  return '/etc/dune/dune.db';
 }
 
 const PANEL_API_PREFIXES = ['panel/api/', 'panel/csrf-token'];
@@ -65,7 +65,7 @@ function readPanelVersion() {
 // already injects webBasePath and version at runtime in production.
 function injectBasePathPlugin() {
   return {
-    name: 'xui-inject-base-path',
+    name: 'dune-inject-base-path',
     apply: 'serve',
     transformIndexHtml(html) {
       const basePath = refreshBasePath();

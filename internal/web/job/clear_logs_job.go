@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/xray"
 )
 
 // ClearLogsJob clears old log files to prevent disk space issues.

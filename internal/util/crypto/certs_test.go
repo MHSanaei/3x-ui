@@ -21,7 +21,7 @@ func parseOneCert(t *testing.T, pemBytes []byte) *x509.Certificate {
 }
 
 func TestGenerateNodeCA(t *testing.T) {
-	ca, err := GenerateNodeCA("3x-ui node CA")
+	ca, err := GenerateNodeCA("dune node CA")
 	if err != nil {
 		t.Fatalf("GenerateNodeCA: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestGenerateNodeCA(t *testing.T) {
 }
 
 func TestIssueClientCert_VerifiesAgainstCA(t *testing.T) {
-	ca, err := GenerateNodeCA("3x-ui node CA")
+	ca, err := GenerateNodeCA("dune node CA")
 	if err != nil {
 		t.Fatalf("GenerateNodeCA: %v", err)
 	}

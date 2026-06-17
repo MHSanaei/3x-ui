@@ -4,13 +4,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 )
 
 func setupSettingTestDB(t *testing.T) {
 	t.Helper()
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "dune.db")); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {

@@ -19,6 +19,7 @@ export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
 export const AllSettingSchema = z.object({
+  clientIpJobInterval: z.number().int().min(1).max(86400),
   datepicker: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
@@ -43,6 +44,8 @@ export const AllSettingSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  nodeHeartbeatInterval: z.number().int().min(1).max(86400),
+  nodeTrafficInterval: z.number().int().min(1).max(86400),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
   remarkTemplate: z.string(),
@@ -97,6 +100,7 @@ export const AllSettingSchema = z.object({
   tgRunTime: z.string(),
   timeLocation: z.string(),
   trafficDiff: z.number().int().min(0).max(100),
+  trafficJobInterval: z.number().int().min(1).max(86400),
   trustedProxyCIDRs: z.string(),
   twoFactorEnable: z.boolean(),
   twoFactorToken: z.string(),
@@ -107,10 +111,12 @@ export const AllSettingSchema = z.object({
   webKeyFile: z.string(),
   webListen: z.string(),
   webPort: z.number().int().min(1).max(65535),
+  xrayRestartInterval: z.number().int().min(1).max(86400),
 });
 export type AllSetting = z.infer<typeof AllSettingSchema>;
 
 export const AllSettingViewSchema = z.object({
+  clientIpJobInterval: z.number().int().min(1).max(86400),
   datepicker: z.string(),
   expireDiff: z.number().int().min(0),
   externalTrafficInformEnable: z.boolean(),
@@ -142,6 +148,8 @@ export const AllSettingViewSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  nodeHeartbeatInterval: z.number().int().min(1).max(86400),
+  nodeTrafficInterval: z.number().int().min(1).max(86400),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
   remarkTemplate: z.string(),
@@ -196,6 +204,7 @@ export const AllSettingViewSchema = z.object({
   tgRunTime: z.string(),
   timeLocation: z.string(),
   trafficDiff: z.number().int().min(0).max(100),
+  trafficJobInterval: z.number().int().min(1).max(86400),
   trustedProxyCIDRs: z.string(),
   twoFactorEnable: z.boolean(),
   twoFactorToken: z.string(),
@@ -206,6 +215,7 @@ export const AllSettingViewSchema = z.object({
   webKeyFile: z.string(),
   webListen: z.string(),
   webPort: z.number().int().min(1).max(65535),
+  xrayRestartInterval: z.number().int().min(1).max(86400),
 });
 export type AllSettingView = z.infer<typeof AllSettingViewSchema>;
 

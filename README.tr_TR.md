@@ -2,24 +2,24 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./media/dune-dark.png">
+    <img alt="dune" src="./media/dune-light.png">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/leto217/DUNE/releases"><img src="https://img.shields.io/github/v/release/leto217/DUNE" alt="Release"></a>
+  <a href="https://github.com/leto217/DUNE/actions"><img src="https://img.shields.io/github/actions/workflow/status/leto217/DUNE/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/leto217/DUNE.svg" alt="GO Version"></a>
+  <a href="https://github.com/leto217/DUNE/releases/latest"><img src="https://img.shields.io/github/downloads/leto217/DUNE/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
+  <a href="https://pkg.go.dev/github.com/leto217/DUNE"><img src="https://pkg.go.dev/badge/github.com/leto217/DUNE.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/leto217/DUNE"><img src="https://goreportcard.com/badge/github.com/leto217/DUNE" alt="Go Report Card"></a>
 </p>
 
-**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) çok düğümlü (multi-node) dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
+**DUNE**, [3X-UI](https://github.com/MHSanaei/3x-ui)'nin hafif bir çatalıdır — [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için açık kaynaklı bir web kontrol paneli. 3X-UI'nin tanıdık iş akışlarını ve protokol desteğini korurken çok daha az CPU ve RAM kullanır; küçük VPS'ler ve düşük kaynaklı sunucular için idealdir.
 
-Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa edilen 3X-UI; çok daha geniş protokol desteği, artırılmış kararlılık, kullanıcı başına trafik hesaplama ve kullanım kolaylığı sağlayan birçok yeni özellik sunar.
+3X-UI'den verimlilik odaklı ayrılan DUNE; arka plan işlerini azaltır, bellek kullanımını sıkılaştırır ve yığını sadeleştirir — panel sunucuyu yormadan akıcı kalır.
 
 > [!IMPORTANT]
 > Bu proje yalnızca kişisel kullanım için tasarlanmıştır. Lütfen yasadışı amaçlar için veya üretim (production) ortamında kullanmayın.
@@ -70,12 +70,12 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 ## Hızlı Başlangıç
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/leto217/DUNE/main/install.sh)
 ```
 
-Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `x-ui` komutunu çalıştırın.
+Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `dune` komutunu çalıştırın.
 
-Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHSanaei/3x-ui/wiki) ziyaret edin.
+Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/leto217/DUNE/wiki) ziyaret edin.
 
 ## Desteklenen Platformlar
 
@@ -85,31 +85,31 @@ Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHS
 
 ## Veritabanı Seçenekleri
 
-3X-UI kurulum sırasında seçilebilecek iki arka uç (backend) destekler:
+Dune kurulum sırasında seçilebilecek iki arka uç (backend) destekler:
 
-- **SQLite** (varsayılan) — `/etc/x-ui/x-ui.db` konumunda tek bir dosya. Kurulum gerektirmez, küçük ve orta ölçekli dağıtımlar için idealdir.
+- **SQLite** (varsayılan) — `/etc/dune/dune.db` konumunda tek bir dosya. Kurulum gerektirmez, küçük ve orta ölçekli dağıtımlar için idealdir.
 - **PostgreSQL** — Yüksek kullanıcı sayıları veya çoklu düğüm (multi-node) kurulumları için önerilir. Yükleyici sizin için yerel olarak PostgreSQL kurabilir veya mevcut bir sunucuya DSN bağlantısı kabul edebilir.
 
-Çalışma anında veritabanı türü ortam değişkenleri (environment variables) ile seçilir (yükleyici bunları sizin için `/etc/default/x-ui` dosyasına yazar):
+Çalışma anında veritabanı türü ortam değişkenleri (environment variables) ile seçilir (yükleyici bunları sizin için `/etc/default/dune` dosyasına yazar):
 
 ```
-XUI_DB_TYPE=postgres
-XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+DUNE_DB_TYPE=postgres
+DUNE_DB_DSN=postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable
 ```
 
 ### Mevcut bir SQLite Kurulumunu PostgreSQL'e Taşıma
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# ardından /etc/default/x-ui içindeki XUI_DB_TYPE ve XUI_DB_DSN değerlerini ayarlayıp yeniden başlatın:
-systemctl restart x-ui
+dune migrate-db --dsn "postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable"
+# ardından /etc/default/dune içindeki DUNE_DB_TYPE ve DUNE_DB_DSN değerlerini ayarlayıp yeniden başlatın:
+systemctl restart dune
 ```
 
 Kaynak SQLite dosyasına dokunulmaz; yeni veritabanının düzgün çalıştığını doğruladıktan sonra eski SQLite dosyasını manuel olarak silebilirsiniz.
 
 ### Docker
 
-Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Birlikte paketlenmiş PostgreSQL servisi ile çalıştırmak için, `docker-compose.yml` dosyasındaki iki `XUI_DB_*` değişken satırının yorumunu kaldırın ve profille başlatın:
+Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Birlikte paketlenmiş PostgreSQL servisi ile çalıştırmak için, `docker-compose.yml` dosyasındaki iki `DUNE_DB_*` değişken satırının yorumunu kaldırın ve profille başlatın:
 
 ```bash
 docker compose --profile postgres up -d
@@ -118,22 +118,22 @@ docker compose --profile postgres up -d
 Docker imajı, kullanıcı başına **IP limitlerini** zorunlu kılmak için Fail2ban ile (varsayılan olarak etkindir) paketlenmiştir. Fail2ban, ihlalcileri `iptables` ile engeller ve bunun için `NET_ADMIN` yetkisine ihtiyaç duyar. `docker-compose.yml` bunu zaten `cap_add` üzerinden vermektedir; ancak konteyneri bunun yerine `docker run` ile başlatırsanız bu yetkileri kendiniz eklemelisiniz, aksi takdirde yasaklamalar günlüğe kaydedilir ancak uygulanmaz:
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/leto217/DUNE
 ```
 
 ## Ortam Değişkenleri (Environment Variables)
 
 | Değişken | Açıklama | Varsayılan |
 | --- | --- | --- |
-| `XUI_DB_TYPE` | Veritabanı türü: `sqlite` veya `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL bağlantı dizesi (eğer `XUI_DB_TYPE=postgres` ise) | — |
-| `XUI_DB_FOLDER` | SQLite veritabanı dizini | `/etc/x-ui` |
-| `XUI_DB_MAX_OPEN_CONNS` | Maksimum açık bağlantı sayısı (PostgreSQL havuzu) | — |
-| `XUI_DB_MAX_IDLE_CONNS` | Maksimum boşta bekleme bağlantısı (PostgreSQL havuzu) | — |
-| `XUI_INIT_WEB_BASE_PATH` | Web paneli için başlangıç URI yolu | `/` |
-| `XUI_ENABLE_FAIL2BAN` | Fail2ban tabanlı IP limit uygulamasını etkinleştir | `true` |
-| `XUI_LOG_LEVEL` | Günlük (Log) ayrıntı seviyesi (`debug`, `info`, `warning`, `error`) | `info` |
-| `XUI_DEBUG` | Hata ayıklama (debug) modunu etkinleştir | `false` |
+| `DUNE_DB_TYPE` | Veritabanı türü: `sqlite` veya `postgres` | `sqlite` |
+| `DUNE_DB_DSN` | PostgreSQL bağlantı dizesi (eğer `DUNE_DB_TYPE=postgres` ise) | — |
+| `DUNE_DB_FOLDER` | SQLite veritabanı dizini | `/etc/dune` |
+| `DUNE_DB_MAX_OPEN_CONNS` | Maksimum açık bağlantı sayısı (PostgreSQL havuzu) | — |
+| `DUNE_DB_MAX_IDLE_CONNS` | Maksimum boşta bekleme bağlantısı (PostgreSQL havuzu) | — |
+| `DUNE_INIT_WEB_BASE_PATH` | Web paneli için başlangıç URI yolu | `/` |
+| `DUNE_ENABLE_FAIL2BAN` | Fail2ban tabanlı IP limit uygulamasını etkinleştir | `true` |
+| `DUNE_LOG_LEVEL` | Günlük (Log) ayrıntı seviyesi (`debug`, `info`, `warning`, `error`) | `info` |
+| `DUNE_DEBUG` | Hata ayıklama (debug) modunu etkinleştir | `false` |
 
 ## Desteklenen Diller
 
@@ -156,23 +156,20 @@ Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull req
 
 ## Topluluk Araçları
 
-3x-ui çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
+dune çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
+- [terraform-provider-dune](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
 
 ## Projeyi Destekleyin
 
 **Eğer bu proje size faydalı olduysa, bir yıldız verebilirsiniz**:star2:
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Bana Bir Kahve Ismarla" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="NOWPayments üzerinden Kripto Bağış Butonu">
-</a>
+| Ağ | Adres |
+| --- | --- |
+| TON | `UQAa5FpNlK8Gp7tO8luJXHD-Sf0pPjJbNHGo8hdkyuUBhWEa` |
+| TRON | `TLqtTfYSzPLFm8mtFDkSnXvzucxx7DS5VL` |
+| ERC20 and BEP20 | `0x2fe632d70f4612b87670f8a28b4587ea2641452d` |
 
 ## Yıldız Tablosu
 
-[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/leto217/DUNE.svg?variant=adaptive)](https://starchart.cc/leto217/DUNE)

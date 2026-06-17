@@ -3,9 +3,9 @@ package service
 import (
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/web/runtime"
 )
 
 // A node-backed inbound whose central tag carries the n<id>- prefix must

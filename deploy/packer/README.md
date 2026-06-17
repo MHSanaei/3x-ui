@@ -1,6 +1,6 @@
-# 3x-ui golden image (Packer)
+# dune golden image (Packer)
 
-Builds a cloud image with the 3x-ui panel pre-installed but **not configured**:
+Builds a cloud image with the dune panel pre-installed but **not configured**:
 the image ships with **no database and no credentials**, and generates a unique
 admin account on first boot. This is the **primary** path for AWS Marketplace
 and any reusable image.
@@ -12,21 +12,21 @@ Two sources, one build:
 | `amazon-ebs` | AWS AMI | AWS / Marketplace |
 | `qemu` | `qcow2` (+ `raw`) | Hetzner, DigitalOcean, Vultr, GCP, Azure, Oracle, bare metal |
 
-Both sources build for **`amd64` and `arm64`** (select with `-var xui_arch=...`).
+Both sources build for **`amd64` and `arm64`** (select with `-var dune_arch=...`).
 
 ## Why no baked DB
 
-3x-ui seeds a hardcoded `admin/admin` user and generates its session secret +
+dune seeds a hardcoded `admin/admin` user and generates its session secret +
 panel GUID the first time it starts. If an image shipped an initialized
-`x-ui.db`, **every clone would share the same credentials and secret**. So the
+`dune.db`, **every clone would share the same credentials and secret**. So the
 build deliberately:
 
 - installs the panel binary + systemd unit but **never starts it** and **never
   creates a DB** (`scripts/provision.sh`);
 - wipes any stray DB/credentials/host-keys at the end (`scripts/cleanup.sh`);
-- enables `x-ui-firstboot.service`, which on first boot resets settings, sets a
+- enables `dune-firstboot.service`, which on first boot resets settings, sets a
   random username/password on a random high port, regenerates the secret/GUID,
-  and writes the credentials to `/etc/x-ui/credentials.txt` + `/etc/motd`
+  and writes the credentials to `/etc/dune/credentials.txt` + `/etc/motd`
   (`deploy/firstboot/`).
 
 ## Prerequisites
@@ -51,22 +51,22 @@ Build a specific release (recommended) or `latest`:
 
 ```bash
 # amd64 qcow2 (no cloud account needed)
-packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' .
+packer build -only='qemu.dune' -var 'dune_version=v3.3.1' -var 'dune_arch=amd64' .
 
 # arm64 qcow2 (run on an arm64 host for native KVM)
-packer build -only='qemu.x-ui' -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' .
+packer build -only='qemu.dune' -var 'dune_version=v3.3.1' -var 'dune_arch=arm64' .
 
 # amd64 AWS AMI
-packer build -only='amazon-ebs.x-ui' \
-  -var 'xui_version=v3.3.1' -var 'xui_arch=amd64' -var 'instance_type=t3.small' -var 'region=eu-central-1' .
+packer build -only='amazon-ebs.dune' \
+  -var 'dune_version=v3.3.1' -var 'dune_arch=amd64' -var 'instance_type=t3.small' -var 'region=eu-central-1' .
 
 # arm64 AWS AMI (Graviton)
-packer build -only='amazon-ebs.x-ui' \
-  -var 'xui_version=v3.3.1' -var 'xui_arch=arm64' -var 'instance_type=t4g.small' -var 'region=eu-central-1' .
+packer build -only='amazon-ebs.dune' \
+  -var 'dune_version=v3.3.1' -var 'dune_arch=arm64' -var 'instance_type=t4g.small' -var 'region=eu-central-1' .
 ```
 
 Outputs (per arch):
-- `output-qemu/3x-ui-ubuntu-24.04-<arch>.qcow2` and `.raw`
+- `output-qemu/dune-ubuntu-24.04-<arch>.qcow2` and `.raw`
 - the AMI id (also recorded in `packer-manifest.json`)
 
 If `/dev/kvm` is unavailable, add `-var 'qemu_accelerator=tcg'` (much slower).
@@ -77,8 +77,8 @@ See [`variables.pkr.hcl`](variables.pkr.hcl) for the full list.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `xui_version` | `latest` | Release tag to install, e.g. `v3.3.1` |
-| `xui_arch` | `amd64` | `amd64` or `arm64` (derives the base AMI / cloud image) |
+| `dune_version` | `latest` | Release tag to install, e.g. `v3.3.1` |
+| `dune_arch` | `amd64` | `amd64` or `arm64` (derives the base AMI / cloud image) |
 | `region` | `eu-central-1` | AWS region (amazon-ebs) |
 | `instance_type` | `t3.small` | EC2 build instance — must match the arch (`t4g.small` for arm64) |
 | `qemu_accelerator` | `kvm` | `kvm` or `tcg` |
@@ -93,11 +93,11 @@ arm64 qcow2 on a native `ubuntu-24.04-arm` runner, and both AMIs from a single r
 
 On the first boot of any instance launched from the image:
 
-1. `x-ui-firstboot.service` runs **before** `x-ui.service`.
+1. `dune-firstboot.service` runs **before** `dune.service`.
 2. It generates a unique admin username/password, a random panel port, a random
    base path, and an API token.
-3. Credentials are written to `/etc/x-ui/credentials.txt` (root-only) and shown
-   in `/etc/motd`. Retrieve them with `sudo cat /etc/x-ui/credentials.txt`.
+3. Credentials are written to `/etc/dune/credentials.txt` (root-only) and shown
+   in `/etc/motd`. Retrieve them with `sudo cat /etc/dune/credentials.txt`.
 4. The panel then starts on the random port. `admin/admin` never exists.
 
 ## CI
@@ -109,7 +109,7 @@ building the AMI when AWS credentials are configured.
 ## A note on host firewalls
 
 `scripts/harden.sh` intentionally does **not** enable a restrictive host
-firewall. 3x-ui opens Xray inbound ports on admin-chosen ports at runtime, which
+firewall. dune opens Xray inbound ports on admin-chosen ports at runtime, which
 a host firewall would block. Use your cloud provider's security groups/firewall
 instead, and open the panel port + your inbound ports there. If you still want a
 host firewall, add `ufw` rules in `harden.sh` allowing SSH, the panel port and

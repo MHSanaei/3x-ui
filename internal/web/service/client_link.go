@@ -3,8 +3,8 @@ package service
 import (
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 
 	"gorm.io/gorm"
 )
@@ -160,29 +160,42 @@ func (s *ClientService) DetachInbound(tx *gorm.DB, inboundId int) error {
 }
 
 func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Client, error) {
+	clientsByInbound, err := s.ListForInbounds(tx, inboundId)
+	if err != nil {
+		return nil, err
+	}
+	return clientsByInbound[inboundId], nil
+}
+
+// ListForInbounds loads clients for multiple inbounds in one round-trip.
+func (s *ClientService) ListForInbounds(tx *gorm.DB, inboundIds ...int) (map[int][]model.Client, error) {
+	if len(inboundIds) == 0 {
+		return map[int][]model.Client{}, nil
+	}
 	if tx == nil {
 		tx = database.GetDB()
 	}
 	type joinedRow struct {
 		model.ClientRecord
-		FlowOverride string
+		FlowOverride string `gorm:"column:flow_override"`
+		InboundId    int    `gorm:"column:inbound_id"`
 	}
 	var rows []joinedRow
 	err := tx.Table("clients").
-		Select("clients.*, client_inbounds.flow_override AS flow_override").
+		Select("clients.*, client_inbounds.flow_override AS flow_override, client_inbounds.inbound_id AS inbound_id").
 		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
-		Where("client_inbounds.inbound_id = ?", inboundId).
-		Order("clients.id ASC").
+		Where("client_inbounds.inbound_id IN ?", inboundIds).
+		Order("client_inbounds.inbound_id ASC, clients.id ASC").
 		Find(&rows).Error
 	if err != nil {
 		return nil, err
 	}
 
-	out := make([]model.Client, 0, len(rows))
+	out := make(map[int][]model.Client, len(inboundIds))
 	for i := range rows {
 		c := rows[i].ToClient()
 		c.Flow = rows[i].FlowOverride
-		out = append(out, *c)
+		out[rows[i].InboundId] = append(out[rows[i].InboundId], *c)
 	}
 	return out, nil
 }

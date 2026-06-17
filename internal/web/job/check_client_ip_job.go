@@ -13,11 +13,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/gorm"
 )
@@ -92,7 +92,7 @@ func (j *CheckClientIpJob) Run() {
 // warning when fail2ban is missing on a platform that needs it.
 func (j *CheckClientIpJob) resolveEnforce(hasLimit, f2bInstalled bool) bool {
 	if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
-		logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+		logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the dune bash menu.")
 		return false
 	}
 	return hasLimit
@@ -155,31 +155,9 @@ func (j *CheckClientIpJob) clearAccessLog() {
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-
-	err := db.Model(model.Inbound{}).Find(&inbounds).Error
-	if err != nil {
-		return false
-	}
-
-	for _, inbound := range inbounds {
-		if inbound.Settings == "" {
-			continue
-		}
-
-		settings := map[string][]model.Client{}
-		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients := settings["clients"]
-
-		for _, client := range clients {
-			limitIp := client.LimitIP
-			if limitIp > 0 {
-				return true
-			}
-		}
-	}
-
-	return false
+	var found int64
+	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&found).Error
+	return err == nil && found > 0
 }
 
 func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
@@ -386,7 +364,7 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
 }
 
 func isFail2BanEnabled() bool {
-	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	value, ok := os.LookupEnv("DUNE_ENABLE_FAIL2BAN")
 	return !ok || value == "true"
 }
 
@@ -521,8 +499,8 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		defer logIpFile.Close()
 		ipLogger := log.New(logIpFile, "", log.LstdFlags)
 
-		// log format is load-bearing: x-ui.sh create_iplimit_jails builds
-		// filter.d/3x-ipl.conf with
+		// log format is load-bearing: dune.sh create_iplimit_jails builds
+		// filter.d/dune-ipl.conf with
 		//   failregex = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 		// don't change the wording.
 		for _, ipTime := range bannedLive {
@@ -685,7 +663,11 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	db := database.GetDB()
 	inbound := &model.Inbound{}
 
-	err := db.Model(&model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").First(inbound).Error
+	err := db.Table("inbounds").
+		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email = ?", clientEmail).
+		First(inbound).Error
 	if err != nil {
 		return nil, err
 	}

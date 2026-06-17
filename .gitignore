@@ -16,7 +16,7 @@ tmp/
 # Ignore build and distribution directories
 backup/
 bin/
-x-ui/
+dune/
 dist/
 !internal/web/dist/
 internal/web/dist/*
@@ -33,9 +33,9 @@ Thumbs.db
 
 # Ignore Go build files
 *.exe
-x-ui.db
-x-ui.db-shm
-x-ui.db-wal
+dune.db
+dune.db-shm
+dune.db-wal
 system_metrics.gob
 *.dump
 

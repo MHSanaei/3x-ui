@@ -8,9 +8,9 @@
 set -euo pipefail
 
 echo "[cleanup] removing panel database, credentials and first-boot sentinel..."
-rm -f /etc/x-ui/x-ui.db /etc/x-ui/x-ui.db-* 2> /dev/null || true
-rm -f /etc/x-ui/install-result.env /etc/x-ui/credentials.txt 2> /dev/null || true
-rm -f /etc/x-ui/.firstboot-done 2> /dev/null || true
+rm -f /etc/dune/dune.db /etc/dune/dune.db-* 2> /dev/null || true
+rm -f /etc/dune/install-result.env /etc/dune/credentials.txt 2> /dev/null || true
+rm -f /etc/dune/.firstboot-done 2> /dev/null || true
 
 echo "[cleanup] removing SSH host keys (regenerated on first boot)..."
 rm -f /etc/ssh/ssh_host_* 2> /dev/null || true
@@ -29,7 +29,7 @@ cloud-init clean --logs --seed > /dev/null 2>&1 || rm -rf /var/lib/cloud/* 2> /d
 
 echo "[cleanup] truncating logs, history and package caches..."
 find /var/log -type f -exec truncate -s 0 {} + 2> /dev/null || true
-rm -rf /var/lib/x-ui /var/log/x-ui/* 2> /dev/null || true
+rm -rf /var/lib/dune /var/log/dune/* 2> /dev/null || true
 apt-get clean || true
 rm -rf /var/lib/apt/lists/* 2> /dev/null || true
 rm -f /root/.bash_history 2> /dev/null || true
@@ -38,7 +38,7 @@ rm -rf /tmp/firstboot 2> /dev/null || true
 
 echo "[cleanup] verifying the image is clean..."
 fail=0
-for f in /etc/x-ui/x-ui.db /etc/x-ui/credentials.txt /etc/x-ui/install-result.env /etc/x-ui/.firstboot-done; do
+for f in /etc/dune/dune.db /etc/dune/credentials.txt /etc/dune/install-result.env /etc/dune/.firstboot-done; do
     if [ -e "$f" ]; then
         echo "[cleanup] FATAL: $f is present in the image" >&2
         fail=1

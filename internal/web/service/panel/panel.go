@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/global"
+	"github.com/gary/dune/internal/web/service"
 )
 
 // PanelService provides business logic for panel management operations.
@@ -32,7 +32,7 @@ type PanelUpdateInfo struct {
 }
 
 const (
-	panelUpdaterURL      = "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh"
+	panelUpdaterURL      = "https://raw.githubusercontent.com/leto217/DUNE/main/update.sh"
 	maxPanelUpdaterBytes = 2 << 20
 )
 
@@ -58,7 +58,7 @@ func (s *PanelService) RestartPanel(delay time.Duration) error {
 	return nil
 }
 
-// GetUpdateInfo checks GitHub for the latest 3x-ui release.
+// GetUpdateInfo checks GitHub for the latest dune release.
 func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 	latest, err := fetchLatestPanelVersion()
 	if err != nil {
@@ -92,11 +92,11 @@ func (s *PanelService) StartUpdate() error {
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
-		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
+		unitName := fmt.Sprintf("dune-web-update-%d", time.Now().Unix())
 		cmd := exec.Command(systemdRun,
 			"--unit", unitName,
-			"--setenv", "XUI_MAIN_FOLDER="+mainFolder,
-			"--setenv", "XUI_SERVICE="+serviceFolder,
+			"--setenv", "DUNE_MAIN_FOLDER="+mainFolder,
+			"--setenv", "DUNE_SERVICE="+serviceFolder,
 			bash, "-lc", updateScript,
 		)
 		out, err := cmd.CombinedOutput()
@@ -116,8 +116,8 @@ func (s *PanelService) StartUpdate() error {
 
 	cmd := exec.Command(bash, "-lc", updateScript)
 	cmd.Env = append(os.Environ(),
-		"XUI_MAIN_FOLDER="+mainFolder,
-		"XUI_SERVICE="+serviceFolder,
+		"DUNE_MAIN_FOLDER="+mainFolder,
+		"DUNE_SERVICE="+serviceFolder,
 	)
 	setDetachedProcess(cmd)
 	if err := cmd.Start(); err != nil {
@@ -142,7 +142,7 @@ func downloadPanelUpdater() (string, error) {
 		return "", fmt.Errorf("download panel updater: unexpected HTTP %d", resp.StatusCode)
 	}
 
-	file, err := os.CreateTemp("", "3x-ui-update-*.sh")
+	file, err := os.CreateTemp("", "dune-update-*.sh")
 	if err != nil {
 		return "", err
 	}
@@ -171,7 +171,7 @@ func downloadPanelUpdater() (string, error) {
 
 func fetchLatestPanelVersion() (string, error) {
 	client := (&service.SettingService{}).NewProxiedHTTPClient(10 * time.Second)
-	resp, err := client.Get("https://api.github.com/repos/MHSanaei/3x-ui/releases/latest")
+	resp, err := client.Get("https://api.github.com/repos/leto217/DUNE/releases/latest")
 	if err != nil {
 		return "", err
 	}
@@ -191,17 +191,17 @@ func fetchLatestPanelVersion() (string, error) {
 }
 
 func resolveUpdateFolders() (string, string) {
-	mainFolder := os.Getenv("XUI_MAIN_FOLDER")
+	mainFolder := os.Getenv("DUNE_MAIN_FOLDER")
 	if mainFolder == "" {
 		if exePath, err := os.Executable(); err == nil {
 			mainFolder = filepath.Dir(exePath)
 		}
 	}
 	if mainFolder == "" {
-		mainFolder = "/usr/local/x-ui"
+		mainFolder = "/usr/local/dune"
 	}
 
-	serviceFolder := os.Getenv("XUI_SERVICE")
+	serviceFolder := os.Getenv("DUNE_SERVICE")
 	if serviceFolder == "" {
 		serviceFolder = "/etc/systemd/system"
 	}

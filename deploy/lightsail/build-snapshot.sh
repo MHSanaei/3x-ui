@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-snapshot.sh — build a reusable Amazon Lightsail snapshot of 3x-ui.
+# build-snapshot.sh — build a reusable Amazon Lightsail snapshot of dune.
 #
 # Flow (mirrors the Packer golden-image model, via the Lightsail API):
 #   1. create an Ubuntu Lightsail instance with snapshot-userdata.sh
@@ -24,7 +24,7 @@
 #   --availability-zone <z> AZ (default: <region>a)
 #   --panel-port <p>        Pin the panel port in the snapshot so you can pre-open
 #                           it in the Lightsail firewall (default: random per instance)
-#   --snapshot-name <n>     Snapshot name (default: 3x-ui-ubuntu-24.04-<timestamp>)
+#   --snapshot-name <n>     Snapshot name (default: dune-ubuntu-24.04-<timestamp>)
 #   --keep-instance         Do not delete the build instance afterwards
 set -euo pipefail
 
@@ -38,7 +38,7 @@ KEEP_INSTANCE=0
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-INSTANCE_NAME="3xui-build-${STAMP}"
+INSTANCE_NAME="dune-build-${STAMP}"
 KEY_FILE=""
 
 log() { echo "[build-snapshot] $*"; }
@@ -62,7 +62,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "$AZ" ] || AZ="${REGION}a"
-[ -n "$SNAPSHOT_NAME" ] || SNAPSHOT_NAME="3x-ui-ubuntu-24.04-${STAMP}"
+[ -n "$SNAPSHOT_NAME" ] || SNAPSHOT_NAME="dune-ubuntu-24.04-${STAMP}"
 
 for cmd in aws jq ssh; do
     command -v "$cmd" > /dev/null 2>&1 || die "'$cmd' is required"
@@ -125,7 +125,7 @@ log "waiting for provisioning to finish (this installs the panel)..."
 ok=0
 for _ in $(seq 1 72); do # ~12 min
     if ssh "${SSH_OPTS[@]}" -i "$KEY_FILE" "ubuntu@${IP}" \
-        'test -f /var/lib/3xui-provision-done' 2> /dev/null; then
+        'test -f /var/lib/dune-provision-done' 2> /dev/null; then
         ok=1
         break
     fi
@@ -137,12 +137,12 @@ log "provisioning complete."
 if [ -n "$PANEL_PORT" ]; then
     log "pinning panel port ${PANEL_PORT} (username/password stay random)..."
     ssh "${SSH_OPTS[@]}" -i "$KEY_FILE" "ubuntu@${IP}" \
-        "echo 'XUI_PANEL_PORT=${PANEL_PORT}' | sudo tee -a /etc/default/x-ui >/dev/null"
+        "echo 'DUNE_PANEL_PORT=${PANEL_PORT}' | sudo tee -a /etc/default/dune >/dev/null"
 fi
 
 log "stripping instance state (shared cleanup.sh)..."
 ssh "${SSH_OPTS[@]}" -i "$KEY_FILE" "ubuntu@${IP}" \
-    'curl -fsSL https://raw.githubusercontent.com/MHSanaei/3x-ui/main/deploy/packer/scripts/cleanup.sh | sudo bash'
+    'curl -fsSL https://raw.githubusercontent.com/leto217/DUNE/main/deploy/packer/scripts/cleanup.sh | sudo bash'
 
 log "stopping instance..."
 aws lightsail stop-instance --instance-name "$INSTANCE_NAME" --region "$REGION" > /dev/null
@@ -175,18 +175,18 @@ echo "================================================================"
 echo " Launch an instance from it:"
 echo "   aws lightsail create-instances-from-snapshot \\"
 echo "     --instance-snapshot-name ${SNAPSHOT_NAME} \\"
-echo "     --instance-names my-3xui-1 --bundle-id ${BUNDLE} \\"
+echo "     --instance-names my-dune-1 --bundle-id ${BUNDLE} \\"
 echo "     --availability-zone ${AZ} --region ${REGION}"
 if [ -n "$PANEL_PORT" ]; then
     echo
     echo " Then open the panel port (pinned to ${PANEL_PORT}):"
     echo "   aws lightsail open-instance-public-ports --region ${REGION} \\"
-    echo "     --instance-name my-3xui-1 \\"
+    echo "     --instance-name my-dune-1 \\"
     echo "     --port-info fromPort=${PANEL_PORT},toPort=${PANEL_PORT},protocol=TCP"
 else
     echo
     echo " Each instance picks a RANDOM panel port. After it boots, read it from"
-    echo "   sudo cat /etc/x-ui/credentials.txt"
+    echo "   sudo cat /etc/dune/credentials.txt"
     echo " and open that TCP port in the instance's Lightsail IPv4 firewall."
 fi
 echo "================================================================"

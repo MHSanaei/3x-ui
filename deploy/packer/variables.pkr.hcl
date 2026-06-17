@@ -1,19 +1,19 @@
-// Input variables for the 3x-ui golden-image build.
+// Input variables for the dune golden-image build.
 // See README.md for usage. Override with -var / -var-file or env (PKR_VAR_*).
 
-variable "xui_version" {
+variable "dune_version" {
   type        = string
-  description = "3x-ui release tag to install, e.g. v3.3.1. 'latest' resolves the newest GitHub release at build time."
+  description = "dune release tag to install, e.g. v3.3.1. 'latest' resolves the newest GitHub release at build time."
   default     = "latest"
 }
 
-variable "xui_arch" {
+variable "dune_arch" {
   type        = string
   description = "CPU architecture to build for: amd64 or arm64."
   default     = "amd64"
   validation {
-    condition     = contains(["amd64", "arm64"], var.xui_arch)
-    error_message = "The xui_arch value must be 'amd64' or 'arm64'."
+    condition     = contains(["amd64", "arm64"], var.dune_arch)
+    error_message = "The dune_arch value must be 'amd64' or 'arm64'."
   }
 }
 
@@ -33,19 +33,19 @@ variable "region" {
 
 variable "instance_type" {
   type        = string
-  description = "EC2 instance type used to build the AMI. Must match xui_arch (e.g. t3.small for amd64, t4g.small for arm64/Graviton)."
+  description = "EC2 instance type used to build the AMI. Must match dune_arch (e.g. t3.small for amd64, t4g.small for arm64/Graviton)."
   default     = "t3.small"
 }
 
 variable "ami_name_prefix" {
   type        = string
   description = "Prefix for the produced AMI name."
-  default     = "3x-ui"
+  default     = "dune"
 }
 
 variable "source_ami_filter_name" {
   type        = string
-  description = "Override for the Canonical Ubuntu base AMI name filter. Empty ⇒ derived from xui_arch (latest patched 24.04 LTS for that arch)."
+  description = "Override for the Canonical Ubuntu base AMI name filter. Empty ⇒ derived from dune_arch (latest patched 24.04 LTS for that arch)."
   default     = ""
 }
 
@@ -59,7 +59,7 @@ variable "ssh_username" {
 
 variable "qemu_iso_url" {
   type        = string
-  description = "Override for the Ubuntu cloud image used as the qemu base disk. Empty ⇒ derived from xui_arch (amd64/arm64 cloud image)."
+  description = "Override for the Ubuntu cloud image used as the qemu base disk. Empty ⇒ derived from dune_arch (amd64/arm64 cloud image)."
   default     = ""
 }
 
@@ -98,12 +98,12 @@ variable "qemu_cpu" {
 
 variable "qemu_efi_code" {
   type        = string
-  description = "Path to the arm64 UEFI code firmware (AAVMF). Only used when xui_arch=arm64."
+  description = "Path to the arm64 UEFI code firmware (AAVMF). Only used when dune_arch=arm64."
   default     = "/usr/share/AAVMF/AAVMF_CODE.fd"
 }
 
 variable "qemu_efi_vars" {
   type        = string
-  description = "Path to the arm64 UEFI vars firmware template (AAVMF). Only used when xui_arch=arm64."
+  description = "Path to the arm64 UEFI vars firmware template (AAVMF). Only used when dune_arch=arm64."
   default     = "/usr/share/AAVMF/AAVMF_VARS.fd"
 }

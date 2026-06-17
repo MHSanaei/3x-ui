@@ -1,5 +1,5 @@
 name: Question
-description: Ask how to do something with 3x-ui
+description: Ask how to do something with dune
 title: "[Question]: "
 labels: ["question"]
 
@@ -9,7 +9,7 @@ body:
       value: |
         Before opening a question, please:
 
-        - Read the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki) —
+        - Read the [project Wiki](https://github.com/leto217/DUNE/wiki) —
           most setup, install, and "how do I …" answers live there.
         - Search [existing issues](../issues?q=is%3Aissue) — the question
           may already have been asked.
@@ -41,9 +41,9 @@ body:
       required: false
 
   - type: input
-    id: xui-version
+    id: dune-version
     attributes:
-      label: 3x-ui version
+      label: dune version
       description: Shown at the top of the panel sidebar.
       placeholder: 3.1.0
     validations:
@@ -52,7 +52,7 @@ body:
   - type: dropdown
     id: install-method
     attributes:
-      label: How did you install 3x-ui?
+      label: How did you install dune?
       options:
         - install.sh script
         - Docker / Docker Compose
@@ -82,7 +82,7 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I read the [Wiki](https://github.com/MHSanaei/3x-ui/wiki) and searched [existing issues](../issues?q=is%3Aissue).
+        - label: I read the [Wiki](https://github.com/leto217/DUNE/wiki) and searched [existing issues](../issues?q=is%3Aissue).
           required: true
         - label: This is a usage question, not a bug report.
           required: true

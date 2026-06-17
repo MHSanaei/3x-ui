@@ -18,7 +18,7 @@ func TestCopyFileCopiesContents(t *testing.T) {
 	src := filepath.Join(dir, "src.db")
 	dst := filepath.Join(dir, "dst.db")
 
-	want := []byte("3x-ui sqlite payload\x00\x01\x02")
+	want := []byte("dune sqlite payload\x00\x01\x02")
 	if err := os.WriteFile(src, want, 0o600); err != nil {
 		t.Fatalf("write src: %v", err)
 	}

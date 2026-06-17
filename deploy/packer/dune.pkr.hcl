@@ -1,10 +1,10 @@
-// 3x-ui golden image — one build, two sources:
+// dune golden image — one build, two sources:
 //   * amazon-ebs : produces an AWS AMI (Marketplace-scannable)
 //   * qemu       : produces a qcow2 (+ raw) for Hetzner/DO/Vultr/GCP/Azure/Oracle
 //
-// The image ships WITHOUT an initialized x-ui.db and WITHOUT any baked
-// credentials. deploy/firstboot/x-ui-firstboot.{sh,service} generates unique
-// per-instance credentials on first boot, before x-ui.service starts.
+// The image ships WITHOUT an initialized dune.db and WITHOUT any baked
+// credentials. deploy/firstboot/dune-firstboot.{sh,service} generates unique
+// per-instance credentials on first boot, before dune.service starts.
 //
 // Provisioner order is fixed: provision.sh -> harden.sh -> cleanup.sh.
 
@@ -23,21 +23,21 @@ packer {
 
 locals {
   build_stamp = formatdate("YYYYMMDD-hhmmss", timestamp())
-  image_name  = "${var.ami_name_prefix}-ubuntu-${var.ubuntu_version}-${var.xui_arch}"
-  is_arm      = var.xui_arch == "arm64"
+  image_name  = "${var.ami_name_prefix}-ubuntu-${var.ubuntu_version}-${var.dune_arch}"
+  is_arm      = var.dune_arch == "arm64"
 
-  # Base images are derived from xui_arch unless explicitly overridden.
-  source_ami_name = var.source_ami_filter_name != "" ? var.source_ami_filter_name : "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.xui_arch}-server-*"
-  qemu_iso_url    = var.qemu_iso_url != "" ? var.qemu_iso_url : "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-${var.xui_arch}.img"
+  # Base images are derived from dune_arch unless explicitly overridden.
+  source_ami_name = var.source_ami_filter_name != "" ? var.source_ami_filter_name : "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.dune_arch}-server-*"
+  qemu_iso_url    = var.qemu_iso_url != "" ? var.qemu_iso_url : "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-${var.dune_arch}.img"
 }
 
-source "amazon-ebs" "x-ui" {
+source "amazon-ebs" "dune" {
   region        = var.region
   instance_type = var.instance_type
   ssh_username  = var.ssh_username
 
-  ami_name        = "${local.image_name}-${var.xui_version}-${local.build_stamp}"
-  ami_description = "3x-ui panel on Ubuntu ${var.ubuntu_version}. Per-instance credentials are generated on first boot."
+  ami_name        = "${local.image_name}-${var.dune_version}-${local.build_stamp}"
+  ami_description = "dune panel on Ubuntu ${var.ubuntu_version}. Per-instance credentials are generated on first boot."
 
   source_ami_filter {
     filters = {
@@ -58,14 +58,14 @@ source "amazon-ebs" "x-ui" {
 
   tags = {
     Name       = local.image_name
-    Project    = "3x-ui"
-    XuiVersion = var.xui_version
+    Project    = "dune"
+    XuiVersion = var.dune_version
     BuildTool  = "packer"
     BaseOS     = "ubuntu-${var.ubuntu_version}"
   }
 }
 
-source "qemu" "x-ui" {
+source "qemu" "dune" {
   iso_url      = local.qemu_iso_url
   iso_checksum = var.qemu_iso_checksum
   disk_image   = true
@@ -114,26 +114,26 @@ source "qemu" "x-ui" {
 }
 
 build {
-  name    = "3x-ui"
-  sources = ["source.amazon-ebs.x-ui", "source.qemu.x-ui"]
+  name    = "dune"
+  sources = ["source.amazon-ebs.dune", "source.qemu.dune"]
 
   // Upload the first-boot unit + script so provision.sh can install them.
   provisioner "shell" {
     inline = ["mkdir -p /tmp/firstboot"]
   }
   provisioner "file" {
-    source      = "${path.root}/../firstboot/x-ui-firstboot.sh"
-    destination = "/tmp/firstboot/x-ui-firstboot.sh"
+    source      = "${path.root}/../firstboot/dune-firstboot.sh"
+    destination = "/tmp/firstboot/dune-firstboot.sh"
   }
   provisioner "file" {
-    source      = "${path.root}/../firstboot/x-ui-firstboot.service"
-    destination = "/tmp/firstboot/x-ui-firstboot.service"
+    source      = "${path.root}/../firstboot/dune-firstboot.service"
+    destination = "/tmp/firstboot/dune-firstboot.service"
   }
 
   provisioner "shell" {
     environment_vars = [
-      "XUI_VERSION=${var.xui_version}",
-      "XUI_ARCH=${var.xui_arch}",
+      "DUNE_VERSION=${var.dune_version}",
+      "DUNE_ARCH=${var.dune_arch}",
       "DEBIAN_FRONTEND=noninteractive",
     ]
     execute_command = "chmod +x {{ .Path }}; sudo -E bash {{ .Path }}"
@@ -148,7 +148,7 @@ build {
 
   // Convert the qcow2 to raw for clouds that need it (qemu source only).
   post-processor "shell-local" {
-    only   = ["qemu.x-ui"]
+    only   = ["qemu.dune"]
     inline = ["qemu-img convert -p -O raw output-qemu/${local.image_name}.qcow2 output-qemu/${local.image_name}.raw"]
   }
 

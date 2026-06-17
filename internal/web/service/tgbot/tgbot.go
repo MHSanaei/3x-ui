@@ -15,12 +15,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/web/global"
+	"github.com/gary/dune/internal/web/locale"
+	"github.com/gary/dune/internal/web/service"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"

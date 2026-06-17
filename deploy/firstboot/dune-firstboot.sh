@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 #
-# x-ui-firstboot.sh — generate per-instance 3x-ui panel credentials on first boot.
+# dune-firstboot.sh — generate per-instance dune panel credentials on first boot.
 #
-# A golden image (AMI / qcow2) MUST ship without an initialized x-ui.db: the
+# A golden image (AMI / qcow2) MUST ship without an initialized dune.db: the
 # panel seeds a hardcoded admin/admin user and generates its session secret +
 # panel GUID on first start, so a baked DB would make every clone share the same
-# credentials and secret. This script runs ONCE, before x-ui.service starts, and
+# credentials and secret. This script runs ONCE, before dune.service starts, and
 # replaces the default admin with fresh random credentials on a random high port.
 #
 # Idempotent: a sentinel file guards against re-running. If a non-default admin
 # already exists (operator pre-configured the box), regeneration is skipped.
 #
-# Wired up by deploy/packer/scripts/provision.sh; ordered Before=x-ui.service.
+# Wired up by deploy/packer/scripts/provision.sh; ordered Before=dune.service.
 
 set -u
 
-SENTINEL="/etc/x-ui/.firstboot-done"
-CRED_FILE="/etc/x-ui/credentials.txt"
+SENTINEL="/etc/dune/.firstboot-done"
+CRED_FILE="/etc/dune/credentials.txt"
 MOTD_FILE="/etc/motd"
-XUI_DIR="${XUI_MAIN_FOLDER:-/usr/local/x-ui}"
-XUI_BIN="${XUI_DIR}/x-ui"
+DUNE_DIR="${DUNE_MAIN_FOLDER:-/usr/local/dune}"
+DUNE_BIN="${DUNE_DIR}/dune"
 
-log() { echo "[x-ui-firstboot] $*"; }
+log() { echo "[dune-firstboot] $*"; }
 
 # Already provisioned — nothing to do (idempotent on re-run / re-image).
 if [ -f "$SENTINEL" ]; then
@@ -29,15 +29,15 @@ if [ -f "$SENTINEL" ]; then
     exit 0
 fi
 
-if [ ! -x "$XUI_BIN" ]; then
-    log "ERROR: x-ui binary not found at $XUI_BIN"
+if [ ! -x "$DUNE_BIN" ]; then
+    log "ERROR: dune binary not found at $DUNE_BIN"
     exit 1
 fi
 
-# Inherit DB configuration (sqlite default; postgres via XUI_DB_TYPE/XUI_DB_DSN)
+# Inherit DB configuration (sqlite default; postgres via DUNE_DB_TYPE/DUNE_DB_DSN)
 # from the same env files the systemd unit loads, so the binary talks to the
 # same database the panel will use.
-for ef in /etc/default/x-ui /etc/conf.d/x-ui /etc/sysconfig/x-ui; do
+for ef in /etc/default/dune /etc/conf.d/dune /etc/sysconfig/dune; do
     if [ -r "$ef" ]; then
         set -a
         # shellcheck disable=SC1090
@@ -46,11 +46,11 @@ for ef in /etc/default/x-ui /etc/conf.d/x-ui /etc/sysconfig/x-ui; do
     fi
 done
 
-install -d -m 755 /etc/x-ui 2> /dev/null || true
+install -d -m 755 /etc/dune 2> /dev/null || true
 
 # Defense-in-depth: make sure the panel is not running while we mutate the DB.
 if command -v systemctl > /dev/null 2>&1; then
-    systemctl stop x-ui > /dev/null 2>&1 || true
+    systemctl stop dune > /dev/null 2>&1 || true
 fi
 
 gen_random_string() {
@@ -79,7 +79,7 @@ detect_ip() {
 }
 
 # Detect whether the seeded admin/admin default is still in place.
-default_creds=$("$XUI_BIN" setting -show true 2> /dev/null | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
+default_creds=$("$DUNE_BIN" setting -show true 2> /dev/null | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
 
 # The parse MUST yield exactly "true" or "false". If the command failed or its
 # output format changed, refuse to proceed: do NOT write the sentinel, so the
@@ -92,7 +92,7 @@ fi
 if [ "$default_creds" = "false" ]; then
     log "non-default admin already configured; skipping credential regeneration."
     {
-        echo "3x-ui first-boot: a non-default admin account already exists on this"
+        echo "dune first-boot: a non-default admin account already exists on this"
         echo "instance, so credentials were left unchanged."
     } > "$MOTD_FILE" 2> /dev/null || true
     : > "$SENTINEL" 2> /dev/null || true
@@ -102,23 +102,23 @@ fi
 
 log "generating per-instance credentials..."
 
-NEW_USER="${XUI_USERNAME:-$(gen_random_string 10)}"
-NEW_PASS="${XUI_PASSWORD:-$(gen_random_string 16)}"
-NEW_PATH="${XUI_WEB_BASE_PATH:-$(gen_random_string 18)}"
-NEW_PORT="${XUI_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
+NEW_USER="${DUNE_USERNAME:-$(gen_random_string 10)}"
+NEW_PASS="${DUNE_PASSWORD:-$(gen_random_string 16)}"
+NEW_PATH="${DUNE_WEB_BASE_PATH:-$(gen_random_string 18)}"
+NEW_PORT="${DUNE_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
 
 # Clean settings slate: drops any baked port/webBasePath and forces the panel
 # to regenerate its session secret + panel GUID on next start (per-instance).
-"$XUI_BIN" setting -reset > /dev/null 2>&1 || true
+"$DUNE_BIN" setting -reset > /dev/null 2>&1 || true
 
 # Apply fresh random identity. UpdateFirstUser renames the seeded admin row and
 # rehashes the password, so admin/admin no longer exists after this call.
-if ! "$XUI_BIN" setting -username "$NEW_USER" -password "$NEW_PASS" -port "$NEW_PORT" -webBasePath "$NEW_PATH" > /dev/null 2>&1; then
+if ! "$DUNE_BIN" setting -username "$NEW_USER" -password "$NEW_PASS" -port "$NEW_PORT" -webBasePath "$NEW_PATH" > /dev/null 2>&1; then
     log "ERROR: failed to apply new panel settings."
     exit 1
 fi
 
-API_TOKEN=$("$XUI_BIN" setting -getApiToken true 2> /dev/null | grep -Eo 'apiToken: .+' | awk '{print $2}')
+API_TOKEN=$("$DUNE_BIN" setting -getApiToken true 2> /dev/null | grep -Eo 'apiToken: .+' | awk '{print $2}')
 SERVER_IP=$(detect_ip)
 ACCESS_URL="http://${SERVER_IP}:${NEW_PORT}/${NEW_PATH}"
 
@@ -127,13 +127,13 @@ ACCESS_URL="http://${SERVER_IP}:${NEW_PORT}/${NEW_PATH}"
 # metacharacters (the smoke test and operators source this file).
 umask 077
 {
-    echo "# 3x-ui per-instance credentials (generated on first boot)"
-    printf 'XUI_USERNAME=%q\n' "$NEW_USER"
-    printf 'XUI_PASSWORD=%q\n' "$NEW_PASS"
-    printf 'XUI_PANEL_PORT=%q\n' "$NEW_PORT"
-    printf 'XUI_WEB_BASE_PATH=%q\n' "$NEW_PATH"
-    printf 'XUI_ACCESS_URL=%q\n' "$ACCESS_URL"
-    printf 'XUI_API_TOKEN=%q\n' "$API_TOKEN"
+    echo "# dune per-instance credentials (generated on first boot)"
+    printf 'DUNE_USERNAME=%q\n' "$NEW_USER"
+    printf 'DUNE_PASSWORD=%q\n' "$NEW_PASS"
+    printf 'DUNE_PANEL_PORT=%q\n' "$NEW_PORT"
+    printf 'DUNE_WEB_BASE_PATH=%q\n' "$NEW_PATH"
+    printf 'DUNE_ACCESS_URL=%q\n' "$ACCESS_URL"
+    printf 'DUNE_API_TOKEN=%q\n' "$API_TOKEN"
 } > "$CRED_FILE"
 chmod 600 "$CRED_FILE" 2> /dev/null || true
 
@@ -143,7 +143,7 @@ chmod 600 "$CRED_FILE" 2> /dev/null || true
 cat > "$MOTD_FILE" 2> /dev/null << EOF
 
 ========================================================================
-  3x-ui panel — per-instance credentials (generated on first boot)
+  dune panel — per-instance credentials (generated on first boot)
 ========================================================================
   Access URL : ${ACCESS_URL}
   Username   : ${NEW_USER}

@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "3X-UI Panel API",
+    "title": "Dune Panel API",
     "version": "3.x",
-    "description": "Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password."
+    "description": "Programmatic interface to a Dune panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password."
   },
   "servers": [
     {
@@ -21,14 +21,20 @@
       "cookieAuth": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "3x-ui",
+        "name": "dune",
         "description": "Session cookie set by POST /login. Browser-only."
       }
     },
     "schemas": {
       "AllSetting": {
-        "description": "AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.",
+        "description": "AllSetting contains all configuration settings for the dune panel including web server, Telegram bot, and subscription settings.",
         "properties": {
+          "clientIpJobInterval": {
+            "description": "How often the IP-limit scan runs",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "datepicker": {
             "description": "Date picker format",
             "type": "string"
@@ -113,6 +119,18 @@
           },
           "ldapVlessField": {
             "type": "string"
+          },
+          "nodeHeartbeatInterval": {
+            "description": "How often remote nodes are health-checked",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "nodeTrafficInterval": {
+            "description": "How often remote-node traffic is synced",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           },
           "pageSize": {
             "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
@@ -345,6 +363,12 @@
             "minimum": 0,
             "type": "integer"
           },
+          "trafficJobInterval": {
+            "description": "Background-job cadences (seconds). Raising these reduces the panel's\nrecurring CPU/DB load at the cost of slower traffic/online updates.\nHow often local Xray traffic is collected and persisted",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "trustedProxyCIDRs": {
             "description": "Trusted reverse proxy IPs/CIDRs for forwarded headers",
             "type": "string"
@@ -387,9 +411,16 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "xrayRestartInterval": {
+            "description": "How often a pending Xray restart request is applied",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
+          "clientIpJobInterval",
           "datepicker",
           "expireDiff",
           "externalTrafficInformEnable",
@@ -414,6 +445,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeHeartbeatInterval",
+          "nodeTrafficInterval",
           "pageSize",
           "panelOutbound",
           "remarkTemplate",
@@ -468,6 +501,7 @@
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
+          "trafficJobInterval",
           "trustedProxyCIDRs",
           "twoFactorEnable",
           "twoFactorToken",
@@ -477,13 +511,20 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "xrayRestartInterval"
         ],
         "type": "object"
       },
       "AllSettingView": {
         "description": "AllSettingView is the browser-safe settings read model. Secret values\nare redacted from the embedded write model and represented by presence\nflags so the UI can show configured/not configured state.",
         "properties": {
+          "clientIpJobInterval": {
+            "description": "How often the IP-limit scan runs",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "datepicker": {
             "description": "Date picker format",
             "type": "string"
@@ -590,6 +631,18 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeHeartbeatInterval": {
+            "description": "How often remote nodes are health-checked",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "nodeTrafficInterval": {
+            "description": "How often remote-node traffic is synced",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "pageSize": {
             "description": "UI settings\nNumber of items per page in lists (0 disables pagination)",
             "maximum": 1000,
@@ -821,6 +874,12 @@
             "minimum": 0,
             "type": "integer"
           },
+          "trafficJobInterval": {
+            "description": "Background-job cadences (seconds). Raising these reduces the panel's\nrecurring CPU/DB load at the cost of slower traffic/online updates.\nHow often local Xray traffic is collected and persisted",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
           "trustedProxyCIDRs": {
             "description": "Trusted reverse proxy IPs/CIDRs for forwarded headers",
             "type": "string"
@@ -863,9 +922,16 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "xrayRestartInterval": {
+            "description": "How often a pending Xray restart request is applied",
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
+          "clientIpJobInterval",
           "datepicker",
           "expireDiff",
           "externalTrafficInformEnable",
@@ -897,6 +963,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeHeartbeatInterval",
+          "nodeTrafficInterval",
           "pageSize",
           "panelOutbound",
           "remarkTemplate",
@@ -951,6 +1019,7 @@
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
+          "trafficJobInterval",
           "trustedProxyCIDRs",
           "twoFactorEnable",
           "twoFactorToken",
@@ -960,7 +1029,8 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "xrayRestartInterval"
         ],
         "type": "object"
       },
@@ -1786,7 +1856,7 @@
         "type": "object"
       },
       "Node": {
-        "description": "Node represents a remote 3x-ui panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
+        "description": "Node represents a remote dune panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
         "properties": {
           "address": {
             "example": "node1.example.com",
@@ -2079,7 +2149,7 @@
         "type": "object"
       },
       "Setting": {
-        "description": "Setting stores key-value configuration settings for the 3x-ui panel.",
+        "description": "Setting stores key-value configuration settings for the dune panel.",
         "properties": {
           "id": {
             "type": "integer"
@@ -2099,7 +2169,7 @@
         "type": "object"
       },
       "User": {
-        "description": "User represents a user account in the 3x-ui panel.",
+        "description": "User represents a user account in the dune panel.",
         "properties": {
           "id": {
             "type": "integer"
@@ -2147,7 +2217,7 @@
     },
     {
       "name": "Nodes",
-      "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
+      "description": "Manage remote dune panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
     },
     {
       "name": "Hosts",
@@ -3575,7 +3645,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Check whether a newer 3x-ui release is available on GitHub.",
+        "summary": "Check whether a newer dune release is available on GitHub.",
         "operationId": "get_panel_api_server_getPanelUpdateInfo",
         "responses": {
           "200": {
@@ -8140,7 +8210,7 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
+        "summary": "Restart the entire dune process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
         "operationId": "post_panel_api_setting_restartPanel",
         "responses": {
           "200": {

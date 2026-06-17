@@ -21,12 +21,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/util/sys"
+	"github.com/gary/dune/internal/xray"
 
 	"github.com/google/uuid"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -963,12 +963,12 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use hardcoded command with validated parameters
-		cmd := exec.Command("journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		cmd := exec.Command("journalctl", "-u", "dune", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
-			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
+			return []string{"Failed to run journalctl command! Make sure systemd is available and dune service is registered."}
 		}
 		lines = strings.Split(out.String(), "\n")
 	} else {
@@ -1166,7 +1166,7 @@ func (s *ServerService) GetDb() ([]byte, error) {
 // then seed a panel running on the other backend.
 func (s *ServerService) GetMigration() ([]byte, string, error) {
 	if database.IsPostgres() {
-		tmp, err := os.CreateTemp("", "x-ui-migration-*.db")
+		tmp, err := os.CreateTemp("", "dune-migration-*.db")
 		if err != nil {
 			return nil, "", err
 		}
@@ -1181,7 +1181,7 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		return data, "x-ui.db", nil
+		return data, "dune.db", nil
 	}
 
 	// SQLite panel: checkpoint so the .db reflects the latest writes, then dump.
@@ -1192,7 +1192,7 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return data, "x-ui.dump", nil
+	return data, "dune.dump", nil
 }
 
 func (s *ServerService) ImportDB(file multipart.File) error {
@@ -1403,7 +1403,7 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 		return common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}
 
-	tempFile, err := os.CreateTemp("", "x-ui-pg-restore-*.dump")
+	tempFile, err := os.CreateTemp("", "dune-pg-restore-*.dump")
 	if err != nil {
 		return common.NewErrorf("Error creating temporary dump file: %v", err)
 	}

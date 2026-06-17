@@ -3,8 +3,8 @@ package job
 import (
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/web/service"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 )

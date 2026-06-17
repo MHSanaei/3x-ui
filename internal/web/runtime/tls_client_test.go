@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/util/crypto"
 )
 
 // masterCertForTest builds a real CA-signed client certificate for mtls tests.

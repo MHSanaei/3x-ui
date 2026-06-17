@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/xray"
 )
 
 // ClientSlim is the row-shape used by the clients page. It drops fields the
@@ -89,19 +89,10 @@ const (
 	clientPageMaxSize     = 200
 )
 
-// ListPaged loads every client (with traffic + attachments) into memory,
-// applies the requested filter / search / protocol predicates, sorts, and
-// returns the requested page along with total and filtered counts. The DB
-// query itself is unchanged from List(); the win is that the response
-// only carries 25-ish slim rows over the wire instead of all 2000 full
-// records, which on real panels was the dominant cost.
+// ListPaged loads clients with traffic + attachments, applies filter/search
+// predicates, sorts, and returns the requested page. When no filters are
+// active, pagination happens in SQL so only one page of rows is loaded.
 func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
-	all, err := s.List()
-	if err != nil {
-		return nil, err
-	}
-	total := len(all)
-
 	pageSize := params.PageSize
 	if pageSize <= 0 {
 		pageSize = clientPageDefaultSize
@@ -113,6 +104,16 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 	if page <= 0 {
 		page = 1
 	}
+
+	if !clientPageNeedsFullScan(params) {
+		return s.listPagedFast(inboundSvc, settingSvc, params, page, pageSize)
+	}
+
+	all, err := s.List()
+	if err != nil {
+		return nil, err
+	}
+	total := len(all)
 
 	protocols := parseCSVStrings(params.Protocol)
 	inboundIDs := parseCSVInts(params.Inbound)
@@ -216,6 +217,104 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		Items:    items,
 		Total:    total,
 		Filtered: filteredCount,
+		Page:     page,
+		PageSize: pageSize,
+		Summary:  summary,
+		Groups:   groups,
+	}, nil
+}
+
+func clientPageNeedsFullScan(p ClientPageParams) bool {
+	if strings.TrimSpace(p.Search) != "" {
+		return true
+	}
+	if p.Filter != "" || p.Protocol != "" || p.Inbound != "" {
+		return true
+	}
+	if p.ExpiryFrom > 0 || p.ExpiryTo > 0 || p.UsageFrom > 0 || p.UsageTo > 0 {
+		return true
+	}
+	if p.AutoRenew != "" || p.HasTgID != "" || p.HasComment != "" || p.Group != "" {
+		return true
+	}
+	switch p.Sort {
+	case "inboundIds", "traffic", "remaining", "lastOnline":
+		return true
+	}
+	return false
+}
+
+func clientPageSortColumn(sortKey string) (string, bool) {
+	switch sortKey {
+	case "enable":
+		return "enable", true
+	case "email":
+		return "email", true
+	case "expiryTime":
+		return "expiry_time", true
+	case "createdAt":
+		return "created_at", true
+	case "updatedAt":
+		return "updated_at", true
+	default:
+		return "", false
+	}
+}
+
+func (s *ClientService) listPagedFast(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams, page, pageSize int) (*ClientPageResponse, error) {
+	total, err := s.countClients()
+	if err != nil {
+		return nil, err
+	}
+
+	summaryRows, err := s.listForSummary()
+	if err != nil {
+		return nil, err
+	}
+
+	onlines := inboundSvc.GetOnlineClients()
+	onlineSet := make(map[string]struct{}, len(onlines))
+	for _, e := range onlines {
+		onlineSet[e] = struct{}{}
+	}
+
+	var expireDiffMs, trafficDiffBytes int64
+	if settingSvc != nil {
+		if v, err := settingSvc.GetExpireDiff(); err == nil {
+			expireDiffMs = int64(v) * 86400000
+		}
+		if v, err := settingSvc.GetTrafficDiff(); err == nil {
+			trafficDiffBytes = int64(v) * 1073741824
+		}
+	}
+
+	nowMs := time.Now().UnixMilli()
+	summary := buildClientsSummary(summaryRows, onlineSet, nowMs, expireDiffMs, trafficDiffBytes)
+
+	offset := (page - 1) * pageSize
+	pageRows, err := s.listPage(offset, pageSize, params.Sort, params.Order)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]ClientSlim, 0, len(pageRows))
+	for _, c := range pageRows {
+		items = append(items, toClientSlim(c))
+	}
+
+	groupRows, gErr := s.ListGroups()
+	if gErr != nil {
+		return nil, gErr
+	}
+	groups := make([]string, 0, len(groupRows))
+	for _, g := range groupRows {
+		groups = append(groups, g.Name)
+	}
+
+	return &ClientPageResponse{
+		Items:    items,
+		Total:    total,
+		Filtered: total,
 		Page:     page,
 		PageSize: pageSize,
 		Summary:  summary,

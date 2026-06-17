@@ -15,6 +15,11 @@ export class AllSetting {
   trafficDiff = 0;
   remarkTemplate = '{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
+  trafficJobInterval = 5;
+  clientIpJobInterval = 10;
+  nodeHeartbeatInterval = 5;
+  nodeTrafficInterval = 5;
+  xrayRestartInterval = 30;
   tgBotEnable = false;
   tgBotToken = '';
   tgBotAPIServer = '';

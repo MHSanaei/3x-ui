@@ -2,24 +2,24 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./media/dune-dark.png">
+    <img alt="dune" src="./media/dune-light.png">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/leto217/DUNE/releases"><img src="https://img.shields.io/github/v/release/leto217/DUNE" alt="Release"></a>
+  <a href="https://github.com/leto217/DUNE/actions"><img src="https://img.shields.io/github/actions/workflow/status/leto217/DUNE/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/leto217/DUNE.svg" alt="GO Version"></a>
+  <a href="https://github.com/leto217/DUNE/releases/latest"><img src="https://img.shields.io/github/downloads/leto217/DUNE/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
+  <a href="https://pkg.go.dev/github.com/leto217/DUNE"><img src="https://pkg.go.dev/badge/github.com/leto217/DUNE.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/leto217/DUNE"><img src="https://goreportcard.com/badge/github.com/leto217/DUNE" alt="Go Report Card"></a>
 </p>
 
-**3X-UI** 是一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。它提供简洁、多语言的界面，用于部署、配置和监控各种代理与 VPN 协议——从单台 VPS 到多节点部署。
+**DUNE** 是 [3X-UI](https://github.com/MHSanaei/3x-ui) 的轻量级分支——用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器的开源 Web 控制面板。它保留 3X-UI 熟悉的工作流程和协议支持，同时显著降低 CPU 与内存占用，非常适合小型 VPS 等资源受限的环境。
 
-3X-UI 作为原始 X-UI 项目的增强分支（fork），增加了更广泛的协议支持、更好的稳定性、按客户端的流量统计以及许多提升使用体验的功能。
+DUNE 从 3X-UI 分叉而来，专注于效率：减少后台任务、收紧内存使用、精简技术栈，让面板保持响应迅速，而不占用过多服务器资源。
 
 > [!IMPORTANT]
 > 本项目仅供个人使用。请勿将其用于非法目的，也请勿在生产环境中使用。
@@ -70,12 +70,12 @@
 ## 快速开始
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/leto217/DUNE/main/install.sh)
 ```
 
-安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `x-ui` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。
+安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `dune` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。
 
-完整文档请参阅 [项目Wiki](https://github.com/MHSanaei/3x-ui/wiki)。
+完整文档请参阅 [项目Wiki](https://github.com/leto217/DUNE/wiki)。
 
 ## 支持的平台
 
@@ -85,31 +85,31 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## 数据库选项
 
-3X-UI 支持两种后端，可在安装时选择：
+Dune 支持两种后端，可在安装时选择：
 
-- **SQLite**（默认）— 位于 `/etc/x-ui/x-ui.db` 的单个文件。无需配置，适合中小型部署。
+- **SQLite**（默认）— 位于 `/etc/dune/dune.db` 的单个文件。无需配置，适合中小型部署。
 - **PostgreSQL** — 推荐用于大量客户端或多节点设置。安装程序可以为您在本地安装 PostgreSQL，或接受指向现有服务器的 DSN。
 
-运行时通过环境变量选择后端（安装程序会为您写入 `/etc/default/x-ui`）：
+运行时通过环境变量选择后端（安装程序会为您写入 `/etc/default/dune`）：
 
 ```
-XUI_DB_TYPE=postgres
-XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+DUNE_DB_TYPE=postgres
+DUNE_DB_DSN=postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable
 ```
 
 ### 将现有的 SQLite 安装迁移到 PostgreSQL
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# 然后在 /etc/default/x-ui 中设置 XUI_DB_TYPE 和 XUI_DB_DSN 并重启：
-systemctl restart x-ui
+dune migrate-db --dsn "postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable"
+# 然后在 /etc/default/dune 中设置 DUNE_DB_TYPE 和 DUNE_DB_DSN 并重启：
+systemctl restart dune
 ```
 
 源 SQLite 文件保持不变；在确认新后端正常工作后，请手动删除它。
 
 ### Docker
 
-默认的 `docker compose up -d` 仍使用 SQLite。若要使用捆绑的 PostgreSQL 服务运行，请取消注释 `docker-compose.yml` 中的两行 `XUI_DB_*` 环境变量，并使用该 profile 启动：
+默认的 `docker compose up -d` 仍使用 SQLite。若要使用捆绑的 PostgreSQL 服务运行，请取消注释 `docker-compose.yml` 中的两行 `DUNE_DB_*` 环境变量，并使用该 profile 启动：
 
 ```bash
 docker compose --profile postgres up -d
@@ -118,22 +118,22 @@ docker compose --profile postgres up -d
 该镜像捆绑了 Fail2ban（默认启用），用于强制执行按客户端的 **IP 限制**。Fail2ban 使用 `iptables` 封禁违规者，这需要 `NET_ADMIN` 权限。`docker-compose.yml` 已通过 `cap_add` 授予该权限；如果您改用 `docker run` 启动容器，请自行添加这些权限，否则封禁只会被记录而永远不会生效：
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/leto217/DUNE
 ```
 
 ## 环境变量
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `XUI_DB_TYPE` | 数据库后端：`sqlite` 或 `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL 连接字符串（当 `XUI_DB_TYPE=postgres` 时） | — |
-| `XUI_DB_FOLDER` | SQLite 数据库文件所在目录 | `/etc/x-ui` |
-| `XUI_DB_MAX_OPEN_CONNS` | 最大打开连接数（PostgreSQL 连接池） | — |
-| `XUI_DB_MAX_IDLE_CONNS` | 最大空闲连接数（PostgreSQL 连接池） | — |
-| `XUI_INIT_WEB_BASE_PATH` | Web 面板的初始 URI 路径 | `/` |
-| `XUI_ENABLE_FAIL2BAN` | 启用基于 Fail2ban 的 IP 限制 | `true` |
-| `XUI_LOG_LEVEL` | 日志级别（`debug`、`info`、`warning`、`error`） | `info` |
-| `XUI_DEBUG` | 启用调试模式 | `false` |
+| `DUNE_DB_TYPE` | 数据库后端：`sqlite` 或 `postgres` | `sqlite` |
+| `DUNE_DB_DSN` | PostgreSQL 连接字符串（当 `DUNE_DB_TYPE=postgres` 时） | — |
+| `DUNE_DB_FOLDER` | SQLite 数据库文件所在目录 | `/etc/dune` |
+| `DUNE_DB_MAX_OPEN_CONNS` | 最大打开连接数（PostgreSQL 连接池） | — |
+| `DUNE_DB_MAX_IDLE_CONNS` | 最大空闲连接数（PostgreSQL 连接池） | — |
+| `DUNE_INIT_WEB_BASE_PATH` | Web 面板的初始 URI 路径 | `/` |
+| `DUNE_ENABLE_FAIL2BAN` | 启用基于 Fail2ban 的 IP 限制 | `true` |
+| `DUNE_LOG_LEVEL` | 日志级别（`debug`、`info`、`warning`、`error`） | `info` |
+| `DUNE_DEBUG` | 启用调试模式 | `false` |
 
 ## 支持的语言
 
@@ -156,23 +156,20 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## 社区工具
 
-社区围绕 3x-ui 构建的工具和集成。
+社区围绕 dune 构建的工具和集成。
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
+- [terraform-provider-dune](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
 
 ## 支持项目
 
 **如果这个项目对您有帮助，您可以给它一个**:star2:
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
+| 网络 | 地址 |
+| --- | --- |
+| TON | `UQAa5FpNlK8Gp7tO8luJXHD-Sf0pPjJbNHGo8hdkyuUBhWEa` |
+| TRON | `TLqtTfYSzPLFm8mtFDkSnXvzucxx7DS5VL` |
+| ERC20 and BEP20 | `0x2fe632d70f4612b87670f8a28b4587ea2641452d` |
 
 ## 随时间变化的星标数
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/leto217/DUNE.svg?variant=adaptive)](https://starchart.cc/leto217/DUNE)

@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 )
 
 func initMigrateDB(t *testing.T) {
 	t.Helper()
-	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+	if err := InitDB(filepath.Join(t.TempDir(), "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = CloseDB() })
@@ -121,8 +121,8 @@ func TestMigrate_KeepsExternalProxyIntact(t *testing.T) {
 
 // #5 — same against a real Postgres DSN (sequence resync); skips without a DSN.
 func TestMigrate_Postgres(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres migration test")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres migration test")
 	}
 	if err := InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)

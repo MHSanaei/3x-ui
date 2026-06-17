@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/locale"
+	"github.com/gary/dune/internal/web/service"
 )
 
 // Subscriber handles event bus messages and sends email notifications.

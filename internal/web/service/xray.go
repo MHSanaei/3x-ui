@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/json_util"
+	"github.com/gary/dune/internal/xray"
 
 	"go.uber.org/atomic"
 )
@@ -124,27 +124,25 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
-	inbounds, err := s.inboundService.GetAllInbounds()
+	inbounds, err := s.inboundService.GetEnabledLocalInbounds()
 	if err != nil {
 		return nil, err
 	}
+
+	inboundIds := make([]int, 0, len(inbounds))
 	for _, inbound := range inbounds {
-		if !inbound.Enable {
-			continue
-		}
-		if inbound.NodeID != nil {
-			continue
-		}
-		if inbound.Protocol == model.MTProto {
-			continue
-		}
+		inboundIds = append(inboundIds, inbound.Id)
+	}
+	clientsByInbound, listErr := s.inboundService.clientService.ListForInbounds(nil, inboundIds...)
+	if listErr != nil {
+		return nil, listErr
+	}
+
+	for _, inbound := range inbounds {
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 
-		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
-		if listErr != nil {
-			return nil, listErr
-		}
+		dbClients := clientsByInbound[inbound.Id]
 
 		clientStats := inbound.ClientStats
 		enableMap := make(map[string]bool, len(clientStats))

@@ -5,12 +5,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/middleware"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/service/panel"
+	"github.com/gary/dune/internal/web/service/tgbot"
+	"github.com/gary/dune/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )

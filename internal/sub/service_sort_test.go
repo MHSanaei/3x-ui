@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 )
 
 // TestGetSubs_OrdersBySubSortIndexThenId verifies that subscription output
@@ -15,8 +15,8 @@ import (
 // formats, so asserting on GetSubs covers all of them.
 func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })

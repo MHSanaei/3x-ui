@@ -15,7 +15,7 @@ const (
 	// HashHeader carries the lowercase-hex SHA-256 of the (uncompressed) body.
 	HashHeader = "X-Config-Sha256"
 	// CapsHeader is set by a node on its API responses to advertise support.
-	CapsHeader = "X-3x-Node-Caps"
+	CapsHeader = "X-Dune-Node-Caps"
 	// EncodingZstd is the Content-Encoding value for a zstd-compressed body.
 	EncodingZstd = "zstd"
 	// CapZstd is the capability token advertised in CapsHeader.

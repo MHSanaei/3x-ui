@@ -8,7 +8,7 @@ import (
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 )
 
 type SubClashService struct {

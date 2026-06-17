@@ -1,0 +1,173 @@
+/* ── Dune Design System — Color Tokens ─────────────────────────────
+   Cinematic desert palette: deep sand, warm beige, bronze, copper,
+   muted gold, and dark spice-brown accents. */
+
+:root,
+body.light {
+  /* Core palette */
+  --dune-sand-deep: #c4a882;
+  --dune-sand: #d4c4a8;
+  --dune-beige: #e8d5b7;
+  --dune-beige-warm: #f5ede0;
+  --dune-bronze: #a67c52;
+  --dune-copper: #b87333;
+  --dune-gold: #c9a84c;
+  --dune-gold-bright: #d4af37;
+  --dune-gold-muted: #b8860b;
+  --dune-spice: #3d2914;
+  --dune-spice-dark: #2c1810;
+  --dune-spice-deeper: #1a1008;
+
+  /* Semantic surfaces */
+  --bg-page: #e8dfd0;
+  --bg-card: #faf6f0;
+  --bg-elevated: #fffdf8;
+  --bg-sider: #f0e6d6;
+  --bg-input: #fffdf8;
+
+  /* Text */
+  --dune-text: #2c1810;
+  --dune-text-secondary: #5c4033;
+  --dune-text-muted: #8b7355;
+
+  /* Borders & effects */
+  --dune-border: rgba(60, 36, 16, 0.12);
+  --dune-border-subtle: rgba(60, 36, 16, 0.08);
+  --dune-border-gold: rgba(201, 168, 76, 0.4);
+  --dune-accent-glow: rgba(201, 168, 76, 0.18);
+  --dune-accent-glow-strong: rgba(201, 168, 76, 0.32);
+
+  /* Gradients */
+  --dune-gradient-page: linear-gradient(
+    165deg,
+    #ede4d4 0%,
+    #e0d4c0 35%,
+    #d4c4a8 100%
+  );
+  --dune-gradient-card: linear-gradient(
+    145deg,
+    rgba(255, 253, 248, 0.95) 0%,
+    rgba(245, 237, 224, 0.9) 100%
+  );
+  --dune-gradient-gold: linear-gradient(135deg, #c9a84c 0%, #b87333 50%, #a67c52 100%);
+  --dune-gradient-metal: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+
+  /* Shadows */
+  --dune-shadow-soft: 0 2px 12px rgba(44, 24, 16, 0.06);
+  --dune-shadow-card:
+    0 1px 2px rgba(44, 24, 16, 0.04),
+    0 4px 16px rgba(44, 24, 16, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --dune-shadow-card-hover:
+    0 4px 8px rgba(44, 24, 16, 0.06),
+    0 16px 40px rgba(44, 24, 16, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --dune-shadow-button: 0 2px 8px rgba(166, 124, 82, 0.25);
+  --dune-shadow-inset: inset 0 1px 2px rgba(44, 24, 16, 0.06);
+
+  /* Typography */
+  --dune-font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --dune-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --dune-letter-wide: 0.04em;
+  --dune-letter-display: 0.08em;
+
+  /* Motion */
+  --dune-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dune-duration: 0.25s;
+  --dune-duration-slow: 0.4s;
+
+  /* Grain overlay opacity */
+  --dune-grain-opacity: 0.035;
+}
+
+body.dark {
+  --bg-page: #1a1612;
+  --bg-card: #252018;
+  --bg-elevated: #2e2820;
+  --bg-sider: #14110e;
+  --bg-input: #1e1a15;
+
+  --dune-text: rgba(232, 213, 183, 0.92);
+  --dune-text-secondary: rgba(196, 168, 130, 0.72);
+  --dune-text-muted: rgba(160, 140, 110, 0.55);
+
+  --dune-border: rgba(201, 168, 76, 0.12);
+  --dune-border-subtle: rgba(255, 255, 255, 0.06);
+  --dune-border-gold: rgba(212, 175, 55, 0.3);
+  --dune-accent-glow: rgba(212, 175, 55, 0.12);
+  --dune-accent-glow-strong: rgba(212, 175, 55, 0.22);
+
+  --dune-gradient-page: linear-gradient(
+    165deg,
+    #1a1612 0%,
+    #12100c 45%,
+    #0a0806 100%
+  );
+  --dune-gradient-card: linear-gradient(
+    145deg,
+    rgba(46, 40, 32, 0.95) 0%,
+    rgba(37, 32, 24, 0.9) 100%
+  );
+  --dune-gradient-gold: linear-gradient(135deg, #d4af37 0%, #c9a84c 50%, #b87333 100%);
+  --dune-gradient-metal: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+
+  --dune-shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.35);
+  --dune-shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --dune-shadow-card-hover:
+    0 8px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --dune-shadow-button: 0 2px 12px rgba(212, 175, 55, 0.2);
+  --dune-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  --dune-grain-opacity: 0.05;
+}
+
+html[data-theme='ultra-dark'] body.dark {
+  --bg-page: #0a0806;
+  --bg-card: #12100c;
+  --bg-elevated: #1a1612;
+  --bg-sider: #080604;
+  --bg-input: #0e0c0a;
+
+  --dune-shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  --dune-shadow-card-hover:
+    0 8px 28px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  --dune-grain-opacity: 0.06;
+}
+
+/* Subtle film-grain texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--dune-grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dune-duration: 0.01ms;
+    --dune-duration-slow: 0.01ms;
+  }
+}

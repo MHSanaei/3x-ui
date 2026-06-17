@@ -4,7 +4,7 @@
 #
 # Focus: the controls the scanner actually checks — key-only SSH, no root
 # password login, and no default OS account passwords. A restrictive host
-# firewall is intentionally NOT enforced by default because 3x-ui opens Xray
+# firewall is intentionally NOT enforced by default because dune opens Xray
 # inbound ports on admin-chosen ports at runtime (see README for the rationale
 # and how to add ufw rules if you want them).
 set -euo pipefail
@@ -12,14 +12,14 @@ export DEBIAN_FRONTEND=noninteractive
 
 echo "[harden] applying SSH hardening..."
 install -d -m 755 /etc/ssh/sshd_config.d
-cat > /etc/ssh/sshd_config.d/99-3xui-hardening.conf << 'EOF'
-# 3x-ui golden image hardening (AWS Marketplace scanner compliance)
+cat > /etc/ssh/sshd_config.d/99-dune-hardening.conf << 'EOF'
+# dune golden image hardening (AWS Marketplace scanner compliance)
 PasswordAuthentication no
 PermitRootLogin prohibit-password
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 EOF
-chmod 644 /etc/ssh/sshd_config.d/99-3xui-hardening.conf
+chmod 644 /etc/ssh/sshd_config.d/99-dune-hardening.conf
 
 echo "[harden] locking passwords on default OS accounts..."
 # No account may ship with a usable password. Keys are provisioned per-instance

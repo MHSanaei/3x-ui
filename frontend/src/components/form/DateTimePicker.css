@@ -15,14 +15,14 @@
 
 .jdp-dark .jdp-wrap input,
 .jdp-dark input {
-  color: rgba(255, 255, 255, 0.88) !important;
-  background-color: #23252b !important;
+  color: rgba(232, 213, 183, 0.92) !important;
+  background-color: #252018 !important;
 }
 
 .jdp-ultra .jdp-wrap input,
 .jdp-ultra input {
-  color: rgba(255, 255, 255, 0.88) !important;
-  background-color: #101013 !important;
+  color: rgba(232, 213, 183, 0.92) !important;
+  background-color: #12100c !important;
 }
 
 .jdp-dark input::placeholder,

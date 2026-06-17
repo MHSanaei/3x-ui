@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/netsafe"
+	"github.com/gary/dune/internal/util/wirecodec"
+	"github.com/gary/dune/internal/xray"
 )
 
 const remoteHTTPTimeout = 10 * time.Second
@@ -39,7 +39,7 @@ type Remote struct {
 
 	mu            sync.RWMutex
 	remoteIDByTag map[string]int
-	// supportsZstd is learned from the node's X-3x-Node-Caps response header; once
+	// supportsZstd is learned from the node's X-Dune-Node-Caps response header; once
 	// seen, config pushes to this node are zstd-compressed. Old nodes never set
 	// it, so they keep receiving plain bodies (mixed-version safe).
 	supportsZstd bool

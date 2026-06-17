@@ -1,11 +1,11 @@
-// Package job provides background job implementations for the 3x-ui web panel,
+// Package job provides background job implementations for the dune web panel,
 // including traffic monitoring, system checks, and periodic maintenance tasks.
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/service"
 )
 
 // EventBus is set from web layer to publish events.

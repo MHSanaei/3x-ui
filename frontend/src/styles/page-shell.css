@@ -1,3 +1,5 @@
+/* ── Panel page shell — shared layout surfaces ───────────────────── */
+
 .index-page,
 .clients-page,
 .inbounds-page,
@@ -5,35 +7,11 @@
 .settings-page,
 .nodes-page,
 .groups-page,
-.api-docs-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
+.api-docs-page,
+.donate-page,
+.hosts-page {
   min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.index-page.is-dark,
-.clients-page.is-dark,
-.inbounds-page.is-dark,
-.xray-page.is-dark,
-.settings-page.is-dark,
-.nodes-page.is-dark,
-.groups-page.is-dark,
-.api-docs-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.index-page.is-dark.is-ultra,
-.clients-page.is-dark.is-ultra,
-.inbounds-page.is-dark.is-ultra,
-.xray-page.is-dark.is-ultra,
-.settings-page.is-dark.is-ultra,
-.nodes-page.is-dark.is-ultra,
-.groups-page.is-dark.is-ultra,
-.api-docs-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
+  background: var(--dune-gradient-page);
 }
 
 .index-page .ant-layout,
@@ -51,7 +29,11 @@
 .groups-page .ant-layout,
 .groups-page .ant-layout-content,
 .api-docs-page .ant-layout,
-.api-docs-page .ant-layout-content {
+.api-docs-page .ant-layout-content,
+.donate-page .ant-layout,
+.donate-page .ant-layout-content,
+.hosts-page .ant-layout,
+.hosts-page .ant-layout-content {
   background: transparent;
 }
 
@@ -62,7 +44,9 @@
 .settings-page .content-shell,
 .nodes-page .content-shell,
 .groups-page .content-shell,
-.api-docs-page .content-shell {
+.api-docs-page .content-shell,
+.donate-page .content-shell,
+.hosts-page .content-shell {
   background: transparent;
 }
 
@@ -72,16 +56,20 @@
 .xray-page .content-area,
 .settings-page .content-area,
 .nodes-page .content-area,
-.groups-page .content-area {
-  padding: 24px;
+.groups-page .content-area,
+.donate-page .content-area,
+.hosts-page .content-area {
+  padding: 28px;
 }
 
 @media (max-width: 768px) {
   .clients-page .content-area,
   .inbounds-page .content-area,
   .nodes-page .content-area,
-  .groups-page .content-area {
-    padding: 8px;
+  .groups-page .content-area,
+  .donate-page .content-area,
+  .hosts-page .content-area {
+    padding: 12px;
   }
 }
 
@@ -89,8 +77,7 @@
   min-height: calc(100vh - 120px);
 }
 
-/* Tall action menus (e.g. the inbound/client context menus) must stay inside
-   the viewport even when antd flips them upward near the screen edge. */
+/* Tall action menus must stay inside the viewport */
 .ant-dropdown .ant-dropdown-menu {
   max-height: calc(100vh - 32px);
   overflow-y: auto;
@@ -103,15 +90,11 @@
 }
 
 .ant-dropdown-menu-item:not(.ant-dropdown-menu-item-disabled):not(.ant-dropdown-menu-item-danger):hover {
-  background-color: color-mix(in srgb, var(--ant-color-primary) 14%, transparent) !important;
+  background-color: var(--dune-accent-glow) !important;
 }
 
 .ant-dropdown-menu-item-divider {
-  background-color: var(--ant-color-border) !important;
-}
-
-body.dark .ant-dropdown-menu-item-divider {
-  background-color: rgba(255, 255, 255, 0.12) !important;
+  background-color: var(--dune-border) !important;
 }
 
 .settings-page .header-row,
@@ -164,55 +147,17 @@ body.dark .ant-dropdown-menu-item-divider {
 .clients-page .summary-card,
 .inbounds-page .summary-card,
 .nodes-page .summary-card,
-.groups-page .summary-card {
-  padding: 16px;
+.groups-page .summary-card,
+.hosts-page .summary-card {
+  padding: 20px;
 }
 
 @media (max-width: 768px) {
   .clients-page .summary-card,
   .inbounds-page .summary-card,
   .nodes-page .summary-card,
-  .groups-page .summary-card {
-    padding: 8px;
-  }
-}
-
-/* Hosts page shares the standard panel page shell (background, transparent
-   layout, content padding, summary-card padding). */
-.hosts-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
-  min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.hosts-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
-}
-
-.hosts-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
-}
-
-.hosts-page .ant-layout,
-.hosts-page .ant-layout-content,
-.hosts-page .content-shell {
-  background: transparent;
-}
-
-.hosts-page .content-area {
-  padding: 24px;
-}
-
-.hosts-page .summary-card {
-  padding: 16px;
-}
-
-@media (max-width: 768px) {
-  .hosts-page .content-area,
+  .groups-page .summary-card,
   .hosts-page .summary-card {
-    padding: 8px;
+    padding: 12px;
   }
 }

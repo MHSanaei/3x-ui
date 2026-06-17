@@ -1,3 +1,5 @@
+/* ── Sculpted premium cards ──────────────────────────────────────── */
+
 .index-page .ant-card,
 .clients-page .ant-card,
 .inbounds-page .ant-card,
@@ -5,36 +7,15 @@
 .settings-page .ant-card,
 .nodes-page .ant-card,
 .groups-page .ant-card,
-.api-docs-page .ant-card {
+.api-docs-page .ant-card,
+.hosts-page .ant-card,
+.subscription-page .ant-card {
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
-}
-
-.index-page.is-dark .ant-card,
-.clients-page.is-dark .ant-card,
-.inbounds-page.is-dark .ant-card,
-.xray-page.is-dark .ant-card,
-.settings-page.is-dark .ant-card,
-.nodes-page.is-dark .ant-card,
-.groups-page.is-dark .ant-card,
-.api-docs-page.is-dark .ant-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.index-page.is-dark.is-ultra .ant-card,
-.clients-page.is-dark.is-ultra .ant-card,
-.inbounds-page.is-dark.is-ultra .ant-card,
-.xray-page.is-dark.is-ultra .ant-card,
-.settings-page.is-dark.is-ultra .ant-card,
-.nodes-page.is-dark.is-ultra .ant-card,
-.groups-page.is-dark.is-ultra .ant-card,
-.api-docs-page.is-dark.is-ultra .ant-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  box-shadow: var(--dune-shadow-card);
+  transition:
+    transform var(--dune-duration) var(--dune-ease),
+    box-shadow var(--dune-duration-slow) var(--dune-ease),
+    border-color var(--dune-duration) var(--dune-ease);
 }
 
 .index-page .ant-card.ant-card-hoverable:hover,
@@ -44,35 +25,12 @@
 .settings-page .ant-card.ant-card-hoverable:hover,
 .nodes-page .ant-card.ant-card-hoverable:hover,
 .groups-page .ant-card.ant-card-hoverable:hover,
-.api-docs-page .ant-card.ant-card-hoverable:hover {
+.api-docs-page .ant-card.ant-card-hoverable:hover,
+.hosts-page .ant-card.ant-card-hoverable:hover,
+.subscription-page .ant-card.ant-card-hoverable:hover {
   cursor: default;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
-
-.index-page.is-dark .ant-card.ant-card-hoverable:hover,
-.clients-page.is-dark .ant-card.ant-card-hoverable:hover,
-.inbounds-page.is-dark .ant-card.ant-card-hoverable:hover,
-.xray-page.is-dark .ant-card.ant-card-hoverable:hover,
-.settings-page.is-dark .ant-card.ant-card-hoverable:hover,
-.nodes-page.is-dark .ant-card.ant-card-hoverable:hover,
-.groups-page.is-dark .ant-card.ant-card-hoverable:hover,
-.api-docs-page.is-dark .ant-card.ant-card-hoverable:hover {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.index-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.clients-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.inbounds-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.xray-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.settings-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.nodes-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.groups-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
-.api-docs-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: var(--dune-shadow-card-hover);
+  border-color: var(--dune-border-gold);
 }
 
 .index-page .ant-card .ant-card-actions,
@@ -82,47 +40,48 @@
 .settings-page .ant-card .ant-card-actions,
 .nodes-page .ant-card .ant-card-actions,
 .groups-page .ant-card .ant-card-actions,
-.api-docs-page .ant-card .ant-card-actions {
+.api-docs-page .ant-card .ant-card-actions,
+.hosts-page .ant-card .ant-card-actions,
+.subscription-page .ant-card .ant-card-actions {
   background: transparent;
+  border-top-color: var(--dune-border-subtle);
 }
 
-/* Hosts page shares the same card styling + hover shadows (without the default
-   antd hoverable pointer/blur), matching Clients/Inbounds/etc. */
-.hosts-page .ant-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+.index-page .ant-card .ant-card-actions > li,
+.clients-page .ant-card .ant-card-actions > li,
+.inbounds-page .ant-card .ant-card-actions > li,
+.xray-page .ant-card .ant-card-actions > li,
+.settings-page .ant-card .ant-card-actions > li,
+.nodes-page .ant-card .ant-card-actions > li,
+.groups-page .ant-card .ant-card-actions > li,
+.api-docs-page .ant-card .ant-card-actions > li,
+.hosts-page .ant-card .ant-card-actions > li,
+.subscription-page .ant-card .ant-card-actions > li {
+  transition: color var(--dune-duration) var(--dune-ease);
 }
 
-.hosts-page.is-dark .ant-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+.index-page .ant-card .ant-card-actions > li:hover,
+.clients-page .ant-card .ant-card-actions > li:hover,
+.inbounds-page .ant-card .ant-card-actions > li:hover,
+.xray-page .ant-card .ant-card-actions > li:hover,
+.settings-page .ant-card .ant-card-actions > li:hover,
+.nodes-page .ant-card .ant-card-actions > li:hover,
+.groups-page .ant-card .ant-card-actions > li:hover,
+.api-docs-page .ant-card .ant-card-actions > li:hover,
+.hosts-page .ant-card .ant-card-actions > li:hover,
+.subscription-page .ant-card .ant-card-actions > li:hover {
+  color: var(--dune-gold-muted);
 }
 
-.hosts-page.is-dark.is-ultra .ant-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.025);
-}
-
-.hosts-page .ant-card.ant-card-hoverable:hover {
-  cursor: default;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
-
-.hosts-page.is-dark .ant-card.ant-card-hoverable:hover {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.hosts-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.hosts-page .ant-card .ant-card-actions {
-  background: transparent;
+body.dark .index-page .ant-card .ant-card-actions > li:hover,
+body.dark .clients-page .ant-card .ant-card-actions > li:hover,
+body.dark .inbounds-page .ant-card .ant-card-actions > li:hover,
+body.dark .xray-page .ant-card .ant-card-actions > li:hover,
+body.dark .settings-page .ant-card .ant-card-actions > li:hover,
+body.dark .nodes-page .ant-card .ant-card-actions > li:hover,
+body.dark .groups-page .ant-card .ant-card-actions > li:hover,
+body.dark .api-docs-page .ant-card .ant-card-actions > li:hover,
+body.dark .hosts-page .ant-card .ant-card-actions > li:hover,
+body.dark .subscription-page .ant-card .ant-card-actions > li:hover {
+  color: var(--dune-gold-bright);
 }

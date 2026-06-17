@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 
 	"gorm.io/gorm"
 )
@@ -82,8 +82,8 @@ func makeScaleClients(n int) []model.Client {
 }
 
 func TestSyncInboundPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -168,8 +168,8 @@ func maxDur(d, floor time.Duration) time.Duration {
 }
 
 func TestAddDelClientPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -233,8 +233,8 @@ func TestAddDelClientPostgresScale(t *testing.T) {
 }
 
 func TestGroupAndListPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -293,8 +293,8 @@ func TestGroupAndListPostgresScale(t *testing.T) {
 }
 
 func TestDelAllClientsPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -343,8 +343,8 @@ func TestDelAllClientsPostgresScale(t *testing.T) {
 }
 
 func TestBulkOpsPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)

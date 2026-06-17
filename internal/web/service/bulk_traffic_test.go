@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/xray"
 )
 
 func mkTraffic(t *testing.T, inboundId int, email string, up, down, total, expiry int64, enable bool) {

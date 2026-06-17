@@ -4,16 +4,16 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/gary/dune/internal/web/middleware"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/service/panel"
+	"github.com/gary/dune/internal/web/service/tgbot"
+	"github.com/gary/dune/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )
 
-// APIController handles the main API routes for the 3x-ui panel, including inbounds and server management.
+// APIController handles the main API routes for the dune panel, including inbounds and server management.
 type APIController struct {
 	BaseController
 	inboundController     *InboundController

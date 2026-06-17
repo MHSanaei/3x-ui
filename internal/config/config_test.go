@@ -31,17 +31,17 @@ func TestGetPortOverride(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.set {
-				t.Setenv("XUI_PORT", tt.value)
+				t.Setenv("DUNE_PORT", tt.value)
 			} else {
-				original, existed := os.LookupEnv("XUI_PORT")
-				if err := os.Unsetenv("XUI_PORT"); err != nil {
-					t.Fatalf("unset XUI_PORT: %v", err)
+				original, existed := os.LookupEnv("DUNE_PORT")
+				if err := os.Unsetenv("DUNE_PORT"); err != nil {
+					t.Fatalf("unset DUNE_PORT: %v", err)
 				}
 				t.Cleanup(func() {
 					if existed {
-						_ = os.Setenv("XUI_PORT", original)
+						_ = os.Setenv("DUNE_PORT", original)
 					} else {
-						_ = os.Unsetenv("XUI_PORT")
+						_ = os.Unsetenv("DUNE_PORT")
 					}
 				})
 			}

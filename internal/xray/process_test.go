@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	dunelogger "github.com/gary/dune/internal/logger"
 	"github.com/op/go-logging"
 )
 
@@ -72,8 +72,8 @@ func TestStopKillsProcessThatIgnoresSIGTERM(t *testing.T) {
 
 func initProcessTestLogger(t *testing.T) {
 	t.Helper()
-	t.Setenv("XUI_LOG_FOLDER", t.TempDir())
-	xuilogger.InitLogger(logging.ERROR)
+	t.Setenv("DUNE_LOG_FOLDER", t.TempDir())
+	dunelogger.InitLogger(logging.ERROR)
 }
 
 func startProcessHelper(t *testing.T, mode string) *process {

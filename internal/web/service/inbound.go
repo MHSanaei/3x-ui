@@ -1,4 +1,4 @@
-// Package service provides business logic services for the 3x-ui web panel,
+// Package service provides business logic services for the dune web panel,
 // including inbound/outbound management, user administration, settings, and Xray integration.
 package service
 
@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/mtproto"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/util/netsafe"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -195,7 +195,12 @@ func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).
+		Select("id, user_id, up, down, total, remark, sub_sort_index, enable, expiry_time, traffic_reset, last_traffic_reset_time, listen, port, protocol, settings, tag, node_id, share_addr_strategy, share_addr, origin_node_guid").
+		Preload("ClientStats").
+		Where("user_id = ?", userId).
+		Order("id ASC").
+		Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -336,6 +341,22 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		})
 	}
 	return out, nil
+}
+
+// GetEnabledLocalInbounds returns enabled inbounds hosted on this panel
+// (not synced from a node), excluding MTProto, with client stats preloaded.
+func (s *InboundService) GetEnabledLocalInbounds() ([]*model.Inbound, error) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).
+		Preload("ClientStats").
+		Where("enable = ? AND node_id IS NULL AND protocol <> ?", true, model.MTProto).
+		Find(&inbounds).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	s.enrichClientStats(db, inbounds)
+	return inbounds, nil
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.

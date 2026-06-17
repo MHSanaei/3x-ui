@@ -1,9 +1,9 @@
 {
-  "name": "3x-ui-frontend",
+  "name": "dune-frontend",
   "private": true,
   "version": "0.3.1",
   "type": "module",
-  "description": "3x-ui panel frontend (React 19 + Ant Design 6 + Vite 8).",
+  "description": "dune panel frontend (React 19 + Ant Design 6 + Vite 8).",
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"

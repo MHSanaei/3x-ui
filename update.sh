@@ -6,8 +6,8 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
-xui_service="${XUI_SERVICE:=/etc/systemd/system}"
+dune_folder="${DUNE_MAIN_FOLDER:=/usr/local/dune}"
+dune_service="${DUNE_SERVICE:=/etc/systemd/system}"
 
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
@@ -117,23 +117,23 @@ gen_random_string() {
         | head -c "$length"
 }
 
-xui_env_file_path() {
+dune_env_file_path() {
     case "${release}" in
         ubuntu | debian | armbian)
-            echo "/etc/default/x-ui"
+            echo "/etc/default/dune"
             ;;
         arch | manjaro | parch | alpine)
-            echo "/etc/conf.d/x-ui"
+            echo "/etc/conf.d/dune"
             ;;
         *)
-            echo "/etc/sysconfig/x-ui"
+            echo "/etc/sysconfig/dune"
             ;;
     esac
 }
 
-load_xui_env() {
+load_dune_env() {
     local env_file
-    env_file="$(xui_env_file_path)"
+    env_file="$(dune_env_file_path)"
     if [[ -r "$env_file" ]]; then
         set -a
         # shellcheck disable=SC1090
@@ -216,7 +216,7 @@ setup_ssl_certificate() {
 
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
-        echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
+        echo -e "${yellow}Please ensure port 80 is open and try again later with: dune${plain}"
         rm -rf ~/.acme.sh/${domain} 2> /dev/null
         rm -rf "$certPath" 2> /dev/null
         return 1
@@ -226,7 +226,7 @@ setup_ssl_certificate() {
     ~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem \
-        --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
+        --reloadcmd "systemctl restart dune" > /dev/null 2>&1
 
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to install certificate${plain}"
@@ -243,7 +243,7 @@ setup_ssl_certificate() {
     local webKeyFile="/root/cert/${domain}/privkey.pem"
 
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1
+        ${dune_folder}/dune cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1
         echo -e "${green}SSL certificate installed and configured successfully!${plain}"
         return 0
     else
@@ -294,7 +294,7 @@ setup_ip_certificate() {
     fi
 
     # Set reload command for auto-renewal (add || true so it doesn't fail if service stopped)
-    local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
+    local reloadCmd="systemctl restart dune 2>/dev/null || rc-service dune restart 2>/dev/null || true"
 
     # Choose port for HTTP-01 listener (default 80, prompt override)
     local WebPort=""
@@ -386,7 +386,7 @@ setup_ip_certificate() {
 
     # Configure panel to use the certificate
     echo -e "${green}Setting certificate paths for the panel...${plain}"
-    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
+    ${dune_folder}/dune cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Warning: Could not set certificate paths automatically.${plain}"
         echo -e "${yellow}You may need to set them manually in the panel settings.${plain}"
@@ -404,8 +404,8 @@ setup_ip_certificate() {
 
 # Comprehensive manual SSL certificate issuance via acme.sh
 ssl_cert_issue() {
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_webBasePath=$(${dune_folder}/dune setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
+    local existing_port=$(${dune_folder}/dune setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
@@ -472,7 +472,7 @@ ssl_cert_issue() {
 
     # Stop panel temporarily
     echo -e "${yellow}Stopping panel temporarily...${plain}"
-    systemctl stop x-ui 2> /dev/null || rc-service x-ui stop 2> /dev/null
+    systemctl stop dune 2> /dev/null || rc-service dune stop 2> /dev/null
 
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
@@ -481,7 +481,7 @@ ssl_cert_issue() {
         if [ $? -ne 0 ]; then
             echo -e "${red}Issuing certificate failed, please check logs.${plain}"
             rm -rf ~/.acme.sh/${domain}
-            systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+            systemctl start dune 2> /dev/null || rc-service dune start 2> /dev/null
             return 1
         else
             echo -e "${green}Issuing certificate succeeded, installing certificates...${plain}"
@@ -491,22 +491,22 @@ ssl_cert_issue() {
     fi
 
     # Setup reload command
-    reloadCmd="systemctl restart x-ui || rc-service x-ui restart"
-    echo -e "${green}Default --reloadcmd for ACME is: ${yellow}systemctl restart x-ui || rc-service x-ui restart${plain}"
+    reloadCmd="systemctl restart dune || rc-service dune restart"
+    echo -e "${green}Default --reloadcmd for ACME is: ${yellow}systemctl restart dune || rc-service dune restart${plain}"
     echo -e "${green}This command will run on every certificate issue and renew.${plain}"
     read -rp "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
     if [[ "$setReloadcmd" == "y" || "$setReloadcmd" == "Y" ]]; then
-        echo -e "\n${green}\t1.${plain} Preset: systemctl reload nginx ; systemctl restart x-ui"
+        echo -e "\n${green}\t1.${plain} Preset: systemctl reload nginx ; systemctl restart dune"
         echo -e "${green}\t2.${plain} Input your own command"
         echo -e "${green}\t0.${plain} Keep default reloadcmd"
         read -rp "Choose an option: " choice
         case "$choice" in
             1)
-                echo -e "${green}Reloadcmd is: systemctl reload nginx ; systemctl restart x-ui${plain}"
-                reloadCmd="systemctl reload nginx ; systemctl restart x-ui"
+                echo -e "${green}Reloadcmd is: systemctl reload nginx ; systemctl restart dune${plain}"
+                reloadCmd="systemctl reload nginx ; systemctl restart dune"
                 ;;
             2)
-                echo -e "${yellow}It's recommended to put x-ui restart at the end${plain}"
+                echo -e "${yellow}It's recommended to put dune restart at the end${plain}"
                 read -rp "Please enter your custom reloadcmd: " reloadCmd
                 echo -e "${green}Reloadcmd is: ${reloadCmd}${plain}"
                 ;;
@@ -536,7 +536,7 @@ ssl_cert_issue() {
         if [[ ${cert_exists} -eq 0 ]]; then
             rm -rf ~/.acme.sh/${domain}
         fi
-        systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+        systemctl start dune 2> /dev/null || rc-service dune start 2> /dev/null
         return 1
     fi
 
@@ -555,7 +555,7 @@ ssl_cert_issue() {
     fi
 
     # Restart panel
-    systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
+    systemctl start dune 2> /dev/null || rc-service dune start 2> /dev/null
 
     # Prompt user to set panel paths after successful certificate installation
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
@@ -564,14 +564,14 @@ ssl_cert_issue() {
         local webKeyFile="/root/cert/${domain}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            ${dune_folder}/dune cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
             echo -e "${green}Certificate paths set for the panel${plain}"
             echo -e "${green}Certificate File: $webCertFile${plain}"
             echo -e "${green}Private Key File: $webKeyFile${plain}"
             echo ""
             echo -e "${green}Access URL: https://${domain}:${existing_port}/${existing_webBasePath}${plain}"
             echo -e "${yellow}Panel will restart to apply SSL certificate...${plain}"
-            systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
+            systemctl restart dune 2> /dev/null || rc-service dune restart 2> /dev/null
         else
             echo -e "${red}Error: Certificate or private key file not found for domain: $domain.${plain}"
         fi
@@ -638,9 +638,9 @@ prompt_and_setup_ssl() {
 
             # Stop panel if running (port 80 needed)
             if [[ $release == "alpine" ]]; then
-                rc-service x-ui stop > /dev/null 2>&1
+                rc-service dune stop > /dev/null 2>&1
             else
-                systemctl stop x-ui > /dev/null 2>&1
+                systemctl stop dune > /dev/null 2>&1
             fi
 
             setup_ip_certificate "${server_ip}" "${ipv6_addr}"
@@ -654,9 +654,9 @@ prompt_and_setup_ssl() {
 
             # Restart panel after SSL is configured (restart applies new cert settings)
             if [[ $release == "alpine" ]]; then
-                rc-service x-ui restart > /dev/null 2>&1
+                rc-service dune restart > /dev/null 2>&1
             else
-                systemctl restart x-ui > /dev/null 2>&1
+                systemctl restart dune > /dev/null 2>&1
             fi
 
             ;;
@@ -705,8 +705,8 @@ prompt_and_setup_ssl() {
                 fi
             done
 
-            # 3.4 Apply Settings via x-ui binary
-            ${xui_folder}/x-ui cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1
+            # 3.4 Apply Settings via dune binary
+            ${dune_folder}/dune cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1
 
             # Set SSL_HOST for composing Panel URL
             if [[ -n "$custom_domain" ]]; then
@@ -718,7 +718,7 @@ prompt_and_setup_ssl() {
             echo -e "${green}✓ Custom certificate paths applied.${plain}"
             echo -e "${yellow}Note: You are responsible for renewing these files externally.${plain}"
 
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
+            systemctl restart dune > /dev/null 2>&1 || rc-service dune restart > /dev/null 2>&1
             ;;
         4)
             echo ""
@@ -735,7 +735,7 @@ prompt_and_setup_ssl() {
             local bind_local=""
             read -rp "Bind the panel to 127.0.0.1 only? (recommended — forces SSH tunnel / reverse-proxy access) [y/N]: " bind_local
             if [[ "$bind_local" == "y" || "$bind_local" == "Y" ]]; then
-                ${xui_folder}/x-ui setting -listenIP "127.0.0.1" > /dev/null 2>&1
+                ${dune_folder}/dune setting -listenIP "127.0.0.1" > /dev/null 2>&1
                 SSL_HOST="127.0.0.1"
                 echo -e "${green}✓ Panel bound to 127.0.0.1 only. It is now unreachable from the public internet.${plain}"
                 echo ""
@@ -752,7 +752,7 @@ prompt_and_setup_ssl() {
                 echo -e "${yellow}Panel will listen on all interfaces over plain HTTP. Make sure something else is terminating TLS in front of it.${plain}"
             fi
 
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
+            systemctl restart dune > /dev/null 2>&1 || rc-service dune restart > /dev/null 2>&1
             echo -e "${green}✓ SSL setup skipped.${plain}"
             ;;
         *)
@@ -765,14 +765,14 @@ prompt_and_setup_ssl() {
 config_after_update() {
     local panel_needs_restart=0
 
-    echo -e "${yellow}x-ui settings:${plain}"
-    ${xui_folder}/x-ui setting -show true
-    ${xui_folder}/x-ui migrate
+    echo -e "${yellow}dune settings:${plain}"
+    ${dune_folder}/dune setting -show true
+    ${dune_folder}/dune migrate
 
     # Properly detect empty cert by checking if cert: line exists and has content after it
-    local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
+    local existing_cert=$(${dune_folder}/dune setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_port=$(${dune_folder}/dune setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${dune_folder}/dune setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
 
     # Get server IP
     local URL_lists=(
@@ -810,7 +810,7 @@ config_after_update() {
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
         local config_webBasePath=$(gen_random_string 18)
-        ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
+        ${dune_folder}/dune setting -webBasePath "${config_webBasePath}"
         existing_webBasePath="${config_webBasePath}"
         panel_needs_restart=1
         echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
@@ -850,94 +850,94 @@ config_after_update() {
 
     if [[ "$panel_needs_restart" -eq 1 ]]; then
         echo -e "${yellow}Restarting panel to apply the new web base path...${plain}"
-        systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
+        systemctl restart dune 2> /dev/null || rc-service dune restart 2> /dev/null
     fi
 }
 
-update_x-ui() {
-    cd ${xui_folder%/x-ui}/
+update_dune() {
+    cd ${dune_folder%/dune}/
 
-    load_xui_env
+    load_dune_env
 
-    if [ -f "${xui_folder}/x-ui" ]; then
-        current_xui_version=$(${xui_folder}/x-ui -v)
-        echo -e "${green}Current x-ui version: ${current_xui_version}${plain}"
+    if [ -f "${dune_folder}/dune" ]; then
+        current_dune_version=$(${dune_folder}/dune -v)
+        echo -e "${green}Current dune version: ${current_dune_version}${plain}"
     else
-        _fail "ERROR: Current x-ui version: unknown"
+        _fail "ERROR: Current dune version: unknown"
     fi
 
-    echo -e "${green}Downloading new x-ui version...${plain}"
+    echo -e "${green}Downloading new dune version...${plain}"
 
-    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2> /dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/leto217/DUNE/releases/latest" 2> /dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [[ ! -n "$tag_version" ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/leto217/DUNE/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
-            _fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
+            _fail "ERROR: Failed to fetch dune version, it may be due to GitHub API restrictions, please try it later"
         fi
     fi
-    echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
+    echo -e "Got dune latest version: ${tag_version}, beginning the installation..."
+    ${curl_bin} -fLRo ${dune_folder}-linux-$(arch).tar.gz https://github.com/leto217/DUNE/releases/download/${tag_version}/dune-linux-$(arch).tar.gz 2> /dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
+        ${curl_bin} -4fLRo ${dune_folder}-linux-$(arch).tar.gz https://github.com/leto217/DUNE/releases/download/${tag_version}/dune-linux-$(arch).tar.gz 2> /dev/null
         if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
+            _fail "ERROR: Failed to download dune, please be sure that your server can access GitHub"
         fi
     fi
 
-    if [[ -e ${xui_folder}/ ]]; then
-        echo -e "${green}Stopping x-ui...${plain}"
+    if [[ -e ${dune_folder}/ ]]; then
+        echo -e "${green}Stopping dune...${plain}"
         if [[ $release == "alpine" ]]; then
-            if [ -f "/etc/init.d/x-ui" ]; then
-                rc-service x-ui stop > /dev/null 2>&1
-                rc-update del x-ui > /dev/null 2>&1
+            if [ -f "/etc/init.d/dune" ]; then
+                rc-service dune stop > /dev/null 2>&1
+                rc-update del dune > /dev/null 2>&1
                 echo -e "${green}Removing old service unit version...${plain}"
-                rm -f /etc/init.d/x-ui > /dev/null 2>&1
+                rm -f /etc/init.d/dune > /dev/null 2>&1
             else
-                rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-                _fail "ERROR: x-ui service unit not installed."
+                rm dune-linux-$(arch).tar.gz -f > /dev/null 2>&1
+                _fail "ERROR: dune service unit not installed."
             fi
         else
-            if [ -f "${xui_service}/x-ui.service" ]; then
-                systemctl stop x-ui > /dev/null 2>&1
-                systemctl disable x-ui > /dev/null 2>&1
+            if [ -f "${dune_service}/dune.service" ]; then
+                systemctl stop dune > /dev/null 2>&1
+                systemctl disable dune > /dev/null 2>&1
                 echo -e "${green}Removing old systemd unit version...${plain}"
-                rm ${xui_service}/x-ui.service -f > /dev/null 2>&1
+                rm ${dune_service}/dune.service -f > /dev/null 2>&1
                 systemctl daemon-reload > /dev/null 2>&1
             else
-                rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-                _fail "ERROR: x-ui systemd unit not installed."
+                rm dune-linux-$(arch).tar.gz -f > /dev/null 2>&1
+                _fail "ERROR: dune systemd unit not installed."
             fi
         fi
-        # Kill any leftover mtg (MTProto) sidecars. x-ui runs them outside its own
+        # Kill any leftover mtg (MTProto) sidecars. dune runs them outside its own
         # lifecycle, so on Linux a stale one can survive the stop and keep holding
         # an inbound port with an outdated secret, silently breaking new clients.
         # The new panel respawns a clean mtg per inbound on next start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
-        echo -e "${green}Removing old x-ui version...${plain}"
-        rm ${xui_folder} -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.debian -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.arch -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.rhel -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
+        echo -e "${green}Removing old dune version...${plain}"
+        rm ${dune_folder} -f > /dev/null 2>&1
+        rm ${dune_folder}/dune.service -f > /dev/null 2>&1
+        rm ${dune_folder}/dune.service.debian -f > /dev/null 2>&1
+        rm ${dune_folder}/dune.service.arch -f > /dev/null 2>&1
+        rm ${dune_folder}/dune.service.rhel -f > /dev/null 2>&1
+        rm ${dune_folder}/dune -f > /dev/null 2>&1
+        rm ${dune_folder}/dune.sh -f > /dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
-        rm ${xui_folder}/bin/xray-linux-amd64 -f > /dev/null 2>&1
+        rm ${dune_folder}/bin/xray-linux-amd64 -f > /dev/null 2>&1
         echo -e "${green}Removing old README and LICENSE file...${plain}"
-        rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
-        rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
+        rm ${dune_folder}/bin/README.md -f > /dev/null 2>&1
+        rm ${dune_folder}/bin/LICENSE -f > /dev/null 2>&1
     else
-        rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-        _fail "ERROR: x-ui not installed."
+        rm dune-linux-$(arch).tar.gz -f > /dev/null 2>&1
+        _fail "ERROR: dune not installed."
     fi
 
-    echo -e "${green}Installing new x-ui version...${plain}"
-    tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
-    rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-    cd x-ui > /dev/null 2>&1
-    chmod +x x-ui > /dev/null 2>&1
+    echo -e "${green}Installing new dune version...${plain}"
+    tar zxvf dune-linux-$(arch).tar.gz > /dev/null 2>&1
+    rm dune-linux-$(arch).tar.gz -f > /dev/null 2>&1
+    cd dune > /dev/null 2>&1
+    chmod +x dune > /dev/null 2>&1
 
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
@@ -945,76 +945,76 @@ update_x-ui() {
         chmod +x bin/xray-linux-arm > /dev/null 2>&1
     fi
 
-    chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
+    chmod +x dune bin/xray-linux-$(arch) > /dev/null 2>&1
 
-    echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    ${curl_bin} -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
+    echo -e "${green}Downloading and installing dune.sh script...${plain}"
+    ${curl_bin} -fLRo /usr/bin/dune https://raw.githubusercontent.com/leto217/DUNE/main/dune.sh > /dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
-        ${curl_bin} -4fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
+        echo -e "${yellow}Trying to fetch dune with IPv4...${plain}"
+        ${curl_bin} -4fLRo /usr/bin/dune https://raw.githubusercontent.com/leto217/DUNE/main/dune.sh > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
+            _fail "ERROR: Failed to download dune.sh script, please be sure that your server can access GitHub"
         fi
     fi
 
-    chmod +x ${xui_folder}/x-ui.sh > /dev/null 2>&1
-    chmod +x /usr/bin/x-ui > /dev/null 2>&1
-    mkdir -p /var/log/x-ui > /dev/null 2>&1
+    chmod +x ${dune_folder}/dune.sh > /dev/null 2>&1
+    chmod +x /usr/bin/dune > /dev/null 2>&1
+    mkdir -p /var/log/dune > /dev/null 2>&1
 
     echo -e "${green}Changing owner...${plain}"
-    chown -R root:root ${xui_folder} > /dev/null 2>&1
+    chown -R root:root ${dune_folder} > /dev/null 2>&1
 
-    if [ -f "${xui_folder}/bin/config.json" ]; then
+    if [ -f "${dune_folder}/bin/config.json" ]; then
         echo -e "${green}Changing on config file permissions...${plain}"
-        chmod 640 ${xui_folder}/bin/config.json > /dev/null 2>&1
+        chmod 640 ${dune_folder}/bin/config.json > /dev/null 2>&1
     fi
 
     if [[ $release == "alpine" ]]; then
-        echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
+        echo -e "${green}Downloading and installing startup unit dune.rc...${plain}"
+        ${curl_bin} -fLRo /etc/init.d/dune https://raw.githubusercontent.com/leto217/DUNE/main/dune.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
+            ${curl_bin} -4fLRo /etc/init.d/dune https://raw.githubusercontent.com/leto217/DUNE/main/dune.rc > /dev/null 2>&1
             if [[ $? -ne 0 ]]; then
-                _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
+                _fail "ERROR: Failed to download startup unit dune.rc, please be sure that your server can access GitHub"
             fi
         fi
-        chmod +x /etc/init.d/x-ui > /dev/null 2>&1
-        chown root:root /etc/init.d/x-ui > /dev/null 2>&1
-        rc-update add x-ui > /dev/null 2>&1
-        rc-service x-ui start > /dev/null 2>&1
+        chmod +x /etc/init.d/dune > /dev/null 2>&1
+        chown root:root /etc/init.d/dune > /dev/null 2>&1
+        rc-update add dune > /dev/null 2>&1
+        rc-service dune start > /dev/null 2>&1
     else
-        if [ -f "x-ui.service" ]; then
+        if [ -f "dune.service" ]; then
             echo -e "${green}Installing systemd unit...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
+            cp -f dune.service ${dune_service}/ > /dev/null 2>&1
             if [[ $? -ne 0 ]]; then
-                echo -e "${red}Failed to copy x-ui.service${plain}"
+                echo -e "${red}Failed to copy dune.service${plain}"
                 exit 1
             fi
         else
             service_installed=false
             case "${release}" in
                 ubuntu | debian | armbian)
-                    if [ -f "x-ui.service.debian" ]; then
+                    if [ -f "dune.service.debian" ]; then
                         echo -e "${green}Installing debian-like systemd unit...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
+                        cp -f dune.service.debian ${dune_service}/dune.service > /dev/null 2>&1
                         if [[ $? -eq 0 ]]; then
                             service_installed=true
                         fi
                     fi
                     ;;
                 arch | manjaro | parch)
-                    if [ -f "x-ui.service.arch" ]; then
+                    if [ -f "dune.service.arch" ]; then
                         echo -e "${green}Installing arch-like systemd unit...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
+                        cp -f dune.service.arch ${dune_service}/dune.service > /dev/null 2>&1
                         if [[ $? -eq 0 ]]; then
                             service_installed=true
                         fi
                     fi
                     ;;
                 *)
-                    if [ -f "x-ui.service.rhel" ]; then
+                    if [ -f "dune.service.rhel" ]; then
                         echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
+                        cp -f dune.service.rhel ${dune_service}/dune.service > /dev/null 2>&1
                         if [[ $? -eq 0 ]]; then
                             service_installed=true
                         fi
@@ -1027,53 +1027,53 @@ update_x-ui() {
                 echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
                 case "${release}" in
                     ubuntu | debian | armbian)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                        ${curl_bin} -4fLRo ${dune_service}/dune.service https://raw.githubusercontent.com/leto217/DUNE/main/dune.service.debian > /dev/null 2>&1
                         ;;
                     arch | manjaro | parch)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                        ${curl_bin} -4fLRo ${dune_service}/dune.service https://raw.githubusercontent.com/leto217/DUNE/main/dune.service.arch > /dev/null 2>&1
                         ;;
                     *)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                        ${curl_bin} -4fLRo ${dune_service}/dune.service https://raw.githubusercontent.com/leto217/DUNE/main/dune.service.rhel > /dev/null 2>&1
                         ;;
                 esac
 
                 if [[ $? -ne 0 ]]; then
-                    echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                    echo -e "${red}Failed to install dune.service from GitHub${plain}"
                     exit 1
                 fi
             fi
         fi
-        chown root:root ${xui_service}/x-ui.service > /dev/null 2>&1
-        chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
+        chown root:root ${dune_service}/dune.service > /dev/null 2>&1
+        chmod 644 ${dune_service}/dune.service > /dev/null 2>&1
         systemctl daemon-reload > /dev/null 2>&1
-        systemctl enable x-ui > /dev/null 2>&1
-        systemctl start x-ui > /dev/null 2>&1
+        systemctl enable dune > /dev/null 2>&1
+        systemctl start dune > /dev/null 2>&1
     fi
 
     config_after_update
 
-    echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
+    echo -e "${green}dune ${tag_version}${plain} updating finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
+│  ${blue}dune control menu usages (subcommands):${plain}              │
 │                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - Legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
+│  ${blue}dune${plain}              - Admin Management Script          │
+│  ${blue}dune start${plain}        - Start                            │
+│  ${blue}dune stop${plain}         - Stop                             │
+│  ${blue}dune restart${plain}      - Restart                          │
+│  ${blue}dune status${plain}       - Current Status                   │
+│  ${blue}dune settings${plain}     - Current Settings                 │
+│  ${blue}dune enable${plain}       - Enable Autostart on OS Startup   │
+│  ${blue}dune disable${plain}      - Disable Autostart on OS Startup  │
+│  ${blue}dune log${plain}          - Check logs                       │
+│  ${blue}dune banlog${plain}       - Check Fail2ban ban logs          │
+│  ${blue}dune update${plain}       - Update                           │
+│  ${blue}dune legacy${plain}       - Legacy version                   │
+│  ${blue}dune install${plain}      - Install                          │
+│  ${blue}dune uninstall${plain}    - Uninstall                        │
 └───────────────────────────────────────────────────────┘"
 }
 
 echo -e "${green}Running...${plain}"
 install_base
-update_x-ui $1
+update_dune $1

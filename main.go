@@ -1,4 +1,4 @@
-// Package main is the entry point for the 3x-ui web panel application.
+// Package main is the entry point for the dune web panel application.
 // It initializes the database, web server, and handles command-line operations for managing the panel.
 package main
 
@@ -6,29 +6,54 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 	_ "unsafe"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/sub"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
-	"github.com/mhsanaei/3x-ui/v3/internal/web"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/sub"
+	"github.com/gary/dune/internal/util/crypto"
+	"github.com/gary/dune/internal/util/sys"
+	"github.com/gary/dune/internal/web"
+	"github.com/gary/dune/internal/web/global"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/service/panel"
+	"github.com/gary/dune/internal/web/service/tgbot"
 
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
 )
 
-// runWebServer initializes and starts the web server for the 3x-ui panel.
+// startPprofServer brings up the net/http/pprof debug endpoints on a loopback
+// address when DUNE_PPROF is set. It runs on its own mux/listener so the
+// profiler is never reachable through the public panel. No-op when unset.
+func startPprofServer() {
+	addr := config.GetPprofAddr()
+	if addr == "" {
+		return
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		logger.Info("pprof debug server listening on", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Warning("pprof server stopped:", err)
+		}
+	}()
+}
+
+// runWebServer initializes and starts the web server for the dune panel.
 func runWebServer() {
 	log.Printf("Starting %v %v", config.GetName(), config.GetVersion())
 
@@ -48,6 +73,8 @@ func runWebServer() {
 	}
 
 	godotenv.Load()
+
+	startPprofServer()
 
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
@@ -438,7 +465,7 @@ func GetApiToken(getApiToken bool) {
 	fmt.Println("apiToken:", created.Token)
 }
 
-// migrateDb performs database migration operations for the 3x-ui panel.
+// migrateDb performs database migration operations for the dune panel.
 func migrateDb() {
 	inboundService := service.InboundService{}
 
@@ -452,7 +479,7 @@ func migrateDb() {
 }
 
 // loadServiceEnvFile loads the systemd EnvironmentFile so CLI subcommands like
-// "x-ui setting" hit the same database backend as the panel. godotenv.Load does
+// "dune setting" hit the same database backend as the panel. godotenv.Load does
 // not override variables already in the environment, so it is a no-op for the
 // systemd-managed service.
 func loadServiceEnvFile() {
@@ -467,7 +494,7 @@ func loadServiceEnvFile() {
 	}
 }
 
-// main is the entry point of the 3x-ui application.
+// main is the entry point of the dune application.
 // It parses command-line arguments to run the web server, migrate database, or update settings.
 func main() {
 	loadServiceEnvFile()
@@ -489,7 +516,7 @@ func main() {
 	var migrateRestore string
 	var migrateOut string
 	migrateDbCmd.StringVar(&migrateDsn, "dsn", "", "Destination PostgreSQL DSN (postgres://user:pass@host:port/db?sslmode=disable)")
-	migrateDbCmd.StringVar(&migrateSrc, "src", "", "Source SQLite file (defaults to the configured x-ui.db)")
+	migrateDbCmd.StringVar(&migrateSrc, "src", "", "Source SQLite file (defaults to the configured dune.db)")
 	migrateDbCmd.StringVar(&migrateDump, "dump", "", "Write a portable SQL text dump of --src to this file (.db -> .dump)")
 	migrateDbCmd.StringVar(&migrateRestore, "restore", "", "Rebuild a SQLite database from this SQL text dump (.dump -> .db); requires --out")
 	migrateDbCmd.StringVar(&migrateOut, "out", "", "Destination SQLite file for --restore (must not already exist)")
@@ -536,7 +563,7 @@ func main() {
 		fmt.Println()
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
-		fmt.Println("    migrate        migrate form other/old x-ui")
+		fmt.Println("    migrate        migrate form other/old dune")
 		fmt.Println("    migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)")
 		fmt.Println("    setting        set settings")
 	}

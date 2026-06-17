@@ -54,7 +54,7 @@ body:
     attributes:
       label: Relevant logs
       description: |
-        Panel logs (`journalctl -u x-ui -n 200`) and/or the browser DevTools
+        Panel logs (`journalctl -u dune -n 200`) and/or the browser DevTools
         console output. **Redact** tokens, real domains, IPs, and client UUIDs.
       render: shell
     validations:
@@ -69,9 +69,9 @@ body:
       required: false
 
   - type: input
-    id: xui-version
+    id: dune-version
     attributes:
-      label: 3x-ui version
+      label: dune version
       description: Shown at the top of the panel sidebar.
       placeholder: 3.1.0
     validations:
@@ -89,7 +89,7 @@ body:
   - type: dropdown
     id: install-method
     attributes:
-      label: How did you install 3x-ui?
+      label: How did you install dune?
       options:
         - install.sh script
         - Docker / Docker Compose
@@ -156,7 +156,7 @@ body:
       options:
         - label: I searched [existing issues](../issues?q=is%3Aissue) and this bug has not been reported.
           required: true
-        - label: I am running the latest released version of 3x-ui (or have verified the bug still exists on it).
+        - label: I am running the latest released version of dune (or have verified the bug still exists on it).
           required: true
         - label: This bug report is written in English.
           required: true

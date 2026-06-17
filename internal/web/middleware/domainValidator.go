@@ -1,4 +1,4 @@
-// Package middleware provides HTTP middleware functions for the 3x-ui web panel,
+// Package middleware provides HTTP middleware functions for the dune web panel,
 // including domain validation utilities.
 package middleware
 

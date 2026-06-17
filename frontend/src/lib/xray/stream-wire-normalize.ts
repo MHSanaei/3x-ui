@@ -1,4 +1,4 @@
-// Shapes the streamSettings subtree that 3x-ui persists to match what
+// Shapes the streamSettings subtree that dune persists to match what
 // xray-core actually consumes. The panel's Zod defaults mirror the full
 // SplitHTTPConfig / SockoptObject schema, but many fields are mode-specific
 // (packet-up vs stream-one) or side-specific (inbound vs outbound). Emitting

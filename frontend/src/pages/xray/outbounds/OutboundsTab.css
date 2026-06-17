@@ -118,12 +118,12 @@
 }
 
 .traffic-up {
-  color: #008771;
+  color: #6b8f5e;
   font-size: 12px;
 }
 
 .traffic-down {
-  color: #3c89e8;
+  color: #a67c52;
   font-size: 12px;
 }
 
@@ -143,13 +143,13 @@
 }
 
 .pill-ok {
-  color: #008771;
-  background: rgba(0, 135, 113, 0.12);
+  color: #6b8f5e;
+  background: rgba(107, 143, 94, 0.12);
 }
 
 .pill-fail {
-  color: #e04141;
-  background: rgba(224, 65, 65, 0.12);
+  color: #a0522d;
+  background: rgba(160, 82, 45, 0.12);
 }
 
 .empty {
@@ -172,11 +172,11 @@
 }
 
 .outbound-test-popover .td-head.ok {
-  color: #008771;
+  color: #6b8f5e;
 }
 
 .outbound-test-popover .td-head.fail {
-  color: #e04141;
+  color: #a0522d;
 }
 
 .outbound-test-popover .mode-badge {
@@ -210,11 +210,11 @@
 }
 
 .outbound-test-popover .dot-ok {
-  color: #008771;
+  color: #6b8f5e;
 }
 
 .outbound-test-popover .dot-fail {
-  color: #e04141;
+  color: #a0522d;
 }
 
 .outbound-test-popover .breakdown-row {

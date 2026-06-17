@@ -7,3 +7,13 @@
   color: var(--ant-color-text-tertiary);
   font-size: 12px;
 }
+
+.performance-hint {
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -1,4 +1,4 @@
-// Package config provides configuration management utilities for the 3x-ui panel,
+// Package config provides configuration management utilities for the dune panel,
 // including version information, logging levels, database paths, and environment variable handling.
 package config
 
@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -32,12 +33,12 @@ const (
 	Error   LogLevel = "error"
 )
 
-// GetVersion returns the version string of the 3x-ui application.
+// GetVersion returns the version string of the dune application.
 func GetVersion() string {
 	return strings.TrimSpace(version)
 }
 
-// GetName returns the name of the 3x-ui application.
+// GetName returns the name of the dune application.
 func GetName() string {
 	return strings.TrimSpace(name)
 }
@@ -47,43 +48,78 @@ func GetLogLevel() LogLevel {
 	if IsDebug() {
 		return Debug
 	}
-	logLevel := os.Getenv("XUI_LOG_LEVEL")
+	logLevel := os.Getenv("DUNE_LOG_LEVEL")
 	if logLevel == "" {
 		return Info
 	}
 	return LogLevel(logLevel)
 }
 
-// IsDebug returns true if debug mode is enabled via the XUI_DEBUG environment variable.
+// IsDebug returns true if debug mode is enabled via the DUNE_DEBUG environment variable.
 func IsDebug() bool {
-	return os.Getenv("XUI_DEBUG") == "true"
+	return os.Getenv("DUNE_DEBUG") == "true"
 }
 
-// IsSkipHSTS returns true if skipping HSTS mode is enabled via the XUI_SKIP_HSTS environment variable.
+// IsSkipHSTS returns true if skipping HSTS mode is enabled via the DUNE_SKIP_HSTS environment variable.
 func IsSkipHSTS() bool {
-	return os.Getenv("XUI_SKIP_HSTS") == "true"
+	return os.Getenv("DUNE_SKIP_HSTS") == "true"
+}
+
+// GetPprofAddr returns the listen address for the net/http/pprof debug server,
+// or "" when profiling is disabled. Set DUNE_PPROF to a loopback address such
+// as "127.0.0.1:6060" to enable it; binding to a public interface is rejected
+// so profiling data is never exposed off-box by accident.
+func GetPprofAddr() string {
+	addr := strings.TrimSpace(os.Getenv("DUNE_PPROF"))
+	if addr == "" {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// Bare port like "6060" -> bind to loopback.
+		return "127.0.0.1:" + strings.TrimPrefix(addr, ":")
+	}
+	if host == "" {
+		return "127.0.0.1:" + portOf(addr)
+	}
+	ip := net.ParseIP(host)
+	if ip != nil && !ip.IsLoopback() {
+		return ""
+	}
+	if ip == nil && host != "localhost" {
+		return ""
+	}
+	return addr
+}
+
+func portOf(hostport string) string {
+	_, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return "6060"
+	}
+	return port
 }
 
 func GetPortOverride() (port int, configured bool, err error) {
-	value, ok := os.LookupEnv("XUI_PORT")
+	value, ok := os.LookupEnv("DUNE_PORT")
 	if !ok || strings.TrimSpace(value) == "" {
 		return 0, false, nil
 	}
 
 	port, err = strconv.Atoi(strings.TrimSpace(value))
 	if err != nil {
-		return 0, true, fmt.Errorf("parse XUI_PORT: %w", err)
+		return 0, true, fmt.Errorf("parse DUNE_PORT: %w", err)
 	}
 	if port < 1 || port > 65535 {
-		return 0, true, fmt.Errorf("XUI_PORT must be between 1 and 65535")
+		return 0, true, fmt.Errorf("DUNE_PORT must be between 1 and 65535")
 	}
 
 	return port, true, nil
 }
 
-// GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via XUI_BIN_FOLDER.
+// GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via DUNE_BIN_FOLDER.
 func GetBinFolderPath() string {
-	binFolderPath := os.Getenv("XUI_BIN_FOLDER")
+	binFolderPath := os.Getenv("DUNE_BIN_FOLDER")
 	if binFolderPath == "" {
 		binFolderPath = "bin"
 	}
@@ -109,14 +145,14 @@ func getBaseDir() string {
 
 // GetDBFolderPath returns the path to the database folder based on environment variables or platform defaults.
 func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
+	dbFolderPath := os.Getenv("DUNE_DB_FOLDER")
 	if dbFolderPath != "" {
 		return dbFolderPath
 	}
 	if runtime.GOOS == "windows" {
 		return getBaseDir()
 	}
-	return "/etc/x-ui"
+	return "/etc/dune"
 }
 
 // GetDBPath returns the full path to the database file.
@@ -126,7 +162,7 @@ func GetDBPath() string {
 
 // GetDBKind returns the configured database backend: "sqlite" (default) or "postgres".
 func GetDBKind() string {
-	v := strings.ToLower(strings.TrimSpace(os.Getenv("XUI_DB_TYPE")))
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("DUNE_DB_TYPE")))
 	switch v {
 	case "postgres", "postgresql", "pg":
 		return "postgres"
@@ -135,9 +171,9 @@ func GetDBKind() string {
 	}
 }
 
-// GetDBDSN returns the PostgreSQL DSN from XUI_DB_DSN. Empty for sqlite.
+// GetDBDSN returns the PostgreSQL DSN from DUNE_DB_DSN. Empty for sqlite.
 func GetDBDSN() string {
-	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
+	return strings.TrimSpace(os.Getenv("DUNE_DB_DSN"))
 }
 
 // GetEnvFilePaths returns the candidate service environment file paths (the file
@@ -147,15 +183,15 @@ func GetEnvFilePaths() []string {
 		return nil
 	}
 	return []string{
-		"/etc/default/x-ui",
-		"/etc/conf.d/x-ui",
-		"/etc/sysconfig/x-ui",
+		"/etc/default/dune",
+		"/etc/conf.d/dune",
+		"/etc/sysconfig/dune",
 	}
 }
 
 // GetLogFolder returns the path to the log folder based on environment variables or platform defaults.
 func GetLogFolder() string {
-	logFolderPath := os.Getenv("XUI_LOG_FOLDER")
+	logFolderPath := os.Getenv("DUNE_LOG_FOLDER")
 	if logFolderPath != "" {
 		return logFolderPath
 	}
@@ -163,12 +199,12 @@ func GetLogFolder() string {
 	// scatters a log/ directory through the source tree (one per tested package).
 	// Redirect test runs to a shared temp folder so the source tree stays clean.
 	if testing.Testing() {
-		return filepath.Join(os.TempDir(), "3x-ui-test-log")
+		return filepath.Join(os.TempDir(), "dune-test-log")
 	}
 	if runtime.GOOS == "windows" {
 		return filepath.Join(".", "log")
 	}
-	return "/var/log/x-ui"
+	return "/var/log/dune"
 }
 
 func copyFile(src, dst string) error {
@@ -196,10 +232,10 @@ func init() {
 	if runtime.GOOS != "windows" {
 		return
 	}
-	if os.Getenv("XUI_DB_FOLDER") != "" {
+	if os.Getenv("DUNE_DB_FOLDER") != "" {
 		return
 	}
-	oldDBFolder := "/etc/x-ui"
+	oldDBFolder := "/etc/dune"
 	oldDBPath := fmt.Sprintf("%s/%s.db", oldDBFolder, GetName())
 	newDBFolder := GetDBFolderPath()
 	newDBPath := fmt.Sprintf("%s/%s.db", newDBFolder, GetName())

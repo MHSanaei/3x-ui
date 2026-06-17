@@ -1,15 +1,15 @@
-# 3x-ui Custom Subscription Templates
+# dune Custom Subscription Templates
 
-3x-ui can render your users' subscription pages from your own custom HTML templates.
+dune can render your users' subscription pages from your own custom HTML templates.
 
 ## How to use a Custom Template
 
-1. Go to the 3x-ui panel settings.
+1. Go to the dune panel settings.
 2. Under **Settings → Subscription → Information**, locate the **Sub Theme Directory** field.
-3. Provide the absolute path to the folder containing your template (e.g. `/etc/3x-ui/sub_templates/my-theme/`).
+3. Provide the absolute path to the folder containing your template (e.g. `/etc/dune/sub_templates/my-theme/`).
 4. Save the settings.
 
-> **Note:** 3x-ui does not ship any templates by default. Create your own template folder anywhere
+> **Note:** dune does not ship any templates by default. Create your own template folder anywhere
 > on the server, put an `index.html` (or `sub.html`) inside it, and point **Sub Theme Directory** at
 > that absolute path. Leave the field empty to use the default built-in page.
 

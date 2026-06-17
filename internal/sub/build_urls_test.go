@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/gary/dune/internal/database"
 )
 
 func initSubDB(t *testing.T) {
 	t.Helper()
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	// Close the handle before t.TempDir cleanup so Windows doesn't refuse to

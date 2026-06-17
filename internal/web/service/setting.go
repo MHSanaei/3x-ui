@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/util/netproxy"
+	"github.com/gary/dune/internal/util/random"
+	"github.com/gary/dune/internal/util/reflect_util"
+	"github.com/gary/dune/internal/web/entity"
+	"github.com/gary/dune/internal/xray"
 	"github.com/google/uuid"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 //go:embed config.json
@@ -42,19 +42,27 @@ var defaultValueMap = map[string]string{
 	// cert are minted lazily on first use, and the node-side trust CA is pasted
 	// in by the operator. Kept out of entity.AllSetting so private keys never
 	// reach the settings UI/export.
-	"nodeMtlsCaCertPem":           "",
-	"nodeMtlsCaKeyPem":            "",
-	"nodeMtlsClientCertPem":       "",
-	"nodeMtlsClientKeyPem":        "",
-	"nodeMtlsClientCAPem":         "",
-	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
-	"sessionMaxAge":               "360",
-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
-	"pageSize":                    "25",
-	"expireDiff":                  "0",
-	"trafficDiff":                 "0",
-	"remarkTemplate":              "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
-	"timeLocation":                "Local",
+	"nodeMtlsCaCertPem":     "",
+	"nodeMtlsCaKeyPem":      "",
+	"nodeMtlsClientCertPem": "",
+	"nodeMtlsClientKeyPem":  "",
+	"nodeMtlsClientCAPem":   "",
+	"webBasePath":           normalizeBasePath(getEnv("DUNE_INIT_WEB_BASE_PATH", "/")),
+	"sessionMaxAge":         "360",
+	"trustedProxyCIDRs":     "127.0.0.1/32,::1/128",
+	"pageSize":              "25",
+	"expireDiff":            "0",
+	"trafficDiff":           "0",
+	"remarkTemplate":        "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
+	"timeLocation":          "Local",
+
+	// Background-job cadences (seconds). Larger values trade freshness for lower
+	// CPU/DB load — the main tuning lever on busy or resource-constrained panels.
+	"trafficJobInterval":          "5",
+	"clientIpJobInterval":         "10",
+	"nodeHeartbeatInterval":       "5",
+	"nodeTrafficInterval":         "5",
+	"xrayRestartInterval":         "30",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
 	"tgBotProxy":                  "",
@@ -576,6 +584,59 @@ func (s *SettingService) GetKeyFile() (string, error) {
 
 func (s *SettingService) GetExpireDiff() (int, error) {
 	return s.getInt("expireDiff")
+}
+
+// Background-job cadences (seconds). clampInterval keeps a stored value within
+// safe bounds so a bad setting can't disable a job (0) or schedule it absurdly
+// far out; callers fall back to the documented default on read errors.
+func clampInterval(v int, def int) int {
+	if v < 1 {
+		return def
+	}
+	if v > 86400 {
+		return 86400
+	}
+	return v
+}
+
+func (s *SettingService) GetTrafficJobInterval() (int, error) {
+	v, err := s.getInt("trafficJobInterval")
+	if err != nil {
+		return 5, err
+	}
+	return clampInterval(v, 5), nil
+}
+
+func (s *SettingService) GetClientIpJobInterval() (int, error) {
+	v, err := s.getInt("clientIpJobInterval")
+	if err != nil {
+		return 10, err
+	}
+	return clampInterval(v, 10), nil
+}
+
+func (s *SettingService) GetNodeHeartbeatInterval() (int, error) {
+	v, err := s.getInt("nodeHeartbeatInterval")
+	if err != nil {
+		return 5, err
+	}
+	return clampInterval(v, 5), nil
+}
+
+func (s *SettingService) GetNodeTrafficInterval() (int, error) {
+	v, err := s.getInt("nodeTrafficInterval")
+	if err != nil {
+		return 5, err
+	}
+	return clampInterval(v, 5), nil
+}
+
+func (s *SettingService) GetXrayRestartInterval() (int, error) {
+	v, err := s.getInt("xrayRestartInterval")
+	if err != nil {
+		return 30, err
+	}
+	return clampInterval(v, 30), nil
 }
 
 func (s *SettingService) GetTrafficDiff() (int, error) {

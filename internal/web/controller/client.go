@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )

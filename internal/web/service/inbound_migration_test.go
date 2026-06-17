@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/xray"
 )
 
 // TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound guards the
@@ -18,8 +18,8 @@ import (
 // the backfill and the MultiDomain→ExternalProxy migration must then commit.
 func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
@@ -97,8 +97,8 @@ func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *
 // only builds a non-SELECT statement without running it.
 func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })

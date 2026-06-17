@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/gorm"
 )
@@ -140,6 +140,129 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		})
 	}
 	return out, nil
+}
+
+// listForSummary loads only the fields needed for dashboard summary cards.
+func (s *ClientService) listForSummary() ([]ClientWithAttachments, error) {
+	db := database.GetDB()
+	var rows []model.ClientRecord
+	if err := db.Select("id, email, enable, total_gb, expiry_time, reset").
+		Order("id ASC").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []ClientWithAttachments{}, nil
+	}
+
+	emails := make([]string, 0, len(rows))
+	for i := range rows {
+		if rows[i].Email != "" {
+			emails = append(emails, rows[i].Email)
+		}
+	}
+
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(emails))
+	if len(emails) > 0 {
+		var stats []xray.ClientTraffic
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var batchStats []xray.ClientTraffic
+			if err := db.Where("email IN ?", batch).Find(&batchStats).Error; err != nil {
+				return nil, err
+			}
+			stats = append(stats, batchStats...)
+		}
+		overlayGlobalTrafficValues(db, stats)
+		for i := range stats {
+			trafficByEmail[stats[i].Email] = &stats[i]
+		}
+	}
+
+	out := make([]ClientWithAttachments, 0, len(rows))
+	for i := range rows {
+		out = append(out, ClientWithAttachments{
+			ClientRecord: rows[i],
+			Traffic:      trafficByEmail[rows[i].Email],
+		})
+	}
+	return out, nil
+}
+
+// listPage loads one page of clients with inbound attachments and traffic.
+func (s *ClientService) listPage(offset, limit int, sortKey, order string) ([]ClientWithAttachments, error) {
+	db := database.GetDB()
+	q := db.Model(&model.ClientRecord{})
+	if col, ok := clientPageSortColumn(sortKey); ok {
+		if order == "descend" {
+			q = q.Order(col + " DESC")
+		} else {
+			q = q.Order(col + " ASC")
+		}
+	} else {
+		q = q.Order("id ASC")
+	}
+
+	var rows []model.ClientRecord
+	if err := q.Offset(offset).Limit(limit).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []ClientWithAttachments{}, nil
+	}
+
+	clientIds := make([]int, 0, len(rows))
+	emails := make([]string, 0, len(rows))
+	for i := range rows {
+		clientIds = append(clientIds, rows[i].Id)
+		if rows[i].Email != "" {
+			emails = append(emails, rows[i].Email)
+		}
+	}
+
+	attachments := make(map[int][]int, len(rows))
+	for _, batch := range chunkInts(clientIds, sqlInChunk) {
+		var links []model.ClientInbound
+		if err := db.Where("client_id IN ?", batch).Find(&links).Error; err != nil {
+			return nil, err
+		}
+		for _, l := range links {
+			attachments[l.ClientId] = append(attachments[l.ClientId], l.InboundId)
+		}
+	}
+
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(emails))
+	if len(emails) > 0 {
+		var stats []xray.ClientTraffic
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var batchStats []xray.ClientTraffic
+			if err := db.Where("email IN ?", batch).Find(&batchStats).Error; err != nil {
+				return nil, err
+			}
+			stats = append(stats, batchStats...)
+		}
+		overlayGlobalTrafficValues(db, stats)
+		for i := range stats {
+			trafficByEmail[stats[i].Email] = &stats[i]
+		}
+	}
+
+	out := make([]ClientWithAttachments, 0, len(rows))
+	for i := range rows {
+		out = append(out, ClientWithAttachments{
+			ClientRecord: rows[i],
+			InboundIds:   attachments[rows[i].Id],
+			Traffic:      trafficByEmail[rows[i].Email],
+		})
+	}
+	return out, nil
+}
+
+func (s *ClientService) countClients() (int, error) {
+	var total int64
+	if err := database.GetDB().Model(&model.ClientRecord{}).Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return int(total), nil
 }
 
 func (s *ClientService) HasPendingNode(inboundSvc *InboundService, email string) bool {

@@ -1,4 +1,4 @@
-// Package entity defines data structures and entities used by the web layer of the 3x-ui panel.
+// Package entity defines data structures and entities used by the web layer of the dune panel.
 package entity
 
 import (
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/gary/dune/internal/util/common"
 )
 
 // Msg represents a standard API response message with success status, message text, and optional data object.
@@ -18,7 +18,7 @@ type Msg struct {
 	Obj     any    `json:"obj"`     // Optional data object
 }
 
-// AllSetting contains all configuration settings for the 3x-ui panel including web server, Telegram bot, and subscription settings.
+// AllSetting contains all configuration settings for the dune panel including web server, Telegram bot, and subscription settings.
 type AllSetting struct {
 	// Web server settings
 	WebListen         string `json:"webListen" form:"webListen"`                                     // Web server listen IP address
@@ -37,6 +37,14 @@ type AllSetting struct {
 	TrafficDiff    int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"` // Traffic warning threshold percentage
 	RemarkTemplate string `json:"remarkTemplate" form:"remarkTemplate"`                    // Subscription remark template ({{VAR}} tokens) rendered per client
 	Datepicker     string `json:"datepicker" form:"datepicker"`                            // Date picker format
+
+	// Background-job cadences (seconds). Raising these reduces the panel's
+	// recurring CPU/DB load at the cost of slower traffic/online updates.
+	TrafficJobInterval    int `json:"trafficJobInterval" form:"trafficJobInterval" validate:"gte=1,lte=86400"`       // How often local Xray traffic is collected and persisted
+	ClientIpJobInterval   int `json:"clientIpJobInterval" form:"clientIpJobInterval" validate:"gte=1,lte=86400"`     // How often the IP-limit scan runs
+	NodeHeartbeatInterval int `json:"nodeHeartbeatInterval" form:"nodeHeartbeatInterval" validate:"gte=1,lte=86400"` // How often remote nodes are health-checked
+	NodeTrafficInterval   int `json:"nodeTrafficInterval" form:"nodeTrafficInterval" validate:"gte=1,lte=86400"`     // How often remote-node traffic is synced
+	XrayRestartInterval   int `json:"xrayRestartInterval" form:"xrayRestartInterval" validate:"gte=1,lte=86400"`     // How often a pending Xray restart request is applied
 
 	// Telegram bot settings
 	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`              // Enable Telegram bot notifications

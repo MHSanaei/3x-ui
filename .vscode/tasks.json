@@ -8,7 +8,7 @@
       "args": [
         "build",
         "-o",
-        "bin/3x-ui.exe",
+        "bin/dune.exe",
         "./main.go"
       ],
       "options": {
@@ -33,7 +33,7 @@
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-          "XUI_DEBUG": "true"
+          "DUNE_DEBUG": "true"
         }
       },
       "problemMatcher": [

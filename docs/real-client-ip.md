@@ -5,7 +5,7 @@ or another panel — the IP that Xray sees is the **intermediary's** address, no
 That intermediary IP is what shows up in the panel's online/IP view and what the per-client
 **IP limit** counts against, which makes both useless behind a proxy.
 
-Xray-core can recover the real visitor IP. 3x-ui exposes the two mechanisms in the inbound form
+Xray-core can recover the real visitor IP. dune exposes the two mechanisms in the inbound form
 and feeds the recovered IP into the same pipeline that drives IP-limit enforcement, the online
 list, and multi-node sync — so once it is set, everything downstream just works.
 

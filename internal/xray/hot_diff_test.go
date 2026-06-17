@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
+	dunelogger "github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/json_util"
 
 	"github.com/op/go-logging"
 )
@@ -14,7 +14,7 @@ import (
 func TestMain(m *testing.M) {
 	// ComputeHotDiff logs the section that blocks a hot apply; the package
 	// logger must exist before any test exercises a blocked path.
-	xuilogger.InitLogger(logging.ERROR)
+	dunelogger.InitLogger(logging.ERROR)
 	os.Exit(m.Run())
 }
 

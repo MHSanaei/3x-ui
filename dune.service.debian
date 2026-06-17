@@ -1,14 +1,14 @@
 [Unit]
-Description=x-ui Service
+Description=dune Service
 After=network.target
 Wants=network.target
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/x-ui
+EnvironmentFile=-/etc/default/dune
 Environment="XRAY_VMESS_AEAD_FORCED=false"
 Type=simple
-WorkingDirectory=/usr/local/x-ui/
-ExecStart=/usr/local/x-ui/x-ui
+WorkingDirectory=/usr/local/dune/
+ExecStart=/usr/local/dune/dune
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s

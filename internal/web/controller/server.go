@@ -8,14 +8,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/entity"
+	"github.com/gary/dune/internal/web/global"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/service/panel"
+	"github.com/gary/dune/internal/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -292,9 +292,9 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := "x-ui.db"
+	filename := "dune.db"
 	if database.IsPostgres() {
-		filename = "x-ui.dump"
+		filename = "dune.dump"
 	}
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))

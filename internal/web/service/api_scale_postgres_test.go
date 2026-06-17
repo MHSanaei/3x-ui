@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	dunelogger "github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/xray"
 
 	"github.com/op/go-logging"
 )
@@ -37,10 +37,10 @@ func seedClientTraffics(t *testing.T, inboundId int, clients []model.Client) {
 // reachable from the REST API at 100k/200k clients, asserting none crash on the
 // PostgreSQL bind-parameter ceiling and logging the wall-clock cost of each.
 func TestAllAPIsPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
-	xuilogger.InitLogger(logging.ERROR)
+	dunelogger.InitLogger(logging.ERROR)
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -150,10 +150,10 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 // old path (GetClientByEmail, which parses the inbound's entire settings JSON to
 // find one client) vs new path (UUID/subId read from the indexed clients table).
 func TestGetClientTrafficByEmailABScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
+	if strings.TrimSpace(os.Getenv("DUNE_DB_DSN")) == "" || os.Getenv("DUNE_DB_TYPE") != "postgres" {
+		t.Skip("set DUNE_DB_TYPE=postgres and DUNE_DB_DSN to run the postgres scale benchmark")
 	}
-	xuilogger.InitLogger(logging.ERROR)
+	dunelogger.InitLogger(logging.ERROR)
 	if err := database.InitDB(""); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}

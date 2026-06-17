@@ -5,6 +5,6 @@ build
 db
 cert
 pgdata
-x-ui/
+dune/
 *.db
 *.dump

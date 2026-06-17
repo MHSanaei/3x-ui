@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	dunelogger "github.com/gary/dune/internal/logger"
 	"github.com/op/go-logging"
 )
 
 func TestMain(m *testing.M) {
-	_ = os.Setenv("XUI_LOG_FOLDER", os.TempDir())
-	xuilogger.InitLogger(logging.ERROR)
+	_ = os.Setenv("DUNE_LOG_FOLDER", os.TempDir())
+	dunelogger.InitLogger(logging.ERROR)
 	os.Exit(m.Run())
 }
 

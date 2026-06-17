@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 )
 
 // inboundShadowsocksMethod extracts settings.method for Shadowsocks inbounds so

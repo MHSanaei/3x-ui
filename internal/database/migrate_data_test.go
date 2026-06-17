@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -13,13 +13,13 @@ import (
 )
 
 func TestMigrateData_CompositeKeyTableLargerThanBatch(t *testing.T) {
-	dsn := os.Getenv("XUI_TEST_PG_DSN")
+	dsn := os.Getenv("DUNE_TEST_PG_DSN")
 	if dsn == "" {
-		t.Skip("set XUI_TEST_PG_DSN to a reachable Postgres to run this test")
+		t.Skip("set DUNE_TEST_PG_DSN to a reachable Postgres to run this test")
 	}
 
 	// Seed a SQLite source with the full schema and >500 client_inbounds rows.
-	srcPath := t.TempDir() + "/x-ui.db"
+	srcPath := t.TempDir() + "/dune.db"
 	src, err := gorm.Open(sqlite.Open(srcPath), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -64,12 +64,12 @@ func TestMigrateData_CompositeKeyTableLargerThanBatch(t *testing.T) {
 }
 
 func TestMigrateData_PreservesFalseDefaultedColumns(t *testing.T) {
-	dsn := os.Getenv("XUI_TEST_PG_DSN")
+	dsn := os.Getenv("DUNE_TEST_PG_DSN")
 	if dsn == "" {
-		t.Skip("set XUI_TEST_PG_DSN to a reachable Postgres to run this test")
+		t.Skip("set DUNE_TEST_PG_DSN to a reachable Postgres to run this test")
 	}
 
-	srcPath := t.TempDir() + "/x-ui.db"
+	srcPath := t.TempDir() + "/dune.db"
 	src, err := gorm.Open(sqlite.Open(srcPath), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)

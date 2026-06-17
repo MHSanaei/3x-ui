@@ -3,8 +3,8 @@ package service
 import (
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/web/runtime"
 )
 
 func TestNormalizeBasePath(t *testing.T) {

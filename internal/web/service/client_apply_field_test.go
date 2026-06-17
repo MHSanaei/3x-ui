@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 )
 
 // TestResetClientExpiryTimeByEmail_MultiInbound reproduces #5039: a client
@@ -14,8 +14,8 @@ import (
 // inbound's JSON, so the stale siblings reverted the change on the next sync.
 func TestResetClientExpiryTimeByEmail_MultiInbound(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })

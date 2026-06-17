@@ -6,9 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	dunelogger "github.com/gary/dune/internal/logger"
 	"github.com/op/go-logging"
 )
 
@@ -21,11 +21,11 @@ var portConflictLoggerOnce sync.Once
 // doesn't refuse to remove the file.
 func setupConflictDB(t *testing.T) {
 	t.Helper()
-	portConflictLoggerOnce.Do(func() { xuilogger.InitLogger(logging.ERROR) })
+	portConflictLoggerOnce.Do(func() { dunelogger.InitLogger(logging.ERROR) })
 
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() {

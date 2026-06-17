@@ -1,4 +1,4 @@
-name: Release 3X-UI
+name: Release Dune
 
 on:
   workflow_dispatch:
@@ -13,9 +13,9 @@ on:
       - "go.sum"
       - "**.sh"
       - "frontend/**"
-      - "x-ui.service.debian"
-      - "x-ui.service.arch"
-      - "x-ui.service.rhel"
+      - "dune.service.debian"
+      - "dune.service.arch"
+      - "dune.service.rhel"
   pull_request:
     paths:
       - "**.go"
@@ -23,9 +23,9 @@ on:
       - "go.sum"
       - "**.sh"
       - "frontend/**"
-      - "x-ui.service.debian"
-      - "x-ui.service.arch"
-      - "x-ui.service.rhel"
+      - "dune.service.debian"
+      - "dune.service.arch"
+      - "dune.service.rhel"
 
 jobs:
   build:
@@ -69,7 +69,7 @@ jobs:
           npm run build
         working-directory: frontend
 
-      - name: Build 3X-UI
+      - name: Build Dune
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
@@ -97,19 +97,19 @@ jobs:
           export CC=$(realpath "$(find "$TOOLCHAIN_DIR/bin" -name '*-gcc.br_real' -type f -executable | head -n1)")
           [ -z "$CC" ] && { echo "No gcc.br_real found in $TOOLCHAIN_DIR/bin" >&2; exit 1; }
           cd -
-          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
-          file xui-release
-          ldd xui-release || echo "Static binary confirmed"
+          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o dune-release -v main.go
+          file dune-release
+          ldd dune-release || echo "Static binary confirmed"
 
-          mkdir x-ui
-          cp xui-release x-ui/
-          cp x-ui.service.debian x-ui/
-          cp x-ui.service.arch x-ui/
-          cp x-ui.service.rhel x-ui/
-          cp x-ui.sh x-ui/
-          mv x-ui/xui-release x-ui/x-ui
-          mkdir x-ui/bin
-          cd x-ui/bin
+          mkdir dune
+          cp dune-release dune/
+          cp dune.service.debian dune/
+          cp dune.service.arch dune/
+          cp dune.service.rhel dune/
+          cp dune.sh dune/
+          mv dune/dune-release dune/dune
+          mkdir dune/bin
+          cd dune/bin
 
           # Download dependencies
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.6.1/"
@@ -163,13 +163,13 @@ jobs:
           cd ../..
 
       - name: Package
-        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+        run: tar -zcvf dune-linux-${{ matrix.platform }}.tar.gz dune
 
       - name: Upload files to Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: x-ui-linux-${{ matrix.platform }}
-          path: ./x-ui-linux-${{ matrix.platform }}.tar.gz
+          name: dune-linux-${{ matrix.platform }}
+          path: ./dune-linux-${{ matrix.platform }}.tar.gz
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
@@ -177,8 +177,8 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
-          file: x-ui-linux-${{ matrix.platform }}.tar.gz
-          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
+          file: dune-linux-${{ matrix.platform }}.tar.gz
+          asset_name: dune-linux-${{ matrix.platform }}.tar.gz
           overwrite: true
           prerelease: true
 
@@ -231,7 +231,7 @@ jobs:
             mingw-w64-x86_64-sqlite3
             mingw-w64-x86_64-pkg-config
 
-      - name: Build 3X-UI for Windows (CGO)
+      - name: Build Dune for Windows (CGO)
         shell: msys2 {0}
         run: |
           export PATH="/c/hostedtoolcache/windows/go/$(ls /c/hostedtoolcache/windows/go | sort -V | tail -n1)/x64/bin:$PATH"
@@ -245,15 +245,15 @@ jobs:
           go version
           gcc --version
 
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+          go build -ldflags "-w -s" -o dune-release.exe -v main.go
 
       - name: Copy and download resources
         shell: pwsh
         run: |
-          mkdir x-ui
-          Copy-Item xui-release.exe x-ui\x-ui.exe
-          mkdir x-ui\bin
-          cd x-ui\bin
+          mkdir dune
+          Copy-Item dune-release.exe dune\dune.exe
+          mkdir dune\bin
+          cd dune\bin
 
           # Download Xray for Windows
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.6.1/"
@@ -284,13 +284,13 @@ jobs:
       - name: Package to Zip
         shell: pwsh
         run: |
-          Compress-Archive -Path .\x-ui -DestinationPath "x-ui-windows-amd64.zip"
+          Compress-Archive -Path .\dune -DestinationPath "dune-windows-amd64.zip"
 
       - name: Upload files to Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: x-ui-windows-amd64
-          path: ./x-ui-windows-amd64.zip
+          name: dune-windows-amd64
+          path: ./dune-windows-amd64.zip
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
@@ -298,7 +298,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
-          file: x-ui-windows-amd64.zip
-          asset_name: x-ui-windows-amd64.zip
+          file: dune-windows-amd64.zip
+          asset_name: dune-windows-amd64.zip
           overwrite: true
           prerelease: true

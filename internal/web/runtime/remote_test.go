@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 )
 
 type stubEgress struct{ url string }

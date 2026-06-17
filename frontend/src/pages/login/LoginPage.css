@@ -1,58 +1,66 @@
+/* ── Dune cinematic login ──────────────────────────────────────────── */
+
 .login-app {
-  --bg-page: #eef2ff;
-  --bg-card: rgba(255, 255, 255, 0.72);
-  --bg-card-solid: #ffffff;
-  --color-text: rgba(0, 0, 0, 0.88);
-  --color-text-subtle: rgba(0, 0, 0, 0.55);
-  --color-accent: #6366f1;
-  --color-border: rgba(255, 255, 255, 0.6);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 18px 50px rgba(99, 102, 241, 0.18);
-  --blob-1: rgba(99, 102, 241, 0.55);
-  --blob-2: rgba(236, 72, 153, 0.50);
-  --blob-3: rgba(20, 184, 166, 0.40);
-  --blob-4: rgba(251, 191, 36, 0.35);
-  --blob-5: rgba(56, 189, 248, 0.40);
-  --grid-color: rgba(99, 102, 241, 0.06);
-  --vignette: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.05) 100%);
+  --bg-page: #e8dfd0;
+  --bg-card: rgba(250, 246, 240, 0.82);
+  --bg-card-solid: #faf6f0;
+  --color-text: #2c1810;
+  --color-text-subtle: #5c4033;
+  --color-accent: #a67c52;
+  --color-border: rgba(166, 124, 82, 0.2);
+  --shadow-card:
+    0 1px 3px rgba(44, 24, 16, 0.06),
+    0 20px 60px rgba(44, 24, 16, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --blob-1: rgba(201, 168, 76, 0.45);
+  --blob-2: rgba(184, 115, 51, 0.40);
+  --blob-3: rgba(166, 124, 82, 0.35);
+  --blob-4: rgba(212, 175, 55, 0.25);
+  --blob-5: rgba(196, 168, 130, 0.30);
+  --grid-color: rgba(166, 124, 82, 0.06);
+  --vignette: radial-gradient(ellipse at center, transparent 30%, rgba(44, 24, 16, 0.08) 100%);
 
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 50%, #ecfeff 100%);
+  background: linear-gradient(165deg, #ede4d4 0%, #e0d4c0 40%, #d4c4a8 100%);
 }
 
 .login-app.is-dark {
-  --bg-page: #0d1117;
-  --bg-card: rgba(28, 30, 36, 0.55);
-  --bg-card-solid: #1c1e22;
-  --color-text: rgba(255, 255, 255, 0.92);
-  --color-text-subtle: rgba(255, 255, 255, 0.55);
-  --color-accent: #3b82f6;
-  --color-border: rgba(255, 255, 255, 0.10);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(59, 130, 246, 0.22);
-  --blob-1: rgba(96, 165, 250, 0.42);
-  --blob-2: rgba(59, 130, 246, 0.42);
-  --blob-3: rgba(37, 99, 235, 0.35);
-  --blob-4: rgba(251, 146, 60, 0.18);
-  --blob-5: rgba(129, 140, 248, 0.30);
-  --grid-color: rgba(255, 255, 255, 0.04);
-  --vignette: radial-gradient(ellipse at center, transparent 25%, rgba(0, 0, 0, 0.5) 100%);
-  background: radial-gradient(ellipse at 25% 20%, #152038 0%, #0d1117 60%);
+  --bg-page: #1a1612;
+  --bg-card: rgba(37, 32, 24, 0.65);
+  --bg-card-solid: #252018;
+  --color-text: rgba(232, 213, 183, 0.92);
+  --color-text-subtle: rgba(196, 168, 130, 0.65);
+  --color-accent: #d4af37;
+  --color-border: rgba(212, 175, 55, 0.15);
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 24px 64px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --blob-1: rgba(212, 175, 55, 0.30);
+  --blob-2: rgba(184, 115, 51, 0.28);
+  --blob-3: rgba(166, 124, 82, 0.22);
+  --blob-4: rgba(201, 168, 76, 0.18);
+  --blob-5: rgba(139, 105, 20, 0.20);
+  --grid-color: rgba(212, 175, 55, 0.04);
+  --vignette: radial-gradient(ellipse at center, transparent 25%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(ellipse at 30% 15%, #2a2218 0%, #1a1612 50%, #0a0806 100%);
 }
 
 .login-app.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: rgba(15, 17, 28, 0.6);
-  --bg-card-solid: #101013;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --blob-1: rgba(99, 102, 241, 0.30);
-  --blob-2: rgba(236, 72, 153, 0.22);
-  --blob-3: rgba(34, 211, 238, 0.20);
-  --blob-4: rgba(251, 146, 60, 0.15);
-  --blob-5: rgba(168, 85, 247, 0.25);
-  --grid-color: rgba(255, 255, 255, 0.025);
-  --vignette: radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.8) 100%);
-  background: radial-gradient(ellipse at 25% 20%, #0a0a1a 0%, #000 60%);
+  --bg-page: #0a0806;
+  --bg-card: rgba(18, 16, 12, 0.7);
+  --bg-card-solid: #12100c;
+  --color-border: rgba(212, 175, 55, 0.1);
+  --blob-1: rgba(212, 175, 55, 0.22);
+  --blob-2: rgba(184, 115, 51, 0.18);
+  --blob-3: rgba(139, 105, 20, 0.15);
+  --blob-4: rgba(201, 168, 76, 0.12);
+  --blob-5: rgba(166, 124, 82, 0.15);
+  --grid-color: rgba(212, 175, 55, 0.025);
+  --vignette: radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.85) 100%);
+  background: radial-gradient(ellipse at 30% 15%, #14100c 0%, #0a0806 60%, #000 100%);
 }
 
 .login-app::before,
@@ -220,8 +228,17 @@
   width: 40px;
   height: 40px;
   min-width: 40px;
-  border-radius: 50%;
+  border-radius: 8px;
   padding: 0;
+  border: 1px solid var(--dune-border-subtle, rgba(166, 124, 82, 0.15));
+  transition:
+    border-color var(--dune-duration, 0.25s) ease,
+    box-shadow var(--dune-duration, 0.25s) ease;
+}
+
+.toolbar-btn:hover {
+  border-color: var(--dune-gold, #c9a84c);
+  box-shadow: 0 0 12px var(--dune-accent-glow, rgba(201, 168, 76, 0.18));
 }
 
 .toolbar-btn .anticon {
@@ -234,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 32px 20px;
 }
 
 .login-loading {
@@ -244,14 +261,14 @@
 .login-card {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 40px 32px 28px;
+  border-radius: 16px;
+  padding: 48px 36px 32px;
   box-shadow: var(--shadow-card);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
   z-index: 2;
 }
 
@@ -259,13 +276,13 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.5),
+    rgba(212, 175, 55, 0.4),
     rgba(255, 255, 255, 0) 40%,
-    rgba(99, 102, 241, 0.25) 80%
+    rgba(166, 124, 82, 0.3) 80%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -276,15 +293,15 @@
 .login-app.is-dark .login-card::before {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.15),
+    rgba(212, 175, 55, 0.35),
     rgba(255, 255, 255, 0) 40%,
-    rgba(59, 130, 246, 0.40) 80%
+    rgba(184, 115, 51, 0.25) 80%
   );
 }
 
 @media (max-width: 480px) {
   .login-card {
-    padding: 32px 20px 24px;
+    padding: 36px 24px 28px;
   }
 }
 
@@ -292,23 +309,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
 .brand-name {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--color-text);
-  background: linear-gradient(135deg, var(--color-accent), #ec4899);
+  background: linear-gradient(135deg, #c9a84c, #a67c52, #b87333);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .login-app.is-dark .brand-name {
-  background: linear-gradient(135deg, #60a5fa, #1d4ed8);
+  background: linear-gradient(135deg, #d4af37, #c9a84c, #b87333);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -316,25 +334,25 @@
 
 .brand-accent {
   display: block;
-  width: 40px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--color-accent), #ec4899);
+  width: 48px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, #c9a84c, transparent);
 }
 
 .login-app.is-dark .brand-accent {
-  background: linear-gradient(90deg, #60a5fa, #1d4ed8);
+  background: linear-gradient(90deg, transparent, #d4af37, transparent);
 }
 
 .welcome {
   text-align: center;
   color: var(--color-text);
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.3;
   min-height: 42px;
-  margin: 12px 0 28px;
-  letter-spacing: 0.3px;
+  margin: 16px 0 32px;
+  letter-spacing: 0.04em;
 }
 
 .welcome b {
@@ -357,6 +375,7 @@
 .login-form .ant-form-item-label > label {
   color: var(--color-text);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .login-form input.ant-input:-webkit-autofill,
@@ -372,3 +391,10 @@
   margin-bottom: 0;
 }
 
+.login-form .ant-btn-primary {
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

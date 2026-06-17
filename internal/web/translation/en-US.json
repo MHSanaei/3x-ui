@@ -130,6 +130,13 @@
         "successLogin": "You have successfully logged into your account."
       }
     },
+    "donate": {
+      "title": "Donate",
+      "subtitle": "If this project is helpful to you, crypto donations are welcome.",
+      "ton": "TON",
+      "tron": "TRON",
+      "erc20Bep20": "ERC20 and BEP20"
+    },
     "index": {
       "title": "Overview",
       "cpu": "CPU",
@@ -147,7 +154,7 @@
       "xraySwitchClick": "Choose the version you want to switch to.",
       "xraySwitchClickDesk": "Choose carefully, as older versions may not be compatible with current configurations.",
       "updatePanel": "Update Panel",
-      "panelUpdateDesc": "This will update 3X-UI itself to the latest release and restart the panel service.",
+      "panelUpdateDesc": "This will update Dune itself to the latest release and restart the panel service.",
       "currentPanelVersion": "Current panel version",
       "latestPanelVersion": "Latest panel version",
       "panelUpToDate": "Panel is up to date",
@@ -215,7 +222,7 @@
       "xraySwitchVersionDialogDesc": "This will change the Xray version to #version#.",
       "xraySwitchVersionPopover": "Xray updated successfully",
       "panelUpdateDialog": "Do you really want to update the panel?",
-      "panelUpdateDialogDesc": "This will update 3X-UI to #version# and restart the panel service.",
+      "panelUpdateDialogDesc": "This will update Dune to #version# and restart the panel service.",
       "panelUpdateCheckPopover": "Panel update check failed",
       "panelUpdateStartedPopover": "Panel update started",
       "geofileUpdateDialog": "Do you really want to update the geofile?",
@@ -1194,7 +1201,7 @@
       "subAnnounce": "Announce",
       "subAnnounceDesc": "The announcement text displayed in the VPN client",
       "subThemeDir": "Sub Theme Directory",
-      "subThemeDirDesc": "Absolute path to a folder containing a custom index.html/sub.html subscription page template (e.g. /etc/3x-ui/sub_templates/my-theme/). Leave empty to use the default page.",
+      "subThemeDirDesc": "Absolute path to a folder containing a custom index.html/sub.html subscription page template (e.g. /etc/dune/sub_templates/my-theme/). Leave empty to use the default page.",
       "subThemeDirDocs": "Template guide ↗",
       "subEnableRouting": "Enable routing",
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
@@ -1298,6 +1305,21 @@
       "profile": "Profile",
       "language": "Language",
       "telegramBotLanguage": "Telegram Bot Language",
+      "performance": {
+        "title": "Performance",
+        "hint": "How often background jobs run. Larger intervals lower CPU and database load at the cost of slower traffic and online updates. Changes take effect after the panel restarts.",
+        "seconds": "sec",
+        "trafficJobInterval": "Traffic collection interval",
+        "trafficJobIntervalDesc": "How often local Xray traffic is read and saved. The single most impactful job on busy panels. (default: 5)",
+        "clientIpJobInterval": "IP-limit scan interval",
+        "clientIpJobIntervalDesc": "How often connected client IPs are checked against per-client IP limits. (default: 10)",
+        "nodeHeartbeatInterval": "Node heartbeat interval",
+        "nodeHeartbeatIntervalDesc": "How often remote nodes are health-checked. (default: 5)",
+        "nodeTrafficInterval": "Node traffic sync interval",
+        "nodeTrafficIntervalDesc": "How often traffic is synced from remote nodes. (default: 5)",
+        "xrayRestartInterval": "Xray restart check interval",
+        "xrayRestartIntervalDesc": "How often a pending Xray restart request is applied. (default: 30)"
+      },
       "security": {
         "admin": "Admin credentials",
         "twoFactor": "Two-factor authentication",
@@ -1844,7 +1866,7 @@
       "report": "🕰 Scheduled Reports: {{ .RunTime }}\r\n",
       "datetime": "⏰ Date&Time: {{ .DateTime }}\r\n",
       "hostname": "💻 Host: {{ .Hostname }}\r\n",
-      "version": "🚀 3X-UI Version: {{ .Version }}\r\n",
+      "version": "🚀 Dune Version: {{ .Version }}\r\n",
       "xrayVersion": "📡 Xray Version: {{ .XrayVersion }}\r\n",
       "ipv6": "🌐 IPv6: {{ .IPv6 }}\r\n",
       "ipv4": "🌐 IPv4: {{ .IPv4 }}\r\n",

@@ -231,11 +231,11 @@ func TestPartitionLiveIps_RecentSyncedIpIsLive(t *testing.T) {
 }
 
 func TestCheckFail2BanInstalled_DisabledEnvSkipsClientProbe(t *testing.T) {
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "false")
 	marker := fakeFail2BanClient(t)
 
 	if (&CheckClientIpJob{}).checkFail2BanInstalled() {
-		t.Fatal("fail2ban should be unavailable when XUI_ENABLE_FAIL2BAN=false")
+		t.Fatal("fail2ban should be unavailable when DUNE_ENABLE_FAIL2BAN=false")
 	}
 	if _, err := os.Stat(marker); !os.IsNotExist(err) {
 		t.Fatalf("fail2ban-client should not have been executed, stat error: %v", err)
@@ -243,11 +243,11 @@ func TestCheckFail2BanInstalled_DisabledEnvSkipsClientProbe(t *testing.T) {
 }
 
 func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "")
 	marker := fakeFail2BanClient(t)
 
 	if (&CheckClientIpJob{}).checkFail2BanInstalled() {
-		t.Fatal("fail2ban should be unavailable when XUI_ENABLE_FAIL2BAN is empty")
+		t.Fatal("fail2ban should be unavailable when DUNE_ENABLE_FAIL2BAN is empty")
 	}
 	if _, err := os.Stat(marker); !os.IsNotExist(err) {
 		t.Fatalf("fail2ban-client should not have been executed, stat error: %v", err)
@@ -255,23 +255,23 @@ func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
 }
 
 func TestIsFail2BanEnabled_DefaultsToEnabledWhenUnset(t *testing.T) {
-	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
-	os.Unsetenv("XUI_ENABLE_FAIL2BAN")
+	value, ok := os.LookupEnv("DUNE_ENABLE_FAIL2BAN")
+	os.Unsetenv("DUNE_ENABLE_FAIL2BAN")
 	t.Cleanup(func() {
 		if ok {
-			os.Setenv("XUI_ENABLE_FAIL2BAN", value)
+			os.Setenv("DUNE_ENABLE_FAIL2BAN", value)
 		} else {
-			os.Unsetenv("XUI_ENABLE_FAIL2BAN")
+			os.Unsetenv("DUNE_ENABLE_FAIL2BAN")
 		}
 	})
 
 	if !isFail2BanEnabled() {
-		t.Fatal("fail2ban should default to enabled when XUI_ENABLE_FAIL2BAN is unset")
+		t.Fatal("fail2ban should default to enabled when DUNE_ENABLE_FAIL2BAN is unset")
 	}
 }
 
 func TestCheckFail2BanInstalled_EnabledEnvProbesClient(t *testing.T) {
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "true")
 	marker := fakeFail2BanClient(t)
 
 	if !(&CheckClientIpJob{}).checkFail2BanInstalled() {

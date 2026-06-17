@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database/model"
+	dunelogger "github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/json_util"
+	"github.com/gary/dune/internal/xray"
 
 	"github.com/op/go-logging"
 )
@@ -16,7 +16,7 @@ import (
 func TestMain(m *testing.M) {
 	// injectPanelEgress logs when it skips injection; the package logger must
 	// exist before any test exercises a skipped path.
-	xuilogger.InitLogger(logging.ERROR)
+	dunelogger.InitLogger(logging.ERROR)
 	os.Exit(m.Run())
 }
 

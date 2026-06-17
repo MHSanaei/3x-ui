@@ -7,6 +7,7 @@ export type staticEgressResolver = string;
 export type transportBits = number;
 
 export interface AllSetting {
+  clientIpJobInterval: number;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
@@ -31,6 +32,8 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeHeartbeatInterval: number;
+  nodeTrafficInterval: number;
   pageSize: number;
   panelOutbound: string;
   remarkTemplate: string;
@@ -85,6 +88,7 @@ export interface AllSetting {
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
+  trafficJobInterval: number;
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
@@ -95,9 +99,11 @@ export interface AllSetting {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  xrayRestartInterval: number;
 }
 
 export interface AllSettingView {
+  clientIpJobInterval: number;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
@@ -129,6 +135,8 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeHeartbeatInterval: number;
+  nodeTrafficInterval: number;
   pageSize: number;
   panelOutbound: string;
   remarkTemplate: string;
@@ -183,6 +191,7 @@ export interface AllSettingView {
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
+  trafficJobInterval: number;
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
@@ -193,6 +202,7 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  xrayRestartInterval: number;
 }
 
 export interface ApiToken {

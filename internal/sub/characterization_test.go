@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database/model"
 )
 
 // Characterization snapshots (Phase 0 of the Hosts feature). These lock the

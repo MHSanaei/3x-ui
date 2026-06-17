@@ -1,4 +1,4 @@
-// Package web provides the main web server implementation for the 3x-ui panel,
+// Package web provides the main web server implementation for the dune panel,
 // including HTTP/HTTPS serving, routing, templates, and background job scheduling.
 package web
 
@@ -16,23 +16,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/mtproto"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/web/controller"
+	"github.com/gary/dune/internal/web/job"
+	"github.com/gary/dune/internal/web/locale"
+	"github.com/gary/dune/internal/web/middleware"
+	"github.com/gary/dune/internal/web/network"
+	"github.com/gary/dune/internal/web/runtime"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/web/service/email"
+	"github.com/gary/dune/internal/web/service/panel"
+	"github.com/gary/dune/internal/web/service/tgbot"
+	"github.com/gary/dune/internal/web/websocket"
+	"github.com/gary/dune/internal/xray"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -100,13 +100,13 @@ func EmbeddedDist() embed.FS {
 	return distFS
 }
 
-// Server represents the main web server for the 3x-ui panel with controllers, services, and scheduled jobs.
+// Server represents the main web server for the dune panel with controllers, services, and scheduled jobs.
 type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
 
 	index *controller.IndexController
-	panel *controller.XUIController
+	panel *controller.DuneController
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
@@ -200,7 +200,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		sessionOptions.MaxAge = sessionMaxAge * 60 // minutes -> seconds
 	}
 	store.Options(sessionOptions)
-	engine.Use(sessions.Sessions("3x-ui", store))
+	engine.Use(sessions.Sessions("dune", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
 	})
@@ -239,7 +239,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group(basePath)
 
 	s.index = controller.NewIndexController(g)
-	s.panel = controller.NewXUIController(g)
+	s.panel = controller.NewDuneController(g)
 	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
 	s.api = controller.NewAPIController(g)
 
@@ -266,26 +266,52 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	return engine, nil
 }
 
-// Background-job cadences. Centralized here as the single tuning surface; the
-// values are unchanged from the historical hardcoded cron specs. Follow-up:
-// make these configurable via settings, add per-tick jitter to de-synchronize
-// fleet load, skip expensive jobs when no WebSocket clients are connected or
-// node/xray state is unchanged, and export per-job duration/skipped/error
-// counters.
+// Background-job cadences. The fixed ones below are cheap supervisory ticks;
+// the load-bearing jobs (traffic, IP scan, node heartbeat/traffic, xray
+// restart) are operator-tunable via settings — see intervalCadences().
+// Follow-up: add per-tick jitter to de-synchronize fleet load, skip expensive
+// jobs when no WebSocket clients are connected or node/xray state is
+// unchanged, and export per-job duration/skipped/error counters.
 const (
-	cadenceXrayRunning   = "@every 1s"
-	cadenceXrayRestart   = "@every 30s"
-	cadenceXrayTraffic   = "@every 5s"
-	cadenceMtproto       = "@every 10s"
-	cadenceClientIPScan  = "@every 10s"
-	cadenceNodeHeartbeat = "@every 5s"
-	cadenceNodeTraffic   = "@every 5s"
-	cadenceOutboundSub   = "@every 5m"
-	cadenceCheckHash     = "@every 2m"
+	cadenceXrayRunning = "@every 1s"
+	cadenceMtproto     = "@every 10s"
+	cadenceOutboundSub = "@every 5m"
+	cadenceCheckHash   = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm = "@every 1m"
 )
+
+// cadences holds the resolved, operator-tunable job intervals for one startTask
+// run. Each is an "@every Ns" cron spec built from the persisted setting (with
+// the documented default substituted on any read/parse error).
+type cadences struct {
+	xrayRestart   string
+	xrayTraffic   string
+	clientIPScan  string
+	nodeHeartbeat string
+	nodeTraffic   string
+}
+
+// everySeconds renders a cron spec from a seconds-valued setting getter,
+// falling back to def when the setting can't be read or is non-positive.
+func everySeconds(getter func() (int, error), def int) string {
+	n, err := getter()
+	if err != nil || n < 1 {
+		n = def
+	}
+	return fmt.Sprintf("@every %ds", n)
+}
+
+func (s *Server) intervalCadences() cadences {
+	return cadences{
+		xrayRestart:   everySeconds(s.settingService.GetXrayRestartInterval, 30),
+		xrayTraffic:   everySeconds(s.settingService.GetTrafficJobInterval, 5),
+		clientIPScan:  everySeconds(s.settingService.GetClientIpJobInterval, 10),
+		nodeHeartbeat: everySeconds(s.settingService.GetNodeHeartbeatInterval, 5),
+		nodeTraffic:   everySeconds(s.settingService.GetNodeTrafficInterval, 5),
+	}
+}
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
@@ -296,11 +322,15 @@ func (s *Server) startTask(restartXray bool) {
 			logger.Warning("start xray failed:", err)
 		}
 	}
+	cad := s.intervalCadences()
+	logger.Infof("Job cadences: traffic=%s ipScan=%s nodeHeartbeat=%s nodeTraffic=%s xrayRestart=%s",
+		cad.xrayTraffic, cad.clientIPScan, cad.nodeHeartbeat, cad.nodeTraffic, cad.xrayRestart)
+
 	// Check whether xray is running every second
 	s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
 
-	// Check if xray needs to be restarted every 30 seconds
-	s.cron.AddFunc(cadenceXrayRestart, func() {
+	// Apply a pending Xray restart request on the configured cadence
+	s.cron.AddFunc(cad.xrayRestart, func() {
 		if s.xrayService.IsNeedRestartAndSetFalse() {
 			err := s.xrayService.RestartXray(false)
 			if err != nil {
@@ -311,7 +341,7 @@ func (s *Server) startTask(restartXray bool) {
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+		s.cron.AddJob(cad.xrayTraffic, job.NewXrayTrafficJob())
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
@@ -319,12 +349,12 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob(cadenceMtproto, mtJob)
 	go mtJob.Run()
 
-	// check client ips from log file every 10 sec
-	s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
+	// Scan access log / online-stats for clients exceeding their IP limit
+	s.cron.AddJob(cad.clientIPScan, job.NewCheckClientIpJob())
 
-	s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
+	s.cron.AddJob(cad.nodeHeartbeat, job.NewNodeHeartbeatJob())
 
-	s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
+	s.cron.AddJob(cad.nodeTraffic, job.NewNodeTrafficSyncJob())
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
@@ -480,10 +510,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 	if envPort, configured, envErr := config.GetPortOverride(); configured {
 		if envErr != nil {
-			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
+			logger.Warning("Ignoring invalid DUNE_PORT; using configured web port:", port, envErr)
 		} else {
 			port = envPort
-			logger.Info("Using XUI_PORT override for web panel port:", port)
+			logger.Info("Using DUNE_PORT override for web panel port:", port)
 		}
 	}
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
@@ -562,7 +592,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		if err := s.tgbotService.TestConnection(); err != nil {
 			return fmt.Errorf("telegram API test failed: %w", err)
 		}
-		s.tgbotService.SendMsgToTgbotAdmins("✅ Test message from 3x-ui")
+		s.tgbotService.SendMsgToTgbotAdmins("✅ Test message from dune")
 		return nil
 	})
 

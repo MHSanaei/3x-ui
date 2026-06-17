@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/service"
 )
 
 // writeSubError translates a service-layer result into an HTTP response.

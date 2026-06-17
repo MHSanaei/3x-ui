@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	dunelogger "github.com/gary/dune/internal/logger"
 	"github.com/op/go-logging"
 )
 
-// 3x-ui logger must be initialised once before any code path that can
+// dune logger must be initialised once before any code path that can
 // log a warning. otherwise log.Warningf panics on a nil logger.
 var loggerInitOnce sync.Once
 
@@ -27,14 +27,14 @@ func setupIntegrationDB(t *testing.T) {
 	t.Helper()
 
 	loggerInitOnce.Do(func() {
-		xuilogger.InitLogger(logging.ERROR)
+		dunelogger.InitLogger(logging.ERROR)
 	})
 
 	dbDir := t.TempDir()
 	logDir := t.TempDir()
 
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	t.Setenv("XUI_LOG_FOLDER", logDir)
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	t.Setenv("DUNE_LOG_FOLDER", logDir)
 
 	// updateInboundClientIps calls log.SetOutput on the package global,
 	// which would leak to other tests in the same binary.
@@ -45,7 +45,7 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("database.InitDB failed: %v", err)
 	}
 	// LIFO cleanup order: this runs before t.TempDir's own cleanup.
@@ -130,7 +130,7 @@ func ipSet(entries []IPWithTimestamp) map[string]int64 {
 
 func TestRun_DisabledFail2BanSkipsProbeAndBanLog(t *testing.T) {
 	setupIntegrationDB(t)
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "false")
 	marker := fakeFail2BanClient(t)
 
 	const email = "disabled-fail2ban"
@@ -138,7 +138,7 @@ func TestRun_DisabledFail2BanSkipsProbeAndBanLog(t *testing.T) {
 
 	binDir := t.TempDir()
 	accessLog := filepath.Join(t.TempDir(), "access.log")
-	t.Setenv("XUI_BIN_FOLDER", binDir)
+	t.Setenv("DUNE_BIN_FOLDER", binDir)
 	configData, err := json.Marshal(map[string]any{
 		"log": map[string]any{"access": accessLog},
 	})
@@ -160,7 +160,7 @@ func TestRun_DisabledFail2BanSkipsProbeAndBanLog(t *testing.T) {
 	}
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
-		t.Fatalf("3xipl.log should be empty when fail2ban is disabled, got:\n%s", body)
+		t.Fatalf("duneipl.log should be empty when fail2ban is disabled, got:\n%s", body)
 	}
 	var count int64
 	if err := database.GetDB().Model(&model.InboundClientIps{}).Where("client_email = ?", email).Count(&count).Error; err != nil {
@@ -218,10 +218,10 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 		t.Errorf("live ip timestamp should match the scan timestamp %d, got %d", now, got)
 	}
 
-	// 3xipl.log must not contain a ban line.
+	// duneipl.log must not contain a ban line.
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
-		t.Fatalf("3xipl.log should be empty when no ips are banned, got:\n%s", body)
+		t.Fatalf("duneipl.log should be empty when no ips are banned, got:\n%s", body)
 	}
 }
 
@@ -269,14 +269,14 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 		t.Errorf("banned IP 10.1.0.1 must NOT be persisted; got %v", persisted)
 	}
 
-	// 3xipl.log must contain the ban line in the exact fail2ban format.
+	// duneipl.log must contain the ban line in the exact fail2ban format.
 	body, err := os.ReadFile(readIpLimitLogPath())
 	if err != nil {
-		t.Fatalf("read 3xipl.log: %v", err)
+		t.Fatalf("read duneipl.log: %v", err)
 	}
 	wantSubstr := "[LIMIT_IP] Email = pr4091-abuse || Disconnecting OLD IP = 10.1.0.1"
 	if !contains(string(body), wantSubstr) {
-		t.Fatalf("3xipl.log missing expected ban line %q\nfull log:\n%s", wantSubstr, body)
+		t.Fatalf("duneipl.log missing expected ban line %q\nfull log:\n%s", wantSubstr, body)
 	}
 }
 
@@ -287,7 +287,7 @@ func writeXrayAccessLog(t *testing.T, email, ip string) {
 	t.Helper()
 	binDir := t.TempDir()
 	accessLog := filepath.Join(t.TempDir(), "access.log")
-	t.Setenv("XUI_BIN_FOLDER", binDir)
+	t.Setenv("DUNE_BIN_FOLDER", binDir)
 	configData, err := json.Marshal(map[string]any{
 		"log": map[string]any{"access": accessLog},
 	})
@@ -309,7 +309,7 @@ func writeXrayAccessLog(t *testing.T, email, ip string) {
 // valid access-log lines. No ban may be written since there's no limit.
 func TestRun_CollectsIpsWithoutLimit(t *testing.T) {
 	setupIntegrationDB(t)
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "true")
 	fakeFail2BanClient(t)
 
 	const email = "no-limit-user"
@@ -325,7 +325,7 @@ func TestRun_CollectsIpsWithoutLimit(t *testing.T) {
 
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
-		t.Fatalf("3xipl.log should be empty with no limit set, got:\n%s", body)
+		t.Fatalf("duneipl.log should be empty with no limit set, got:\n%s", body)
 	}
 }
 
@@ -335,7 +335,7 @@ func TestRun_CollectsIpsWithoutLimit(t *testing.T) {
 // spamming "failed to fetch inbound settings" every run.
 func TestRun_StaleAccessLogEmailIsSkippedAndOrphanDropped(t *testing.T) {
 	setupIntegrationDB(t)
-	t.Setenv("XUI_ENABLE_FAIL2BAN", "true")
+	t.Setenv("DUNE_ENABLE_FAIL2BAN", "true")
 	fakeFail2BanClient(t)
 
 	const staleEmail = "renamed-away"
@@ -355,16 +355,16 @@ func TestRun_StaleAccessLogEmailIsSkippedAndOrphanDropped(t *testing.T) {
 	}
 }
 
-// readIpLimitLogPath reads the 3xipl.log path the same way the job
+// readIpLimitLogPath reads the duneipl.log path the same way the job
 // does via xray.GetIPLimitLogPath but without importing xray here
 // just for the path helper (which would pull a lot more deps into the
 // test binary). The env-derived log folder is deterministic.
 func readIpLimitLogPath() string {
-	folder := os.Getenv("XUI_LOG_FOLDER")
+	folder := os.Getenv("DUNE_LOG_FOLDER")
 	if folder == "" {
 		folder = filepath.Join(".", "log")
 	}
-	return filepath.Join(folder, "3xipl.log")
+	return filepath.Join(folder, "duneipl.log")
 }
 
 func contains(haystack, needle string) bool {

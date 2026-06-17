@@ -1,4 +1,4 @@
-// Package model defines the database models and data structures used by the 3x-ui panel.
+// Package model defines the database models and data structures used by the dune panel.
 package model
 
 import (
@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/util/json_util"
+	"github.com/gary/dune/internal/xray"
 )
 
 // Protocol represents the protocol type for Xray inbounds.
@@ -34,7 +34,7 @@ const (
 	MTProto     Protocol = "mtproto"
 )
 
-// User represents a user account in the 3x-ui panel.
+// User represents a user account in the dune panel.
 type User struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username   string `json:"username"`
@@ -483,14 +483,14 @@ func HealMtprotoSecret(settings string) (string, bool) {
 	return string(out), true
 }
 
-// Setting stores key-value configuration settings for the 3x-ui panel.
+// Setting stores key-value configuration settings for the dune panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Key   string `json:"key" form:"key"`
 	Value string `json:"value" form:"value"`
 }
 
-// Node represents a remote 3x-ui panel registered with the central panel.
+// Node represents a remote dune panel registered with the central panel.
 // The central panel polls each node's existing /panel/api/server/status
 // endpoint over HTTP using the per-node ApiToken to populate the runtime
 // status fields below.
@@ -607,25 +607,31 @@ type Client struct {
 }
 
 type ClientRecord struct {
-	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email      string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID      string `json:"subId" gorm:"index;column:sub_id"`
-	UUID       string `json:"uuid" gorm:"column:uuid"`
-	Password   string `json:"password"`
-	Auth       string `json:"auth"`
-	Flow       string `json:"flow"`
-	Security   string `json:"security"`
-	Reverse    string `json:"reverse" gorm:"column:reverse"`
-	LimitIP    int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB    int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable     bool   `json:"enable" gorm:"default:true"`
-	TgID       int64  `json:"tgId" gorm:"column:tg_id"`
-	Group      string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment    string `json:"comment"`
-	Reset      int    `json:"reset" gorm:"default:0"`
-	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id    int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID string `json:"subId" gorm:"index;column:sub_id"`
+	// uuid/password back the credential lookup in SearchClientTraffic
+	// (uuid = ? OR password = ?); separate single-column indexes let the planner
+	// satisfy either arm of the OR with an index probe instead of a table scan.
+	UUID     string `json:"uuid" gorm:"column:uuid;index:idx_client_record_uuid"`
+	Password string `json:"password" gorm:"index:idx_client_record_password"`
+	Auth     string `json:"auth"`
+	Flow     string `json:"flow"`
+	Security string `json:"security"`
+	Reverse  string `json:"reverse" gorm:"column:reverse"`
+	// limit_ip backs the every-tick existence probe in CheckClientIpJob.hasLimitIp
+	// (limit_ip > 0 LIMIT 1); the index lets it seek instead of scanning clients.
+	LimitIP    int   `json:"limitIp" gorm:"column:limit_ip;index:idx_client_record_limit_ip"`
+	TotalGB    int64 `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime int64 `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable     bool  `json:"enable" gorm:"default:true"`
+	// tg_id backs GetClientTrafficTgBot's per-Telegram-account client lookup.
+	TgID      int64  `json:"tgId" gorm:"column:tg_id;index:idx_client_record_tg_id"`
+	Group     string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment   string `json:"comment"`
+	Reset     int    `json:"reset" gorm:"default:0"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }

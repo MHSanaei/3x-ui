@@ -2,24 +2,24 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./media/dune-dark.png">
+    <img alt="dune" src="./media/dune-light.png">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/leto217/DUNE/releases"><img src="https://img.shields.io/github/v/release/leto217/DUNE" alt="Release"></a>
+  <a href="https://github.com/leto217/DUNE/actions"><img src="https://img.shields.io/github/actions/workflow/status/leto217/DUNE/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/leto217/DUNE.svg" alt="GO Version"></a>
+  <a href="https://github.com/leto217/DUNE/releases/latest"><img src="https://img.shields.io/github/downloads/leto217/DUNE/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
-  <a href="https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v3" alt="Go Report Card"></a>
+  <a href="https://pkg.go.dev/github.com/leto217/DUNE"><img src="https://pkg.go.dev/badge/github.com/leto217/DUNE.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/leto217/DUNE"><img src="https://goreportcard.com/badge/github.com/leto217/DUNE" alt="Go Report Card"></a>
 </p>
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+**DUNE** is a lightweight fork of [3X-UI](https://github.com/MHSanaei/3x-ui) — an open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It keeps the familiar workflows and protocol coverage of 3X-UI while using significantly less CPU and RAM, making it ideal for small VPS instances and other low-resource hosts.
 
-Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
+Forked from 3X-UI with a focus on efficiency, DUNE trims background work, tightens memory usage, and streamlines the stack so the panel stays responsive without hogging your server.
 
 > [!IMPORTANT]
 > This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
@@ -70,19 +70,19 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 ## Quick Start
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/leto217/DUNE/main/install.sh)
 ```
 
-During installation a random username, password, and access path are generated. After installation, run `x-ui` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
+During installation a random username, password, and access path are generated. After installation, run `dune` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
 
-For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
+For full documentation, please visit the [project Wiki](https://github.com/leto217/DUNE/wiki).
 
 ### Unattended install & cloud images
 
 The installer also runs **non-interactively** for cloud-init and golden images.
-Set `XUI_NONINTERACTIVE=1` (or pipe with no TTY) and it installs end-to-end with
+Set `DUNE_NONINTERACTIVE=1` (or pipe with no TTY) and it installs end-to-end with
 zero prompts, generating random credentials and writing them to
-`/etc/x-ui/install-result.env`. See [`deploy/`](deploy/) for:
+`/etc/dune/install-result.env`. See [`deploy/`](deploy/) for:
 
 - [Cloud-init user-data](deploy/cloud-init/) — unattended install on any cloud (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
 - [Packer golden image](deploy/packer/) — build an AWS EC2 AMI + qcow2 (amd64/arm64) with per-instance credentials generated on first boot
@@ -97,31 +97,31 @@ zero prompts, generating random credentials and writing them to
 
 ## Database Options
 
-3X-UI supports two backends, chosen during the install:
+Dune supports two backends, chosen during the install:
 
-- **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
+- **SQLite** (default) — a single file at `/etc/dune/dune.db`. Zero setup, ideal for small and medium deployments.
 - **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
 
-At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/x-ui` for you):
+At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/dune` for you):
 
 ```
-XUI_DB_TYPE=postgres
-XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+DUNE_DB_TYPE=postgres
+DUNE_DB_DSN=postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable
 ```
 
 ### Migrating an existing SQLite install to PostgreSQL
 
 ```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# then set XUI_DB_TYPE and XUI_DB_DSN in /etc/default/x-ui and restart:
-systemctl restart x-ui
+dune migrate-db --dsn "postgres://dune:password@127.0.0.1:5432/dune?sslmode=disable"
+# then set DUNE_DB_TYPE and DUNE_DB_DSN in /etc/default/dune and restart:
+systemctl restart dune
 ```
 
 The source SQLite file is left untouched; remove it manually once you have verified the new backend.
 
 ### Docker
 
-The default `docker compose up -d` keeps using SQLite. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines in `docker-compose.yml` and start with the profile:
+The default `docker compose up -d` keeps using SQLite. To run with the bundled PostgreSQL service, uncomment the two `DUNE_DB_*` env lines in `docker-compose.yml` and start with the profile:
 
 ```bash
 docker compose --profile postgres up -d
@@ -130,22 +130,22 @@ docker compose --profile postgres up -d
 The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability. `docker-compose.yml` already grants it via `cap_add`; if you start the container with `docker run` instead, add the capabilities yourself, otherwise bans are logged but never applied:
 
 ```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/leto217/DUNE
 ```
 
 ## Environment Variables
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `XUI_DB_TYPE` | Database backend: `sqlite` or `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL connection string (when `XUI_DB_TYPE=postgres`) | — |
-| `XUI_DB_FOLDER` | Directory for the SQLite database file | `/etc/x-ui` |
-| `XUI_DB_MAX_OPEN_CONNS` | Maximum open connections (PostgreSQL pool) | — |
-| `XUI_DB_MAX_IDLE_CONNS` | Maximum idle connections (PostgreSQL pool) | — |
-| `XUI_INIT_WEB_BASE_PATH` | The initial URI path for the web panel | `/` |
-| `XUI_ENABLE_FAIL2BAN` | Enable Fail2ban-based IP-limit enforcement | `true` |
-| `XUI_LOG_LEVEL` | Log verbosity (`debug`, `info`, `warning`, `error`) | `info` |
-| `XUI_DEBUG` | Enable debug mode | `false` |
+| `DUNE_DB_TYPE` | Database backend: `sqlite` or `postgres` | `sqlite` |
+| `DUNE_DB_DSN` | PostgreSQL connection string (when `DUNE_DB_TYPE=postgres`) | — |
+| `DUNE_DB_FOLDER` | Directory for the SQLite database file | `/etc/dune` |
+| `DUNE_DB_MAX_OPEN_CONNS` | Maximum open connections (PostgreSQL pool) | — |
+| `DUNE_DB_MAX_IDLE_CONNS` | Maximum idle connections (PostgreSQL pool) | — |
+| `DUNE_INIT_WEB_BASE_PATH` | The initial URI path for the web panel | `/` |
+| `DUNE_ENABLE_FAIL2BAN` | Enable Fail2ban-based IP-limit enforcement | `true` |
+| `DUNE_LOG_LEVEL` | Log verbosity (`debug`, `info`, `warning`, `error`) | `info` |
+| `DUNE_DEBUG` | Enable debug mode | `false` |
 
 ## Supported Languages
 
@@ -168,23 +168,20 @@ Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md
 
 ## Community Tools
 
-Tools and integrations built by the community around 3x-ui.
+Tools and integrations built by the community around dune.
 
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
+- [terraform-provider-dune](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
 
 ## Support project
 
 **If this project is helpful to you, you may wish to give it a**:star2:
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
+| Network | Address |
+| --- | --- |
+| TON | `UQAa5FpNlK8Gp7tO8luJXHD-Sf0pPjJbNHGo8hdkyuUBhWEa` |
+| TRON | `TLqtTfYSzPLFm8mtFDkSnXvzucxx7DS5VL` |
+| ERC20 and BEP20 | `0x2fe632d70f4612b87670f8a28b4587ea2641452d` |
 
 ## Stargazers over Time
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/leto217/DUNE.svg?variant=adaptive)](https://starchart.cc/leto217/DUNE)

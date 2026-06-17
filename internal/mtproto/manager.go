@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
 )
 
 // Instance is the desired runtime configuration of one mtproto inbound.
@@ -87,7 +87,7 @@ type Manager struct {
 	mu    sync.Mutex
 	procs map[int]*managed
 	// swept records that the one-time startup cleanup of orphaned mtg
-	// processes (survivors of a previous x-ui run) has already run.
+	// processes (survivors of a previous dune run) has already run.
 	swept bool
 }
 
@@ -160,9 +160,9 @@ func (m *Manager) Ensure(inst Instance) error {
 	return m.ensureLocked(inst)
 }
 
-// sweepOrphansLocked kills mtg processes left running by a previous x-ui run,
+// sweepOrphansLocked kills mtg processes left running by a previous dune run,
 // exactly once per process lifetime and before any of our own mtg are started.
-// Because x-ui owns every mtg process, anything alive at this point is an orphan
+// Because dune owns every mtg process, anything alive at this point is an orphan
 // that would otherwise keep holding an inbound port with a stale secret.
 func (m *Manager) sweepOrphansLocked() {
 	if m.swept {
@@ -334,7 +334,7 @@ func FreeLocalPort() (int, error) {
 // renderConfig builds the mtg TOML for an instance. Top-level keys must precede
 // any [section] header in TOML, so the layout is: required keys, then the
 // optional scalar tuning, then [domain-fronting], and finally [stats.prometheus]
-// — which x-ui always emits and scrapes for traffic (see scrapeTraffic).
+// — which dune always emits and scrapes for traffic (see scrapeTraffic).
 func renderConfig(inst Instance, metricsPort int) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "secret = %q\n", inst.Secret)

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/web/runtime"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -782,33 +782,18 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-
-	// Retrieve inbounds where settings contain the given tgId
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
-		return nil, err
-	}
 
 	var emails []string
-	for _, inbound := range inbounds {
-		clients, err := s.GetClients(inbound)
-		if err != nil {
-			logger.Errorf("Error retrieving clients for inbound %d: %v", inbound.Id, err)
-			continue
-		}
-		for _, client := range clients {
-			if client.TgID == tgId {
-				emails = append(emails, client.Email)
-			}
-		}
+	if err := db.Model(&model.ClientRecord{}).Where("tg_id = ?", tgId).Pluck("email", &emails).Error; err != nil && err != gorm.ErrRecordNotFound {
+		logger.Errorf("Error retrieving clients with tgId %d: %v", tgId, err)
+		return nil, err
 	}
 
 	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
 	// account owns thousands of clients across inbounds.
 	uniqEmails := uniqueNonEmptyStrings(emails)
 	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
+	var err error
 	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
 		var page []*xray.ClientTraffic
 		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
@@ -961,40 +946,31 @@ func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, 
 
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
 	db := database.GetDB()
-	inbound := &model.Inbound{}
 	traffic = &xray.ClientTraffic{}
 
-	// Search for inbound settings that contain the query
-	err = db.Model(model.Inbound{}).Where("settings LIKE ?", "%\""+query+"\"%").First(inbound).Error
+	var client model.ClientRecord
+	err = db.Where("uuid = ? OR password = ?", query, query).First(&client).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			logger.Warningf("Inbound settings containing query %s not found: %v", query, err)
+			logger.Warningf("Client with query %s not found: %v", query, err)
 			return nil, err
 		}
-		logger.Errorf("Error searching for inbound settings with query %s: %v", query, err)
+		logger.Errorf("Error searching for client with query %s: %v", query, err)
 		return nil, err
 	}
 
-	traffic.InboundId = inbound.Id
+	traffic.Email = client.Email
 
-	// Unmarshal settings to get clients
-	settings := map[string][]model.Client{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
-		logger.Errorf("Error unmarshalling inbound settings for inbound ID %d: %v", inbound.Id, err)
-		return nil, err
-	}
-
-	clients := settings["clients"]
-	for _, client := range clients {
-		if (client.ID == query || client.Password == query) && client.Email != "" {
-			traffic.Email = client.Email
-			break
-		}
-	}
-
-	if traffic.Email == "" {
-		logger.Warningf("No client found with query %s in inbound ID %d", query, inbound.Id)
-		return nil, gorm.ErrRecordNotFound
+	var inboundId int
+	err = db.Table("client_inbounds").
+		Select("inbound_id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email = ?", client.Email).
+		Order("inbound_id ASC").
+		Limit(1).
+		Scan(&inboundId).Error
+	if err == nil && inboundId > 0 {
+		traffic.InboundId = inboundId
 	}
 
 	// Retrieve ClientTraffic based on the found email

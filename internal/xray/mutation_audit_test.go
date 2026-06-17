@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
+	"github.com/gary/dune/internal/util/json_util"
 )
 
 // ---------------------------------------------------------------------------
@@ -267,7 +267,7 @@ func containsString(s []string, v string) bool {
 // MUST be recorded. A mutated guard that negates the err check (`err != nil`)
 // would early-return and drop the error.
 func TestWaitForCommand_CrashExitRecordsError(t *testing.T) {
-	t.Setenv("XUI_LOG_FOLDER", t.TempDir())
+	t.Setenv("DUNE_LOG_FOLDER", t.TempDir())
 	cmd := exec.Command(os.Args[0], "-test.run=TestMutationAuditHelper", "--", "crash-exit")
 	cmd.Env = append(os.Environ(), "XRAY_MUT_HELPER=1")
 
@@ -289,7 +289,7 @@ func TestWaitForCommand_CrashExitRecordsError(t *testing.T) {
 // Stop (so test runs never disturb the main config.json). A mutated guard
 // (`== ""`) would skip the removal and leak the temp file.
 func TestStop_RemovesTempConfigFile(t *testing.T) {
-	t.Setenv("XUI_LOG_FOLDER", t.TempDir())
+	t.Setenv("DUNE_LOG_FOLDER", t.TempDir())
 
 	tmpCfg := filepath.Join(t.TempDir(), "test-config.json")
 	if err := os.WriteFile(tmpCfg, []byte("{}"), 0o644); err != nil {

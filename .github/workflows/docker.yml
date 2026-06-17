@@ -1,4 +1,4 @@
-name: Release 3X-UI for Docker
+name: Release Dune for Docker
 
 permissions:
   contents: read
@@ -24,8 +24,8 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            hsanaeii/3x-ui
-            ghcr.io/mhsanaei/3x-ui
+            hsanaeii/dune
+            ghcr.io/leto217/DUNE
           tags: |
             type=ref,event=branch
             type=ref,event=tag

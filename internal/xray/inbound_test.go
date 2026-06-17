@@ -3,7 +3,7 @@ package xray
 import (
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
+	"github.com/gary/dune/internal/util/json_util"
 )
 
 func makeInbound() InboundConfig {

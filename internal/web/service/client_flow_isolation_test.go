@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
 )
 
 func TestClientWithInboundFlow_GatesByInboundCapability(t *testing.T) {
@@ -45,8 +45,8 @@ func TestClientWithInboundFlow_GatesByInboundCapability(t *testing.T) {
 
 func TestFlowIsolation_VisionDoesNotLeakToWsInbound(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
@@ -94,8 +94,8 @@ func TestFlowIsolation_VisionDoesNotLeakToWsInbound(t *testing.T) {
 
 func TestEffectiveFlow_NonFlowInboundSyncedLastDoesNotHideVision(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
@@ -144,8 +144,8 @@ func TestEffectiveFlow_NonFlowInboundSyncedLastDoesNotHideVision(t *testing.T) {
 
 func TestEffectiveFlow_ClearedFlowStaysCleared(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
@@ -190,8 +190,8 @@ func TestEffectiveFlow_ClearedFlowStaysCleared(t *testing.T) {
 
 func TestAttach_PreservesVisionFlowWhenCanonicalColumnZeroed(t *testing.T) {
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })

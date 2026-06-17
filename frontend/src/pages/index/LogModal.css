@@ -14,13 +14,13 @@
 }
 
 .log-container {
-  --log-stamp: #3c89e8;
-  --log-debug: #3c89e8;
-  --log-info: #008771;
-  --log-notice: #008771;
-  --log-warning: #f37b24;
-  --log-error: #e04141;
-  --log-unknown: #595959;
+  --log-stamp: #a67c52;
+  --log-debug: #8b7355;
+  --log-info: #6b8f5e;
+  --log-notice: #6b8f5e;
+  --log-warning: #c9a84c;
+  --log-error: #a0522d;
+  --log-unknown: #8b7355;
   --log-divider: rgba(128, 128, 128, 0.18);
 
   margin-top: 12px;
@@ -141,25 +141,25 @@
 }
 
 body.dark .log-container {
-  --log-stamp: #6aa6ee;
-  --log-debug: #6aa6ee;
-  --log-info: #4ed3a6;
-  --log-notice: #4ed3a6;
-  --log-warning: #ffb872;
-  --log-error: #ff7575;
-  --log-unknown: #b5b5b5;
-  --log-divider: rgba(255, 255, 255, 0.1);
+  --log-stamp: #c4a882;
+  --log-debug: #a89880;
+  --log-info: #7da86e;
+  --log-notice: #7da86e;
+  --log-warning: #d4af37;
+  --log-error: #c06040;
+  --log-unknown: #8b7355;
+  --log-divider: rgba(212, 175, 55, 0.1);
 }
 
 html[data-theme="ultra-dark"] .log-container {
-  --log-stamp: #7fb6f1;
-  --log-debug: #7fb6f1;
-  --log-info: #5fd9b0;
-  --log-notice: #5fd9b0;
-  --log-warning: #ffcc88;
-  --log-error: #ff8a8a;
-  --log-unknown: #c4c4c4;
-  --log-divider: rgba(255, 255, 255, 0.12);
+  --log-stamp: #d4c4a8;
+  --log-debug: #b8a080;
+  --log-info: #8fba7e;
+  --log-notice: #8fba7e;
+  --log-warning: #e0c060;
+  --log-error: #d07050;
+  --log-unknown: #a09070;
+  --log-divider: rgba(212, 175, 55, 0.12);
 }
 
 .logmodal-mobile .ant-modal-content {

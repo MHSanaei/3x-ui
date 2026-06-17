@@ -3,14 +3,16 @@
   top: 0;
   height: 100vh;
   align-self: flex-start;
+  border-right: 1px solid var(--dune-border-subtle);
 }
 
 .sider-brand,
 .drawer-brand {
-  font-weight: 600;
-  font-size: 18px;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: var(--dune-letter-display);
   color: var(--ant-color-text);
+  text-transform: uppercase;
 }
 
 .sider-brand {
@@ -18,16 +20,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px 14px 24px;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid var(--dune-border-subtle);
   user-select: none;
+  background: var(--dune-gradient-metal);
 }
 
 .sider-brand-collapsed {
   justify-content: center;
   font-size: 16px;
-  padding: 14px 4px;
-  letter-spacing: 0;
+  padding: 16px 4px;
+  letter-spacing: 0.06em;
 }
 
 .brand-block {
@@ -35,6 +38,10 @@
   align-items: center;
   min-width: 0;
   line-height: 1.1;
+  background: var(--dune-gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sider-brand-collapsed .brand-block {
@@ -49,6 +56,7 @@
 }
 
 .sidebar-donate {
+  cursor: pointer;
   background: transparent;
   border: none;
   width: 30px;
@@ -60,13 +68,16 @@
   color: var(--ant-color-text-secondary);
   text-decoration: none;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color var(--dune-duration) var(--dune-ease),
+    transform var(--dune-duration) var(--dune-ease),
+    color var(--dune-duration) var(--dune-ease);
 }
 
 .sidebar-donate:hover,
 .sidebar-donate:focus-visible {
-  background-color: rgba(236, 72, 153, 0.12);
-  color: #ec4899;
+  background-color: rgba(184, 115, 51, 0.15);
+  color: var(--dune-copper);
   transform: scale(1.08);
   outline: none;
 }
@@ -88,12 +99,15 @@
   color: var(--ant-color-text-secondary);
   padding: 0;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color var(--dune-duration) var(--dune-ease),
+    transform var(--dune-duration) var(--dune-ease),
+    color var(--dune-duration) var(--dune-ease);
 }
 
 .sidebar-theme-cycle:hover,
 .sidebar-theme-cycle:focus-visible {
-  background-color: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  background-color: var(--dune-accent-glow);
   color: var(--ant-color-primary);
   transform: scale(1.08);
   outline: none;
@@ -114,26 +128,37 @@
   top: 12px;
   left: 12px;
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  border: none;
+  background: color-mix(in srgb, var(--dune-spice-dark) 85%, transparent);
+  color: var(--dune-beige);
+  border: 1px solid var(--dune-border-gold);
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 8px;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--dune-shadow-soft);
+  backdrop-filter: blur(8px);
+  transition:
+    background var(--dune-duration) var(--dune-ease),
+    border-color var(--dune-duration) var(--dune-ease),
+    box-shadow var(--dune-duration) var(--dune-ease);
+}
+
+.drawer-handle:hover {
+  border-color: var(--dune-gold);
+  box-shadow: 0 0 12px var(--dune-accent-glow-strong);
 }
 
 .drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  padding: 16px;
+  border-bottom: 1px solid var(--dune-border-subtle);
+  background: var(--dune-gradient-metal);
 }
 
 .drawer-close {
@@ -141,18 +166,20 @@
   border: none;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
   color: var(--ant-color-text-secondary);
+  transition: background var(--dune-duration) var(--dune-ease);
 }
 
 .drawer-close:hover,
 .drawer-close:focus-visible {
-  background: var(--ant-color-fill-tertiary);
+  background: var(--dune-accent-glow);
+  color: var(--ant-color-primary);
 }
 
 .drawer-menu .ant-menu-item {
@@ -168,7 +195,7 @@
 
 .drawer-utility {
   margin-top: auto;
-  border-top: 1px solid var(--ant-color-border-secondary);
+  border-top: 1px solid var(--dune-border-subtle);
 }
 
 .ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
@@ -186,7 +213,7 @@
 
 .sider-utility {
   flex: 0 0 auto;
-  border-top: 1px solid var(--ant-color-border-secondary);
+  border-top: 1px solid var(--dune-border-subtle);
 }
 
 .sider-footer {
@@ -204,9 +231,9 @@
   color: var(--ant-color-text-secondary);
   font-size: 13px;
   font-weight: 500;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dune-font-mono);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--dune-duration) var(--dune-ease);
 }
 
 .sider-version .anticon {
@@ -249,12 +276,7 @@
 
 body.dark .ant-drawer-content,
 body.dark .ant-drawer-body {
-  background-color: #15161a;
-}
-
-html[data-theme="ultra-dark"] body.dark .ant-drawer-content,
-html[data-theme="ultra-dark"] body.dark .ant-drawer-body {
-  background-color: #050507;
+  background-color: var(--bg-sider);
 }
 
 body.dark .ant-drawer-body .drawer-menu,
@@ -268,8 +290,9 @@ body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
 .sider-nav .ant-menu-item-selected,
 .sider-utility .ant-menu-item-selected,
 .drawer-menu .ant-menu-item-selected {
-  background-color: color-mix(in srgb, var(--ant-color-primary) 20%, transparent) !important;
+  background-color: var(--dune-accent-glow-strong) !important;
   color: var(--ant-color-primary) !important;
+  border-right: 2px solid var(--dune-gold);
 }
 
 .sider-nav .ant-menu-item-active:not(.ant-menu-item-selected),
@@ -278,6 +301,6 @@ body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
 .sider-nav .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
 .sider-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
 .drawer-menu .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover {
-  background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
+  background-color: var(--dune-accent-glow) !important;
   color: var(--ant-color-primary) !important;
 }

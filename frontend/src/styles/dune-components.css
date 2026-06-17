@@ -1,0 +1,346 @@
+/* ── Dune Design System — Global Component Overrides ─────────────── */
+
+/* ── Typography ──────────────────────────────────────────────────── */
+
+body {
+  font-family: var(--dune-font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1.ant-typography,
+.ant-typography h1 {
+  font-weight: 700;
+  letter-spacing: var(--dune-letter-display);
+}
+
+h2.ant-typography,
+.ant-typography h2,
+h3.ant-typography,
+.ant-typography h3 {
+  font-weight: 600;
+  letter-spacing: var(--dune-letter-wide);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+
+.ant-btn {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition:
+    background var(--dune-duration) var(--dune-ease),
+    border-color var(--dune-duration) var(--dune-ease),
+    color var(--dune-duration) var(--dune-ease),
+    box-shadow var(--dune-duration) var(--dune-ease),
+    transform var(--dune-duration) var(--dune-ease);
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+  background: var(--dune-gradient-gold);
+  border-color: var(--dune-gold-muted);
+  box-shadow: var(--dune-shadow-button);
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+  background: linear-gradient(135deg, #d4af37 0%, #c9a84c 50%, #b8860b 100%);
+  border-color: var(--dune-gold-bright);
+  box-shadow: 0 4px 16px var(--dune-accent-glow-strong);
+  transform: translateY(-1px);
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):active {
+  transform: translateY(0);
+  box-shadow: var(--dune-shadow-button);
+}
+
+.ant-btn-default:not(:disabled):hover {
+  border-color: var(--dune-gold);
+  color: var(--dune-gold-muted);
+  box-shadow: 0 0 0 2px var(--dune-accent-glow);
+}
+
+body.dark .ant-btn-default:not(:disabled):hover {
+  border-color: var(--dune-gold-bright);
+  color: var(--dune-gold-bright);
+}
+
+.ant-btn-text:not(:disabled):hover {
+  background: var(--dune-accent-glow) !important;
+  color: var(--ant-color-primary) !important;
+}
+
+.ant-btn-link:not(:disabled):hover {
+  color: var(--dune-gold-bright);
+}
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+
+.ant-card {
+  border: 1px solid var(--dune-border-subtle);
+  background: var(--dune-gradient-card);
+  overflow: hidden;
+}
+
+.ant-card-head {
+  border-bottom-color: var(--dune-border-subtle);
+  font-weight: 600;
+  letter-spacing: var(--dune-letter-wide);
+}
+
+/* ── Tables ──────────────────────────────────────────────────────── */
+
+.ant-table {
+  font-size: 13px;
+}
+
+.ant-table-thead > tr > th {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--ant-color-primary) 6%, var(--bg-card)) !important;
+  border-bottom: 1px solid var(--dune-border) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: var(--dune-border-subtle) !important;
+  transition: background var(--dune-duration) var(--dune-ease);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: color-mix(in srgb, var(--ant-color-primary) 5%, transparent) !important;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected > td {
+  background: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
+}
+
+/* ── Forms & Inputs ──────────────────────────────────────────────── */
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker,
+.ant-input-number {
+  transition:
+    border-color var(--dune-duration) var(--dune-ease),
+    box-shadow var(--dune-duration) var(--dune-ease);
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused,
+.ant-input-number-focused {
+  border-color: var(--dune-gold) !important;
+  box-shadow: 0 0 0 2px var(--dune-accent-glow) !important;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* ── Modals & Drawers ────────────────────────────────────────────── */
+
+.ant-modal-content {
+  border: 1px solid var(--dune-border-subtle);
+  box-shadow: var(--dune-shadow-card-hover);
+  overflow: hidden;
+}
+
+.ant-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--dune-border-gold),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.ant-modal-header {
+  border-bottom-color: var(--dune-border-subtle);
+}
+
+.ant-modal-title {
+  font-weight: 600;
+  letter-spacing: var(--dune-letter-wide);
+}
+
+.ant-drawer-header {
+  border-bottom-color: var(--dune-border-subtle);
+}
+
+.ant-drawer-title {
+  font-weight: 600;
+  letter-spacing: var(--dune-letter-wide);
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+
+.ant-tabs-tab {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color var(--dune-duration) var(--dune-ease);
+}
+
+.ant-tabs-tab:hover {
+  color: var(--dune-gold-muted);
+}
+
+body.dark .ant-tabs-tab:hover {
+  color: var(--dune-gold-bright);
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  font-weight: 600;
+}
+
+.ant-tabs-ink-bar {
+  background: var(--dune-gradient-gold);
+  height: 2px !important;
+}
+
+/* ── Tags ────────────────────────────────────────────────────────── */
+
+.ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* ── Statistics ──────────────────────────────────────────────────── */
+
+.ant-statistic-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+.ant-statistic-content-value {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ── Menu ────────────────────────────────────────────────────────── */
+
+.ant-menu-item,
+.ant-menu-submenu-title {
+  transition:
+    background var(--dune-duration) var(--dune-ease),
+    color var(--dune-duration) var(--dune-ease);
+}
+
+/* ── Dropdowns & Popovers ────────────────────────────────────────── */
+
+.ant-dropdown-menu,
+.ant-popover-inner {
+  border: 1px solid var(--dune-border-subtle);
+  box-shadow: var(--dune-shadow-soft);
+}
+
+/* ── Pagination ──────────────────────────────────────────────────── */
+
+.ant-pagination-item-active {
+  border-color: var(--dune-gold);
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+}
+
+.ant-pagination-item-active a {
+  color: var(--ant-color-primary);
+}
+
+/* ── Switch ──────────────────────────────────────────────────────── */
+
+.ant-switch-checked {
+  background: var(--dune-gradient-gold) !important;
+}
+
+/* ── Progress ────────────────────────────────────────────────────── */
+
+.ant-progress-bg {
+  background: var(--dune-gradient-gold);
+}
+
+/* ── Messages & Notifications ────────────────────────────────────── */
+
+.ant-message-notice-content,
+.ant-notification-notice {
+  border: 1px solid var(--dune-border-subtle);
+  box-shadow: var(--dune-shadow-soft);
+}
+
+/* ── Skeleton ────────────────────────────────────────────────────── */
+
+.ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton-content .ant-skeleton-paragraph > li {
+  background: linear-gradient(
+    90deg,
+    var(--dune-border-subtle) 25%,
+    color-mix(in srgb, var(--ant-color-primary) 8%, var(--bg-card)) 50%,
+    var(--dune-border-subtle) 75%
+  );
+  background-size: 400% 100%;
+  animation: dune-shimmer 1.8s ease infinite;
+}
+
+@keyframes dune-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ant-skeleton-content .ant-skeleton-title,
+  .ant-skeleton-content .ant-skeleton-paragraph > li {
+    animation: none;
+  }
+
+  .ant-btn-primary:not(:disabled):hover {
+    transform: none;
+  }
+}
+
+/* ── Scrollbar (webkit) ──────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ant-color-primary) 30%, transparent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ant-color-primary) 50%, transparent);
+}
+
+/* ── Selection ───────────────────────────────────────────────────── */
+
+::selection {
+  background: var(--dune-accent-glow-strong);
+  color: var(--dune-text);
+}
+
+body.dark ::selection {
+  color: var(--dune-beige);
+}
+
+/* ── Focus visible ───────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--dune-gold);
+  outline-offset: 2px;
+}

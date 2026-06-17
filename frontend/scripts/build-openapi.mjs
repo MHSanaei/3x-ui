@@ -21,7 +21,7 @@ const SECURITY_SCHEMES = {
   cookieAuth: {
     type: 'apiKey',
     in: 'cookie',
-    name: '3x-ui',
+    name: 'dune',
     description: 'Session cookie set by POST /login. Browser-only.',
   },
 };
@@ -206,10 +206,10 @@ function buildSpec() {
   return {
     openapi: '3.0.3',
     info: {
-      title: '3X-UI Panel API',
+      title: 'Dune Panel API',
       version: PANEL_VERSION,
       description:
-        'Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password.',
+        'Programmatic interface to a Dune panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password.',
     },
     servers: [
       { url: '/', description: 'Current panel (basePath aware)' },

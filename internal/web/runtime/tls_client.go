@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/util/netproxy"
+	"github.com/gary/dune/internal/util/netsafe"
 )
 
 // MasterClientCertProvider supplies the master client certificate this panel

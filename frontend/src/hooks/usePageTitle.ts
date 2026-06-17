@@ -11,6 +11,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/settings': 'menu.settings',
   '/xray': 'menu.xray',
   '/api-docs': 'menu.apiDocs',
+  '/donate': 'menu.donate',
 };
 
 export function usePageTitle() {
@@ -19,7 +20,7 @@ export function usePageTitle() {
 
   useEffect(() => {
     const key = TITLE_KEYS[pathname];
-    const title = key ? t(key) : '3X-UI';
+    const title = key ? t(key) : 'Dune';
     const host = window.location.hostname;
     document.title = host ? `${host} - ${title}` : title;
   }, [pathname, t]);

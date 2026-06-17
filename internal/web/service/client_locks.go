@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
 
 	"gorm.io/gorm"
 )

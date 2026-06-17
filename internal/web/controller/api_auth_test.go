@@ -13,10 +13,10 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/util/crypto"
+	"github.com/gary/dune/internal/web/session"
 )
 
 // newAPIAuthTestEngine builds a gin engine that mirrors the production auth
@@ -29,14 +29,14 @@ func newAPIAuthTestEngine(t *testing.T) (*gin.Engine, *APIController) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+	t.Setenv("DUNE_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "dune.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
 	engine := gin.New()
 	store := cookie.NewStore([]byte("api-auth-test-secret"))
-	engine.Use(sessions.Sessions("3x-ui", store))
+	engine.Use(sessions.Sessions("dune", store))
 
 	a := &APIController{}
 

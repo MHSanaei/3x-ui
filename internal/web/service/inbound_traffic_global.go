@@ -2,16 +2,46 @@ package service
 
 import (
 	"strings"
+	"sync/atomic"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+// globalTrafficCache tracks whether client_global_traffics has any rows so
+// overlayGlobalTraffic can skip a COUNT on every list/read when no master
+// pushes traffic to this panel (-1 = unknown, 0 = empty, 1 = populated).
+var globalTrafficCache atomic.Int32
+
+func markGlobalTrafficPopulated() {
+	globalTrafficCache.Store(1)
+}
+
+func refreshGlobalTrafficCache(db *gorm.DB) {
+	var probe int64
+	if err := db.Model(&model.ClientGlobalTraffic{}).Limit(1).Count(&probe).Error; err != nil || probe == 0 {
+		globalTrafficCache.Store(0)
+		return
+	}
+	globalTrafficCache.Store(1)
+}
+
+func hasGlobalTrafficRows(db *gorm.DB) bool {
+	switch globalTrafficCache.Load() {
+	case 0:
+		return false
+	case 1:
+		return true
+	}
+	refreshGlobalTrafficCache(db)
+	return globalTrafficCache.Load() == 1
+}
 
 // AcceptGlobalTraffic ingests a master panel's aggregated per-client usage
 // into client_global_traffics, keyed by (masterGuid, email). The numbers are
@@ -82,6 +112,7 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 					return err
 				}
 			}
+			markGlobalTrafficPopulated()
 			return nil
 		})
 	})
@@ -107,8 +138,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 		return
 	}
 	// Cheap short-circuit for the common case (a panel no master pushes to).
-	var probe int64
-	if err := db.Model(&model.ClientGlobalTraffic{}).Limit(1).Count(&probe).Error; err != nil || probe == 0 {
+	if !hasGlobalTrafficRows(db) {
 		return
 	}
 
@@ -211,5 +241,6 @@ func clearGlobalTraffic(tx *gorm.DB, emails ...string) error {
 			return err
 		}
 	}
+	refreshGlobalTrafficCache(tx)
 	return nil
 }

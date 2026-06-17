@@ -122,12 +122,12 @@ export default function IndexPage() {
     if (panelUpdateInfo.updateAvailable) {
       setPanelUpdateOpen(true);
     } else {
-      window.open('https://github.com/MHSanaei/3x-ui/releases', '_blank', 'noopener,noreferrer');
+      window.open('https://github.com/leto217/DUNE/releases', '_blank', 'noopener,noreferrer');
     }
   }
 
   function openTelegram() {
-    window.open('https://t.me/XrayUI', '_blank', 'noopener,noreferrer');
+    window.open('https://t.me/dunepanel', '_blank', 'noopener,noreferrer');
   }
 
   async function openConfig() {
@@ -220,7 +220,7 @@ export default function IndexPage() {
                     <Card
                       title={
                         <Space>
-                          <span>3X-UI</span>
+                          <span>Dune</span>
                           {isMobile && displayVersion && (
                             <Tag color={panelUpdateInfo.updateAvailable ? 'orange' : 'green'}>
                               {panelUpdateInfo.updateAvailable

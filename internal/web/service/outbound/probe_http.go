@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/util/json_util"
+	"github.com/gary/dune/internal/xray"
 )
 
 // HTTP-mode probing works by spinning up ONE temporary xray instance per

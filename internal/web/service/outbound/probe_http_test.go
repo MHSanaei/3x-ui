@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/xray"
 )
 
 // stubProcess implements batchProcess without an xray binary. When serveSocks
@@ -128,7 +128,7 @@ func withStubProcess(t *testing.T, factory func(cfg *xray.Config, configPath str
 	t.Helper()
 	// createTestConfigPath writes into the bin folder, which doesn't exist
 	// when running tests from the package directory.
-	t.Setenv("XUI_BIN_FOLDER", t.TempDir())
+	t.Setenv("DUNE_BIN_FOLDER", t.TempDir())
 	orig := newBatchProcess
 	newBatchProcess = factory
 	t.Cleanup(func() { newBatchProcess = orig })

@@ -14,6 +14,7 @@ import {
   GlobalOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
@@ -290,6 +291,35 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 style={{ width: '100%' }}
                 options={DATEPICKER_LIST.map((d) => ({ value: d.value, label: d.name }))}
               />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '7',
+        label: catTabLabel(<ThunderboltOutlined />, t('pages.settings.performance.title'), isMobile),
+        children: (
+          <>
+            <div className="performance-hint">{t('pages.settings.performance.hint')}</div>
+            <SettingListItem paddings="small" title={t('pages.settings.performance.trafficJobInterval')} description={t('pages.settings.performance.trafficJobIntervalDesc')}>
+              <InputNumber value={allSetting.trafficJobInterval} min={1} max={86400} addonAfter={t('pages.settings.performance.seconds')} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ trafficJobInterval: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.performance.clientIpJobInterval')} description={t('pages.settings.performance.clientIpJobIntervalDesc')}>
+              <InputNumber value={allSetting.clientIpJobInterval} min={1} max={86400} addonAfter={t('pages.settings.performance.seconds')} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ clientIpJobInterval: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.performance.nodeHeartbeatInterval')} description={t('pages.settings.performance.nodeHeartbeatIntervalDesc')}>
+              <InputNumber value={allSetting.nodeHeartbeatInterval} min={1} max={86400} addonAfter={t('pages.settings.performance.seconds')} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ nodeHeartbeatInterval: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.performance.nodeTrafficInterval')} description={t('pages.settings.performance.nodeTrafficIntervalDesc')}>
+              <InputNumber value={allSetting.nodeTrafficInterval} min={1} max={86400} addonAfter={t('pages.settings.performance.seconds')} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ nodeTrafficInterval: Number(v) || 1 })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.performance.xrayRestartInterval')} description={t('pages.settings.performance.xrayRestartIntervalDesc')}>
+              <InputNumber value={allSetting.xrayRestartInterval} min={1} max={86400} addonAfter={t('pages.settings.performance.seconds')} style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ xrayRestartInterval: Number(v) || 1 })} />
             </SettingListItem>
           </>
         ),

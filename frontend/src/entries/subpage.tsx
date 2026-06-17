@@ -1,6 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
+import '@/styles/dune-tokens.css';
+import '@/styles/dune-components.css';
+import '@/styles/page-cards.css';
 
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';

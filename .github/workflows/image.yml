@@ -49,7 +49,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.resolve.outputs.tag }}
         run: |
-          want="x-ui-linux-amd64.tar.gz x-ui-linux-arm64.tar.gz"
+          want="dune-linux-amd64.tar.gz dune-linux-arm64.tar.gz"
           for i in $(seq 1 30); do
             names=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name')
             missing=""
@@ -126,7 +126,7 @@ jobs:
         run: |
           mkdir -p _asset
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
-            --pattern "x-ui-linux-${{ matrix.arch }}.tar.gz" --dir _asset
+            --pattern "dune-linux-${{ matrix.arch }}.tar.gz" --dir _asset
           ls -la _asset
 
       - name: Select accelerator
@@ -142,9 +142,9 @@ jobs:
           TAG: ${{ needs.setup.outputs.tag }}
           ACCEL: ${{ steps.accel.outputs.value }}
         run: |
-          packer build -only='qemu.x-ui' \
-            -var "xui_version=${TAG}" \
-            -var "xui_arch=${{ matrix.arch }}" \
+          packer build -only='qemu.dune' \
+            -var "dune_version=${TAG}" \
+            -var "dune_arch=${{ matrix.arch }}" \
             -var "qemu_accelerator=${ACCEL}" \
             deploy/packer/
 
@@ -154,8 +154,8 @@ jobs:
           TAG: ${{ needs.setup.outputs.tag }}
         run: |
           cd deploy/packer/output-qemu
-          src="3x-ui-ubuntu-24.04-${{ matrix.arch }}.qcow2"
-          out="3x-ui-ubuntu-24.04-${TAG}-${{ matrix.arch }}.qcow2.xz"
+          src="dune-ubuntu-24.04-${{ matrix.arch }}.qcow2"
+          out="dune-ubuntu-24.04-${TAG}-${{ matrix.arch }}.qcow2.xz"
           xz -T0 -6 -c "$src" > "$out"
           sha256sum "$out" > "${out}.sha256"
           echo "file=deploy/packer/output-qemu/${out}" >> "$GITHUB_OUTPUT"
@@ -229,7 +229,7 @@ jobs:
         run: |
           mkdir -p _asset
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
-            --pattern "x-ui-linux-${{ matrix.arch }}.tar.gz" --dir _asset
+            --pattern "dune-linux-${{ matrix.arch }}.tar.gz" --dir _asset
           ls -la _asset
 
       - name: Packer init
@@ -240,9 +240,9 @@ jobs:
           TAG: ${{ needs.setup.outputs.tag }}
           REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
         run: |
-          packer build -only='amazon-ebs.x-ui' \
-            -var "xui_version=${TAG}" \
-            -var "xui_arch=${{ matrix.arch }}" \
+          packer build -only='amazon-ebs.dune' \
+            -var "dune_version=${TAG}" \
+            -var "dune_arch=${{ matrix.arch }}" \
             -var "instance_type=${{ matrix.instance_type }}" \
             -var "region=${REGION}" \
             deploy/packer/

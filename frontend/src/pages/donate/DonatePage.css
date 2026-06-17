@@ -1,0 +1,39 @@
+.donate-page .page-header {
+  margin-bottom: 24px;
+}
+
+.donate-wallets {
+  width: 100%;
+  max-width: 720px;
+}
+
+.donate-wallet-card .ant-card-body {
+  padding: 16px 20px;
+}
+
+.donate-wallet-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.donate-wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.donate-wallet-address {
+  word-break: break-all;
+  white-space: normal;
+  font-size: 13px;
+}
+
+@media (max-width: 576px) {
+  .donate-wallet-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

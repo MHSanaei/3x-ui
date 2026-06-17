@@ -1,24 +1,24 @@
 .api-docs-page.is-dark {
-  --sw-bg: #1f2026;
-  --sw-bg-soft: #25272e;
-  --sw-bg-input: #15161a;
-  --sw-bg-code: #0d0e12;
-  --sw-border: rgba(255, 255, 255, 0.08);
-  --sw-border-strong: rgba(255, 255, 255, 0.15);
-  --sw-text: rgba(255, 255, 255, 0.88);
-  --sw-text-muted: rgba(255, 255, 255, 0.6);
-  --sw-text-dim: rgba(255, 255, 255, 0.45);
-  --sw-accent: #58a6ff;
+  --sw-bg: #252018;
+  --sw-bg-soft: #2e2820;
+  --sw-bg-input: #1e1a15;
+  --sw-bg-code: #14110e;
+  --sw-border: rgba(212, 175, 55, 0.1);
+  --sw-border-strong: rgba(212, 175, 55, 0.18);
+  --sw-text: rgba(232, 213, 183, 0.92);
+  --sw-text-muted: rgba(196, 168, 130, 0.72);
+  --sw-text-dim: rgba(160, 140, 110, 0.55);
+  --sw-accent: #d4af37;
   color-scheme: dark;
 }
 
 .api-docs-page.is-dark.is-ultra {
-  --sw-bg: #0a0a0d;
-  --sw-bg-soft: #131316;
-  --sw-bg-input: #050507;
-  --sw-bg-code: #000;
-  --sw-border: rgba(255, 255, 255, 0.06);
-  --sw-border-strong: rgba(255, 255, 255, 0.12);
+  --sw-bg: #12100c;
+  --sw-bg-soft: #1a1612;
+  --sw-bg-input: #0e0c0a;
+  --sw-bg-code: #0a0806;
+  --sw-border: rgba(212, 175, 55, 0.06);
+  --sw-border-strong: rgba(212, 175, 55, 0.12);
 }
 
 .api-docs-page .content-shell {
@@ -265,22 +265,22 @@
 
 .api-docs-page.is-dark .swagger-ui .btn.execute {
   background: var(--sw-accent);
-  color: #0d1117;
+  color: #1a1008;
   border-color: var(--sw-accent);
 }
 
 .api-docs-page.is-dark .swagger-ui .btn.execute:hover {
-  background: #79b9ff;
+  background: #e0c060;
 }
 
 .api-docs-page.is-dark .swagger-ui .btn.authorize {
-  color: #52c41a;
-  border-color: rgba(82, 196, 26, 0.4);
-  background: rgba(82, 196, 26, 0.08);
+  color: #7da86e;
+  border-color: rgba(125, 168, 110, 0.4);
+  background: rgba(125, 168, 110, 0.08);
 }
 
 .api-docs-page.is-dark .swagger-ui .btn.authorize svg {
-  fill: #52c41a;
+  fill: #7da86e;
 }
 
 .api-docs-page.is-dark .swagger-ui .authorization__btn svg,
@@ -296,9 +296,9 @@
 }
 
 .api-docs-page.is-dark .swagger-ui .btn.cancel {
-  color: #ff7875;
-  border-color: rgba(255, 120, 117, 0.4);
-  background: rgba(255, 120, 117, 0.08);
+  color: #c06040;
+  border-color: rgba(192, 96, 64, 0.4);
+  background: rgba(192, 96, 64, 0.08);
 }
 
 .api-docs-page.is-dark .swagger-ui .btn.btn-clear,
@@ -354,7 +354,7 @@
 }
 
 .api-docs-page.is-dark .swagger-ui a:hover {
-  color: #79b9ff;
+  color: #e0c060;
 }
 
 .api-docs-page.is-dark .swagger-ui .info .title small {
@@ -367,7 +367,7 @@
 }
 
 .api-docs-page.is-dark .swagger-ui .response-control-media-type--accept-controller select {
-  border-color: rgba(82, 196, 26, 0.5);
+  border-color: rgba(125, 168, 110, 0.5);
 }
 
 .api-docs-page.is-dark .swagger-ui .loading-container .loading:before {

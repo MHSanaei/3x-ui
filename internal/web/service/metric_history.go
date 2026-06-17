@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/logger"
 )
 
 // MetricSample is one point of any time-series we keep in memory.

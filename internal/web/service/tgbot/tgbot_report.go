@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/gary/dune/internal/config"
+	"github.com/gary/dune/internal/database"
+	"github.com/gary/dune/internal/database/model"
+	"github.com/gary/dune/internal/eventbus"
+	"github.com/gary/dune/internal/logger"
+	"github.com/gary/dune/internal/util/common"
+	"github.com/gary/dune/internal/web/service"
+	"github.com/gary/dune/internal/xray"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -398,9 +398,9 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	// Send database backup (SQLite file, or a pg_dump archive on PostgreSQL)
 	dbData, err := t.serverService.GetDb()
 	if err == nil {
-		dbFilename := "x-ui.db"
+		dbFilename := "dune.db"
 		if database.IsPostgres() {
-			dbFilename = "x-ui.dump"
+			dbFilename = "dune.dump"
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		document := tu.Document(
