@@ -47,29 +47,16 @@ const TRANSPORT_COLOR = 'gold';
 
 const TAG_STYLE = { marginInlineEnd: 0, fontWeight: 600, letterSpacing: '0.3px' };
 
-/* Strip the client email and the optional traffic/expiry decorations the
-   panel appends to a remark (e.g. "5.23GB📊", "30D⏳", "⛔️N/A") together
-   with any separator chars left dangling, so the label shows just the
-   inbound remark. The email is known from the client record, so it can be
-   removed even though its position in the composed remark depends on the
-   panel's remark-model settings. */
-function cleanRemark(remark: string, email: string): string {
-  let r = remark
-    .replace(/⛔️?N\/A/gu, '')
-    .replace(/[0-9][0-9A-Za-z.,]*[📊⏳]/gu, '');
-  if (email) {
-    const esc = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    r = r.replace(new RegExp(`[\\s\\-_.|,@]*${esc}`, 'g'), '');
-  }
-  return r.replace(/^[\s\-_.|,@]+|[\s\-_.|,@]+$/gu, '').trim();
-}
+/* Pull protocol, transport, security plus the remark and port out of a share
+   link. vless/trojan carry network+security as `type`/`security` query params
+   and the remark in the URL hash; vmess packs them into the base64 JSON as
+   `net`/`tls`/`ps`/`port`. Returns null when the scheme is unknown or the
+   payload can't be parsed, so callers fall back to "Link N".
 
-/* Pull protocol, transport, security plus the inbound remark and port out
-   of a share link. vless/trojan carry network+security as `type`/`security`
-   query params and the remark in the URL hash; vmess packs them into the
-   base64 JSON as `net`/`tls`/`ps`/`port`. Returns null when the scheme is
-   unknown or the payload can't be parsed, so callers fall back to "Link N". */
-export function parseLinkParts(link: string, email = ''): LinkParts | null {
+   The remark is shown verbatim: the panel displays the subscription's clean
+   (name-only) remarks — the per-client traffic/expiry info is rendered only
+   into the body a client app imports, so there is nothing to strip here. */
+export function parseLinkParts(link: string): LinkParts | null {
   const trimmed = link.trim();
   const scheme = /^([a-z0-9]+):\/\//i.exec(trimmed)?.[1]?.toLowerCase() ?? '';
   if (!scheme) return null;
@@ -106,7 +93,7 @@ export function parseLinkParts(link: string, email = ''): LinkParts | null {
     protocol,
     network: network.toUpperCase(),
     security: security.toUpperCase(),
-    remark: cleanRemark(remark, email),
+    remark: remark.trim(),
     port,
   };
 }

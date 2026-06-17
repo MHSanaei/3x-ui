@@ -165,7 +165,7 @@ export default function SubLinksModal({
           <Alert
             type="warning"
             showIcon
-            message={t('pages.clients.subLinksDisabled')}
+            title={t('pages.clients.subLinksDisabled')}
             description={t('pages.clients.subLinksDisabledHint')}
             style={{ marginBottom: 12 }}
           />
@@ -174,7 +174,7 @@ export default function SubLinksModal({
           <Alert
             type="info"
             showIcon
-            message={t('pages.clients.subLinksEmpty')}
+            title={t('pages.clients.subLinksEmpty')}
             style={{ marginBottom: 12 }}
           />
         )}

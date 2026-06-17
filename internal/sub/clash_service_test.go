@@ -46,7 +46,7 @@ func TestEnsureUniqueProxyNames(t *testing.T) {
 // public-key, short-id, or client-fingerprint would hand mihomo a broken reality
 // proxy. The existing clash tests don't assert any of these.
 func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
-	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	svc := &SubClashService{SubService: &SubService{}}
 	inbound := &model.Inbound{Listen: "203.0.113.1", Port: 443, Protocol: model.VLESS, Remark: "r", Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "11111111-2222-4333-8444-555555555555"}
 	stream := map[string]any{
@@ -56,7 +56,7 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 		"realitySettings": map[string]any{"serverName": "reality.example.com", "publicKey": "PBKvalue", "shortId": "ab12", "fingerprint": "chrome"},
 	}
 
-	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
 	if proxy == nil {
 		t.Fatal("buildProxy returned nil for a valid reality stream")
 	}
@@ -175,7 +175,7 @@ func TestApplyTransport_HTTPUpgrade(t *testing.T) {
 }
 
 func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testing.T) {
-	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	svc := &SubClashService{SubService: &SubService{}}
 	encryption := "mlkem768x25519plus.native.0rtt.client"
 	inbound := &model.Inbound{
 		Listen:   "203.0.113.1",
@@ -199,7 +199,7 @@ func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testi
 		},
 	}
 
-	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
 
 	if proxy["encryption"] != encryption {
 		t.Fatalf("encryption = %v, want %q", proxy["encryption"], encryption)
@@ -207,7 +207,7 @@ func TestBuildProxy_VLESSPostQuantumEncryptionUsesMihomoEncryptionField(t *testi
 }
 
 func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
-	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	svc := &SubClashService{SubService: &SubService{}}
 	encryption := "mlkem768x25519plus.native.0rtt.client"
 	inbound := &model.Inbound{
 		Listen:   "203.0.113.1",
@@ -231,7 +231,7 @@ func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
 
 	if proxy["flow"] != "xtls-rprx-vision" {
 		t.Fatalf("xhttp+reality+vlessenc Clash proxy must carry the vision flow (#5232): %#v", proxy)
@@ -239,7 +239,7 @@ func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
 }
 
 func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
-	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	svc := &SubClashService{SubService: &SubService{}}
 	inbound := &model.Inbound{
 		Listen:   "203.0.113.1",
 		Port:     443,
@@ -256,7 +256,7 @@ func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
 
 	if _, ok := proxy["flow"]; ok {
 		t.Fatalf("tcp without tls/reality must not carry a flow: %#v", proxy)
@@ -264,7 +264,7 @@ func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
 }
 
 func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
-	svc := &SubClashService{SubService: &SubService{remarkModel: "-i"}}
+	svc := &SubClashService{SubService: &SubService{}}
 	inbound := &model.Inbound{
 		Listen:   "203.0.113.1",
 		Port:     443,
@@ -281,7 +281,7 @@ func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 		},
 	}
 
-	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, "")
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
 
 	if _, ok := proxy["encryption"]; ok {
 		t.Fatalf("plain vless encryption should be omitted for mihomo: %#v", proxy)

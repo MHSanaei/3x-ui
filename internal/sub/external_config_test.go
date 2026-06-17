@@ -100,7 +100,7 @@ func TestExpandEntryLinkAppliesRemark(t *testing.T) {
 
 func TestClashProxyFromExternalTrojanReality(t *testing.T) {
 	link := "trojan://provider-pass@37.27.201.56:8443?type=tcp&security=reality&sni=aws.amazon.com&pbk=PBK&sid=298b44&fp=chrome#srv"
-	svc := NewSubClashService(false, "", NewSubService(false, "-io"))
+	svc := NewSubClashService(false, "", NewSubService(""))
 	proxy := svc.clashProxyFromExternal(link, "DE-Provider")
 	if proxy == nil {
 		t.Fatal("expected a clash proxy, got nil")

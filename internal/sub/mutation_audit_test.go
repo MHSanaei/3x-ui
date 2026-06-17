@@ -66,12 +66,12 @@ func TestSubJsonService_MuxAttachedWhenConfigured(t *testing.T) {
 		wantMux  bool
 		protocol model.Protocol
 	}{
-		{"vmess mux", NewSubJsonService(mux, "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client), true, model.VMESS},
-		{"vless mux", NewSubJsonService(mux, "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client), true, model.VLESS},
-		{"server mux", NewSubJsonService(mux, "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client), true, model.Trojan},
-		{"vmess no mux", NewSubJsonService("", "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client), false, model.VMESS},
-		{"vless no mux", NewSubJsonService("", "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client), false, model.VLESS},
-		{"server no mux", NewSubJsonService("", "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client), false, model.Trojan},
+		{"vmess mux", NewSubJsonService(mux, "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client, ""), true, model.VMESS},
+		{"vless mux", NewSubJsonService(mux, "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, ""), true, model.VLESS},
+		{"server mux", NewSubJsonService(mux, "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, ""), true, model.Trojan},
+		{"vmess no mux", NewSubJsonService("", "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client, ""), false, model.VMESS},
+		{"vless no mux", NewSubJsonService("", "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, ""), false, model.VLESS},
+		{"server no mux", NewSubJsonService("", "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, ""), false, model.Trojan},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestGenVlessLink_NoFlowWhenClientFlowEmpty(t *testing.T) {
 		Settings:       `{"clients":[{"id":"11111111-2222-4333-8444-555555555555","email":"user"}],"encryption":"none"}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	if link := s.genVlessLink(inbound, "user"); strings.Contains(link, "flow=") {
 		t.Fatalf("empty client flow must not produce a flow param, got %q", link)
 	}

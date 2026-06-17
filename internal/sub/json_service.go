@@ -59,6 +59,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
+	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
 		return "", "", err
@@ -82,6 +83,9 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
+		if hostEps := subReq.hostEndpoints(inbound, "json"); len(hostEps) > 0 {
+			injectExternalProxy(inbound, hostEps)
+		}
 
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
@@ -163,6 +167,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 	for _, ep := range externalProxies {
 		extPrxy := ep.(map[string]any)
+		// Expand the host's {{VAR}} remark template for this client (no-op for
+		// the synthetic/legacy entry) before it's used as the config remark.
+		subReq.renderHostRemark(inbound, client, extPrxy)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
 		newStream := cloneStreamForExternalProxy(stream)
@@ -182,17 +189,19 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
 		}
+		applyHostStreamOverrides(extPrxy, newStream)
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
+		hostMux := hostMuxOverride(extPrxy)
 
 		var newOutbounds []json_util.RawMessage
 
 		switch inbound.Protocol {
 		case "vmess":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client))
+			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, hostMux))
 		case "vless":
-			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client))
+			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, hostMux))
 		case "trojan", "shadowsocks":
-			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client))
+			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, hostMux))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
 		}
@@ -202,7 +211,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		maps.Copy(newConfigJson, s.configJson)
 
 		newConfigJson["outbounds"] = newOutbounds
-		newConfigJson["remarks"] = subReq.genRemark(inbound, client.Email, extPrxy["remark"].(string))
+		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy)
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)
@@ -321,13 +330,21 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	return rltyData
 }
 
-func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
+// jsonMux picks the per-host mux override when present, else the global mux.
+func jsonMux(global, override string) string {
+	if override != "" {
+		return override
+	}
+	return global
+}
+
+func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if s.mux != "" {
-		outbound.Mux = json_util.RawMessage(s.mux)
+	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
 
@@ -347,12 +364,12 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
 	outbound := Outbound{}
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if s.mux != "" {
-		outbound.Mux = json_util.RawMessage(s.mux)
+	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
 
@@ -376,7 +393,7 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	serverData := make([]ServerSetting, 1)
@@ -403,8 +420,8 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if s.mux != "" {
-		outbound.Mux = json_util.RawMessage(s.mux)
+	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
 
