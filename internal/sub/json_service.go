@@ -425,16 +425,22 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 	}
 	outbound.StreamSettings = streamSettings
 
-	settings := map[string]any{
+	// Wrap the endpoint in a "servers" array (the standard Xray schema for
+	// Shadowsocks/Trojan outbounds). The flat top-level form only parses on very
+	// recent xray-core; older bundled cores (e.g. in v2rayN) reject it, so SS
+	// links fail to connect. See genVnext/genVless for the VMess/VLESS shape.
+	server := map[string]any{
 		"address":  serverData[0].Address,
 		"port":     serverData[0].Port,
 		"password": serverData[0].Password,
 		"level":    8,
 	}
 	if inbound.Protocol == model.Shadowsocks {
-		settings["method"] = serverData[0].Method
+		server["method"] = serverData[0].Method
 	}
-	outbound.Settings = settings
+	outbound.Settings = map[string]any{
+		"servers": []any{server},
+	}
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
