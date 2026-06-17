@@ -846,7 +846,11 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", err
 	}
 	if got := hex.EncodeToString(hasher.Sum(nil)); !strings.EqualFold(got, want) {
-		return "", fmt.Errorf("download xray: checksum mismatch (want %s, got %s)", want, got)
+		// User-facing warning: the archive's SHA-256 does not match the official
+		// release checksum, so the download is corrupted or has been tampered
+		// with. Abort the install so a bad binary is never run, and tell the user
+		// to retry/re-download rather than proceed with a mismatched image.
+		return "", fmt.Errorf("Xray update aborted: the downloaded archive does not match the official SHA-256 checksum, so the image is corrupted or differs from the official release. Please exit and re-download the official image, then try again (expected %s, got %s)", want, got)
 	}
 
 	ok = true
