@@ -40,6 +40,12 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
           }))}
         />
       </Form.Item>
+      <Form.Item
+        name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
+        label={t('pages.inbounds.form.maxUploadSize')}
+      >
+        <Input />
+      </Form.Item>
       {(xhttpMode === 'packet-up' || xhttpMode === 'auto') && (
         <>
           <Form.Item
@@ -47,12 +53,6 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
             label={t('pages.inbounds.form.maxBufferedUpload')}
           >
             <InputNumber />
-          </Form.Item>
-          <Form.Item
-            name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
-            label={t('pages.inbounds.form.maxUploadSize')}
-          >
-            <Input />
           </Form.Item>
           <Form.Item
             name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
