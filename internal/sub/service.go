@@ -704,6 +704,18 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		applyShareTLSParams(stream, params)
 	}
 
+	// SIP002 clients (v2rayN) ignore the xray-native type/headerType/host/path
+	// params and only read `plugin`. Re-encode a TCP http header as obfs-local so
+	// they build a matching tcp/http outbound (v2rayN forces request path "/").
+	if streamNetwork == "tcp" && params["headerType"] == "http" {
+		host := params["host"]
+		delete(params, "type")
+		delete(params, "headerType")
+		delete(params, "host")
+		delete(params, "path")
+		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
+	}
+
 	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
 	if method[0] == '2' {
 		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)

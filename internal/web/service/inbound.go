@@ -619,6 +619,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
+	// Defensively fix any Shadowsocks-2022 client PSK whose length doesn't match
+	// the inbound method (e.g. an API caller supplied a wrong-size key).
+	if normalized, changed := normalizeShadowsocksClientKeys(inbound.Settings); changed {
+		inbound.Settings = normalized
+	}
+
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
@@ -1039,6 +1045,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				}
 			}
 		}
+	}
+
+	// A Shadowsocks-2022 method change resizes the key, but existing client PSKs
+	// keep their old length and would be rejected by xray. Regenerate mismatched
+	// client keys so the inbound stays connectable.
+	if normalized, changed := normalizeShadowsocksClientKeys(inbound.Settings); changed {
+		inbound.Settings = normalized
+		logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
 	}
 
 	oldInbound.Total = inbound.Total
