@@ -97,7 +97,8 @@
     "unlimited": "無限制",
     "noExpiry": "無到期",
     "copyAllConfigs": "複製全部配置",
-    "copyAllConfigsCopied": "已複製全部配置"
+    "copyAllConfigsCopied": "已複製全部配置",
+    "email": "電子郵件"
   },
   "menu": {
     "theme": "主題",
@@ -113,7 +114,8 @@
     "apiDocs": "API 文件",
     "logout": "退出登入",
     "link": "管理",
-    "donate": "捐贈"
+    "donate": "捐贈",
+    "hosts": "Hosts"
   },
   "pages": {
     "login": {
@@ -1284,7 +1286,9 @@
       "smtpErrorTimeout": "連線逾時 — 無法連線至主機",
       "smtpErrorRelay": "伺服器拒絕從此地址傳送",
       "smtpErrorEof": "連線已被伺服器關閉",
-      "smtpErrorUnknown": "SMTP 錯誤：{{ .Error }}"
+      "smtpErrorUnknown": "SMTP 錯誤：{{ .Error }}",
+      "remarkTemplate": "備註範本",
+      "remarkTemplateDesc": "設定後，這將取代每個訂閱連結的備註模型——使用變數標記撰寫您自己的格式（使用按鈕來插入）。留空則使用上方的模型。"
     },
     "xray": {
       "title": "Xray 配置",
@@ -1679,6 +1683,114 @@
         "edit": "編輯假 DNS",
         "ipPool": "IP 池子網",
         "poolSize": "池大小"
+      }
+    },
+    "hosts": {
+      "addHost": "新增 Host",
+      "editHost": "編輯 Host",
+      "selectInbound": "選擇一個入站",
+      "selectedCount": "已選 {count} 項",
+      "summary": {
+        "total": "總數",
+        "enabled": "已啟用",
+        "disabled": "已停用"
+      },
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "bulkEnable": "啟用",
+      "bulkDisable": "停用",
+      "bulkDelete": "刪除",
+      "bulkDeleteConfirm": "刪除所選的 {count} 個 Host？",
+      "deleteConfirmTitle": "刪除 Host「{name}」？",
+      "sections": {
+        "basic": "基本",
+        "security": "安全",
+        "advanced": "進階",
+        "general": "一般",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "備註",
+        "serverDescription": "描述",
+        "inbound": "入站",
+        "address": "地址",
+        "port": "連接埠",
+        "endpoint": "端點",
+        "enable": "啟用",
+        "actions": "操作",
+        "security": "安全",
+        "sni": "SNI",
+        "overrideSniFromAddress": "使用地址作為 SNI",
+        "keepSniBlank": "保持 SNI 留空",
+        "hostHeader": "Host 標頭",
+        "path": "路徑",
+        "alpn": "ALPN",
+        "fingerprint": "指紋",
+        "pins": "釘選憑證 SHA-256",
+        "verifyPeerCertByName": "依名稱驗證對端憑證",
+        "allowInsecure": "允許不安全連線",
+        "echConfigList": "ECH 設定清單",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "VLESS 路由",
+        "mihomoIpVersion": "IP 版本",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "隨機排序 Host",
+        "tags": "標籤",
+        "nodeGuids": "節點",
+        "excludeFromSubTypes": "從格式中排除"
+      },
+      "hints": {
+        "address": "留空以繼承入站本身的地址。",
+        "port": "0 表示繼承入站的連接埠。",
+        "tags": "對終端使用者不可見；僅隨 RAW 訂閱傳送。只能使用大寫字母、數字、_ 和 :。",
+        "nodeGuids": "選擇由此 Host 解析而來的節點。僅為視覺上的指派。",
+        "serverDescription": "顯示於備註下方的選填註記。",
+        "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
+        "vlessRoute": "透過 VLESS 路由的連接埠／範圍，例如 53,443,1000-2000。留空表示無。",
+        "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
+      },
+      "remarkVars": {
+        "title": "範本變數",
+        "intro": "點擊變數以加入。產生訂閱時會針對每個客戶端進行替換。",
+        "preview": "預覽",
+        "groups": {
+          "client": "客戶端",
+          "traffic": "流量",
+          "time": "時間與狀態"
+        },
+        "descEMAIL": "客戶端電子郵件",
+        "descINBOUND": "配置名稱：設定時為 Host 的備註，否則為入站的備註",
+        "descHOST": "Host 備註",
+        "descID": "客戶端 UUID",
+        "descSHORT_ID": "UUID 的前 8 個字元",
+        "descTELEGRAM_ID": "客戶端的 Telegram ID（未設定則為空）",
+        "descSUB_ID": "訂閱 ID",
+        "descCOMMENT": "客戶端備註",
+        "descTRAFFIC_USED": "已用流量（易讀格式）",
+        "descTRAFFIC_LEFT": "剩餘流量（無限制時隱藏）",
+        "descTRAFFIC_TOTAL": "總流量（無限制時隱藏）",
+        "descTRAFFIC_USED_BYTES": "已用流量（位元組）",
+        "descTRAFFIC_LEFT_BYTES": "剩餘流量（位元組）",
+        "descTRAFFIC_TOTAL_BYTES": "總流量（位元組）",
+        "descUP": "上傳流量",
+        "descDOWN": "下載流量",
+        "descSTATUS": "active / expired / disabled / depleted",
+        "descDAYS_LEFT": "距到期天數（無限制時隱藏）",
+        "descEXPIRE_DATE": "到期日期（YYYY-MM-DD）",
+        "descEXPIRE_UNIX": "到期時間（Unix 時間戳記，秒）",
+        "descCREATED_UNIX": "建立時間（Unix 時間戳記，秒）",
+        "descRESET_DAYS": "流量重置週期（天）"
+      },
+      "toasts": {
+        "list": "載入 Host 失敗",
+        "obtain": "載入 Host 失敗",
+        "add": "新增 Host",
+        "update": "更新 Host",
+        "delete": "刪除 Host",
+        "badTag": "無效的標籤",
+        "badVlessRoute": "請使用連接埠／範圍，例如 53,443,1000-2000"
       }
     }
   },
