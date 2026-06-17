@@ -54,6 +54,12 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
           >
             <Input />
           </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
+            label={t('pages.xray.outboundForm.minUploadInterval')}
+          >
+            <Input placeholder="e.g. 50-150" />
+          </Form.Item>
         </>
       )}
       {xhttpMode === 'stream-up' && (
