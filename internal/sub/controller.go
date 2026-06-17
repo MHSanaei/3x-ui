@@ -147,9 +147,9 @@ func (a *SUBController) subs(c *gin.Context) {
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
 	} else {
-		result := ""
+		var result strings.Builder
 		for _, sub := range subs {
-			result += sub + "\n"
+			result.WriteString(sub + "\n")
 		}
 
 		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
@@ -180,9 +180,9 @@ func (a *SUBController) subs(c *gin.Context) {
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
 
 		if a.subEncrypt {
-			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
+			c.String(200, base64.StdEncoding.EncodeToString([]byte(result.String())))
 		} else {
-			c.String(200, result)
+			c.String(200, result.String())
 		}
 	}
 }

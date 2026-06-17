@@ -12,7 +12,7 @@ func TestGetLogs_ReturnsAtMostC(t *testing.T) {
 	logBufferMu.Lock()
 	logBuffer = nil
 	logBufferMu.Unlock()
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		addToBuffer("ERROR", fmt.Sprintf("m%d", i))
 	}
 

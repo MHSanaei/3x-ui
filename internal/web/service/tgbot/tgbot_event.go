@@ -49,7 +49,7 @@ func (t *Tgbot) isEventEnabled(eventType eventbus.EventType) bool {
 	if err != nil || events == "" {
 		return false
 	}
-	for _, e := range strings.Split(events, ",") {
+	for e := range strings.SplitSeq(events, ",") {
 		if strings.TrimSpace(e) == string(eventType) {
 			return true
 		}
