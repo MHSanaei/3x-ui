@@ -168,7 +168,7 @@ func seedHostsFromExternalProxy() error {
 // externalProxyEntryToHost maps one legacy externalProxy entry onto a Host.
 // forceTls (same|tls|none) maps straight to Security; an unknown value falls back
 // to "same" (inherit). An empty remark gets a stable generated label so the row
-// stays valid/editable, and the remark is capped at the model's 40-char limit.
+// stays valid/editable, and the remark is capped at the model's 256-char limit.
 func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Host {
 	security, _ := ep["forceTls"].(string)
 	switch security {
@@ -185,8 +185,8 @@ func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Ho
 	if strings.TrimSpace(remark) == "" {
 		remark = "imported " + strconv.Itoa(index+1)
 	}
-	if len(remark) > 40 {
-		remark = remark[:40]
+	if len(remark) > 256 {
+		remark = remark[:256]
 	}
 	sni, _ := ep["sni"].(string)
 	fingerprint, _ := ep["fingerprint"].(string)
