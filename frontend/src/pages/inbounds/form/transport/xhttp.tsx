@@ -40,7 +40,7 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
           }))}
         />
       </Form.Item>
-      {xhttpMode === 'packet-up' && (
+      {(xhttpMode === 'packet-up' || xhttpMode === 'auto') && (
         <>
           <Form.Item
             name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
