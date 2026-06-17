@@ -43,7 +43,7 @@ func TestChar_C1_VlessExternalProxy(t *testing.T) {
 			{"forceTls":"none","dest":"cdn2.example.com","port":80,"remark":"R2"}
 		]
 	}`
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genVlessLink(charVlessInbound(stream), "user")
 	want := "vless://11111111-2222-4333-8444-555555555555@cdn1.example.com:8443?alpn=h3%2Ch2&encryption=none&fp=firefox&pcs=UElO&security=tls&sni=sni1.example.com&type=tcp#char-R1\n" +
 		"vless://11111111-2222-4333-8444-555555555555@cdn2.example.com:80?encryption=none&security=none&type=tcp#char-R2"
@@ -62,7 +62,7 @@ func TestChar_C4_VlessRealitySame(t *testing.T) {
 		"realitySettings":{"serverNames":["reality.example.com"],"shortIds":["ab12cd"],"settings":{"publicKey":"PBKvalue","fingerprint":"firefox"}},
 		"externalProxy":[{"forceTls":"same","dest":"cdn.example.com","port":2053,"remark":"RS"}]
 	}`
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genVlessLink(charVlessInbound(stream), "user")
 	wants := []string{
 		"vless://11111111-2222-4333-8444-555555555555@cdn.example.com:2053",
@@ -104,7 +104,7 @@ func TestChar_C2_VmessExternalProxy(t *testing.T) {
 		Settings:       `{"clients":[{"id":"11111111-2222-4333-8444-555555555555","email":"user","security":"auto"}]}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genVmessLink(in, "user")
 	want := "vmess://ewogICJhZGQiOiAidm0xLmV4YW1wbGUuY29tIiwKICAiYWxwbiI6ICJoMiIsCiAgImZwIjogImNocm9tZSIsCiAgImlkIjogIjExMTExMTExLTIyMjItNDMzMy04NDQ0LTU1NTU1NTU1NTU1NSIsCiAgIm5ldCI6ICJ0Y3AiLAogICJwb3J0IjogODQ0MywKICAicHMiOiAiY2hhci1WMSIsCiAgInNjeSI6ICJhdXRvIiwKICAic25pIjogInNuaTEuZXhhbXBsZS5jb20iLAogICJ0bHMiOiAidGxzIiwKICAidHlwZSI6ICJub25lIiwKICAidiI6ICIyIgp9\n" +
 		"vmess://ewogICJhZGQiOiAidm0yLmV4YW1wbGUuY29tIiwKICAiaWQiOiAiMTExMTExMTEtMjIyMi00MzMzLTg0NDQtNTU1NTU1NTU1NTU1IiwKICAibmV0IjogInRjcCIsCiAgInBvcnQiOiA4MCwKICAicHMiOiAiY2hhci1WMiIsCiAgInNjeSI6ICJhdXRvIiwKICAidGxzIjogIm5vbmUiLAogICJ0eXBlIjogIm5vbmUiLAogICJ2IjogIjIiCn0="
@@ -141,7 +141,7 @@ func TestChar_C3_TrojanExternalProxy(t *testing.T) {
 		Settings:       `{"clients":[{"password":"p@ss/w+rd=","email":"user"}]}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genTrojanLink(in, "user")
 	want := "trojan://p%40ss%2Fw%2Brd%3D@tj.example.com:8443?fp=chrome&security=tls&sni=tj.sni&type=tcp#char-TJ"
 	if got != want {
@@ -166,7 +166,7 @@ func TestChar_C3_ShadowsocksExternalProxy(t *testing.T) {
 		Settings:       `{"method":"2022-blake3-aes-256-gcm","password":"inboundpw","clients":[{"password":"clientpw","email":"user"}]}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genShadowsocksLink(in, "user")
 	want := "ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206aW5ib3VuZHB3OmNsaWVudHB3@ss.example.com:8443?fp=chrome&security=tls&sni=ss.sni&type=tcp#char-SS"
 	if got != want {
@@ -193,7 +193,7 @@ func TestChar_C6_HysteriaExternalProxy(t *testing.T) {
 		Settings:       `{"version":2,"clients":[{"auth":"hyauth","email":"user"}]}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	got := s.genHysteriaLink(in, "user")
 	wants := []string{
 		"hysteria2://hyauth@hop.example.com:9443",

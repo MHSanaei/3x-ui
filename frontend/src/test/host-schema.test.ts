@@ -27,8 +27,9 @@ describe('HostFormSchema', () => {
     expect(() => HostFormSchema.parse({ ...valid, remark: '' })).toThrow();
   });
 
-  it('rejects a remark longer than 40 chars', () => {
-    expect(() => HostFormSchema.parse({ ...valid, remark: 'x'.repeat(41) })).toThrow();
+  it('accepts a templated remark up to 256 chars and rejects beyond', () => {
+    expect(() => HostFormSchema.parse({ ...valid, remark: 'x'.repeat(256) })).not.toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, remark: 'x'.repeat(257) })).toThrow();
   });
 
   it('rejects an out-of-range port', () => {

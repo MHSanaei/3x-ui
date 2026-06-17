@@ -98,8 +98,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
-      "remarkModel": {
-        "description": "Remark model pattern for inbounds",
+      "remarkTemplate": {
+        "description": "Subscription remark template ({{VAR}} tokens) rendered per client",
         "type": "string"
       },
       "restartXrayOnClientDisable": {
@@ -184,10 +184,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Domain for subscription server validation",
         "type": "string"
       },
-      "subEmailInRemark": {
-        "description": "Include email in subscription remark/name",
-        "type": "boolean"
-      },
       "subEnable": {
         "description": "Subscription server settings\nEnable subscription server",
         "type": "boolean"
@@ -248,10 +244,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "description": "Subscription global routing rules (Only for Happ)",
         "type": "string"
-      },
-      "subShowInfo": {
-        "description": "Show client information in subscriptions",
-        "type": "boolean"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -398,7 +390,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField",
       "pageSize",
       "panelOutbound",
-      "remarkModel",
+      "remarkTemplate",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "smtpCpu",
@@ -418,7 +410,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashRules",
       "subClashURI",
       "subDomain",
-      "subEmailInRemark",
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
@@ -434,7 +425,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
-      "subShowInfo",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -584,8 +574,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
         "type": "string"
       },
-      "remarkModel": {
-        "description": "Remark model pattern for inbounds",
+      "remarkTemplate": {
+        "description": "Subscription remark template ({{VAR}} tokens) rendered per client",
         "type": "string"
       },
       "restartXrayOnClientDisable": {
@@ -670,10 +660,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Domain for subscription server validation",
         "type": "string"
       },
-      "subEmailInRemark": {
-        "description": "Include email in subscription remark/name",
-        "type": "boolean"
-      },
       "subEnable": {
         "description": "Subscription server settings\nEnable subscription server",
         "type": "boolean"
@@ -734,10 +720,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "description": "Subscription global routing rules (Only for Happ)",
         "type": "string"
-      },
-      "subShowInfo": {
-        "description": "Show client information in subscriptions",
-        "type": "boolean"
       },
       "subSupportUrl": {
         "description": "Subscription support URL",
@@ -891,7 +873,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField",
       "pageSize",
       "panelOutbound",
-      "remarkModel",
+      "remarkTemplate",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
       "smtpCpu",
@@ -911,7 +893,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashRules",
       "subClashURI",
       "subDomain",
-      "subEmailInRemark",
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
@@ -927,7 +908,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
-      "subShowInfo",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -1421,7 +1401,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "remark": {
         "example": "cdn-front",
-        "maxLength": 40,
+        "maxLength": 256,
         "type": "string"
       },
       "security": {

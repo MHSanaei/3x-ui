@@ -111,7 +111,7 @@ func (s *SubService) buildEndpointVmessLinks(eps []ShareEndpoint, baseObj map[st
 			securityToApply = e.ForceTls
 		}
 		newObj := cloneVmessShareObj(baseObj, e.ForceTls)
-		newObj["ps"] = s.genRemark(inbound, email, e.Remark)
+		newObj["ps"] = s.endpointRemark(inbound, email, e.ep)
 		newObj["add"] = e.Address
 		newObj["port"] = e.Port
 		if e.ForceTls != "same" {

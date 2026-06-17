@@ -76,7 +76,6 @@ export interface InboundInfoModalProps {
   onClose: () => void;
   dbInbound: DBInboundLike | null;
   clientIndex?: number;
-  remarkModel?: string;
   expireDiff?: number;
   trafficDiff?: number;
   ipLimitEnable?: boolean;

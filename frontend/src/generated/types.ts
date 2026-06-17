@@ -33,7 +33,7 @@ export interface AllSetting {
   ldapVlessField: string;
   pageSize: number;
   panelOutbound: string;
-  remarkModel: string;
+  remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   smtpCpu: number;
@@ -53,7 +53,6 @@ export interface AllSetting {
   subClashRules: string;
   subClashURI: string;
   subDomain: string;
-  subEmailInRemark: boolean;
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
@@ -69,7 +68,6 @@ export interface AllSetting {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
-  subShowInfo: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -133,7 +131,7 @@ export interface AllSettingView {
   ldapVlessField: string;
   pageSize: number;
   panelOutbound: string;
-  remarkModel: string;
+  remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   smtpCpu: number;
@@ -153,7 +151,6 @@ export interface AllSettingView {
   subClashRules: string;
   subClashURI: string;
   subDomain: string;
-  subEmailInRemark: boolean;
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
@@ -169,7 +166,6 @@ export interface AllSettingView {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
-  subShowInfo: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;

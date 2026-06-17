@@ -23,7 +23,9 @@ export const HostFormSchema = z.object({
   id: z.number().optional(),
   inboundId: z.number().int().positive(),
   sortOrder: z.number().int().default(0),
-  remark: z.string().trim().min(1).max(40),
+  // Remark may contain {{VAR}} template tokens expanded per client at
+  // subscription time, so the stored template gets a generous cap.
+  remark: z.string().trim().min(1).max(256),
   serverDescription: z.string().max(64).default(''),
   isDisabled: z.boolean().default(false),
   isHidden: z.boolean().default(false),

@@ -156,8 +156,8 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
               label: catTabLabel(<ProfileOutlined />, t('pages.hosts.sections.basic'), isMobile),
               children: (
                 <>
-                  <Form.Item name="remark" label={t('pages.hosts.fields.remark')} rules={[{ required: true, max: 40 }]}>
-                    <Input maxLength={40} />
+                  <Form.Item name="remark" label={t('pages.hosts.fields.remark')} tooltip={t('pages.hosts.hints.remark')} rules={[{ required: true, max: 256 }]}>
+                    <Input maxLength={256} />
                   </Form.Item>
                   <Form.Item name="serverDescription" label={t('pages.hosts.fields.serverDescription')} tooltip={t('pages.hosts.hints.serverDescription')}>
                     <Input maxLength={64} />

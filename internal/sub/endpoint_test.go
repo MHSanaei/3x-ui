@@ -72,7 +72,7 @@ func TestInboundDefaultEndpoint(t *testing.T) {
 // TLS override applied for tls, fields stripped + security overridden for none,
 // joined by "\n", in order.
 func TestBuildEndpointLinks_ParamForm(t *testing.T) {
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	in := &model.Inbound{Remark: "ib"}
 	params := map[string]string{"type": "tcp", "security": "tls", "sni": "base.sni", "fp": "chrome"}
 	eps := []ShareEndpoint{
@@ -93,7 +93,7 @@ func TestBuildEndpointLinks_ParamForm(t *testing.T) {
 // N4 — buildEndpointVmessLinks renders the object-form path: base obj cloned per
 // endpoint, add/port/tls rewritten, sni override applied, none-strip honored.
 func TestBuildEndpointVmessLinks(t *testing.T) {
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	in := &model.Inbound{Remark: "ib"}
 	baseObj := map[string]any{
 		"v": "2", "add": "base.example.com", "port": 443, "type": "none",

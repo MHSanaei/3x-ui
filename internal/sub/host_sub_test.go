@@ -61,7 +61,7 @@ const wsTLSStream = `{"network":"ws","security":"tls","wsSettings":{"path":"/bas
 func TestSub_ZeroHosts_IdenticalOutput(t *testing.T) {
 	seedSubDB(t)
 	seedSubInbound(t, "s1", "z", 4431, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestSub_NHosts_EmitsNLinksOrdered(t *testing.T) {
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 8443, Security: "tls", Sni: "b.sni", HostHeader: "b.host", Path: "/b"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 2096, Security: "tls", Sni: "a.sni", HostHeader: "a.host", Path: "/a"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestSub_DisabledHostSkipped(t *testing.T) {
 	ib := seedSubInbound(t, "s1", "d", 4433, 1, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "OFF", Address: "off.cdn.com", Port: 8443, IsDisabled: true})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestSub_HostAndExternalProxy_Precedence(t *testing.T) {
 	ib := seedSubInbound(t, "s1", "p", 4434, 1, stream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "host.cdn.com", Port: 8443, Security: "tls", Sni: "host.sni"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestSub_NHosts_NoDedup(t *testing.T) {
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "SAME", Address: "one.cdn.com", Port: 8443, Security: "tls"})
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "SAME", Address: "two.cdn.com", Port: 8443, Security: "tls"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestSub_HostSortComposesWithSubSortIndex(t *testing.T) {
 	seedHost(t, &model.Host{InboundId: ibSecond.Id, SortOrder: 1, Remark: "S", Address: "second-host.com", Port: 8443, Security: "tls"})
 	seedHost(t, &model.Host{InboundId: ibFirst.Id, SortOrder: 1, Remark: "F", Address: "first-host.com", Port: 8443, Security: "tls"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestSub_HostOverFallback(t *testing.T) {
 	}
 	seedHost(t, &model.Host{InboundId: child.Id, SortOrder: 1, Remark: "H", Address: "host.cdn.com", Port: 8443, Security: "tls", Sni: "host.sni"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -235,7 +235,7 @@ func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
 	other := seedSubInbound(t, "s2", "other", 4440, 1, wsTLSStream) // client on s2 only
 	seedHost(t, &model.Host{InboundId: other.Id, SortOrder: 1, Remark: "X", Address: "other-host.com", Port: 8443, Security: "tls"})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestSub_HostAllowInsecure(t *testing.T) {
 	ib := seedSubInbound(t, "s1", "ai", 4450, 1, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "AI", Address: "ai.cdn.com", Port: 8443, Security: "tls", AllowInsecure: true})
 
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestSub_HostAllowInsecure(t *testing.T) {
 		t.Fatalf("raw link should carry allowInsecure=1: %s", strings.Join(links, "\n"))
 	}
 
-	clash := NewSubClashService(false, "", NewSubService(false, "-ieo"))
+	clash := NewSubClashService(false, "", NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
@@ -280,7 +280,7 @@ func TestSub_HostSockoptJSON(t *testing.T) {
 		InboundId: ib.Id, SortOrder: 0, Remark: "SO", Address: "so.cdn.com", Port: 8443, Security: "tls",
 		SockoptParams: `{"tcpFastOpen":true}`,
 	})
-	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	js := NewSubJsonService("", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -298,7 +298,7 @@ func TestSub_HostMuxJSON(t *testing.T) {
 		InboundId: ib.Id, SortOrder: 0, Remark: "MX", Address: "mx.cdn.com", Port: 8443, Security: "tls",
 		MuxParams: `{"enabled":true,"concurrency":8}`,
 	})
-	js := NewSubJsonService("", "", "", NewSubService(false, "-ieo"))
+	js := NewSubJsonService("", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -318,7 +318,7 @@ func TestSub_HostRealitySniOverride(t *testing.T) {
 		InboundId: ib.Id, SortOrder: 0, Remark: "RL", Address: "rl.cdn.com", Port: 8443,
 		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
 	})
-	links, _, _, _, err := NewSubService(false, "-ieo").GetSubs("s1", "req.example.com")
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
@@ -344,7 +344,7 @@ func TestSub_ExcludeFromSubTypes(t *testing.T) {
 	ib := seedSubInbound(t, "s1", "x", 4441, 1, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "clashless.cdn.com", Port: 8443, Security: "tls", ExcludeFromSubTypes: []string{"clash"}})
 
-	sub := NewSubService(false, "-ieo")
+	sub := NewSubService("")
 	links, _, _, _, err := sub.GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
@@ -353,7 +353,7 @@ func TestSub_ExcludeFromSubTypes(t *testing.T) {
 		t.Fatalf("host not excluded from raw should appear in GetSubs")
 	}
 
-	clash := NewSubClashService(false, "", NewSubService(false, "-ieo"))
+	clash := NewSubClashService(false, "", NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)

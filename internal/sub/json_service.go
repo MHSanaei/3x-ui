@@ -59,6 +59,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
+	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
 		return "", "", err
@@ -166,6 +167,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 	for _, ep := range externalProxies {
 		extPrxy := ep.(map[string]any)
+		// Expand the host's {{VAR}} remark template for this client (no-op for
+		// the synthetic/legacy entry) before it's used as the config remark.
+		subReq.renderHostRemark(inbound, client, extPrxy)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
 		newStream := cloneStreamForExternalProxy(stream)
@@ -207,7 +211,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		maps.Copy(newConfigJson, s.configJson)
 
 		newConfigJson["outbounds"] = newOutbounds
-		newConfigJson["remarks"] = subReq.genRemark(inbound, client.Email, extPrxy["remark"].(string))
+		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy)
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)

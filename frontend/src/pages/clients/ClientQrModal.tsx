@@ -92,7 +92,7 @@ export default function ClientQrModal({
       });
     }
     links.forEach((link, idx) => {
-      const parts = parseLinkParts(link, client?.email ?? '');
+      const parts = parseLinkParts(link);
       const meta = parts ? linkMetaText(parts) : '';
       const label: React.ReactNode = parts ? (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

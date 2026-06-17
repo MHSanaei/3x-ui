@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/json"
+	"maps"
 	"slices"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -192,13 +193,54 @@ func injectExternalProxy(inbound *model.Inbound, eps []map[string]any) {
 // the given host endpoints. It renders ONLY the hosts: an empty eps yields ""
 // (no legacy fallback) — the caller decides when to take the legacy path. That
 // separation is what makes the zero-hosts fallback mutation-testable.
-func (s *SubService) linkFromHosts(inbound *model.Inbound, email string, eps []map[string]any) string {
+func (s *SubService) linkFromHosts(inbound *model.Inbound, client model.Client, eps []map[string]any) string {
 	if len(eps) == 0 {
 		return ""
 	}
+	// Clone each ep before expanding its remark template: the eps slice is
+	// shared across all clients of this inbound, so the rendered (per-client)
+	// remark must not leak into the next client's links.
+	rendered := make([]map[string]any, len(eps))
+	for i, ep := range eps {
+		cp := maps.Clone(ep)
+		s.renderHostRemark(inbound, client, cp)
+		rendered[i] = cp
+	}
 	clone := *inbound
-	injectExternalProxy(&clone, eps)
-	return s.GetLink(&clone, email)
+	injectExternalProxy(&clone, rendered)
+	return s.GetLink(&clone, client.Email)
+}
+
+// renderHostRemark expands a host endpoint's {{VAR}} remark template for one
+// client in place and marks it final, so the downstream link/proxy/config
+// renderers emit it verbatim (via endpointRemark) instead of re-composing it.
+// No-op for non-host endpoints (legacy externalProxy / synthetic default), so
+// their output stays byte-identical.
+func (s *SubService) renderHostRemark(inbound *model.Inbound, client model.Client, ep map[string]any) {
+	if !isHostEndpoint(ep) {
+		return
+	}
+	tmpl, _ := ep["remark"].(string)
+	ep["remark"] = s.genHostRemark(inbound, client, tmpl)
+	ep["remarkFinal"] = true
+}
+
+// endpointRemark returns the remark to stamp on an endpoint's link/proxy/config
+// entry. A host endpoint whose template was pre-expanded by renderHostRemark
+// carries remarkFinal and is used verbatim; every other entry flows through the
+// standard genRemark composition unchanged.
+func (s *SubService) endpointRemark(inbound *model.Inbound, email string, ep map[string]any) string {
+	if ep != nil {
+		if final, _ := ep["remarkFinal"].(bool); final {
+			r, _ := ep["remark"].(string)
+			return r
+		}
+	}
+	var extra string
+	if ep != nil {
+		extra, _ = ep["remark"].(string)
+	}
+	return s.genRemark(inbound, email, extra)
 }
 
 // applyEndpointHostPath overrides the transport host header / path for a host
