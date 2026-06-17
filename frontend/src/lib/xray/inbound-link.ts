@@ -595,6 +595,18 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   }
 
+  // SIP002 clients (v2rayN) ignore type/headerType/host/path and only read
+  // `plugin`. Re-encode a TCP http header as obfs-local so they build a
+  // matching tcp/http outbound (v2rayN forces request path "/").
+  if ((stream.network ?? 'tcp') === 'tcp' && params.get('headerType') === 'http') {
+    const host = params.get('host') ?? '';
+    params.delete('type');
+    params.delete('headerType');
+    params.delete('host');
+    params.delete('path');
+    params.set('plugin', `obfs-local;obfs=http;obfs-host=${host}`);
+  }
+
   const isSS2022 = settings.method.substring(0, 4) === '2022';
   const isSSMultiUser = settings.method !== '2022-blake3-chacha20-poly1305';
   const passwords: string[] = [];

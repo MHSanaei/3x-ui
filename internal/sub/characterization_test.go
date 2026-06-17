@@ -174,6 +174,34 @@ func TestChar_C3_ShadowsocksExternalProxy(t *testing.T) {
 	}
 }
 
+// A TCP http header on Shadowsocks must be emitted as a SIP002 obfs-local
+// plugin (what v2rayN parses), not the xray-native type/headerType/host/path
+// params (which SIP002 clients silently ignore).
+func TestShadowsocksTcpHttpHeaderUsesObfsLocalPlugin(t *testing.T) {
+	stream := `{
+		"network":"tcp","security":"none",
+		"tcpSettings":{"header":{"type":"http","request":{"path":["/"],"headers":{"Host":["test"]}}}}
+	}`
+	in := &model.Inbound{
+		Listen:         "203.0.113.1",
+		Port:           38143,
+		Protocol:       model.Shadowsocks,
+		Remark:         "ss",
+		Settings:       `{"method":"2022-blake3-aes-256-gcm","password":"inboundpw","clients":[{"password":"clientpw","email":"user"}]}`,
+		StreamSettings: stream,
+	}
+	s := &SubService{}
+	got := s.genShadowsocksLink(in, "user")
+	if !strings.Contains(got, "plugin=obfs-local%3Bobfs%3Dhttp%3Bobfs-host%3Dtest") {
+		t.Fatalf("expected obfs-local plugin param, got: %q", got)
+	}
+	for _, leak := range []string{"headerType=", "type=tcp", "host=test", "path="} {
+		if strings.Contains(got, leak) {
+			t.Fatalf("xray-native param %q must not leak into SS link: %q", leak, got)
+		}
+	}
+}
+
 // C6 — Hysteria2, TLS, 1 externalProxy entry with a cert pin. Guards that the
 // Hysteria generator stays on its own path (hex pinSHA256, not pcs) and is NOT
 // folded into the unified builder. Pin hex is derived, so Contains is used.
