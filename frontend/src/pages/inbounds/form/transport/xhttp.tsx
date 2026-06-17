@@ -40,14 +40,14 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
           }))}
         />
       </Form.Item>
-      <Form.Item
-        name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
-        label={t('pages.inbounds.form.maxUploadSize')}
-      >
-        <Input />
-      </Form.Item>
       {(xhttpMode === 'packet-up' || xhttpMode === 'auto') && (
         <>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
+            label={t('pages.inbounds.form.maxUploadSize')}
+          >
+            <Input />
+          </Form.Item>
           <Form.Item
             name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
             label={t('pages.inbounds.form.maxBufferedUpload')}
@@ -63,12 +63,20 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
         </>
       )}
       {xhttpMode === 'stream-up' && (
-        <Form.Item
-          name={['streamSettings', 'xhttpSettings', 'scStreamUpServerSecs']}
-          label={t('pages.inbounds.form.streamUpServer')}
-        >
-          <Input />
-        </Form.Item>
+        <>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
+            label={t('pages.inbounds.form.maxBufferedUpload')}
+          >
+            <InputNumber />
+          </Form.Item>
+          <Form.Item
+            name={['streamSettings', 'xhttpSettings', 'scStreamUpServerSecs']}
+            label={t('pages.inbounds.form.streamUpServer')}
+          >
+            <Input />
+          </Form.Item>
+        </>
       )}
       <Form.Item
         name={['streamSettings', 'xhttpSettings', 'serverMaxHeaderBytes']}
