@@ -1200,6 +1200,8 @@
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
       "subRoutingRules": "Routing rules",
       "subRoutingRulesDesc": "Global routing rules for the VPN client. (Only for Happ)",
+      "subHideSettings": "Hide server settings",
+      "subHideSettingsDesc": "Hide the ability to view and edit server configurations in the VPN client. (Only for Happ)",
       "subClashEnableRouting": "Enable routing",
       "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
       "subClashRoutingRules": "Global routing rules",

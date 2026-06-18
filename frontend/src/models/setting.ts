@@ -57,6 +57,7 @@ export class AllSetting {
   subJsonRules = '';
   subJsonFinalMask = '';
   subThemeDir = '';
+  subHideSettings = false;
 
   timeLocation = 'Local';
 

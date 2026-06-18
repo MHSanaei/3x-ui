@@ -692,6 +692,10 @@ func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
 }
 
+func (s *SettingService) GetSubHideSettings() (bool, error) {
+	return s.getBool("subHideSettings")
+}
+
 func (s *SettingService) GetSubListen() (string, error) {
 	return s.getString("subListen")
 }

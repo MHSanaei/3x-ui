@@ -153,6 +153,9 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
               <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
                 onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subHideSettings')} description={t('pages.settings.subHideSettingsDesc')}>
+              <Switch checked={allSetting.subHideSettings} onChange={(v) => updateSetting({ subHideSettings: v })} />
+            </SettingListItem>
           </>
         ),
       },
