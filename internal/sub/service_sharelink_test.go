@@ -34,7 +34,7 @@ func TestGenVlessLink_TLSParamsMapped(t *testing.T) {
 			"settings":{"fingerprint":"chrome","pinnedPeerCertSha256":["YWJj"]}
 		}
 	}`
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	link := s.genVlessLink(shareLinkInbound(stream), "user")
 
 	// url.Values.Encode() percent-encodes values: "," -> %2C, "/" -> %2F.
@@ -66,7 +66,7 @@ func TestGenVlessLink_RealityParamsMapped(t *testing.T) {
 			"settings":{"publicKey":"PBKvalue","fingerprint":"firefox"}
 		}
 	}`
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	link := s.genVlessLink(shareLinkInbound(stream), "user")
 
 	wants := []string{

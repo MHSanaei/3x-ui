@@ -102,11 +102,27 @@ func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
 	}
 }
 
+// xray-core parses tlsSettings.pinnedPeerCertSha256 as a comma-separated string;
+// the JSON subscription must emit that form, not an array, or v2ray clients fail
+// to import the config (#5401).
+func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","settings":{"pinnedPeerCertSha256":["aa11","bb22"]}}}`)
+
+	tls, _ := stream["tlsSettings"].(map[string]any)
+	if tls == nil {
+		t.Fatalf("tlsSettings missing: %#v", stream)
+	}
+	if got := tls["pinnedPeerCertSha256"]; got != "aa11,bb22" {
+		t.Fatalf("pinnedPeerCertSha256 = %#v, want comma-separated string \"aa11,bb22\"", got)
+	}
+}
+
 func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vless outbound must not use vnext")
 	}
@@ -119,7 +135,7 @@ func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
 	client := model.Client{ID: "uuid-2"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vmess outbound must not use vnext")
 	}
@@ -128,21 +144,32 @@ func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	}
 }
 
-func TestSubJsonServiceServerFlattened(t *testing.T) {
+// Shadowsocks/Trojan outbounds must use the standard "servers" array so older
+// bundled xray-cores (e.g. v2rayN) parse them; the flat top-level form only
+// works on very recent xray-core.
+func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
 	client := model.Client{Password: "p4ss"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client))
-	if _, ok := settings["servers"]; ok {
-		t.Fatal("trojan outbound must not use servers array")
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client, ""))
+	server := firstServer(settings)
+	if server == nil {
+		t.Fatalf("trojan outbound must use a servers array, got: %#v", settings)
 	}
-	if settings["password"] != "p4ss" || settings["address"] != "1.2.3.4" {
-		t.Fatalf("flat trojan settings wrong: %#v", settings)
+	if server["password"] != "p4ss" || server["address"] != "1.2.3.4" {
+		t.Fatalf("trojan server entry wrong: %#v", server)
+	}
+	if _, ok := server["method"]; ok {
+		t.Fatalf("trojan must not carry method: %#v", server)
 	}
 
 	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
-	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client))
-	if ssSettings["method"] != "aes-256-gcm" {
-		t.Fatalf("flat shadowsocks must carry method: %#v", ssSettings)
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client, ""))
+	ssServer := firstServer(ssSettings)
+	if ssServer == nil {
+		t.Fatalf("shadowsocks outbound must use a servers array, got: %#v", ssSettings)
+	}
+	if ssServer["method"] != "aes-256-gcm" {
+		t.Fatalf("shadowsocks server entry must carry method: %#v", ssServer)
 	}
 }

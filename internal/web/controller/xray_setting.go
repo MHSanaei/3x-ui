@@ -325,7 +325,7 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 func (a *XraySettingController) balancerStatus(c *gin.Context) {
 	raw := c.PostForm("tags")
 	var tags []string
-	for _, tag := range strings.Split(raw, ",") {
+	for tag := range strings.SplitSeq(raw, ",") {
 		if tag = strings.TrimSpace(tag); tag != "" {
 			tags = append(tags, tag)
 		}

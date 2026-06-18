@@ -222,7 +222,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
               {testResult && (
                 <Alert
                   type={testResult.success ? 'success' : 'error'}
-                  message={testResult.msg}
+                  title={testResult.msg}
                   showIcon
                   closable
                   onClose={() => setTestResult(null)}

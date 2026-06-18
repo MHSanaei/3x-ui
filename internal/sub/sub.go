@@ -105,14 +105,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
-	ShowInfo, err := s.settingService.GetSubShowInfo()
+	RemarkTemplate, err := s.settingService.GetRemarkTemplate()
 	if err != nil {
-		return nil, err
-	}
-
-	RemarkModel, err := s.settingService.GetRemarkModel()
-	if err != nil {
-		RemarkModel = "-io"
+		RemarkTemplate = ""
 	}
 
 	SubUpdates, err := s.settingService.GetSubUpdates()
@@ -230,7 +225,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 

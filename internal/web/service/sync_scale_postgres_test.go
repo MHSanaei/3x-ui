@@ -70,7 +70,7 @@ func syncInboundOld(tx *gorm.DB, inboundId int, clients []model.Client) error {
 
 func makeScaleClients(n int) []model.Client {
 	out := make([]model.Client, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out[i] = model.Client{
 			ID:     uuid.NewString(),
 			Email:  fmt.Sprintf("user-%07d@scale", i),
@@ -260,7 +260,7 @@ func TestGroupAndListPostgresScale(t *testing.T) {
 			}
 			db.Exec("ANALYZE")
 			emails := make([]string, n)
-			for i := 0; i < n; i++ {
+			for i := range n {
 				emails[i] = clients[i].Email
 			}
 
@@ -382,7 +382,7 @@ func TestBulkOpsPostgresScale(t *testing.T) {
 			}
 
 			emailsM := make([]string, m)
-			for i := 0; i < m; i++ {
+			for i := range m {
 				emailsM[i] = clients[i].Email
 			}
 
@@ -405,7 +405,7 @@ func TestBulkOpsPostgresScale(t *testing.T) {
 			detachDur := time.Since(t0)
 
 			payloads := make([]ClientCreatePayload, m)
-			for i := 0; i < m; i++ {
+			for i := range m {
 				payloads[i] = ClientCreatePayload{
 					Client:     model.Client{ID: uuid.NewString(), Email: fmt.Sprintf("bulknew-%07d@scale", i), SubID: fmt.Sprintf("bnsub-%07d", i), Enable: true},
 					InboundIds: []int{ib.Id},

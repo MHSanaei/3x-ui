@@ -58,6 +58,7 @@ const subClashUrl = subData.subClashUrl || '';
 const subTitle = subData.subTitle || '';
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
 const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
+const subEmail = [...new Set(linkEmails.filter(Boolean))].join(', ');
 const datepicker = subData.datepicker || 'gregorian';
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
@@ -149,6 +150,7 @@ export default function SubPage() {
   const descriptionsItems = useMemo(() => {
     const items = [
       { key: 'subId', label: t('subscription.subId'), children: sId },
+      ...(subEmail ? [{ key: 'email', label: t('subscription.email'), children: subEmail }] : []),
       {
         key: 'status',
         label: t('subscription.status'),
@@ -413,7 +415,7 @@ export default function SubPage() {
                         </div>
                       </div>
                       {links.map((link, idx) => {
-                        const parts = parseLinkParts(link, linkEmails[idx] || '');
+                        const parts = parseLinkParts(link);
                         const fallback = `Link ${idx + 1}`;
                         const rowTitle = parts?.remark || fallback;
                         const qrLabel = [parts?.remark, linkEmails[idx]].filter(Boolean).join('-') || rowTitle;

@@ -388,7 +388,7 @@ func (s *Server) cpuAlarmWanted() bool {
 		if threshold <= 0 {
 			return false
 		}
-		for _, e := range strings.Split(events, ",") {
+		for e := range strings.SplitSeq(events, ",") {
 			if strings.TrimSpace(e) == string(eventbus.EventCPUHigh) {
 				return true
 			}

@@ -28,10 +28,18 @@ import (
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
-	showInfo       bool
-	remarkModel    string
+	remarkTemplate string
 	datepicker     string
-	emailInRemark  bool
+	// subscriptionBody is true only when rendering the actual subscription
+	// content a client app imports (raw /sub fetch, /json, /clash). The remark
+	// template's per-client info is emitted there (on the first link); every
+	// other context — the sub info page, the panel's link/QR displays — renders
+	// the name-only template, like Remnawave.
+	subscriptionBody bool
+	// usageShown tracks, per client email, whether the info part of the template
+	// has already been emitted this request, so it appears on the first body
+	// link only. Per-request state; reset in PrepareForRequest.
+	usageShown     map[string]bool
 	inboundService service.InboundService
 	settingService service.SettingService
 	// nodesByID is populated per request from the Node table so
@@ -42,10 +50,9 @@ type SubService struct {
 }
 
 // NewSubService creates a new subscription service with the given configuration.
-func NewSubService(showInfo bool, remarkModel string) *SubService {
+func NewSubService(remarkTemplate string) *SubService {
 	return &SubService{
-		showInfo:    showInfo,
-		remarkModel: remarkModel,
+		remarkTemplate: remarkTemplate,
 	}
 }
 
@@ -70,23 +77,20 @@ func (s *SubService) PrepareForRequest(host string) {
 		}
 	}
 	s.address = host
+	s.usageShown = map[string]bool{}
 	s.loadNodes()
 	s.loadRemarkSettings()
 }
 
 // loadRemarkSettings populates the per-request remark formatting state so
-// every subscription format — raw, JSON, Clash — renders remarks the same
-// way. genRemark reads emailInRemark and the date formatter reads datepicker;
-// loading these only in getSubs left JSON/Clash with the zero values.
+// every subscription format — raw, JSON, Clash — renders remarks the same way
+// (the date formatter reads datepicker). Loading it only in getSubs left
+// JSON/Clash with the zero value.
 func (s *SubService) loadRemarkSettings() {
 	var err error
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
 		s.datepicker = "gregorian"
-	}
-	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
-	if err != nil {
-		s.emailInRemark = true
 	}
 }
 
@@ -191,11 +195,20 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			continue
 		}
 		s.projectThroughFallbackMaster(inbound)
+		// Host overrides apply AFTER fallback projection so a host's
+		// address/TLS wins over the projected master stream.
+		hostEps := s.hostEndpoints(inbound, "raw")
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
-			result = append(result, s.GetLink(inbound, client.Email))
+			var link string
+			if len(hostEps) > 0 {
+				link = s.linkFromHosts(inbound, client, hostEps)
+			} else {
+				link = s.GetLink(inbound, client.Email)
+			}
+			result = append(result, link)
 			emails = append(emails, client.Email)
 			seenEmails[client.Email] = struct{}{}
 		}
@@ -584,7 +597,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.genRemark(inbound, email, ep["remark"].(string))
+				return s.endpointRemark(inbound, email, ep)
 			},
 		)
 	}
@@ -635,7 +648,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.genRemark(inbound, email, ep["remark"].(string))
+				return s.endpointRemark(inbound, email, ep)
 			},
 		)
 	}
@@ -691,6 +704,18 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		applyShareTLSParams(stream, params)
 	}
 
+	// SIP002 clients (v2rayN) ignore the xray-native type/headerType/host/path
+	// params and only read `plugin`. Re-encode a TCP http header as obfs-local so
+	// they build a matching tcp/http outbound (v2rayN forces request path "/").
+	if streamNetwork == "tcp" && params["headerType"] == "http" {
+		host := params["host"]
+		delete(params, "type")
+		delete(params, "headerType")
+		delete(params, "host")
+		delete(params, "path")
+		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
+	}
+
 	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
 	if method[0] == '2' {
 		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
@@ -709,7 +734,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.genRemark(inbound, email, ep["remark"].(string))
+				return s.endpointRemark(inbound, email, ep)
 			},
 		)
 	}
@@ -814,13 +839,11 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			if dest == "" || !okPort {
 				continue
 			}
-			epRemark, _ := ep["remark"].(string)
-
 			epParams := cloneStringMap(params)
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.genRemark(inbound, email, epRemark)))
+			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep)))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -1326,6 +1349,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 		}
 		settings["echConfigList"] = ech
 	}
+	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["allowInsecure"] = true
+	}
 }
 
 func externalProxySNI(ep map[string]any) (string, bool) {
@@ -1432,30 +1463,16 @@ func joinAnyStrings(items []any) string {
 	return strings.Join(parts, ",")
 }
 
+// buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
+// externalProxy entries to []ShareEndpoint and renders them through the unified
+// endpoint path. Kept so genVmessLink's call site is unchanged.
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
-	var links strings.Builder
-	for index, externalProxy := range externalProxies {
+	eps := make([]ShareEndpoint, 0, len(externalProxies))
+	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
-		newSecurity, _ := ep["forceTls"].(string)
-		securityToApply := baseObj["tls"].(string)
-		if newSecurity != "same" {
-			securityToApply = newSecurity
-		}
-		newObj := cloneVmessShareObj(baseObj, newSecurity)
-		newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string))
-		newObj["add"] = ep["dest"].(string)
-		newObj["port"] = int(ep["port"].(float64))
-
-		if newSecurity != "same" {
-			newObj["tls"] = newSecurity
-		}
-		applyExternalProxyTLSObj(ep, newObj, securityToApply)
-		if index > 0 {
-			links.WriteString("\n")
-		}
-		links.WriteString(buildVmessLink(newObj))
+		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return links.String()
+	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email)
 }
 
 // buildLinkWithParams appends ?query and #fragment to a pre-built
@@ -1512,6 +1529,9 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 	return sb.String()
 }
 
+// buildExternalProxyURLLinks is a thin adapter: it maps the legacy externalProxy
+// entries to []ShareEndpoint and renders them through the unified endpoint path.
+// Kept so the genVless/genTrojan/genShadowsocks call sites are unchanged.
 func (s *SubService) buildExternalProxyURLLinks(
 	externalProxies []any,
 	params map[string]string,
@@ -1519,33 +1539,14 @@ func (s *SubService) buildExternalProxyURLLinks(
 	makeLink func(dest string, port int) string,
 	makeRemark func(ep map[string]any) string,
 ) string {
-	links := make([]string, 0, len(externalProxies))
+	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
-		newSecurity, _ := ep["forceTls"].(string)
-		dest, _ := ep["dest"].(string)
-		port := int(ep["port"].(float64))
-
-		securityToApply := baseSecurity
-		if newSecurity != "same" {
-			securityToApply = newSecurity
-		}
-
-		nextParams := cloneStringMap(params)
-		applyExternalProxyTLSParams(ep, nextParams, securityToApply)
-
-		links = append(
-			links,
-			buildLinkWithParamsAndSecurity(
-				makeLink(dest, port),
-				nextParams,
-				makeRemark(ep),
-				securityToApply,
-				newSecurity == "none",
-			),
-		)
+		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return strings.Join(links, "\n")
+	return s.buildEndpointLinks(eps, params, baseSecurity, makeLink, func(e ShareEndpoint) string {
+		return makeRemark(e.ep)
+	})
 }
 
 func cloneStringMap(source map[string]string) map[string]string {
@@ -1554,89 +1555,42 @@ func cloneStringMap(source map[string]string) map[string]string {
 	return cloned
 }
 
+// genRemark builds the remark for a non-host link (raw default / legacy
+// externalProxy / synthetic JSON-Clash entry). In the subscription body a set
+// remark template takes over; otherwise (and in every display context) the
+// remark is just the config name (inbound remark, then extra).
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
-	separationChar := string(s.remarkModel[0])
-	orderChars := s.remarkModel[1:]
-	orders := map[byte]string{
-		'i': "",
-		'e': "",
-		'o': "",
+	if s.remarkTemplate != "" && s.subscriptionBody {
+		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra)
 	}
-	if len(email) > 0 && s.emailInRemark {
-		orders['e'] = email
-	}
-	if len(inbound.Remark) > 0 {
-		orders['i'] = inbound.Remark
-	}
-	if len(extra) > 0 {
-		orders['o'] = extra
-	}
+	// Sub info page + panel link/QR displays: just the config name (no template,
+	// so no per-client email/usage leaks into the shown remark).
+	return fallbackRemark(inbound.Remark, extra)
+}
 
-	var remark []string
-	for i := 0; i < len(orderChars); i++ {
-		char := orderChars[i]
-		order, exists := orders[char]
-		if exists && order != "" {
-			remark = append(remark, order)
+// fallbackRemark is the minimal remark used only when no template is configured
+// (an operator explicitly cleared it): the inbound remark and the host/extra
+// remark joined by "-", skipping empties. The configurable remark model was
+// removed in favour of the template, whose default already includes the email.
+func fallbackRemark(inboundRemark, extra string) string {
+	switch {
+	case inboundRemark == "":
+		return extra
+	case extra == "":
+		return inboundRemark
+	default:
+		return inboundRemark + "-" + extra
+	}
+}
+
+// findClientStats returns the inbound's traffic record for email, if present.
+func (s *SubService) findClientStats(inbound *model.Inbound, email string) (xray.ClientTraffic, bool) {
+	for _, clientStat := range inbound.ClientStats {
+		if clientStat.Email == email {
+			return clientStat, true
 		}
 	}
-
-	if s.showInfo {
-		statsExist := false
-		var stats xray.ClientTraffic
-		for _, clientStat := range inbound.ClientStats {
-			if clientStat.Email == email {
-				stats = clientStat
-				statsExist = true
-				break
-			}
-		}
-
-		// Get remained days
-		if statsExist {
-			if !stats.Enable {
-				return fmt.Sprintf("⛔️N/A%s%s", separationChar, strings.Join(remark, separationChar))
-			}
-			if vol := stats.Total - (stats.Up + stats.Down); vol > 0 {
-				remark = append(remark, fmt.Sprintf("%s%s", common.FormatTraffic(vol), "📊"))
-			}
-			now := time.Now().Unix()
-			switch exp := stats.ExpiryTime / 1000; {
-			case exp > 0:
-				remainingSeconds := exp - now
-				days := remainingSeconds / 86400
-				hours := (remainingSeconds % 86400) / 3600
-				minutes := (remainingSeconds % 3600) / 60
-				if days > 0 {
-					if hours > 0 {
-						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
-					} else {
-						remark = append(remark, fmt.Sprintf("%dD⏳", days))
-					}
-				} else if hours > 0 {
-					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
-				} else {
-					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
-				}
-			case exp < 0:
-				days := exp / -86400
-				hours := (exp % -86400) / 3600
-				minutes := (exp % -3600) / 60
-				if days > 0 {
-					if hours > 0 {
-						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
-					} else {
-						remark = append(remark, fmt.Sprintf("%dD⏳", days))
-					}
-				} else if hours > 0 {
-					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
-				} else {
-					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
-				}
-			}
-		}
-	}
-	return strings.Join(remark, separationChar)
+	return xray.ClientTraffic{}, false
 }
 
 func searchKey(data any, key string) (any, bool) {

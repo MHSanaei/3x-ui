@@ -97,7 +97,8 @@
     "unlimited": "غير محدود",
     "noExpiry": "بدون انتهاء",
     "copyAllConfigs": "نسخ جميع الإعدادات",
-    "copyAllConfigsCopied": "تم نسخ جميع الإعدادات"
+    "copyAllConfigsCopied": "تم نسخ جميع الإعدادات",
+    "email": "البريد"
   },
   "menu": {
     "theme": "الثيم",
@@ -113,7 +114,8 @@
     "apiDocs": "توثيق API",
     "logout": "تسجيل خروج",
     "link": "إدارة",
-    "donate": "تبرع"
+    "donate": "تبرع",
+    "hosts": "المضيفات"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "صادر ترافيك اللوحة",
       "panelOutboundDesc": "بيوجه طلبات اللوحة نفسها — فحص إصدارات وتنزيلات اللوحة/Xray، تيليجرام، وتحديث ملفات geo العادي — عبر صادر Xray ده لتجاوز فلترة GitHub/تيليجرام على الخادم. وارد جسر محلي بيتضاف تلقائياً للإعداد الشغال وبيتطبق مباشرة. تحديث Geodata التلقائي الأصلي في Xray مش متأثر؛ ليه صادر تنزيل خاص بيه. اتركه فارغاً للاتصال المباشر.",
       "panelOutboundPh": "اتصال مباشر",
-      "remarkModel": "نموذج الملاحظة وحرف الفصل",
       "datepicker": "نوع التقويم",
       "datepickerPlaceholder": "اختار التاريخ",
       "datepickerDescription": "المهام المجدولة هتشتغل بناءً على التقويم ده.",
-      "sampleRemark": "مثال للملاحظة",
       "oldUsername": "اسم المستخدم الحالي",
       "currentPassword": "الباسورد الحالي",
       "newUsername": "اسم المستخدم الجديد",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "فترات تحديث رابط الاشتراك في تطبيقات العملاء. (الوحدة: ساعة)",
       "subEncrypt": "تشفير",
       "subEncryptDesc": "المحتوى اللي هيترجع من خدمة الاشتراك هيكون مشفر بـ Base64.",
-      "subShowInfo": "اظهر معلومات الاستخدام",
-      "subShowInfoDesc": "هيظهر الترافيك المتبقي والتاريخ في تطبيقات العملاء.",
-      "subEmailInRemark": "تضمين البريد الإلكتروني في الاسم",
-      "subEmailInRemarkDesc": "تضمين بريد العميل الإلكتروني في اسم ملف تعريف الاشتراك.",
       "subURI": "مسار البروكسي العكسي",
       "subURIDesc": "مسار URI لرابط الاشتراك عشان تستخدمه ورا البروكسي.",
       "externalTrafficInformEnable": "تنبيه الترافيك الخارجي",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "انتهت مهلة الاتصال — تعذّر الوصول إلى الخادم",
       "smtpErrorRelay": "الخادم يرفض الإرسال من هذا العنوان",
       "smtpErrorEof": "تم إغلاق الاتصال من قبل الخادم",
-      "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}",
+      "remarkTemplate": "قالب الملاحظة",
+      "remarkTemplateDesc": "عند تعيينه، يحل هذا محل نموذج الملاحظة لكل رابط اشتراك — اكتب صيغتك الخاصة باستخدام رموز المتغيرات (استخدم الزر لإدراجها). اتركه فارغاً لاستخدام النموذج أعلاه."
     },
     "xray": {
       "title": "إعدادات Xray",
@@ -1685,6 +1683,114 @@
         "edit": "عدل Fake DNS",
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
+      }
+    },
+    "hosts": {
+      "addHost": "إضافة مضيف",
+      "editHost": "تعديل المضيف",
+      "selectInbound": "اختر وارداً",
+      "selectedCount": "{count} محدد",
+      "summary": {
+        "total": "الإجمالي",
+        "enabled": "مفعّل",
+        "disabled": "معطّل"
+      },
+      "moveUp": "تحريك لأعلى",
+      "moveDown": "تحريك لأسفل",
+      "bulkEnable": "تفعيل",
+      "bulkDisable": "تعطيل",
+      "bulkDelete": "حذف",
+      "bulkDeleteConfirm": "حذف {count} مضيف محدد؟",
+      "deleteConfirmTitle": "حذف المضيف \"{name}\"؟",
+      "sections": {
+        "basic": "أساسي",
+        "security": "الأمان",
+        "advanced": "متقدم",
+        "general": "عام",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "ملاحظة",
+        "serverDescription": "الوصف",
+        "inbound": "الوارد",
+        "address": "العنوان",
+        "port": "المنفذ",
+        "endpoint": "النهاية",
+        "enable": "مفعل",
+        "actions": "الإجراءات",
+        "security": "الأمان",
+        "sni": "SNI",
+        "overrideSniFromAddress": "استخدم العنوان كـ SNI",
+        "keepSniBlank": "اترك SNI فارغاً",
+        "hostHeader": "ترويسة Host",
+        "path": "المسار",
+        "alpn": "ALPN",
+        "fingerprint": "بصمة",
+        "pins": "SHA-256 للشهادة المثبّتة",
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
+        "allowInsecure": "السماح بغير الآمن",
+        "echConfigList": "قائمة إعدادات ECH",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "مسار VLESS",
+        "mihomoIpVersion": "إصدار IP",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "خلط المضيف",
+        "tags": "وسوم",
+        "nodeGuids": "النودز",
+        "excludeFromSubTypes": "استبعاد من الصيغ"
+      },
+      "hints": {
+        "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",
+        "port": "0 يرث منفذ الوارد.",
+        "tags": "غير مرئي للمستخدمين النهائيين؛ يُرسل مع اشتراك RAW فقط. أحرف كبيرة وأرقام و _ و : فقط.",
+        "nodeGuids": "اختر النودز التي تم تحليلها من هذا المضيف. تعيين بصري فقط.",
+        "serverDescription": "ملاحظة اختيارية تظهر تحت الملاحظة.",
+        "allowInsecure": "تخطّي التحقق من شهادة TLS (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "المنافذ/النطاقات الموجَّهة عبر VLESS، مثل 53,443,1000-2000. اتركه فارغاً لعدم وجود أي منها.",
+        "remark": "تسمية بسيطة لهذا المضيف. تظهر كاسم للإعداد فقط عندما لا يكون للوارد ملاحظة خاصة به."
+      },
+      "remarkVars": {
+        "title": "متغيرات القالب",
+        "intro": "اضغط على متغير لإضافته. يتم استبداله لكل عميل عند إنشاء الاشتراك.",
+        "preview": "معاينة",
+        "groups": {
+          "client": "العميل",
+          "traffic": "حركة المرور",
+          "time": "الوقت والحالة"
+        },
+        "descEMAIL": "بريد العميل",
+        "descINBOUND": "اسم الإعداد: ملاحظة المضيف عند تعيينها، وإلا ملاحظة الوارد",
+        "descHOST": "ملاحظة المضيف",
+        "descID": "UUID العميل",
+        "descSHORT_ID": "أول 8 أحرف من الـ UUID",
+        "descTELEGRAM_ID": "معرّف تلغرام للعميل (فارغ إذا لم يُحدَّد)",
+        "descSUB_ID": "معرّف الاشتراك",
+        "descCOMMENT": "تعليق العميل",
+        "descTRAFFIC_USED": "حركة المرور المستخدمة (قابلة للقراءة)",
+        "descTRAFFIC_LEFT": "حركة المرور المتبقية (مخفية إذا كانت غير محدودة)",
+        "descTRAFFIC_TOTAL": "إجمالي حركة المرور (مخفي إذا كان غير محدود)",
+        "descTRAFFIC_USED_BYTES": "حركة المرور المستخدمة بالبايت",
+        "descTRAFFIC_LEFT_BYTES": "حركة المرور المتبقية بالبايت",
+        "descTRAFFIC_TOTAL_BYTES": "إجمالي حركة المرور بالبايت",
+        "descUP": "حركة مرور الرفع",
+        "descDOWN": "حركة مرور التنزيل",
+        "descSTATUS": "نشط / منتهٍ / معطّل / مستنفد",
+        "descDAYS_LEFT": "الأيام حتى الانتهاء (مخفية إذا كانت غير محدودة)",
+        "descEXPIRE_DATE": "تاريخ الانتهاء (YYYY-MM-DD)",
+        "descEXPIRE_UNIX": "الانتهاء كطابع زمني Unix (بالثواني)",
+        "descCREATED_UNIX": "وقت الإنشاء كطابع زمني Unix (بالثواني)",
+        "descRESET_DAYS": "فترة إعادة تعيين حركة المرور بالأيام"
+      },
+      "toasts": {
+        "list": "فشل تحميل المضيفات",
+        "obtain": "فشل تحميل المضيف",
+        "add": "إضافة مضيف",
+        "update": "تحديث المضيف",
+        "delete": "حذف المضيف",
+        "badTag": "وسم غير صالح",
+        "badVlessRoute": "استخدم منافذ/نطاقات مثل 53,443,1000-2000"
       }
     }
   },

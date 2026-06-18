@@ -908,6 +908,99 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'hosts',
+    title: 'Hosts',
+    description:
+      'Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/hosts/list',
+        summary: 'List every host across all inbounds, grouped by inbound then ordered by sort order.',
+        responseSchema: 'Host',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/hosts/get/:id',
+        summary: 'Fetch a single host by ID.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Host ID.' },
+        ],
+        responseSchema: 'Host',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/hosts/byInbound/:inboundId',
+        summary: "Fetch one inbound's hosts, ordered by sort order then id.",
+        params: [
+          { name: 'inboundId', in: 'path', type: 'number', desc: 'Inbound ID.' },
+        ],
+        responseSchema: 'Host',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/hosts/tags',
+        summary: 'Distinct, sorted set of tags used across all hosts.',
+        response: '{\n  "success": true,\n  "obj": ["CDN", "EU", "FAST"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/add',
+        summary: 'Create a host on an inbound. inboundId and remark are required; security defaults to "same" (inherit the inbound).',
+        body: '{\n  "inboundId": 1,\n  "remark": "cdn-front",\n  "address": "cdn.example.com",\n  "port": 8443,\n  "security": "same",\n  "sni": "",\n  "tags": ["CDN"]\n}',
+        responseSchema: 'Host',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/update/:id',
+        summary: 'Replace a host’s content. The inbound and sort order are immutable here (use /reorder for ordering).',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Host ID.' },
+        ],
+        body: '{\n  "inboundId": 1,\n  "remark": "cdn-front",\n  "address": "cdn.example.com",\n  "port": 8443,\n  "security": "same",\n  "sni": "",\n  "tags": ["CDN"]\n}',
+        responseSchema: 'Host',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/del/:id',
+        summary: 'Delete a host.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Host ID.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/setEnable/:id',
+        summary: 'Enable or disable a single host (disabled hosts are skipped in subscriptions).',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Host ID.' },
+        ],
+        body: '{\n  "enable": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/reorder',
+        summary: 'Set host sort order by the position of each id in the array.',
+        body: '{\n  "ids": [3, 1, 2]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/bulk/setEnable',
+        summary: 'Enable or disable many hosts in one call.',
+        body: '{\n  "ids": [1, 2, 3],\n  "enable": false\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/hosts/bulk/del',
+        summary: 'Delete many hosts in one call.',
+        body: '{\n  "ids": [1, 2, 3]\n}',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

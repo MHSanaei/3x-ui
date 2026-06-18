@@ -32,8 +32,7 @@ func TestSubscriptionExpiryFromClient(t *testing.T) {
 func TestGenRemarkOmitsNodeName(t *testing.T) {
 	nodeID := 7
 	s := &SubService{
-		remarkModel: "-ieo",
-		nodesByID:   map[int]*model.Node{7: {Id: 7, Name: "Berlin", Address: "node7.example.com"}},
+		nodesByID: map[int]*model.Node{7: {Id: 7, Name: "Berlin", Address: "node7.example.com"}},
 	}
 	ib := &model.Inbound{Remark: "vless-tcp", NodeID: &nodeID}
 	if got := s.genRemark(ib, "", ""); got != "vless-tcp" {

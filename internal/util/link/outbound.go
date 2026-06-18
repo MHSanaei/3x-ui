@@ -397,11 +397,11 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 }
 
 func splitMethodPass(userInfo string) (string, string) {
-	colon := strings.Index(userInfo, ":")
-	if colon < 0 {
+	before, after, ok := strings.Cut(userInfo, ":")
+	if !ok {
 		return "2022-blake3-aes-128-gcm", userInfo // guess
 	}
-	return userInfo[:colon], userInfo[colon+1:]
+	return before, after
 }
 
 // --- hysteria2 ---
