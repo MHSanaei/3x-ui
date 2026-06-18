@@ -37,7 +37,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.8",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.0",
     "recharts": "^3.8.1",
     "swagger-ui-react": "^5.32.6",
     "zod": "^4.4.3"
