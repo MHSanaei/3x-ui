@@ -44,7 +44,3 @@ docker-compose.override.yml
 
 # Ignore .env (Environment Variables) file
 .env
-
-# Ignore agent workspace
-.mimocode
-.mimocode/
