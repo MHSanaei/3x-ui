@@ -197,13 +197,15 @@ func (s *SubService) linkFromHosts(inbound *model.Inbound, client model.Client, 
 	if len(eps) == 0 {
 		return ""
 	}
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	transport, _ := stream["network"].(string)
 	// Clone each ep before expanding its remark template: the eps slice is
 	// shared across all clients of this inbound, so the rendered (per-client)
 	// remark must not leak into the next client's links.
 	rendered := make([]map[string]any, len(eps))
 	for i, ep := range eps {
 		cp := maps.Clone(ep)
-		s.renderHostRemark(inbound, client, cp)
+		s.renderHostRemark(inbound, client, cp, transport)
 		rendered[i] = cp
 	}
 	clone := *inbound
@@ -216,12 +218,12 @@ func (s *SubService) linkFromHosts(inbound *model.Inbound, client model.Client, 
 // renderers emit it verbatim (via endpointRemark) instead of re-composing it.
 // No-op for non-host endpoints (legacy externalProxy / synthetic default), so
 // their output stays byte-identical.
-func (s *SubService) renderHostRemark(inbound *model.Inbound, client model.Client, ep map[string]any) {
+func (s *SubService) renderHostRemark(inbound *model.Inbound, client model.Client, ep map[string]any, transport string) {
 	if !isHostEndpoint(ep) {
 		return
 	}
 	tmpl, _ := ep["remark"].(string)
-	ep["remark"] = s.genHostRemark(inbound, client, tmpl)
+	ep["remark"] = s.genHostRemark(inbound, client, tmpl, transport)
 	ep["remarkFinal"] = true
 }
 
@@ -229,7 +231,7 @@ func (s *SubService) renderHostRemark(inbound *model.Inbound, client model.Clien
 // entry. A host endpoint whose template was pre-expanded by renderHostRemark
 // carries remarkFinal and is used verbatim; every other entry flows through the
 // standard genRemark composition unchanged.
-func (s *SubService) endpointRemark(inbound *model.Inbound, email string, ep map[string]any) string {
+func (s *SubService) endpointRemark(inbound *model.Inbound, email string, ep map[string]any, transport string) string {
 	if ep != nil {
 		if final, _ := ep["remarkFinal"].(bool); final {
 			r, _ := ep["remark"].(string)
@@ -240,7 +242,7 @@ func (s *SubService) endpointRemark(inbound *model.Inbound, email string, ep map
 	if ep != nil {
 		extra, _ = ep["remark"].(string)
 	}
-	return s.genRemark(inbound, email, extra)
+	return s.genRemark(inbound, email, extra, transport)
 }
 
 // applyEndpointHostPath overrides the transport host header / path for a host

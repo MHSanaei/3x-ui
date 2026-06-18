@@ -510,10 +510,10 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	externalProxies, _ := stream["externalProxy"].([]any)
 
 	if len(externalProxies) > 0 {
-		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email)
+		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email, network)
 	}
 
-	obj["ps"] = s.genRemark(inbound, email, "")
+	obj["ps"] = s.genRemark(inbound, email, "", network)
 	return buildVmessLink(obj)
 }
 
@@ -597,13 +597,13 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
@@ -648,13 +648,13 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("trojan://%s@%s", password, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 // encodeUserinfo percent-encodes a userinfo (password/auth) value so it
@@ -734,13 +734,13 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
@@ -843,7 +843,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep)))
+			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "quic")))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -854,7 +854,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		params["mport"] = hopPorts
 	}
 	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }
 
 // hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
@@ -1466,13 +1466,13 @@ func joinAnyStrings(items []any) string {
 // buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
 // externalProxy entries to []ShareEndpoint and renders them through the unified
 // endpoint path. Kept so genVmessLink's call site is unchanged.
-func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
+func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string, transport string) string {
 	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
 		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email)
+	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email, transport)
 }
 
 // buildLinkWithParams appends ?query and #fragment to a pre-built
@@ -1559,9 +1559,9 @@ func cloneStringMap(source map[string]string) map[string]string {
 // externalProxy / synthetic JSON-Clash entry). In the subscription body a set
 // remark template takes over; otherwise (and in every display context) the
 // remark is just the config name (inbound remark, then extra).
-func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
 	if s.remarkTemplate != "" && s.subscriptionBody {
-		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra)
+		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
 	// Sub info page + panel link/QR displays: just the config name (no template,
 	// so no per-client email/usage leaks into the shown remark).

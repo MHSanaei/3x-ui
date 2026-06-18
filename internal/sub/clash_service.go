@@ -163,13 +163,14 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 		}}
 	}
 	delete(stream, "externalProxy")
+	network, _ := stream["network"].(string)
 
 	proxies := make([]map[string]any, 0, len(externalProxies))
 	for _, ep := range externalProxies {
 		extPrxy := ep.(map[string]any)
 		// Expand the host's {{VAR}} remark template for this client (no-op for
 		// the synthetic/legacy entry) before it becomes the proxy name.
-		subReq.renderHostRemark(inbound, client, extPrxy)
+		subReq.renderHostRemark(inbound, client, extPrxy, network)
 		workingInbound := *inbound
 		workingInbound.Listen = extPrxy["dest"].(string)
 		workingInbound.Port = int(extPrxy["port"].(float64))
@@ -214,14 +215,14 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		return s.buildHysteriaProxy(subReq, inbound, client, ep)
 	}
 
+	network, _ := stream["network"].(string)
+
 	proxy := map[string]any{
-		"name":   subReq.endpointRemark(inbound, client.Email, ep),
+		"name":   subReq.endpointRemark(inbound, client.Email, ep, network),
 		"server": inbound.Listen,
 		"port":   inbound.Port,
 		"udp":    true,
 	}
-
-	network, _ := stream["network"].(string)
 	if !s.applyTransport(proxy, network, stream) {
 		return nil
 	}
@@ -298,7 +299,7 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	}
 
 	proxy := map[string]any{
-		"name":   subReq.endpointRemark(inbound, client.Email, ep),
+		"name":   subReq.endpointRemark(inbound, client.Email, ep, "quic"),
 		"type":   proxyType,
 		"server": inbound.Listen,
 		"port":   inbound.Port,
