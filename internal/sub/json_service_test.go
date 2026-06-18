@@ -2,10 +2,17 @@ package sub
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/op/go-logging"
 )
+
+func init() {
+	logger.InitLogger(logging.ERROR)
+}
 
 func hasDirectOutOutbound(svc *SubJsonService) bool {
 	for _, raw := range svc.defaultOutbounds {
@@ -35,7 +42,7 @@ func outboundSettings(t *testing.T, raw []byte) map[string]any {
 
 func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","length":"100-200","delay":"10-20"}}],"udp":[{"type":"noise","settings":{"noise":[{"type":"base64","packet":"SGVsbG8="}]}}],"quicParams":{"congestion":"bbr"}}`
-	svc := NewSubJsonService("", "", finalMask, nil)
+	svc := NewSubJsonService("", "", "", finalMask, nil)
 
 	if hasDirectOutOutbound(svc) {
 		t.Fatal("direct_out outbound must never be emitted")
@@ -72,7 +79,7 @@ func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 
 func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello"}}]}`
-	svc := NewSubJsonService("", "", finalMask, nil)
+	svc := NewSubJsonService("", "", "", finalMask, nil)
 
 	stream := svc.streamData(`{
 		"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}},
@@ -92,7 +99,7 @@ func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 }
 
 func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`)
 	if _, ok := stream["finalmask"]; ok {
 		t.Fatal("no finalmask should be emitted when subJsonFinalMask is empty")
@@ -106,7 +113,7 @@ func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
 // the JSON subscription must emit that form, not an array, or v2ray clients fail
 // to import the config (#5401).
 func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","settings":{"pinnedPeerCertSha256":["aa11","bb22"]}}}`)
 
 	tls, _ := stream["tlsSettings"].(map[string]any)
@@ -122,7 +129,7 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVless(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vless outbound must not use vnext")
 	}
@@ -135,7 +142,7 @@ func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
 	client := model.Client{ID: "uuid-2"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVnext(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vmess outbound must not use vnext")
 	}
@@ -151,7 +158,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
 	client := model.Client{Password: "p4ss"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genServer(trojan, nil, client, ""))
 	server := firstServer(settings)
 	if server == nil {
 		t.Fatalf("trojan outbound must use a servers array, got: %#v", settings)
@@ -164,12 +171,64 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	}
 
 	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
-	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client, ""))
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genServer(ss, nil, client, ""))
 	ssServer := firstServer(ssSettings)
 	if ssServer == nil {
 		t.Fatalf("shadowsocks outbound must use a servers array, got: %#v", ssSettings)
 	}
 	if ssServer["method"] != "aes-256-gcm" {
 		t.Fatalf("shadowsocks server entry must carry method: %#v", ssServer)
+	}
+}
+
+func TestSubJsonService_CustomBaseTemplateInbounds(t *testing.T) {
+	custom := strings.Replace(DefaultSubJsonTemplate(), `"protocol": "mixed"`, `"protocol": "socks"`, 1)
+	svc := NewSubJsonService(custom, "", "", "", nil)
+
+	inbounds, ok := svc.configJson["inbounds"].([]any)
+	if !ok || len(inbounds) == 0 {
+		t.Fatalf("inbounds missing: %#v", svc.configJson["inbounds"])
+	}
+	first, _ := inbounds[0].(map[string]any)
+	if first["protocol"] != "socks" {
+		t.Fatalf("custom template inbound protocol = %v, want socks", first["protocol"])
+	}
+}
+
+func TestSubJsonService_NullTemplateFallsBackToEmbedded(t *testing.T) {
+	svc := NewSubJsonService("null", "", `[{"type":"field","domain":["geosite:ads"],"outboundTag":"block"}]`, "", nil)
+
+	if svc.configJson == nil {
+		t.Fatal("configJson must not be nil after fallback")
+	}
+	if _, ok := svc.configJson["dns"]; !ok {
+		t.Fatal("embedded default dns section expected after null template fallback")
+	}
+	routing, ok := svc.configJson["routing"].(map[string]any)
+	if !ok {
+		t.Fatalf("routing expected after rules overlay: %#v", svc.configJson["routing"])
+	}
+	got, _ := routing["rules"].([]any)
+	if len(got) < 1 {
+		t.Fatalf("rules len = %d, want at least 1", len(got))
+	}
+	first, _ := got[0].(map[string]any)
+	if first["outboundTag"] != "block" {
+		t.Fatalf("prepended rule missing: %#v", got[0])
+	}
+}
+
+func TestSubJsonService_CustomRulesWithoutRouting(t *testing.T) {
+	custom := `{"remarks":"","outbounds":[{"tag":"direct","protocol":"freedom"}]}`
+	rules := `[{"type":"field","domain":["geosite:ads"],"outboundTag":"block"}]`
+	svc := NewSubJsonService(custom, "", rules, "", nil)
+
+	routing, ok := svc.configJson["routing"].(map[string]any)
+	if !ok {
+		t.Fatalf("routing should be created: %#v", svc.configJson["routing"])
+	}
+	got, _ := routing["rules"].([]any)
+	if len(got) != 1 {
+		t.Fatalf("rules len = %d, want 1", len(got))
 	}
 }

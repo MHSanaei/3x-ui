@@ -93,6 +93,7 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
+	"subJsonTemplate":             "",
 	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
@@ -778,6 +779,26 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
+}
+
+func (s *SettingService) GetSubJsonTemplate() (string, error) {
+	return s.getString("subJsonTemplate")
+}
+
+// SeedSubJsonTemplateIfEmpty stores the built-in JSON subscription skeleton when
+// the setting is missing or blank. Existing custom templates are never touched.
+func (s *SettingService) SeedSubJsonTemplateIfEmpty(defaultTemplate string) error {
+	if strings.TrimSpace(defaultTemplate) == "" {
+		return nil
+	}
+	setting, err := s.getSetting("subJsonTemplate")
+	if err == nil && strings.TrimSpace(setting.Value) != "" {
+		return nil
+	}
+	if database.IsNotFound(err) || strings.TrimSpace(setting.Value) == "" {
+		return s.saveSetting("subJsonTemplate", defaultTemplate)
+	}
+	return err
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {

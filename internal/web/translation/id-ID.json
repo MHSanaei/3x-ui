@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Batas IP default"
       },
       "subFormats": {
+        "baseTemplate": "Template JSON dasar",
+        "baseTemplateDesc": "Kerangka untuk setiap langganan JSON (dns, inbounds, policy, routing, outbound ekor). Disimpan dari default bawaan saat pertama kali dijalankan; outbound proxy dan remarks tetap dibuat per klien. Mulai ulang panel untuk menerapkan perubahan.",
+        "baseTemplateResetDesc": "Ganti isi editor dengan default bawaan versi panel ini. Simpan pengaturan dan mulai ulang panel untuk menerapkan.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Mask finalmask xray (TCP/UDP) dan penyetelan QUIC yang disuntikkan ke setiap stream langganan JSON. Membutuhkan klien xray terbaru.",
         "packets": "Paket",

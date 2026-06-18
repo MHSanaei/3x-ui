@@ -79,6 +79,7 @@ func NewSUBController(
 	jsonMux string,
 	jsonRules string,
 	jsonFinalMask string,
+	jsonTemplate string,
 	clashEnableRouting bool,
 	clashRules string,
 	subTitle string,
@@ -105,7 +106,7 @@ func NewSUBController(
 		updateInterval:   update,
 
 		subService:      sub,
-		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
+		subJsonService:  NewSubJsonService(jsonTemplate, jsonMux, jsonRules, jsonFinalMask, sub),
 		subClashService: NewSubClashService(clashEnableRouting, clashRules, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},

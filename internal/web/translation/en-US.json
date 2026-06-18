@@ -1266,6 +1266,9 @@
         "defaultIpLimit": "Default IP limit"
       },
       "subFormats": {
+        "baseTemplate": "Base JSON template",
+        "baseTemplateDesc": "Skeleton for every JSON subscription (dns, inbounds, policy, routing, tail outbounds). Seeded from the built-in default on first start; proxy outbounds and remarks are still generated per client. Restart the panel to apply changes.",
+        "baseTemplateResetDesc": "Replace the editor content with the built-in default for this panel version. Save settings and restart the panel to apply.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "xray finalmask masks (TCP/UDP) and QUIC tuning injected into every JSON subscription stream. Requires a recent xray client.",
         "packets": "Packets",

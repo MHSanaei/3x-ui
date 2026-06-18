@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
   Input,
   InputNumber,
+  Modal,
   Select,
   Switch,
   Tabs,
 } from 'antd';
 import {
+  FileTextOutlined,
   PartitionOutlined,
   RocketOutlined,
   SendOutlined,
@@ -15,7 +18,9 @@ import {
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { JsonEditor } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { HttpUtil } from '@/utils';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
@@ -71,6 +76,8 @@ function readJson<T>(raw: string, fallback: T): T {
 export default function SubscriptionFormatsTab({ allSetting, updateSetting }: SubscriptionFormatsTabProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [loadingDefault, setLoadingDefault] = useState(false);
 
   const muxEnabled = allSetting.subJsonMux !== '';
   const directEnabled = allSetting.subJsonRules !== '';
@@ -142,8 +149,33 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
     updateSetting({ subJsonRules: JSON.stringify(rules) });
   }
 
+  async function loadDefaultTemplate() {
+    setLoadingDefault(true);
+    try {
+      const res = await HttpUtil.get<string>('/panel/api/setting/getDefaultSubJsonTemplate');
+      if (res.success && typeof res.obj === 'string') {
+        updateSetting({ subJsonTemplate: res.obj });
+      }
+    } finally {
+      setLoadingDefault(false);
+    }
+  }
+
+  function confirmResetTemplate() {
+    modal.confirm({
+      title: t('pages.settings.resetDefaultConfig'),
+      content: t('pages.settings.subFormats.baseTemplateResetDesc'),
+      okText: t('reset'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: loadDefaultTemplate,
+    });
+  }
+
   return (
-    <Tabs defaultActiveKey="1" items={[
+    <>
+      {modalContextHolder}
+      <Tabs defaultActiveKey="1" items={[
       {
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
@@ -267,6 +299,31 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
           </>
         ),
       },
+      {
+        key: '5',
+        label: catTabLabel(<FileTextOutlined />, t('pages.settings.subFormats.baseTemplate'), isMobile),
+        children: (
+          <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.subFormats.baseTemplate')}
+              description={t('pages.settings.subFormats.baseTemplateDesc')}
+            />
+            <div className="format-settings sub-json-template-editor">
+              <JsonEditor
+                value={allSetting.subJsonTemplate}
+                onChange={(v) => updateSetting({ subJsonTemplate: v })}
+                minHeight="320px"
+                maxHeight="520px"
+              />
+            </div>
+            <Button danger loading={loadingDefault} onClick={confirmResetTemplate} style={{ marginTop: 12 }}>
+              {t('pages.settings.resetDefaultConfig')}
+            </Button>
+          </>
+        ),
+      },
     ]} />
+    </>
   );
 }

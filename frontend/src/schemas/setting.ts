@@ -61,6 +61,8 @@ export const AllSettingSchema = z.object({
   subJsonMux: z.string().optional(),
   subJsonRules: z.string().optional(),
   subJsonFinalMask: z.string().optional(),
+  subJsonTemplate: z.string().optional(),
+  subThemeDir: z.string().optional(),
   timeLocation: z.string().optional(),
   ldapEnable: z.boolean().optional(),
   ldapHost: z.string().optional(),

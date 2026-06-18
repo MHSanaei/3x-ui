@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
 
 func setupSettingTestDB(t *testing.T) {
@@ -98,5 +99,64 @@ func TestSanitizePublicHTTPURLBlocksPrivateAddressUnlessAllowed(t *testing.T) {
 	}
 	if got, err := SanitizePublicHTTPURL("http://127.0.0.1:8080/hook", true); err != nil || got != "http://127.0.0.1:8080/hook" {
 		t.Fatalf("allowPrivate result = %q, %v", got, err)
+	}
+}
+
+func TestSeedSubJsonTemplateIfEmpty(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	const builtin = `{"remarks":"","inbounds":[]}`
+	const custom = `{"remarks":"mine","inbounds":[]}`
+
+	if err := s.SeedSubJsonTemplateIfEmpty(builtin); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetSubJsonTemplate()
+	if err != nil || got != builtin {
+		t.Fatalf("first seed = %q, %v; want builtin", got, err)
+	}
+
+	if err := s.SeedSubJsonTemplateIfEmpty(`{"ignored":true}`); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.GetSubJsonTemplate()
+	if err != nil || got != builtin {
+		t.Fatalf("second seed must not overwrite, got %q", got)
+	}
+
+	if err := s.saveSetting("subJsonTemplate", custom); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SeedSubJsonTemplateIfEmpty(builtin); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.GetSubJsonTemplate()
+	if err != nil || got != custom {
+		t.Fatalf("custom template must be preserved, got %q", got)
+	}
+}
+
+func TestAllSettingCheckValidSubJsonTemplate(t *testing.T) {
+	base := entity.AllSetting{WebPort: 2053, SubPort: 2096, TimeLocation: "Local"}
+	valid := base
+	valid.SubJsonTemplate = `{"dns":{}}`
+	if err := valid.CheckValid(); err != nil {
+		t.Fatalf("valid template: %v", err)
+	}
+	invalid := base
+	invalid.SubJsonTemplate = `{not json}`
+	if err := invalid.CheckValid(); err == nil {
+		t.Fatal("expected invalid subJsonTemplate to fail CheckValid")
+	}
+	for _, raw := range []string{`null`, `[]`, `"x"`} {
+		bad := base
+		bad.SubJsonTemplate = raw
+		if err := bad.CheckValid(); err == nil {
+			t.Fatalf("expected non-object subJsonTemplate %q to fail CheckValid", raw)
+		}
+	}
+	empty := base
+	if err := empty.CheckValid(); err != nil {
+		t.Fatalf("empty template should be allowed: %v", err)
 	}
 }

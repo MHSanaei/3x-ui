@@ -3,6 +3,7 @@ package entity
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"math"
 	"net"
 	"strings"
@@ -97,6 +98,7 @@ type AllSetting struct {
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
 	SubJsonFinalMask            string `json:"subJsonFinalMask" form:"subJsonFinalMask"` // JSON subscription global finalmask (tcp/udp masks + quicParams)
+	SubJsonTemplate             string `json:"subJsonTemplate" form:"subJsonTemplate"`   // JSON subscription base template skeleton
 	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`           // Absolute path to a folder containing a custom subscription page template
 
 	// LDAP settings
@@ -250,6 +252,16 @@ func (s *AllSetting) CheckValid() error {
 	_, err := time.LoadLocation(s.TimeLocation)
 	if err != nil {
 		return common.NewError("time location not exist:", s.TimeLocation)
+	}
+
+	if trimmed := strings.TrimSpace(s.SubJsonTemplate); trimmed != "" {
+		var probe map[string]any
+		if err := json.Unmarshal([]byte(trimmed), &probe); err != nil {
+			return common.NewError("subJsonTemplate is not valid JSON:", err)
+		}
+		if probe == nil {
+			return common.NewError("subJsonTemplate must be a JSON object")
+		}
 	}
 
 	return nil

@@ -61,6 +61,7 @@ export interface AllSetting {
   subJsonMux: string;
   subJsonPath: string;
   subJsonRules: string;
+  subJsonTemplate: string;
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;
@@ -159,6 +160,7 @@ export interface AllSettingView {
   subJsonMux: string;
   subJsonPath: string;
   subJsonRules: string;
+  subJsonTemplate: string;
   subJsonURI: string;
   subKeyFile: string;
   subListen: string;

@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Varsayılan IP limiti"
       },
       "subFormats": {
+        "baseTemplate": "Temel JSON şablonu",
+        "baseTemplateDesc": "Her JSON aboneliğinin iskeleti (dns, inbounds, policy, routing, kuyruk outbounds). İlk başlatmada yerleşik varsayılandan kaydedilir; proxy outbounds ve remarks istemci başına üretilmeye devam eder. Değişiklikleri uygulamak için paneli yeniden başlatın.",
+        "baseTemplateResetDesc": "Düzenleyici içeriğini bu panel sürümündeki yerleşik varsayılanla değiştirin. Uygulamak için ayarları kaydedin ve paneli yeniden başlatın.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Her JSON abonelik akışına eklenen Xray finalmask maskeleri (TCP/UDP) ve QUIC ayarları. Güncel bir Xray istemcisi gerektirir.",
         "packets": "Paketler",

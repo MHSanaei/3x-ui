@@ -5,6 +5,14 @@
   overflow: hidden;
 }
 
+.sub-json-template-editor {
+  margin-bottom: 8px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 8px 12px 12px;
+}
+
 .format-settings-list {
   padding-top: 4px;
 }

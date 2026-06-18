@@ -7,6 +7,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/sub"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -51,6 +52,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+	g.GET("/getDefaultSubJsonTemplate", a.getDefaultSubJsonTemplate)
 	g.GET("/apiTokens", a.listApiTokens)
 	g.POST("/apiTokens/create", a.createApiToken)
 	g.POST("/apiTokens/delete/:id", a.deleteApiToken)
@@ -147,6 +149,11 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+// getDefaultSubJsonTemplate retrieves the built-in JSON subscription base template.
+func (a *SettingController) getDefaultSubJsonTemplate(c *gin.Context) {
+	jsonObj(c, sub.DefaultSubJsonTemplate(), nil)
 }
 
 type apiTokenCreateForm struct {

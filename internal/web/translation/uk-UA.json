@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Ліміт IP за замовч."
       },
       "subFormats": {
+        "baseTemplate": "Базовий JSON-шаблон",
+        "baseTemplateDesc": "Каркас для кожної JSON-підписки (dns, inbounds, policy, routing, хвостові outbounds). Записується з вбудованого шаблону під час першого запуску; proxy outbounds і remarks як і раніше генеруються для кожного клієнта. Перезапустіть панель, щоб застосувати зміни.",
+        "baseTemplateResetDesc": "Замінити вміст редактора вбудованим шаблоном за замовчуванням для цієї версії панелі. Збережіть налаштування та перезапустіть панель.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Маски finalmask xray (TCP/UDP) і налаштування QUIC, що додаються до кожного потоку JSON-підписки. Потрібна свіжа версія xray на клієнті.",
         "packets": "Пакети",

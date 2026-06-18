@@ -1070,6 +1070,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/getDefaultJsonConfig',
         summary: 'Return the built-in default Xray JSON config template that ships with this panel version.',
       },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/getDefaultSubJsonTemplate',
+        summary: 'Return the built-in default JSON subscription base template (internal/sub/default.json) shipped with this panel version.',
+        response: '{\n  "success": true,\n  "obj": "{\\"remarks\\":\\"\\",\\"dns\\":{...}}"\n}',
+      },
     ],
   },
 

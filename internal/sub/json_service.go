@@ -8,12 +8,18 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 )
 
 //go:embed default.json
 var defaultJson string
+
+// DefaultSubJsonTemplate returns the built-in JSON subscription base template.
+func DefaultSubJsonTemplate() string {
+	return defaultJson
+}
 
 // SubJsonService handles JSON subscription configuration generation and management.
 type SubJsonService struct {
@@ -26,25 +32,21 @@ type SubJsonService struct {
 }
 
 // NewSubJsonService creates a new JSON subscription service with the given configuration.
-func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
-	var configJson map[string]any
-	var defaultOutbounds []json_util.RawMessage
-	json.Unmarshal([]byte(defaultJson), &configJson)
-	if outboundSlices, ok := configJson["outbounds"].([]any); ok {
-		for _, defaultOutbound := range outboundSlices {
-			jsonBytes, _ := json.Marshal(defaultOutbound)
-			defaultOutbounds = append(defaultOutbounds, jsonBytes)
-		}
-	}
+// baseTemplate is an optional admin-edited JSON skeleton; empty uses the embedded default.
+func NewSubJsonService(baseTemplate string, mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
+	configJson, defaultOutbounds := parseSubJsonBase(baseTemplate)
 
 	if rules != "" {
 		var newRules []any
-		routing, _ := configJson["routing"].(map[string]any)
-		defaultRules, _ := routing["rules"].([]any)
-		json.Unmarshal([]byte(rules), &newRules)
-		defaultRules = append(newRules, defaultRules...)
-		routing["rules"] = defaultRules
-		configJson["routing"] = routing
+		if err := json.Unmarshal([]byte(rules), &newRules); err == nil && len(newRules) > 0 {
+			routing, _ := configJson["routing"].(map[string]any)
+			if routing == nil {
+				routing = map[string]any{}
+				configJson["routing"] = routing
+			}
+			defaultRules, _ := routing["rules"].([]any)
+			routing["rules"] = append(newRules, defaultRules...)
+		}
 	}
 
 	return &SubJsonService{
@@ -54,6 +56,26 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		mux:              mux,
 		SubService:       subService,
 	}
+}
+
+func parseSubJsonBase(custom string) (map[string]any, []json_util.RawMessage) {
+	raw := strings.TrimSpace(custom)
+	if raw == "" {
+		raw = defaultJson
+	}
+	var configJson map[string]any
+	if err := json.Unmarshal([]byte(raw), &configJson); err != nil || configJson == nil {
+		logger.Error("sub: invalid subJsonTemplate, using embedded default:", err)
+		json.Unmarshal([]byte(defaultJson), &configJson)
+	}
+	var defaultOutbounds []json_util.RawMessage
+	if outboundSlices, ok := configJson["outbounds"].([]any); ok {
+		for _, defaultOutbound := range outboundSlices {
+			jsonBytes, _ := json.Marshal(defaultOutbound)
+			defaultOutbounds = append(defaultOutbounds, jsonBytes)
+		}
+	}
+	return configJson, defaultOutbounds
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.

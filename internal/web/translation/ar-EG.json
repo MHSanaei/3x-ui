@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "حد IP الافتراضي"
       },
       "subFormats": {
+        "baseTemplate": "قالب JSON الأساسي",
+        "baseTemplateDesc": "هيكل كل اشتراك JSON (dns و inbounds و policy و routing و outbounds الذيلية). يُحفظ من الافتراضي المدمج عند أول تشغيل؛ outbounds البروكسي و remarks ما زالت تُنشأ لكل عميل. أعد تشغيل اللوحة لتطبيق التغييرات.",
+        "baseTemplateResetDesc": "استبدال محتوى المحرر بالافتراضي المدمج في إصدار اللوحة هذا. احفظ الإعدادات وأعد تشغيل اللوحة للتطبيق.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "أقنعة finalmask في xray (TCP/UDP) وضبط QUIC تُضاف إلى كل تدفق اشتراك JSON. يتطلب إصدار xray حديثًا على العميل.",
         "packets": "الحزم",

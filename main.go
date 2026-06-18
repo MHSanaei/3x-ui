@@ -54,6 +54,11 @@ func runWebServer() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
+	settingService := service.SettingService{}
+	if seedErr := settingService.SeedSubJsonTemplateIfEmpty(sub.DefaultSubJsonTemplate()); seedErr != nil {
+		logger.Warning("seed subJsonTemplate failed:", seedErr)
+	}
+
 	var server *web.Server
 	server = web.NewServer()
 	global.SetWebServer(server)

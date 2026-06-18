@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Límite IP por defecto"
       },
       "subFormats": {
+        "baseTemplate": "Plantilla JSON base",
+        "baseTemplateDesc": "Esqueleto de cada suscripción JSON (dns, inbounds, policy, routing, outbounds finales). Se guarda desde el valor predeterminado integrado en el primer arranque; los outbounds proxy y remarks siguen generándose por cliente. Reinicia el panel para aplicar los cambios.",
+        "baseTemplateResetDesc": "Reemplazar el contenido del editor por la predeterminada integrada de esta versión del panel. Guarde la configuración y reinicie el panel para aplicar.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Máscaras finalmask de xray (TCP/UDP) y ajustes QUIC inyectados en cada flujo de suscripción JSON. Requiere un cliente xray reciente.",
         "packets": "Paquetes",

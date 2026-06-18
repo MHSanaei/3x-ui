@@ -1158,6 +1158,9 @@
         "defaultIpLimit": "محدودیت IP پیش‌فرض"
       },
       "subFormats": {
+        "baseTemplate": "قالب JSON پایه",
+        "baseTemplateDesc": "اسکلت هر اشتراک JSON (dns، inbounds، policy، routing، outboundهای انتهایی). در اولین اجرا از پیش‌فرض داخلی در پایگاه داده ذخیره می‌شود؛ outboundهای پروکسی و remarks همچنان برای هر کلاینت ساخته می‌شوند. برای اعمال تغییرات پنل را مجدداً راه‌اندازی کنید.",
+        "baseTemplateResetDesc": "محتوای ویرایشگر را با پیش‌فرض داخلی همین نسخه پنل جایگزین کنید. تنظیمات را ذخیره و پنل را مجدداً راه‌اندازی کنید.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "ماسک‌های finalmask ایکس‌ری (TCP/UDP) و تنظیمات QUIC که داخل همه‌ی stream های اشتراک JSON تزریق می‌شوند. به نسخه‌ی جدید هسته‌ی xray در کلاینت نیاز دارد.",
         "packets": "بسته‌ها",

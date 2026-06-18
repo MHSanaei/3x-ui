@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "預設 IP 限制"
       },
       "subFormats": {
+        "baseTemplate": "基礎 JSON 範本",
+        "baseTemplateDesc": "每個 JSON 訂閱的骨架（dns、inbounds、policy、routing、尾部 outbounds）。首次啟動時會從內建預設寫入；proxy outbounds 與 remarks 仍依用戶端產生。變更後請重新啟動面板。",
+        "baseTemplateResetDesc": "以本版本面板內建的預設範本取代編輯器內容。儲存設定並重新啟動面板後生效。",
         "finalMask": "Final Mask",
         "finalMaskDesc": "注入到每個 JSON 訂閱串流的 xray finalmask 遮罩（TCP/UDP）與 QUIC 調校。需要較新的 xray 用戶端。",
         "packets": "封包",

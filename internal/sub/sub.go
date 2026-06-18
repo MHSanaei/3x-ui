@@ -130,6 +130,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFinalMask = ""
 	}
 
+	SubJsonTemplate, err := s.settingService.GetSubJsonTemplate()
+	if err != nil {
+		SubJsonTemplate = ""
+	}
+
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
 	if err != nil {
 		SubClashEnableRouting = false
@@ -226,7 +231,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
-		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
+		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubJsonTemplate, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 
 	return engine, nil
@@ -247,6 +252,10 @@ func (s *Server) Start() (err error) {
 	}
 	if !subEnable {
 		return nil
+	}
+
+	if seedErr := s.settingService.SeedSubJsonTemplateIfEmpty(DefaultSubJsonTemplate()); seedErr != nil {
+		logger.Warning("sub: seed subJsonTemplate failed:", seedErr)
 	}
 
 	engine, err := s.initRouter()

@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Giới hạn IP mặc định"
       },
       "subFormats": {
+        "baseTemplate": "Mẫu JSON cơ sở",
+        "baseTemplateDesc": "Khung cho mỗi đăng ký JSON (dns, inbounds, policy, routing, outbounds đuôi). Được ghi từ mặc định tích hợp khi khởi động lần đầu; proxy outbounds và remarks vẫn được tạo theo từng client. Khởi động lại panel để áp dụng thay đổi.",
+        "baseTemplateResetDesc": "Thay nội dung trình soạn thảo bằng mặc định tích hợp của phiên bản panel này. Lưu cài đặt và khởi động lại panel để áp dụng.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Mask finalmask của xray (TCP/UDP) và tinh chỉnh QUIC được thêm vào mọi luồng đăng ký JSON. Yêu cầu client xray mới hơn.",
         "packets": "Gói",

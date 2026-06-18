@@ -241,6 +241,10 @@
           "subJsonRules": {
             "type": "string"
           },
+          "subJsonTemplate": {
+            "description": "JSON subscription base template skeleton",
+            "type": "string"
+          },
           "subJsonURI": {
             "description": "JSON subscription server URI",
             "type": "string"
@@ -444,6 +448,7 @@
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
+          "subJsonTemplate",
           "subJsonURI",
           "subKeyFile",
           "subListen",
@@ -717,6 +722,10 @@
           "subJsonRules": {
             "type": "string"
           },
+          "subJsonTemplate": {
+            "description": "JSON subscription base template skeleton",
+            "type": "string"
+          },
           "subJsonURI": {
             "description": "JSON subscription server URI",
             "type": "string"
@@ -927,6 +936,7 @@
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
+          "subJsonTemplate",
           "subJsonURI",
           "subKeyFile",
           "subListen",
@@ -8257,6 +8267,40 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/getDefaultSubJsonTemplate": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the built-in default JSON subscription base template (internal/sub/default.json) shipped with this panel version.",
+        "operationId": "get_panel_api_setting_getDefaultSubJsonTemplate",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": "{\"remarks\":\"\",\"dns\":{...}}"
                 }
               }
             }

@@ -215,6 +215,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonRules": {
         "type": "string"
       },
+      "subJsonTemplate": {
+        "description": "JSON subscription base template skeleton",
+        "type": "string"
+      },
       "subJsonURI": {
         "description": "JSON subscription server URI",
         "type": "string"
@@ -418,6 +422,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
+      "subJsonTemplate",
       "subJsonURI",
       "subKeyFile",
       "subListen",
@@ -691,6 +696,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonRules": {
         "type": "string"
       },
+      "subJsonTemplate": {
+        "description": "JSON subscription base template skeleton",
+        "type": "string"
+      },
       "subJsonURI": {
         "description": "JSON subscription server URI",
         "type": "string"
@@ -901,6 +910,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
+      "subJsonTemplate",
       "subJsonURI",
       "subKeyFile",
       "subListen",

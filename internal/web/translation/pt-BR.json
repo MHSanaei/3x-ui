@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "Limite de IP padrão"
       },
       "subFormats": {
+        "baseTemplate": "Modelo JSON base",
+        "baseTemplateDesc": "Esqueleto de cada assinatura JSON (dns, inbounds, policy, routing, outbounds finais). Gravado a partir do padrão integrado na primeira inicialização; outbounds proxy e remarks ainda são gerados por cliente. Reinicie o painel para aplicar as alterações.",
+        "baseTemplateResetDesc": "Substituir o conteúdo do editor pelo padrão integrado desta versão do painel. Salve as configurações e reinicie o painel para aplicar.",
         "finalMask": "Final Mask",
         "finalMaskDesc": "Máscaras finalmask do xray (TCP/UDP) e ajustes QUIC injetados em cada fluxo de assinatura JSON. Requer um cliente xray recente.",
         "packets": "Pacotes",

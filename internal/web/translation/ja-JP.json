@@ -1156,6 +1156,9 @@
         "defaultIpLimit": "デフォルト IP 制限"
       },
       "subFormats": {
+        "baseTemplate": "ベース JSON テンプレート",
+        "baseTemplateDesc": "各 JSON サブスクリプションの骨格（dns、inbounds、policy、routing、末尾の outbounds）。初回起動時に組み込みデフォルトから DB に保存されます。proxy outbound と remarks はクライアントごとに生成されます。変更を反映するにはパネルを再起動してください。",
+        "baseTemplateResetDesc": "エディターの内容を、このバージョンのパネルに同梱されている組み込みデフォルトに置き換えます。設定を保存し、パネルを再起動して反映してください。",
         "finalMask": "Final Mask",
         "finalMaskDesc": "すべての JSON サブスクリプションストリームに注入される xray finalmask マスク（TCP/UDP）と QUIC チューニング。新しい xray クライアントが必要です。",
         "packets": "パケット",
