@@ -297,6 +297,13 @@ func (s *Server) Start() (err error) {
 
 	s.httpServer = &http.Server{
 		Handler: engine,
+		// The subscription server is the most exposed (public) listener; without
+		// these a few slow-header connections exhaust it (Slowloris). Mirrors the
+		// panel server timeouts in internal/web/web.go.
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
