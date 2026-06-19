@@ -286,6 +286,22 @@ func (r *Remote) resolveRemoteID(ctx context.Context, tag string) (int, error) {
 	return 0, fmt.Errorf("remote inbound with tag %q not found on node %s", tag, r.node.Name)
 }
 
+// nodeInboundTagPrefix is the central-panel alias for an inbound on nodeID.
+// Kept in sync with service.nodeTagPrefix (port_conflict.go); duplicated here
+// so runtime does not import service.
+func nodeInboundTagPrefix(nodeID int) string {
+	return fmt.Sprintf("n%d-", nodeID)
+}
+
+// stripNodeInboundTagPrefix removes the central-only n<id>- prefix before
+// pushing an inbound to the node so Xray keeps its original tag and routing.
+func stripNodeInboundTagPrefix(nodeID int, tag string) string {
+	if stripped, ok := strings.CutPrefix(tag, nodeInboundTagPrefix(nodeID)); ok {
+		return stripped
+	}
+	return tag
+}
+
 // cacheGetTag looks up a remote inbound id by tag, tolerating an n<id>- prefix
 // that lives on only one of the two panels: the node may carry the bare tag
 // while the central panel stores the prefixed form, or vice versa.
@@ -293,7 +309,7 @@ func (r *Remote) cacheGetTag(tag string) (int, bool) {
 	if id, ok := r.cacheGet(tag); ok {
 		return id, true
 	}
-	prefix := fmt.Sprintf("n%d-", r.node.Id)
+	prefix := nodeInboundTagPrefix(r.node.Id)
 	if stripped, found := strings.CutPrefix(tag, prefix); found {
 		return r.cacheGet(stripped)
 	}
@@ -370,7 +386,7 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 }
 
 func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
-	payload := wireInbound(ib)
+	payload := wireInbound(ib, r.node.Id)
 	env, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/add", payload)
 	if err != nil {
 		return err
@@ -405,7 +421,7 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	if err != nil {
 		return r.AddInbound(ctx, newIb)
 	}
-	payload := wireInbound(newIb)
+	payload := wireInbound(newIb, r.node.Id)
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/update/"+strconv.Itoa(id), payload); err != nil {
 		return err
 	}
@@ -609,7 +625,7 @@ func (r *Remote) PushGlobalClientTraffics(ctx context.Context, masterGuid string
 	return err
 }
 
-func wireInbound(ib *model.Inbound) url.Values {
+func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	v := url.Values{}
 	v.Set("total", strconv.FormatInt(ib.Total, 10))
 	v.Set("remark", ib.Remark)
@@ -621,7 +637,11 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("protocol", string(ib.Protocol))
 	v.Set("settings", ib.Settings)
 	v.Set("streamSettings", sanitizeStreamSettingsForRemote(ib.StreamSettings))
-	v.Set("tag", ib.Tag)
+	tag := ib.Tag
+	if remoteNodeID > 0 {
+		tag = stripNodeInboundTagPrefix(remoteNodeID, tag)
+	}
+	v.Set("tag", tag)
 	v.Set("sniffing", ib.Sniffing)
 	shareAddrStrategy := strings.TrimSpace(ib.ShareAddrStrategy)
 	switch shareAddrStrategy {

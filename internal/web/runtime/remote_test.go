@@ -144,7 +144,7 @@ func TestWireInboundIncludesShareAddressFields(t *testing.T) {
 	values := wireInbound(&model.Inbound{
 		ShareAddrStrategy: "custom",
 		ShareAddr:         "edge.example.com",
-	})
+	}, 0)
 
 	if got := values.Get("shareAddrStrategy"); got != "custom" {
 		t.Fatalf("shareAddrStrategy = %q, want custom", got)
@@ -252,27 +252,57 @@ func TestIsNonEmptySlice(t *testing.T) {
 }
 
 func TestWireInboundTrafficReset(t *testing.T) {
-	with := wireInbound(&model.Inbound{TrafficReset: "daily"})
+	with := wireInbound(&model.Inbound{TrafficReset: "daily"}, 0)
 	if got := with.Get("trafficReset"); got != "daily" {
 		t.Fatalf("trafficReset = %q, want daily", got)
 	}
 	// Empty TrafficReset must be omitted entirely, not sent as an empty field.
-	without := wireInbound(&model.Inbound{})
+	without := wireInbound(&model.Inbound{}, 0)
 	if without.Has("trafficReset") {
 		t.Fatalf("trafficReset must be omitted when empty, got %q", without.Get("trafficReset"))
 	}
 }
 
 func TestWireInboundDefaultsShareAddressStrategy(t *testing.T) {
-	values := wireInbound(&model.Inbound{})
+	values := wireInbound(&model.Inbound{}, 0)
 
 	if got := values.Get("shareAddrStrategy"); got != "node" {
 		t.Fatalf("shareAddrStrategy = %q, want node", got)
 	}
 
-	values = wireInbound(&model.Inbound{ShareAddrStrategy: "auto"})
+	values = wireInbound(&model.Inbound{ShareAddrStrategy: "auto"}, 0)
 	if got := values.Get("shareAddrStrategy"); got != "node" {
 		t.Fatalf("invalid shareAddrStrategy = %q, want node", got)
+	}
+}
+
+func TestStripNodeInboundTagPrefix(t *testing.T) {
+	cases := []struct {
+		nodeID int
+		tag    string
+		want   string
+	}{
+		{2, "n2-in-443-tcp", "in-443-tcp"},
+		{2, "in-443-tcp", "in-443-tcp"},
+		{2, "my-custom", "my-custom"},
+		{2, "n3-in-443-tcp", "n3-in-443-tcp"},
+		{0, "n2-in-443-tcp", "n2-in-443-tcp"},
+	}
+	for _, c := range cases {
+		if got := stripNodeInboundTagPrefix(c.nodeID, c.tag); got != c.want {
+			t.Fatalf("stripNodeInboundTagPrefix(%d, %q) = %q, want %q", c.nodeID, c.tag, got, c.want)
+		}
+	}
+}
+
+func TestWireInboundStripsNodeTagOnPush(t *testing.T) {
+	values := wireInbound(&model.Inbound{Tag: "n2-in-443-tcp"}, 2)
+	if got := values.Get("tag"); got != "in-443-tcp" {
+		t.Fatalf("tag = %q, want in-443-tcp", got)
+	}
+	values = wireInbound(&model.Inbound{Tag: "n2-in-443-tcp"}, 0)
+	if got := values.Get("tag"); got != "n2-in-443-tcp" {
+		t.Fatalf("nodeID 0 must not strip, got %q", got)
 	}
 }
 
