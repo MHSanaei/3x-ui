@@ -273,10 +273,11 @@ func (p *process) GetResult() string {
 	p.mu.RLock()
 	exitErr := p.exitErr
 	p.mu.RUnlock()
-	if len(p.logWriter.lastLine) == 0 && exitErr != nil {
+	lastLine := p.logWriter.LastLine()
+	if len(lastLine) == 0 && exitErr != nil {
 		return exitErr.Error()
 	}
-	return p.logWriter.lastLine
+	return lastLine
 }
 
 // GetVersion returns the version string of the Xray process.
