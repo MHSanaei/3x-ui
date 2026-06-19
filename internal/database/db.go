@@ -886,7 +886,7 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
-		dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
+		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=FULL&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -895,13 +895,13 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		if _, err := sqlDB.Exec("PRAGMA journal_mode=DELETE"); err != nil {
 			return err
 		}
 		if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
 			return err
 		}
-		if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+		if _, err := sqlDB.Exec("PRAGMA synchronous=FULL"); err != nil {
 			return err
 		}
 	}
