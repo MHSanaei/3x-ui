@@ -8,10 +8,10 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const (
@@ -96,11 +96,12 @@ func (j *NodeTrafficSyncJob) Run() {
 		}
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(n *model.Node) {
+		n := n
+		common.GoRecover("node-traffic-sync:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			j.syncOne(mgr, n, doIpSync)
-		}(n)
+		})
 	}
 	wg.Wait()
 
@@ -211,7 +212,8 @@ func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*mod
 		}
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(n *model.Node, remote *runtime.Remote, traffics []*xray.ClientTraffic) {
+		n, remote, traffics := n, remote, traffics
+		common.GoRecover("node-global-push:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
@@ -225,7 +227,7 @@ func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*mod
 					logger.Warning("node traffic sync: push globals to", n.Name, "failed:", err)
 				}
 			}
-		}(n, remote, traffics)
+		})
 	}
 	wg.Wait()
 }
