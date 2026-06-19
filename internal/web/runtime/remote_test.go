@@ -1,15 +1,111 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
+
+// TestRemoteDo_RejectsOversizeResponse: a node streaming a body larger than
+// maxRemoteResponseBytes must error out instead of the master buffering it
+// unbounded.
+func TestRemoteDo_RejectsOversizeResponse(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		chunk := bytes.Repeat([]byte("a"), 1<<20) // 1 MiB
+		for written := 0; written <= maxRemoteResponseBytes; written += len(chunk) {
+			if _, err := w.Write(chunk); err != nil {
+				return // client stopped reading at the cap
+			}
+		}
+	}))
+	defer srv.Close()
+
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	if _, err := r.do(context.Background(), http.MethodGet, "/probe", nil); !errors.Is(err, errRemoteResponseTooLarge) {
+		t.Fatalf("do() error = %v, want errRemoteResponseTooLarge", err)
+	}
+}
+
+// TestRemoteDo_AcceptsNormalResponse confirms the cap does not break a normal
+// under-limit envelope.
+func TestRemoteDo_AcceptsNormalResponse(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"msg":"ok","obj":{"x":1}}`))
+	}))
+	defer srv.Close()
+
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	env, err := r.do(context.Background(), http.MethodGet, "/probe", nil)
+	if err != nil {
+		t.Fatalf("do() unexpected error: %v", err)
+	}
+	if env == nil || !env.Success {
+		t.Fatalf("env = %+v, want Success=true", env)
+	}
+}
+
+// TestReadCappedBody_Boundary pins the cap+1 contract cheaply (no large allocs):
+// a body of exactly limit is accepted; limit+1 and beyond are rejected.
+func TestReadCappedBody_Boundary(t *testing.T) {
+	const limit = 8
+	cases := []struct {
+		name    string
+		n       int
+		wantErr bool
+	}{
+		{"under", limit - 1, false},
+		{"exact", limit, false},
+		{"over-by-one", limit + 1, true},
+		{"way-over", limit * 4, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			raw, err := readCappedBody(bytes.NewReader(bytes.Repeat([]byte("x"), c.n)), limit)
+			if c.wantErr {
+				if !errors.Is(err, errRemoteResponseTooLarge) {
+					t.Fatalf("n=%d: err=%v, want errRemoteResponseTooLarge", c.n, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("n=%d: unexpected err %v", c.n, err)
+			}
+			if len(raw) != c.n {
+				t.Fatalf("n=%d: read %d bytes, want %d", c.n, len(raw), c.n)
+			}
+		})
+	}
+}
+
+// TestRemoteDo_NonOKStatusReturnsHTTPError confirms a non-OK status is reported
+// as an HTTP error (with a bounded diagnostic snippet) rather than being read as
+// a success payload — i.e. status precedence over the body.
+func TestRemoteDo_NonOKStatusReturnsHTTPError(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("boom"))
+	}))
+	defer srv.Close()
+
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	_, err := r.do(context.Background(), http.MethodGet, "/probe", nil)
+	if err == nil {
+		t.Fatal("do() error = nil, want HTTP 500 error")
+	}
+	if !strings.Contains(err.Error(), "HTTP 500") || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("error = %q, want it to mention HTTP 500 and the body snippet", err)
+	}
+}
 
 type stubEgress struct{ url string }
 

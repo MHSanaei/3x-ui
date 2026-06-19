@@ -28,6 +28,38 @@ const remoteHTTPTimeout = 10 * time.Second
 // overhead can outweigh the savings.
 const zstdMinBodyBytes = 1024
 
+// maxRemoteResponseBytes caps a single node RPC's response body. It bounds the
+// wire/decompressed size of one response — the real guard against a broken or
+// hostile node streaming an unbounded body. It is NOT a process-wide memory
+// bound: concurrent RPCs and the decoded JSON can each exceed it, so
+// endpoint-specific caps and a concurrency budget remain follow-ups. Node
+// responses (traffic snapshots, client-IP lists, inbound options) are JSON and
+// stay well under it.
+const maxRemoteResponseBytes = 64 << 20 // 64 MiB
+
+// errBodyDiagBytes bounds how much of a non-OK error body we read for a
+// diagnostic snippet (and to let small-error connections be reused) without
+// buffering a potentially huge or hostile error payload.
+const errBodyDiagBytes = 8 << 10 // 8 KiB
+
+// errRemoteResponseTooLarge is returned when a node response exceeds the cap.
+var errRemoteResponseTooLarge = errors.New("remote response exceeds size limit")
+
+// readCappedBody reads all of r but rejects bodies larger than limit, returning
+// errRemoteResponseTooLarge. It reads at most limit+1 bytes so a body of exactly
+// limit is accepted and the first oversize byte is detected without buffering
+// more.
+func readCappedBody(r io.Reader, limit int64) ([]byte, error) {
+	raw, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > limit {
+		return nil, errRemoteResponseTooLarge
+	}
+	return raw, nil
+}
+
 type envelope struct {
 	Success bool            `json:"success"`
 	Msg     string          `json:"msg"`
@@ -203,12 +235,32 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 	defer resp.Body.Close()
 	r.recordCaps(resp.Header)
 
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
-	}
+	// Validate status before reading a success payload: a non-OK response's
+	// body is never used beyond a short diagnostic, so don't let a node force us
+	// to buffer a large body just to return an HTTP error.
 	if resp.StatusCode != http.StatusOK {
+		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, errBodyDiagBytes))
+		if msg := bytes.TrimSpace(snippet); len(msg) > 0 {
+			// %q quotes/escapes the untrusted node body so control characters or
+			// newlines in it can't garble or inject into the error/log output.
+			return nil, fmt.Errorf("%s %s: HTTP %d: %q", method, path, resp.StatusCode, msg)
+		}
 		return nil, fmt.Errorf("%s %s: HTTP %d", method, path, resp.StatusCode)
+	}
+
+	// Fast-fail on an honestly-declared oversize body; the LimitReader below is
+	// the real guard since Content-Length is untrusted, may be absent, or is -1
+	// under transparent decompression.
+	if resp.ContentLength > maxRemoteResponseBytes {
+		return nil, fmt.Errorf("%s %s: %w (content-length %d, cap %d)", method, path, errRemoteResponseTooLarge, resp.ContentLength, maxRemoteResponseBytes)
+	}
+
+	raw, err := readCappedBody(resp.Body, maxRemoteResponseBytes)
+	if err != nil {
+		if errors.Is(err, errRemoteResponseTooLarge) {
+			return nil, fmt.Errorf("%s %s: %w (cap %d bytes)", method, path, err, maxRemoteResponseBytes)
+		}
+		return nil, fmt.Errorf("read body: %w", err)
 	}
 
 	var env envelope
