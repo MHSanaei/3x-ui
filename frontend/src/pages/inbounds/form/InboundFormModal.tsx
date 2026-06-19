@@ -65,7 +65,6 @@ import {
   WireguardFields,
 } from './protocols';
 import {
-  ExternalProxyForm,
   GrpcForm,
   HttpUpgradeForm,
   KcpForm,
@@ -251,23 +250,6 @@ export default function InboundFormModal({
     onSecurityChange,
   } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null });
 
-  const toggleExternalProxy = (on: boolean) => {
-    if (on) {
-      const port = (form.getFieldValue('port') as number) ?? 443;
-      form.setFieldValue(['streamSettings', 'externalProxy'], [{
-        forceTls: 'same',
-        dest: typeof window !== 'undefined' ? window.location.hostname : '',
-        port,
-        remark: '',
-        sni: '',
-        fingerprint: '',
-        alpn: [],
-        pinnedPeerCertSha256: [],
-      }]);
-    } else {
-      form.setFieldValue(['streamSettings', 'externalProxy'], []);
-    }
-  };
 
   const toggleSockopt = (on: boolean) => {
     if (on) {
@@ -703,7 +685,7 @@ export default function InboundFormModal({
             className="mt-12"
             type="info"
             showIcon
-            message={t('pages.inbounds.fallbacks.needsTls')}
+            title={t('pages.inbounds.fallbacks.needsTls')}
           />
         )}
     </>
@@ -811,12 +793,9 @@ export default function InboundFormModal({
         </>
       )}
 
-      {/* externalProxy only feeds client share links. Wireguard's per-peer
-          .conf fanout resolves its host elsewhere, and tunnel (dokodemo-door)
-          has no clients at all — the section is dead weight on both. */}
-      {protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && (
-        <ExternalProxyForm toggleExternalProxy={toggleExternalProxy} />
-      )}
+      {/* The legacy externalProxy section is replaced by the Hosts page; the
+          field is still parsed/rendered for backward compatibility but is no
+          longer editable here. */}
 
       <SockoptForm toggleSockopt={toggleSockopt} network={network as string} />
 

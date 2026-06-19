@@ -97,7 +97,8 @@
     "unlimited": "Ilimitado",
     "noExpiry": "Sin caducidad",
     "copyAllConfigs": "Copiar Todas las Configuraciones",
-    "copyAllConfigsCopied": "Todas las configuraciones copiadas"
+    "copyAllConfigsCopied": "Todas las configuraciones copiadas",
+    "email": "Email"
   },
   "menu": {
     "theme": "Tema",
@@ -113,7 +114,8 @@
     "apiDocs": "Documentación de la API",
     "logout": "Cerrar Sesión",
     "link": "Gestionar",
-    "donate": "Donar"
+    "donate": "Donar",
+    "hosts": "Hosts"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "Salida del tráfico del panel",
       "panelOutboundDesc": "Enruta las peticiones del propio panel — comprobaciones de versión y descargas de panel/Xray, Telegram y la actualización normal de archivos geo — a través de esta salida de Xray para sortear el filtrado de GitHub/Telegram en el servidor. Una entrada puente local se añade automáticamente a la configuración en ejecución y se aplica en vivo. La Autoactualización de Geodata nativa de Xray no se ve afectada; tiene su propia salida de descarga. Deja vacío para conexión directa.",
       "panelOutboundPh": "Conexión directa",
-      "remarkModel": "Modelo de observación y carácter de separación",
       "datepicker": "selector de fechas",
       "datepickerPlaceholder": "Seleccionar fecha",
       "datepickerDescription": "El tipo de calendario selector especifica la fecha de vencimiento",
-      "sampleRemark": "Observación de muestra",
       "oldUsername": "Nombre de Usuario Actual",
       "currentPassword": "Contraseña Actual",
       "newUsername": "Nuevo Nombre de Usuario",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "Horas de intervalo entre actualizaciones en la aplicación del cliente.",
       "subEncrypt": "Codificar",
       "subEncryptDesc": "Encriptar las configuraciones devueltas en la suscripción.",
-      "subShowInfo": "Mostrar información de uso",
-      "subShowInfoDesc": "Mostrar tráfico restante y fecha después del nombre de configuración.",
-      "subEmailInRemark": "Incluir Email en el nombre",
-      "subEmailInRemarkDesc": "Incluir el correo del cliente en el nombre del perfil de suscripción.",
       "subURI": "URI de proxy inverso",
       "subURIDesc": "Cambiar el URI base de la URL de suscripción para usar detrás de los servidores proxy",
       "externalTrafficInformEnable": "Informe de tráfico externo",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "Tiempo de conexión agotado: servidor inaccesible",
       "smtpErrorRelay": "El servidor rechaza el envío desde esta dirección",
       "smtpErrorEof": "Conexión cerrada por el servidor",
-      "smtpErrorUnknown": "Error de SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Error de SMTP: {{ .Error }}",
+      "remarkTemplate": "Plantilla de notas",
+      "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior."
     },
     "xray": {
       "title": "Xray Configuración",
@@ -1685,6 +1683,114 @@
         "edit": "Editar DNS Falso",
         "ipPool": "Subred del grupo de IP",
         "poolSize": "Tamaño del grupo"
+      }
+    },
+    "hosts": {
+      "addHost": "Agregar host",
+      "editHost": "Editar host",
+      "selectInbound": "Selecciona un inbound",
+      "selectedCount": "{count} seleccionado(s)",
+      "summary": {
+        "total": "Total",
+        "enabled": "Habilitados",
+        "disabled": "Deshabilitados"
+      },
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "bulkEnable": "Habilitar",
+      "bulkDisable": "Deshabilitar",
+      "bulkDelete": "Eliminar",
+      "bulkDeleteConfirm": "¿Eliminar {count} host(s) seleccionado(s)?",
+      "deleteConfirmTitle": "¿Eliminar el host \"{name}\"?",
+      "sections": {
+        "basic": "Básico",
+        "security": "Seguridad",
+        "advanced": "Avanzado",
+        "general": "General",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "Notas",
+        "serverDescription": "Descripción",
+        "inbound": "Inbound",
+        "address": "Dirección",
+        "port": "Puerto",
+        "endpoint": "Punto final",
+        "enable": "Habilitar",
+        "actions": "Acciones",
+        "security": "Seguridad",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Usar la dirección como SNI",
+        "keepSniBlank": "Dejar el SNI en blanco",
+        "hostHeader": "Cabecera Host",
+        "path": "Ruta",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "SHA-256 del cert. fijado",
+        "verifyPeerCertByName": "Verificar cert. del par por nombre",
+        "allowInsecure": "Permitir inseguro",
+        "echConfigList": "Lista de config. ECH",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Máscara final",
+        "vlessRoute": "Ruta VLESS",
+        "mihomoIpVersion": "Versión de IP",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "Barajar host",
+        "tags": "Etiquetas",
+        "nodeGuids": "Nodos",
+        "excludeFromSubTypes": "Excluir de formatos"
+      },
+      "hints": {
+        "address": "Déjalo en blanco para heredar la dirección propia del inbound.",
+        "port": "0 hereda el puerto del inbound.",
+        "tags": "No visible para los usuarios finales; se envía solo con la suscripción RAW. Solo letras mayúsculas, dígitos, _ y :.",
+        "nodeGuids": "Elige los nodos que se resolvieron desde este host. Solo asignación visual.",
+        "serverDescription": "Nota opcional que se muestra bajo las notas.",
+        "allowInsecure": "Omitir la verificación del certificado TLS (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "Puertos/rangos enrutados a través de VLESS, p. ej. 53,443,1000-2000. Déjalo en blanco para ninguno.",
+        "remark": "Una etiqueta simple para este host. Se muestra como nombre de la configuración solo cuando el inbound no tiene notas propias."
+      },
+      "remarkVars": {
+        "title": "Variables de plantilla",
+        "intro": "Haz clic en una variable para añadirla. Se sustituye por cliente al generar la suscripción.",
+        "preview": "Vista previa",
+        "groups": {
+          "client": "Cliente",
+          "traffic": "Tráfico",
+          "time": "Tiempo y estado"
+        },
+        "descEMAIL": "Email del cliente",
+        "descINBOUND": "Nombre de la configuración: las notas del host cuando están definidas, de lo contrario las notas del inbound",
+        "descHOST": "Notas del host",
+        "descID": "UUID del cliente",
+        "descSHORT_ID": "Primeros 8 caracteres del UUID",
+        "descTELEGRAM_ID": "ID de Telegram del cliente (vacío si no está definido)",
+        "descSUB_ID": "ID de suscripción",
+        "descCOMMENT": "Comentario del cliente",
+        "descTRAFFIC_USED": "Tráfico usado (legible)",
+        "descTRAFFIC_LEFT": "Tráfico restante (oculto si es ilimitado)",
+        "descTRAFFIC_TOTAL": "Tráfico total (oculto si es ilimitado)",
+        "descTRAFFIC_USED_BYTES": "Tráfico usado en bytes",
+        "descTRAFFIC_LEFT_BYTES": "Tráfico restante en bytes",
+        "descTRAFFIC_TOTAL_BYTES": "Tráfico total en bytes",
+        "descUP": "Tráfico de subida",
+        "descDOWN": "Tráfico de bajada",
+        "descSTATUS": "activo / expirado / deshabilitado / agotado",
+        "descDAYS_LEFT": "Días hasta la expiración (oculto si es ilimitado)",
+        "descEXPIRE_DATE": "Fecha de expiración (AAAA-MM-DD)",
+        "descEXPIRE_UNIX": "Expiración como marca de tiempo Unix (segundos)",
+        "descCREATED_UNIX": "Hora de creación como marca de tiempo Unix (segundos)",
+        "descRESET_DAYS": "Periodo de reinicio de tráfico en días"
+      },
+      "toasts": {
+        "list": "Error al cargar los hosts",
+        "obtain": "Error al cargar el host",
+        "add": "Agregar host",
+        "update": "Actualizar host",
+        "delete": "Eliminar host",
+        "badTag": "Etiqueta no válida",
+        "badVlessRoute": "Usa puertos/rangos como 53,443,1000-2000"
       }
     }
   },

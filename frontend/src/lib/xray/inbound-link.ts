@@ -595,6 +595,18 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   }
 
+  // SIP002 clients (v2rayN) ignore type/headerType/host/path and only read
+  // `plugin`. Re-encode a TCP http header as obfs-local so they build a
+  // matching tcp/http outbound (v2rayN forces request path "/").
+  if ((stream.network ?? 'tcp') === 'tcp' && params.get('headerType') === 'http') {
+    const host = params.get('host') ?? '';
+    params.delete('type');
+    params.delete('headerType');
+    params.delete('host');
+    params.delete('path');
+    params.set('plugin', `obfs-local;obfs=http;obfs-host=${host}`);
+  }
+
   const isSS2022 = settings.method.substring(0, 4) === '2022';
   const isSSMultiUser = settings.method !== '2022-blake3-chacha20-poly1305';
   const passwords: string[] = [];
@@ -983,23 +995,19 @@ export interface GenAllLinksEntry {
 export interface GenAllLinksInput {
   inbound: Inbound;
   remark?: string;
-  remarkModel?: string;
   client: ClientShape;
   hostOverride?: string;
   fallbackHostname: string;
 }
 
-// Fans out a single client's link per externalProxy entry, or just one
-// link when there are no external proxies. remarkModel is a 4-char
-// string: first char is the separator, remaining chars pick which
-// pieces to compose into the per-link remark — 'i' = inbound remark,
-// 'e' = client email, 'o' = externalProxy remark. Defaults to '-io'
-// (dash-separated, inbound + email + proxy).
+// Fans out a single client's link per externalProxy entry, or just one link
+// when there are no external proxies. The panel copy/QR remark is the inbound
+// remark plus the externalProxy remark, dash-joined (the configurable
+// subscription remark model was removed; subscription output uses the template).
 export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
   const {
     inbound,
     remark = '',
-    remarkModel = '-io',
     client,
     hostOverride = '',
     fallbackHostname,
@@ -1007,17 +1015,9 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
 
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const port = inbound.port;
-  const separationChar = remarkModel.charAt(0);
-  const orderChars = remarkModel.slice(1);
-  const email = client.email ?? '';
 
-  const composeRemark = (proxyRemark: string): string => {
-    const orders: Record<string, string> = { i: remark, e: email, o: proxyRemark };
-    return orderChars.split('')
-      .map((c) => orders[c] ?? '')
-      .filter((x) => x.length > 0)
-      .join(separationChar);
-  };
+  const composeRemark = (proxyRemark: string): string =>
+    [remark, proxyRemark].filter((x) => x.length > 0).join('-');
 
   const externals = inbound.streamSettings?.externalProxy;
   if (!externals || externals.length === 0) {
@@ -1044,7 +1044,6 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
 export interface GenInboundLinksInput {
   inbound: Inbound;
   remark?: string;
-  remarkModel?: string;
   hostOverride?: string;
   fallbackHostname: string;
 }
@@ -1058,7 +1057,6 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
   const {
     inbound,
     remark = '',
-    remarkModel = '-io',
     hostOverride = '',
     fallbackHostname,
   } = input;
@@ -1067,7 +1065,7 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
   if (clients) {
     const links: string[] = [];
     for (const client of clients) {
-      const entries = genAllLinks({ inbound, remark, remarkModel, client, hostOverride, fallbackHostname });
+      const entries = genAllLinks({ inbound, remark, client, hostOverride, fallbackHostname });
       for (const e of entries) links.push(e.link);
     }
     return links.join('\r\n');
@@ -1076,7 +1074,7 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
     return genShadowsocksLink({ inbound, address: addr, port: inbound.port, forceTls: 'same', remark });
   }
   if (inbound.protocol === 'wireguard') {
-    return genWireguardConfigs({ inbound, remark, remarkModel, hostOverride, fallbackHostname });
+    return genWireguardConfigs({ inbound, remark, hostOverride, fallbackHostname });
   }
   return '';
 }
@@ -1087,16 +1085,15 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
 export interface GenWireguardFanoutInput {
   inbound: Inbound;
   remark?: string;
-  remarkModel?: string;
   hostOverride?: string;
   fallbackHostname: string;
 }
 
 export function genWireguardLinks(input: GenWireguardFanoutInput): string {
-  const { inbound, remark = '', remarkModel = '-io', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = remarkModel.charAt(0);
+  const sep = '-';
   return inbound.settings.peers
     .map((p, i) => genWireguardLink({
       settings: inbound.settings as WireguardInboundSettings,
@@ -1109,10 +1106,10 @@ export function genWireguardLinks(input: GenWireguardFanoutInput): string {
 }
 
 export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
-  const { inbound, remark = '', remarkModel = '-io', hostOverride = '', fallbackHostname } = input;
+  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = remarkModel.charAt(0);
+  const sep = '-';
   return inbound.settings.peers
     .map((p, i) => genWireguardConfig({
       settings: inbound.settings as WireguardInboundSettings,

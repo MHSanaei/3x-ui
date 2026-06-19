@@ -16,12 +16,8 @@ func NewLinkProvider() *LinkProvider {
 }
 
 func (p *LinkProvider) build(host string) *SubService {
-	showInfo, _ := p.settingService.GetSubShowInfo()
-	rModel, err := p.settingService.GetRemarkModel()
-	if err != nil {
-		rModel = "-io"
-	}
-	svc := NewSubService(showInfo, rModel)
+	remarkTemplate, _ := p.settingService.GetRemarkTemplate()
+	svc := NewSubService(remarkTemplate)
 	svc.PrepareForRequest(host)
 	return svc
 }

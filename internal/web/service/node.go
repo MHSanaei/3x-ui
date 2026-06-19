@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -405,10 +406,8 @@ func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
 	if node.InboundSyncMode != "selected" {
 		return nil
 	}
-	for _, t := range node.InboundTags {
-		if t == tag {
-			return nil
-		}
+	if slices.Contains(node.InboundTags, tag) {
+		return nil
 	}
 	buf, err := json.Marshal(append(node.InboundTags, tag))
 	if err != nil {

@@ -102,7 +102,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
               {testResult && (
                 <Alert
                   type={testResult.success ? 'success' : 'error'}
-                  message={
+                  title={
                     testResult.success
                       ? t('pages.settings.' + testResult.msg)
                       : <span><b>{stageLabel[testResult.stage || ''] || testResult.stage}:</b> {t('pages.settings.' + testResult.msg)}</span>

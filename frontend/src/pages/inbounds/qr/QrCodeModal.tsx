@@ -26,7 +26,6 @@ interface QrCodeModalProps {
   onClose: () => void;
   dbInbound: (DbInboundLike & { remark?: string }) | null;
   client?: ClientSetting | null;
-  remarkModel?: string;
   nodeAddress?: string;
   subSettings?: SubSettings;
 }
@@ -43,7 +42,6 @@ export default function QrCodeModal({
   onClose,
   dbInbound,
   client = null,
-  remarkModel = '-io',
   nodeAddress = '',
   subSettings,
 }: QrCodeModalProps) {
@@ -67,7 +65,6 @@ export default function QrCodeModal({
         genWireguardConfigs({
           inbound,
           remark: peerRemark,
-          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),
@@ -76,7 +73,6 @@ export default function QrCodeModal({
         genWireguardLinks({
           inbound,
           remark: peerRemark,
-          remarkModel: '-io',
           hostOverride: nodeAddress,
           fallbackHostname,
         }).split('\r\n'),
@@ -87,7 +83,6 @@ export default function QrCodeModal({
         genAllLinks({
           inbound,
           remark: dbInbound.remark || '',
-          remarkModel,
           client: client ?? {},
           hostOverride: nodeAddress,
           fallbackHostname,
@@ -106,7 +101,7 @@ export default function QrCodeModal({
     }
     setSubLink(nextSub);
     setSubJsonLink(nextSubJson);
-  }, [open, dbInbound, client, remarkModel, nodeAddress, subSettings]);
+  }, [open, dbInbound, client, nodeAddress, subSettings]);
 
   const qrItems = useMemo<QrItem[]>(() => {
     const items: QrItem[] = [];

@@ -225,7 +225,7 @@ func TestGenVlessLink_NoFlowWhenClientFlowEmpty(t *testing.T) {
 		Settings:       `{"clients":[{"id":"11111111-2222-4333-8444-555555555555","email":"user"}],"encryption":"none"}`,
 		StreamSettings: stream,
 	}
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	if link := s.genVlessLink(inbound, "user"); strings.Contains(link, "flow=") {
 		t.Fatalf("empty client flow must not produce a flow param, got %q", link)
 	}

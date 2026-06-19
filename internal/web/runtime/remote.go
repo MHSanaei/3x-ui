@@ -28,6 +28,38 @@ const remoteHTTPTimeout = 10 * time.Second
 // overhead can outweigh the savings.
 const zstdMinBodyBytes = 1024
 
+// maxRemoteResponseBytes caps a single node RPC's response body. It bounds the
+// wire/decompressed size of one response — the real guard against a broken or
+// hostile node streaming an unbounded body. It is NOT a process-wide memory
+// bound: concurrent RPCs and the decoded JSON can each exceed it, so
+// endpoint-specific caps and a concurrency budget remain follow-ups. Node
+// responses (traffic snapshots, client-IP lists, inbound options) are JSON and
+// stay well under it.
+const maxRemoteResponseBytes = 64 << 20 // 64 MiB
+
+// errBodyDiagBytes bounds how much of a non-OK error body we read for a
+// diagnostic snippet (and to let small-error connections be reused) without
+// buffering a potentially huge or hostile error payload.
+const errBodyDiagBytes = 8 << 10 // 8 KiB
+
+// errRemoteResponseTooLarge is returned when a node response exceeds the cap.
+var errRemoteResponseTooLarge = errors.New("remote response exceeds size limit")
+
+// readCappedBody reads all of r but rejects bodies larger than limit, returning
+// errRemoteResponseTooLarge. It reads at most limit+1 bytes so a body of exactly
+// limit is accepted and the first oversize byte is detected without buffering
+// more.
+func readCappedBody(r io.Reader, limit int64) ([]byte, error) {
+	raw, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > limit {
+		return nil, errRemoteResponseTooLarge
+	}
+	return raw, nil
+}
+
 type envelope struct {
 	Success bool            `json:"success"`
 	Msg     string          `json:"msg"`
@@ -203,12 +235,32 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 	defer resp.Body.Close()
 	r.recordCaps(resp.Header)
 
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
-	}
+	// Validate status before reading a success payload: a non-OK response's
+	// body is never used beyond a short diagnostic, so don't let a node force us
+	// to buffer a large body just to return an HTTP error.
 	if resp.StatusCode != http.StatusOK {
+		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, errBodyDiagBytes))
+		if msg := bytes.TrimSpace(snippet); len(msg) > 0 {
+			// %q quotes/escapes the untrusted node body so control characters or
+			// newlines in it can't garble or inject into the error/log output.
+			return nil, fmt.Errorf("%s %s: HTTP %d: %q", method, path, resp.StatusCode, msg)
+		}
 		return nil, fmt.Errorf("%s %s: HTTP %d", method, path, resp.StatusCode)
+	}
+
+	// Fast-fail on an honestly-declared oversize body; the LimitReader below is
+	// the real guard since Content-Length is untrusted, may be absent, or is -1
+	// under transparent decompression.
+	if resp.ContentLength > maxRemoteResponseBytes {
+		return nil, fmt.Errorf("%s %s: %w (content-length %d, cap %d)", method, path, errRemoteResponseTooLarge, resp.ContentLength, maxRemoteResponseBytes)
+	}
+
+	raw, err := readCappedBody(resp.Body, maxRemoteResponseBytes)
+	if err != nil {
+		if errors.Is(err, errRemoteResponseTooLarge) {
+			return nil, fmt.Errorf("%s %s: %w (cap %d bytes)", method, path, err, maxRemoteResponseBytes)
+		}
+		return nil, fmt.Errorf("read body: %w", err)
 	}
 
 	var env envelope
@@ -234,6 +286,22 @@ func (r *Remote) resolveRemoteID(ctx context.Context, tag string) (int, error) {
 	return 0, fmt.Errorf("remote inbound with tag %q not found on node %s", tag, r.node.Name)
 }
 
+// nodeInboundTagPrefix is the central-panel alias for an inbound on nodeID.
+// Kept in sync with service.nodeTagPrefix (port_conflict.go); duplicated here
+// so runtime does not import service.
+func nodeInboundTagPrefix(nodeID int) string {
+	return fmt.Sprintf("n%d-", nodeID)
+}
+
+// stripNodeInboundTagPrefix removes the central-only n<id>- prefix before
+// pushing an inbound to the node so Xray keeps its original tag and routing.
+func stripNodeInboundTagPrefix(nodeID int, tag string) string {
+	if stripped, ok := strings.CutPrefix(tag, nodeInboundTagPrefix(nodeID)); ok {
+		return stripped
+	}
+	return tag
+}
+
 // cacheGetTag looks up a remote inbound id by tag, tolerating an n<id>- prefix
 // that lives on only one of the two panels: the node may carry the bare tag
 // while the central panel stores the prefixed form, or vice versa.
@@ -241,7 +309,7 @@ func (r *Remote) cacheGetTag(tag string) (int, bool) {
 	if id, ok := r.cacheGet(tag); ok {
 		return id, true
 	}
-	prefix := fmt.Sprintf("n%d-", r.node.Id)
+	prefix := nodeInboundTagPrefix(r.node.Id)
 	if stripped, found := strings.CutPrefix(tag, prefix); found {
 		return r.cacheGet(stripped)
 	}
@@ -318,7 +386,7 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 }
 
 func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
-	payload := wireInbound(ib)
+	payload := wireInbound(ib, r.node.Id)
 	env, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/add", payload)
 	if err != nil {
 		return err
@@ -353,7 +421,7 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	if err != nil {
 		return r.AddInbound(ctx, newIb)
 	}
-	payload := wireInbound(newIb)
+	payload := wireInbound(newIb, r.node.Id)
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/update/"+strconv.Itoa(id), payload); err != nil {
 		return err
 	}
@@ -557,7 +625,7 @@ func (r *Remote) PushGlobalClientTraffics(ctx context.Context, masterGuid string
 	return err
 }
 
-func wireInbound(ib *model.Inbound) url.Values {
+func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	v := url.Values{}
 	v.Set("total", strconv.FormatInt(ib.Total, 10))
 	v.Set("remark", ib.Remark)
@@ -569,7 +637,11 @@ func wireInbound(ib *model.Inbound) url.Values {
 	v.Set("protocol", string(ib.Protocol))
 	v.Set("settings", ib.Settings)
 	v.Set("streamSettings", sanitizeStreamSettingsForRemote(ib.StreamSettings))
-	v.Set("tag", ib.Tag)
+	tag := ib.Tag
+	if remoteNodeID > 0 {
+		tag = stripNodeInboundTagPrefix(remoteNodeID, tag)
+	}
+	v.Set("tag", tag)
 	v.Set("sniffing", ib.Sniffing)
 	shareAddrStrategy := strings.TrimSpace(ib.ShareAddrStrategy)
 	switch shareAddrStrategy {

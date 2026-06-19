@@ -53,6 +53,12 @@ var distFS embed.FS
 
 var startTime = time.Now()
 
+// cronPanicLogger adapts the package logger to cron's Printf-style logger so a
+// panicking scheduled job is recovered and logged instead of crashing the panel.
+type cronPanicLogger struct{}
+
+func (cronPanicLogger) Printf(format string, args ...any) { logger.Errorf(format, args...) }
+
 // wrapDistFS adapts the embedded `dist/` directory so it can be mounted
 // as the panel's `/assets/` static route. Vite emits its bundled JS/CSS
 // under `dist/assets/`; serving the FS rooted at `dist/assets` makes
@@ -388,7 +394,7 @@ func (s *Server) cpuAlarmWanted() bool {
 		if threshold <= 0 {
 			return false
 		}
-		for _, e := range strings.Split(events, ",") {
+		for e := range strings.SplitSeq(events, ",") {
 			if strings.TrimSpace(e) == string(eventbus.EventCPUHigh) {
 				return true
 			}
@@ -435,7 +441,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 	service.StartTrafficWriter()
 
-	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
+	// cron.Recover wraps every job so a panic is logged and the scheduler keeps
+	// running, instead of the panic taking down the whole panel process.
+	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds(), cron.WithChain(cron.Recover(cron.PrintfLogger(cronPanicLogger{}))))
 	s.cron.Start()
 
 	// Wire the inbound-runtime manager once so InboundService can route

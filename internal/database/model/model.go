@@ -718,6 +718,60 @@ type InboundFallback struct {
 
 func (InboundFallback) TableName() string { return "inbound_fallbacks" }
 
+// Host is an override endpoint attached to an inbound: at subscription time each
+// enabled host renders one share link/proxy with its own address/port/TLS/etc.,
+// superseding the legacy externalProxy array. Free-JSON fields are stored as
+// text and parsed in the sub layer; slice fields use the json serializer.
+type Host struct {
+	Id                int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	InboundId         int      `json:"inboundId" form:"inboundId" gorm:"index;not null;column:inbound_id" validate:"required" example:"1"`
+	SortOrder         int      `json:"sortOrder" form:"sortOrder" gorm:"default:0;column:sort_order"`
+	Remark            string   `json:"remark" form:"remark" validate:"required,max=256" example:"cdn-front"`
+	ServerDescription string   `json:"serverDescription" form:"serverDescription" gorm:"column:server_description" validate:"omitempty,max=64"`
+	IsDisabled        bool     `json:"isDisabled" form:"isDisabled" gorm:"default:false;column:is_disabled"`
+	IsHidden          bool     `json:"isHidden" form:"isHidden" gorm:"default:false;column:is_hidden"`
+	Tags              []string `json:"tags" form:"tags" gorm:"serializer:json"`
+
+	Address string `json:"address" form:"address" example:"cdn.example.com"`
+	Port    int    `json:"port" form:"port" gorm:"default:0" validate:"gte=0,lte=65535" example:"8443"`
+
+	Security               string   `json:"security" form:"security" gorm:"default:same" validate:"omitempty,oneof=same tls none reality" example:"same"`
+	Sni                    string   `json:"sni" form:"sni"`
+	HostHeader             string   `json:"hostHeader" form:"hostHeader" gorm:"column:host_header"`
+	Path                   string   `json:"path" form:"path"`
+	Alpn                   []string `json:"alpn" form:"alpn" gorm:"serializer:json"`
+	Fingerprint            string   `json:"fingerprint" form:"fingerprint"`
+	OverrideSniFromAddress bool     `json:"overrideSniFromAddress" form:"overrideSniFromAddress" gorm:"column:override_sni_from_address"`
+	KeepSniBlank           bool     `json:"keepSniBlank" form:"keepSniBlank" gorm:"column:keep_sni_blank"`
+	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256" form:"pinnedPeerCertSha256" gorm:"serializer:json;column:pinned_peer_cert_sha256"`
+	VerifyPeerCertByName   bool     `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
+	AllowInsecure          bool     `json:"allowInsecure" form:"allowInsecure" gorm:"column:allow_insecure"`
+	EchConfigList          string   `json:"echConfigList" form:"echConfigList" gorm:"column:ech_config_list"`
+
+	MuxParams     string `json:"muxParams" form:"muxParams" gorm:"type:text;column:mux_params"`
+	SockoptParams string `json:"sockoptParams" form:"sockoptParams" gorm:"type:text;column:sockopt_params"`
+	// FinalMask is a JSON object of xray finalmask masks (tcp/udp/quicParams),
+	// merged into this host's JSON-subscription stream. Empty = no override.
+	FinalMask string `json:"finalMask" form:"finalMask" gorm:"type:text;column:final_mask"`
+
+	// VlessRoute is a free-form port/range routing spec (e.g. "53,443,1000-2000");
+	// stored verbatim, format-validated on the frontend.
+	VlessRoute string `json:"vlessRoute" form:"vlessRoute" gorm:"column:vless_route"`
+
+	ExcludeFromSubTypes []string `json:"excludeFromSubTypes" form:"excludeFromSubTypes" gorm:"serializer:json;column:exclude_from_sub_types"`
+
+	MihomoIpVersion string `json:"mihomoIpVersion" form:"mihomoIpVersion" gorm:"column:mihomo_ip_version" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
+	MihomoX25519    bool   `json:"mihomoX25519" form:"mihomoX25519" gorm:"column:mihomo_x25519"`
+	ShuffleHost     bool   `json:"shuffleHost" form:"shuffleHost" gorm:"column:shuffle_host"`
+
+	NodeGuids []string `json:"nodeGuids,omitempty" form:"nodeGuids" gorm:"serializer:json;column:node_guids"`
+
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (Host) TableName() string { return "hosts" }
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:      c.Email,
