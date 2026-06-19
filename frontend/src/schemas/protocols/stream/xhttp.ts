@@ -51,9 +51,12 @@ export const XHttpStreamSettingsSchema = z.object({
   serverMaxHeaderBytes: z.number().int().min(0).default(0),
   uplinkHTTPMethod: z.string().default(''),
   headers: WsHeaderMapSchema.default({}),
-  // Outbound-only fields. Server (inbound) listener ignores these. The
-  // panel embeds them in share-link `extra` blobs so the same xhttp
-  // config can roundtrip on both sides.
+  // Client-side fields stored on inbound for subscription propagation.
+  // The server listener ignores them at runtime, but the panel embeds
+  // them in share-link `extra` blobs so the same xhttp config can
+  // round-trip on both sides.
+  // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
+  // - uplinkChunkSize & noGRPCHeader: outbound-only; stripped from inbound wire
   scMinPostsIntervalMs: z.string().default(''),
   uplinkChunkSize: z.number().int().min(0).default(0),
   noGRPCHeader: z.boolean().default(false),

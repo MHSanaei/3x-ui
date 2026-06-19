@@ -92,7 +92,7 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 			db.Exec("ANALYZE")
 
 			emails := make([]string, n)
-			for i := 0; i < n; i++ {
+			for i := range n {
 				emails[i] = clients[i].Email
 			}
 			emailsM := emails[:m]
@@ -196,7 +196,7 @@ func TestGetClientTrafficByEmailABScale(t *testing.T) {
 			targets := []string{clients[0].Email, clients[n/2].Email, clients[n-1].Email}
 
 			start := time.Now()
-			for i := 0; i < reps; i++ {
+			for i := range reps {
 				if _, err := inboundSvc.GetClientTrafficByEmail(targets[i%len(targets)]); err != nil {
 					t.Fatalf("new GetClientTrafficByEmail: %v", err)
 				}
@@ -204,7 +204,7 @@ func TestGetClientTrafficByEmailABScale(t *testing.T) {
 			newDur := time.Since(start) / reps
 
 			start = time.Now()
-			for i := 0; i < reps; i++ {
+			for i := range reps {
 				if err := oldImpl(targets[i%len(targets)]); err != nil {
 					t.Fatalf("old GetClientTrafficByEmail: %v", err)
 				}

@@ -97,7 +97,8 @@
     "unlimited": "Tanpa batas",
     "noExpiry": "Tanpa kedaluwarsa",
     "copyAllConfigs": "Salin Semua Konfigurasi",
-    "copyAllConfigsCopied": "Semua konfigurasi tersalin"
+    "copyAllConfigsCopied": "Semua konfigurasi tersalin",
+    "email": "Email"
   },
   "menu": {
     "theme": "Tema",
@@ -113,7 +114,8 @@
     "apiDocs": "Dokumentasi API",
     "logout": "Keluar",
     "link": "Kelola",
-    "donate": "Donasi"
+    "donate": "Donasi",
+    "hosts": "Host"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "Outbound lalu lintas panel",
       "panelOutboundDesc": "Mengarahkan permintaan panel sendiri — pemeriksaan versi dan unduhan panel/Xray, Telegram, dan pembaruan file geo biasa — melalui outbound Xray ini untuk melewati pemfilteran GitHub/Telegram di sisi server. Inbound jembatan lokal ditambahkan secara otomatis ke konfigurasi yang berjalan dan diterapkan langsung. Pembaruan Otomatis Geodata bawaan Xray tidak terpengaruh; ia memiliki outbound unduhan sendiri. Kosongkan untuk koneksi langsung.",
       "panelOutboundPh": "Koneksi langsung",
-      "remarkModel": "Model Catatan & Karakter Pemisah",
       "datepicker": "Jenis Kalender",
       "datepickerPlaceholder": "Pilih tanggal",
       "datepickerDescription": "Tugas terjadwal akan berjalan berdasarkan kalender ini.",
-      "sampleRemark": "Contoh Catatan",
       "oldUsername": "Username Saat Ini",
       "currentPassword": "Kata Sandi Saat Ini",
       "newUsername": "Username Baru",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "Interval pembaruan URL langganan dalam aplikasi klien. (unit: jam)",
       "subEncrypt": "Encode",
       "subEncryptDesc": "Konten yang dikembalikan dari layanan langganan akan dienkripsi Base64.",
-      "subShowInfo": "Tampilkan Info Penggunaan",
-      "subShowInfoDesc": "Sisa traffic dan tanggal akan ditampilkan di aplikasi klien.",
-      "subEmailInRemark": "Sertakan Email dalam Nama",
-      "subEmailInRemarkDesc": "Sertakan email klien dalam nama profil langganan.",
       "subURI": "URI Proxy Terbalik",
       "subURIDesc": "Path URI dari URL langganan untuk digunakan di belakang proxy.",
       "externalTrafficInformEnable": "Informasikan API eksternal pada setiap pembaruan lalu lintas.",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "Koneksi waktu habis — host tidak dapat dijangkau",
       "smtpErrorRelay": "Server menolak pengiriman dari alamat ini",
       "smtpErrorEof": "Koneksi ditutup oleh server",
-      "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
+      "remarkTemplate": "Templat Catatan",
+      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1685,6 +1683,114 @@
         "edit": "Edit DNS Palsu",
         "ipPool": "Subnet Kumpulan IP",
         "poolSize": "Ukuran Kolam"
+      }
+    },
+    "hosts": {
+      "addHost": "Tambah Host",
+      "editHost": "Ubah Host",
+      "selectInbound": "Pilih sebuah inbound",
+      "selectedCount": "{count} dipilih",
+      "summary": {
+        "total": "Total",
+        "enabled": "Aktif",
+        "disabled": "Nonaktif"
+      },
+      "moveUp": "Naik",
+      "moveDown": "Turun",
+      "bulkEnable": "Aktifkan",
+      "bulkDisable": "Nonaktifkan",
+      "bulkDelete": "Hapus",
+      "bulkDeleteConfirm": "Hapus {count} host yang dipilih?",
+      "deleteConfirmTitle": "Hapus host \"{name}\"?",
+      "sections": {
+        "basic": "Dasar",
+        "security": "Keamanan",
+        "advanced": "Lanjutan",
+        "general": "Umum",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "Catatan",
+        "serverDescription": "Deskripsi",
+        "inbound": "Inbound",
+        "address": "Alamat",
+        "port": "Port",
+        "endpoint": "Endpoint",
+        "enable": "Aktifkan",
+        "actions": "Aksi",
+        "security": "Keamanan",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Gunakan alamat sebagai SNI",
+        "keepSniBlank": "Biarkan SNI kosong",
+        "hostHeader": "Header Host",
+        "path": "Path",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "SHA-256 sertifikat tersemat",
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "allowInsecure": "Izinkan tidak aman",
+        "echConfigList": "Daftar konfig ECH",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "Rute VLESS",
+        "mihomoIpVersion": "Versi IP",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "Acak host",
+        "tags": "Tag",
+        "nodeGuids": "Node",
+        "excludeFromSubTypes": "Kecualikan dari format"
+      },
+      "hints": {
+        "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",
+        "port": "0 mewarisi port inbound.",
+        "tags": "Tidak terlihat oleh pengguna akhir; hanya dikirim dengan langganan RAW. Hanya huruf kapital, angka, _ dan :.",
+        "nodeGuids": "Pilih node yang teresolusi dari host ini. Hanya penetapan visual.",
+        "serverDescription": "Catatan opsional yang ditampilkan di bawah catatan.",
+        "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "Port/rentang yang dirutekan melalui VLESS, mis. 53,443,1000-2000. Biarkan kosong jika tidak ada.",
+        "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
+      },
+      "remarkVars": {
+        "title": "Variabel Templat",
+        "intro": "Klik sebuah variabel untuk menambahkannya. Variabel diganti per klien saat langganan dibuat.",
+        "preview": "Pratinjau",
+        "groups": {
+          "client": "Klien",
+          "traffic": "Trafik",
+          "time": "Waktu & status"
+        },
+        "descEMAIL": "Email klien",
+        "descINBOUND": "Nama konfigurasi: catatan host bila diatur, jika tidak catatan inbound",
+        "descHOST": "Catatan host",
+        "descID": "UUID klien",
+        "descSHORT_ID": "8 karakter pertama dari UUID",
+        "descTELEGRAM_ID": "ID Telegram klien (kosong jika tidak diatur)",
+        "descSUB_ID": "ID langganan",
+        "descCOMMENT": "Komentar klien",
+        "descTRAFFIC_USED": "Trafik terpakai (mudah dibaca)",
+        "descTRAFFIC_LEFT": "Trafik tersisa (disembunyikan jika tanpa batas)",
+        "descTRAFFIC_TOTAL": "Total trafik (disembunyikan jika tanpa batas)",
+        "descTRAFFIC_USED_BYTES": "Trafik terpakai dalam byte",
+        "descTRAFFIC_LEFT_BYTES": "Trafik tersisa dalam byte",
+        "descTRAFFIC_TOTAL_BYTES": "Total trafik dalam byte",
+        "descUP": "Trafik unggah",
+        "descDOWN": "Trafik unduh",
+        "descSTATUS": "aktif / kedaluwarsa / nonaktif / habis",
+        "descDAYS_LEFT": "Hari hingga kedaluwarsa (disembunyikan jika tanpa batas)",
+        "descEXPIRE_DATE": "Tanggal kedaluwarsa (YYYY-MM-DD)",
+        "descEXPIRE_UNIX": "Kedaluwarsa sebagai timestamp Unix (detik)",
+        "descCREATED_UNIX": "Waktu pembuatan sebagai timestamp Unix (detik)",
+        "descRESET_DAYS": "Periode reset trafik dalam hari"
+      },
+      "toasts": {
+        "list": "Gagal memuat host",
+        "obtain": "Gagal memuat host",
+        "add": "Tambah host",
+        "update": "Perbarui host",
+        "delete": "Hapus host",
+        "badTag": "Tag tidak valid",
+        "badVlessRoute": "Gunakan port/rentang seperti 53,443,1000-2000"
       }
     }
   },

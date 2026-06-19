@@ -97,7 +97,8 @@
     "unlimited": "Ilimitado",
     "noExpiry": "Sem validade",
     "copyAllConfigs": "Copiar Todas as Configurações",
-    "copyAllConfigsCopied": "Todas as configurações copiadas"
+    "copyAllConfigsCopied": "Todas as configurações copiadas",
+    "email": "Email"
   },
   "menu": {
     "theme": "Tema",
@@ -113,7 +114,8 @@
     "apiDocs": "Documentação da API",
     "logout": "Sair",
     "link": "Gerenciar",
-    "donate": "Doar"
+    "donate": "Doar",
+    "hosts": "Hosts"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "Saída do tráfego do painel",
       "panelOutboundDesc": "Encaminha as requisições do próprio painel — verificações de versão e downloads do painel/Xray, Telegram e a atualização normal de arquivos geo — por esta saída do Xray para contornar a filtragem de GitHub/Telegram no servidor. Uma entrada ponte local é adicionada automaticamente à configuração em execução e aplicada ao vivo. A Atualização Automática de Geodata nativa do Xray não é afetada; ela tem sua própria saída de download. Deixe vazio para conexão direta.",
       "panelOutboundPh": "Conexão direta",
-      "remarkModel": "Modelo de Observação & Caractere de Separação",
       "datepicker": "Tipo de Calendário",
       "datepickerPlaceholder": "Selecionar data",
       "datepickerDescription": "Tarefas agendadas serão executadas com base neste calendário.",
-      "sampleRemark": "Exemplo de Observação",
       "oldUsername": "Nome de Usuário Atual",
       "currentPassword": "Senha Atual",
       "newUsername": "Novo Nome de Usuário",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "Os intervalos de atualização da URL de assinatura nos aplicativos de cliente. (unidade: hora)",
       "subEncrypt": "Codificar",
       "subEncryptDesc": "O conteúdo retornado pelo serviço de assinatura será codificado em Base64.",
-      "subShowInfo": "Mostrar Informações de Uso",
-      "subShowInfoDesc": "O tráfego restante e a data serão exibidos nos aplicativos de cliente.",
-      "subEmailInRemark": "Incluir Email no nome",
-      "subEmailInRemarkDesc": "Incluir o email do cliente no nome do perfil de assinatura.",
       "subURI": "URI de Proxy Reverso",
       "subURIDesc": "O caminho URI da URL de assinatura para uso por trás de proxies.",
       "externalTrafficInformEnable": "Informações de tráfego externo",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "Tempo de conexão esgotado — host inacessível",
       "smtpErrorRelay": "O servidor rejeita o envio a partir deste endereço",
       "smtpErrorEof": "Conexão encerrada pelo servidor",
-      "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}",
+      "remarkTemplate": "Modelo de Observação",
+      "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima."
     },
     "xray": {
       "title": "Configurações Xray",
@@ -1685,6 +1683,114 @@
         "edit": "Editar Fake DNS",
         "ipPool": "Sub-rede do Pool de IP",
         "poolSize": "Tamanho do Pool"
+      }
+    },
+    "hosts": {
+      "addHost": "Adicionar Host",
+      "editHost": "Editar Host",
+      "selectInbound": "Selecione uma entrada",
+      "selectedCount": "{count} selecionado(s)",
+      "summary": {
+        "total": "Total",
+        "enabled": "Ativados",
+        "disabled": "Desativados"
+      },
+      "moveUp": "Mover para cima",
+      "moveDown": "Mover para baixo",
+      "bulkEnable": "Ativar",
+      "bulkDisable": "Desativar",
+      "bulkDelete": "Excluir",
+      "bulkDeleteConfirm": "Excluir {count} host(s) selecionado(s)?",
+      "deleteConfirmTitle": "Excluir o host \"{name}\"?",
+      "sections": {
+        "basic": "Básico",
+        "security": "Segurança",
+        "advanced": "Avançado",
+        "general": "Geral",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "Observação",
+        "serverDescription": "Descrição",
+        "inbound": "Entrada",
+        "address": "Endereço",
+        "port": "Porta",
+        "endpoint": "Endpoint",
+        "enable": "Ativado",
+        "actions": "Ações",
+        "security": "Segurança",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Usar endereço como SNI",
+        "keepSniBlank": "Manter SNI em branco",
+        "hostHeader": "Cabeçalho Host",
+        "path": "Caminho",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "SHA-256 do certificado fixado",
+        "verifyPeerCertByName": "Verificar certificado do par pelo nome",
+        "allowInsecure": "Permitir inseguro",
+        "echConfigList": "Lista de configurações ECH",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "Rota VLESS",
+        "mihomoIpVersion": "Versão de IP",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "Embaralhar host",
+        "tags": "Tags",
+        "nodeGuids": "Nós",
+        "excludeFromSubTypes": "Excluir dos formatos"
+      },
+      "hints": {
+        "address": "Deixe em branco para herdar o próprio endereço da entrada.",
+        "port": "0 herda a porta da entrada.",
+        "tags": "Não visível aos usuários finais; enviado apenas na assinatura RAW. Apenas letras maiúsculas, dígitos, _ e :.",
+        "nodeGuids": "Escolha os nós que foram resolvidos a partir deste host. Apenas atribuição visual.",
+        "serverDescription": "Nota opcional exibida abaixo da observação.",
+        "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "Portas/intervalos roteados via VLESS, ex.: 53,443,1000-2000. Deixe em branco para nenhum.",
+        "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
+      },
+      "remarkVars": {
+        "title": "Variáveis de Modelo",
+        "intro": "Clique em uma variável para adicioná-la. Ela é substituída por cliente quando a assinatura é gerada.",
+        "preview": "Pré-visualização",
+        "groups": {
+          "client": "Cliente",
+          "traffic": "Tráfego",
+          "time": "Tempo e status"
+        },
+        "descEMAIL": "Email do cliente",
+        "descINBOUND": "Nome da configuração: a observação do host quando definida, caso contrário a observação da entrada",
+        "descHOST": "Observação do host",
+        "descID": "UUID do cliente",
+        "descSHORT_ID": "Primeiros 8 caracteres do UUID",
+        "descTELEGRAM_ID": "ID do Telegram do cliente (vazio se não definido)",
+        "descSUB_ID": "ID da assinatura",
+        "descCOMMENT": "Comentário do cliente",
+        "descTRAFFIC_USED": "Tráfego usado (legível por humanos)",
+        "descTRAFFIC_LEFT": "Tráfego restante (oculto se ilimitado)",
+        "descTRAFFIC_TOTAL": "Tráfego total (oculto se ilimitado)",
+        "descTRAFFIC_USED_BYTES": "Tráfego usado em bytes",
+        "descTRAFFIC_LEFT_BYTES": "Tráfego restante em bytes",
+        "descTRAFFIC_TOTAL_BYTES": "Tráfego total em bytes",
+        "descUP": "Tráfego de upload",
+        "descDOWN": "Tráfego de download",
+        "descSTATUS": "ativo / expirado / desativado / esgotado",
+        "descDAYS_LEFT": "Dias até a expiração (oculto se ilimitado)",
+        "descEXPIRE_DATE": "Data de expiração (AAAA-MM-DD)",
+        "descEXPIRE_UNIX": "Expiração como timestamp Unix (segundos)",
+        "descCREATED_UNIX": "Data de criação como timestamp Unix (segundos)",
+        "descRESET_DAYS": "Período de redefinição de tráfego em dias"
+      },
+      "toasts": {
+        "list": "Falha ao carregar os hosts",
+        "obtain": "Falha ao carregar o host",
+        "add": "Adicionar host",
+        "update": "Atualizar host",
+        "delete": "Excluir host",
+        "badTag": "Tag inválida",
+        "badVlessRoute": "Use portas/intervalos como 53,443,1000-2000"
       }
     }
   },

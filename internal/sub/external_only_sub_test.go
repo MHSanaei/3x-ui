@@ -25,7 +25,7 @@ func TestJsonAndClashServeExternalLinkOnlySub(t *testing.T) {
 		t.Fatalf("seed external link: %v", err)
 	}
 
-	base := NewSubService(false, "-io")
+	base := NewSubService("")
 
 	jsonOut, _, err := NewSubJsonService("", "", "", base).GetJson("ext-only", "sub.example.com")
 	if err != nil {

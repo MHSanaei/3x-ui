@@ -190,8 +190,8 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 	}
 
 	var parsed struct {
-		Data   map[string]string      `json:"data"`
-		Config map[string]interface{} `json:"config"`
+		Data   map[string]string `json:"data"`
+		Config map[string]any    `json:"config"`
 	}
 	if err := json.Unmarshal([]byte(result), &parsed); err != nil {
 		return "", err

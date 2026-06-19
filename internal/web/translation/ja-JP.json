@@ -97,7 +97,8 @@
     "unlimited": "無制限",
     "noExpiry": "期限なし",
     "copyAllConfigs": "すべての設定をコピー",
-    "copyAllConfigsCopied": "すべての設定をコピーしました"
+    "copyAllConfigsCopied": "すべての設定をコピーしました",
+    "email": "メール"
   },
   "menu": {
     "theme": "テーマ",
@@ -113,7 +114,8 @@
     "apiDocs": "API ドキュメント",
     "logout": "ログアウト",
     "link": "リンク管理",
-    "donate": "寄付"
+    "donate": "寄付",
+    "hosts": "ホスト"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "パネルトラフィックのアウトバウンド",
       "panelOutboundDesc": "パネル自体のリクエスト (パネル/Xray のバージョンチェックとダウンロード、Telegram、通常の geo ファイル更新) をこの Xray アウトバウンド経由でルーティングし、サーバー側の GitHub/Telegram フィルタリングを回避します。ローカルのブリッジインバウンドが実行中の設定に自動的に追加され、ライブで適用されます。Xray ネイティブの Geodata 自動更新は影響を受けません。専用のダウンロードアウトバウンドを持ちます。直接接続するには空のままにします。",
       "panelOutboundPh": "直接接続",
-      "remarkModel": "備考モデルと区切り記号",
       "datepicker": "日付ピッカー",
       "datepickerPlaceholder": "日付を選択",
       "datepickerDescription": "日付選択カレンダーで有効期限を指定する",
-      "sampleRemark": "備考の例",
       "oldUsername": "旧ユーザー名",
       "currentPassword": "旧パスワード",
       "newUsername": "新しいユーザー名",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "クライアントアプリケーションでサブスクリプションURLの更新間隔（単位：時間）",
       "subEncrypt": "エンコード",
       "subEncryptDesc": "サブスクリプションサービスが返す内容をBase64エンコードする",
-      "subShowInfo": "利用情報を表示",
-      "subShowInfoDesc": "クライアントアプリで残りのトラフィックと日付情報を表示する",
-      "subEmailInRemark": "名前にメールを含める",
-      "subEmailInRemarkDesc": "サブスクリプションプロファイル名にクライアントのメールアドレスを含めます。",
       "subURI": "リバースプロキシURI",
       "subURIDesc": "プロキシ後ろのサブスクリプションURLのURIパスに使用する",
       "externalTrafficInformEnable": "外部トラフィック情報",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "接続がタイムアウトしました — ホストに到達できません",
       "smtpErrorRelay": "サーバーはこのアドレスからの送信を拒否しています",
       "smtpErrorEof": "サーバーによって接続が閉じられました",
-      "smtpErrorUnknown": "SMTPエラー: {{ .Error }}"
+      "smtpErrorUnknown": "SMTPエラー: {{ .Error }}",
+      "remarkTemplate": "備考テンプレート",
+      "remarkTemplateDesc": "設定すると、すべてのサブスクリプションリンクの備考モデルを置き換えます — 変数トークンを使って独自の形式を記述してください（ボタンで挿入できます）。空欄にすると上記のモデルが使用されます。"
     },
     "xray": {
       "title": "Xray 設定",
@@ -1685,6 +1683,114 @@
         "edit": "フェイクDNS編集",
         "ipPool": "IPプールサブネット",
         "poolSize": "プールサイズ"
+      }
+    },
+    "hosts": {
+      "addHost": "ホストを追加",
+      "editHost": "ホストを編集",
+      "selectInbound": "インバウンドを選択",
+      "selectedCount": "{count} 選択中",
+      "summary": {
+        "total": "合計",
+        "enabled": "有効",
+        "disabled": "無効"
+      },
+      "moveUp": "上へ",
+      "moveDown": "下へ",
+      "bulkEnable": "有効化",
+      "bulkDisable": "無効化",
+      "bulkDelete": "削除",
+      "bulkDeleteConfirm": "選択した {count} 件のホストを削除しますか？",
+      "deleteConfirmTitle": "ホスト「{name}」を削除しますか？",
+      "sections": {
+        "basic": "基本",
+        "security": "セキュリティ",
+        "advanced": "詳細",
+        "general": "一般",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "備考",
+        "serverDescription": "説明",
+        "inbound": "インバウンド",
+        "address": "アドレス",
+        "port": "ポート",
+        "endpoint": "エンドポイント",
+        "enable": "有効化",
+        "actions": "操作",
+        "security": "セキュリティ",
+        "sni": "SNI",
+        "overrideSniFromAddress": "アドレスを SNI として使用",
+        "keepSniBlank": "SNI を空のままにする",
+        "hostHeader": "Host ヘッダー",
+        "path": "パス",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "ピン留め証明書 SHA-256",
+        "verifyPeerCertByName": "名前でピア証明書を検証",
+        "allowInsecure": "安全でない接続を許可",
+        "echConfigList": "ECH config リスト",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "VLESS ルート",
+        "mihomoIpVersion": "IP バージョン",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "ホストをシャッフル",
+        "tags": "タグ",
+        "nodeGuids": "ノード",
+        "excludeFromSubTypes": "形式から除外"
+      },
+      "hints": {
+        "address": "空欄にするとインバウンド自身のアドレスを継承します。",
+        "port": "0 にするとインバウンドのポートを継承します。",
+        "tags": "エンドユーザーには表示されません。RAW サブスクリプションでのみ送信されます。大文字、数字、_ と : のみ使用できます。",
+        "nodeGuids": "このホストから解決されたノードを選択します。視覚的な割り当てのみです。",
+        "serverDescription": "備考の下に表示される任意のメモ。",
+        "allowInsecure": "TLS 証明書の検証をスキップします（allowInsecure / skip-cert-verify）。",
+        "vlessRoute": "VLESS 経由でルーティングするポート/範囲。例: 53,443,1000-2000。なしの場合は空欄にします。",
+        "remark": "このホストのプレーンなラベル。インバウンド自身に備考がない場合にのみ設定名として表示されます。"
+      },
+      "remarkVars": {
+        "title": "テンプレート変数",
+        "intro": "変数をクリックすると追加されます。サブスクリプション生成時にクライアントごとに置き換えられます。",
+        "preview": "プレビュー",
+        "groups": {
+          "client": "クライアント",
+          "traffic": "トラフィック",
+          "time": "時刻とステータス"
+        },
+        "descEMAIL": "クライアントのメール",
+        "descINBOUND": "設定名: ホストの備考が設定されている場合はそれ、それ以外はインバウンドの備考",
+        "descHOST": "ホストの備考",
+        "descID": "クライアント UUID",
+        "descSHORT_ID": "UUID の最初の 8 文字",
+        "descTELEGRAM_ID": "クライアントの Telegram ID（未設定の場合は空）",
+        "descSUB_ID": "サブスクリプション ID",
+        "descCOMMENT": "クライアントのコメント",
+        "descTRAFFIC_USED": "使用済みトラフィック（人間が読みやすい形式）",
+        "descTRAFFIC_LEFT": "残りトラフィック（無制限の場合は非表示）",
+        "descTRAFFIC_TOTAL": "合計トラフィック（無制限の場合は非表示）",
+        "descTRAFFIC_USED_BYTES": "使用済みトラフィック（バイト）",
+        "descTRAFFIC_LEFT_BYTES": "残りトラフィック（バイト）",
+        "descTRAFFIC_TOTAL_BYTES": "合計トラフィック（バイト）",
+        "descUP": "アップロードトラフィック",
+        "descDOWN": "ダウンロードトラフィック",
+        "descSTATUS": "active / expired / disabled / depleted",
+        "descDAYS_LEFT": "有効期限までの日数（無制限の場合は非表示）",
+        "descEXPIRE_DATE": "有効期限（YYYY-MM-DD）",
+        "descEXPIRE_UNIX": "有効期限の Unix タイムスタンプ（秒）",
+        "descCREATED_UNIX": "作成時刻の Unix タイムスタンプ（秒）",
+        "descRESET_DAYS": "トラフィックリセット周期（日数）"
+      },
+      "toasts": {
+        "list": "ホストの読み込みに失敗しました",
+        "obtain": "ホストの読み込みに失敗しました",
+        "add": "ホストを追加",
+        "update": "ホストを更新",
+        "delete": "ホストを削除",
+        "badTag": "無効なタグ",
+        "badVlessRoute": "53,443,1000-2000 のようにポート/範囲を指定してください"
       }
     }
   },

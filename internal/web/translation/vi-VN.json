@@ -97,7 +97,8 @@
     "unlimited": "Không giới hạn",
     "noExpiry": "Không hết hạn",
     "copyAllConfigs": "Sao chép tất cả cấu hình",
-    "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình"
+    "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình",
+    "email": "Email"
   },
   "menu": {
     "theme": "Chủ đề",
@@ -113,7 +114,8 @@
     "apiDocs": "Tài liệu API",
     "logout": "Đăng xuất",
     "link": "Quản lý",
-    "donate": "Quyên góp"
+    "donate": "Quyên góp",
+    "hosts": "Hosts"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "Outbound cho lưu lượng panel",
       "panelOutboundDesc": "Định tuyến các yêu cầu của chính bảng điều khiển — kiểm tra phiên bản và tải xuống panel/Xray, Telegram, và cập nhật tệp geo thông thường — qua outbound Xray này để vượt qua lọc GitHub/Telegram phía máy chủ. Một inbound cầu nối cục bộ được tự động thêm vào cấu hình đang chạy và áp dụng trực tiếp. Tính năng Tự động cập nhật Geodata gốc của Xray không bị ảnh hưởng; nó có outbound tải xuống riêng. Để trống để kết nối trực tiếp.",
       "panelOutboundPh": "Kết nối trực tiếp",
-      "remarkModel": "Ghi chú mô hình và ký tự phân tách",
       "datepicker": "Kiểu lịch",
       "datepickerPlaceholder": "Chọn ngày",
       "datepickerDescription": "Tác vụ chạy theo lịch trình sẽ chạy theo kiểu lịch này.",
-      "sampleRemark": "Nhận xét mẫu",
       "oldUsername": "Tên người dùng hiện tại",
       "currentPassword": "Mật khẩu hiện tại",
       "newUsername": "Tên người dùng mới",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "Số giờ giữa các cập nhật trong ứng dụng khách",
       "subEncrypt": "Mã hóa",
       "subEncryptDesc": "Mã hóa các cấu hình được trả về trong gói đăng ký",
-      "subShowInfo": "Hiển thị thông tin sử dụng",
-      "subShowInfoDesc": "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình",
-      "subEmailInRemark": "Thêm Email vào tên",
-      "subEmailInRemarkDesc": "Thêm email của client vào tên hồ sơ đăng ký.",
       "subURI": "URI proxy trung gian",
       "subURIDesc": "Thay đổi URI cơ sở của URL gói đăng ký để sử dụng cho proxy trung gian",
       "externalTrafficInformEnable": "Thông báo giao thông bên ngoài",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "Hết thời gian kết nối — không thể truy cập máy chủ",
       "smtpErrorRelay": "Máy chủ từ chối gửi từ địa chỉ này",
       "smtpErrorEof": "Kết nối đã bị máy chủ đóng",
-      "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}",
+      "remarkTemplate": "Mẫu ghi chú",
+      "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên."
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1685,6 +1683,114 @@
         "edit": "Chỉnh sửa DNS giả",
         "ipPool": "Mạng con nhóm IP",
         "poolSize": "Kích thước bể bơi"
+      }
+    },
+    "hosts": {
+      "addHost": "Thêm Host",
+      "editHost": "Sửa Host",
+      "selectInbound": "Chọn một inbound",
+      "selectedCount": "Đã chọn {count}",
+      "summary": {
+        "total": "Tổng",
+        "enabled": "Đã kích hoạt",
+        "disabled": "Đã tắt"
+      },
+      "moveUp": "Lên",
+      "moveDown": "Xuống",
+      "bulkEnable": "Kích hoạt",
+      "bulkDisable": "Tắt",
+      "bulkDelete": "Xóa",
+      "bulkDeleteConfirm": "Xóa {count} host đã chọn?",
+      "deleteConfirmTitle": "Xóa host \"{name}\"?",
+      "sections": {
+        "basic": "Cơ bản",
+        "security": "Bảo mật",
+        "advanced": "Nâng cao",
+        "general": "Chung",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "Ghi chú",
+        "serverDescription": "Mô tả",
+        "inbound": "Inbound",
+        "address": "Địa chỉ",
+        "port": "Cổng",
+        "endpoint": "Endpoint",
+        "enable": "Kích hoạt",
+        "actions": "Hành động",
+        "security": "Bảo mật",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Dùng địa chỉ làm SNI",
+        "keepSniBlank": "Để trống SNI",
+        "hostHeader": "Host header",
+        "path": "Đường dẫn",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "SHA-256 chứng chỉ đã ghim",
+        "verifyPeerCertByName": "Xác minh chứng chỉ peer theo tên",
+        "allowInsecure": "Cho phép không an toàn",
+        "echConfigList": "Danh sách cấu hình ECH",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "Đường VLESS",
+        "mihomoIpVersion": "Phiên bản IP",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "Xáo trộn host",
+        "tags": "Tag",
+        "nodeGuids": "Nút",
+        "excludeFromSubTypes": "Loại trừ khỏi định dạng"
+      },
+      "hints": {
+        "address": "Để trống để kế thừa địa chỉ của chính inbound.",
+        "port": "0 sẽ kế thừa cổng của inbound.",
+        "tags": "Không hiển thị cho người dùng cuối; chỉ gửi kèm đăng ký RAW. Chỉ chữ in hoa, chữ số, _ và :.",
+        "nodeGuids": "Chọn các nút được phân giải từ host này. Chỉ là gán trực quan.",
+        "serverDescription": "Ghi chú tùy chọn hiển thị bên dưới ghi chú.",
+        "allowInsecure": "Bỏ qua xác minh chứng chỉ TLS (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "Cổng/dải cổng định tuyến qua VLESS, ví dụ 53,443,1000-2000. Để trống nếu không dùng.",
+        "remark": "Nhãn đơn giản cho host này. Chỉ hiển thị làm tên cấu hình khi inbound không có ghi chú riêng."
+      },
+      "remarkVars": {
+        "title": "Biến mẫu",
+        "intro": "Nhấp vào một biến để thêm. Biến được thay thế cho từng client khi tạo đăng ký.",
+        "preview": "Xem trước",
+        "groups": {
+          "client": "Khách hàng",
+          "traffic": "Lưu lượng",
+          "time": "Thời gian & trạng thái"
+        },
+        "descEMAIL": "Email khách hàng",
+        "descINBOUND": "Tên cấu hình: ghi chú của host nếu được đặt, nếu không thì ghi chú của inbound",
+        "descHOST": "Ghi chú host",
+        "descID": "UUID khách hàng",
+        "descSHORT_ID": "8 ký tự đầu của UUID",
+        "descTELEGRAM_ID": "ID Telegram của khách hàng (rỗng nếu chưa đặt)",
+        "descSUB_ID": "ID đăng ký",
+        "descCOMMENT": "Bình luận khách hàng",
+        "descTRAFFIC_USED": "Lưu lượng đã dùng (dễ đọc)",
+        "descTRAFFIC_LEFT": "Lưu lượng còn lại (ẩn nếu không giới hạn)",
+        "descTRAFFIC_TOTAL": "Tổng lưu lượng (ẩn nếu không giới hạn)",
+        "descTRAFFIC_USED_BYTES": "Lưu lượng đã dùng tính bằng byte",
+        "descTRAFFIC_LEFT_BYTES": "Lưu lượng còn lại tính bằng byte",
+        "descTRAFFIC_TOTAL_BYTES": "Tổng lưu lượng tính bằng byte",
+        "descUP": "Lưu lượng tải lên",
+        "descDOWN": "Lưu lượng tải xuống",
+        "descSTATUS": "active / expired / disabled / depleted",
+        "descDAYS_LEFT": "Số ngày đến khi hết hạn (ẩn nếu không giới hạn)",
+        "descEXPIRE_DATE": "Ngày hết hạn (YYYY-MM-DD)",
+        "descEXPIRE_UNIX": "Hết hạn dạng dấu thời gian Unix (giây)",
+        "descCREATED_UNIX": "Thời điểm tạo dạng dấu thời gian Unix (giây)",
+        "descRESET_DAYS": "Chu kỳ đặt lại lưu lượng tính theo ngày"
+      },
+      "toasts": {
+        "list": "Không tải được danh sách host",
+        "obtain": "Không tải được host",
+        "add": "Thêm host",
+        "update": "Cập nhật host",
+        "delete": "Xóa host",
+        "badTag": "Tag không hợp lệ",
+        "badVlessRoute": "Dùng cổng/dải cổng như 53,443,1000-2000"
       }
     }
   },

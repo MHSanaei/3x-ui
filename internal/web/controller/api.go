@@ -19,6 +19,7 @@ type APIController struct {
 	inboundController     *InboundController
 	serverController      *ServerController
 	nodeController        *NodeController
+	hostController        *HostController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
 	settingService        service.SettingService
@@ -94,6 +95,10 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Nodes API — multi-panel management
 	nodes := api.Group("/nodes")
 	a.nodeController = NewNodeController(nodes)
+
+	// Hosts API — per-inbound override endpoints for subscription links
+	hosts := api.Group("/hosts")
+	a.hostController = NewHostController(hosts)
 
 	// Settings + Xray config management live under the API surface too, so the
 	// same API token drives them. Paths are /panel/api/setting/* and

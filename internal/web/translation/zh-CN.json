@@ -97,7 +97,8 @@
     "unlimited": "无限制",
     "noExpiry": "无到期",
     "copyAllConfigs": "复制全部配置",
-    "copyAllConfigsCopied": "已复制全部配置"
+    "copyAllConfigsCopied": "已复制全部配置",
+    "email": "邮箱"
   },
   "menu": {
     "theme": "主题",
@@ -113,7 +114,8 @@
     "apiDocs": "API 文档",
     "logout": "退出登录",
     "link": "管理",
-    "donate": "捐赠"
+    "donate": "捐赠",
+    "hosts": "主机"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "面板流量出站",
       "panelOutboundDesc": "通过此 Xray 出站路由面板自身的请求(面板/Xray 版本检查与下载、Telegram、普通 geo 文件更新),以绕过服务端对 GitHub/Telegram 的过滤。本地桥接入站会自动添加到运行中的配置并实时生效。Xray 原生的 Geodata 自动更新不受影响,它有自己的下载出站。留空表示直连。",
       "panelOutboundPh": "直连",
-      "remarkModel": "备注模型和分隔符",
       "datepicker": "日期选择器",
       "datepickerPlaceholder": "选择日期",
       "datepickerDescription": "选择器日历类型指定到期日期",
-      "sampleRemark": "备注示例",
       "oldUsername": "原用户名",
       "currentPassword": "原密码",
       "newUsername": "新用户名",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "客户端应用中订阅 URL 的更新间隔（单位：小时）",
       "subEncrypt": "编码",
       "subEncryptDesc": "订阅服务返回的内容将采用 Base64 编码",
-      "subShowInfo": "显示使用信息",
-      "subShowInfoDesc": "客户端应用中将显示剩余流量和日期信息",
-      "subEmailInRemark": "在名称中包含邮箱",
-      "subEmailInRemarkDesc": "在订阅配置名称中包含客户端邮箱。",
       "subURI": "反向代理 URI",
       "subURIDesc": "用于代理后面的订阅 URL 的 URI 路径",
       "externalTrafficInformEnable": "外部交通通知",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "连接超时——主机无法访问",
       "smtpErrorRelay": "服务器拒绝从此地址发送",
       "smtpErrorEof": "连接被服务器关闭",
-      "smtpErrorUnknown": "SMTP 错误：{{ .Error }}"
+      "smtpErrorUnknown": "SMTP 错误：{{ .Error }}",
+      "remarkTemplate": "备注模板",
+      "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。"
     },
     "xray": {
       "title": "Xray 配置",
@@ -1685,6 +1683,114 @@
         "edit": "编辑假 DNS",
         "ipPool": "IP 池子网",
         "poolSize": "池大小"
+      }
+    },
+    "hosts": {
+      "addHost": "添加主机",
+      "editHost": "编辑主机",
+      "selectInbound": "选择一个入站",
+      "selectedCount": "已选 {count} 项",
+      "summary": {
+        "total": "总计",
+        "enabled": "已启用",
+        "disabled": "已禁用"
+      },
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "bulkEnable": "启用",
+      "bulkDisable": "禁用",
+      "bulkDelete": "删除",
+      "bulkDeleteConfirm": "删除选中的 {count} 个主机？",
+      "deleteConfirmTitle": "删除主机 \"{name}\"？",
+      "sections": {
+        "basic": "基本",
+        "security": "安全",
+        "advanced": "高级",
+        "general": "常规",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "备注",
+        "serverDescription": "描述",
+        "inbound": "入站",
+        "address": "地址",
+        "port": "端口",
+        "endpoint": "端点",
+        "enable": "启用",
+        "actions": "操作",
+        "security": "安全",
+        "sni": "SNI",
+        "overrideSniFromAddress": "使用地址作为 SNI",
+        "keepSniBlank": "保持 SNI 为空",
+        "hostHeader": "Host 头",
+        "path": "路径",
+        "alpn": "ALPN",
+        "fingerprint": "指纹",
+        "pins": "固定证书 SHA-256",
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "allowInsecure": "允许不安全连接",
+        "echConfigList": "ECH 配置列表",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "VLESS 路由",
+        "mihomoIpVersion": "IP 版本",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "随机打乱 Host",
+        "tags": "标签",
+        "nodeGuids": "节点",
+        "excludeFromSubTypes": "从格式中排除"
+      },
+      "hints": {
+        "address": "留空则继承入站自身的地址。",
+        "port": "填 0 则继承入站的端口。",
+        "tags": "对终端用户不可见；仅随 RAW 订阅发送。只能包含大写字母、数字、_ 和 :。",
+        "nodeGuids": "选择从此主机解析的节点。仅用于可视化关联。",
+        "serverDescription": "可选备注，显示在备注下方。",
+        "allowInsecure": "跳过 TLS 证书验证（allowInsecure / skip-cert-verify）。",
+        "vlessRoute": "通过 VLESS 路由的端口/范围，例如 53,443,1000-2000。留空表示不路由。",
+        "remark": "此主机的纯文本标签。仅当入站没有自己的备注时，才作为配置名称显示。"
+      },
+      "remarkVars": {
+        "title": "模板变量",
+        "intro": "点击变量即可添加。生成订阅时会按客户端逐一替换。",
+        "preview": "预览",
+        "groups": {
+          "client": "客户端",
+          "traffic": "流量",
+          "time": "时间与状态"
+        },
+        "descEMAIL": "客户端邮箱",
+        "descINBOUND": "配置名称：已设置时为主机的备注，否则为入站的备注",
+        "descHOST": "主机备注",
+        "descID": "客户端 UUID",
+        "descSHORT_ID": "UUID 的前 8 个字符",
+        "descTELEGRAM_ID": "客户端的 Telegram ID（未设置则为空）",
+        "descSUB_ID": "订阅 ID",
+        "descCOMMENT": "客户端备注",
+        "descTRAFFIC_USED": "已用流量（易读格式）",
+        "descTRAFFIC_LEFT": "剩余流量（无限制时隐藏）",
+        "descTRAFFIC_TOTAL": "总流量（无限制时隐藏）",
+        "descTRAFFIC_USED_BYTES": "已用流量（字节）",
+        "descTRAFFIC_LEFT_BYTES": "剩余流量（字节）",
+        "descTRAFFIC_TOTAL_BYTES": "总流量（字节）",
+        "descUP": "上传流量",
+        "descDOWN": "下载流量",
+        "descSTATUS": "active / expired / disabled / depleted",
+        "descDAYS_LEFT": "距到期天数（无限制时隐藏）",
+        "descEXPIRE_DATE": "到期日期（YYYY-MM-DD）",
+        "descEXPIRE_UNIX": "到期时间的 Unix 时间戳（秒）",
+        "descCREATED_UNIX": "创建时间的 Unix 时间戳（秒）",
+        "descRESET_DAYS": "流量重置周期（天）"
+      },
+      "toasts": {
+        "list": "加载主机失败",
+        "obtain": "加载主机失败",
+        "add": "添加主机",
+        "update": "更新主机",
+        "delete": "删除主机",
+        "badTag": "无效的标签",
+        "badVlessRoute": "请使用端口/范围格式，如 53,443,1000-2000"
       }
     }
   },

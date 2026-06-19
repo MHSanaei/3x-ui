@@ -97,7 +97,8 @@
     "unlimited": "Sınırsız",
     "noExpiry": "Süresiz",
     "copyAllConfigs": "Tüm Yapılandırmaları Kopyala",
-    "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı"
+    "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı",
+    "email": "E-posta"
   },
   "menu": {
     "theme": "Tema",
@@ -113,7 +114,8 @@
     "apiDocs": "API Belgeleri",
     "logout": "Çıkış Yap",
     "link": "Yönet",
-    "donate": "Bağış Yap"
+    "donate": "Bağış Yap",
+    "hosts": "Host'lar"
   },
   "pages": {
     "login": {
@@ -1023,11 +1025,9 @@
       "panelOutbound": "Panel Trafiği Gideni",
       "panelOutboundDesc": "Panelin kendi isteklerini — panel/Xray sürüm kontrolleri ve indirmeleri, Telegram ve normal geo dosyası güncellemesi — bu Xray gideni üzerinden yönlendirir; sunucu tarafındaki GitHub/Telegram filtrelemesini aşmak için. Yerel bir köprü gelen bağlantısı çalışan yapılandırmaya otomatik eklenir ve canlı uygulanır. Xray'in yerel Geodata Otomatik Güncellemesi etkilenmez; kendi indirme gidenine sahiptir. Doğrudan bağlantı için boş bırakın.",
       "panelOutboundPh": "Doğrudan bağlantı",
-      "remarkModel": "Açıklama Modeli ve Ayırma Karakteri",
       "datepicker": "Takvim Türü",
       "datepickerPlaceholder": "Tarih Seçin",
       "datepickerDescription": "Planlanmış görevler bu takvime göre çalışacaktır.",
-      "sampleRemark": "Örnek Açıklama",
       "oldUsername": "Mevcut Kullanıcı Adı",
       "currentPassword": "Mevcut Şifre",
       "newUsername": "Yeni Kullanıcı Adı",
@@ -1110,10 +1110,6 @@
       "subUpdatesDesc": "İstemci uygulamalarındaki abonelik URL'sinin güncellenme aralığı. (birim: saat)",
       "subEncrypt": "Kodla",
       "subEncryptDesc": "Abonelik hizmetinin döndürülen içeriğini Base64 ile şifreler.",
-      "subShowInfo": "Kullanım Bilgisini Göster",
-      "subShowInfoDesc": "Kalan trafiği ve süreyi istemci uygulamalarında görüntüler.",
-      "subEmailInRemark": "Ada E-posta Ekle",
-      "subEmailInRemarkDesc": "Abonelik profil adına kullanıcının e-postasını dahil eder.",
       "subURI": "Ters Proxy URI",
       "subURIDesc": "Proxy arkasında kullanılacak abonelik URL'sinin URI yolu.",
       "externalTrafficInformEnable": "Harici Trafik Bilgisi",
@@ -1290,7 +1286,9 @@
       "smtpErrorTimeout": "Bağlantı zaman aşımına uğradı — sunucuya ulaşılamıyor",
       "smtpErrorRelay": "Sunucu bu adresten gönderimi reddediyor",
       "smtpErrorEof": "Bağlantı sunucu tarafından kapatıldı",
-      "smtpErrorUnknown": "SMTP hatası: {{ .Error }}"
+      "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
+      "remarkTemplate": "Açıklama Şablonu",
+      "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın."
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1685,6 +1683,114 @@
         "edit": "Sahte DNS'i Düzenle",
         "ipPool": "IP Havuzu Alt Ağı",
         "poolSize": "Havuz Boyutu"
+      }
+    },
+    "hosts": {
+      "addHost": "Host Ekle",
+      "editHost": "Host'u Düzenle",
+      "selectInbound": "Bir gelen bağlantı seçin",
+      "selectedCount": "{count} seçildi",
+      "summary": {
+        "total": "Toplam",
+        "enabled": "Etkin",
+        "disabled": "Devre Dışı"
+      },
+      "moveUp": "Yukarı Taşı",
+      "moveDown": "Aşağı Taşı",
+      "bulkEnable": "Etkinleştir",
+      "bulkDisable": "Devre Dışı Bırak",
+      "bulkDelete": "Sil",
+      "bulkDeleteConfirm": "Seçili {count} host silinsin mi?",
+      "deleteConfirmTitle": "\"{name}\" host'u silinsin mi?",
+      "sections": {
+        "basic": "Temel",
+        "security": "Güvenlik",
+        "advanced": "Gelişmiş",
+        "general": "Genel",
+        "clash": "Clash (mihomo)"
+      },
+      "fields": {
+        "remark": "Açıklama",
+        "serverDescription": "Tanım",
+        "inbound": "Gelen Bağlantı",
+        "address": "Adres",
+        "port": "Port",
+        "endpoint": "Uç Nokta",
+        "enable": "Etkin",
+        "actions": "İşlemler",
+        "security": "Güvenlik",
+        "sni": "SNI",
+        "overrideSniFromAddress": "Adresi SNI olarak kullan",
+        "keepSniBlank": "SNI'yi boş bırak",
+        "hostHeader": "Host başlığı",
+        "path": "Yol",
+        "alpn": "ALPN",
+        "fingerprint": "Fingerprint",
+        "pins": "Sabitlenmiş sertifika SHA-256",
+        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula",
+        "allowInsecure": "Güvensize izin ver",
+        "echConfigList": "ECH yapılandırma listesi",
+        "muxParams": "Mux",
+        "sockoptParams": "Sockopt",
+        "finalMask": "Final Mask",
+        "vlessRoute": "VLESS yönlendirme",
+        "mihomoIpVersion": "IP sürümü",
+        "mihomoX25519": "Mihomo X25519",
+        "shuffleHost": "Host'u karıştır",
+        "tags": "Etiketler",
+        "nodeGuids": "Düğümler",
+        "excludeFromSubTypes": "Formatlardan hariç tut"
+      },
+      "hints": {
+        "address": "Gelen bağlantının kendi adresini devralmak için boş bırakın.",
+        "port": "0 değeri gelen bağlantının portunu devralır.",
+        "tags": "Son kullanıcılara görünmez; yalnızca RAW abonelikle gönderilir. Yalnızca büyük harf, rakam, _ ve : kullanılabilir.",
+        "nodeGuids": "Bu host'tan çözümlenen düğümleri seçin. Yalnızca görsel atama.",
+        "serverDescription": "Açıklamanın altında gösterilen isteğe bağlı not.",
+        "allowInsecure": "TLS sertifika doğrulamasını atla (allowInsecure / skip-cert-verify).",
+        "vlessRoute": "VLESS üzerinden yönlendirilen portlar/aralıklar, örn. 53,443,1000-2000. Hiçbiri için boş bırakın.",
+        "remark": "Bu host için düz bir etiket. Yalnızca gelen bağlantının kendi açıklaması yoksa yapılandırma adı olarak gösterilir."
+      },
+      "remarkVars": {
+        "title": "Şablon Değişkenleri",
+        "intro": "Eklemek için bir değişkene tıklayın. Abonelik oluşturulduğunda her kullanıcı için değiştirilir.",
+        "preview": "Önizleme",
+        "groups": {
+          "client": "Kullanıcı",
+          "traffic": "Trafik",
+          "time": "Zaman ve durum"
+        },
+        "descEMAIL": "Kullanıcı e-postası",
+        "descINBOUND": "Yapılandırma adı: ayarlanmışsa host'un açıklaması, aksi halde gelen bağlantının açıklaması",
+        "descHOST": "Host açıklaması",
+        "descID": "Kullanıcı UUID'si",
+        "descSHORT_ID": "UUID'nin ilk 8 karakteri",
+        "descTELEGRAM_ID": "Kullanıcının Telegram ID'si (ayarlı değilse boş)",
+        "descSUB_ID": "Abonelik kimliği",
+        "descCOMMENT": "Kullanıcı yorumu",
+        "descTRAFFIC_USED": "Kullanılan trafik (okunabilir biçim)",
+        "descTRAFFIC_LEFT": "Kalan trafik (sınırsızsa gizlenir)",
+        "descTRAFFIC_TOTAL": "Toplam trafik (sınırsızsa gizlenir)",
+        "descTRAFFIC_USED_BYTES": "Kullanılan trafik (byte)",
+        "descTRAFFIC_LEFT_BYTES": "Kalan trafik (byte)",
+        "descTRAFFIC_TOTAL_BYTES": "Toplam trafik (byte)",
+        "descUP": "Yükleme trafiği",
+        "descDOWN": "İndirme trafiği",
+        "descSTATUS": "aktif / süresi dolmuş / devre dışı / tükenmiş",
+        "descDAYS_LEFT": "Süre dolana kadar kalan gün (sınırsızsa gizlenir)",
+        "descEXPIRE_DATE": "Son kullanma tarihi (YYYY-AA-GG)",
+        "descEXPIRE_UNIX": "Son kullanma Unix zaman damgası olarak (saniye)",
+        "descCREATED_UNIX": "Oluşturulma zamanı Unix zaman damgası olarak (saniye)",
+        "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)"
+      },
+      "toasts": {
+        "list": "Host'lar yüklenemedi",
+        "obtain": "Host yüklenemedi",
+        "add": "Host ekle",
+        "update": "Host'u güncelle",
+        "delete": "Host'u sil",
+        "badTag": "Geçersiz etiket",
+        "badVlessRoute": "53,443,1000-2000 gibi portlar/aralıklar kullanın"
       }
     }
   },
