@@ -74,15 +74,230 @@
     {
       "label": "go: fmt",
       "type": "shell",
-      "command": "gofmt",
+      "command": "go",
       "args": [
-        "-l",
-        "-w",
-        "."
+        "fmt",
+        "./..."
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "problemMatcher": [
+        "$go"
+      ]
+    },
+    {
+      "label": "go: modernize",
+      "type": "shell",
+      "command": "modernize",
+      "args": [
+        "./..."
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$go"
+      ]
+    },
+    {
+      "label": "go: modernize -fix",
+      "type": "shell",
+      "command": "modernize",
+      "args": [
+        "-fix",
+        "./..."
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$go"
+      ]
+    },
+    {
+      "label": "frontend: ncu -u",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "npm-check-updates",
+        "-u"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: install",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "install"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: dev",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "group": "dev"
+      }
+    },
+    {
+      "label": "frontend: build",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "frontend: gen",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "gen"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: lint",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [
+        "$eslint-stylish"
+      ]
+    },
+    {
+      "label": "frontend: test",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "frontend: test:watch",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "test:watch"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "test"
+      }
+    },
+    {
+      "label": "frontend: typecheck",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "frontend: gen:zod",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "gen:zod"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: gen:api",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "gen:api"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build: full (frontend + go)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "frontend: build",
+        "go: build"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "check: all",
+      "dependsOn": [
+        "go: vet",
+        "go: test",
+        "frontend: lint",
+        "frontend: typecheck",
+        "frontend: test"
+      ],
       "problemMatcher": []
     }
   ]

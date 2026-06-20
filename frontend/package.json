@@ -61,6 +61,7 @@
     "vitest": "^4.1.9"
   },
   "overrides": {
+    "dompurify": "^3.4.11",
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",
     "react-debounce-input": {
