@@ -1,12 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -15,19 +17,20 @@ import (
 // so the list payload stays compact even when the panel manages thousands
 // of clients. Modals that need the full record still call /get/:email.
 type ClientSlim struct {
-	Email      string              `json:"email"`
-	SubID      string              `json:"subId"`
-	Enable     bool                `json:"enable"`
-	TotalGB    int64               `json:"totalGB"`
-	ExpiryTime int64               `json:"expiryTime"`
-	LimitIP    int                 `json:"limitIp"`
-	Reset      int                 `json:"reset"`
-	Group      string              `json:"group,omitempty"`
-	Comment    string              `json:"comment,omitempty"`
-	InboundIds []int               `json:"inboundIds"`
-	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
-	CreatedAt  int64               `json:"createdAt"`
-	UpdatedAt  int64               `json:"updatedAt"`
+	Email      string                 `json:"email"`
+	SubID      string                 `json:"subId"`
+	Enable     bool                   `json:"enable"`
+	TotalGB    int64                  `json:"totalGB"`
+	ExpiryTime int64                  `json:"expiryTime"`
+	LimitIP    int                    `json:"limitIp"`
+	Reset      int                    `json:"reset"`
+	Group      string                 `json:"group,omitempty"`
+	Comment    string                 `json:"comment,omitempty"`
+	InboundIds []int                  `json:"inboundIds"`
+	Traffic    *xray.ClientTraffic    `json:"traffic,omitempty"`
+	WgPeer     *model.WgPeerSettings  `json:"wgPeer,omitempty"`
+	CreatedAt  int64                  `json:"createdAt"`
+	UpdatedAt  int64                  `json:"updatedAt"`
 }
 
 // ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
@@ -263,7 +266,7 @@ func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struc
 }
 
 func toClientSlim(c ClientWithAttachments) ClientSlim {
-	return ClientSlim{
+	s := ClientSlim{
 		Email:      c.Email,
 		SubID:      c.SubID,
 		Enable:     c.Enable,
@@ -278,6 +281,13 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 	}
+	if c.WgSettings != "" {
+		var wg model.WgPeerSettings
+		if err := json.Unmarshal([]byte(c.WgSettings), &wg); err == nil {
+			s.WgPeer = &wg
+		}
+	}
+	return s
 }
 
 func clientMatchesSearch(c ClientWithAttachments, needle string) bool {

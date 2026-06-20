@@ -4,12 +4,15 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/curve25519"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -349,8 +352,21 @@ func inboundWgPublicKey(settings string) string {
 	if err := json.Unmarshal([]byte(settings), &s); err != nil {
 		return ""
 	}
-	pk, _ := s["publicKey"].(string)
-	return pk
+	if pk, _ := s["publicKey"].(string); pk != "" {
+		return pk
+	}
+	sk, _ := s["secretKey"].(string)
+	if sk == "" {
+		return ""
+	}
+	privBytes, err := base64.StdEncoding.DecodeString(sk)
+	if err != nil || len(privBytes) != 32 {
+		return ""
+	}
+	var priv, pub [32]byte
+	copy(priv[:], privBytes)
+	curve25519.ScalarBaseMult(&pub, &priv)
+	return base64.StdEncoding.EncodeToString(pub[:])
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
