@@ -222,6 +222,10 @@
             "description": "Encrypt subscription responses",
             "type": "boolean"
           },
+          "subHideSettings": {
+            "description": "Hide server settings in happ subscription (Only for Happ)",
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -439,6 +443,7 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subHideSettings",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -698,6 +703,10 @@
             "description": "Encrypt subscription responses",
             "type": "boolean"
           },
+          "subHideSettings": {
+            "description": "Hide server settings in happ subscription (Only for Happ)",
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -922,6 +931,7 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subHideSettings",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",

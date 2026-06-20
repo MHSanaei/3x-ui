@@ -37,7 +37,6 @@ func TestExpandRemarkVars(t *testing.T) {
 
 	cases := []struct{ tmpl, want string }{
 		{"{{EMAIL}}", "john@example.com"},
-		{"{{USERNAME}}", "john@example.com"},
 		{"{{INBOUND}}", "Germany"}, // no host remark in ctx → inbound remark
 		{"{{HOST}}", ""},           // no host remark in ctx → empty
 		{"{{ID}}", client.ID},
@@ -394,6 +393,7 @@ func TestExpandNewTokensInTemplate(t *testing.T) {
 
 func TestTranslateUISingleBrackets(t *testing.T) {
 	cases := []struct{ in, want string }{
+		{"{EMAIL}", "{{EMAIL}}"},
 		{"{DATA_LEFT}", "{{TRAFFIC_LEFT}}"},
 		{"{DATA_LEFT} of {DATA_LIMIT}", "{{TRAFFIC_LEFT}} of {{TRAFFIC_TOTAL}}"},
 		{"{STATUS_EMOJI} {INBOUND}", "{{STATUS_EMOJI}} {INBOUND}"},
@@ -419,6 +419,7 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 		transport: "ws",
 	}
 	cases := []struct{ tmpl, want string }{
+		{"{EMAIL}", "alice@test.com"},
 		{"{DATA_LEFT}", "50.00GB"},
 		{"{DATA_USAGE}", "50.00GB"},
 		{"{DATA_LIMIT}", "100.00GB"},

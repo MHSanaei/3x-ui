@@ -59,7 +59,7 @@ var unlimitedDropTokens = map[string]bool{
 // Remark/Host Name fields) to their internal double-brace equivalents. Tokens
 // not present in this map are left untouched.
 var uiTokenMap = map[string]string{
-	"USERNAME":           "USERNAME",
+	"EMAIL":              "EMAIL",
 	"DATA_USAGE":         "TRAFFIC_USED",
 	"DATA_LEFT":          "TRAFFIC_LEFT",
 	"DATA_LIMIT":         "TRAFFIC_TOTAL",
@@ -88,7 +88,9 @@ func translateUISingleBrackets(template string) string {
 			if j < len(template) && template[j] == '}' {
 				token := template[i+1 : j]
 				if internal, ok := uiTokenMap[token]; ok {
-					result.WriteString("{{" + internal + "}}")
+					result.WriteString("{{")
+					result.WriteString(internal)
+					result.WriteString("}}")
 					i = j + 1
 					continue
 				}
