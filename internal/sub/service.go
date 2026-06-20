@@ -1657,6 +1657,10 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	}
 	extra := map[string]any{}
 
+	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
+		extra["mode"] = mode
+	}
+
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		extra["xPaddingBytes"] = xpb
 	}

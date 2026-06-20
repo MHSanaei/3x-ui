@@ -47,6 +47,10 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
   if (!xhttp) return null;
   const extra: Record<string, unknown> = {};
 
+  if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+    extra.mode = xhttp.mode;
+  }
+
   if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
     extra.xPaddingBytes = xhttp.xPaddingBytes;
   }
