@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
@@ -177,7 +178,7 @@ export default function ClientFormModal({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [clientIps, setClientIps] = useState<string[]>([]);
+  const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
@@ -355,8 +356,7 @@ export default function ClientFormModal({
     try {
       const msg = await HttpUtil.post(`/panel/api/clients/ips/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
       if (!msg?.success) { setClientIps([]); return; }
-      const arr = Array.isArray(msg.obj) ? msg.obj : [];
-      setClientIps(arr.filter((x): x is string => typeof x === 'string' && x.length > 0));
+      setClientIps(normalizeClientIps(msg.obj));
     } finally {
       setIpsLoading(false);
     }
@@ -678,71 +678,55 @@ export default function ClientFormModal({
                 label: t('pages.clients.tabCredentials'),
                 children: (
                   <>
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.uuid')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.password')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                    <Form.Item label={t('pages.clients.uuid')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
+                      </Space.Compact>
+                    </Form.Item>
 
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.subId')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.hysteriaAuth')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                    <Form.Item label={t('pages.clients.password')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
+                      </Space.Compact>
+                    </Form.Item>
 
-                    <Row gutter={16}>
-                      {showFlow && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.flow')}>
-                            <Select
-                              value={form.flow}
-                              onChange={(v) => update('flow', v)}
-                              options={[
-                                { value: '', label: t('none') },
-                                ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
-                              ]}
-                            />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      {showSecurity && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.vmessSecurity')}>
-                            <Select
-                              value={form.security}
-                              onChange={(v) => update('security', v)}
-                              options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
-                            />
-                          </Form.Item>
-                        </Col>
-                      )}
-                    </Row>
+                    <Form.Item label={t('pages.clients.subId')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
+                      </Space.Compact>
+                    </Form.Item>
+
+                    <Form.Item label={t('pages.clients.hysteriaAuth')}>
+                      <Space.Compact style={{ display: 'flex' }}>
+                        <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
+                        <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
+                      </Space.Compact>
+                    </Form.Item>
+
+                    {showFlow && (
+                      <Form.Item label={t('pages.clients.flow')}>
+                        <Select
+                          value={form.flow}
+                          onChange={(v) => update('flow', v)}
+                          options={[
+                            { value: '', label: t('none') },
+                            ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                          ]}
+                        />
+                      </Form.Item>
+                    )}
+                    {showSecurity && (
+                      <Form.Item label={t('pages.clients.vmessSecurity')}>
+                        <Select
+                          value={form.security}
+                          onChange={(v) => update('security', v)}
+                          options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
+                        />
+                      </Form.Item>
+                    )}
                   </>
                 ),
               },
@@ -822,7 +806,7 @@ export default function ClientFormModal({
       >
         {clientIps.length > 0 ? (
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            {clientIps.map((ip, idx) => (
+            {clientIps.map((entry, idx) => (
               <Tag
                 key={idx}
                 color="blue"
@@ -835,7 +819,10 @@ export default function ClientFormModal({
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                 }}
               >
-                {ip}
+                {entry.ip}{entry.time ? ` (${entry.time})` : ''}
+                {entry.node ? (
+                  <span style={{ marginInlineStart: 6, opacity: 0.85, fontWeight: 600 }}>@ {entry.node}</span>
+                ) : null}
               </Tag>
             ))}
           </div>

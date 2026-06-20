@@ -33,7 +33,7 @@ export interface AllSetting {
   ldapVlessField: string;
   pageSize: number;
   panelOutbound: string;
-  remarkModel: string;
+  remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   smtpCpu: number;
@@ -53,7 +53,6 @@ export interface AllSetting {
   subClashRules: string;
   subClashURI: string;
   subDomain: string;
-  subEmailInRemark: boolean;
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
@@ -69,7 +68,6 @@ export interface AllSetting {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
-  subShowInfo: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -133,7 +131,7 @@ export interface AllSettingView {
   ldapVlessField: string;
   pageSize: number;
   panelOutbound: string;
-  remarkModel: string;
+  remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
   smtpCpu: number;
@@ -153,7 +151,6 @@ export interface AllSettingView {
   subClashRules: string;
   subClashURI: string;
   subDomain: string;
-  subEmailInRemark: boolean;
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
@@ -169,7 +166,6 @@ export interface AllSettingView {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
-  subShowInfo: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -294,6 +290,42 @@ export interface HistoryOfSeeders {
   seederName: string;
 }
 
+export interface Host {
+  address: string;
+  allowInsecure: boolean;
+  alpn: string[];
+  createdAt: number;
+  echConfigList: string;
+  excludeFromSubTypes: string[];
+  finalMask: string;
+  fingerprint: string;
+  hostHeader: string;
+  id: number;
+  inboundId: number;
+  isDisabled: boolean;
+  isHidden: boolean;
+  keepSniBlank: boolean;
+  mihomoIpVersion: string;
+  mihomoX25519: boolean;
+  muxParams: unknown;
+  nodeGuids?: string[];
+  overrideSniFromAddress: boolean;
+  path: string;
+  pinnedPeerCertSha256: string[];
+  port: number;
+  remark: string;
+  security: string;
+  serverDescription: string;
+  shuffleHost: boolean;
+  sni: string;
+  sockoptParams: unknown;
+  sortOrder: number;
+  tags: string[];
+  updatedAt: number;
+  verifyPeerCertByName: boolean;
+  vlessRoute: string;
+}
+
 export interface Inbound {
   clientStats: ClientTraffic[];
   down: number;
@@ -377,6 +409,8 @@ export interface Node {
   latencyMs: number;
   memPct: number;
   name: string;
+  netDown: number;
+  netUp: number;
   onlineCount: number;
   outboundTag: string;
   panelVersion: string;

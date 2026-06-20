@@ -323,7 +323,7 @@ export default function NodeFormModal({
             label={t('pages.nodes.allowPrivateAddress')}
             name="allowPrivateAddress"
             valuePropName="checked"
-            extra={t('pages.nodes.allowPrivateAddressHint')}
+            tooltip={t('pages.nodes.allowPrivateAddressHint')}
           >
             <Switch />
           </Form.Item>
@@ -331,7 +331,7 @@ export default function NodeFormModal({
           <Form.Item
             label={t('pages.nodes.tlsVerifyMode')}
             name="tlsVerifyMode"
-            extra={t('pages.nodes.tlsVerifyModeHint')}
+            tooltip={t('pages.nodes.tlsVerifyModeHint')}
           >
             <Select
               disabled={scheme === 'http'}
@@ -339,6 +339,7 @@ export default function NodeFormModal({
                 { value: 'verify', label: t('pages.nodes.tlsVerify') },
                 { value: 'pin', label: t('pages.nodes.tlsPin') },
                 { value: 'skip', label: t('pages.nodes.tlsSkip') },
+                { value: 'mtls', label: t('pages.nodes.tlsMtls') },
               ]}
             />
           </Form.Item>
@@ -352,11 +353,20 @@ export default function NodeFormModal({
             />
           )}
 
+          {tlsVerifyMode === 'mtls' && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={t('pages.nodes.mtlsFormHint')}
+            />
+          )}
+
           {tlsVerifyMode === 'pin' && (
             <Form.Item
               label={t('pages.nodes.pinnedCert')}
               name="pinnedCertSha256"
-              extra={t('pages.nodes.pinnedCertHint')}
+              tooltip={t('pages.nodes.pinnedCertHint')}
             >
               <Input.Search
                 placeholder={t('pages.nodes.pinnedCertPlaceholder')}
@@ -371,7 +381,7 @@ export default function NodeFormModal({
             label={t('pages.nodes.apiToken')}
             name="apiToken"
             rules={[antdRule(NodeFormSchema.shape.apiToken, t)]}
-            extra={t('pages.nodes.apiTokenHint')}
+            tooltip={t('pages.nodes.apiTokenHint')}
           >
             <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
           </Form.Item>
@@ -379,7 +389,7 @@ export default function NodeFormModal({
           <Form.Item
             label={t('pages.nodes.outboundTag')}
             name="outboundTag"
-            extra={t('pages.nodes.outboundTagHint')}
+            tooltip={t('pages.nodes.outboundTagHint')}
             getValueProps={(v) => ({ value: (v as string) || undefined })}
           >
             <Select
@@ -393,7 +403,7 @@ export default function NodeFormModal({
           <Form.Item
             label={t('pages.nodes.inboundSyncMode')}
             name="inboundSyncMode"
-            extra={t('pages.nodes.inboundSyncModeHint')}
+            tooltip={t('pages.nodes.inboundSyncModeHint')}
           >
             <Select
               options={[
@@ -407,7 +417,7 @@ export default function NodeFormModal({
             <Form.Item
               label={t('pages.nodes.inboundTags')}
               name="inboundTags"
-              extra={t('pages.nodes.inboundTagsHint')}
+              tooltip={t('pages.nodes.inboundTagsHint')}
             >
               <Select
                 mode="multiple"

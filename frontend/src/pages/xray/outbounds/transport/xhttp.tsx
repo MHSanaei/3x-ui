@@ -212,14 +212,14 @@ export default function XhttpForm({ form, onXmuxToggle }: XhttpFormProps) {
           const mode = form.getFieldValue([
             'streamSettings', 'xhttpSettings', 'mode',
           ]);
-          if (mode !== 'packet-up') return null;
+          if (mode !== 'packet-up' && mode !== 'auto') return null;
           return (
             <>
               <Form.Item
                 label={t('pages.xray.outboundForm.minUploadInterval')}
                 name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
               >
-                <Input placeholder="30" />
+                <Input placeholder="e.g. 50-150" />
               </Form.Item>
               <Form.Item
                 label={t('pages.xray.outboundForm.maxUploadSizeBytes')}

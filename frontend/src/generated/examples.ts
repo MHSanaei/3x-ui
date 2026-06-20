@@ -27,7 +27,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapVlessField": "",
     "pageSize": 0,
     "panelOutbound": "",
-    "remarkModel": "",
+    "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
     "smtpCpu": 0,
@@ -47,7 +47,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "subClashRules": "",
     "subClashURI": "",
     "subDomain": "",
-    "subEmailInRemark": false,
     "subEnable": false,
     "subEnableRouting": false,
     "subEncrypt": false,
@@ -63,7 +62,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
-    "subShowInfo": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -126,7 +124,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapVlessField": "",
     "pageSize": 0,
     "panelOutbound": "",
-    "remarkModel": "",
+    "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
     "sessionMaxAge": 1,
     "smtpCpu": 0,
@@ -146,7 +144,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "subClashRules": "",
     "subClashURI": "",
     "subDomain": "",
-    "subEmailInRemark": false,
     "subEnable": false,
     "subEnableRouting": false,
     "subEncrypt": false,
@@ -162,7 +159,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
-    "subShowInfo": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -277,6 +273,51 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "seederName": ""
   },
+  "Host": {
+    "address": "cdn.example.com",
+    "allowInsecure": false,
+    "alpn": [
+      ""
+    ],
+    "createdAt": 0,
+    "echConfigList": "",
+    "excludeFromSubTypes": [
+      ""
+    ],
+    "finalMask": "",
+    "fingerprint": "",
+    "hostHeader": "",
+    "id": 1,
+    "inboundId": 1,
+    "isDisabled": false,
+    "isHidden": false,
+    "keepSniBlank": false,
+    "mihomoIpVersion": "dual",
+    "mihomoX25519": false,
+    "muxParams": null,
+    "nodeGuids": [
+      ""
+    ],
+    "overrideSniFromAddress": false,
+    "path": "",
+    "pinnedPeerCertSha256": [
+      ""
+    ],
+    "port": 8443,
+    "remark": "cdn-front",
+    "security": "same",
+    "serverDescription": "",
+    "shuffleHost": false,
+    "sni": "",
+    "sockoptParams": null,
+    "sortOrder": 0,
+    "tags": [
+      ""
+    ],
+    "updatedAt": 0,
+    "verifyPeerCertByName": false,
+    "vlessRoute": ""
+  },
   "Inbound": {
     "clientStats": [
       {
@@ -372,6 +413,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "latencyMs": 42,
     "memPct": 45.1,
     "name": "de-fra-1",
+    "netDown": 2097152,
+    "netUp": 1048576,
     "onlineCount": 3,
     "outboundTag": "",
     "panelVersion": "v3.x.x",

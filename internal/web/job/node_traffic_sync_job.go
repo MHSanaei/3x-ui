@@ -8,10 +8,10 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const (
@@ -96,11 +96,12 @@ func (j *NodeTrafficSyncJob) Run() {
 		}
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(n *model.Node) {
+		n := n
+		common.GoRecover("node-traffic-sync:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			j.syncOne(mgr, n, doIpSync)
-		}(n)
+		})
 	}
 	wg.Wait()
 
@@ -211,7 +212,8 @@ func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*mod
 		}
 		wg.Add(1)
 		sem <- struct{}{}
-		go func(n *model.Node, remote *runtime.Remote, traffics []*xray.ClientTraffic) {
+		n, remote, traffics := n, remote, traffics
+		common.GoRecover("node-global-push:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
@@ -225,7 +227,7 @@ func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*mod
 					logger.Warning("node traffic sync: push globals to", n.Name, "failed:", err)
 				}
 			}
-		}(n, remote, traffics)
+		})
 	}
 	wg.Wait()
 }
@@ -292,6 +294,17 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if len(masterIps) > 0 {
 		if err := rt.PushAllClientIps(ctx, masterIps); err != nil {
 			logger.Warning("node traffic sync: push client ips to", n.Name, "failed:", err)
+		}
+	}
+
+	// Per-node IP attribution: pull the node's guid-keyed subtree (its own
+	// observations plus any descendants) so the master can tell which node each
+	// IP is on. Old nodes without the endpoint just return an error — skip them.
+	if guidTrees, err := rt.FetchClientIpsByGuid(ctx); err != nil {
+		logger.Debug("node traffic sync: fetch client ip attribution from", n.Name, "failed:", err)
+	} else if len(guidTrees) > 0 {
+		if err := j.inboundService.MergeClientIpsByGuid(guidTrees); err != nil {
+			logger.Warning("node traffic sync: merge client ip attribution from", n.Name, "failed:", err)
 		}
 	}
 }

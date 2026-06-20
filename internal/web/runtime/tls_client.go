@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -15,6 +16,34 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
+
+// MasterClientCertProvider supplies the master client certificate this panel
+// presents to nodes in mtls mode. It is injected by the web layer so the
+// runtime package need not import service.
+type MasterClientCertProvider func() (tls.Certificate, error)
+
+var (
+	masterClientCertMu sync.RWMutex
+	masterClientCert   MasterClientCertProvider
+)
+
+// SetMasterClientCertProvider installs the provider used to obtain the master
+// client certificate for mtls nodes. Passing nil disables it.
+func SetMasterClientCertProvider(p MasterClientCertProvider) {
+	masterClientCertMu.Lock()
+	defer masterClientCertMu.Unlock()
+	masterClientCert = p
+}
+
+func getMasterClientCert() (tls.Certificate, error) {
+	masterClientCertMu.RLock()
+	p := masterClientCert
+	masterClientCertMu.RUnlock()
+	if p == nil {
+		return tls.Certificate{}, common.NewError("mtls: master client certificate provider not configured")
+	}
+	return p()
+}
 
 // defaultNodeHTTPClient reaches nodes trusting the system CA store ("verify"
 // mode or plain http); shared so connections pool across nodes.
@@ -70,6 +99,19 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 }
 
 func tlsConfigForNode(n *model.Node) (*tls.Config, error) {
+	if n.TlsVerifyMode == "mtls" {
+		// Present the master client cert; verify the node's server cert against
+		// the system roots (no InsecureSkipVerify). mtls authenticates the
+		// caller — it does not change how the node's server identity is checked.
+		cert, err := getMasterClientCert()
+		if err != nil {
+			return nil, err
+		}
+		return &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}, nil
+	}
 	tlsCfg := &tls.Config{InsecureSkipVerify: true} // lgtm[go/disabled-certificate-check]
 	if n.TlsVerifyMode == "pin" {
 		want, err := DecodeCertPin(n.PinnedCertSha256)

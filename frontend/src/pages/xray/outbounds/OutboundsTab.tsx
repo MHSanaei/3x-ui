@@ -33,6 +33,7 @@ import {
   ArrowDownOutlined,
   CheckCircleOutlined,
   WarningOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -469,6 +470,14 @@ export default function OutboundsTab({
             rowKey={(r) => r.key}
             pagination={false}
             size="small"
+            locale={{
+              emptyText: (
+                <div className="card-empty">
+                  <ExportOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                  <div>{t('noData')}</div>
+                </div>
+              ),
+            }}
           />
         )}
 

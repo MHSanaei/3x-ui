@@ -270,7 +270,7 @@ func parseRecipients(toStr string) []string {
 		return nil
 	}
 	var out []string
-	for _, s := range strings.Split(toStr, ",") {
+	for s := range strings.SplitSeq(toStr, ",") {
 		s = strings.TrimSpace(s)
 		if s != "" {
 			out = append(out, s)

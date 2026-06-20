@@ -80,8 +80,7 @@ type ValidationPayload struct {
 func writeBindFailure(c *gin.Context, err error) {
 	payload := ValidationPayload{Issues: []FieldIssue{}, Message: err.Error()}
 
-	var ve validator.ValidationErrors
-	if errors.As(err, &ve) {
+	if ve, ok := errors.AsType[validator.ValidationErrors](err); ok {
 		payload.Issues = make([]FieldIssue, 0, len(ve))
 		for _, fe := range ve {
 			payload.Issues = append(payload.Issues, FieldIssue{
@@ -102,7 +101,7 @@ func writeBindFailure(c *gin.Context, err error) {
 
 func init() {
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		name, _, _ := strings.Cut(fld.Tag.Get("json"), ",")
 		if name == "-" || name == "" {
 			return fld.Name
 		}

@@ -47,7 +47,7 @@ export default function RealityForm({
       </Form.Item>
       <Form.Item
         label={t('pages.inbounds.form.target')}
-        extra={t('pages.inbounds.form.realityTargetHint')}
+        tooltip={t('pages.inbounds.form.realityTargetHint')}
       >
         <Space.Compact block>
           <Form.Item

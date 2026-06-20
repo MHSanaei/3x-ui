@@ -85,3 +85,44 @@
 .api-docs-page .ant-card .ant-card-actions {
   background: transparent;
 }
+
+/* Hosts page shares the same card styling + hover shadows (without the default
+   antd hoverable pointer/blur), matching Clients/Inbounds/etc. */
+.hosts-page .ant-card {
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+
+.hosts-page.is-dark .ant-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.hosts-page.is-dark.is-ultra .ant-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.hosts-page .ant-card.ant-card-hoverable:hover {
+  cursor: default;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.hosts-page.is-dark .ant-card.ant-card-hoverable:hover {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.hosts-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.hosts-page .ant-card .ant-card-actions {
+  background: transparent;
+}

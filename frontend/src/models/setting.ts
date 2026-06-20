@@ -13,7 +13,7 @@ export class AllSetting {
   pageSize = 25;
   expireDiff = 0;
   trafficDiff = 0;
-  remarkModel = '-io';
+  remarkTemplate = '{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
   tgBotToken = '';
@@ -48,8 +48,6 @@ export class AllSetting {
   subKeyFile = '';
   subUpdates = 12;
   subEncrypt = true;
-  subShowInfo = true;
-  subEmailInRemark = true;
   subURI = '';
   subJsonURI = '';
   subClashURI = '';

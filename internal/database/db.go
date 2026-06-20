@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -72,7 +73,9 @@ func initModels() error {
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
+		&model.Host{},
 		&model.NodeClientTraffic{},
+		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
@@ -90,6 +93,9 @@ func initModels() error {
 		return err
 	}
 	if err := pruneOrphanedClientInbounds(); err != nil {
+		return err
+	}
+	if err := pruneOrphanedHosts(); err != nil {
 		return err
 	}
 	if err := normalizeInboundSubSortIndex(); err != nil {
@@ -111,6 +117,127 @@ func dropLegacyForeignKeys() error {
 	if err := db.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
 		log.Printf("Error dropping legacy foreign key fk_inbounds_client_stats: %v", err)
 		return err
+	}
+	return nil
+}
+
+// seedHostsFromExternalProxy is a one-time, self-gated migration that creates a
+// Host row for every legacy externalProxy entry on every inbound. Additive: the
+// externalProxy arrays are left intact in StreamSettings.
+func seedHostsFromExternalProxy() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "HostsFromExternalProxy") {
+		return nil
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.StreamSettings) == "" {
+				continue
+			}
+			var stream map[string]any
+			if err := json.Unmarshal([]byte(inbound.StreamSettings), &stream); err != nil {
+				log.Printf("HostsFromExternalProxy: skip inbound %d (invalid stream json): %v", inbound.Id, err)
+				continue
+			}
+			eps, ok := stream["externalProxy"].([]any)
+			if !ok || len(eps) == 0 {
+				continue
+			}
+			for i, raw := range eps {
+				ep, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				if err := tx.Create(externalProxyEntryToHost(inbound.Id, i, ep)).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "HostsFromExternalProxy"}).Error
+	})
+}
+
+// externalProxyEntryToHost maps one legacy externalProxy entry onto a Host.
+// forceTls (same|tls|none) maps straight to Security; an unknown value falls back
+// to "same" (inherit). An empty remark gets a stable generated label so the row
+// stays valid/editable, and the remark is capped at the model's 256-char limit.
+func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Host {
+	security, _ := ep["forceTls"].(string)
+	switch security {
+	case "same", "tls", "none":
+	default:
+		security = "same"
+	}
+	dest, _ := ep["dest"].(string)
+	port := 0
+	if p, ok := ep["port"].(float64); ok {
+		port = int(p)
+	}
+	remark, _ := ep["remark"].(string)
+	if strings.TrimSpace(remark) == "" {
+		remark = "imported " + strconv.Itoa(index+1)
+	}
+	if len(remark) > 256 {
+		remark = remark[:256]
+	}
+	sni, _ := ep["sni"].(string)
+	fingerprint, _ := ep["fingerprint"].(string)
+	ech, _ := ep["echConfigList"].(string)
+	return &model.Host{
+		InboundId:            inboundId,
+		SortOrder:            index,
+		Remark:               remark,
+		Address:              dest,
+		Port:                 port,
+		Security:             security,
+		Sni:                  sni,
+		Fingerprint:          fingerprint,
+		Alpn:                 anyToNonEmptyStrings(ep["alpn"]),
+		PinnedPeerCertSha256: anyToNonEmptyStrings(ep["pinnedPeerCertSha256"]),
+		EchConfigList:        ech,
+	}
+}
+
+func anyToNonEmptyStrings(v any) []string {
+	switch t := v.(type) {
+	case []any:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case []string:
+		out := make([]string, 0, len(t))
+		for _, s := range t {
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func pruneOrphanedHosts() error {
+	res := db.Exec("DELETE FROM hosts WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
+	if res.Error != nil {
+		log.Printf("Error pruning orphaned hosts rows: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Pruned %d orphaned hosts row(s)", res.RowsAffected)
 	}
 	return nil
 }
@@ -292,6 +419,12 @@ func runSeeders(isUsersEmpty bool) error {
 		if err := clearLegacyProxySettings(); err != nil {
 			return err
 		}
+	}
+
+	// Self-gated on the "HostsFromExternalProxy" row, so it is safe to call
+	// unconditionally here.
+	if err := seedHostsFromExternalProxy(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -754,7 +887,10 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
-		dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
+		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
+		// sidecars). synchronous defaults to FULL for durability but is tunable.
+		sync := sqliteSynchronous()
+		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -763,14 +899,21 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
-			return err
+		// Re-assert the DSN pragmas plus scan-friendly ones for large datasets.
+		// cache_size/mmap_size/temp_store create no extra files, so the single-file
+		// guarantee holds; they just cut disk I/O on the 50k-row hot paths.
+		pragmas := []string{
+			"PRAGMA journal_mode=DELETE",
+			"PRAGMA busy_timeout=10000",
+			"PRAGMA synchronous=" + sync,
+			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
+			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
+			"PRAGMA temp_store=MEMORY",
 		}
-		if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
-			return err
-		}
-		if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
-			return err
+		for _, p := range pragmas {
+			if _, err := sqlDB.Exec(p); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -805,6 +948,21 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+// sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.
+// Whitelisted because the value is interpolated directly into a PRAGMA string.
+func sqliteSynchronous() string {
+	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
+	case "OFF":
+		return "OFF"
+	case "NORMAL":
+		return "NORMAL"
+	case "EXTRA":
+		return "EXTRA"
+	default:
+		return "FULL"
+	}
 }
 
 func envInt(key string, def int) int {

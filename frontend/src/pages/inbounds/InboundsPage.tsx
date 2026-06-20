@@ -90,7 +90,6 @@ export default function InboundsPage() {
     subSettings,
     tgBotEnable,
     ipLimitEnable,
-    remarkModel,
     refresh,
     hydrateInbound,
     applyTrafficEvent,
@@ -265,13 +264,12 @@ export default function InboundsPage() {
       content: genInboundLinks({
         inbound: inboundFromDb(projected),
         remark: projected.remark,
-        remarkModel,
         hostOverride: hostOverrideFor(dbInbound),
         fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
       }),
       fileName: projected.remark || 'inbound',
     });
-  }, [checkFallback, remarkModel, hostOverrideFor, subSettings.publicHost, openText, t]);
+  }, [checkFallback, hostOverrideFor, subSettings.publicHost, openText, t]);
 
   const exportInboundClipboard = useCallback((dbInbound: DBInbound) => {
     openText({ title: t('pages.inbounds.inboundJsonTitle'), content: JSON.stringify(dbInbound, null, 2), json: true });
@@ -303,13 +301,12 @@ export default function InboundsPage() {
       out.push(genInboundLinks({
         inbound: inboundFromDb(projected),
         remark: projected.remark,
-        remarkModel,
         hostOverride: hostOverrideFor(ib),
         fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
       }));
     }
     openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
-  }, [dbInbounds, hydrateInbound, checkFallback, remarkModel, hostOverrideFor, subSettings.publicHost, openText, t]);
+  }, [dbInbounds, hydrateInbound, checkFallback, hostOverrideFor, subSettings.publicHost, openText, t]);
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(
@@ -658,7 +655,6 @@ export default function InboundsPage() {
             onClose={() => setInfoOpen(false)}
             dbInbound={infoDbInbound}
             clientIndex={infoClientIndex}
-            remarkModel={remarkModel}
             expireDiff={expireDiff}
             trafficDiff={trafficDiff}
             ipLimitEnable={ipLimitEnable}
@@ -674,7 +670,6 @@ export default function InboundsPage() {
             onClose={() => setQrOpen(false)}
             dbInbound={qrDbInbound}
             client={null}
-            remarkModel={remarkModel}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
           />

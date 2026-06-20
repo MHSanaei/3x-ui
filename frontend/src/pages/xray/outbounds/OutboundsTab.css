@@ -3,10 +3,17 @@
   justify-content: flex-end;
 }
 
+/* Keep this in sync with the other pages' .card-empty (it's a global class):
+   the previous opacity:0.4 here leaked onto whichever page's empty state was
+   shown after the Outbounds CSS loaded, fading it. */
 .card-empty {
   text-align: center;
-  opacity: 0.4;
-  padding: 16px 0;
+  color: var(--ant-color-text-secondary);
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .outbound-card {

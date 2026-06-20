@@ -29,22 +29,31 @@ import (
 var xrayTemplateConfig string
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig":          xrayTemplateConfig,
-	"webListen":                   "",
-	"webDomain":                   "",
-	"webPort":                     "2053",
-	"webCertFile":                 "",
-	"webKeyFile":                  "",
-	"secret":                      random.Seq(32),
-	"panelGuid":                   uuid.NewString(),
-	"apiToken":                    "",
+	"xrayTemplateConfig": xrayTemplateConfig,
+	"webListen":          "",
+	"webDomain":          "",
+	"webPort":            "2053",
+	"webCertFile":        "",
+	"webKeyFile":         "",
+	"secret":             random.Seq(32),
+	"panelGuid":          uuid.NewString(),
+	"apiToken":           "",
+	// Node mTLS material (opt-in). All default empty: the CA + master client
+	// cert are minted lazily on first use, and the node-side trust CA is pasted
+	// in by the operator. Kept out of entity.AllSetting so private keys never
+	// reach the settings UI/export.
+	"nodeMtlsCaCertPem":           "",
+	"nodeMtlsCaKeyPem":            "",
+	"nodeMtlsClientCertPem":       "",
+	"nodeMtlsClientKeyPem":        "",
+	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
-	"remarkModel":                 "-ieo",
+	"remarkTemplate":              "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -73,8 +82,6 @@ var defaultValueMap = map[string]string{
 	"subKeyFile":                  "",
 	"subUpdates":                  "12",
 	"subEncrypt":                  "true",
-	"subShowInfo":                 "true",
-	"subEmailInRemark":            "true",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -583,8 +590,8 @@ func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
 }
 
-func (s *SettingService) GetRemarkModel() (string, error) {
-	return s.getString("remarkModel")
+func (s *SettingService) GetRemarkTemplate() (string, error) {
+	return s.getString("remarkTemplate")
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {
@@ -727,14 +734,6 @@ func (s *SettingService) GetSubUpdates() (string, error) {
 
 func (s *SettingService) GetSubEncrypt() (bool, error) {
 	return s.getBool("subEncrypt")
-}
-
-func (s *SettingService) GetSubShowInfo() (bool, error) {
-	return s.getBool("subShowInfo")
-}
-
-func (s *SettingService) GetSubEmailInRemark() (bool, error) {
-	return s.getBool("subEmailInRemark")
 }
 
 func (s *SettingService) GetPageSize() (int, error) {
@@ -1169,7 +1168,6 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subURI":          func() (any, error) { return s.GetSubURI() },
 		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
 		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
-		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":      func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
 		"accessLogEnable": func() (any, error) { return s.GetAccessLogEnable() },

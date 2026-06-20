@@ -124,8 +124,8 @@
             "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
-          "remarkModel": {
-            "description": "Remark model pattern for inbounds",
+          "remarkTemplate": {
+            "description": "Subscription remark template ({{VAR}} tokens) rendered per client",
             "type": "string"
           },
           "restartXrayOnClientDisable": {
@@ -210,10 +210,6 @@
             "description": "Domain for subscription server validation",
             "type": "string"
           },
-          "subEmailInRemark": {
-            "description": "Include email in subscription remark/name",
-            "type": "boolean"
-          },
           "subEnable": {
             "description": "Subscription server settings\nEnable subscription server",
             "type": "boolean"
@@ -274,10 +270,6 @@
           "subRoutingRules": {
             "description": "Subscription global routing rules (Only for Happ)",
             "type": "string"
-          },
-          "subShowInfo": {
-            "description": "Show client information in subscriptions",
-            "type": "boolean"
           },
           "subSupportUrl": {
             "description": "Subscription support URL",
@@ -424,7 +416,7 @@
           "ldapVlessField",
           "pageSize",
           "panelOutbound",
-          "remarkModel",
+          "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
           "smtpCpu",
@@ -444,7 +436,6 @@
           "subClashRules",
           "subClashURI",
           "subDomain",
-          "subEmailInRemark",
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
@@ -460,7 +451,6 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
-          "subShowInfo",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -610,8 +600,8 @@
             "description": "Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)",
             "type": "string"
           },
-          "remarkModel": {
-            "description": "Remark model pattern for inbounds",
+          "remarkTemplate": {
+            "description": "Subscription remark template ({{VAR}} tokens) rendered per client",
             "type": "string"
           },
           "restartXrayOnClientDisable": {
@@ -696,10 +686,6 @@
             "description": "Domain for subscription server validation",
             "type": "string"
           },
-          "subEmailInRemark": {
-            "description": "Include email in subscription remark/name",
-            "type": "boolean"
-          },
           "subEnable": {
             "description": "Subscription server settings\nEnable subscription server",
             "type": "boolean"
@@ -760,10 +746,6 @@
           "subRoutingRules": {
             "description": "Subscription global routing rules (Only for Happ)",
             "type": "string"
-          },
-          "subShowInfo": {
-            "description": "Show client information in subscriptions",
-            "type": "boolean"
           },
           "subSupportUrl": {
             "description": "Subscription support URL",
@@ -917,7 +899,7 @@
           "ldapVlessField",
           "pageSize",
           "panelOutbound",
-          "remarkModel",
+          "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
           "smtpCpu",
@@ -937,7 +919,6 @@
           "subClashRules",
           "subClashURI",
           "subDomain",
-          "subEmailInRemark",
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
@@ -953,7 +934,6 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
-          "subShowInfo",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -1352,6 +1332,181 @@
         ],
         "type": "object"
       },
+      "Host": {
+        "description": "Host is an override endpoint attached to an inbound: at subscription time each\nenabled host renders one share link/proxy with its own address/port/TLS/etc.,\nsuperseding the legacy externalProxy array. Free-JSON fields are stored as\ntext and parsed in the sub layer; slice fields use the json serializer.",
+        "properties": {
+          "address": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "allowInsecure": {
+            "type": "boolean"
+          },
+          "alpn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "echConfigList": {
+            "type": "string"
+          },
+          "excludeFromSubTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "finalMask": {
+            "description": "FinalMask is a JSON object of xray finalmask masks (tcp/udp/quicParams),\nmerged into this host's JSON-subscription stream. Empty = no override.",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "hostHeader": {
+            "type": "string"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "inboundId": {
+            "example": 1,
+            "type": "integer"
+          },
+          "isDisabled": {
+            "type": "boolean"
+          },
+          "isHidden": {
+            "type": "boolean"
+          },
+          "keepSniBlank": {
+            "type": "boolean"
+          },
+          "mihomoIpVersion": {
+            "enum": [
+              "dual",
+              "ipv4",
+              "ipv6",
+              "ipv4-prefer",
+              "ipv6-prefer"
+            ],
+            "type": "string"
+          },
+          "mihomoX25519": {
+            "type": "boolean"
+          },
+          "muxParams": {},
+          "nodeGuids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "overrideSniFromAddress": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pinnedPeerCertSha256": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "port": {
+            "example": 8443,
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "remark": {
+            "example": "cdn-front",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "security": {
+            "enum": [
+              "same",
+              "tls",
+              "none",
+              "reality"
+            ],
+            "example": "same",
+            "type": "string"
+          },
+          "serverDescription": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "shuffleHost": {
+            "type": "boolean"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "sockoptParams": {},
+          "sortOrder": {
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "verifyPeerCertByName": {
+            "type": "boolean"
+          },
+          "vlessRoute": {
+            "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "allowInsecure",
+          "alpn",
+          "createdAt",
+          "echConfigList",
+          "excludeFromSubTypes",
+          "finalMask",
+          "fingerprint",
+          "hostHeader",
+          "id",
+          "inboundId",
+          "isDisabled",
+          "isHidden",
+          "keepSniBlank",
+          "mihomoIpVersion",
+          "mihomoX25519",
+          "muxParams",
+          "overrideSniFromAddress",
+          "path",
+          "pinnedPeerCertSha256",
+          "port",
+          "remark",
+          "security",
+          "serverDescription",
+          "shuffleHost",
+          "sni",
+          "sockoptParams",
+          "sortOrder",
+          "tags",
+          "updatedAt",
+          "verifyPeerCertByName",
+          "vlessRoute"
+        ],
+        "type": "object"
+      },
       "Inbound": {
         "description": "Inbound represents an Xray inbound configuration with traffic statistics and settings.",
         "properties": {
@@ -1719,6 +1874,14 @@
             "example": "de-fra-1",
             "type": "string"
           },
+          "netDown": {
+            "example": 2097152,
+            "type": "integer"
+          },
+          "netUp": {
+            "example": 1048576,
+            "type": "integer"
+          },
           "onlineCount": {
             "example": 3,
             "type": "integer"
@@ -1763,7 +1926,8 @@
             "enum": [
               "verify",
               "skip",
-              "pin"
+              "pin",
+              "mtls"
             ],
             "type": "string"
           },
@@ -1812,6 +1976,8 @@
           "latencyMs",
           "memPct",
           "name",
+          "netDown",
+          "netUp",
           "onlineCount",
           "outboundTag",
           "panelVersion",
@@ -1982,6 +2148,10 @@
     {
       "name": "Nodes",
       "description": "Manage remote 3x-ui panels acting as nodes for a central panel. All endpoints under /panel/api/nodes."
+    },
+    {
+      "name": "Hosts",
+      "description": "Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts."
     },
     {
       "name": "Backup",
@@ -5936,6 +6106,49 @@
         }
       }
     },
+    "/panel/api/clients/clientIpsByGuid": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Per-client source IPs grouped by the panelGuid of the node that observed them. Lets the central panel attribute and enforce per-client IP limits using the real visitor IPs each node sees, instead of the address of the intermediate panel it syncs through.",
+        "operationId": "post_panel_api_clients_clientIpsByGuid",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "a1b2-...": {
+                      "user1": [
+                        {
+                          "ip": "1.2.3.4",
+                          "timestamp": 1700000000
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/activeInbounds": {
       "post": {
         "tags": [
@@ -6223,6 +6436,8 @@
                       "latencyMs": 42,
                       "memPct": 45.1,
                       "name": "de-fra-1",
+                      "netDown": 2097152,
+                      "netUp": 1048576,
                       "onlineCount": 3,
                       "outboundTag": "",
                       "panelVersion": "v3.x.x",
@@ -6241,6 +6456,85 @@
                       "xrayVersion": "25.10.31"
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/mtls/ca": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "This panel's node-auth CA certificate (public, PEM) to paste into a node's mTLS trust setting. Lazily mints the CA and the master client cert on first call. Pair with setting tlsVerifyMode=mtls on the node.",
+        "operationId": "post_panel_api_nodes_mtls_ca",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "caCert": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/mtls/trustCA": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Set the CA certificate this panel trusts for incoming node-API client certificates (this panel acting as a node). Paste the managing panel's CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty value must be a PEM certificate. Applied on the next panel restart.",
+        "operationId": "post_panel_api_nodes_mtls_trustCA",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "caCert": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
@@ -6858,6 +7152,766 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/list": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "List every host across all inbounds, grouped by inbound then ordered by sort order.",
+        "operationId": "get_panel_api_hosts_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Host"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "address": "cdn.example.com",
+                      "allowInsecure": false,
+                      "alpn": [
+                        ""
+                      ],
+                      "createdAt": 0,
+                      "echConfigList": "",
+                      "excludeFromSubTypes": [
+                        ""
+                      ],
+                      "finalMask": "",
+                      "fingerprint": "",
+                      "hostHeader": "",
+                      "id": 1,
+                      "inboundId": 1,
+                      "isDisabled": false,
+                      "isHidden": false,
+                      "keepSniBlank": false,
+                      "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
+                      "muxParams": null,
+                      "nodeGuids": [
+                        ""
+                      ],
+                      "overrideSniFromAddress": false,
+                      "path": "",
+                      "pinnedPeerCertSha256": [
+                        ""
+                      ],
+                      "port": 8443,
+                      "remark": "cdn-front",
+                      "security": "same",
+                      "serverDescription": "",
+                      "shuffleHost": false,
+                      "sni": "",
+                      "sockoptParams": null,
+                      "sortOrder": 0,
+                      "tags": [
+                        ""
+                      ],
+                      "updatedAt": 0,
+                      "verifyPeerCertByName": false,
+                      "vlessRoute": ""
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/get/{id}": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Fetch a single host by ID.",
+        "operationId": "get_panel_api_hosts_get_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Host ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Host"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "address": "cdn.example.com",
+                    "allowInsecure": false,
+                    "alpn": [
+                      ""
+                    ],
+                    "createdAt": 0,
+                    "echConfigList": "",
+                    "excludeFromSubTypes": [
+                      ""
+                    ],
+                    "finalMask": "",
+                    "fingerprint": "",
+                    "hostHeader": "",
+                    "id": 1,
+                    "inboundId": 1,
+                    "isDisabled": false,
+                    "isHidden": false,
+                    "keepSniBlank": false,
+                    "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
+                    "muxParams": null,
+                    "nodeGuids": [
+                      ""
+                    ],
+                    "overrideSniFromAddress": false,
+                    "path": "",
+                    "pinnedPeerCertSha256": [
+                      ""
+                    ],
+                    "port": 8443,
+                    "remark": "cdn-front",
+                    "security": "same",
+                    "serverDescription": "",
+                    "shuffleHost": false,
+                    "sni": "",
+                    "sockoptParams": null,
+                    "sortOrder": 0,
+                    "tags": [
+                      ""
+                    ],
+                    "updatedAt": 0,
+                    "verifyPeerCertByName": false,
+                    "vlessRoute": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/byInbound/{inboundId}": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Fetch one inbound's hosts, ordered by sort order then id.",
+        "operationId": "get_panel_api_hosts_byInbound_inboundId",
+        "parameters": [
+          {
+            "name": "inboundId",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Host"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "address": "cdn.example.com",
+                      "allowInsecure": false,
+                      "alpn": [
+                        ""
+                      ],
+                      "createdAt": 0,
+                      "echConfigList": "",
+                      "excludeFromSubTypes": [
+                        ""
+                      ],
+                      "finalMask": "",
+                      "fingerprint": "",
+                      "hostHeader": "",
+                      "id": 1,
+                      "inboundId": 1,
+                      "isDisabled": false,
+                      "isHidden": false,
+                      "keepSniBlank": false,
+                      "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
+                      "muxParams": null,
+                      "nodeGuids": [
+                        ""
+                      ],
+                      "overrideSniFromAddress": false,
+                      "path": "",
+                      "pinnedPeerCertSha256": [
+                        ""
+                      ],
+                      "port": 8443,
+                      "remark": "cdn-front",
+                      "security": "same",
+                      "serverDescription": "",
+                      "shuffleHost": false,
+                      "sni": "",
+                      "sockoptParams": null,
+                      "sortOrder": 0,
+                      "tags": [
+                        ""
+                      ],
+                      "updatedAt": 0,
+                      "verifyPeerCertByName": false,
+                      "vlessRoute": ""
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/tags": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Distinct, sorted set of tags used across all hosts.",
+        "operationId": "get_panel_api_hosts_tags",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "CDN",
+                    "EU",
+                    "FAST"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/add": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Create a host on an inbound. inboundId and remark are required; security defaults to \"same\" (inherit the inbound).",
+        "operationId": "post_panel_api_hosts_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundId": 1,
+                "remark": "cdn-front",
+                "address": "cdn.example.com",
+                "port": 8443,
+                "security": "same",
+                "sni": "",
+                "tags": [
+                  "CDN"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Host"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "address": "cdn.example.com",
+                    "allowInsecure": false,
+                    "alpn": [
+                      ""
+                    ],
+                    "createdAt": 0,
+                    "echConfigList": "",
+                    "excludeFromSubTypes": [
+                      ""
+                    ],
+                    "finalMask": "",
+                    "fingerprint": "",
+                    "hostHeader": "",
+                    "id": 1,
+                    "inboundId": 1,
+                    "isDisabled": false,
+                    "isHidden": false,
+                    "keepSniBlank": false,
+                    "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
+                    "muxParams": null,
+                    "nodeGuids": [
+                      ""
+                    ],
+                    "overrideSniFromAddress": false,
+                    "path": "",
+                    "pinnedPeerCertSha256": [
+                      ""
+                    ],
+                    "port": 8443,
+                    "remark": "cdn-front",
+                    "security": "same",
+                    "serverDescription": "",
+                    "shuffleHost": false,
+                    "sni": "",
+                    "sockoptParams": null,
+                    "sortOrder": 0,
+                    "tags": [
+                      ""
+                    ],
+                    "updatedAt": 0,
+                    "verifyPeerCertByName": false,
+                    "vlessRoute": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/update/{id}": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Replace a host’s content. The inbound and sort order are immutable here (use /reorder for ordering).",
+        "operationId": "post_panel_api_hosts_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Host ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundId": 1,
+                "remark": "cdn-front",
+                "address": "cdn.example.com",
+                "port": 8443,
+                "security": "same",
+                "sni": "",
+                "tags": [
+                  "CDN"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Host"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "address": "cdn.example.com",
+                    "allowInsecure": false,
+                    "alpn": [
+                      ""
+                    ],
+                    "createdAt": 0,
+                    "echConfigList": "",
+                    "excludeFromSubTypes": [
+                      ""
+                    ],
+                    "finalMask": "",
+                    "fingerprint": "",
+                    "hostHeader": "",
+                    "id": 1,
+                    "inboundId": 1,
+                    "isDisabled": false,
+                    "isHidden": false,
+                    "keepSniBlank": false,
+                    "mihomoIpVersion": "dual",
+                    "mihomoX25519": false,
+                    "muxParams": null,
+                    "nodeGuids": [
+                      ""
+                    ],
+                    "overrideSniFromAddress": false,
+                    "path": "",
+                    "pinnedPeerCertSha256": [
+                      ""
+                    ],
+                    "port": 8443,
+                    "remark": "cdn-front",
+                    "security": "same",
+                    "serverDescription": "",
+                    "shuffleHost": false,
+                    "sni": "",
+                    "sockoptParams": null,
+                    "sortOrder": 0,
+                    "tags": [
+                      ""
+                    ],
+                    "updatedAt": 0,
+                    "verifyPeerCertByName": false,
+                    "vlessRoute": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/del/{id}": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Delete a host.",
+        "operationId": "post_panel_api_hosts_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Host ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/setEnable/{id}": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Enable or disable a single host (disabled hosts are skipped in subscriptions).",
+        "operationId": "post_panel_api_hosts_setEnable_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Host ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/reorder": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Set host sort order by the position of each id in the array.",
+        "operationId": "post_panel_api_hosts_reorder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "ids": [
+                  3,
+                  1,
+                  2
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/bulk/setEnable": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Enable or disable many hosts in one call.",
+        "operationId": "post_panel_api_hosts_bulk_setEnable",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "ids": [
+                  1,
+                  2,
+                  3
+                ],
+                "enable": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/bulk/del": {
+      "post": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "Delete many hosts in one call.",
+        "operationId": "post_panel_api_hosts_bulk_del",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "ids": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
