@@ -419,11 +419,29 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Check out the PR branch when the comment is on a pull request
-        if: github.event.issue.pull_request
+          # Don't persist the GITHUB_TOKEN auth header; pushes are authenticated
+          # below with a PAT so they can reach a contributor's fork branch.
+          persist-credentials: false
+      # claude-code-action checks out the PR head branch and lets Claude push
+      # with `git push origin ...`. For fork PRs the head branch lives on the
+      # contributor's repo, not origin, and GITHUB_TOKEN cannot push there.
+      # Point origin's PUSH url at the PR head repository (the fork for fork
+      # PRs, this repo otherwise) using a PAT that has push access; fetches
+      # still come from origin (this repo).
+      - name: Route commit pushes to the PR head repository
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr checkout ${{ github.event.issue.number }}
+          BOT_PAT: ${{ secrets.CLAUDE_BOT_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -n "${{ github.event.issue.pull_request.url }}" ]; then
+            head_repo=$(gh pr view "${{ github.event.issue.number }}" \
+              --json headRepositoryOwner,headRepository \
+              --jq '"\(.headRepositoryOwner.login)/\(.headRepository.name)"')
+          else
+            head_repo="${{ github.repository }}"
+          fi
+          git remote set-url --push origin "https://x-access-token:${BOT_PAT}@github.com/${head_repo}.git"
       - uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
