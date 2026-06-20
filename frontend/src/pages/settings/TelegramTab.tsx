@@ -5,7 +5,8 @@ import { BellOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { LanguageManager } from '@/utils';
 import { HttpUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
-import { SettingListItem, EventBusCheckboxes } from '@/components/ui';
+import { SettingListItem } from '@/components/ui';
+import { TelegramNotifications } from '@/components/ui/notifications/TelegramNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 
@@ -245,12 +246,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.tgEventBusNotify')} description={t('pages.settings.tgEventBusNotifyDesc')}>
-              <EventBusCheckboxes
-                value={allSetting.tgEnabledEvents}
-                onChange={(v) => updateSetting({ tgEnabledEvents: v })}
-                extra={{ 'cpu.high': { key: 'tgCpu', value: allSetting.tgCpu } }}
-                onExtraChange={(key, v) => updateSetting({ [key]: Number(v) || 0 })}
-              />
+              <TelegramNotifications allSetting={allSetting} updateSetting={updateSetting} />
             </SettingListItem>
           </>
         ),
