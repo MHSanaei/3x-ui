@@ -372,8 +372,15 @@ export function parseShadowsocksLink(link: string): Raw | null {
   const core = queryIndex >= 0 ? linkNoHash.slice(0, queryIndex) : linkNoHash;
   const atIndex = core.indexOf('@');
   if (atIndex >= 0) {
-    try { userInfo = Base64.decode(core.slice('ss://'.length, atIndex)); }
-    catch { userInfo = core.slice('ss://'.length, atIndex); }
+    const rawUserInfo = core.slice('ss://'.length, atIndex);
+    if (rawUserInfo.includes(':')) {
+      // SIP022 (2022-blake3-*) userinfo is percent-encoded, never base64
+      // (a literal ':' can't appear in a base64/base64url string).
+      try { userInfo = decodeURIComponent(rawUserInfo); } catch { userInfo = rawUserInfo; }
+    } else {
+      try { userInfo = Base64.decode(rawUserInfo); }
+      catch { userInfo = rawUserInfo; }
+    }
     const hostPort = core.slice(atIndex + 1);
     const colon = hostPort.lastIndexOf(':');
     if (colon < 0) return null;

@@ -71,7 +71,7 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
       return { packets: '1-3', length: '100-200', delay: '', maxSplit: '' };
     case 'sudoku':
       return {
-        password: '', ascii: '', customTable: '', customTables: [''],
+        password: '', ascii: '', customTable: '', customTables: [],
         paddingMin: 0, paddingMax: 0,
       };
     case 'header-custom':

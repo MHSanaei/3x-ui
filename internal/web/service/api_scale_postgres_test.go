@@ -2,17 +2,12 @@ package service
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-
-	"github.com/op/go-logging"
 )
 
 func seedClientTraffics(t *testing.T, inboundId int, clients []model.Client) {
@@ -37,14 +32,7 @@ func seedClientTraffics(t *testing.T, inboundId int, clients []model.Client) {
 // reachable from the REST API at 100k/200k clients, asserting none crash on the
 // PostgreSQL bind-parameter ceiling and logging the wall-clock cost of each.
 func TestAllAPIsPostgresScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
-	}
-	xuilogger.InitLogger(logging.ERROR)
-	if err := database.InitDB(""); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	setupScaleDB(t)
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
@@ -56,9 +44,7 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 	for _, n := range sizes {
 		t.Run(fmt.Sprintf("N=%d", n), func(t *testing.T) {
 			db := database.GetDB()
-			if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics, client_groups RESTART IDENTITY CASCADE").Error; err != nil {
-				t.Fatalf("truncate: %v", err)
-			}
+			resetScaleTables(t, db, "inbounds", "clients", "client_inbounds", "client_traffics", "client_groups")
 
 			clients := makeScaleClients(n)
 			exp := time.Now().AddDate(1, 0, 0).UnixMilli()
@@ -92,7 +78,7 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 			db.Exec("ANALYZE")
 
 			emails := make([]string, n)
-			for i := 0; i < n; i++ {
+			for i := range n {
 				emails[i] = clients[i].Email
 			}
 			emailsM := emails[:m]
@@ -150,14 +136,7 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 // old path (GetClientByEmail, which parses the inbound's entire settings JSON to
 // find one client) vs new path (UUID/subId read from the indexed clients table).
 func TestGetClientTrafficByEmailABScale(t *testing.T) {
-	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
-		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres scale benchmark")
-	}
-	xuilogger.InitLogger(logging.ERROR)
-	if err := database.InitDB(""); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	setupScaleDB(t)
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
@@ -179,9 +158,7 @@ func TestGetClientTrafficByEmailABScale(t *testing.T) {
 	for _, n := range sizes {
 		t.Run(fmt.Sprintf("N=%d", n), func(t *testing.T) {
 			db := database.GetDB()
-			if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics RESTART IDENTITY CASCADE").Error; err != nil {
-				t.Fatalf("truncate: %v", err)
-			}
+			resetScaleTables(t, db, "inbounds", "clients", "client_inbounds", "client_traffics")
 			clients := makeScaleClients(n)
 			ib := &model.Inbound{UserId: 1, Tag: fmt.Sprintf("ctbe-%d", n), Enable: true, Port: 40000, Protocol: model.VLESS, Settings: clientsSettings(t, clients)}
 			if err := db.Create(ib).Error; err != nil {
@@ -196,7 +173,7 @@ func TestGetClientTrafficByEmailABScale(t *testing.T) {
 			targets := []string{clients[0].Email, clients[n/2].Email, clients[n-1].Email}
 
 			start := time.Now()
-			for i := 0; i < reps; i++ {
+			for i := range reps {
 				if _, err := inboundSvc.GetClientTrafficByEmail(targets[i%len(targets)]); err != nil {
 					t.Fatalf("new GetClientTrafficByEmail: %v", err)
 				}
@@ -204,7 +181,7 @@ func TestGetClientTrafficByEmailABScale(t *testing.T) {
 			newDur := time.Since(start) / reps
 
 			start = time.Now()
-			for i := 0; i < reps; i++ {
+			for i := range reps {
 				if err := oldImpl(targets[i%len(targets)]); err != nil {
 					t.Fatalf("old GetClientTrafficByEmail: %v", err)
 				}

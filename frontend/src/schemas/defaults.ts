@@ -12,7 +12,6 @@ export const DefaultsPayloadSchema = z.object({
   subClashURI: z.string().optional(),
   subClashEnable: z.boolean().optional(),
   pageSize: z.number().optional(),
-  remarkModel: z.string().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   ipLimitEnable: z.boolean().optional(),
   accessLogEnable: z.boolean().optional(),

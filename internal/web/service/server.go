@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -685,6 +687,9 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 const (
 	maxXrayArchiveBytes = 200 << 20
 	maxXrayBinaryBytes  = 200 << 20
+	// maxXrayDigestBytes caps the .dgst checksum sidecar read; it is a few
+	// hundred bytes in practice.
+	maxXrayDigestBytes = 64 << 10
 )
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
@@ -826,8 +831,65 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", fmt.Errorf("download xray: archive exceeds %d bytes", maxXrayArchiveBytes)
 	}
 
+	// Verify the archive against the SHA2-256 published in the release's .dgst
+	// sidecar before installing it. TLS protects the transport, not the artifact;
+	// a corrupted or tampered asset must not be installed and run as xray.
+	want, err := s.fetchXrayDigestSHA256(client, url+".dgst")
+	if err != nil {
+		return "", err
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+	if got := hex.EncodeToString(hasher.Sum(nil)); !strings.EqualFold(got, want) {
+		// User-facing warning: the archive's SHA-256 does not match the official
+		// release checksum, so the download is corrupted or has been tampered
+		// with. Abort the install so a bad binary is never run, and tell the user
+		// to retry/re-download rather than proceed with a mismatched image.
+		return "", fmt.Errorf("Xray update aborted: the downloaded archive does not match the official SHA-256 checksum, so the image is corrupted or differs from the official release. Please exit and re-download the official image, then try again (expected %s, got %s)", want, got)
+	}
+
 	ok = true
 	return path, nil
+}
+
+// fetchXrayDigestSHA256 downloads the .dgst sidecar XTLS publishes next to each
+// release asset and returns the SHA2-256 hex digest it lists.
+func (s *ServerService) fetchXrayDigestSHA256(client *http.Client, dgstURL string) (string, error) {
+	resp, err := client.Get(dgstURL)
+	if err != nil {
+		return "", fmt.Errorf("download xray checksum: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download xray checksum: unexpected HTTP %d", resp.StatusCode)
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxXrayDigestBytes))
+	if err != nil {
+		return "", fmt.Errorf("download xray checksum: %w", err)
+	}
+	return parseXrayDigestSHA256(raw)
+}
+
+// parseXrayDigestSHA256 extracts the lowercase SHA2-256 hex from an XTLS .dgst
+// file, whose lines are "ALGO= <hex>" (the relevant one being "SHA2-256= ...").
+func parseXrayDigestSHA256(dgst []byte) (string, error) {
+	for _, line := range strings.Split(string(dgst), "\n") {
+		rest, ok := strings.CutPrefix(strings.TrimSpace(line), "SHA2-256=")
+		if !ok {
+			continue
+		}
+		h := strings.ToLower(strings.TrimSpace(rest))
+		if len(h) != 64 {
+			return "", fmt.Errorf("xray checksum: malformed SHA2-256 entry in digest")
+		}
+		return h, nil
+	}
+	return "", fmt.Errorf("xray checksum: no SHA2-256 entry in digest")
 }
 
 func (s *ServerService) UpdateXray(version string) error {

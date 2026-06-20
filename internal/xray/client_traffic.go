@@ -11,8 +11,8 @@ type ClientTraffic struct {
 	SubId      string `json:"subId" form:"subId" gorm:"-" example:"i7tvdpeffi0hvvf1"`
 	Up         int64  `json:"up" form:"up" example:"1048576"`
 	Down       int64  `json:"down" form:"down" example:"2097152"`
-	ExpiryTime int64  `json:"expiryTime" form:"expiryTime" example:"1735689600000"`
+	ExpiryTime int64  `json:"expiryTime" form:"expiryTime" gorm:"index:idx_client_traffics_renew,priority:1" example:"1735689600000"`
 	Total      int64  `json:"total" form:"total" example:"10737418240"`
-	Reset      int    `json:"reset" form:"reset" gorm:"default:0" example:"0"`
+	Reset      int    `json:"reset" form:"reset" gorm:"default:0;index:idx_client_traffics_renew,priority:2" example:"0"`
 	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
 }

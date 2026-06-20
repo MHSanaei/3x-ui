@@ -220,8 +220,8 @@ func clashStringList(v any) []string {
 }
 
 func stripCIDR(addr string) string {
-	if i := strings.IndexByte(addr, '/'); i >= 0 {
-		return addr[:i]
+	if before, _, ok := strings.Cut(addr, "/"); ok {
+		return before
 	}
 	return addr
 }

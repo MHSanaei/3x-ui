@@ -354,7 +354,7 @@ export default function ClientInfoModal({
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
-                  const parts = parseLinkParts(link, client.email);
+                  const parts = parseLinkParts(link);
                   const fallback = `${t('pages.clients.link')} ${idx + 1}`;
                   const rowTitle = (parts && linkMetaText(parts)) || fallback;
                   const qrRemark = [parts?.remark, client.email].filter(Boolean).join('-') || rowTitle;
