@@ -21,6 +21,12 @@ import (
 
 var reportedRemoteTagConflict sync.Map
 
+// nodeBulkPushThreshold caps how many per-client RPCs a single operation will
+// stream to a remote node. Above it, the panel marks the node dirty instead and
+// lets one ReconcileNode push converge the whole inbound — far cheaper than M
+// sequential round-trips. Small ops stay on the live per-client path.
+const nodeBulkPushThreshold = 32
+
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
 	mgr := runtime.GetManager()
 	if mgr == nil {
@@ -90,18 +96,31 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	if err != nil {
 		return err
 	}
+	remoteTagSet := make(map[string]struct{}, len(remoteTags))
+	for _, tag := range remoteTags {
+		remoteTagSet[tag] = struct{}{}
+	}
 	prefix := nodeTagPrefix(&nodeID)
 	desiredTags := make(map[string]struct{}, len(inbounds)*2)
 	for _, ib := range inbounds {
 		desiredTags[ib.Tag] = struct{}{}
+		// existsOnNode: does the node already report this inbound under any of the
+		// tag forms it may be stored as? If so, an unchanged push can be skipped.
+		_, existsOnNode := remoteTagSet[ib.Tag]
 		if prefix != "" {
 			if stripped, found := strings.CutPrefix(ib.Tag, prefix); found {
 				desiredTags[stripped] = struct{}{}
+				if _, ok := remoteTagSet[stripped]; ok {
+					existsOnNode = true
+				}
 			} else {
 				desiredTags[prefix+ib.Tag] = struct{}{}
+				if _, ok := remoteTagSet[prefix+ib.Tag]; ok {
+					existsOnNode = true
+				}
 			}
 		}
-		if err := rt.UpdateInbound(ctx, ib, ib); err != nil {
+		if _, err := rt.ReconcileInbound(ctx, ib, existsOnNode); err != nil {
 			return fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err)
 		}
 	}
@@ -260,15 +279,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		nodeBaselines[baselineRows[i].Email] = nodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down}
 	}
 
-	var existingEmailsList []string
-	if err := db.Model(xray.ClientTraffic{}).Pluck("email", &existingEmailsList).Error; err != nil {
-		return false, err
-	}
-	existingEmails := make(map[string]struct{}, len(existingEmailsList))
-	for _, e := range existingEmailsList {
-		existingEmails[e] = struct{}{}
-	}
-
 	var defaultUserId int
 	if len(central) > 0 {
 		defaultUserId = central[0].UserId
@@ -309,6 +319,26 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				cur.Down = snapIb.ClientStats[i].Down
 			}
 			nodeEmailTotals[email] = cur
+		}
+	}
+
+	// Membership set for the rowExists checks below. Only the snapshot's emails
+	// are ever probed, so scope the lookup to those instead of plucking the whole
+	// client_traffics table (50k+ rows) on every node poll.
+	existingEmails := make(map[string]struct{}, len(snapEmailsAll))
+	if len(snapEmailsAll) > 0 {
+		snapEmailList := make([]string, 0, len(snapEmailsAll))
+		for email := range snapEmailsAll {
+			snapEmailList = append(snapEmailList, email)
+		}
+		for _, batch := range chunkStrings(snapEmailList, sqliteMaxVars) {
+			var found []string
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Pluck("email", &found).Error; err != nil {
+				return false, err
+			}
+			for _, e := range found {
+				existingEmails[e] = struct{}{}
+			}
 		}
 	}
 

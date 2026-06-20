@@ -348,6 +348,13 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 		}
 		inbounds = append(inbounds, page...)
 	}
+	// Index the expired traffics by email so each client is an O(1) lookup
+	// instead of a linear scan of every expired row (O(clients × expired) per
+	// inbound, quadratic at scale). Pointers keep the in-place mutation below.
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	for i := range traffics {
+		trafficByEmail[traffics[i].Email] = traffics[i]
+	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
@@ -357,34 +364,34 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 		}
 		for client_index := range clients {
 			c := clients[client_index].(map[string]any)
-			for traffic_index, traffic := range traffics {
-				if traffic.Email == c["email"].(string) {
-					newExpiryTime := traffic.ExpiryTime
-					for newExpiryTime < now {
-						newExpiryTime += (int64(traffic.Reset) * 86400000)
-					}
-					c["expiryTime"] = newExpiryTime
-					traffics[traffic_index].ExpiryTime = newExpiryTime
-					traffics[traffic_index].Down = 0
-					traffics[traffic_index].Up = 0
-					if !traffic.Enable {
-						traffics[traffic_index].Enable = true
-						c["enable"] = true
-						clientsToAdd = append(clientsToAdd,
-							struct {
-								protocol string
-								tag      string
-								client   map[string]any
-							}{
-								protocol: string(inbounds[inbound_index].Protocol),
-								tag:      inbounds[inbound_index].Tag,
-								client:   c,
-							})
-					}
-					clients[client_index] = any(c)
-					break
-				}
+			email, _ := c["email"].(string)
+			traffic, ok := trafficByEmail[email]
+			if !ok {
+				continue
 			}
+			newExpiryTime := traffic.ExpiryTime
+			for newExpiryTime < now {
+				newExpiryTime += (int64(traffic.Reset) * 86400000)
+			}
+			c["expiryTime"] = newExpiryTime
+			traffic.ExpiryTime = newExpiryTime
+			traffic.Down = 0
+			traffic.Up = 0
+			if !traffic.Enable {
+				traffic.Enable = true
+				c["enable"] = true
+				clientsToAdd = append(clientsToAdd,
+					struct {
+						protocol string
+						tag      string
+						client   map[string]any
+					}{
+						protocol: string(inbounds[inbound_index].Protocol),
+						tag:      inbounds[inbound_index].Tag,
+						client:   c,
+					})
+			}
+			clients[client_index] = any(c)
 		}
 		settings["clients"] = clients
 		newSettings, err := json.MarshalIndent(settings, "", "  ")

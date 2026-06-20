@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -886,7 +887,10 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
-		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=FULL&_txlock=immediate"
+		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
+		// sidecars). synchronous defaults to FULL for durability but is tunable.
+		sync := sqliteSynchronous()
+		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -895,14 +899,21 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := sqlDB.Exec("PRAGMA journal_mode=DELETE"); err != nil {
-			return err
+		// Re-assert the DSN pragmas plus scan-friendly ones for large datasets.
+		// cache_size/mmap_size/temp_store create no extra files, so the single-file
+		// guarantee holds; they just cut disk I/O on the 50k-row hot paths.
+		pragmas := []string{
+			"PRAGMA journal_mode=DELETE",
+			"PRAGMA busy_timeout=10000",
+			"PRAGMA synchronous=" + sync,
+			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
+			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
+			"PRAGMA temp_store=MEMORY",
 		}
-		if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
-			return err
-		}
-		if _, err := sqlDB.Exec("PRAGMA synchronous=FULL"); err != nil {
-			return err
+		for _, p := range pragmas {
+			if _, err := sqlDB.Exec(p); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -937,6 +948,21 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+// sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.
+// Whitelisted because the value is interpolated directly into a PRAGMA string.
+func sqliteSynchronous() string {
+	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
+	case "OFF":
+		return "OFF"
+	case "NORMAL":
+		return "NORMAL"
+	case "EXTRA":
+		return "EXTRA"
+	default:
+		return "FULL"
+	}
 }
 
 func envInt(key string, def int) int {

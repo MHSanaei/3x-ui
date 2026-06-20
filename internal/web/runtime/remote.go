@@ -3,6 +3,8 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,6 +73,10 @@ type Remote struct {
 
 	mu            sync.RWMutex
 	remoteIDByTag map[string]int
+	// pushedFP holds the fingerprint of the last inbound wire payload successfully
+	// pushed, keyed by panel-side tag, so reconcile can skip re-sending an
+	// unchanged inbound. Guarded by mu; dropped with the Remote on node config change.
+	pushedFP map[string]string
 	// supportsZstd is learned from the node's X-3x-Node-Caps response header; once
 	// seen, config pushes to this node are zstd-compressed. Old nodes never set
 	// it, so they keep receiving plain bodies (mixed-version safe).
@@ -96,6 +102,7 @@ func NewRemote(n *model.Node, r NodeEgressResolver) *Remote {
 	return &Remote{
 		node:           n,
 		remoteIDByTag:  make(map[string]int),
+		pushedFP:       make(map[string]string),
 		egressResolver: r,
 	}
 }
@@ -430,6 +437,36 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	}
 	r.cacheSet(newIb.Tag, id)
 	return nil
+}
+
+// ReconcileInbound pushes ib only when its wire payload differs from the last
+// successful push, or when the node no longer reports the tag (existsOnNode
+// false) — a node that dropped/restarted must still be re-seeded. Returns
+// whether a push actually happened. This turns a full-fleet reconcile from "send
+// every inbound's full settings" into "send only what changed".
+func (r *Remote) ReconcileInbound(ctx context.Context, ib *model.Inbound, existsOnNode bool) (bool, error) {
+	fp := wireFingerprint(wireInbound(ib, r.node.Id))
+	if existsOnNode {
+		r.mu.RLock()
+		prev, ok := r.pushedFP[ib.Tag]
+		r.mu.RUnlock()
+		if ok && prev == fp {
+			return false, nil
+		}
+	}
+	if err := r.UpdateInbound(ctx, ib, ib); err != nil {
+		return false, err
+	}
+	r.mu.Lock()
+	r.pushedFP[ib.Tag] = fp
+	r.mu.Unlock()
+	return true, nil
+}
+
+// wireFingerprint hashes a wire payload so an unchanged inbound is cheap to detect.
+func wireFingerprint(v url.Values) string {
+	sum := sha256.Sum256([]byte(v.Encode()))
+	return hex.EncodeToString(sum[:])
 }
 
 func (r *Remote) AddUser(ctx context.Context, ib *model.Inbound, _ map[string]any) error {
