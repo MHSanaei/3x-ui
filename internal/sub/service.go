@@ -1494,7 +1494,8 @@ func joinAnyStrings(items []any) string {
 
 // buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
 // externalProxy entries to []ShareEndpoint and renders them through the unified
-// endpoint path. Kept so genVmessLink's call site is unchanged.
+// endpoint path. Kept as a thin shim over the unified endpoint builder so
+// genVmessLink keeps calling one helper (now threading transport through).
 func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string, transport string) string {
 	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {

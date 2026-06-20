@@ -327,6 +327,10 @@ func TestUsagePercentage(t *testing.T) {
 	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0%" {
 		t.Errorf("usagePercentage 100%% = %q", got)
 	}
+	// Over-quota usage clamps to 100%, consistent with TRAFFIC_LEFT.
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0%" {
+		t.Errorf("usagePercentage over-quota = %q, want 100.0%%", got)
+	}
 }
 
 func TestTimeLeftLabel(t *testing.T) {

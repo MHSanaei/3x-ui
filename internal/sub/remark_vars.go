@@ -308,6 +308,9 @@ func usagePercentage(st xray.ClientTraffic) string {
 	}
 	used := st.Up + st.Down
 	pct := float64(used) / float64(st.Total) * 100
+	if pct > 100 {
+		pct = 100 // clamp over-quota usage, consistent with TRAFFIC_LEFT
+	}
 	return fmt.Sprintf("%.1f%%", pct)
 }
 
