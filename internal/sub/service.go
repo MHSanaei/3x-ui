@@ -738,9 +738,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
 	}
 
-	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
-	if method[0] == '2' {
-		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
+	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
+	var userInfo string
+	if strings.HasPrefix(method, "2022") {
+		userInfo = fmt.Sprintf("%s:%s:%s",
+			url.QueryEscape(method),
+			url.QueryEscape(inboundPassword),
+			url.QueryEscape(clients[clientIndex].Password))
+	} else {
+		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -753,7 +760,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
+				return fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.endpointRemark(inbound, email, ep)
@@ -761,7 +768,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
+	link := fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(address, inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
