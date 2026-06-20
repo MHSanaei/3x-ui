@@ -206,6 +206,7 @@ func (t *Tgbot) getExhausted(chatId int64) {
 		logger.Warning("Unable to load Inbounds", err)
 	}
 
+	seenClients := make(map[string]bool)
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if (inbound.ExpiryTime > 0 && (inbound.ExpiryTime-now < exDiff)) ||
@@ -214,6 +215,10 @@ func (t *Tgbot) getExhausted(chatId int64) {
 			}
 			if len(inbound.ClientStats) > 0 {
 				for _, client := range inbound.ClientStats {
+					if seenClients[client.Email] {
+						continue
+					}
+					seenClients[client.Email] = true
 					if client.Enable {
 						if (client.ExpiryTime > 0 && (client.ExpiryTime-now < exDiff)) ||
 							(client.Total > 0 && (client.Total-(client.Up+client.Down) < trDiff)) {
