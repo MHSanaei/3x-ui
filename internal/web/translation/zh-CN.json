@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
       "subRoutingRules": "路由規則",
       "subRoutingRulesDesc": "VPN 用戶端的全域路由規則。（僅限 Happ）",
+      "subHideSettings": "隐藏服务器设置",
+      "subHideSettingsDesc": "在 VPN 客户端中隐藏查看和编辑服务器配置的功能。（僅限 Happ）",
       "subClashEnableRouting": "启用路由",
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",

@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",
       "subRoutingRulesDesc": "VPNクライアントのグローバルルーティングルール。(Happのみ)",
+      "subHideSettings": "サーバー設定を非表示",
+      "subHideSettingsDesc": "VPNクライアントでサーバー設定の表示・編集機能を非表示にします。(Happのみ)",
       "subClashEnableRouting": "ルーティングを有効化",
       "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
       "subClashRoutingRules": "グローバルルーティングルール",
