@@ -107,7 +107,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install QEMU
         run: |
@@ -200,7 +200,7 @@ jobs:
             instance_type: t4g.small
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@v3
