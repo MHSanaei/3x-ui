@@ -637,7 +637,9 @@
         "noKernelTun": "TUN без kernel",
         "keepAlive": "Keep alive",
         "peerNumber": "Peer {n}",
-        "peerNumberConfig": "Конфиг Peer {n}"
+        "peerNumberConfig": "Конфиг Peer {n}",
+        "peerCount": "{count} peer(ов)",
+        "managePeersOnClientsTab": "Управляйте peers на странице Клиенты"
       },
       "stream": {
         "general": {
@@ -814,6 +816,16 @@
       "flow": "Flow",
       "vmessSecurity": "VMess Security",
       "reverseTag": "Обратный тег",
+      "wg": {
+        "privateKey": "Приватный ключ",
+        "publicKey": "Публичный ключ",
+        "preSharedKey": "Общий ключ (PSK)",
+        "allowedIPs": "Разрешённые IP",
+        "keepAlive": "Keep Alive (сек)",
+        "regenerateKeypair": "Сгенерировать ключевую пару",
+        "generatePsk": "Сгенерировать PSK",
+        "addAllowedIP": "Добавить IP"
+      },
       "reverseTagPlaceholder": "Необязательный Reverse tag",
       "telegramId": "ID пользователя Telegram",
       "telegramIdPlaceholder": "Числовой ID пользователя Telegram (0 = нет)",

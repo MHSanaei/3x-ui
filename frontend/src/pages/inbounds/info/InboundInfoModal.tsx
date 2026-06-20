@@ -1,7 +1,7 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
-import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, SyncOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { HttpUtil, IntlUtil, SizeFormatter, ColorUtils } from '@/utils';
 import { Protocols } from '@/schemas/primitives';
@@ -9,8 +9,6 @@ import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import {
   genAllLinks,
-  genWireguardConfigs,
-  genWireguardLinks,
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
@@ -18,7 +16,6 @@ import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import {
   buildInboundInfo,
   copyText,
-  downloadText,
   formatIpInfo,
   hasShareLink,
   statsColor,
@@ -46,8 +43,6 @@ export default function InboundInfoModal({
   const [clientSettings, setClientSettings] = useState<ClientSetting | null>(null);
   const [clientStats, setClientStats] = useState<ClientStats | null>(null);
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
-  const [wireguardConfigs, setWireguardConfigs] = useState<string[]>([]);
-  const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -114,25 +109,7 @@ export default function InboundInfoModal({
 
     const inboundForLinks = inboundFromDb(dbInbound);
     const fallbackHostname = preferPublicHost(window.location.hostname, subSettings?.publicHost ?? '');
-    if (info.protocol === Protocols.WIREGUARD) {
-      setWireguardConfigs(
-        genWireguardConfigs({
-          inbound: inboundForLinks,
-          remark: dbInbound.remark,
-          hostOverride: nodeAddress,
-          fallbackHostname,
-        }).split('\r\n'),
-      );
-      setWireguardLinks(
-        genWireguardLinks({
-          inbound: inboundForLinks,
-          remark: dbInbound.remark,
-          hostOverride: nodeAddress,
-          fallbackHostname,
-        }).split('\r\n'),
-      );
-      setLinks([]);
-    } else {
+    if (info.protocol !== Protocols.WIREGUARD) {
       setLinks(
         genAllLinks({
           inbound: inboundForLinks,
@@ -142,8 +119,8 @@ export default function InboundInfoModal({
           fallbackHostname,
         }),
       );
-      setWireguardConfigs([]);
-      setWireguardLinks([]);
+    } else {
+      setLinks([]);
     }
 
     if (clientSet?.subId) {
@@ -806,62 +783,12 @@ export default function InboundInfoModal({
               </dd>
             </div>
           </dl>
-          {Array.isArray(inbound.settings.peers) && (inbound.settings.peers as { privateKey: string; publicKey: string; psk: string; allowedIPs?: string[]; keepAlive?: number }[]).map((peer, idx) => (
-            <Fragment key={idx}>
-              <Divider>{t('pages.inbounds.info.peerNumber', { n: idx + 1 })}</Divider>
-              <dl className="info-list info-list-block">
-                <div className="info-row">
-                  <dt>{t('pages.xray.wireguard.secretKey')}</dt>
-                  <dd><Tag className="value-tag">{peer.privateKey}</Tag></dd>
-                </div>
-                <div className="info-row">
-                  <dt>{t('pages.xray.wireguard.publicKey')}</dt>
-                  <dd><Tag className="value-tag">{peer.publicKey}</Tag></dd>
-                </div>
-                <div className="info-row">
-                  <dt>PSK</dt>
-                  <dd><Tag className="value-tag">{peer.psk}</Tag></dd>
-                </div>
-                <div className="info-row">
-                  <dt>{t('pages.xray.wireguard.allowedIPs')}</dt>
-                  <dd>
-                    {(peer.allowedIPs || []).map((ip, j) => (
-                      <Tag key={`wg-ip-${idx}-${j}`} className="value-tag">{ip}</Tag>
-                    ))}
-                  </dd>
-                </div>
-                <div className="info-row">
-                  <dt>{t('pages.inbounds.info.keepAlive')}</dt>
-                  <dd><Tag>{peer.keepAlive}</Tag></dd>
-                </div>
-              </dl>
-              {wireguardConfigs[idx] && (
-                <div className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
-                    <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
-                    </Tooltip>
-                    <Tooltip title={t('download')}>
-                      <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)} />
-                    </Tooltip>
-                  </div>
-                  <code className="link-panel-text">{wireguardConfigs[idx]}</code>
-                </div>
-              )}
-              {wireguardLinks[idx] && (
-                <div className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">Peer {idx + 1} link</Tag>
-                    <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardLinks[idx], t)} />
-                    </Tooltip>
-                  </div>
-                  <code className="link-panel-text">{wireguardLinks[idx]}</code>
-                </div>
-              )}
-            </Fragment>
-          ))}
+          {Array.isArray(inbound.settings.peers) && inbound.settings.peers.length > 0 && (
+            <div className="info-row" style={{ marginTop: 8 }}>
+              <Tag>{t('pages.inbounds.info.peerCount', { count: (inbound.settings.peers as unknown[]).length })}</Tag>
+              <span style={{ marginLeft: 8, opacity: 0.65, fontSize: 12 }}>{t('pages.inbounds.info.managePeersOnClientsTab')}</span>
+            </div>
+          )}
         </>
       )}
 

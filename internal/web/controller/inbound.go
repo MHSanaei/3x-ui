@@ -79,6 +79,10 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/import", a.importInbound)
 	g.POST("/:id/fallbacks", a.setFallbacks)
 	g.POST("/pushClientTraffics", a.pushClientTraffics)
+
+	g.POST("/:id/addWgClient", a.addWgClient)
+	g.POST("/:id/updateWgClient", a.updateWgClient)
+	g.POST("/:id/delWgClient", a.delWgClient)
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -463,4 +467,92 @@ func (a *InboundController) setFallbacks(c *gin.Context) {
 	}
 	a.xrayService.SetToNeedRestart()
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+}
+
+// addWgClient adds a WireGuard peer as a client to the given inbound.
+// Body: model.ClientRecord with wg_settings populated.
+func (a *InboundController) addWgClient(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	var rec model.ClientRecord
+	if err := c.ShouldBindJSON(&rec); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.clientService.AddWgClient(&a.inboundService, id, &rec)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.clients.toasts.clientAdded"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	user := session.GetLoginUser(c)
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
+}
+
+// updateWgClient updates a WireGuard peer by email for the given inbound.
+// Body: model.ClientRecord with updated fields.
+func (a *InboundController) updateWgClient(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	type updateBody struct {
+		Email string            `json:"email"`
+		Peer  model.ClientRecord `json:"peer"`
+	}
+	var b updateBody
+	if err := c.ShouldBindJSON(&b); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.clientService.UpdateWgClient(&a.inboundService, id, b.Email, &b.Peer)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.clients.toasts.clientUpdated"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	user := session.GetLoginUser(c)
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
+}
+
+// delWgClient removes a WireGuard peer by email from the given inbound.
+// Body: {"email": "peer-name"}.
+func (a *InboundController) delWgClient(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	type delBody struct {
+		Email string `json:"email"`
+	}
+	var b delBody
+	if err := c.ShouldBindJSON(&b); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.clientService.DelWgClient(&a.inboundService, id, b.Email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.clients.toasts.clientDeleted"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	user := session.GetLoginUser(c)
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
 }

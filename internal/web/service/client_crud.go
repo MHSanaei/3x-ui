@@ -101,6 +101,22 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if getErr != nil {
 			return needRestart, getErr
 		}
+
+		if inbound.Protocol == model.WireGuard {
+			if client.WgPeer == nil {
+				return false, common.NewError("WireGuard peer settings (wgPeer) are required")
+			}
+			rec := client.ToRecord()
+			nr, addErr := s.AddWgClient(inboundSvc, ibId, rec)
+			if addErr != nil {
+				return needRestart, addErr
+			}
+			if nr {
+				needRestart = true
+			}
+			continue
+		}
+
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
 		}
@@ -513,6 +529,21 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if getErr != nil {
 			return needRestart, getErr
 		}
+
+		if inbound.Protocol == model.WireGuard {
+			if existing.WgSettings == "" {
+				return false, common.NewError("client has no WireGuard peer settings; cannot attach to WireGuard inbound")
+			}
+			nr, addErr := s.AddWgClient(inboundSvc, ibId, existing)
+			if addErr != nil {
+				return needRestart, addErr
+			}
+			if nr {
+				needRestart = true
+			}
+			continue
+		}
+
 		copyClient := *clientWire
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return needRestart, err

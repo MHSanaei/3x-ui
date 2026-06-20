@@ -22,7 +22,7 @@ import {
 import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { HttpUtil, RandomUtil } from '@/utils';
+import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -34,7 +34,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -91,6 +91,14 @@ interface ClientFormModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface WgPeerForm {
+  publicKey: string;
+  privateKey: string;
+  preSharedKey: string;
+  allowedIPs: string[];
+  keepAlive: number;
+}
+
 interface FormState {
   email: string;
   subId: string;
@@ -112,6 +120,11 @@ interface FormState {
   enable: boolean;
   inboundIds: number[];
   externalLinks: ExternalLinkRow[];
+  wgPeer: WgPeerForm;
+}
+
+function emptyWgPeer(): WgPeerForm {
+  return { publicKey: '', privateKey: '', preSharedKey: '', allowedIPs: ['10.0.0.2/32'], keepAlive: 0 };
 }
 
 function emptyForm(): FormState {
@@ -136,6 +149,7 @@ function emptyForm(): FormState {
     enable: true,
     inboundIds: [],
     externalLinks: [],
+    wgPeer: emptyWgPeer(),
   };
 }
 
@@ -214,6 +228,7 @@ export default function ClientFormModal({
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
+      const wg = client.wgPeer;
       const next: FormState = {
         ...emptyForm(),
         email: client.email || '',
@@ -233,6 +248,9 @@ export default function ClientFormModal({
         enable: !!client.enable,
         inboundIds: Array.isArray(attachedIds) ? [...attachedIds] : [],
         externalLinks: toExternalLinkRows(attachedExternalLinks),
+        wgPeer: wg
+          ? { publicKey: wg.publicKey || '', privateKey: client.password || '', preSharedKey: wg.preSharedKey || '', allowedIPs: wg.allowedIPs ?? ['10.0.0.2/32'], keepAlive: wg.keepAlive ?? 0 }
+          : emptyWgPeer(),
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -246,6 +264,7 @@ export default function ClientFormModal({
       setForm(next);
       void loadIps();
     } else {
+      const kp = Wireguard.generateKeypair();
       setForm({
         ...emptyForm(),
         email: RandomUtil.randomLowerAndNum(10),
@@ -253,6 +272,7 @@ export default function ClientFormModal({
         subId: RandomUtil.randomLowerAndNum(16),
         password: RandomUtil.randomLowerAndNum(16),
         auth: RandomUtil.randomLowerAndNum(16),
+        wgPeer: { publicKey: kp.publicKey, privateKey: kp.privateKey, preSharedKey: '', allowedIPs: ['10.0.0.2/32'], keepAlive: 0 },
       });
     }
 
@@ -283,6 +303,14 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const wgIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'wireguard') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
   const ss2022Method = useMemo(() => {
     for (const id of form.inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
@@ -297,6 +325,20 @@ export default function ClientFormModal({
       ? RandomUtil.randomShadowsocksPassword(ss2022Method)
       : RandomUtil.randomLowerAndNum(16));
   }
+
+  function regenerateWgKeypair() {
+    const kp = Wireguard.generateKeypair();
+    setForm((prev) => ({ ...prev, wgPeer: { ...prev.wgPeer, privateKey: kp.privateKey, publicKey: kp.publicKey } }));
+  }
+
+  function updateWgPeer<K extends keyof WgPeerForm>(key: K, value: WgPeerForm[K]) {
+    setForm((prev) => ({ ...prev, wgPeer: { ...prev.wgPeer, [key]: value } }));
+  }
+
+  const showWireGuard = useMemo(
+    () => (form.inboundIds || []).some((id) => wgIds.has(id)),
+    [form.inboundIds, wgIds],
+  );
 
   const showFlow = useMemo(
     () => (form.inboundIds || []).some((id) => flowCapableIds.has(id)),
@@ -431,19 +473,27 @@ export default function ClientFormModal({
       email: form.email.trim(),
       subId: form.subId,
       id: form.uuid,
-      password: form.password,
+      password: showWireGuard ? form.wgPeer.privateKey : form.password,
       auth: form.auth,
       flow: showFlow ? (form.flow || '') : '',
       security: showSecurity ? (form.security || 'auto') : 'auto',
-      totalGB: gbToBytes(form.totalGB),
-      expiryTime,
+      totalGB: showWireGuard ? 0 : gbToBytes(form.totalGB),
+      expiryTime: showWireGuard ? 0 : expiryTime,
       reset: Number(form.reset) || 0,
-      limitIp: Number(form.limitIp) || 0,
+      limitIp: showWireGuard ? 0 : Number(form.limitIp) || 0,
       tgId: Number(form.tgId) || 0,
       group: form.group,
       comment: form.comment,
       enable: !!form.enable,
     };
+    if (showWireGuard) {
+      clientPayload.wgPeer = {
+        publicKey: form.wgPeer.publicKey,
+        preSharedKey: form.wgPeer.preSharedKey || undefined,
+        allowedIPs: form.wgPeer.allowedIPs.filter(Boolean),
+        keepAlive: form.wgPeer.keepAlive || undefined,
+      };
+    }
     const reverseTag = showReverseTag ? (form.reverseTag || '').trim() : '';
     if (reverseTag) {
       clientPayload.reverse = { tag: reverseTag };
@@ -542,67 +592,73 @@ export default function ClientFormModal({
                           </Space.Compact>
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
-                          <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
-                            onChange={(v) => update('totalGB', Number(v) || 0)} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <InputNumber value={form.limitIp} min={0} style={{ flex: 1 }}
-                              onChange={(v) => update('limitIp', Number(v) || 0)} />
-                            {isEdit && (
-                              <Tooltip title={t('pages.clients.ipLog')}>
-                                <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                                  {clientIps.length > 0 ? clientIps.length : ''}
-                                </Button>
-                              </Tooltip>
-                            )}
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
+                      {!showWireGuard && (
+                        <Col xs={24} md={6}>
+                          <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
+                            <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
+                              onChange={(v) => update('totalGB', Number(v) || 0)} />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      {!showWireGuard && (
+                        <Col xs={24} md={6}>
+                          <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <InputNumber value={form.limitIp} min={0} style={{ flex: 1 }}
+                                onChange={(v) => update('limitIp', Number(v) || 0)} />
+                              {isEdit && (
+                                <Tooltip title={t('pages.clients.ipLog')}>
+                                  <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                                    {clientIps.length > 0 ? clientIps.length : ''}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </Space.Compact>
+                          </Form.Item>
+                        </Col>
+                      )}
                     </Row>
 
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        {form.delayedStart ? (
-                          <Form.Item label={t('pages.clients.expireDays')}>
-                            <InputNumber value={form.delayedDays} min={0} style={{ width: '100%' }}
-                              onChange={(v) => update('delayedDays', Number(v) || 0)} />
-                          </Form.Item>
-                        ) : (
-                          <Form.Item label={t('pages.clients.expiryTime')}>
-                            <DateTimePicker
-                              value={form.expiryDate}
-                              onChange={(d) => update('expiryDate', d || null)}
+                    {!showWireGuard && (
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          {form.delayedStart ? (
+                            <Form.Item label={t('pages.clients.expireDays')}>
+                              <InputNumber value={form.delayedDays} min={0} style={{ width: '100%' }}
+                                onChange={(v) => update('delayedDays', Number(v) || 0)} />
+                            </Form.Item>
+                          ) : (
+                            <Form.Item label={t('pages.clients.expiryTime')}>
+                              <DateTimePicker
+                                value={form.expiryDate}
+                                onChange={(d) => update('expiryDate', d || null)}
+                              />
+                            </Form.Item>
+                          )}
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <Form.Item label={t('pages.clients.delayedStart')}>
+                            <Switch
+                              checked={form.delayedStart}
+                              onChange={(v) => {
+                                update('delayedStart', v);
+                                if (v) update('expiryDate', null);
+                                else update('delayedDays', 0);
+                              }}
                             />
                           </Form.Item>
-                        )}
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Form.Item label={t('pages.clients.delayedStart')}>
-                          <Switch
-                            checked={form.delayedStart}
-                            onChange={(v) => {
-                              update('delayedStart', v);
-                              if (v) update('expiryDate', null);
-                              else update('delayedDays', 0);
-                            }}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Form.Item
-                          label={t('pages.clients.renewDays')}
-                          tooltip={t('pages.clients.renewDesc')}
-                        >
-                          <InputNumber value={form.reset} min={0} style={{ width: '100%' }}
-                            onChange={(v) => update('reset', Number(v) || 0)} />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <Form.Item
+                            label={t('pages.clients.renewDays')}
+                            tooltip={t('pages.clients.renewDesc')}
+                          >
+                            <InputNumber value={form.reset} min={0} style={{ width: '100%' }}
+                              onChange={(v) => update('reset', Number(v) || 0)} />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    )}
 
                     <Row gutter={16}>
                       <Col xs={24} md={12}>
@@ -678,54 +734,111 @@ export default function ClientFormModal({
                 label: t('pages.clients.tabCredentials'),
                 children: (
                   <>
-                    <Form.Item label={t('pages.clients.uuid')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
-                        <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
-                      </Space.Compact>
-                    </Form.Item>
+                    {showWireGuard ? (
+                      <>
+                        <Form.Item label={t('pages.clients.wg.privateKey')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.wgPeer.privateKey} style={{ flex: 1 }}
+                              onChange={(e) => updateWgPeer('privateKey', e.target.value)} />
+                            <Tooltip title={t('pages.clients.wg.regenerateKeypair')}>
+                              <Button icon={<ReloadOutlined />} onClick={regenerateWgKeypair} />
+                            </Tooltip>
+                          </Space.Compact>
+                        </Form.Item>
 
-                    <Form.Item label={t('pages.clients.password')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
-                        <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
-                      </Space.Compact>
-                    </Form.Item>
+                        <Form.Item label={t('pages.clients.wg.publicKey')}>
+                          <Input value={form.wgPeer.publicKey} readOnly />
+                        </Form.Item>
 
-                    <Form.Item label={t('pages.clients.subId')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
-                        <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
-                      </Space.Compact>
-                    </Form.Item>
+                        <Form.Item label={t('pages.clients.wg.preSharedKey')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.wgPeer.preSharedKey} style={{ flex: 1 }}
+                              onChange={(e) => updateWgPeer('preSharedKey', e.target.value)} />
+                            <Tooltip title={t('pages.clients.wg.generatePsk')}>
+                              <Button icon={<ReloadOutlined />}
+                                onClick={() => updateWgPeer('preSharedKey', RandomUtil.randomBase64(32))} />
+                            </Tooltip>
+                          </Space.Compact>
+                        </Form.Item>
 
-                    <Form.Item label={t('pages.clients.hysteriaAuth')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
-                        <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
-                      </Space.Compact>
-                    </Form.Item>
+                        <Form.Item label={t('pages.clients.wg.allowedIPs')}>
+                          {(form.wgPeer.allowedIPs || []).map((ip, idx) => (
+                            <Space.Compact key={idx} style={{ display: 'flex', marginBottom: 4 }}>
+                              <Input value={ip} style={{ flex: 1 }}
+                                onChange={(e) => {
+                                  const next = [...form.wgPeer.allowedIPs];
+                                  next[idx] = e.target.value;
+                                  updateWgPeer('allowedIPs', next);
+                                }} />
+                              <Tooltip title={t('delete')}>
+                                <Button danger icon={<DeleteOutlined />}
+                                  onClick={() => updateWgPeer('allowedIPs', form.wgPeer.allowedIPs.filter((_, i) => i !== idx))} />
+                              </Tooltip>
+                            </Space.Compact>
+                          ))}
+                          <Button icon={<PlusOutlined />} size="small" style={{ marginTop: 4 }}
+                            onClick={() => updateWgPeer('allowedIPs', [...(form.wgPeer.allowedIPs || []), ''])}>
+                            {t('pages.clients.wg.addAllowedIP')}
+                          </Button>
+                        </Form.Item>
 
-                    {showFlow && (
-                      <Form.Item label={t('pages.clients.flow')}>
-                        <Select
-                          value={form.flow}
-                          onChange={(v) => update('flow', v)}
-                          options={[
-                            { value: '', label: t('none') },
-                            ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
-                          ]}
-                        />
-                      </Form.Item>
-                    )}
-                    {showSecurity && (
-                      <Form.Item label={t('pages.clients.vmessSecurity')}>
-                        <Select
-                          value={form.security}
-                          onChange={(v) => update('security', v)}
-                          options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
-                        />
-                      </Form.Item>
+                        <Form.Item label={t('pages.clients.wg.keepAlive')}>
+                          <InputNumber value={form.wgPeer.keepAlive} min={0} style={{ width: '100%' }}
+                            onChange={(v) => updateWgPeer('keepAlive', Number(v) || 0)} />
+                        </Form.Item>
+                      </>
+                    ) : (
+                      <>
+                        <Form.Item label={t('pages.clients.uuid')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
+                            <Button icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
+                          </Space.Compact>
+                        </Form.Item>
+
+                        <Form.Item label={t('pages.clients.password')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
+                            <Button icon={<ReloadOutlined />} onClick={regeneratePassword} />
+                          </Space.Compact>
+                        </Form.Item>
+
+                        <Form.Item label={t('pages.clients.subId')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
+                            <Button icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
+                          </Space.Compact>
+                        </Form.Item>
+
+                        <Form.Item label={t('pages.clients.hysteriaAuth')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
+                            <Button icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
+                          </Space.Compact>
+                        </Form.Item>
+
+                        {showFlow && (
+                          <Form.Item label={t('pages.clients.flow')}>
+                            <Select
+                              value={form.flow}
+                              onChange={(v) => update('flow', v)}
+                              options={[
+                                { value: '', label: t('none') },
+                                ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                              ]}
+                            />
+                          </Form.Item>
+                        )}
+                        {showSecurity && (
+                          <Form.Item label={t('pages.clients.vmessSecurity')}>
+                            <Select
+                              value={form.security}
+                              onChange={(v) => update('security', v)}
+                              options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
+                            />
+                          </Form.Item>
+                        )}
+                      </>
                     )}
                   </>
                 ),

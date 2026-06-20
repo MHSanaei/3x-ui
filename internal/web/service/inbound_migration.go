@@ -183,6 +183,16 @@ func (s *InboundService) MigrationRequirements() {
 	}
 	tx.Save(inbounds)
 
+	// Migrate WireGuard peers from settings.peers[] into the clients table.
+	var wgInbounds []*model.Inbound
+	if wgErr := tx.Where("protocol = ?", model.WireGuard).Find(&wgInbounds).Error; wgErr == nil {
+		for _, wgIb := range wgInbounds {
+			if syncErr := s.clientService.SyncWgInbound(tx, wgIb); syncErr != nil {
+				logger.Warning("MigrationRequirements SyncWgInbound failed for inbound", wgIb.Id, ":", syncErr)
+			}
+		}
+	}
+
 	// Remove orphaned traffics
 	tx.Where("inbound_id = 0").Delete(xray.ClientTraffic{})
 

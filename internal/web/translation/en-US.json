@@ -637,7 +637,9 @@
         "noKernelTun": "No-kernel TUN",
         "keepAlive": "Keep alive",
         "peerNumber": "Peer {n}",
-        "peerNumberConfig": "Peer {n} config"
+        "peerNumberConfig": "Peer {n} config",
+        "peerCount": "{count} peer(s)",
+        "managePeersOnClientsTab": "Manage peers on the Clients page"
       },
       "stream": {
         "general": {
@@ -814,6 +816,16 @@
       "flow": "Flow",
       "vmessSecurity": "VMess Security",
       "reverseTag": "Reverse tag",
+      "wg": {
+        "privateKey": "Private Key",
+        "publicKey": "Public Key",
+        "preSharedKey": "Pre-Shared Key",
+        "allowedIPs": "Allowed IPs",
+        "keepAlive": "Keep Alive (sec)",
+        "regenerateKeypair": "Regenerate keypair",
+        "generatePsk": "Generate PSK",
+        "addAllowedIP": "Add IP"
+      },
       "reverseTagPlaceholder": "Optional reverse tag",
       "telegramId": "Telegram user ID",
       "telegramIdPlaceholder": "Numeric Telegram user ID (0 = none)",

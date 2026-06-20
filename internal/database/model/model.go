@@ -584,26 +584,35 @@ type ClientReverse struct {
 	Tag string `json:"tag"`
 }
 
+// WgPeerSettings holds WireGuard-specific peer configuration stored as JSON in the clients table.
+type WgPeerSettings struct {
+	PublicKey    string   `json:"publicKey"`
+	PreSharedKey string   `json:"preSharedKey,omitempty"`
+	AllowedIPs   []string `json:"allowedIPs"`
+	KeepAlive    int      `json:"keepAlive,omitempty"`
+}
+
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID         string         `json:"id,omitempty"`                 // Unique client identifier
-	Security   string         `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
-	Password   string         `json:"password,omitempty"`           // Client password
-	Flow       string         `json:"flow,omitempty"`               // Flow control (XTLS)
-	Reverse    *ClientReverse `json:"reverse,omitempty"`            // VLESS simple reverse proxy settings
-	Auth       string         `json:"auth,omitempty"`               // Auth password (Hysteria)
-	Email      string         `json:"email"`                        // Client email identifier
-	LimitIP    int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB    int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable     bool           `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID       int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID      string         `json:"subId" form:"subId"`           // Subscription identifier
-	Group      string         `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment    string         `json:"comment" form:"comment"`       // Client comment
-	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt  int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	ID         string          `json:"id,omitempty"`                 // Unique client identifier
+	Security   string          `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
+	Password   string          `json:"password,omitempty"`           // Client password (WireGuard: private key)
+	Flow       string          `json:"flow,omitempty"`               // Flow control (XTLS)
+	Reverse    *ClientReverse  `json:"reverse,omitempty"`            // VLESS simple reverse proxy settings
+	Auth       string          `json:"auth,omitempty"`               // Auth password (Hysteria)
+	Email      string          `json:"email"`                        // Client email identifier
+	LimitIP    int             `json:"limitIp"`                      // IP limit for this client
+	TotalGB    int64           `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime int64           `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable     bool            `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID       int64           `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID      string          `json:"subId" form:"subId"`           // Subscription identifier
+	Group      string          `json:"group,omitempty" form:"group"` // Logical grouping label
+	Comment    string          `json:"comment" form:"comment"`       // Client comment
+	Reset      int             `json:"reset" form:"reset"`           // Reset period in days
+	WgPeer     *WgPeerSettings `json:"wgPeer,omitempty"`             // WireGuard peer settings (nil for non-WG clients)
+	CreatedAt  int64           `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt  int64           `json:"updated_at,omitempty"`         // Last update timestamp
 }
 
 type ClientRecord struct {
@@ -616,6 +625,7 @@ type ClientRecord struct {
 	Flow       string `json:"flow"`
 	Security   string `json:"security"`
 	Reverse    string `json:"reverse" gorm:"column:reverse"`
+	WgSettings string `json:"-" gorm:"column:wg_settings;type:text"`
 	LimitIP    int    `json:"limitIp" gorm:"column:limit_ip"`
 	TotalGB    int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime int64  `json:"expiryTime" gorm:"column:expiry_time"`
@@ -639,27 +649,30 @@ type ClientGroup struct {
 
 func (ClientGroup) TableName() string { return "client_groups" }
 
-// MarshalJSON emits the reverse column as a nested JSON object rather than an
-// escaped JSON-text string, matching the same convention Inbound uses for its
+// MarshalJSON emits reverse and wgPeer columns as nested JSON objects rather than
+// escaped JSON-text strings, matching the same convention Inbound uses for its
 // JSON-text columns. Empty storage renders as null.
 func (r ClientRecord) MarshalJSON() ([]byte, error) {
 	type alias ClientRecord
 	return json.Marshal(struct {
 		alias
 		Reverse json.RawMessage `json:"reverse"`
+		WgPeer  json.RawMessage `json:"wgPeer"`
 	}{
 		alias:   alias(r),
 		Reverse: jsonStringFieldToRaw(r.Reverse),
+		WgPeer:  jsonStringFieldToRaw(r.WgSettings),
 	})
 }
 
-// UnmarshalJSON accepts reverse as either a JSON object (modern shape) or a
-// JSON-encoded string (legacy shape).
+// UnmarshalJSON accepts reverse and wgPeer as either JSON objects (modern shape)
+// or JSON-encoded strings (legacy shape).
 func (r *ClientRecord) UnmarshalJSON(data []byte) error {
 	type alias ClientRecord
 	aux := struct {
 		*alias
 		Reverse json.RawMessage `json:"reverse"`
+		WgPeer  json.RawMessage `json:"wgPeer"`
 	}{
 		alias: (*alias)(r),
 	}
@@ -667,6 +680,7 @@ func (r *ClientRecord) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	r.Reverse = jsonStringFieldFromRaw(aux.Reverse)
+	r.WgSettings = jsonStringFieldFromRaw(aux.WgPeer)
 	return nil
 }
 
@@ -797,6 +811,11 @@ func (c *Client) ToRecord() *ClientRecord {
 			rec.Reverse = string(b)
 		}
 	}
+	if c.WgPeer != nil {
+		if b, err := json.Marshal(c.WgPeer); err == nil {
+			rec.WgSettings = string(b)
+		}
+	}
 	return rec
 }
 
@@ -824,6 +843,12 @@ func (r *ClientRecord) ToClient() *Client {
 		var rev ClientReverse
 		if err := json.Unmarshal([]byte(r.Reverse), &rev); err == nil {
 			c.Reverse = &rev
+		}
+	}
+	if r.WgSettings != "" {
+		var wg WgPeerSettings
+		if err := json.Unmarshal([]byte(r.WgSettings), &wg); err == nil {
+			c.WgPeer = &wg
 		}
 	}
 	return c

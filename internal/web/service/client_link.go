@@ -82,6 +82,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if incoming.Reverse != "" {
 			row.Reverse = incoming.Reverse
 		}
+		if incoming.WgSettings != "" {
+			row.WgSettings = incoming.WgSettings
+		}
 		row.SubID = incoming.SubID
 		row.LimitIP = incoming.LimitIP
 		row.TotalGB = incoming.TotalGB

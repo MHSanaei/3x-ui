@@ -12,6 +12,13 @@ export const ClientTrafficSchema = z.object({
   lastOnline: z.number().optional(),
 });
 
+export const WgPeerSchema = z.object({
+  publicKey: z.string(),
+  preSharedKey: z.string().optional(),
+  allowedIPs: z.array(z.string()).optional(),
+  keepAlive: z.number().optional(),
+}).loose();
+
 export const ClientRecordSchema = z.object({
   id: z.number().optional(),
   email: z.string(),
@@ -32,6 +39,7 @@ export const ClientRecordSchema = z.object({
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
+  wgPeer: WgPeerSchema.nullable().optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
 }).loose();
