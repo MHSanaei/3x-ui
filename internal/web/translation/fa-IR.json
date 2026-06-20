@@ -1092,6 +1092,8 @@
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",
       "subRoutingRulesDesc": "قوانین مسیریابی سراسری برای کلاینت VPN. (فقط برای Happ)",
+      "subHideSettings": "پنهان کردن تنظیمات سرور",
+      "subHideSettingsDesc": "پنهان کردن توانایی مشاهده و ویرایش پیکربندی سرور در کلاینت VPN. (فقط برای Happ)",
       "subClashEnableRouting": "فعال‌سازی مسیریابی",
       "subClashEnableRoutingDesc": "قوانین مسیریابی سراسری Clash/Mihomo را در اشتراک‌های YAML تولیدشده وارد کن.",
       "subClashRoutingRules": "قوانین مسیریابی سراسری",

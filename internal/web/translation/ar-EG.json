@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "إعداد عام لتمكين التوجيه (Routing) في عميل VPN. (فقط لـ Happ)",
       "subRoutingRules": "قواعد التوجيه",
       "subRoutingRulesDesc": "قواعد التوجيه العامة لعميل VPN. (فقط لـ Happ)",
+      "subHideSettings": "إخفاء إعدادات الخادم",
+      "subHideSettingsDesc": "إخفاء إمكانية عرض وتعديل إعدادات الخادم في عميل VPN. (فقط لـ Happ)",
       "subClashEnableRouting": "تفعيل التوجيه",
       "subClashEnableRoutingDesc": "تضمين قواعد توجيه Clash/Mihomo العامة في اشتراكات YAML المُنشأة.",
       "subClashRoutingRules": "قواعد التوجيه العامة",

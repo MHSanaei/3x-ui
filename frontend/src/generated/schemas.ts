@@ -196,6 +196,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Encrypt subscription responses",
         "type": "boolean"
       },
+      "subHideSettings": {
+        "description": "Hide server settings in happ subscription (Only for Happ)",
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -413,6 +417,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subHideSettings",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -672,6 +677,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Encrypt subscription responses",
         "type": "boolean"
       },
+      "subHideSettings": {
+        "description": "Hide server settings in happ subscription (Only for Happ)",
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -896,6 +905,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subHideSettings",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",

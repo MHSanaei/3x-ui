@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN. (Hanya untuk Happ)",
       "subRoutingRules": "Aturan routing",
       "subRoutingRulesDesc": "Aturan routing global untuk klien VPN. (Hanya untuk Happ)",
+      "subHideSettings": "Sembunyikan pengaturan server",
+      "subHideSettingsDesc": "Menyembunyikan kemampuan untuk melihat dan mengedit konfigurasi server di klien VPN. (Hanya untuk Happ)",
       "subClashEnableRouting": "Aktifkan routing",
       "subClashEnableRoutingDesc": "Sertakan aturan routing global Clash/Mihomo dalam langganan YAML yang dibuat.",
       "subClashRoutingRules": "Aturan routing global",
