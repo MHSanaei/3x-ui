@@ -785,6 +785,16 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return false, err
 	}
 
+	// Drop the deleted inbound's tag from any routing rules / loopback outbounds
+	// in xrayTemplateConfig so they don't point at a tag that no longer exists.
+	if loadErr == nil && ib.Tag != "" {
+		if routingChanged, syncErr := (&XraySettingService{}).RemoveInboundTagReferences(ib.Tag); syncErr != nil {
+			logger.Warning("DelInbound: sync routing on inbound delete failed:", syncErr)
+		} else if routingChanged {
+			needRestart = true
+		}
+	}
+
 	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
 	}
@@ -1157,6 +1167,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	})
 	if txErr != nil {
 		return inbound, false, txErr
+	}
+	// After the rename is committed, point any routing rules / loopback outbounds
+	// in xrayTemplateConfig at the new tag (oldInbound.Tag now holds the resolved
+	// new tag; tag holds the pre-edit one). Done post-commit so a sync failure
+	// can't roll back the inbound edit.
+	if tag != oldInbound.Tag {
+		if routingChanged, syncErr := (&XraySettingService{}).PropagateInboundTagRename(tag, oldInbound.Tag); syncErr != nil {
+			logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
+		} else if routingChanged {
+			needRestart = true
+		}
 	}
 	if markDirty && oldInbound.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {

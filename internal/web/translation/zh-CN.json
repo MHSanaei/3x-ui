@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
       "subRoutingRules": "路由規則",
       "subRoutingRulesDesc": "VPN 用戶端的全域路由規則。（僅限 Happ）",
+      "subHideSettings": "隐藏服务器设置",
+      "subHideSettingsDesc": "在 VPN 客户端中隐藏查看和编辑服务器配置的功能。（僅限 Happ）",
       "subClashEnableRouting": "启用路由",
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",
@@ -1761,7 +1763,7 @@
           "time": "时间与状态"
         },
         "descEMAIL": "客户端邮箱",
-        "descINBOUND": "配置名称：已设置时为主机的备注，否则为入站的备注",
+        "descINBOUND": "入站本身的备注（配置名称）",
         "descHOST": "主机备注",
         "descID": "客户端 UUID",
         "descSHORT_ID": "UUID 的前 8 个字符",

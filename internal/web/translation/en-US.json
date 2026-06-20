@@ -951,7 +951,7 @@
           "time": "Time & status"
         },
         "descEMAIL": "Client email",
-        "descINBOUND": "Config name: the host's remark when set, otherwise the inbound's remark",
+        "descINBOUND": "Inbound's own remark (the config name)",
         "descHOST": "Host remark",
         "descID": "Client UUID",
         "descSHORT_ID": "First 8 characters of the UUID",
@@ -1200,6 +1200,8 @@
       "subEnableRoutingDesc": "Global setting to enable routing in the VPN client. (Only for Happ)",
       "subRoutingRules": "Routing rules",
       "subRoutingRulesDesc": "Global routing rules for the VPN client. (Only for Happ)",
+      "subHideSettings": "Hide server settings",
+      "subHideSettingsDesc": "Hide the ability to view and edit server configurations in the VPN client. (Only for Happ)",
       "subClashEnableRouting": "Enable routing",
       "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
       "subClashRoutingRules": "Global routing rules",

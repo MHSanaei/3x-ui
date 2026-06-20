@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "Configuração global para habilitar o roteamento no cliente VPN. (Apenas para Happ)",
       "subRoutingRules": "Regras de roteamento",
       "subRoutingRulesDesc": "Regras de roteamento globais para o cliente VPN. (Apenas para Happ)",
+      "subHideSettings": "Ocultar configurações do servidor",
+      "subHideSettingsDesc": "Ocultar a capacidade de visualizar e editar as configurações do servidor no cliente VPN. (Apenas para Happ)",
       "subClashEnableRouting": "Ativar roteamento",
       "subClashEnableRoutingDesc": "Incluir regras globais de roteamento Clash/Mihomo nas assinaturas YAML geradas.",
       "subClashRoutingRules": "Regras globais de roteamento",
@@ -1761,7 +1763,7 @@
           "time": "Tempo e status"
         },
         "descEMAIL": "Email do cliente",
-        "descINBOUND": "Nome da configuração: a observação do host quando definida, caso contrário a observação da entrada",
+        "descINBOUND": "Observação da própria entrada (nome da configuração)",
         "descHOST": "Observação do host",
         "descID": "UUID do cliente",
         "descSHORT_ID": "Primeiros 8 caracteres do UUID",

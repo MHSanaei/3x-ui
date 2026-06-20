@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "Configuración global para habilitar el enrutamiento en el cliente VPN. (Solo para Happ)",
       "subRoutingRules": "Reglas de enrutamiento",
       "subRoutingRulesDesc": "Reglas de enrutamiento globales para el cliente VPN. (Solo para Happ)",
+      "subHideSettings": "Ocultar configuración del servidor",
+      "subHideSettingsDesc": "Ocultar la posibilidad de ver y editar las configuraciones del servidor en el cliente VPN. (Solo para Happ)",
       "subClashEnableRouting": "Habilitar enrutamiento",
       "subClashEnableRoutingDesc": "Incluir reglas globales de enrutamiento Clash/Mihomo en las suscripciones YAML generadas.",
       "subClashRoutingRules": "Reglas globales de enrutamiento",
@@ -1761,7 +1763,7 @@
           "time": "Tiempo y estado"
         },
         "descEMAIL": "Email del cliente",
-        "descINBOUND": "Nombre de la configuración: las notas del host cuando están definidas, de lo contrario las notas del inbound",
+        "descINBOUND": "Notas del propio inbound (nombre de la configuración)",
         "descHOST": "Notas del host",
         "descID": "UUID del cliente",
         "descSHORT_ID": "Primeros 8 caracteres del UUID",

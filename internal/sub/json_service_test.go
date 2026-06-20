@@ -173,3 +173,84 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 		t.Fatalf("shadowsocks server entry must carry method: %#v", ssServer)
 	}
 }
+
+func TestSubJsonServiceXmuxSuppressesGlobalMux(t *testing.T) {
+	globalMux := `{"enabled":true,"concurrency":8}`
+	svc := NewSubJsonService(globalMux, "", "", nil)
+
+	// When xmux is present in xhttpSettings, the per-inbound xmux handles
+	// multiplexing and the legacy outbound.Mux must NOT be set.
+	stream := `{"network":"xhttp","security":"tls","tlsSettings":{"serverName":"example.com"},"xhttpSettings":{"path":"/api","mode":"packet-up","xmux":{"maxConcurrency":"16-32"}}}`
+	parsed := svc.streamData(stream)
+
+	mux := globalMux
+	if xhttp, ok := parsed["xhttpSettings"].(map[string]any); ok {
+		if _, hasXmux := xhttp["xmux"]; hasXmux {
+			mux = ""
+		}
+	}
+
+	streamSettings, _ := json.Marshal(parsed)
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
+	client := model.Client{ID: "uuid-1"}
+
+	raw := svc.genVless(inbound, streamSettings, client, mux)
+	var ob map[string]any
+	if err := json.Unmarshal(raw, &ob); err != nil {
+		t.Fatalf("unmarshal outbound: %v", err)
+	}
+	if _, has := ob["mux"]; has {
+		t.Fatal("outbound.Mux must NOT be set when per-inbound xmux is present")
+	}
+
+	// Verify xmux is still inside xhttpSettings in streamSettings.
+	ss, _ := ob["streamSettings"].(map[string]any)
+	if ss == nil {
+		t.Fatal("streamSettings missing from outbound")
+	}
+	xhttp, _ := ss["xhttpSettings"].(map[string]any)
+	if xhttp == nil {
+		t.Fatal("xhttpSettings missing from streamSettings")
+	}
+	xmux, _ := xhttp["xmux"].(map[string]any)
+	if xmux == nil {
+		t.Fatal("xmux missing from xhttpSettings — per-inbound xmux must survive streamData()")
+	}
+	if xmux["maxConcurrency"] != "16-32" {
+		t.Fatalf("xmux.maxConcurrency = %v, want 16-32", xmux["maxConcurrency"])
+	}
+}
+
+func TestSubJsonServiceGlobalMuxWhenNoXmux(t *testing.T) {
+	globalMux := `{"enabled":true,"concurrency":8}`
+	svc := NewSubJsonService(globalMux, "", "", nil)
+
+	// When no xmux is present, the global subJsonMux should be used.
+	stream := `{"network":"xhttp","security":"tls","tlsSettings":{"serverName":"example.com"},"xhttpSettings":{"path":"/api","mode":"packet-up"}}`
+	parsed := svc.streamData(stream)
+
+	mux := globalMux
+	if xhttp, ok := parsed["xhttpSettings"].(map[string]any); ok {
+		if _, hasXmux := xhttp["xmux"]; hasXmux {
+			mux = ""
+		}
+	}
+
+	streamSettings, _ := json.Marshal(parsed)
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
+	client := model.Client{ID: "uuid-1"}
+
+	raw := svc.genVless(inbound, streamSettings, client, mux)
+	var ob map[string]any
+	if err := json.Unmarshal(raw, &ob); err != nil {
+		t.Fatalf("unmarshal outbound: %v", err)
+	}
+	m, has := ob["mux"]
+	if !has {
+		t.Fatal("outbound.Mux must be set when global subJsonMux is configured and no per-inbound xmux")
+	}
+	mm, _ := m.(map[string]any)
+	if mm["enabled"] != true || mm["concurrency"] != float64(8) {
+		t.Fatalf("mux payload wrong: %#v", m)
+	}
+}

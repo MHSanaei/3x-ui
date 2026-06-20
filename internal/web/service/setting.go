@@ -74,6 +74,7 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
+	"subHideSettings":             "false",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -690,6 +691,10 @@ func (s *SettingService) GetSubEnableRouting() (bool, error) {
 
 func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
+}
+
+func (s *SettingService) GetSubHideSettings() (bool, error) {
+	return s.getBool("subHideSettings")
 }
 
 func (s *SettingService) GetSubListen() (string, error) {

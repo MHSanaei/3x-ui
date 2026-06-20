@@ -525,6 +525,11 @@ func (s *ClientService) bulkAdjustInboundClients(
 			if dirty {
 				markDirty = true
 			}
+			// Large batches collapse into one reconcile push rather than M updates.
+			if push && len(foundEmails) > nodeBulkPushThreshold {
+				markDirty = true
+				push = false
+			}
 			if push {
 				for email := range foundEmails {
 					entry := plan[email]
@@ -910,6 +915,11 @@ func (s *ClientService) bulkDelInboundClients(
 		} else {
 			if dirty {
 				markDirty = true
+			}
+			// Large batches collapse into one reconcile push rather than M deletes.
+			if push && len(foundEmails) > nodeBulkPushThreshold {
+				markDirty = true
+				push = false
 			}
 			if push {
 				for email := range foundEmails {

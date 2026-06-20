@@ -24,6 +24,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 type HeartbeatPatch struct {
@@ -439,6 +441,17 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 
 func (s *NodeService) Delete(id int) error {
 	db := database.GetDB()
+	// Refuse to delete a node that still owns inbounds: dropping the node row
+	// while inbounds keep its node_id leaves orphaned, dangling references that
+	// confuse node sync, subscriptions and cleanup. The operator must detach or
+	// remove those inbounds first. (DB-002)
+	var attached int64
+	if err := db.Model(&model.Inbound{}).Where("node_id = ?", id).Count(&attached).Error; err != nil {
+		return err
+	}
+	if attached > 0 {
+		return common.NewError(fmt.Sprintf("cannot delete node: %d inbound(s) still attached to it; detach or delete them first", attached))
+	}
 	// Capture the node's guid before deleting the row so we can drop its per-node
 	// IP attribution (NodeClientIp is keyed by guid, not node id).
 	var guid string
@@ -446,16 +459,22 @@ func (s *NodeService) Delete(id int) error {
 	if err := db.Select("guid").Where("id = ?", id).First(&n).Error; err == nil {
 		guid = n.Guid
 	}
-	if err := db.Where("id = ?", id).Delete(model.Node{}).Error; err != nil {
-		return err
-	}
-	if err := db.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
-		return err
-	}
-	if guid != "" {
-		if err := db.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error; err != nil {
+	// Delete the node row and its per-node child rows atomically. Remove the
+	// children (traffic baselines, IP attribution) before the parent node row so
+	// the ordering already matches a future ON DELETE constraint. Delete stays
+	// tolerant of a missing node row so it can still clean up orphaned baselines.
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return err
 		}
+		if guid != "" {
+			if err := tx.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Where("id = ?", id).Delete(&model.Node{}).Error
+	}); err != nil {
+		return err
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)

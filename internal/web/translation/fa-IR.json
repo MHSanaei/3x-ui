@@ -1092,6 +1092,8 @@
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",
       "subRoutingRulesDesc": "قوانین مسیریابی سراسری برای کلاینت VPN. (فقط برای Happ)",
+      "subHideSettings": "پنهان کردن تنظیمات سرور",
+      "subHideSettingsDesc": "پنهان کردن توانایی مشاهده و ویرایش پیکربندی سرور در کلاینت VPN. (فقط برای Happ)",
       "subClashEnableRouting": "فعال‌سازی مسیریابی",
       "subClashEnableRoutingDesc": "قوانین مسیریابی سراسری Clash/Mihomo را در اشتراک‌های YAML تولیدشده وارد کن.",
       "subClashRoutingRules": "قوانین مسیریابی سراسری",
@@ -1761,7 +1763,7 @@
           "time": "زمان و وضعیت"
         },
         "descEMAIL": "ایمیل کاربر",
-        "descINBOUND": "نام کانفیگ: نام میزبان در صورت تنظیم، در غیر این صورت نام اینباند",
+        "descINBOUND": "نام خود اینباند (نام کانفیگ)",
         "descHOST": "نام میزبان",
         "descID": "UUID کاربر",
         "descSHORT_ID": "۸ کاراکتر اول UUID",

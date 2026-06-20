@@ -47,6 +47,10 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
   if (!xhttp) return null;
   const extra: Record<string, unknown> = {};
 
+  if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+    extra.mode = xhttp.mode;
+  }
+
   if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
     extra.xPaddingBytes = xhttp.xPaddingBytes;
   }
@@ -613,6 +617,19 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   if (isSS2022) passwords.push(settings.password);
   if (isSSMultiUser) passwords.push(clientPassword);
 
+  if (isSS2022) {
+    // SIP022 (2022-blake3-*) forbids base64 userinfo: method and each key are
+    // percent-encoded, joined by literal ':' separators. Built by hand because
+    // `new URL` would re-encode the inner key separator to %3A.
+    const userinfo = [settings.method, ...passwords].map(encodeURIComponent).join(':');
+    let link = `ss://${userinfo}@${formatUrlHost(address)}:${port}`;
+    const query = params.toString();
+    if (query) link += `?${query}`;
+    link += `#${encodeURIComponent(remark)}`;
+    return link;
+  }
+
+  // SIP002 userinfo is base64(method:pw).
   const userinfo = Base64.encode(`${settings.method}:${passwords.join(':')}`, true);
   const url = new URL(`ss://${userinfo}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);

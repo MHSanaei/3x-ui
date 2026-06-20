@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",
       "subRoutingRulesDesc": "VPNクライアントのグローバルルーティングルール。(Happのみ)",
+      "subHideSettings": "サーバー設定を非表示",
+      "subHideSettingsDesc": "VPNクライアントでサーバー設定の表示・編集機能を非表示にします。(Happのみ)",
       "subClashEnableRouting": "ルーティングを有効化",
       "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
       "subClashRoutingRules": "グローバルルーティングルール",
@@ -1761,7 +1763,7 @@
           "time": "時刻とステータス"
         },
         "descEMAIL": "クライアントのメール",
-        "descINBOUND": "設定名: ホストの備考が設定されている場合はそれ、それ以外はインバウンドの備考",
+        "descINBOUND": "インバウンド自身の備考（設定名）",
         "descHOST": "ホストの備考",
         "descID": "クライアント UUID",
         "descSHORT_ID": "UUID の最初の 8 文字",

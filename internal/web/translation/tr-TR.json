@@ -1090,6 +1090,8 @@
       "subEnableRoutingDesc": "VPN istemcisinde yönlendirmeyi etkinleştirmek için genel ayar. (Yalnızca Happ için)",
       "subRoutingRules": "Yönlendirme kuralları",
       "subRoutingRulesDesc": "VPN istemcisi için genel yönlendirme kuralları. (Yalnızca Happ için)",
+      "subHideSettings": "Sunucu ayarlarını gizle",
+      "subHideSettingsDesc": "VPN istemcisinde sunucu yapılandırmalarını görüntüleme ve düzenleme özelliğini gizleyin. (Yalnızca Happ için)",
       "subClashEnableRouting": "Yönlendirmeyi Etkinleştir",
       "subClashEnableRoutingDesc": "Oluşturulan YAML aboneliklerine genel Clash/Mihomo yönlendirme kurallarını ekler.",
       "subClashRoutingRules": "Genel Yönlendirme Kuralları",
@@ -1761,7 +1763,7 @@
           "time": "Zaman ve durum"
         },
         "descEMAIL": "Kullanıcı e-postası",
-        "descINBOUND": "Yapılandırma adı: ayarlanmışsa host'un açıklaması, aksi halde gelen bağlantının açıklaması",
+        "descINBOUND": "Gelen bağlantının kendi açıklaması (yapılandırma adı)",
         "descHOST": "Host açıklaması",
         "descID": "Kullanıcı UUID'si",
         "descSHORT_ID": "UUID'nin ilk 8 karakteri",

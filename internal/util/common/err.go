@@ -4,6 +4,7 @@ package common
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -29,4 +30,18 @@ func Recover(msg string) any {
 		}
 	}
 	return panicErr
+}
+
+// GoRecover runs fn in a new goroutine guarded by a recover, so a panic in a
+// background goroutine is logged (with name and a stack trace) instead of taking
+// the whole process down. name identifies the goroutine in the log.
+func GoRecover(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic in goroutine", name, ":", r, "\n"+string(debug.Stack()))
+			}
+		}()
+		fn()
+	}()
 }

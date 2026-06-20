@@ -130,7 +130,7 @@ export default function SubPage() {
     const rawUrl = subUrl + separator + 'flag=shadowrocket';
     const base64Url = btoa(rawUrl);
     const remark = encodeURIComponent(subTitle || sId || 'Subscription');
-    return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+    return `shadowrocket://add/sub://${base64Url}?remark=${remark}`;
   }, []);
 
   const v2boxUrl = useMemo(
