@@ -1761,7 +1761,7 @@
           "time": "Thời gian & trạng thái"
         },
         "descEMAIL": "Email khách hàng",
-        "descINBOUND": "Tên cấu hình: ghi chú của host nếu được đặt, nếu không thì ghi chú của inbound",
+        "descINBOUND": "Ghi chú của chính inbound (tên cấu hình)",
         "descHOST": "Ghi chú host",
         "descID": "UUID khách hàng",
         "descSHORT_ID": "8 ký tự đầu của UUID",

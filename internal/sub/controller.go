@@ -149,7 +149,8 @@ func (a *SUBController) subs(c *gin.Context) {
 	} else {
 		var result strings.Builder
 		for _, sub := range subs {
-			result.WriteString(sub + "\n")
+			result.WriteString(sub)
+			result.WriteString("\n")
 		}
 
 		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here

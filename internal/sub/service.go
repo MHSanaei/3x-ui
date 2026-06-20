@@ -47,6 +47,12 @@ type SubService struct {
 	// inbound whose NodeID is set. Keeps the per-link host derivation
 	// O(1) instead of O(N) DB hits.
 	nodesByID map[int]*model.Node
+	// statsByEmail maps a client email to its traffic row across ALL inbounds
+	// loaded for the request. client_traffics.email is globally unique, so this
+	// lets statsForClient resolve usage for a client even on an inbound that
+	// doesn't own its row (multi-inbound subscriptions). Filled in
+	// getInboundsBySubId; reset per request in PrepareForRequest.
+	statsByEmail map[string]xray.ClientTraffic
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -78,6 +84,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.usageShown = map[string]bool{}
+	s.statsByEmail = map[string]xray.ClientTraffic{}
 	s.loadNodes()
 	s.loadRemarkSettings()
 }
@@ -335,7 +342,22 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 	if err != nil {
 		return nil, err
 	}
+	s.indexStatsByEmail(inbounds)
 	return inbounds, nil
+}
+
+// indexStatsByEmail records every loaded inbound's client traffic rows keyed by
+// email so statsForClient can resolve a client's usage even on an inbound that
+// doesn't own its (globally unique) client_traffics row. See statsByEmail.
+func (s *SubService) indexStatsByEmail(inbounds []*model.Inbound) {
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	for _, inbound := range inbounds {
+		for _, st := range inbound.ClientStats {
+			s.statsByEmail[st.Email] = st
+		}
+	}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its

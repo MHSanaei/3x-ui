@@ -165,30 +165,30 @@ func hostRemarkService(template string) (*SubService, *model.Inbound, model.Clie
 	return s, inbound, client
 }
 
-// The config name prefers the host endpoint's own remark; the inbound's remark is
-// the fallback, used only when the host has none.
-func TestGenHostRemark_ConfigNameHostWins(t *testing.T) {
+// The config name is always the inbound's own remark; the host endpoint's remark
+// never substitutes it (it is reachable only through {{HOST}}).
+func TestGenHostRemark_ConfigNameUsesInbound(t *testing.T) {
 	s, inbound, client := hostRemarkService("") // no template → config name only
-	if got := s.genHostRemark(inbound, client, "Relay"); got != "Relay" {
-		t.Fatalf("genHostRemark = %q, want %q (host remark wins)", got, "Relay")
+	if got := s.genHostRemark(inbound, client, "Relay"); got != "DE" {
+		t.Fatalf("genHostRemark = %q, want %q (inbound remark, host ignored)", got, "DE")
 	}
 	if got := s.genHostRemark(inbound, client, ""); got != "DE" {
-		t.Fatalf("genHostRemark (no host remark) = %q, want %q (inbound fallback)", got, "DE")
+		t.Fatalf("genHostRemark (no host remark) = %q, want %q", got, "DE")
 	}
 }
 
-// In the body the template applies: {{INBOUND}} is the config name (host remark
-// first, inbound fallback) and {{HOST}} is always the host's own remark.
+// In the body the template applies: {{INBOUND}} is always the inbound's remark
+// and {{HOST}} the host's own remark, so the two can be shown side by side.
 func TestGenHostRemark_GlobalTemplate(t *testing.T) {
-	// Host remark set → {{INBOUND}} resolves to it (host wins over the inbound).
+	// {{INBOUND}} resolves to the inbound remark regardless of the host remark.
 	s, inbound, client := hostRemarkService("{{INBOUND}} | {{TRAFFIC_LEFT}} | {{DAYS_LEFT}}d")
-	if got := s.genHostRemark(inbound, client, "CDN"); got != "CDN | 80.00GB | 10d" {
-		t.Fatalf("global template (host wins) = %q", got)
+	if got := s.genHostRemark(inbound, client, "CDN"); got != "DE | 80.00GB | 10d" {
+		t.Fatalf("global template ({{INBOUND}} = inbound) = %q", got)
 	}
-	// No host remark → {{INBOUND}} falls back to the inbound's own remark.
-	s2, inbound2, client2 := hostRemarkService("{{INBOUND}} | {{TRAFFIC_LEFT}}")
-	if got := s2.genHostRemark(inbound2, client2, ""); got != "DE | 80.00GB" {
-		t.Fatalf("global template (inbound fallback) = %q", got)
+	// {{INBOUND}} and {{HOST}} side by side show both, distinctly (#5443).
+	s2, inbound2, client2 := hostRemarkService("{{INBOUND}}|{{HOST}}|{{TRAFFIC_LEFT}}")
+	if got := s2.genHostRemark(inbound2, client2, "CDN"); got != "DE|CDN|80.00GB" {
+		t.Fatalf("global template (inbound + host) = %q, want %q", got, "DE|CDN|80.00GB")
 	}
 	// {{HOST}} is the host's own remark even when the inbound has one of its own.
 	s3, inbound3, client3 := hostRemarkService("{{HOST}}")
@@ -239,12 +239,12 @@ func TestUsageOnFirstLinkOnly(t *testing.T) {
 func TestRemarkInDisplayContext(t *testing.T) {
 	s, inbound, client := hostRemarkService("{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
 	s.subscriptionBody = false
-	// A host link in a display shows only the config name — host remark wins, with
-	// no per-client email or usage info.
-	if got := s.genHostRemark(inbound, client, "CDN"); got != "CDN" {
-		t.Fatalf("display host link = %q, want config name %q (host wins)", got, "CDN")
+	// A host link in a display shows only the config name — the inbound's remark,
+	// with no per-client email or usage info and the host remark ignored.
+	if got := s.genHostRemark(inbound, client, "CDN"); got != "DE" {
+		t.Fatalf("display host link = %q, want config name %q", got, "DE")
 	}
-	// With no host remark, the config name is the inbound's own remark.
+	// With no host remark, the config name is likewise the inbound's own remark.
 	if got := s.genHostRemark(inbound, client, ""); got != "DE" {
 		t.Fatalf("display host link (no host) = %q, want %q", got, "DE")
 	}
@@ -267,6 +267,26 @@ func TestNameOnlyTemplate(t *testing.T) {
 		if got := nameOnlyTemplate(tmpl); got != want {
 			t.Errorf("nameOnlyTemplate(%q) = %q, want %q", tmpl, got, want)
 		}
+	}
+}
+
+// statsForClient resolves usage from the per-request statsByEmail map when the
+// link's own inbound doesn't carry the client's (globally unique) traffic row —
+// the multi-inbound case that made {{TRAFFIC_LEFT}} show the full quota (#5443).
+func TestStatsForClient_CrossInboundFallback(t *testing.T) {
+	s := &SubService{
+		statsByEmail: map[string]xray.ClientTraffic{
+			"john@example.com": {Email: "john@example.com", Total: 100 * gb, Up: 15 * gb, Down: 5 * gb},
+		},
+	}
+	// Inbound B carries no ClientStats for john (his row is owned by inbound A).
+	inboundB := &model.Inbound{Remark: "B"}
+	st := s.statsForClient(inboundB, model.Client{Email: "john@example.com"})
+	if used := st.Up + st.Down; used != 20*gb {
+		t.Fatalf("statsForClient used = %d, want %d (cross-inbound fallback)", used, 20*gb)
+	}
+	if got := remarkVarValue("TRAFFIC_LEFT", remarkContext{stats: st}); got != "80.00GB" {
+		t.Fatalf("TRAFFIC_LEFT = %q, want 80.00GB (remaining, not total)", got)
 	}
 }
 

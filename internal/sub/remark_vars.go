@@ -15,8 +15,9 @@ import (
 // remarkContext carries the per-client data a remark template can interpolate.
 // stats holds the live traffic record when one exists; when it doesn't, the
 // caller synthesizes a minimal one from the client so expiry/total/status tokens
-// still resolve. hostRemark is the host endpoint's own remark: it takes priority
-// over the inbound's remark as the config name and backs the {{HOST}} token.
+// still resolve. hostRemark is the host endpoint's own remark; it backs the
+// {{HOST}} token only — it never substitutes the inbound's remark as the config
+// name (use {{INBOUND}} and {{HOST}} side by side to show both).
 type remarkContext struct {
 	client     model.Client
 	stats      xray.ClientTraffic
@@ -24,12 +25,9 @@ type remarkContext struct {
 	hostRemark string
 }
 
-// configName is the display name for a link: the host endpoint's own remark when
-// it has one, otherwise the inbound's remark.
+// configName is the display name for a link: always the inbound's own remark.
+// The host endpoint's remark is surfaced only through the {{HOST}} token.
 func (ctx remarkContext) configName() string {
-	if ctx.hostRemark != "" {
-		return ctx.hostRemark
-	}
 	if ctx.inbound != nil {
 		return ctx.inbound.Remark
 	}
@@ -227,6 +225,14 @@ func (s *SubService) statsForClient(inbound *model.Inbound, client model.Client)
 	if stats, ok := s.findClientStats(inbound, client.Email); ok {
 		return stats
 	}
+	// client_traffics.email is globally unique, so a client shared across several
+	// inbounds of one subscription has a single traffic row owned by exactly one
+	// inbound. On every other inbound's link findClientStats misses; fall back to
+	// the per-request map built from all the subscription's inbounds so
+	// {{TRAFFIC_*}} reflect real usage instead of the full quota (#5443).
+	if stats, ok := s.statsByEmail[client.Email]; ok {
+		return stats
+	}
 	return xray.ClientTraffic{
 		Enable:     client.Enable,
 		ExpiryTime: client.ExpiryTime,
@@ -292,8 +298,8 @@ func (s *SubService) effectiveTemplate(email string) string {
 }
 
 // genTemplatedRemark expands the remark template for one client. hostRemark is
-// the host endpoint's remark (empty for a plain inbound); it takes priority over
-// the inbound remark for the config name and backs the {{HOST}} token.
+// the host endpoint's remark (empty for a plain inbound); it backs the {{HOST}}
+// token only and never substitutes the inbound remark as the config name.
 func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Client, hostRemark string) string {
 	ctx := remarkContext{
 		client:     client,
@@ -311,9 +317,9 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 }
 
 // genHostRemark builds one host endpoint's remark for a specific client. The
-// config name is the host endpoint's own remark when set, otherwise the inbound's
-// remark. In the subscription body the rest of the remark template still applies;
-// displays show just the config name.
+// config name is always the inbound's own remark; the host's remark is surfaced
+// only through the {{HOST}} token. In the subscription body the rest of the
+// remark template still applies; displays show just the config name.
 func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, hostRemark string) string {
 	if !s.subscriptionBody {
 		return remarkContext{inbound: inbound, hostRemark: hostRemark}.configName()
