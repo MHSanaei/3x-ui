@@ -52,6 +52,7 @@ var unlimitedDropTokens = map[string]bool{
 	"TRAFFIC_LEFT":  true,
 	"TRAFFIC_TOTAL": true,
 	"DAYS_LEFT":     true,
+	"TIME_LEFT":     true,
 }
 
 // uiTokenMap translates user-friendly single-brace tokens (used in the frontend
@@ -71,11 +72,6 @@ var uiTokenMap = map[string]string{
 	"PROTOCOL":           "PROTOCOL",
 	"TRANSPORT":          "TRANSPORT",
 }
-
-// uiSingleBraceRe matches {TOKEN_NAME} — single curly braces with uppercase
-// letters and underscores. Ordinary braces in a remark (e.g. JSON snippets) are
-// left untouched because they won't match the strict upper-case pattern.
-var uiSingleBraceRe = regexp.MustCompile(`\{([A-Z_]+)\}`)
 
 // translateUISingleBrackets converts user-friendly single-brace tokens to the
 // internal double-brace format before regex expansion. Only {TOKEN} patterns
@@ -270,13 +266,13 @@ func daysLeftLabel(expiryMs int64) string {
 	return strconv.FormatInt(days, 10)
 }
 
-// expireDateLabel renders a fixed expiry as YYYY-MM-DD (UTC). Unlimited and
-// delayed-start (no fixed calendar date yet) expiries yield "".
+// expireDateLabel renders a fixed expiry as YYYY-MM-DD (local time). Unlimited
+// and delayed-start (no fixed calendar date yet) expiries yield "".
 func expireDateLabel(expiryMs int64) string {
 	if expiryMs <= 0 {
 		return ""
 	}
-	return time.Unix(expiryMs/1000, 0).UTC().Format("2006-01-02")
+	return time.Unix(expiryMs/1000, 0).In(time.Local).Format("2006-01-02")
 }
 
 func max64(a, b int64) int64 {
