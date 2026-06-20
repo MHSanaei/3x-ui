@@ -47,6 +47,12 @@ type SubService struct {
 	// inbound whose NodeID is set. Keeps the per-link host derivation
 	// O(1) instead of O(N) DB hits.
 	nodesByID map[int]*model.Node
+	// statsByEmail maps a client email to its traffic row across ALL inbounds
+	// loaded for the request. client_traffics.email is globally unique, so this
+	// lets statsForClient resolve usage for a client even on an inbound that
+	// doesn't own its row (multi-inbound subscriptions). Filled in
+	// getInboundsBySubId; reset per request in PrepareForRequest.
+	statsByEmail map[string]xray.ClientTraffic
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -78,6 +84,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.usageShown = map[string]bool{}
+	s.statsByEmail = map[string]xray.ClientTraffic{}
 	s.loadNodes()
 	s.loadRemarkSettings()
 }
@@ -335,7 +342,22 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 	if err != nil {
 		return nil, err
 	}
+	s.indexStatsByEmail(inbounds)
 	return inbounds, nil
+}
+
+// indexStatsByEmail records every loaded inbound's client traffic rows keyed by
+// email so statsForClient can resolve a client's usage even on an inbound that
+// doesn't own its (globally unique) client_traffics row. See statsByEmail.
+func (s *SubService) indexStatsByEmail(inbounds []*model.Inbound) {
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	for _, inbound := range inbounds {
+		for _, st := range inbound.ClientStats {
+			s.statsByEmail[st.Email] = st
+		}
+	}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -716,9 +738,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
 	}
 
-	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
-	if method[0] == '2' {
-		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
+	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
+	var userInfo string
+	if strings.HasPrefix(method, "2022") {
+		userInfo = fmt.Sprintf("%s:%s:%s",
+			url.QueryEscape(method),
+			url.QueryEscape(inboundPassword),
+			url.QueryEscape(clients[clientIndex].Password))
+	} else {
+		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -731,7 +760,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
+				return fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.endpointRemark(inbound, email, ep)
@@ -739,7 +768,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
+	link := fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(address, inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
 }
 
@@ -1634,6 +1663,10 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		return nil
 	}
 	extra := map[string]any{}
+
+	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
+		extra["mode"] = mode
+	}
 
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		extra["xPaddingBytes"] = xpb

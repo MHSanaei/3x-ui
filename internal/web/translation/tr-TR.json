@@ -1761,7 +1761,7 @@
           "time": "Zaman ve durum"
         },
         "descEMAIL": "Kullanıcı e-postası",
-        "descINBOUND": "Yapılandırma adı: ayarlanmışsa host'un açıklaması, aksi halde gelen bağlantının açıklaması",
+        "descINBOUND": "Gelen bağlantının kendi açıklaması (yapılandırma adı)",
         "descHOST": "Host açıklaması",
         "descID": "Kullanıcı UUID'si",
         "descSHORT_ID": "UUID'nin ilk 8 karakteri",

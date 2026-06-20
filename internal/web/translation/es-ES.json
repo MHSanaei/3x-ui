@@ -1761,7 +1761,7 @@
           "time": "Tiempo y estado"
         },
         "descEMAIL": "Email del cliente",
-        "descINBOUND": "Nombre de la configuración: las notas del host cuando están definidas, de lo contrario las notas del inbound",
+        "descINBOUND": "Notas del propio inbound (nombre de la configuración)",
         "descHOST": "Notas del host",
         "descID": "UUID del cliente",
         "descSHORT_ID": "Primeros 8 caracteres del UUID",

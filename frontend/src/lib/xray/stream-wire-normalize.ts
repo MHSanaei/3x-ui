@@ -150,7 +150,12 @@ export function normalizeXhttpForWire(
 
   if (side === 'inbound') {
     if (!enableXmux) delete out.xmux;
-    delete out.scMinPostsIntervalMs;
+    // scMinPostsIntervalMs is a client-only tuning knob that subscriptions
+    // must propagate to clients. Only strip the xray-core default ("30")
+    // or empty values — the literal "30" is a known DPI fingerprint (#5141).
+    if (out.scMinPostsIntervalMs === '' || out.scMinPostsIntervalMs === '30') {
+      delete out.scMinPostsIntervalMs;
+    }
     delete out.uplinkChunkSize;
   }
 

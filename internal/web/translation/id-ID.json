@@ -1761,7 +1761,7 @@
           "time": "Waktu & status"
         },
         "descEMAIL": "Email klien",
-        "descINBOUND": "Nama konfigurasi: catatan host bila diatur, jika tidak catatan inbound",
+        "descINBOUND": "Catatan inbound itu sendiri (nama konfigurasi)",
         "descHOST": "Catatan host",
         "descID": "UUID klien",
         "descSHORT_ID": "8 karakter pertama dari UUID",

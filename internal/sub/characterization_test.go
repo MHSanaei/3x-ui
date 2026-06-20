@@ -168,7 +168,7 @@ func TestChar_C3_ShadowsocksExternalProxy(t *testing.T) {
 	}
 	s := &SubService{}
 	got := s.genShadowsocksLink(in, "user")
-	want := "ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206aW5ib3VuZHB3OmNsaWVudHB3@ss.example.com:8443?fp=chrome&security=tls&sni=ss.sni&type=tcp#char-SS"
+	want := "ss://2022-blake3-aes-256-gcm:inboundpw:clientpw@ss.example.com:8443?fp=chrome&security=tls&sni=ss.sni&type=tcp#char-SS"
 	if got != want {
 		t.Fatalf("C3-SS mismatch.\n got: %q\nwant: %q", got, want)
 	}

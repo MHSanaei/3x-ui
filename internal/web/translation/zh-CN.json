@@ -1761,7 +1761,7 @@
           "time": "时间与状态"
         },
         "descEMAIL": "客户端邮箱",
-        "descINBOUND": "配置名称：已设置时为主机的备注，否则为入站的备注",
+        "descINBOUND": "入站本身的备注（配置名称）",
         "descHOST": "主机备注",
         "descID": "客户端 UUID",
         "descSHORT_ID": "UUID 的前 8 个字符",
