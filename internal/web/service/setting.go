@@ -74,6 +74,7 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
+	"subHideSettings":             "false",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
