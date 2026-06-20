@@ -313,6 +313,21 @@ export default function ClientsPage() {
     return out;
   }, [inbounds]);
 
+  const getNextWgAllowedIp = useCallback((inboundId: number): string => {
+    const used = new Set<string>();
+    for (const c of clients) {
+      if (!(c.inboundIds || []).includes(inboundId)) continue;
+      for (const ip of c.wgPeer?.allowedIPs || []) {
+        used.add(ip.split('/')[0]);
+      }
+    }
+    for (let i = 2; i <= 254; i++) {
+      const ip = `10.0.0.${i}`;
+      if (!used.has(ip)) return `${ip}/32`;
+    }
+    return '10.0.0.2/32';
+  }, [clients]);
+
   const protocolOptions = useMemo(() => {
     const values = new Set<string>((inbounds || []).map((i) => i.protocol).filter((x): x is string => !!x));
     return [...values].sort();
@@ -1263,6 +1278,7 @@ export default function ClientsPage() {
             groups={allGroups}
             save={onSave}
             resetTraffic={resetTraffic}
+            getNextWgAllowedIp={getNextWgAllowedIp}
             onOpenChange={setFormOpen}
           />
         </LazyMount>
@@ -1280,6 +1296,7 @@ export default function ClientsPage() {
           <ClientQrModal
             open={qrOpen}
             client={qrClient}
+            inboundsById={inboundsById}
             subSettings={subSettings}
             onOpenChange={setQrOpen}
           />

@@ -446,21 +446,28 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 
 	needRestart := false
 	for _, ibId := range inboundIds {
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
+		ib, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
 				continue
 			}
 			return needRestart, getErr
 		}
 
-		// Always delete by email — the client's stable identity. This removes
-		// every matching entry from the inbound's settings even when the stored
-		// credential (UUID/password/auth) drifted from the inbound JSON, or a
-		// duplicate entry with the same email exists.
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
+
+		var nr bool
+		var delErr error
+		if ib.Protocol == model.WireGuard {
+			// WireGuard peers are managed via the dedicated WG path which
+			// rebuilds settings.peers[] and does its own client-record cleanup.
+			nr, delErr = s.DelWgClient(inboundSvc, ibId, existing.Email)
+		} else {
+			// Always delete by email — the client's stable identity.
+			nr, delErr = s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
+		}
 		if delErr != nil {
 			// The client is already absent from this inbound (data drift or a
 			// retried delete). Skip it — deletion stays idempotent.

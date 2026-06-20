@@ -297,6 +297,8 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	// WireGuard server public key; only set for wireguard inbounds.
+	WgPublicKey string `json:"wgPublicKey,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -324,7 +326,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, InboundOption{
+		opt := InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
 			Tag:            r.Tag,
@@ -333,9 +335,22 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 			NodeId:         r.NodeId,
-		})
+		}
+		if r.Protocol == string(model.WireGuard) {
+			opt.WgPublicKey = inboundWgPublicKey(r.Settings)
+		}
+		out = append(out, opt)
 	}
 	return out, nil
+}
+
+func inboundWgPublicKey(settings string) string {
+	var s map[string]any
+	if err := json.Unmarshal([]byte(settings), &s); err != nil {
+		return ""
+	}
+	pk, _ := s["publicKey"].(string)
+	return pk
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -1074,6 +1089,25 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
+		// WireGuard peers are managed via the clients table, not the inbound form.
+		// If the incoming settings don't carry peers (frontend omits them), restore
+		// them from the existing inbound so nothing is accidentally erased.
+		if inbound.Protocol == model.WireGuard {
+			var newSM map[string]any
+			if jsonErr := json.Unmarshal([]byte(inbound.Settings), &newSM); jsonErr == nil {
+				if _, hasPeers := newSM["peers"]; !hasPeers {
+					var oldSM map[string]any
+					if jsonErr2 := json.Unmarshal([]byte(oldInbound.Settings), &oldSM); jsonErr2 == nil {
+						if peers, ok := oldSM["peers"]; ok {
+							newSM["peers"] = peers
+							if bs, marshalErr := json.MarshalIndent(newSM, "", "  "); marshalErr == nil {
+								inbound.Settings = string(bs)
+							}
+						}
+					}
+				}
+			}
+		}
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
 		oldInbound.Sniffing = inbound.Sniffing
@@ -1153,12 +1187,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}
-		newClients, gcErr := s.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
-			return err
+		// WireGuard peers live in the clients table — sync from settings.peers[]
+		// rather than from settings.clients[] (which WG inbounds don't have).
+		if oldInbound.Protocol == model.WireGuard {
+			if syncErr := s.clientService.SyncWgInbound(tx, oldInbound); syncErr != nil {
+				logger.Warning("SyncWgInbound in UpdateInbound failed:", syncErr)
+			}
+		} else {
+			newClients, gcErr := s.GetClients(oldInbound)
+			if gcErr != nil {
+				return gcErr
+			}
+			if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
+				return err
+			}
 		}
 		// (Re)generate the Xray config whenever routing was or is now enabled, so
 		// the egress SOCKS bridge is added, moved, or dropped to match the new

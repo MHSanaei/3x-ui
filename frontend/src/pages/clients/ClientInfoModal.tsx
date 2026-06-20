@@ -182,15 +182,6 @@ export default function ClientInfoModal({
             <table className="info-table block">
               <tbody>
                 <tr>
-                  <td>{t('pages.clients.online')}</td>
-                  <td>
-                    {client.enable && isOnline
-                      ? <Tag color="green">{t('pages.clients.online')}</Tag>
-                      : <Tag>{t('pages.clients.offline')}</Tag>}
-                    <span className="hint">{t('lastOnline')}: {dateLabel(traffic?.lastOnline)}</span>
-                  </td>
-                </tr>
-                <tr>
                   <td>{t('status')}</td>
                   <td>
                     <Tag color={client.enable ? 'green' : 'default'}>
@@ -206,91 +197,135 @@ export default function ClientInfoModal({
                       : <Tag color="red">{t('none')}</Tag>}
                   </td>
                 </tr>
-                <tr>
-                  <td>{t('pages.clients.subId')}</td>
-                  <td>
-                    <Tag className="info-large-tag">{client.subId || '-'}</Tag>
-                    {client.subId && (
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.subId!)} />
+                {client.wgPeer ? (
+                  <>
+                    <tr>
+                      <td>{t('pages.clients.wg.publicKey')}</td>
+                      <td>
+                        <Tag className="info-large-tag">{client.wgPeer.publicKey}</Tag>
+                        <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.wgPeer!.publicKey)} />
+                      </td>
+                    </tr>
+                    {(client.wgPeer.allowedIPs || []).length > 0 && (
+                      <tr>
+                        <td>{t('pages.clients.wg.allowedIPs')}</td>
+                        <td>{(client.wgPeer.allowedIPs || []).map((ip, i) => <Tag key={i}>{ip}</Tag>)}</td>
+                      </tr>
                     )}
-                  </td>
-                </tr>
-                {client.uuid && (
-                  <tr>
-                    <td>{t('pages.clients.uuid')}</td>
-                    <td>
-                      <Tag className="info-large-tag">{client.uuid}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.uuid!)} />
-                    </td>
-                  </tr>
-                )}
-                {client.password && (
-                  <tr>
-                    <td>{t('password')}</td>
-                    <td>
-                      <Tag className="info-large-tag">{client.password}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.password!)} />
-                    </td>
-                  </tr>
-                )}
-                {client.auth && (
-                  <tr>
-                    <td>{t('pages.clients.auth')}</td>
-                    <td>
-                      <Tag className="info-large-tag">{client.auth}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.auth!)} />
-                    </td>
-                  </tr>
-                )}
-                <tr>
-                  <td>{t('pages.clients.flow')}</td>
-                  <td>
-                    {client.flow ? <Tag>{client.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
-                  </td>
-                </tr>
-                <tr>
-                  <td>{t('pages.inbounds.traffic')}</td>
-                  <td>
-                    <Tag>
-                      ↑ {SizeFormatter.sizeFormat(traffic?.up || 0)}
-                      {' '}/ ↓ {SizeFormatter.sizeFormat(traffic?.down || 0)}
-                    </Tag>
-                    <span className="hint">
-                      {SizeFormatter.sizeFormat(used)} / {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td>{t('remained')}</td>
-                  <td>
-                    {remaining < 0
-                      ? <Tag color="purple">∞</Tag>
-                      : <Tag color={remaining > 0 ? '' : 'red'}>{SizeFormatter.sizeFormat(remaining)}</Tag>}
-                  </td>
-                </tr>
-                <tr>
-                  <td>{t('pages.inbounds.expireDate')}</td>
-                  <td>
-                    {!client.expiryTime
-                      ? <Tag color="purple">∞</Tag>
-                      : <Tag color={client.expiryTime < 0 ? 'blue' : undefined}>{expiryLabel(client.expiryTime)}</Tag>}
-                    {(client.expiryTime ?? 0) > 0 && (
-                      <span className="hint">{IntlUtil.formatRelativeTime(client.expiryTime)}</span>
+                    {client.wgPeer.preSharedKey && (
+                      <tr>
+                        <td>{t('pages.clients.wg.preSharedKey')}</td>
+                        <td>
+                          <Tag className="info-large-tag">{client.wgPeer.preSharedKey}</Tag>
+                          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.wgPeer!.preSharedKey!)} />
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                </tr>
-                <tr>
-                  <td>{t('pages.clients.ipLimit')}</td>
-                  <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
-                </tr>
-                <tr>
-                  <td>{t('pages.inbounds.IPLimitlog')}</td>
-                  <td>
-                    <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                      {clientIps.length > 0 ? clientIps.length : ''}
-                    </Button>
-                  </td>
-                </tr>
+                    {(client.wgPeer.keepAlive ?? 0) > 0 && (
+                      <tr>
+                        <td>{t('pages.clients.wg.keepAlive')}</td>
+                        <td><Tag>{client.wgPeer.keepAlive}s</Tag></td>
+                      </tr>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <tr>
+                      <td>{t('pages.clients.online')}</td>
+                      <td>
+                        {client.enable && isOnline
+                          ? <Tag color="green">{t('pages.clients.online')}</Tag>
+                          : <Tag>{t('pages.clients.offline')}</Tag>}
+                        <span className="hint">{t('lastOnline')}: {dateLabel(traffic?.lastOnline)}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{t('pages.clients.subId')}</td>
+                      <td>
+                        <Tag className="info-large-tag">{client.subId || '-'}</Tag>
+                        {client.subId && (
+                          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.subId!)} />
+                        )}
+                      </td>
+                    </tr>
+                    {client.uuid && (
+                      <tr>
+                        <td>{t('pages.clients.uuid')}</td>
+                        <td>
+                          <Tag className="info-large-tag">{client.uuid}</Tag>
+                          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.uuid!)} />
+                        </td>
+                      </tr>
+                    )}
+                    {client.password && (
+                      <tr>
+                        <td>{t('password')}</td>
+                        <td>
+                          <Tag className="info-large-tag">{client.password}</Tag>
+                          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.password!)} />
+                        </td>
+                      </tr>
+                    )}
+                    {client.auth && (
+                      <tr>
+                        <td>{t('pages.clients.auth')}</td>
+                        <td>
+                          <Tag className="info-large-tag">{client.auth}</Tag>
+                          <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.auth!)} />
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td>{t('pages.clients.flow')}</td>
+                      <td>
+                        {client.flow ? <Tag>{client.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{t('pages.inbounds.traffic')}</td>
+                      <td>
+                        <Tag>
+                          ↑ {SizeFormatter.sizeFormat(traffic?.up || 0)}
+                          {' '}/ ↓ {SizeFormatter.sizeFormat(traffic?.down || 0)}
+                        </Tag>
+                        <span className="hint">
+                          {SizeFormatter.sizeFormat(used)} / {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{t('remained')}</td>
+                      <td>
+                        {remaining < 0
+                          ? <Tag color="purple">∞</Tag>
+                          : <Tag color={remaining > 0 ? '' : 'red'}>{SizeFormatter.sizeFormat(remaining)}</Tag>}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{t('pages.inbounds.expireDate')}</td>
+                      <td>
+                        {!client.expiryTime
+                          ? <Tag color="purple">∞</Tag>
+                          : <Tag color={client.expiryTime < 0 ? 'blue' : undefined}>{expiryLabel(client.expiryTime)}</Tag>}
+                        {(client.expiryTime ?? 0) > 0 && (
+                          <span className="hint">{IntlUtil.formatRelativeTime(client.expiryTime)}</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{t('pages.clients.ipLimit')}</td>
+                      <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
+                    </tr>
+                    <tr>
+                      <td>{t('pages.inbounds.IPLimitlog')}</td>
+                      <td>
+                        <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                          {clientIps.length > 0 ? clientIps.length : ''}
+                        </Button>
+                      </td>
+                    </tr>
+                  </>
+                )}
                 <tr>
                   <td>{t('pages.inbounds.createdAt')}</td>
                   <td><Tag>{dateLabel(client.createdAt)}</Tag></td>

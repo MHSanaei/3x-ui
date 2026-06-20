@@ -5,7 +5,7 @@ import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
-import type { ClientRecord } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 interface SubSettings {
   enable: boolean;
@@ -17,6 +17,7 @@ interface SubSettings {
 interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
+  inboundsById?: Record<number, InboundOption>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -28,9 +29,32 @@ interface ApiMsg<T = unknown> {
 
 const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false };
 
+function buildWgConfig(client: ClientRecord, inbound: InboundOption | undefined): string {
+  const wg = client.wgPeer;
+  if (!wg) return '';
+  const serverPubKey = inbound?.wgPublicKey || '';
+  const endpoint = `${window.location.hostname}:${inbound?.port || ''}`;
+  const address = (wg.allowedIPs || []).join(', ') || '10.0.0.2/32';
+  const lines: string[] = [
+    '[Interface]',
+    `PrivateKey = ${client.password || ''}`,
+    `Address = ${address}`,
+    'DNS = 8.8.8.8',
+    '',
+    '[Peer]',
+    `PublicKey = ${serverPubKey}`,
+    'AllowedIPs = 0.0.0.0/0, ::/0',
+    `Endpoint = ${endpoint}`,
+  ];
+  if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
+  if (wg.keepAlive && wg.keepAlive > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
+  return lines.join('\n');
+}
+
 export default function ClientQrModal({
   open,
   client,
+  inboundsById,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -38,21 +62,39 @@ export default function ClientQrModal({
   const [links, setLinks] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const isWg = !!(client?.wgPeer);
+
   const subLink = useMemo(() => {
+    if (isWg) return '';
     if (!client?.subId || !subSettings?.enable || !subSettings?.subURI) return '';
     return subSettings.subURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subURI]);
+  }, [isWg, client?.subId, subSettings?.enable, subSettings?.subURI]);
 
   const subJsonLink = useMemo(() => {
+    if (isWg) return '';
     if (!client?.subId || !subSettings?.enable) return '';
     if (!subSettings?.subJsonEnable || !subSettings?.subJsonURI) return '';
     return subSettings.subJsonURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
+  }, [isWg, client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
 
-  const hasAnything = !!subLink || !!subJsonLink || links.length > 0;
+  const wgInbound = useMemo(() => {
+    if (!isWg || !client?.inboundIds || !inboundsById) return undefined;
+    for (const id of client.inboundIds) {
+      const ib = inboundsById[id];
+      if (ib?.protocol === 'wireguard') return ib;
+    }
+    return undefined;
+  }, [isWg, client?.inboundIds, inboundsById]);
+
+  const wgConfig = useMemo(() => {
+    if (!isWg || !client) return '';
+    return buildWgConfig(client, wgInbound);
+  }, [isWg, client, wgInbound]);
+
+  const hasAnything = !!subLink || !!subJsonLink || links.length > 0 || !!wgConfig;
 
   useEffect(() => {
-    if (!open || !client?.subId) {
+    if (!open || !client?.subId || isWg) {
       setLinks([]);
       return;
     }
@@ -71,12 +113,27 @@ export default function ClientQrModal({
       }
     })();
     return () => { cancelled = true; };
-  }, [open, client?.subId]);
+  }, [open, client?.subId, isWg]);
 
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
   const items = useMemo(() => {
     const out: { key: string; label: React.ReactNode; children: React.ReactNode }[] = [];
+
+    if (wgConfig) {
+      out.push({
+        key: 'wg',
+        label: 'WireGuard Config',
+        children: (
+          <QrPanel
+            value={wgConfig}
+            remark={client?.email || 'wg'}
+            downloadName={`${client?.email || 'peer'}.conf`}
+          />
+        ),
+      });
+    }
+
     if (subLink) {
       out.push({
         key: 'sub',
@@ -113,7 +170,7 @@ export default function ClientQrModal({
       });
     });
     return out;
-  }, [subLink, subJsonLink, links, client?.email, t]);
+  }, [wgConfig, subLink, subJsonLink, links, client?.email, t]);
 
   useEffect(() => {
     if (!open) {
@@ -133,10 +190,7 @@ export default function ClientQrModal({
       onCancel={() => onOpenChange(false)}
     >
       <Spin spinning={loading}>
-        {!client?.subId && !loading && (
-          <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>{t('pages.clients.noSubId')}</div>
-        )}
-        {client?.subId && !hasAnything && !loading && (
+        {!hasAnything && !loading && (
           <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>{t('pages.clients.noLinks')}</div>
         )}
         {hasAnything && (

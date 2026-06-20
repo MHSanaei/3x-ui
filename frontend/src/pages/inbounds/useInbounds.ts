@@ -55,6 +55,7 @@ const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.TROJAN,
   Protocols.SHADOWSOCKS,
   Protocols.HYSTERIA,
+  Protocols.WIREGUARD,
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
@@ -297,9 +298,15 @@ export function useInbounds() {
       const settings = coerceInboundJsonField(dbInbound.settings) as {
         method?: string;
         clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+        peers?: Array<{ comment?: string }>;
       };
       if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
-      counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
+      if (protocol === Protocols.WIREGUARD) {
+        const peers = (settings.peers || []).map((p) => ({ email: p.comment || '', enable: true as boolean }));
+        counts[dbInbound.id] = rollupClients(dbInbound, { clients: peers });
+      } else {
+        counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
+      }
     }
     setClientCount(counts);
   }, [rollupClients]);
@@ -317,9 +324,15 @@ export function useInbounds() {
         const settings = coerceInboundJsonField(dbInbound.settings) as {
           method?: string;
           clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
+          peers?: Array<{ comment?: string }>;
         };
         if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
-        counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
+        if (row.protocol === Protocols.WIREGUARD) {
+          const peers = (settings.peers || []).map((p) => ({ email: p.comment || '', enable: true as boolean }));
+          counts[row.id] = rollupClients(dbInbound, { clients: peers });
+        } else {
+          counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
+        }
       }
     }
     dbInboundsRef.current = next;

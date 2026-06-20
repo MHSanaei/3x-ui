@@ -83,6 +83,7 @@ interface ClientFormModalProps {
   attachedIds?: number[];
   tgBotEnable?: boolean;
   groups?: string[];
+  getNextWgAllowedIp?: (inboundId: number) => string;
   save: (
     payload: Record<string, unknown> | SaveCreatePayload,
     meta: SaveMetaEdit | SaveMetaCreate,
@@ -181,6 +182,7 @@ export default function ClientFormModal({
   attachedIds = [],
   tgBotEnable = false,
   groups = [],
+  getNextWgAllowedIp,
   save,
   resetTraffic,
   onOpenChange,
@@ -339,6 +341,19 @@ export default function ClientFormModal({
     () => (form.inboundIds || []).some((id) => wgIds.has(id)),
     [form.inboundIds, wgIds],
   );
+
+  const firstWgInboundId = useMemo(
+    () => (form.inboundIds || []).find((id) => wgIds.has(id)) ?? null,
+    [form.inboundIds, wgIds],
+  );
+
+  // When a WG inbound is selected in add mode, suggest the next available IP.
+  useEffect(() => {
+    if (isEdit || !showWireGuard || firstWgInboundId === null || !getNextWgAllowedIp) return;
+    const nextIp = getNextWgAllowedIp(firstWgInboundId);
+    setForm((prev) => ({ ...prev, wgPeer: { ...prev.wgPeer, allowedIPs: [nextIp] } }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showWireGuard, firstWgInboundId]);
 
   const showFlow = useMemo(
     () => (form.inboundIds || []).some((id) => flowCapableIds.has(id)),
