@@ -414,7 +414,7 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 	}
 
 	for _, f := range stringFields {
-		if v, ok := xhttp[f.src].(string); ok && v != "" && v != f.skipValue {
+		if v, ok := xhttp[f.src].(string); ok && v != "" && (f.skipValue == "" || v != f.skipValue) {
 			opts[f.dst] = v
 		}
 	}

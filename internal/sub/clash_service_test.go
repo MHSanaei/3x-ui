@@ -145,6 +145,22 @@ func TestApplyTransport_XHTTP_HostFromHeaders(t *testing.T) {
 	}
 }
 
+func TestApplyTransport_XHTTP_NoSettings(t *testing.T) {
+	svc := &SubClashService{}
+	proxy := map[string]any{}
+	stream := map[string]any{}
+
+	if !svc.applyTransport(proxy, "xhttp", stream) {
+		t.Fatalf("applyTransport returned false for xhttp with no xhttpSettings")
+	}
+	if proxy["network"] != "xhttp" {
+		t.Fatalf("network = %v, want xhttp", proxy["network"])
+	}
+	if _, exists := proxy["xhttp-opts"]; exists {
+		t.Fatalf("xhttp-opts should be absent when xhttpSettings is missing, got %#v", proxy["xhttp-opts"])
+	}
+}
+
 func TestApplyTransport_HTTPUpgrade(t *testing.T) {
 	svc := &SubClashService{}
 	proxy := map[string]any{}
