@@ -3255,6 +3255,198 @@
         }
       }
     },
+    "/panel/api/inbounds/{id}/addWgClient": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Add a WireGuard peer to an existing WireGuard inbound. Creates a client record, attaches it to the inbound, and hot-reloads the inbound in xray.",
+        "operationId": "post_panel_api_inbounds_id_addWgClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "WireGuard inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "email": "peer1",
+                "password": "<private-key>",
+                "wgSettings": {
+                  "publicKey": "<public-key>",
+                  "allowedIPs": [
+                    "10.0.0.2/32"
+                  ],
+                  "preSharedKey": "",
+                  "keepAlive": 0
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/{id}/updateWgClient": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Update a WireGuard peer on an existing WireGuard inbound. Identifies the peer by email, updates its record and wg_settings, and hot-reloads the inbound in xray.",
+        "operationId": "post_panel_api_inbounds_id_updateWgClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "WireGuard inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Current email (name) of the peer to update.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "email": "peer1-renamed",
+                "enable": true,
+                "wgSettings": {
+                  "publicKey": "<public-key>",
+                  "allowedIPs": [
+                    "10.0.0.2/32"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/{id}/delWgClient": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Remove a WireGuard peer from an inbound by email. Deletes the client record, removes the peer from settings.peers[], and hot-reloads the inbound in xray.",
+        "operationId": "post_panel_api_inbounds_id_delWgClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "WireGuard inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Email (name) of the peer to delete.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/status": {
       "get": {
         "tags": [
