@@ -193,6 +193,49 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
+// normalizeShadowsocksClientKeys rewrites any Shadowsocks-2022 client password
+// whose decoded length no longer matches settings.method, which happens after the
+// inbound method is switched between ciphers of different key sizes (e.g.
+// aes-256↔aes-128). A wrong-length uPSK makes xray reject the user, so the link
+// fails to connect; regenerating restores a valid key (clients must re-fetch).
+// Non-Shadowsocks / legacy-SS settings pass through unchanged.
+func normalizeShadowsocksClientKeys(settings string) (string, bool) {
+	method := shadowsocksMethodFromSettings(settings)
+	if shadowsocksKeyBytes(method) == 0 {
+		return settings, false
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(settings), &m); err != nil {
+		return settings, false
+	}
+	clients, ok := m["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		c, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if pw, _ := c["password"].(string); validShadowsocksClientKey(method, pw) {
+			continue
+		}
+		c["password"] = randomShadowsocksClientKey(method)
+		clients[i] = c
+		changed = true
+	}
+	if !changed {
+		return settings, false
+	}
+	m["clients"] = clients
+	bs, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(bs), true
+}
+
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	method, _ := settings["method"].(string)
 	is2022 := strings.HasPrefix(method, "2022-blake3-")
@@ -350,6 +393,18 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		Update("reverse", reverseStr).Error; err != nil {
+		return needRestart, err
+	}
+
+	// Persist the group explicitly. SyncInbound deliberately preserves the
+	// stored group when the inbound settings carry none — so a node snapshot or a
+	// group-less settings rebuild can't wipe it (see SyncInbound + its tests).
+	// That guard also meant clearing the group in the client editor never took
+	// effect. The editor always round-trips the field, so apply it here,
+	// including the empty string that removes the client from its group.
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		UpdateColumn("group_name", updated.Group).Error; err != nil {
 		return needRestart, err
 	}
 

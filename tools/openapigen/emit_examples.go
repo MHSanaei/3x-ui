@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"strconv"
 	"strings"
 )
@@ -116,9 +117,7 @@ func isVisitedRef(t TypeRef, visited map[string]bool) bool {
 
 func cloneVisited(in map[string]bool) map[string]bool {
 	out := make(map[string]bool, len(in)+1)
-	for k, v := range in {
-		out[k] = v
-	}
+	maps.Copy(out, in)
 	return out
 }
 

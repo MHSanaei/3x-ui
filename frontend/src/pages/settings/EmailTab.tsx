@@ -4,7 +4,8 @@ import { Alert, Button, Input, InputNumber, Select, Space, Switch, Tabs } from '
 import { MailOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
-import { SettingListItem, EventBusCheckboxes } from '@/components/ui';
+import { SettingListItem } from '@/components/ui';
+import { EmailNotifications } from '@/components/ui/notifications/EmailNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 
@@ -102,7 +103,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
               {testResult && (
                 <Alert
                   type={testResult.success ? 'success' : 'error'}
-                  message={
+                  title={
                     testResult.success
                       ? t('pages.settings.' + testResult.msg)
                       : <span><b>{stageLabel[testResult.stage || ''] || testResult.stage}:</b> {t('pages.settings.' + testResult.msg)}</span>
@@ -122,12 +123,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.smtpEventBusNotify')} description={t('pages.settings.smtpEventBusNotifyDesc')}>
-              <EventBusCheckboxes
-                value={allSetting.smtpEnabledEvents}
-                onChange={(v) => updateSetting({ smtpEnabledEvents: v })}
-                extra={{ 'cpu.high': { key: 'smtpCpu', value: allSetting.smtpCpu } }}
-                onExtraChange={(key, v) => updateSetting({ [key]: Number(v) || 0 })}
-              />
+              <EmailNotifications allSetting={allSetting} updateSetting={updateSetting} />
             </SettingListItem>
           </>
         ),

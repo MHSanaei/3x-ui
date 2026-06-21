@@ -62,7 +62,7 @@ func TestGetSubs_OrdersBySubSortIndexThenId(t *testing.T) {
 		}
 	}
 
-	s := NewSubService(false, "-ieo")
+	s := NewSubService("")
 	links, emails, _, _, err := s.GetSubs(subId, "sub.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)

@@ -425,12 +425,12 @@ func parseMetricLine(line string) (name string, labels map[string]string, value 
 		if end < brace {
 			return "", nil, 0, fmt.Errorf("malformed metric line")
 		}
-		for _, kv := range strings.Split(line[brace+1:end], ",") {
-			eq := strings.IndexByte(kv, '=')
-			if eq < 0 {
+		for kv := range strings.SplitSeq(line[brace+1:end], ",") {
+			before, after, ok := strings.Cut(kv, "=")
+			if !ok {
 				continue
 			}
-			labels[strings.TrimSpace(kv[:eq])] = strings.Trim(strings.TrimSpace(kv[eq+1:]), `"`)
+			labels[strings.TrimSpace(before)] = strings.Trim(strings.TrimSpace(after), `"`)
 		}
 		rest = strings.TrimSpace(line[end+1:])
 	} else {
