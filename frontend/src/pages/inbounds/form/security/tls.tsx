@@ -1,14 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
-import { MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, FileProtectOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
 import {
   ALPN_OPTION,
+  DOMAIN_STRATEGY_OPTION,
   TLS_CIPHER_OPTION,
   TLS_VERSION_OPTION,
   USAGE_OPTION,
   UTLS_FINGERPRINT,
 } from '@/schemas/primitives';
+import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
 const { TextArea } = Input;
 
@@ -16,7 +18,8 @@ interface TlsFormProps {
   saving: boolean;
   setCertFromPanel: (certName: number) => void;
   clearCertFiles: (certName: number) => void;
-  generateRandomPinHash: () => void;
+  pinFromCert: () => void;
+  pinFromRemote: () => void;
   getNewEchCert: () => void;
   clearEchCert: () => void;
 }
@@ -25,7 +28,8 @@ export default function TlsForm({
   saving,
   setCertFromPanel,
   clearCertFiles,
-  generateRandomPinHash,
+  pinFromCert,
+  pinFromRemote,
   getNewEchCert,
   clearEchCert,
 }: TlsFormProps) {
@@ -79,6 +83,21 @@ export default function TlsForm({
         />
       </Form.Item>
       <Form.Item
+        name={['streamSettings', 'tlsSettings', 'curvePreferences']}
+        label={t('pages.inbounds.form.curvePreferences')}
+        tooltip={t('pages.inbounds.form.curvePreferencesTip')}
+      >
+        <Select
+          mode="tags"
+          tokenSeparators={[',', ' ']}
+          style={{ width: '100%' }}
+          options={['X25519MLKEM768', 'X25519', 'P-256', 'P-384', 'P-521'].map((c) => ({
+            value: c,
+            label: c,
+          }))}
+        />
+      </Form.Item>
+      <Form.Item
         name={['streamSettings', 'tlsSettings', 'rejectUnknownSni']}
         label={t('pages.inbounds.form.rejectUnknownSni')}
         valuePropName="checked"
@@ -113,7 +132,7 @@ export default function TlsForm({
                   keyFile: '',
                   certificate: [],
                   key: [],
-                  ocspStapling: 3600,
+                  ocspStapling: 0,
                   oneTimeLoading: false,
                   usage: 'encipherment',
                   buildChain: false,
@@ -270,7 +289,71 @@ export default function TlsForm({
           </>
         )}
       </Form.List>
-
+      <Form.Item
+        name={['streamSettings', 'tlsSettings', 'masterKeyLog']}
+        label={t('pages.inbounds.form.masterKeyLog')}
+        tooltip={t('pages.inbounds.form.masterKeyLogTip')}
+      >
+        <Input placeholder="/path/to/sslkeylog.txt" />
+      </Form.Item>
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, curr) =>
+          !!(prev.streamSettings as { tlsSettings?: { echSockopt?: unknown } } | undefined)?.tlsSettings?.echSockopt
+          !== !!(curr.streamSettings as { tlsSettings?: { echSockopt?: unknown } } | undefined)?.tlsSettings?.echSockopt
+        }
+      >
+        {({ getFieldValue, setFieldValue }) => {
+          const on = !!getFieldValue(['streamSettings', 'tlsSettings', 'echSockopt']);
+          return (
+            <>
+              <Form.Item label={t('pages.inbounds.form.echSockopt')} tooltip={t('pages.inbounds.form.echSockoptTip')}>
+                <Switch
+                  checked={on}
+                  onChange={(v) =>
+                    setFieldValue(
+                      ['streamSettings', 'tlsSettings', 'echSockopt'],
+                      v ? SockoptStreamSettingsSchema.parse({}) : undefined,
+                    )
+                  }
+                />
+              </Form.Item>
+              {on && (
+                <>
+                  <Form.Item
+                    name={['streamSettings', 'tlsSettings', 'echSockopt', 'dialerProxy']}
+                    label={t('pages.inbounds.form.dialerProxy')}
+                  >
+                    <Input />
+                  </Form.Item>
+                  <Form.Item
+                    name={['streamSettings', 'tlsSettings', 'echSockopt', 'domainStrategy']}
+                    label={t('pages.xray.wireguard.domainStrategy')}
+                  >
+                    <Select
+                      options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({ value: v, label: v }))}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name={['streamSettings', 'tlsSettings', 'echSockopt', 'tcpFastOpen']}
+                    label={t('pages.inbounds.form.tcpFastOpen')}
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item
+                    name={['streamSettings', 'tlsSettings', 'echSockopt', 'tcpMptcp']}
+                    label={t('pages.inbounds.form.multipathTcp')}
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
+                </>
+              )}
+            </>
+          );
+        }}
+      </Form.Item>
       <Form.Item name={['streamSettings', 'tlsSettings', 'echServerKeys']} label={t('pages.inbounds.form.echKey')}>
         <Input />
       </Form.Item>
@@ -279,6 +362,14 @@ export default function TlsForm({
         label={t('pages.inbounds.form.echConfig')}
       >
         <Input />
+      </Form.Item>
+      <Form.Item label=" ">
+        <Space>
+          <Button type="primary" loading={saving} onClick={getNewEchCert}>
+            {t('pages.inbounds.form.getNewEchCert')}
+          </Button>
+          <Button danger onClick={clearEchCert}>{t('clear')}</Button>
+        </Space>
       </Form.Item>
       <Form.Item
         label={t('pages.inbounds.form.pinnedPeerCertSha256')}
@@ -293,23 +384,29 @@ export default function TlsForm({
               mode="tags"
               tokenSeparators={[',', ' ']}
               placeholder={t('pages.inbounds.form.pinnedPeerCertSha256Placeholder')}
-              style={{ width: 'calc(100% - 32px)' }}
+              style={{ width: 'calc(100% - 64px)' }}
             />
           </Form.Item>
           <Button
-            icon={<ReloadOutlined />}
-            onClick={generateRandomPinHash}
-            title={t('pages.inbounds.form.generateRandomPin')}
+            icon={<FileProtectOutlined />}
+            onClick={pinFromCert}
+            loading={saving}
+            title={t('pages.inbounds.form.pinFromCert')}
+          />
+          <Button
+            icon={<CloudDownloadOutlined />}
+            onClick={pinFromRemote}
+            loading={saving}
+            title={t('pages.inbounds.form.pinFromRemote')}
           />
         </Space.Compact>
       </Form.Item>
-      <Form.Item label=" ">
-        <Space>
-          <Button type="primary" loading={saving} onClick={getNewEchCert}>
-            {t('pages.inbounds.form.getNewEchCert')}
-          </Button>
-          <Button danger onClick={clearEchCert}>{t('clear')}</Button>
-        </Space>
+      <Form.Item
+        name={['streamSettings', 'tlsSettings', 'settings', 'verifyPeerCertByName']}
+        label={t('pages.inbounds.form.verifyPeerCertByName')}
+        tooltip={t('pages.inbounds.form.verifyPeerCertByNameTip')}
+      >
+        <Input placeholder="example.com" />
       </Form.Item>
     </>
   );

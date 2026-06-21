@@ -744,7 +744,7 @@ type Host struct {
 	OverrideSniFromAddress bool     `json:"overrideSniFromAddress" form:"overrideSniFromAddress" gorm:"column:override_sni_from_address"`
 	KeepSniBlank           bool     `json:"keepSniBlank" form:"keepSniBlank" gorm:"column:keep_sni_blank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256" form:"pinnedPeerCertSha256" gorm:"serializer:json;column:pinned_peer_cert_sha256"`
-	VerifyPeerCertByName   bool     `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
+	VerifyPeerCertByName   string   `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
 	AllowInsecure          bool     `json:"allowInsecure" form:"allowInsecure" gorm:"column:allow_insecure"`
 	EchConfigList          string   `json:"echConfigList" form:"echConfigList" gorm:"column:ech_config_list"`
 

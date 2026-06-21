@@ -454,6 +454,27 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": {\n    "echKeySet": "...",\n    "echServerKeys": [...],\n    "echConfigList": "..."\n  }\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/server/getCertHash',
+        summary: 'Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.',
+        params: [
+          { name: 'certFile', in: 'body (form)', type: 'string', desc: 'Path to a certificate file on the server. Takes precedence over certContent.' },
+          { name: 'certContent', in: 'body (form)', type: 'string', desc: 'Inline PEM (or DER) certificate content, used when certFile is empty.' },
+        ],
+        body: 'certFile=/root/cert.crt',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/getRemoteCertHash',
+        summary: 'Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).',
+        params: [
+          { name: 'server', in: 'body (form)', type: 'string', desc: 'Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com.' },
+        ],
+        body: 'server=cloudflare-dns.com',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/server/clientIps',
         summary: 'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',
@@ -585,6 +606,25 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/delDepleted',
         summary: 'Delete every client whose traffic quota is exhausted (used >= total, when reset is disabled) or whose expiry has passed. Returns the deleted count and triggers an Xray restart when any client was on a running inbound.',
         response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/delOrphans',
+        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/export',
+        summary: 'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/import',
+        summary: 'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.',
+        body: '{\n  "data": "[{\\"client\\":{\\"email\\":\\"alice@example.com\\",\\"enable\\":true},\\"inboundIds\\":[7]}]"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use: alice@example.com" }\n    ]\n  }\n}',
       },
       {
         method: 'POST',

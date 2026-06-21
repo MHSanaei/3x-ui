@@ -813,6 +813,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 				params["ech"] = ech
 			}
 		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			params["vcn"] = vcn
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			for i, p := range pins {
 				pins[i] = hysteriaPinHex(p)
@@ -926,10 +929,13 @@ func (s *SubService) loadNodes() {
 //   - "node" (default, and any unknown value): the node's address for
 //     node-managed inbounds, then a routable Listen — the pre-strategy order.
 //
-// Every chain ends at the subscriber's request host (s.address). A
-// loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy still overrides everything
-// upstream of this call.
+// Every chain ends at the admin's configured public host (Sub/Web domain) and
+// then the subscriber's request host (s.address). Preferring the configured
+// host over the request host for this last resort keeps a wildcard local inbound
+// from advertising a bogus client IP that leaked into the request Host header
+// behind NAT/proxy/CDN (#5425). A loopback/wildcard bind or a unix-domain-socket
+// listen is a server-side detail and is never advertised; External Proxy still
+// overrides everything upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	var nodeAddr string
 	if inbound.NodeID != nil && s.nodesByID != nil {
@@ -953,6 +959,9 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 		if c != "" {
 			return c
 		}
+	}
+	if d := s.configuredPublicHost(); d != "" {
+		return d
 	}
 	return s.address
 }
@@ -1120,6 +1129,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 				params["ech"] = ech
 			}
 		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			params["vcn"] = vcn
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
@@ -1150,10 +1162,32 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 				obj["ech"] = ech
 			}
 		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			obj["vcn"] = vcn
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
 		}
 	}
+}
+
+// verifyPeerCertByNameValue extracts tlsSettings.settings.verifyPeerCertByName
+// (the v2rayN `vcn` param) as a trimmed string. Like pinnedPeerCertSha256 it is
+// panel-only and flows into share links so clients verify the server
+// certificate by this name — the replacement for the removed allowInsecure.
+func verifyPeerCertByNameValue(tlsClientSettings any) (string, bool) {
+	raw, ok := searchKey(tlsClientSettings, "verifyPeerCertByName")
+	if !ok {
+		return "", false
+	}
+	s, ok := raw.(string)
+	if !ok {
+		return "", false
+	}
+	if s = strings.TrimSpace(s); s == "" {
+		return "", false
+	}
+	return s, true
 }
 
 // pinnedSha256List extracts tlsSettings.settings.pinnedPeerCertSha256 as a
@@ -1274,6 +1308,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		obj["pcs"] = joinAnyStrings(pins)
 	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		obj["vcn"] = vcn
+	}
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		obj["ech"] = ech
 	}
@@ -1294,6 +1331,9 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	}
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		params["pcs"] = joinAnyStrings(pins)
+	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		params["vcn"] = vcn
 	}
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		params["ech"] = ech
@@ -1377,6 +1417,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 			tlsSettings["settings"] = settings
 		}
 		settings["echConfigList"] = ech
+	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["verifyPeerCertByName"] = vcn
 	}
 	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
 		settings, _ := tlsSettings["settings"].(map[string]any)

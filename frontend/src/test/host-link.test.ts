@@ -13,6 +13,7 @@ describe('hostToExternalProxyEntry', () => {
     alpn: ['h2'] as ('h2' | 'h3' | 'http/1.1')[],
     fingerprint: 'chrome' as const,
     pinnedPeerCertSha256: ['AAAA'],
+    verifyPeerCertByName: 'verify.example.com',
     echConfigList: 'ECH',
     overrideSniFromAddress: false,
     keepSniBlank: false,
@@ -28,6 +29,7 @@ describe('hostToExternalProxyEntry', () => {
     expect(ep.alpn).toEqual(['h2']);
     expect(ep.fingerprint).toBe('chrome');
     expect(ep.pinnedPeerCertSha256).toEqual(['AAAA']);
+    expect(ep.verifyPeerCertByName).toBe('verify.example.com');
     expect(ep.echConfigList).toBe('ECH');
   });
 

@@ -75,6 +75,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/xraylogs/:count", a.getXrayLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
+	g.POST("/getCertHash", a.getCertHash)
+	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -393,6 +395,28 @@ func (a *ServerController) getNewEchCert(c *gin.Context) {
 		return
 	}
 	jsonObj(c, cert, nil)
+}
+
+// getCertHash returns the hex SHA-256 of the given certificate (file path or
+// inline content) so the panel can fill the pinned-cert field.
+func (a *ServerController) getCertHash(c *gin.Context) {
+	hashes, err := a.serverService.GetCertHash(c.PostForm("certFile"), c.PostForm("certContent"))
+	if err != nil {
+		jsonMsg(c, "get cert hash", err)
+		return
+	}
+	jsonObj(c, hashes, nil)
+}
+
+// getRemoteCertHash runs `xray tls ping` against the given server and returns
+// its live certificate SHA-256 hash(es) for pinning.
+func (a *ServerController) getRemoteCertHash(c *gin.Context) {
+	hashes, err := a.serverService.GetRemoteCertHash(c.PostForm("server"))
+	if err != nil {
+		jsonMsg(c, "get remote cert hash", err)
+		return
+	}
+	jsonObj(c, hashes, nil)
 }
 
 // getNewVlessEnc generates a new VLESS encryption key.

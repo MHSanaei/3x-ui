@@ -6,7 +6,7 @@
   "cancel": "取消",
   "close": "关闭",
   "save": "保存",
-  "logout": "登出",
+  "logout": "登出 <3",
   "create": "创建",
   "add": "添加",
   "remove": "移除",
@@ -463,6 +463,26 @@
         "moreIssues": "{message}  (另有 {count} 项)"
       },
       "form": {
+        "echSockopt": "ECH Sockopt",
+        "echSockoptTip": "Xray 获取 ECH 配置列表时所用连接的 Socket 选项（例如让该查询通过 dialerProxy 出站）。保持禁用则使用默认值。",
+        "curvePreferences": "曲线偏好",
+        "curvePreferencesTip": "限制服务器提供的 TLS 密钥交换曲线，并按偏好顺序排列（例如 X25519MLKEM768、X25519）。留空则使用 Xray-core 默认值。",
+        "masterKeyLog": "主密钥日志",
+        "masterKeyLogTip": "写入 TLS 主密钥的路径（SSLKEYLOGFILE 格式），用于配合 Wireshark 调试。生产环境请留空——任何拥有该文件的人都能解密流量。",
+        "verifyPeerCertByNameTip": "让客户端以此名称（而非 SNI）验证服务器证书。多个名称用逗号分隔。仅面板使用——会包含在分享链接中（vcn）。这是 allowInsecure 的现代替代方案，Xray 已在 2026-06-01 之后将其移除。",
+        "pinFromCert": "从此入站的证书填充",
+        "pinFromRemote": "通过 ping SNI 获取哈希（xray tls ping）",
+        "pinFromRemoteNoSni": "请先设置 SNI（serverName）才能 ping 远端证书。",
+        "pinFromRemoteFailed": "无法获取远端证书哈希。",
+        "limitFallback": "限制 Fallback",
+        "limitFallbackUpload": "限制 Fallback 上传",
+        "limitFallbackDownload": "限制 Fallback 下载",
+        "afterBytes": "起始字节数",
+        "afterBytesTip": "允许 fallback 以全速运行此字节数，之后开始限速。0 = 从第一个字节起就限速。",
+        "bytesPerSec": "每秒字节数",
+        "bytesPerSecTip": "在达到阈值后对 fallback 流量施加的速度上限（字节/秒），以防探测者把你的服务器当作通往目标的免费带宽。0 = 无限制（禁用此方向）。",
+        "burstBytesPerSec": "突发每秒字节数",
+        "burstBytesPerSecTip": "允许在稳定速率之上的短时突发额度（token-bucket 容量）。若低于“每秒字节数”，则会被提升至与之相同。",
         "moveUp": "上移",
         "moveDown": "下移",
         "addAll": "全部添加",
@@ -591,7 +611,6 @@
         "pinnedPeerCertSha256": "固定对端证书 SHA-256",
         "pinnedPeerCertSha256Tip": "对端证书的 SHA-256 哈希（十六进制字符串，如 e8e2d3…），逗号分隔。仅面板使用 — 不写入服务器的 xray 配置，但会包含在分享链接中，以便客户端固定证书。",
         "pinnedPeerCertSha256Placeholder": "十六进制哈希，逗号分隔",
-        "generateRandomPin": "生成随机哈希",
         "getNewEchCert": "获取新 ECH 证书",
         "show": "显示",
         "xver": "Xver",
@@ -625,7 +644,8 @@
           "node": "节点地址",
           "listen": "入站监听地址",
           "custom": "自定义"
-        }
+        },
+        "verifyPeerCertByName": "按名称验证对端证书"
       },
       "info": {
         "mode": "模式",
@@ -813,6 +833,12 @@
       "delDepleted": "删除已耗尽",
       "delDepletedConfirmTitle": "删除已耗尽的客户端？",
       "delDepletedConfirmContent": "删除所有流量配额已用尽或已过期的客户端。该操作不可撤销。",
+      "exportClients": "导出客户端",
+      "importClients": "导入客户端",
+      "import": "导入",
+      "delOrphans": "删除未关联的客户端",
+      "delOrphansConfirmTitle": "删除没有入站的客户端？",
+      "delOrphansConfirmContent": "删除所有未关联到任何入站的客户端及其流量记录。该操作不可撤销。",
       "auth": "认证",
       "hysteriaAuth": "Hysteria 认证",
       "uuid": "UUID",
@@ -835,7 +861,10 @@
         "bulkCreatedMixed": "已创建 {ok} 个，失败 {failed} 个",
         "bulkAdjusted": "已调整 {count} 个客户端",
         "bulkAdjustedMixed": "已调整 {ok} 个，跳过 {skipped} 个",
-        "delDepleted": "已删除 {count} 个已耗尽的客户端"
+        "delDepleted": "已删除 {count} 个已耗尽的客户端",
+        "delOrphans": "已删除 {count} 个未关联的客户端",
+        "imported": "已导入 {count} 个客户端",
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
       }
     },
     "groups": {
@@ -1092,11 +1121,11 @@
       "subThemeDirDesc": "包含自定义订阅页面模板 (index.html/sub.html) 的文件夹的绝对路径（例如 /etc/3x-ui/sub_templates/my-theme/）。留空则使用默认页面。",
       "subThemeDirDocs": "模板指南 ↗",
       "subEnableRouting": "启用路由",
-      "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（僅限 Happ）",
-      "subRoutingRules": "路由規則",
-      "subRoutingRulesDesc": "VPN 用戶端的全域路由規則。（僅限 Happ）",
+      "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（仅限 Happ）",
+      "subRoutingRules": "路由规则",
+      "subRoutingRulesDesc": "VPN 用户端的全域路由规则。（仅限 Happ）",
       "subHideSettings": "隐藏服务器设置",
-      "subHideSettingsDesc": "在 VPN 客户端中隐藏查看和编辑服务器配置的功能。（僅限 Happ）",
+      "subHideSettingsDesc": "在 VPN 客户端中隐藏查看和编辑服务器配置的功能。（仅限 Happ）",
       "subClashEnableRouting": "启用路由",
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",
@@ -1294,10 +1323,19 @@
       "smtpErrorRelay": "服务器拒绝从此地址发送",
       "smtpErrorEof": "连接被服务器关闭",
       "smtpErrorUnknown": "SMTP 错误：{{ .Error }}",
+      "eventMemoryHigh": "内存使用率高 (%)",
       "remarkTemplate": "备注模板",
       "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。"
     },
     "xray": {
+      "importRules": "导入规则",
+      "exportRules": "导出规则",
+      "importOutbounds": "导入出站",
+      "exportOutbounds": "导出出站",
+      "importInvalidJson": "无效的 JSON——应为数组或包含匹配键的对象。",
+      "metricsListen": "指标端点",
+      "metricsListenDesc": "在此 address:port 上暴露 Xray 的 Prometheus 风格指标（例如 127.0.0.1:11111）。留空则禁用。请绑定到本地回环并通过反向代理转发——它没有身份验证。",
+      "metricsTag": "指标标签",
       "title": "Xray 配置",
       "save": "保存",
       "restart": "重启 Xray",
@@ -1842,7 +1880,7 @@
       "idDesc": "显示您的 Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
+      "cpuThreshold": "CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
       "selectUserFailed": "❌ 用户选择错误！",
       "userSaved": "✅ 电报用户已保存。",
       "loginSuccess": "✅ 成功登录到面板。\r\n",
@@ -1917,7 +1955,8 @@
       "eventNodeUp": "节点 {{ .Name }} 已上线",
       "eventCPUHigh": "CPU 占用过高",
       "eventCPUHighDetail": "CPU：{{ .Detail }}",
-      "eventLoginFallback": "来自 {{ .Source }} 的登录失败"
+      "eventLoginFallback": "来自 {{ .Source }} 的登录失败",
+      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",

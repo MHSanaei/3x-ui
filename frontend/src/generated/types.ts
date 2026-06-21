@@ -41,6 +41,7 @@ export interface AllSetting {
   smtpEnabledEvents: string;
   smtpEncryptionType: string;
   smtpHost: string;
+  smtpMemory: number;
   smtpPassword: string;
   smtpPort: number;
   smtpTo: string;
@@ -83,6 +84,7 @@ export interface AllSetting {
   tgCpu: number;
   tgEnabledEvents: string;
   tgLang: string;
+  tgMemory: number;
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
@@ -140,6 +142,7 @@ export interface AllSettingView {
   smtpEnabledEvents: string;
   smtpEncryptionType: string;
   smtpHost: string;
+  smtpMemory: number;
   smtpPassword: string;
   smtpPort: number;
   smtpTo: string;
@@ -182,6 +185,7 @@ export interface AllSettingView {
   tgCpu: number;
   tgEnabledEvents: string;
   tgLang: string;
+  tgMemory: number;
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
@@ -324,7 +328,7 @@ export interface Host {
   sortOrder: number;
   tags: string[];
   updatedAt: number;
-  verifyPeerCertByName: boolean;
+  verifyPeerCertByName: string;
   vlessRoute: string;
 }
 

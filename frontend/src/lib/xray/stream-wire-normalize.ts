@@ -129,6 +129,20 @@ function normalizeTlsForWire(raw: Record<string, unknown>): Record<string, unkno
   const out: Record<string, unknown> = { ...raw };
   if (out.fingerprint === '') delete out.fingerprint;
 
+  // Empty server-side tuning fields mean "use xray-core's default" — never emit them.
+  if (Array.isArray(out.curvePreferences) && out.curvePreferences.length === 0) {
+    delete out.curvePreferences;
+  }
+  if (out.masterKeyLog === '' || out.masterKeyLog == null) delete out.masterKeyLog;
+  if (isRecord(out.echSockopt)) {
+    const echSock = normalizeSockoptForWire(out.echSockopt);
+    if (echSock) {
+      out.echSockopt = echSock;
+    } else {
+      delete out.echSockopt;
+    }
+  }
+
   const settings = out.settings;
   if (isRecord(settings)) {
     const settingsOut: Record<string, unknown> = { ...settings };

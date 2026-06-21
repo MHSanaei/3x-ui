@@ -47,6 +47,7 @@ type AllSetting struct {
 	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
 	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
 	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
+	TgMemory        int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"` // Memory usage threshold for alerts (percent)
 	TgLang          string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`      // Comma-separated event types to send via Telegram
 
@@ -59,7 +60,8 @@ type AllSetting struct {
 	SmtpTo             string `json:"smtpTo" form:"smtpTo"`                                // Comma-separated recipient emails
 	SmtpEncryptionType string `json:"smtpEncryptionType" form:"smtpEncryptionType"`        // SMTP encryption: none, starttls, tls
 	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`          // Comma-separated event types to send via email
-	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`     // CPU threshold for email notifications
+	SmtpCpu           int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`                                          // CPU threshold for email notifications
+	SmtpMemory        int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`                                    // Memory threshold for email notifications
 
 	// Security settings
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`       // Time zone location

@@ -134,6 +134,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SMTP server host",
         "type": "string"
       },
+      "smtpMemory": {
+        "description": "Memory threshold for email notifications",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "smtpPassword": {
         "description": "SMTP password",
         "type": "string"
@@ -309,6 +315,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot language",
         "type": "string"
       },
+      "tgMemory": {
+        "description": "Memory usage threshold for alerts (percent)",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgRunTime": {
         "description": "Cron schedule for Telegram notifications",
         "type": "string"
@@ -402,6 +414,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnabledEvents",
       "smtpEncryptionType",
       "smtpHost",
+      "smtpMemory",
       "smtpPassword",
       "smtpPort",
       "smtpTo",
@@ -444,6 +457,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",
+      "tgMemory",
       "tgRunTime",
       "timeLocation",
       "trafficDiff",
@@ -615,6 +629,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SMTP server host",
         "type": "string"
       },
+      "smtpMemory": {
+        "description": "Memory threshold for email notifications",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "smtpPassword": {
         "description": "SMTP password",
         "type": "string"
@@ -790,6 +810,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Telegram bot language",
         "type": "string"
       },
+      "tgMemory": {
+        "description": "Memory usage threshold for alerts (percent)",
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgRunTime": {
         "description": "Cron schedule for Telegram notifications",
         "type": "string"
@@ -890,6 +916,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnabledEvents",
       "smtpEncryptionType",
       "smtpHost",
+      "smtpMemory",
       "smtpPassword",
       "smtpPort",
       "smtpTo",
@@ -932,6 +959,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",
+      "tgMemory",
       "tgRunTime",
       "timeLocation",
       "trafficDiff",
@@ -1448,7 +1476,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "verifyPeerCertByName": {
-        "type": "boolean"
+        "type": "string"
       },
       "vlessRoute": {
         "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",

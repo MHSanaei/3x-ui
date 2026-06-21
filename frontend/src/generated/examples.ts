@@ -35,6 +35,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "smtpEnabledEvents": "",
     "smtpEncryptionType": "",
     "smtpHost": "",
+    "smtpMemory": 0,
     "smtpPassword": "",
     "smtpPort": 1,
     "smtpTo": "",
@@ -77,6 +78,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tgCpu": 0,
     "tgEnabledEvents": "",
     "tgLang": "",
+    "tgMemory": 0,
     "tgRunTime": "",
     "timeLocation": "",
     "trafficDiff": 0,
@@ -133,6 +135,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "smtpEnabledEvents": "",
     "smtpEncryptionType": "",
     "smtpHost": "",
+    "smtpMemory": 0,
     "smtpPassword": "",
     "smtpPort": 1,
     "smtpTo": "",
@@ -175,6 +178,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tgCpu": 0,
     "tgEnabledEvents": "",
     "tgLang": "",
+    "tgMemory": 0,
     "tgRunTime": "",
     "timeLocation": "",
     "trafficDiff": 0,
@@ -317,7 +321,7 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "updatedAt": 0,
-    "verifyPeerCertByName": false,
+    "verifyPeerCertByName": "",
     "vlessRoute": ""
   },
   "Inbound": {

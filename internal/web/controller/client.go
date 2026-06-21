@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -57,6 +58,9 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:email/attach", a.attach)
 	g.POST("/:email/detach", a.detach)
 	g.POST("/:email/externalLinks", a.setExternalLinks)
+	g.GET("/export", a.export)
+	g.POST("/import", a.importClients)
+	g.POST("/delOrphans", a.delOrphans)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/delDepleted", a.delDepleted)
 	g.POST("/bulkAdjust", a.bulkAdjust)
@@ -361,6 +365,58 @@ func (a *ClientController) delDepleted(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	notifyClientsChanged()
+}
+
+// export returns every client as a {client, inboundIds} list in the standard
+// envelope. The frontend renders it in a read-only CodeMirror viewer (Copy /
+// Download), so this hands back data rather than streaming a file attachment.
+func (a *ClientController) export(c *gin.Context) {
+	items, err := a.clientService.ExportAll()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, items, nil)
+}
+
+type importClientsRequest struct {
+	Data string `json:"data"`
+}
+
+// importClients accepts the pasted export text as a JSON body { "data": "..." },
+// mirroring the inbound import flow. The data string is itself a JSON-encoded
+// []ClientCreatePayload, so it is unmarshalled in a second step.
+func (a *ClientController) importClients(c *gin.Context) {
+	var req importClientsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	var items []service.ClientCreatePayload
+	if err := json.Unmarshal([]byte(req.Data), &items); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	result, needRestart, err := a.clientService.ImportClients(&a.inboundService, items)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	notifyClientsChanged()
+}
+
+func (a *ClientController) delOrphans(c *gin.Context) {
+	deleted, err := a.clientService.DeleteOrphans()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"deleted": deleted}, nil)
 	notifyClientsChanged()
 }
 

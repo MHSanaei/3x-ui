@@ -100,17 +100,71 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'echConfigList'], '');
   };
 
-  const generateRandomPinHash = () => {
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    const hash = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-    const current = (form.getFieldValue(
-      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
-    ) as string[] | undefined) ?? [];
-    form.setFieldValue(
-      ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
-      [...current, hash],
-    );
+  // Fill the pinned-cert field from the inbound's own certificate: read the
+  // first configured cert (file path or inline content) and ask the server for
+  // its hex SHA-256, then merge the hash(es) into pinnedPeerCertSha256.
+  const pinFromCert = async () => {
+    const certs = (form.getFieldValue(['streamSettings', 'tlsSettings', 'certificates']) ?? []) as Array<{
+      certificateFile?: string;
+      certificate?: string[];
+    }>;
+    const first = certs[0];
+    const certFile = first?.certificateFile?.trim() ?? '';
+    const certContent = Array.isArray(first?.certificate) ? first.certificate.join('\n').trim() : '';
+    if (!certFile && !certContent) {
+      messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/server/getCertHash', { certFile, certContent });
+      if (!msg?.success) {
+        messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
+        return;
+      }
+      const hashes = (msg.obj as string[] | undefined) ?? [];
+      if (hashes.length === 0) return;
+      const current = (form.getFieldValue(
+        ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
+      ) as string[] | undefined) ?? [];
+      const merged = Array.from(new Set([...current, ...hashes]));
+      form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'], merged);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Fill the pinned-cert field by pinging the configured SNI: fetches the live
+  // remote certificate hash via `xray tls ping`. Useful when the panel doesn't
+  // hold the cert file (a CDN front / external endpoint).
+  const pinFromRemote = async () => {
+    const server = ((form.getFieldValue(['streamSettings', 'tlsSettings', 'serverName']) as string | undefined) ?? '').trim();
+    if (!server) {
+      messageApi.warning(t('pages.inbounds.form.pinFromRemoteNoSni'));
+      return;
+    }
+    // `xray tls ping` defaults to :443, but a self-hosted inbound rarely
+    // listens there. Append the inbound's own port (unless the SNI already
+    // carries one) so the ping reaches the actual TLS endpoint.
+    const port = form.getFieldValue('port') as number | undefined;
+    const target = /:\d+$/.test(server) || !port ? server : `${server}:${port}`;
+    setSaving(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/server/getRemoteCertHash', { server: target });
+      if (!msg?.success) {
+        messageApi.warning(msg?.msg || t('pages.inbounds.form.pinFromRemoteFailed'));
+        return;
+      }
+      const hashes = (msg.obj as string[] | undefined) ?? [];
+      if (hashes.length === 0) return;
+      const current = (form.getFieldValue(
+        ['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'],
+      ) as string[] | undefined) ?? [];
+      const merged = Array.from(new Set([...current, ...hashes]));
+      form.setFieldValue(['streamSettings', 'tlsSettings', 'settings', 'pinnedPeerCertSha256'], merged);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const setCertFromPanel = async (certName: number) => {
@@ -194,7 +248,8 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     randomizeShortIds,
     getNewEchCert,
     clearEchCert,
-    generateRandomPinHash,
+    pinFromCert,
+    pinFromRemote,
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,

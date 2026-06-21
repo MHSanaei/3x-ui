@@ -357,6 +357,9 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
+	if dErr := s.MarkNodeDirty(id); dErr != nil {
+		logger.Warning("mark node dirty after update failed:", dErr)
+	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
 	}

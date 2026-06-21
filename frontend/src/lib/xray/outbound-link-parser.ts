@@ -213,6 +213,7 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     const alpn = params.get('alpn');
     if (alpn) tls.alpn = alpn.split(',');
     tls.echConfigList = params.get('ech') ?? '';
+    tls.verifyPeerCertByName = params.get('vcn') ?? '';
     tls.pinnedPeerCertSha256 = params.get('pcs') ?? '';
   } else if (stream.security === 'reality') {
     const reality = stream.realitySettings as Raw;
@@ -434,7 +435,7 @@ export function parseHysteria2Link(link: string): Raw | null {
       alpn: alpn ? alpn.split(',') : ['h3'],
       fingerprint: params.get('fp') ?? '',
       echConfigList: params.get('ech') ?? '',
-      verifyPeerCertByName: '',
+      verifyPeerCertByName: params.get('vcn') ?? '',
       pinnedPeerCertSha256: params.get('pinSHA256') ?? '',
     },
   };

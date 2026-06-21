@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Button, Collapse, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
@@ -153,6 +153,54 @@ export default function RealityForm({
           <Button danger onClick={clearMldsa65}>{t('clear')}</Button>
         </Space>
       </Form.Item>
+      <Form.Item
+        name={['streamSettings', 'realitySettings', 'masterKeyLog']}
+        label={t('pages.inbounds.form.masterKeyLog')}
+        tooltip={t('pages.inbounds.form.masterKeyLogTip')}
+      >
+        <Input placeholder="/path/to/sslkeylog.txt" />
+      </Form.Item>
+      <Collapse
+        style={{ marginBottom: 14 }}
+        items={[
+          {
+            key: 'limitFallback',
+            label: t('pages.inbounds.form.limitFallback'),
+            children: (
+              <>
+                {(['limitFallbackUpload', 'limitFallbackDownload'] as const).map((dir) => (
+                  <div key={dir}>
+                    <Divider style={{ margin: '0 0 14px 0' }}>
+                      {t(`pages.inbounds.form.${dir}`)}
+                    </Divider>
+                    <Form.Item
+                      name={['streamSettings', 'realitySettings', dir, 'afterBytes']}
+                      label={t('pages.inbounds.form.afterBytes')}
+                      tooltip={t('pages.inbounds.form.afterBytesTip')}
+                    >
+                      <InputNumber min={0} />
+                    </Form.Item>
+                    <Form.Item
+                      name={['streamSettings', 'realitySettings', dir, 'bytesPerSec']}
+                      label={t('pages.inbounds.form.bytesPerSec')}
+                      tooltip={t('pages.inbounds.form.bytesPerSecTip')}
+                    >
+                      <InputNumber min={0} />
+                    </Form.Item>
+                    <Form.Item
+                      name={['streamSettings', 'realitySettings', dir, 'burstBytesPerSec']}
+                      label={t('pages.inbounds.form.burstBytesPerSec')}
+                      tooltip={t('pages.inbounds.form.burstBytesPerSecTip')}
+                    >
+                      <InputNumber min={0} />
+                    </Form.Item>
+                  </div>
+                ))}
+              </>
+            ),
+          },
+        ]}
+      />
     </>
   );
 }

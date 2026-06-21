@@ -100,7 +100,7 @@ export default function InboundsPage() {
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
-  const { nodes: nodesList } = useNodesQuery();
+  const { nodes: nodesList, fetched: nodesFetched } = useNodesQuery();
   const nodesById = useMemo(() => {
     const map = new Map<number, ReturnType<typeof useNodesQuery>['nodes'][number]>();
     for (const n of nodesList || []) map.set(n.id, n);
@@ -647,6 +647,7 @@ export default function InboundsPage() {
             dbInbound={formDbInbound}
             dbInbounds={dbInbounds}
             availableNodes={nodesList}
+            availableNodesFetched={nodesFetched}
           />
         </LazyMount>
         <LazyMount when={infoOpen}>

@@ -157,6 +157,9 @@ function applyExternalProxyTLSObj(
   if (alpn.length > 0) obj.alpn = alpn;
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) obj.pcs = pins;
+  if (externalProxy.verifyPeerCertByName && externalProxy.verifyPeerCertByName.length > 0) {
+    obj.vcn = externalProxy.verifyPeerCertByName;
+  }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) obj.ech = externalProxy.echConfigList;
 }
 
@@ -254,6 +257,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.settings.fingerprint.length > 0) obj.fp = tlsSettings.settings.fingerprint;
     if (tlsSettings.alpn.length > 0) obj.alpn = tlsSettings.alpn.join(',');
     if (tlsSettings.settings.echConfigList.length > 0) obj.ech = tlsSettings.settings.echConfigList;
+    if (tlsSettings.settings.verifyPeerCertByName.length > 0) {
+      obj.vcn = tlsSettings.settings.verifyPeerCertByName;
+    }
     if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
       obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
     }
@@ -301,6 +307,9 @@ function applyExternalProxyTLSParams(
   if (alpn.length > 0) params.set('alpn', alpn);
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) params.set('pcs', pins);
+  if (externalProxy.verifyPeerCertByName && externalProxy.verifyPeerCertByName.length > 0) {
+    params.set('vcn', externalProxy.verifyPeerCertByName);
+  }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) params.set('ech', externalProxy.echConfigList);
 }
 
@@ -384,6 +393,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+      if (tls.settings.verifyPeerCertByName.length > 0) {
+        params.set('vcn', tls.settings.verifyPeerCertByName);
+      }
       if (tls.settings.pinnedPeerCertSha256.length > 0) {
         params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
       }
@@ -476,6 +488,9 @@ function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: 
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.verifyPeerCertByName.length > 0) {
+    params.set('vcn', tls.settings.verifyPeerCertByName);
+  }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
   }
@@ -701,6 +716,9 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.alpn.length > 0) params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.verifyPeerCertByName.length > 0) {
+    params.set('vcn', tls.settings.verifyPeerCertByName);
+  }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.map(hysteriaPinHex).join(','));
   }

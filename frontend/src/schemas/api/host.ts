@@ -46,7 +46,12 @@ export const HostFormSchema = z.object({
   overrideSniFromAddress: z.boolean().default(false),
   keepSniBlank: z.boolean().default(false),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
-  verifyPeerCertByName: z.boolean().default(false),
+  // Comma-separated cert names (xray `vcn`). Legacy rows stored a boolean here;
+  // coerce any stray bool to '' so old data loads cleanly.
+  verifyPeerCertByName: z.preprocess(
+    (v) => (typeof v === 'boolean' ? '' : v),
+    z.string().default(''),
+  ),
   allowInsecure: z.boolean().default(false),
   echConfigList: z.string().default(''),
 
@@ -98,7 +103,10 @@ export const HostRecordSchema = z.object({
   overrideSniFromAddress: z.boolean().optional(),
   keepSniBlank: z.boolean().optional(),
   pinnedPeerCertSha256: z.array(z.string()).nullish(),
-  verifyPeerCertByName: z.boolean().optional(),
+  verifyPeerCertByName: z.preprocess(
+    (v) => (typeof v === 'boolean' ? '' : v),
+    z.string().optional(),
+  ),
   allowInsecure: z.boolean().optional(),
   echConfigList: z.string().optional(),
   muxParams: z.unknown().optional(),

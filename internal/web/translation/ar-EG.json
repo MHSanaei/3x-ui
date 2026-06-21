@@ -6,7 +6,7 @@
   "cancel": "إلغاء",
   "close": "إغلاق",
   "save": "حفظ",
-  "logout": "تسجيل خروج",
+  "logout": "تسجيل خروج <3",
   "create": "إنشاء",
   "add": "إضافة",
   "remove": "إزالة",
@@ -591,7 +591,6 @@
         "pinnedPeerCertSha256": "SHA-256 لشهادة النظير المثبَّتة",
         "pinnedPeerCertSha256Tip": "تجزئات SHA-256 لشهادة النظير كسلسلة سداسية عشرية (مثل e8e2d3…)، مفصولة بفواصل. للوحة فقط — لا تُكتب في إعدادات xray على الخادم، لكنها تُضمَّن في روابط المشاركة ليتمكَّن العملاء من تثبيت الشهادة.",
         "pinnedPeerCertSha256Placeholder": "تجزئة (تجزئات) سداسية عشرية، مفصولة بفواصل",
-        "generateRandomPin": "إنشاء تجزئة عشوائية",
         "getNewEchCert": "احصل على شهادة ECH جديدة",
         "show": "عرض",
         "xver": "Xver",
@@ -625,7 +624,28 @@
           "node": "عنوان العقدة",
           "listen": "عنوان استماع الوارد",
           "custom": "مخصص"
-        }
+        },
+        "echSockopt": "ECH Sockopt",
+        "echSockoptTip": "خيارات السوكيت للاتصال اللي Xray بتستخدمه عشان تجيب قائمة إعدادات ECH (مثلاً توجيه الاستعلام عبر صادر dialerProxy). سيبه متعطّل عشان تستخدم الإعدادات الافتراضية.",
+        "curvePreferences": "تفضيلات المنحنى",
+        "curvePreferencesTip": "بتقصر منحنيات تبادل مفاتيح TLS اللي السيرفر بيعرضها، بترتيب الأفضلية (مثلاً X25519MLKEM768, X25519). سيبه فاضي عشان تستخدم الإعدادات الافتراضية لـ Xray-core.",
+        "masterKeyLog": "سجل المفتاح الرئيسي",
+        "masterKeyLogTip": "المسار اللي هتتكتب فيه مفاتيح TLS الرئيسية (بصيغة SSLKEYLOGFILE) عشان التصحيح باستخدام Wireshark. سيبه فاضي في الإنتاج — لإنه بيخلي أي حد عنده الملف يقدر يفك تشفير المرور.",
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
+        "verifyPeerCertByNameTip": "بيقول للعملاء يتحققوا من شهادة السيرفر مقابل الاسم ده بدل الـ SNI. الأسماء بتتفصل بفاصلة. للوحة بس — بيتضاف في روابط المشاركة (vcn). ده البديل الحديث لـ allowInsecure اللي شالته Xray بعد 2026-06-01.",
+        "pinFromCert": "املأ من شهادة الوارد ده",
+        "pinFromRemote": "اجلب الهاش عبر ping على الـ SNI (xray tls ping)",
+        "pinFromRemoteNoSni": "حدّد الـ SNI (serverName) الأول عشان تعمل ping للشهادة البعيدة.",
+        "pinFromRemoteFailed": "تعذّر جلب هاش الشهادة البعيدة.",
+        "limitFallback": "تحديد الـ Fallback",
+        "limitFallbackUpload": "تحديد رفع الـ Fallback",
+        "limitFallbackDownload": "تحديد تنزيل الـ Fallback",
+        "afterBytes": "بعد البايتات",
+        "afterBytesTip": "خلي الـ fallback يشتغل بالسرعة الكاملة لعدد البايتات ده، وبعدين يبدأ التحجيم. 0 = حجّم من أول بايت.",
+        "bytesPerSec": "بايت في الثانية",
+        "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
+        "burstBytesPerSec": "بايت في الثانية للدفقة",
+        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه."
       },
       "info": {
         "mode": "الوضع",
@@ -813,6 +833,12 @@
       "delDepleted": "حذف المنتهية",
       "delDepletedConfirmTitle": "حذف العملاء المنتهية حصصهم؟",
       "delDepletedConfirmContent": "يُحذف كل عميل استُنفِدت حصة حركة مروره أو انتهت صلاحيته. لا يمكن التراجع.",
+      "exportClients": "تصدير العملاء",
+      "importClients": "استيراد العملاء",
+      "import": "استيراد",
+      "delOrphans": "حذف العملاء غير المرتبطين",
+      "delOrphansConfirmTitle": "حذف العملاء بلا اتصال وارد؟",
+      "delOrphansConfirmContent": "يزيل كل عميل غير مرتبط بأي اتصال وارد مع سجل حركة مروره. لا يمكن التراجع.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -835,7 +861,10 @@
         "bulkCreatedMixed": "تم إنشاء {ok}, وفشل {failed}",
         "bulkAdjusted": "تم تعديل {count} عميل",
         "bulkAdjustedMixed": "{ok} تم تعديلهم، {skipped} تم تخطيهم",
-        "delDepleted": "تم حذف {count} عميل منتهٍ"
+        "delDepleted": "تم حذف {count} عميل منتهٍ",
+        "delOrphans": "تم حذف {count} عميل غير مرتبط",
+        "imported": "تم استيراد {count} عميل",
+        "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
       }
     },
     "groups": {
@@ -1294,6 +1323,7 @@
       "smtpErrorRelay": "الخادم يرفض الإرسال من هذا العنوان",
       "smtpErrorEof": "تم إغلاق الاتصال من قبل الخادم",
       "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}",
+      "eventMemoryHigh": "ارتفاع استخدام الذاكرة (%)",
       "remarkTemplate": "قالب الملاحظة",
       "remarkTemplateDesc": "عند تعيينه، يحل هذا محل نموذج الملاحظة لكل رابط اشتراك — اكتب صيغتك الخاصة باستخدام رموز المتغيرات (استخدم الزر لإدراجها). اتركه فارغاً لاستخدام النموذج أعلاه."
     },
@@ -1345,6 +1375,14 @@
       "Outbounds": "الصادرات",
       "OutboundSubscriptions": "اشتراكات الصادرات",
       "OutboundSubscriptionsDesc": "استورد الصادرات من روابط اشتراك بعيدة (vmess/vless/trojan/ss/...). الوسوم بتفضل ثابتة عشان تستخدمها في موازنات التحميل وقواعد التوجيه. التحديثات بتتم تلقائياً.",
+      "importRules": "استيراد القواعد",
+      "exportRules": "تصدير القواعد",
+      "importOutbounds": "استيراد الصادرات",
+      "exportOutbounds": "تصدير الصادرات",
+      "importInvalidJson": "JSON غير صالح — المتوقع مصفوفة أو كائن بمفتاح مطابق.",
+      "metricsListen": "نقطة نهاية المقاييس",
+      "metricsListenDesc": "بتعرض مقاييس Xray بنمط Prometheus على العنوان:المنفذ ده (مثلاً 127.0.0.1:11111). سيبه فاضي عشان تعطّله. اربطه بـ localhost وحطّ قدامه reverse-proxy — لإنه من غير مصادقة.",
+      "metricsTag": "وسم المقاييس",
       "Balancers": "موازنات التحميل",
       "balancerTagRequired": "الوسم مطلوب",
       "balancerSelectorRequired": "اختر صادراً واحداً على الأقل",
@@ -1734,7 +1772,6 @@
         "alpn": "ALPN",
         "fingerprint": "بصمة",
         "pins": "SHA-256 للشهادة المثبّتة",
-        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
         "allowInsecure": "السماح بغير الآمن",
         "echConfigList": "قائمة إعدادات ECH",
         "muxParams": "Mux",
@@ -1746,7 +1783,8 @@
         "shuffleHost": "خلط المضيف",
         "tags": "وسوم",
         "nodeGuids": "النودز",
-        "excludeFromSubTypes": "استبعاد من الصيغ"
+        "excludeFromSubTypes": "استبعاد من الصيغ",
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم"
       },
       "hints": {
         "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",
@@ -1842,7 +1880,7 @@
       "idDesc": "عرض معرف Telegram الخاص بك"
     },
     "messages": {
-      "cpuThreshold": "🔴 حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
+      "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
       "selectUserFailed": "❌ حصل خطأ في اختيار المستخدم!",
       "userSaved": "✅ حفظت بيانات مستخدم Telegram.",
       "loginSuccess": "✅ تسجيل الدخول للبانل تم بنجاح.\r\n",
@@ -1917,7 +1955,8 @@
       "eventNodeUp": "العقدة {{ .Name }} متصلة",
       "eventCPUHigh": "ارتفاع استخدام المعالج",
       "eventCPUHighDetail": "المعالج: {{ .Detail }}",
-      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}"
+      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}",
+      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",

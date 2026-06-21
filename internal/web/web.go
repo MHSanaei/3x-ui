@@ -290,7 +290,8 @@ const (
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
-	cadenceCPUAlarm = "@every 1m"
+	cadenceCPUAlarm    = "@every 1m"
+	cadenceMemoryAlarm = "@every 1m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -385,6 +386,10 @@ func (s *Server) startTask(restartXray bool) {
 	if s.cpuAlarmWanted() {
 		s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 	}
+	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
+	if s.memoryAlarmWanted() {
+		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+	}
 }
 
 // cpuAlarmWanted reports whether any notifier is configured to receive cpu.high
@@ -412,6 +417,36 @@ func (s *Server) cpuAlarmWanted() bool {
 		events, _ := s.settingService.GetSmtpEnabledEvents()
 		cpu, _ := s.settingService.GetSmtpCpu()
 		if wants(events, cpu) {
+			return true
+		}
+	}
+	return false
+}
+
+// memoryAlarmWanted reports whether any notifier is configured to receive memory.high alerts.
+func (s *Server) memoryAlarmWanted() bool {
+	wants := func(events string, threshold int) bool {
+		if threshold <= 0 {
+			return false
+		}
+		for _, e := range strings.Split(events, ",") {
+			if strings.TrimSpace(e) == string(eventbus.EventMemoryHigh) {
+				return true
+			}
+		}
+		return false
+	}
+	if on, _ := s.settingService.GetTgbotEnabled(); on {
+		events, _ := s.settingService.GetTgEnabledEvents()
+		mem, _ := s.settingService.GetTgMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetSmtpEnable(); on {
+		events, _ := s.settingService.GetSmtpEnabledEvents()
+		mem, _ := s.settingService.GetSmtpMemory()
+		if wants(events, mem) {
 			return true
 		}
 	}

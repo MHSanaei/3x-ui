@@ -22,6 +22,7 @@ export class AllSetting {
   tgRunTime = '@daily';
   tgBotBackup = false;
   tgCpu = 80;
+  tgMemory = 80;
   tgLang = 'en-US';
   twoFactorEnable = false;
   twoFactorToken = '';
@@ -91,6 +92,7 @@ export class AllSetting {
   smtpEncryptionType = 'starttls';
   smtpEnabledEvents = '';
   smtpCpu = 80;
+  smtpMemory = 80;
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

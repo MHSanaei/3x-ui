@@ -85,7 +85,8 @@ describe('inbound security forms', () => {
         saving={false}
         setCertFromPanel={noop}
         clearCertFiles={noop}
-        generateRandomPinHash={noop}
+        pinFromCert={noop}
+        pinFromRemote={noop}
         getNewEchCert={noop}
         clearEchCert={noop}
       />

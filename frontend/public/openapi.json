@@ -160,6 +160,12 @@
             "description": "SMTP server host",
             "type": "string"
           },
+          "smtpMemory": {
+            "description": "Memory threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "smtpPassword": {
             "description": "SMTP password",
             "type": "string"
@@ -335,6 +341,12 @@
             "description": "Telegram bot language",
             "type": "string"
           },
+          "tgMemory": {
+            "description": "Memory usage threshold for alerts (percent)",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgRunTime": {
             "description": "Cron schedule for Telegram notifications",
             "type": "string"
@@ -428,6 +440,7 @@
           "smtpEnabledEvents",
           "smtpEncryptionType",
           "smtpHost",
+          "smtpMemory",
           "smtpPassword",
           "smtpPort",
           "smtpTo",
@@ -470,6 +483,7 @@
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
+          "tgMemory",
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
@@ -641,6 +655,12 @@
             "description": "SMTP server host",
             "type": "string"
           },
+          "smtpMemory": {
+            "description": "Memory threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "smtpPassword": {
             "description": "SMTP password",
             "type": "string"
@@ -816,6 +836,12 @@
             "description": "Telegram bot language",
             "type": "string"
           },
+          "tgMemory": {
+            "description": "Memory usage threshold for alerts (percent)",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgRunTime": {
             "description": "Cron schedule for Telegram notifications",
             "type": "string"
@@ -916,6 +942,7 @@
           "smtpEnabledEvents",
           "smtpEncryptionType",
           "smtpHost",
+          "smtpMemory",
           "smtpPassword",
           "smtpPort",
           "smtpTo",
@@ -958,6 +985,7 @@
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
+          "tgMemory",
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
@@ -1474,7 +1502,7 @@
             "type": "integer"
           },
           "verifyPeerCertByName": {
-            "type": "boolean"
+            "type": "string"
           },
           "vlessRoute": {
             "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
@@ -4408,6 +4436,98 @@
         }
       }
     },
+    "/panel/api/server/getCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.",
+        "operationId": "post_panel_api_server_getCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getRemoteCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).",
+        "operationId": "post_panel_api_server_getRemoteCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/clientIps": {
       "get": {
         "tags": [
@@ -5134,6 +5254,146 @@
                   "success": true,
                   "obj": {
                     "deleted": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/delOrphans": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
+        "operationId": "post_panel_api_clients_delOrphans",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "deleted": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/export": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
+        "operationId": "get_panel_api_clients_export",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "client": {
+                        "email": "alice@example.com",
+                        "id": "...",
+                        "totalGB": 53687091200,
+                        "expiryTime": 0,
+                        "enable": true,
+                        "subId": "..."
+                      },
+                      "inboundIds": [
+                        7,
+                        9
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/import": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
+        "operationId": "post_panel_api_clients_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "data": "[{\"client\":{\"email\":\"alice@example.com\",\"enable\":true},\"inboundIds\":[7]}]"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "created": 2,
+                    "skipped": [
+                      {
+                        "email": "alice@example.com",
+                        "reason": "email already in use: alice@example.com"
+                      }
+                    ]
                   }
                 }
               }
@@ -7259,7 +7519,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7351,7 +7611,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7446,7 +7706,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7586,7 +7846,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7698,7 +7958,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }

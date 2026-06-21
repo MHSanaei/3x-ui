@@ -16,6 +16,7 @@ exports[`inbound security forms > RealityForm field structure is stable 1`] = `
   "Private Key",
   "mldsa65 Seed",
   "mldsa65 Verify",
+  "Master Key Log",
 ]
 `;
 
@@ -26,13 +27,17 @@ exports[`inbound security forms > TlsForm field structure is stable 1`] = `
   "Min/Max Version",
   "uTLS",
   "ALPN",
+  "Curve Preferences",
   "Reject Unknown SNI",
   "Disable System Root",
   "Session Resumption",
   "Digital Certificate",
+  "Master Key Log",
+  "ECH Sockopt",
   "ECH key",
   "ECH config",
   "Pinned Peer Cert SHA-256",
+  "Verify Peer Cert By Name",
 ]
 `;
 

@@ -29,6 +29,8 @@ import type { ColumnsType, TableProps } from 'antd/es/table';
 import {
   ClockCircleOutlined,
   DeleteOutlined,
+  DisconnectOutlined,
+  DownloadOutlined,
   EditOutlined,
   FilterOutlined,
   InfoCircleOutlined,
@@ -42,6 +44,7 @@ import {
   SortAscendingOutlined,
   TagsOutlined,
   TeamOutlined,
+  UploadOutlined,
   UsergroupAddOutlined,
   UsergroupDeleteOutlined,
 } from '@ant-design/icons';
@@ -69,6 +72,8 @@ const SubLinksModal = lazy(() => import('./SubLinksModal'));
 const BulkAddToGroupModal = lazy(() => import('./BulkAddToGroupModal'));
 const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
 const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
+const TextModal = lazy(() => import('@/components/feedback/TextModal'));
+const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -200,7 +205,7 @@ export default function ClientsPage() {
     inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, setExternalLinks, bulkAttach, detach, bulkDetach,
-    resetTraffic, resetAllTraffics, delDepleted, setEnable,
+    resetTraffic, resetAllTraffics, delDepleted, delOrphans, exportClients, importClients, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     refresh,
     hydrate,
@@ -232,6 +237,17 @@ export default function ClientsPage() {
   const [bulkAttachOpen, setBulkAttachOpen] = useState(false);
   const [bulkDetachOpen, setBulkDetachOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  const [textOpen, setTextOpen] = useState(false);
+  const [textTitle, setTextTitle] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [textFileName, setTextFileName] = useState('');
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptTitle, setPromptTitle] = useState('');
+  const [promptOkText, setPromptOkText] = useState('');
+  const [promptInitial, setPromptInitial] = useState('');
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptHandler, setPromptHandler] = useState<((value: string) => Promise<boolean | void> | boolean | void) | null>(null);
 
   const initial = readFilterState();
   const [searchKey, setSearchKey] = useState(initial.searchKey);
@@ -490,6 +506,40 @@ export default function ClientsPage() {
     setQrOpen(true);
   }
 
+  const openText = useCallback((opts: { title: string; content: string; fileName?: string }) => {
+    setTextTitle(opts.title);
+    setTextContent(opts.content);
+    setTextFileName(opts.fileName || '');
+    setTextOpen(true);
+  }, []);
+
+  const openPrompt = useCallback((opts: {
+    title: string;
+    okText?: string;
+    value?: string;
+    confirm: (value: string) => Promise<boolean | void> | boolean | void;
+  }) => {
+    setPromptTitle(opts.title);
+    setPromptOkText(opts.okText || t('confirm'));
+    setPromptInitial(opts.value || '');
+    setPromptHandler(() => opts.confirm);
+    setPromptOpen(true);
+  }, [t]);
+
+  const onPromptConfirm = useCallback(async (value: string) => {
+    if (!promptHandler) {
+      setPromptOpen(false);
+      return;
+    }
+    setPromptLoading(true);
+    try {
+      const ok = await promptHandler(value);
+      if (ok !== false) setPromptOpen(false);
+    } finally {
+      setPromptLoading(false);
+    }
+  }, [promptHandler]);
+
   function onResetAllTraffics() {
     modal.confirm({
       title: t('pages.clients.resetAllTrafficsTitle'),
@@ -517,6 +567,56 @@ export default function ClientsPage() {
           const deleted = msg.obj?.deleted ?? 0;
           messageApi.success(t('pages.clients.toasts.delDepleted', { count: deleted }));
         }
+      },
+    });
+  }
+
+  function onDeleteOrphans() {
+    modal.confirm({
+      title: t('pages.clients.delOrphansConfirmTitle'),
+      content: t('pages.clients.delOrphansConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await delOrphans();
+        if (msg?.success) {
+          const deleted = msg.obj?.deleted ?? 0;
+          messageApi.success(t('pages.clients.toasts.delOrphans', { count: deleted }));
+        }
+      },
+    });
+  }
+
+  async function onExportClients() {
+    const items = await exportClients();
+    if (!items) return;
+    openText({
+      title: t('pages.clients.exportClients'),
+      content: JSON.stringify(items, null, 2),
+      fileName: 'clients-export.json',
+    });
+  }
+
+  function onImportClients() {
+    openPrompt({
+      title: t('pages.clients.importClients'),
+      okText: t('pages.clients.import'),
+      value: '',
+      confirm: async (value) => {
+        const msg = await importClients(value);
+        if (!msg?.success) return false;
+        const created = msg.obj?.created ?? 0;
+        const skipped = msg.obj?.skipped ?? [];
+        if (skipped.length === 0) {
+          messageApi.success(t('pages.clients.toasts.imported', { count: created }));
+        } else {
+          const firstError = skipped[0]?.reason ?? '';
+          messageApi.warning(firstError
+            ? `${t('pages.clients.toasts.importedMixed', { ok: created, failed: skipped.length })} — ${firstError}`
+            : t('pages.clients.toasts.importedMixed', { ok: created, failed: skipped.length }));
+        }
+        return true;
       },
     });
   }
@@ -960,17 +1060,37 @@ export default function ClientsPage() {
                                     onClick: () => setBulkAddOpen(true),
                                   },
                                   {
+                                    key: 'export',
+                                    icon: <DownloadOutlined />,
+                                    label: t('pages.clients.exportClients'),
+                                    onClick: onExportClients,
+                                  },
+                                  {
+                                    key: 'import',
+                                    icon: <UploadOutlined />,
+                                    label: t('pages.clients.importClients'),
+                                    onClick: onImportClients,
+                                  },
+                                  {
                                     key: 'resetAll',
                                     icon: <RetweetOutlined />,
                                     label: t('pages.clients.resetAllTraffics'),
                                     onClick: onResetAllTraffics,
                                   },
+                                  { type: 'divider' as const },
                                   {
                                     key: 'delDepleted',
                                     icon: <RestOutlined />,
                                     label: t('pages.clients.delDepleted'),
                                     danger: true,
                                     onClick: onDelDepleted,
+                                  },
+                                  {
+                                    key: 'delOrphans',
+                                    icon: <DisconnectOutlined />,
+                                    label: t('pages.clients.delOrphans'),
+                                    danger: true,
+                                    onClick: onDeleteOrphans,
                                   },
                                 ],
                             }}
@@ -1375,6 +1495,28 @@ export default function ClientsPage() {
             protocols={protocolOptions}
             groups={groupOptions}
             nodes={nodes}
+          />
+        </LazyMount>
+        <LazyMount when={textOpen}>
+          <TextModal
+            open={textOpen}
+            onClose={() => setTextOpen(false)}
+            title={textTitle}
+            content={textContent}
+            fileName={textFileName}
+            json
+          />
+        </LazyMount>
+        <LazyMount when={promptOpen}>
+          <PromptModal
+            open={promptOpen}
+            onClose={() => setPromptOpen(false)}
+            title={promptTitle}
+            okText={promptOkText}
+            initialValue={promptInitial}
+            loading={promptLoading}
+            json
+            onConfirm={onPromptConfirm}
           />
         </LazyMount>
       </Layout>

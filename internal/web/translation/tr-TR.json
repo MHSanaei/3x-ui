@@ -6,7 +6,7 @@
   "cancel": "İptal",
   "close": "Kapat",
   "save": "Kaydet",
-  "logout": "Çıkış Yap",
+  "logout": "Çıkış Yap <3",
   "create": "Oluştur",
   "add": "Ekle",
   "remove": "Kaldır",
@@ -591,7 +591,6 @@
         "pinnedPeerCertSha256": "Sabitlenmiş Peer Sertifikası SHA-256",
         "pinnedPeerCertSha256Tip": "Peer sertifikasının SHA-256 hash'leri onaltılık (hex) dizge olarak (örn. e8e2d3…), virgülle ayrılmış. Sadece panel — sunucunun Xray yapılandırmasına yazılmaz, ancak kullanıcıların sertifikayı sabitleyebilmesi için paylaşım bağlantılarına eklenir.",
         "pinnedPeerCertSha256Placeholder": "onaltılık (hex) hash(ler), virgülle ayrılmış",
-        "generateRandomPin": "Rastgele Hash Üret",
         "getNewEchCert": "Yeni ECH Sertifikası Al",
         "show": "Göster",
         "xver": "Xver",
@@ -625,7 +624,28 @@
           "node": "Düğüm adresi",
           "listen": "Inbound dinleme adresi",
           "custom": "Özel"
-        }
+        },
+        "echSockopt": "ECH Sockopt",
+        "echSockoptTip": "Xray'in ECH yapılandırma listesini almak için kullandığı bağlantının soket seçenekleri (ör. aramayı bir dialerProxy giden bağlantısı üzerinden yönlendirme). Varsayılanları kullanmak için devre dışı bırakın.",
+        "curvePreferences": "Eğri Tercihleri",
+        "curvePreferencesTip": "Sunucunun sunduğu TLS anahtar değişim eğrilerini tercih sırasına göre kısıtlayın (ör. X25519MLKEM768, X25519). Xray-core varsayılanlarını kullanmak için boş bırakın.",
+        "masterKeyLog": "Ana Anahtar Günlüğü",
+        "masterKeyLogTip": "Wireshark ile hata ayıklama için TLS ana anahtarlarının yazılacağı yol (SSLKEYLOGFILE biçimi). Üretimde boş bırakın — dosyaya erişimi olan herkesin trafiği çözmesine olanak tanır.",
+        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula",
+        "verifyPeerCertByNameTip": "İstemcilere sunucu sertifikasını SNI yerine bu ada göre doğrulamalarını söyler. Adları virgülle ayırın. Yalnızca panele özgü — paylaşım bağlantılarına eklenir (vcn). Xray'in 2026-06-01 sonrası kaldırdığı allowInsecure'un modern karşılığıdır.",
+        "pinFromCert": "Bu gelen bağlantının sertifikasından doldur",
+        "pinFromRemote": "SNI'ye ping atarak hash'i al (xray tls ping)",
+        "pinFromRemoteNoSni": "Uzak sertifikaya ping atmak için önce SNI'yi (serverName) ayarlayın.",
+        "pinFromRemoteFailed": "Uzak sertifika hash'i alınamadı.",
+        "limitFallback": "Fallback Sınırı",
+        "limitFallbackUpload": "Fallback Yükleme Sınırı",
+        "limitFallbackDownload": "Fallback İndirme Sınırı",
+        "afterBytes": "Bayttan Sonra",
+        "afterBytesTip": "Fallback'in bu kadar bayt boyunca tam hızda çalışmasına izin verin, ardından kısıtlamaya başlayın. 0 = ilk bayttan itibaren kısıtla.",
+        "bytesPerSec": "Saniye Başına Bayt",
+        "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
+        "burstBytesPerSec": "Saniye Başına Patlama Baytı",
+        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir."
       },
       "info": {
         "mode": "Mod",
@@ -813,6 +833,12 @@
       "delDepleted": "Süresi/Kotası Bitenleri Sil",
       "delDepletedConfirmTitle": "Tükenmiş Kullanıcılar Silinsin Mi?",
       "delDepletedConfirmContent": "Trafik kotası dolan veya süresi geçen tüm kullanıcılar silinir. Geri alınamaz.",
+      "exportClients": "Kullanıcıları Dışa Aktar",
+      "importClients": "Kullanıcıları İçe Aktar",
+      "import": "İçe Aktar",
+      "delOrphans": "Bağsız Kullanıcıları Sil",
+      "delOrphansConfirmTitle": "Gelen Bağlantısı Olmayan Kullanıcılar Silinsin Mi?",
+      "delOrphansConfirmContent": "Hiçbir gelen bağlantıya bağlı olmayan her kullanıcı, trafik kaydıyla birlikte silinir. Geri alınamaz.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -835,7 +861,10 @@
         "bulkCreatedMixed": "{ok} oluşturuldu, {failed} başarısız",
         "bulkAdjusted": "{count} kullanıcı ayarlandı",
         "bulkAdjustedMixed": "{ok} ayarlandı, {skipped} atlandı",
-        "delDepleted": "{count} tükenmiş kullanıcı silindi"
+        "delDepleted": "{count} tükenmiş kullanıcı silindi",
+        "delOrphans": "{count} bağsız kullanıcı silindi",
+        "imported": "{count} kullanıcı içe aktarıldı",
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
       }
     },
     "groups": {
@@ -1294,6 +1323,7 @@
       "smtpErrorRelay": "Sunucu bu adresten gönderimi reddediyor",
       "smtpErrorEof": "Bağlantı sunucu tarafından kapatıldı",
       "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
+      "eventMemoryHigh": "Bellek kullanımı yüksek (%)",
       "remarkTemplate": "Açıklama Şablonu",
       "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın."
     },
@@ -1339,6 +1369,14 @@
       "RoutingStrategyDesc": "Tüm istekleri çözmek için genel trafik yönlendirme stratejisini ayarlayın.",
       "outboundTestUrl": "Giden Bağlantı Test URL'si",
       "outboundTestUrlDesc": "Giden bağlantı bağlantı testinde kullanılan URL.",
+      "importRules": "Kuralları İçe Aktar",
+      "exportRules": "Kuralları Dışa Aktar",
+      "importOutbounds": "Giden Bağlantıları İçe Aktar",
+      "exportOutbounds": "Giden Bağlantıları Dışa Aktar",
+      "importInvalidJson": "Geçersiz JSON — bir dizi veya eşleşen anahtara sahip bir nesne bekleniyordu.",
+      "metricsListen": "Metrik Uç Noktası",
+      "metricsListenDesc": "Xray'in Prometheus tarzı metriklerini bu adres:port üzerinde sunar (ör. 127.0.0.1:11111). Devre dışı bırakmak için boş bırakın. localhost'a bağlayın ve ters proxy ile sunun — kimlik doğrulaması yoktur.",
+      "metricsTag": "Metrik Etiketi",
       "Torrent": "BitTorrent Protokolünü Engelle",
       "Inbounds": "Gelen Bağlantılar",
       "InboundsDesc": "Belirtilen istemcileri (clients) kabul eder.",
@@ -1734,7 +1772,6 @@
         "alpn": "ALPN",
         "fingerprint": "Fingerprint",
         "pins": "Sabitlenmiş sertifika SHA-256",
-        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula",
         "allowInsecure": "Güvensize izin ver",
         "echConfigList": "ECH yapılandırma listesi",
         "muxParams": "Mux",
@@ -1746,7 +1783,8 @@
         "shuffleHost": "Host'u karıştır",
         "tags": "Etiketler",
         "nodeGuids": "Düğümler",
-        "excludeFromSubTypes": "Formatlardan hariç tut"
+        "excludeFromSubTypes": "Formatlardan hariç tut",
+        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula"
       },
       "hints": {
         "address": "Gelen bağlantının kendi adresini devralmak için boş bırakın.",
@@ -1842,7 +1880,7 @@
       "idDesc": "Telegram Kimliğinizi gösterir"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
+      "cpuThreshold": "CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
       "selectUserFailed": "❌ Kullanıcı seçiminde hata!",
       "userSaved": "✅ Telegram Kullanıcısı kaydedildi.",
       "loginSuccess": "✅ Panele başarıyla giriş yapıldı.\r\n",
@@ -1917,7 +1955,8 @@
       "eventNodeUp": "{{ .Name }} düğümü ÇEVRİMİÇİ",
       "eventCPUHigh": "Yüksek CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız"
+      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız",
+      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",

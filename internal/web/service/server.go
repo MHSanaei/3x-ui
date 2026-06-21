@@ -5,11 +5,14 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"mime/multipart"
+	stdnet "net"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,6 +34,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/google/uuid"
+	utls "github.com/refraction-networking/utls"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
@@ -155,12 +159,15 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // callers from triggering arbitrary aggregation work and keeps the
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
-	2:   true, // Real-time view
-	30:  true, // 30s intervals
-	60:  true, // 1m intervals
-	120: true, // 2m intervals
-	180: true, // 3m intervals
-	300: true, // 5m intervals
+	2:    true, // Real-time view
+	30:   true, // 30s intervals
+	60:   true, // 1m intervals
+	120:  true, // 2m intervals
+	180:  true, // 3m intervals
+	300:  true, // 5m intervals
+	720:  true, // 12m intervals
+	1440: true, // 24m intervals
+	2880: true, // 48m intervals
 }
 
 // IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
@@ -1719,6 +1726,184 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 	}
 
 	return keyPair, nil
+}
+
+// GetCertHash parses a certificate (from a file path or inline PEM/DER content)
+// and returns the hex-encoded SHA-256 over each certificate's raw DER — the
+// value xray-core's pinnedPeerCertSha256 (pcs) expects. Lets the panel fill the
+// pinned-cert field from the inbound's own certificate without the user
+// computing the hash by hand.
+func (s *ServerService) GetCertHash(certFile string, certContent string) ([]string, error) {
+	var certBytes []byte
+	if path := strings.TrimSpace(certFile); path != "" {
+		// Guard against path traversal: only hash certificate files the panel
+		// already references in its own configuration (an inbound's TLS
+		// certificateFile or the panel's own web cert). The path handed to
+		// os.ReadFile comes from that allow-list, never directly from the
+		// caller-supplied value.
+		known, ok := s.resolveKnownCertFile(path)
+		if !ok {
+			return nil, common.NewError("certificate file is not referenced by any inbound or panel setting")
+		}
+		b, err := os.ReadFile(known)
+		if err != nil {
+			return nil, err
+		}
+		certBytes = b
+	} else if strings.TrimSpace(certContent) != "" {
+		certBytes = []byte(certContent)
+	} else {
+		return nil, common.NewError("no certificate provided")
+	}
+
+	var certs []*x509.Certificate
+	if bytes.Contains(certBytes, []byte("BEGIN")) {
+		rest := certBytes
+		for {
+			block, remain := pem.Decode(rest)
+			if block == nil {
+				break
+			}
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, common.NewError("unable to decode certificate: ", err)
+			}
+			certs = append(certs, cert)
+			rest = remain
+		}
+	} else {
+		parsed, err := x509.ParseCertificates(certBytes)
+		if err != nil {
+			return nil, common.NewError("unable to parse certificates: ", err)
+		}
+		certs = parsed
+	}
+
+	if len(certs) == 0 {
+		return nil, common.NewError("no certificates found")
+	}
+
+	hashes := make([]string, 0, len(certs))
+	for _, cert := range certs {
+		sum := sha256.Sum256(cert.Raw)
+		hashes = append(hashes, hex.EncodeToString(sum[:]))
+	}
+	return hashes, nil
+}
+
+// resolveKnownCertFile checks the caller-supplied certificate path against the
+// set of certificate files the panel already references (inbound TLS configs
+// plus the panel's own web cert) and, on a match, returns the path taken from
+// that configuration — not the caller's value. This both confines reads to
+// known certificates and breaks the user-input-to-filesystem taint flow.
+func (s *ServerService) resolveKnownCertFile(certFile string) (string, bool) {
+	want := filepath.Clean(certFile)
+	for _, known := range s.knownCertFiles() {
+		if filepath.Clean(known) == want {
+			return known, true
+		}
+	}
+	return "", false
+}
+
+// knownCertFiles collects every certificate file path the panel legitimately
+// references: the certificateFile of each inbound's TLS settings and the
+// panel's own web TLS certificate.
+func (s *ServerService) knownCertFiles() []string {
+	var files []string
+	if cert, err := s.settingService.GetCertFile(); err == nil {
+		if cert = strings.TrimSpace(cert); cert != "" {
+			files = append(files, cert)
+		}
+	}
+	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
+		for _, inbound := range inbounds {
+			files = collectCertFiles(inbound.StreamSettings, files)
+		}
+	}
+	return files
+}
+
+// collectCertFiles walks a stream-settings JSON document and appends the value
+// of every "certificateFile" field it finds (TLS settings may nest them under
+// several keys depending on the security type).
+func collectCertFiles(streamSettings string, out []string) []string {
+	streamSettings = strings.TrimSpace(streamSettings)
+	if streamSettings == "" {
+		return out
+	}
+	var parsed any
+	if err := json.Unmarshal([]byte(streamSettings), &parsed); err != nil {
+		return out
+	}
+	return walkCertFiles(parsed, out)
+}
+
+func walkCertFiles(node any, out []string) []string {
+	switch v := node.(type) {
+	case map[string]any:
+		for key, val := range v {
+			if key == "certificateFile" {
+				if path, ok := val.(string); ok {
+					if path = strings.TrimSpace(path); path != "" {
+						out = append(out, path)
+					}
+				}
+			}
+			out = walkCertFiles(val, out)
+		}
+	case []any:
+		for _, item := range v {
+			out = walkCertFiles(item, out)
+		}
+	}
+	return out
+}
+
+// GetRemoteCertHash opens a uTLS (Chrome fingerprint) handshake to a remote
+// endpoint and returns the hex-encoded SHA-256 of its leaf certificate — the
+// value to put in pinnedPeerCertSha256 (pcs) when pinning a server whose
+// certificate file you don't hold (a CDN front, a REALITY dest, an external
+// proxy). A native handshake replaces the old `xray tls ping` subprocess so the
+// real dial/handshake failure (connection refused, timeout, …) surfaces
+// verbatim. `server` may be host or host:port; the port defaults to 443.
+func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
+	server = strings.TrimSpace(server)
+	if server == "" {
+		return nil, common.NewError("no server provided")
+	}
+
+	host, port := server, "443"
+	if h, p, err := stdnet.SplitHostPort(server); err == nil {
+		host, port = h, p
+	}
+
+	dialer := stdnet.Dialer{Timeout: 10 * time.Second}
+	tcpConn, err := dialer.Dial("tcp", stdnet.JoinHostPort(host, port))
+	if err != nil {
+		return nil, common.NewErrorf("failed to dial %s: %s", stdnet.JoinHostPort(host, port), err)
+	}
+	defer tcpConn.Close()
+	_ = tcpConn.SetDeadline(time.Now().Add(15 * time.Second))
+
+	tlsConn := utls.UClient(tcpConn, &utls.Config{
+		ServerName:         host,
+		InsecureSkipVerify: true,
+		NextProtos:         []string{"h2", "http/1.1"},
+	}, utls.HelloChrome_Auto)
+	defer tlsConn.Close()
+	if err := tlsConn.Handshake(); err != nil {
+		return nil, common.NewErrorf("tls handshake with %s failed: %s", host, err)
+	}
+
+	certs := tlsConn.ConnectionState().PeerCertificates
+	if len(certs) == 0 {
+		return nil, common.NewError("no certificate returned by ", host)
+	}
+	// PeerCertificates[0] is always the leaf the connection verifies against —
+	// robust for IP-only self-signed certs that carry no DNS SANs.
+	sum := sha256.Sum256(certs[0].Raw)
+	return []string{hex.EncodeToString(sum[:])}, nil
 }
 
 func (s *ServerService) GetNewEchCert(sni string) (any, error) {

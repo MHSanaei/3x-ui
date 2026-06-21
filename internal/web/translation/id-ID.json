@@ -6,7 +6,7 @@
   "cancel": "Batal",
   "close": "Tutup",
   "save": "Simpan",
-  "logout": "Keluar",
+  "logout": "Keluar <3",
   "create": "Buat",
   "add": "Tambah",
   "remove": "Hapus",
@@ -591,7 +591,6 @@
         "pinnedPeerCertSha256": "SHA-256 Sertifikat Peer Tersemat",
         "pinnedPeerCertSha256Tip": "Hash SHA-256 dari sertifikat peer sebagai string heksadesimal (mis. e8e2d3…), dipisah koma. Hanya panel — tidak ditulis ke konfig xray server, tetapi disertakan dalam link berbagi agar klien dapat menyematkan sertifikat.",
         "pinnedPeerCertSha256Placeholder": "hash heksadesimal, dipisah koma",
-        "generateRandomPin": "Hasilkan hash acak",
         "getNewEchCert": "Dapatkan sertifikat ECH baru",
         "show": "Tampilkan",
         "xver": "Xver",
@@ -625,7 +624,28 @@
           "node": "Alamat node",
           "listen": "Alamat listen inbound",
           "custom": "Kustom"
-        }
+        },
+        "echSockopt": "ECH Sockopt",
+        "echSockoptTip": "Opsi socket untuk koneksi yang dipakai Xray guna mengambil daftar konfig ECH (mis. mengarahkan pencarian melalui outbound dialerProxy). Biarkan nonaktif untuk memakai bawaan.",
+        "curvePreferences": "Preferensi kurva",
+        "curvePreferencesTip": "Batasi kurva pertukaran kunci TLS yang ditawarkan server, sesuai urutan preferensi (mis. X25519MLKEM768, X25519). Biarkan kosong untuk memakai bawaan Xray-core.",
+        "masterKeyLog": "Log master key",
+        "masterKeyLogTip": "Path untuk menulis master key TLS (format SSLKEYLOGFILE) untuk debug dengan Wireshark. Biarkan kosong di produksi — ini memungkinkan siapa pun yang memiliki file tersebut mendekripsi lalu lintas.",
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "verifyPeerCertByNameTip": "Minta klien memverifikasi sertifikat server terhadap nama ini, bukan SNI. Nama dipisahkan koma. Hanya panel — disertakan dalam tautan berbagi (vcn). Pengganti modern untuk allowInsecure, yang dihapus Xray setelah 2026-06-01.",
+        "pinFromCert": "Isi dari sertifikat inbound ini",
+        "pinFromRemote": "Ambil hash dengan melakukan ping ke SNI (xray tls ping)",
+        "pinFromRemoteNoSni": "Atur SNI (serverName) terlebih dahulu untuk melakukan ping ke sertifikat jarak jauh.",
+        "pinFromRemoteFailed": "Tidak dapat mengambil hash sertifikat jarak jauh.",
+        "limitFallback": "Batasi fallback",
+        "limitFallbackUpload": "Batasi unggah fallback",
+        "limitFallbackDownload": "Batasi unduh fallback",
+        "afterBytes": "Setelah byte",
+        "afterBytesTip": "Biarkan fallback berjalan pada kecepatan penuh untuk sejumlah byte ini, lalu mulai membatasi. 0 = batasi sejak byte pertama.",
+        "bytesPerSec": "Byte per detik",
+        "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
+        "burstBytesPerSec": "Byte per detik burst",
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
       },
       "info": {
         "mode": "Mode",
@@ -813,6 +833,12 @@
       "delDepleted": "Hapus yang habis",
       "delDepletedConfirmTitle": "Hapus klien yang habis?",
       "delDepletedConfirmContent": "Hapus setiap klien yang kuota lalu lintasnya habis atau yang masa berlakunya telah berakhir. Tidak dapat dibatalkan.",
+      "exportClients": "Ekspor klien",
+      "importClients": "Impor klien",
+      "import": "Impor",
+      "delOrphans": "Hapus klien tanpa inbound",
+      "delOrphansConfirmTitle": "Hapus klien tanpa inbound?",
+      "delOrphansConfirmContent": "Menghapus setiap klien yang tidak terhubung ke inbound mana pun, beserta catatan lalu lintasnya. Tidak dapat dibatalkan.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -835,7 +861,10 @@
         "bulkCreatedMixed": "{ok} dibuat, {failed} gagal",
         "bulkAdjusted": "{count} klien disesuaikan",
         "bulkAdjustedMixed": "{ok} disesuaikan, {skipped} dilewati",
-        "delDepleted": "{count} klien habis dihapus"
+        "delDepleted": "{count} klien habis dihapus",
+        "delOrphans": "{count} klien tanpa inbound dihapus",
+        "imported": "{count} klien diimpor",
+        "importedMixed": "{ok} diimpor, {failed} dilewati"
       }
     },
     "groups": {
@@ -1294,6 +1323,7 @@
       "smtpErrorRelay": "Server menolak pengiriman dari alamat ini",
       "smtpErrorEof": "Koneksi ditutup oleh server",
       "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
       "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
     },
@@ -1343,6 +1373,14 @@
       "Inbounds": "Inbound",
       "InboundsDesc": "Menerima klien tertentu.",
       "Outbounds": "Outbound",
+      "importRules": "Impor aturan",
+      "exportRules": "Ekspor aturan",
+      "importOutbounds": "Impor outbound",
+      "exportOutbounds": "Ekspor outbound",
+      "importInvalidJson": "JSON tidak valid — diharapkan berupa array atau objek dengan kunci yang sesuai.",
+      "metricsListen": "Endpoint metrik",
+      "metricsListenDesc": "Tampilkan metrik gaya Prometheus dari Xray pada alamat:port ini (mis. 127.0.0.1:11111). Biarkan kosong untuk menonaktifkan. Ikat ke localhost dan reverse-proxy — endpoint ini tanpa autentikasi.",
+      "metricsTag": "Tag metrik",
       "OutboundSubscriptions": "Langganan Outbound",
       "OutboundSubscriptionsDesc": "Impor outbound dari URL langganan jarak jauh (vmess/vless/trojan/ss/...). Tag dijaga tetap stabil untuk digunakan pada penyeimbang dan aturan routing. Pembaruan berjalan otomatis.",
       "Balancers": "Penyeimbang",
@@ -1734,7 +1772,6 @@
         "alpn": "ALPN",
         "fingerprint": "Fingerprint",
         "pins": "SHA-256 sertifikat tersemat",
-        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
         "allowInsecure": "Izinkan tidak aman",
         "echConfigList": "Daftar konfig ECH",
         "muxParams": "Mux",
@@ -1746,7 +1783,8 @@
         "shuffleHost": "Acak host",
         "tags": "Tag",
         "nodeGuids": "Node",
-        "excludeFromSubTypes": "Kecualikan dari format"
+        "excludeFromSubTypes": "Kecualikan dari format",
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama"
       },
       "hints": {
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",
@@ -1842,7 +1880,7 @@
       "idDesc": "Tampilkan ID Telegram Anda"
     },
     "messages": {
-      "cpuThreshold": "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
+      "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
       "selectUserFailed": "❌ Kesalahan dalam pemilihan pengguna!",
       "userSaved": "✅ Pengguna Telegram tersimpan.",
       "loginSuccess": "✅ Berhasil masuk ke panel.\r\n",
@@ -1917,7 +1955,8 @@
       "eventNodeUp": "Node {{ .Name }} AKTIF",
       "eventCPUHigh": "CPU tinggi",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Gagal masuk dari {{ .Source }}"
+      "eventLoginFallback": "Gagal masuk dari {{ .Source }}",
+      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",

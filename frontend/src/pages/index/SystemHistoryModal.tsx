@@ -213,6 +213,9 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
               { value: 120, label: '2h' },
               { value: 180, label: '3h' },
               { value: 300, label: '5h' },
+              { value: 720, label: '12h' },
+              { value: 1440, label: '24h' },
+              { value: 2880, label: '48h' },
             ]}
           />
         </div>
