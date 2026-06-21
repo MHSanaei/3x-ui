@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "O servidor rejeita o envio a partir deste endereço",
       "smtpErrorEof": "Conexão encerrada pelo servidor",
       "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Uso de memória alto (%)",
       "remarkTemplate": "Modelo de Observação",
       "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Mostrar seu ID do Telegram"
     },
     "messages": {
-      "cpuThreshold": "🔴 A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
+      "cpuThreshold": "A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
       "selectUserFailed": "❌ Erro na seleção do usuário!",
       "userSaved": "✅ Usuário do Telegram salvo.",
       "loginSuccess": "✅ Conectado ao painel com sucesso.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "O nó {{ .Name }} está ATIVO",
       "eventCPUHigh": "CPU alta",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Falha de login a partir de {{ .Source }}"
+      "eventLoginFallback": "Falha de login a partir de {{ .Source }}",
+      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",

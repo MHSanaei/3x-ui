@@ -63,6 +63,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgCpu":                       "80",
+	"tgMemory":                    "80",
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
@@ -131,6 +132,7 @@ var defaultValueMap = map[string]string{
 	"tgEnabledEvents":   "login.attempt,cpu.high",
 	"smtpEnabledEvents": "login.attempt,cpu.high",
 	"smtpCpu":           "80",
+	"smtpMemory":        "80",
 
 	// Email (SMTP) notifications
 	"smtpEnable":         "false",
@@ -529,6 +531,14 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgMemory() (int, error) {
+	return s.getInt("tgMemory")
+}
+
+func (s *SettingService) SetTgMemory(value int) error {
+	return s.setInt("tgMemory", value)
 }
 
 func (s *SettingService) GetTgLang() (string, error) {
@@ -1015,6 +1025,14 @@ func (s *SettingService) GetSmtpCpu() (int, error) {
 
 func (s *SettingService) SetSmtpCpu(value int) error {
 	return s.setInt("smtpCpu", value)
+}
+
+func (s *SettingService) GetSmtpMemory() (int, error) {
+	return s.getInt("smtpMemory")
+}
+
+func (s *SettingService) SetSmtpMemory(value int) error {
+	return s.setInt("smtpMemory", value)
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

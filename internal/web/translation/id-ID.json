@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "Server menolak pengiriman dari alamat ini",
       "smtpErrorEof": "Koneksi ditutup oleh server",
       "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
       "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Tampilkan ID Telegram Anda"
     },
     "messages": {
-      "cpuThreshold": "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
+      "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
       "selectUserFailed": "❌ Kesalahan dalam pemilihan pengguna!",
       "userSaved": "✅ Pengguna Telegram tersimpan.",
       "loginSuccess": "✅ Berhasil masuk ke panel.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "Node {{ .Name }} AKTIF",
       "eventCPUHigh": "CPU tinggi",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Gagal masuk dari {{ .Source }}"
+      "eventLoginFallback": "Gagal masuk dari {{ .Source }}",
+      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",

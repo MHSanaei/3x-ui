@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "Máy chủ từ chối gửi từ địa chỉ này",
       "smtpErrorEof": "Kết nối đã bị máy chủ đóng",
       "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)",
       "remarkTemplate": "Mẫu ghi chú",
       "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Hiển thị ID Telegram của bạn"
     },
     "messages": {
-      "cpuThreshold": "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
+      "cpuThreshold": "Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
       "selectUserFailed": "❌ Lỗi khi chọn người dùng!",
       "userSaved": "✅ Người dùng Telegram đã được lưu.",
       "loginSuccess": "✅ Đăng nhập thành công vào bảng điều khiển.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "Node {{ .Name }} đã HOẠT ĐỘNG",
       "eventCPUHigh": "CPU cao",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}"
+      "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}",
+      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",

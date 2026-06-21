@@ -18,7 +18,8 @@ const (
 	EventNodeUp   EventType = "node.up"
 
 	// System health
-	EventCPUHigh EventType = "cpu.high"
+	EventCPUHigh    EventType = "cpu.high"
+	EventMemoryHigh EventType = "memory.high"
 
 	// Security
 	EventLoginAttempt EventType = "login.attempt"

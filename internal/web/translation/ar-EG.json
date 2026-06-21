@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "الخادم يرفض الإرسال من هذا العنوان",
       "smtpErrorEof": "تم إغلاق الاتصال من قبل الخادم",
       "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}",
+      "eventMemoryHigh": "ارتفاع استخدام الذاكرة (%)",
       "remarkTemplate": "قالب الملاحظة",
       "remarkTemplateDesc": "عند تعيينه، يحل هذا محل نموذج الملاحظة لكل رابط اشتراك — اكتب صيغتك الخاصة باستخدام رموز المتغيرات (استخدم الزر لإدراجها). اتركه فارغاً لاستخدام النموذج أعلاه."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "عرض معرف Telegram الخاص بك"
     },
     "messages": {
-      "cpuThreshold": "🔴 حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
+      "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
       "selectUserFailed": "❌ حصل خطأ في اختيار المستخدم!",
       "userSaved": "✅ حفظت بيانات مستخدم Telegram.",
       "loginSuccess": "✅ تسجيل الدخول للبانل تم بنجاح.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "العقدة {{ .Name }} متصلة",
       "eventCPUHigh": "ارتفاع استخدام المعالج",
       "eventCPUHighDetail": "المعالج: {{ .Detail }}",
-      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}"
+      "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}",
+      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",

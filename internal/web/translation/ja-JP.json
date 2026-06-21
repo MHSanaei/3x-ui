@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "サーバーはこのアドレスからの送信を拒否しています",
       "smtpErrorEof": "サーバーによって接続が閉じられました",
       "smtpErrorUnknown": "SMTPエラー: {{ .Error }}",
+      "eventMemoryHigh": "メモリ使用率が高い (%)",
       "remarkTemplate": "備考テンプレート",
       "remarkTemplateDesc": "設定すると、すべてのサブスクリプションリンクの備考モデルを置き換えます — 変数トークンを使って独自の形式を記述してください（ボタンで挿入できます）。空欄にすると上記のモデルが使用されます。"
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Telegram IDを表示"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
+      "cpuThreshold": "CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
       "selectUserFailed": "❌ ユーザーの選択に失敗しました！",
       "userSaved": "✅ Telegramユーザーが保存されました。",
       "loginSuccess": "✅ パネルに正常にログインしました。\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "ノード {{ .Name }} が復旧しました",
       "eventCPUHigh": "CPU高負荷",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "{{ .Source }} からのログインに失敗しました"
+      "eventLoginFallback": "{{ .Source }} からのログインに失敗しました",
+      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",

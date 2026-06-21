@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "Sunucu bu adresten gönderimi reddediyor",
       "smtpErrorEof": "Bağlantı sunucu tarafından kapatıldı",
       "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
+      "eventMemoryHigh": "Bellek kullanımı yüksek (%)",
       "remarkTemplate": "Açıklama Şablonu",
       "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Telegram Kimliğinizi gösterir"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
+      "cpuThreshold": "CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
       "selectUserFailed": "❌ Kullanıcı seçiminde hata!",
       "userSaved": "✅ Telegram Kullanıcısı kaydedildi.",
       "loginSuccess": "✅ Panele başarıyla giriş yapıldı.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "{{ .Name }} düğümü ÇEVRİMİÇİ",
       "eventCPUHigh": "Yüksek CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız"
+      "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız",
+      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",

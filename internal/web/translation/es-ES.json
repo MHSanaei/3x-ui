@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "El servidor rechaza el envío desde esta dirección",
       "smtpErrorEof": "Conexión cerrada por el servidor",
       "smtpErrorUnknown": "Error de SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Uso de memoria alto (%)",
       "remarkTemplate": "Plantilla de notas",
       "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Mostrar tu ID de Telegram"
     },
     "messages": {
-      "cpuThreshold": "🔴 El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",
+      "cpuThreshold": "El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",
       "selectUserFailed": "❌ ¡Error al seleccionar usuario!",
       "userSaved": "✅ Usuario de Telegram guardado.",
       "loginSuccess": "✅ Has iniciado sesión en el panel con éxito.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "El nodo {{ .Name }} está ACTIVO",
       "eventCPUHigh": "CPU alta",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Inicio de sesión fallido desde {{ .Source }}"
+      "eventLoginFallback": "Inicio de sesión fallido desde {{ .Source }}",
+      "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",

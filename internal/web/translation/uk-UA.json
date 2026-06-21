@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "Сервер відхиляє надсилання з цієї адреси",
       "smtpErrorEof": "З'єднання закрито сервером",
       "smtpErrorUnknown": "Помилка SMTP: {{ .Error }}",
+      "eventMemoryHigh": "Високе використання пам'яті (%)",
       "remarkTemplate": "Шаблон примітки",
       "remarkTemplateDesc": "Якщо задано, це замінює модель примітки для кожного посилання підписки — напишіть власний формат із токенами змінних (використовуйте кнопку для їх вставлення). Залиште порожнім, щоб використовувати модель вище."
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "Показати ваш Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 Навантаження ЦП  {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
+      "cpuThreshold": "Навантаження ЦП  {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
       "selectUserFailed": "❌ Помилка під час вибору користувача!",
       "userSaved": "✅ Користувача Telegram збережено.",
       "loginSuccess": "✅ Успішно ввійшли в панель\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "Вузол {{ .Name }} ДОСТУПНИЙ",
       "eventCPUHigh": "Високе навантаження на CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Невдала спроба входу з {{ .Source }}"
+      "eventLoginFallback": "Невдала спроба входу з {{ .Source }}",
+      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",

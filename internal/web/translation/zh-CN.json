@@ -1309,6 +1309,7 @@
       "smtpErrorRelay": "服务器拒绝从此地址发送",
       "smtpErrorEof": "连接被服务器关闭",
       "smtpErrorUnknown": "SMTP 错误：{{ .Error }}",
+      "eventMemoryHigh": "内存使用率高 (%)",
       "remarkTemplate": "备注模板",
       "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。"
     },
@@ -1865,7 +1866,7 @@
       "idDesc": "显示您的 Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
+      "cpuThreshold": "CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
       "selectUserFailed": "❌ 用户选择错误！",
       "userSaved": "✅ 电报用户已保存。",
       "loginSuccess": "✅ 成功登录到面板。\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "节点 {{ .Name }} 已上线",
       "eventCPUHigh": "CPU 占用过高",
       "eventCPUHighDetail": "CPU：{{ .Detail }}",
-      "eventLoginFallback": "来自 {{ .Source }} 的登录失败"
+      "eventLoginFallback": "来自 {{ .Source }} 的登录失败",
+      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",

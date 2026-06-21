@@ -41,6 +41,14 @@ const GROUPS: NotificationGroupConfig[] = [
           <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 80 }} />
         ),
       },
+      {
+        key: 'memory.high',
+        label: 'eventMemoryHigh',
+        settingKey: 'tgMemory',
+        extra: ({ value, onChange }) => (
+          <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 80 }} />
+        ),
+      },
     ],
   },
   {

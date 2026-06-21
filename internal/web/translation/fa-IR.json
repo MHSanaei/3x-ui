@@ -1310,7 +1310,8 @@
       "smtpErrorTimeout": "مهلت اتصال به پایان رسید — میزبان در دسترس نیست",
       "smtpErrorRelay": "سرور ارسال از این آدرس را رد می‌کند",
       "smtpErrorEof": "اتصال توسط سرور بسته شد",
-      "smtpErrorUnknown": "خطای SMTP: {{ .Error }}"
+      "smtpErrorUnknown": "خطای SMTP: {{ .Error }}",
+      "eventMemoryHigh": "مصرف حافظه بالا (%)"
     },
     "xray": {
       "title": "پیکربندی ایکس‌ری",
@@ -1865,7 +1866,7 @@
       "idDesc": "نمایش شناسه تلگرام شما"
     },
     "messages": {
-      "cpuThreshold": "🔴 بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
+      "cpuThreshold": "بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
       "selectUserFailed": "❌ خطا در انتخاب کاربر!",
       "userSaved": "✅ کاربر تلگرام ذخیره شد.",
       "loginSuccess": "✅ با موفقیت به پنل وارد شدید.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "نود {{ .Name }} وصل است",
       "eventCPUHigh": "بالا بودن CPU",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "ورود ناموفق از {{ .Source }}"
+      "eventLoginFallback": "ورود ناموفق از {{ .Source }}",
+      "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است"
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",

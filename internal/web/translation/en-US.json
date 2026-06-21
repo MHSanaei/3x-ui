@@ -1418,7 +1418,8 @@
       "smtpErrorTimeout": "Connection timeout — host unreachable",
       "smtpErrorRelay": "Server rejects sending from this address",
       "smtpErrorEof": "Connection closed by server",
-      "smtpErrorUnknown": "SMTP error: {{ .Error }}"
+      "smtpErrorUnknown": "SMTP error: {{ .Error }}",
+      "eventMemoryHigh": "Memory high (%)"
     },
     "xray": {
       "title": "Xray Configs",
@@ -1865,7 +1866,7 @@
       "idDesc": "Show your Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
+      "cpuThreshold": "CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
       "selectUserFailed": "❌ Error in user selection!",
       "userSaved": "✅ Telegram User saved.",
       "loginSuccess": "✅ Logged in to the panel successfully.\r\n",
@@ -1940,7 +1941,8 @@
       "eventNodeUp": "Node {{ .Name }} is UP",
       "eventCPUHigh": "CPU high",
       "eventCPUHighDetail": "CPU: {{ .Detail }}",
-      "eventLoginFallback": "Login failed from {{ .Source }}"
+      "eventLoginFallback": "Login failed from {{ .Source }}",
+      "memoryThreshold": "Memory Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%"
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
