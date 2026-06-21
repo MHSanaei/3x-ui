@@ -495,7 +495,14 @@ export default function ClientsPage() {
 
   async function onShowInfo(row: ClientRecord) {
     const full = await hydrate(row.email);
-    setInfoClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    if (!full) {
+      setInfoClient(row);
+      setInfoOpen(true);
+      return;
+    }
+    const merged: ClientRecord = { ...row, ...full.client, inboundIds: full.inboundIds };
+    if (!merged.wgPeer && row.wgPeer) merged.wgPeer = row.wgPeer;
+    setInfoClient(merged);
     setInfoOpen(true);
   }
 

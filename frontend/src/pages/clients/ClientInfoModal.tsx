@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
-import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -133,6 +133,37 @@ export default function ClientInfoModal({
 
   const showSubscription = !!(subSettings?.enable && client?.subId);
 
+  const wgInbound = useMemo(() => {
+    if (!client?.wgPeer || !client.inboundIds) return undefined;
+    for (const id of client.inboundIds) {
+      const ib = inboundsById[id];
+      if (ib?.protocol === 'wireguard') return ib;
+    }
+    return undefined;
+  }, [client, inboundsById]);
+
+  const wgConfigText = useMemo(() => {
+    if (!client?.wgPeer) return '';
+    const wg = client.wgPeer;
+    const serverPubKey = wgInbound?.wgPublicKey || '';
+    const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
+    const address = (wg.allowedIPs || []).join(', ') || '10.0.0.2/32';
+    const lines = [
+      '[Interface]',
+      `PrivateKey = ${client.password || ''}`,
+      `Address = ${address}`,
+      'DNS = 8.8.8.8',
+      '',
+      '[Peer]',
+      `PublicKey = ${serverPubKey}`,
+      'AllowedIPs = 0.0.0.0/0, ::/0',
+      `Endpoint = ${endpoint}`,
+    ];
+    if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
+    if ((wg.keepAlive ?? 0) > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
+    return lines.join('\n');
+  }, [client, wgInbound]);
+
   async function copyValue(text: string) {
     if (!text) return;
     const ok = await ClipboardManager.copyText(String(text));
@@ -225,6 +256,19 @@ export default function ClientInfoModal({
                       <tr>
                         <td>{t('pages.clients.wg.keepAlive')}</td>
                         <td><Tag>{client.wgPeer.keepAlive}s</Tag></td>
+                      </tr>
+                    )}
+                    {wgConfigText && (
+                      <tr>
+                        <td>Config</td>
+                        <td>
+                          <Tooltip title={t('copy')}>
+                            <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(wgConfigText)} />
+                          </Tooltip>
+                          <Tooltip title={t('download')}>
+                            <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${client!.email}.conf`)} />
+                          </Tooltip>
+                        </td>
                       </tr>
                     )}
                   </>

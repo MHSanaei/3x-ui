@@ -19,10 +19,10 @@ import {
   Typography,
   message,
 } from 'antd';
-import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -346,6 +346,32 @@ export default function ClientFormModal({
     () => (form.inboundIds || []).find((id) => wgIds.has(id)) ?? null,
     [form.inboundIds, wgIds],
   );
+
+  const wgInbound = useMemo(
+    () => firstWgInboundId != null ? inbounds.find((ib) => ib.id === firstWgInboundId) : undefined,
+    [firstWgInboundId, inbounds],
+  );
+
+  const wgConfigText = useMemo(() => {
+    if (!showWireGuard) return '';
+    const serverPubKey = wgInbound?.wgPublicKey || '';
+    const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
+    const address = (form.wgPeer.allowedIPs || []).filter(Boolean).join(', ') || '10.0.0.2/32';
+    const lines = [
+      '[Interface]',
+      `PrivateKey = ${form.wgPeer.privateKey || ''}`,
+      `Address = ${address}`,
+      'DNS = 8.8.8.8',
+      '',
+      '[Peer]',
+      `PublicKey = ${serverPubKey}`,
+      'AllowedIPs = 0.0.0.0/0, ::/0',
+      `Endpoint = ${endpoint}`,
+    ];
+    if (form.wgPeer.preSharedKey) lines.push(`PresharedKey = ${form.wgPeer.preSharedKey}`);
+    if (form.wgPeer.keepAlive > 0) lines.push(`PersistentKeepalive = ${form.wgPeer.keepAlive}`);
+    return lines.join('\n');
+  }, [showWireGuard, wgInbound, form.wgPeer]);
 
   // When a WG inbound is selected in add mode, suggest the next available IP.
   useEffect(() => {
@@ -858,6 +884,35 @@ export default function ClientFormModal({
                   </>
                 ),
               },
+              ...(showWireGuard ? [{
+                key: 'wgconf',
+                label: 'Config',
+                children: (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>
+                      <Tooltip title={t('copy')}>
+                        <Button size="small" icon={<CopyOutlined />} onClick={() => ClipboardManager.copyText(wgConfigText)} />
+                      </Tooltip>
+                      <Tooltip title={t('download')}>
+                        <Button size="small" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${form.email}.conf`)} />
+                      </Tooltip>
+                    </div>
+                    <pre style={{
+                      background: 'var(--ant-color-fill-quaternary, #f5f5f5)',
+                      borderRadius: 6,
+                      padding: '10px 14px',
+                      margin: 0,
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      overflowX: 'auto',
+                      whiteSpace: 'pre',
+                      userSelect: 'all',
+                    }}>
+                      {wgConfigText}
+                    </pre>
+                  </div>
+                ),
+              }] : []),
               {
                 key: 'links',
                 label: t('pages.clients.tabLinks'),
