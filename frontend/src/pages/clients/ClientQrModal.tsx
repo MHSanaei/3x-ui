@@ -41,12 +41,9 @@ function buildWgConfig(client: ClientRecord, inbound: InboundOption | undefined)
     `PrivateKey = ${client.password || ''}`,
     `Address = ${address}`,
     'DNS = 8.8.8.8',
-    '',
-    '[Peer]',
-    `PublicKey = ${serverPubKey}`,
-    'AllowedIPs = 0.0.0.0/0, ::/0',
-    `Endpoint = ${endpoint}`,
   ];
+  if (inbound?.wgMtu && inbound.wgMtu > 0) lines.push(`MTU = ${inbound.wgMtu}`);
+  lines.push('', '[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
   if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
   if (wg.keepAlive && wg.keepAlive > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
   return lines.join('\n');

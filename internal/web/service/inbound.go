@@ -302,6 +302,8 @@ type InboundOption struct {
 	SsMethod       string `json:"ssMethod"`
 	// WireGuard server public key; only set for wireguard inbounds.
 	WgPublicKey string `json:"wgPublicKey,omitempty"`
+	// WireGuard MTU; only set for wireguard inbounds when mtu > 0.
+	WgMtu int `json:"wgMtu,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -341,10 +343,22 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		}
 		if r.Protocol == string(model.WireGuard) {
 			opt.WgPublicKey = inboundWgPublicKey(r.Settings)
+			opt.WgMtu = inboundWgMtu(r.Settings)
 		}
 		out = append(out, opt)
 	}
 	return out, nil
+}
+
+func inboundWgMtu(settings string) int {
+	var s map[string]any
+	if err := json.Unmarshal([]byte(settings), &s); err != nil {
+		return 0
+	}
+	if mtu, ok := s["mtu"].(float64); ok && mtu > 0 {
+		return int(mtu)
+	}
+	return 0
 }
 
 func inboundWgPublicKey(settings string) string {

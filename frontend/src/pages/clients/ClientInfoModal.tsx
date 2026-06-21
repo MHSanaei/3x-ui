@@ -153,15 +153,33 @@ export default function ClientInfoModal({
       `PrivateKey = ${client.password || ''}`,
       `Address = ${address}`,
       'DNS = 8.8.8.8',
-      '',
-      '[Peer]',
-      `PublicKey = ${serverPubKey}`,
-      'AllowedIPs = 0.0.0.0/0, ::/0',
-      `Endpoint = ${endpoint}`,
     ];
+    if (wgInbound?.wgMtu && wgInbound.wgMtu > 0) lines.push(`MTU = ${wgInbound.wgMtu}`);
+    lines.push('', '[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
     if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
     if ((wg.keepAlive ?? 0) > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
     return lines.join('\n');
+  }, [client, wgInbound]);
+
+  const wgPeerLink = useMemo(() => {
+    if (!client?.wgPeer || !wgInbound) return '';
+    const privateKey = client.password || '';
+    const port = wgInbound.port;
+    if (!privateKey || !port) return '';
+    try {
+      const raw = window.location.hostname.replace(/^\[|\]$/g, '');
+      const host = raw.includes(':') ? `[${raw}]` : raw;
+      const url = new URL(`wireguard://${host}:${port}`);
+      url.username = privateKey;
+      if (wgInbound.wgPublicKey) url.searchParams.set('publickey', wgInbound.wgPublicKey);
+      const firstIp = (client.wgPeer.allowedIPs || [])[0];
+      if (firstIp) url.searchParams.set('address', firstIp);
+      if (wgInbound.wgMtu && wgInbound.wgMtu > 0) url.searchParams.set('mtu', String(wgInbound.wgMtu));
+      url.hash = encodeURIComponent(client.email || '');
+      return url.toString();
+    } catch {
+      return '';
+    }
   }, [client, wgInbound]);
 
   async function copyValue(text: string) {
@@ -267,6 +285,16 @@ export default function ClientInfoModal({
                           </Tooltip>
                           <Tooltip title={t('download')}>
                             <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${client!.email}.conf`)} />
+                          </Tooltip>
+                        </td>
+                      </tr>
+                    )}
+                    {wgPeerLink && (
+                      <tr>
+                        <td>Peer link</td>
+                        <td>
+                          <Tooltip title={t('copy')}>
+                            <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(wgPeerLink)} />
                           </Tooltip>
                         </td>
                       </tr>
