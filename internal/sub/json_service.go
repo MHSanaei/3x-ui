@@ -174,12 +174,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 	}
 
 	delete(stream, "externalProxy")
+	network, _ := stream["network"].(string)
 
 	for _, ep := range externalProxies {
 		extPrxy := ep.(map[string]any)
 		// Expand the host's {{VAR}} remark template for this client (no-op for
 		// the synthetic/legacy entry) before it's used as the config remark.
-		subReq.renderHostRemark(inbound, client, extPrxy)
+		subReq.renderHostRemark(inbound, client, extPrxy, network)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
 		newStream := cloneStreamForExternalProxy(stream)
@@ -220,8 +221,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		newConfigJson := make(map[string]any)
 		maps.Copy(newConfigJson, s.configJson)
 
+		transport, _ := newStream["network"].(string)
 		newConfigJson["outbounds"] = newOutbounds
-		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy)
+		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy, transport)
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)

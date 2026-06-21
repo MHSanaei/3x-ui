@@ -35,7 +35,7 @@ func TestGenRemarkOmitsNodeName(t *testing.T) {
 		nodesByID: map[int]*model.Node{7: {Id: 7, Name: "Berlin", Address: "node7.example.com"}},
 	}
 	ib := &model.Inbound{Remark: "vless-tcp", NodeID: &nodeID}
-	if got := s.genRemark(ib, "", ""); got != "vless-tcp" {
+	if got := s.genRemark(ib, "", "", ""); got != "vless-tcp" {
 		t.Fatalf("remark = %q, want %q (node name must not leak into client-visible remarks)", got, "vless-tcp")
 	}
 }

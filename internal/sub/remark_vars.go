@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ type remarkContext struct {
 	stats      xray.ClientTraffic
 	inbound    *model.Inbound
 	hostRemark string
+	transport  string
 }
 
 // configName is the display name for a link: always the inbound's own remark.
@@ -50,6 +52,54 @@ var unlimitedDropTokens = map[string]bool{
 	"TRAFFIC_LEFT":  true,
 	"TRAFFIC_TOTAL": true,
 	"DAYS_LEFT":     true,
+	"TIME_LEFT":     true,
+}
+
+// uiTokenMap translates user-friendly single-brace tokens (used in the frontend
+// Remark/Host Name fields) to their internal double-brace equivalents. Tokens
+// not present in this map are left untouched.
+var uiTokenMap = map[string]string{
+	"EMAIL":              "EMAIL",
+	"DATA_USAGE":         "TRAFFIC_USED",
+	"DATA_LEFT":          "TRAFFIC_LEFT",
+	"DATA_LIMIT":         "TRAFFIC_TOTAL",
+	"DAYS_LEFT":          "DAYS_LEFT",
+	"EXPIRE_DATE":        "EXPIRE_DATE",
+	"JALALI_EXPIRE_DATE": "JALALI_EXPIRE_DATE",
+	"TIME_LEFT":          "TIME_LEFT",
+	"STATUS_EMOJI":       "STATUS_EMOJI",
+	"USAGE_PERCENTAGE":   "USAGE_PERCENTAGE",
+	"PROTOCOL":           "PROTOCOL",
+	"TRANSPORT":          "TRANSPORT",
+}
+
+// translateUISingleBrackets converts user-friendly single-brace tokens to the
+// internal double-brace format before regex expansion. Only {TOKEN} patterns
+// that are NOT part of {{TOKEN}} are translated. Unknown tokens stay as-is.
+func translateUISingleBrackets(template string) string {
+	var result strings.Builder
+	i := 0
+	for i < len(template) {
+		if template[i] == '{' && (i == 0 || template[i-1] != '{') {
+			j := i + 1
+			for j < len(template) && template[j] != '}' {
+				j++
+			}
+			if j < len(template) && template[j] == '}' {
+				token := template[i+1 : j]
+				if internal, ok := uiTokenMap[token]; ok {
+					result.WriteString("{{")
+					result.WriteString(internal)
+					result.WriteString("}}")
+					i = j + 1
+					continue
+				}
+			}
+		}
+		result.WriteByte(template[i])
+		i++
+	}
+	return result.String()
 }
 
 // expandRemarkVars substitutes every {{TOKEN}} in template with its per-client
@@ -58,6 +108,7 @@ var unlimitedDropTokens = map[string]bool{
 // or expiry (∞) drops out whole — decoration and separator included — so an
 // unlimited client gets "host" instead of "host|📊∞|⏳∞D".
 func expandRemarkVars(template string, ctx remarkContext) string {
+	template = translateUISingleBrackets(template)
 	if !strings.Contains(template, "{{") {
 		return template
 	}
@@ -164,6 +215,21 @@ func remarkVarValue(token string, ctx remarkContext) string {
 			return strconv.Itoa(c.Reset)
 		}
 		return ""
+	case "STATUS_EMOJI":
+		return statusEmoji(st)
+	case "USAGE_PERCENTAGE":
+		return usagePercentage(st)
+	case "PROTOCOL":
+		if ctx.inbound != nil {
+			return strings.ToUpper(string(ctx.inbound.Protocol))
+		}
+		return ""
+	case "TRANSPORT":
+		return ctx.transport
+	case "TIME_LEFT":
+		return timeLeftLabel(st.ExpiryTime)
+	case "JALALI_EXPIRE_DATE":
+		return jalaliExpireDateLabel(st.ExpiryTime)
 	}
 	return ""
 }
@@ -202,13 +268,13 @@ func daysLeftLabel(expiryMs int64) string {
 	return strconv.FormatInt(days, 10)
 }
 
-// expireDateLabel renders a fixed expiry as YYYY-MM-DD (UTC). Unlimited and
-// delayed-start (no fixed calendar date yet) expiries yield "".
+// expireDateLabel renders a fixed expiry as YYYY-MM-DD (local time). Unlimited
+// and delayed-start (no fixed calendar date yet) expiries yield "".
 func expireDateLabel(expiryMs int64) string {
 	if expiryMs <= 0 {
 		return ""
 	}
-	return time.Unix(expiryMs/1000, 0).UTC().Format("2006-01-02")
+	return time.Unix(expiryMs/1000, 0).In(time.Local).Format("2006-01-02")
 }
 
 func max64(a, b int64) int64 {
@@ -216,6 +282,145 @@ func max64(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+// statusEmoji maps clientStatus to a single emoji character.
+func statusEmoji(st xray.ClientTraffic) string {
+	switch clientStatus(st) {
+	case "active":
+		return "✅"
+	case "expired":
+		return "⏳"
+	case "depleted":
+		return "🚫"
+	case "disabled":
+		return "🚫"
+	default:
+		return ""
+	}
+}
+
+// usagePercentage computes the traffic usage as a percentage string (e.g. "52.3%").
+// Returns "" when the client has no traffic limit.
+func usagePercentage(st xray.ClientTraffic) string {
+	if st.Total <= 0 {
+		return ""
+	}
+	used := st.Up + st.Down
+	pct := float64(used) / float64(st.Total) * 100
+	if pct > 100 {
+		pct = 100 // clamp over-quota usage, consistent with TRAFFIC_LEFT
+	}
+	return fmt.Sprintf("%.1f%%", pct)
+}
+
+// timeLeftLabel renders remaining time as "Xd Xh Xm" (or shorter when days/hours
+// are zero). Returns "∞" for unlimited and "0" when past expiry.
+func timeLeftLabel(expiryMs int64) string {
+	if expiryMs == 0 {
+		return unlimitedMark
+	}
+	exp := expiryMs / 1000
+	var secs int64
+	if exp > 0 {
+		secs = exp - time.Now().Unix()
+	} else {
+		secs = -exp
+	}
+	if secs <= 0 {
+		return "0"
+	}
+	days := secs / 86400
+	hours := (secs % 86400) / 3600
+	mins := (secs % 3600) / 60
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, mins)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, mins)
+	}
+	return fmt.Sprintf("%dm", mins)
+}
+
+// jalaliExpireDateLabel converts a Gregorian expiry timestamp to Jalali
+// (Persian/Solar Hijri) date format "YYYY/MM/DD". Returns "" for unlimited
+// or delayed-start expiries.
+func jalaliExpireDateLabel(expiryMs int64) string {
+	if expiryMs <= 0 {
+		return ""
+	}
+	t := time.Unix(expiryMs/1000, 0).In(time.Local)
+	y, m, d := gregorianToJalali(t.Year(), int(t.Month()), t.Day())
+	return fmt.Sprintf("%d/%02d/%02d", y, m, d)
+}
+
+// gregorianToJalali converts a Gregorian date to Jalali (Solar Hijri) date.
+// Uses a reference-date approach: counts days from a known reference point
+// (2024-01-01 = 1402-10-11 JAL) and walks the Jalali calendar forward/backward.
+func gregorianToJalali(gy, gm, gd int) (jy, jm, jd int) {
+	// Compute Julian Day Number for the input Gregorian date
+	a := (14 - gm) / 12
+	y := gy + 4800 - a
+	m := gm + 12*a - 3
+	jdn := gd + (153*m+2)/5 + 365*y + y/4 - y/100 + y/400 - 32045
+
+	// Reference: 2024-01-01 = JDN 2460311 = 1402-10-11 JAL
+	refJDN := 2460311
+	days := int64(jdn - refJDN)
+	jy, jm, jd = 1402, 10, 11
+
+	// Walk forward
+	for days > 0 {
+		remaining := int64(jalaliMonthDays(jy, jm) - jd + 1)
+		if days < remaining {
+			jd += int(days)
+			return
+		}
+		days -= remaining
+		jm++
+		if jm > 12 {
+			jm = 1
+			jy++
+		}
+		jd = 1
+	}
+	// Walk backward
+	for days < 0 {
+		jd += int(days)
+		for jd < 1 {
+			jm--
+			if jm < 1 {
+				jm = 12
+				jy--
+			}
+			jd += jalaliMonthDays(jy, jm)
+		}
+		days = 0
+	}
+	return
+}
+
+func jalaliMonthDays(y, m int) int {
+	if m <= 6 {
+		return 31
+	}
+	if m <= 11 {
+		return 30
+	}
+	if isJalaliLeap(y) {
+		return 30
+	}
+	return 29
+}
+
+// isJalaliLeap reports whether the given Jalali year is a leap year.
+// The leap pattern repeats every 33 years with 8 leap years.
+func isJalaliLeap(y int) bool {
+	switch y % 33 {
+	case 1, 5, 9, 13, 17, 22, 26, 30:
+		return true
+	}
+	return false
 }
 
 // statsForClient returns the client's live traffic record, or a minimal one
@@ -261,6 +466,7 @@ var usageInfoTokens = []string{
 	"TRAFFIC_USED", "TRAFFIC_LEFT", "TRAFFIC_TOTAL",
 	"TRAFFIC_USED_BYTES", "TRAFFIC_LEFT_BYTES", "TRAFFIC_TOTAL_BYTES",
 	"UP", "DOWN", "DAYS_LEFT", "EXPIRE_DATE", "EXPIRE_UNIX", "STATUS",
+	"STATUS_EMOJI", "USAGE_PERCENTAGE", "TIME_LEFT", "JALALI_EXPIRE_DATE",
 }
 
 // nameOnlyTemplate returns template with the trailing per-client info part
@@ -287,25 +493,27 @@ func nameOnlyTemplate(template string) string {
 // name-only template for every link thereafter — so the info shows once. Only
 // called in the subscription-body context (displays bypass the template).
 func (s *SubService) effectiveTemplate(email string) string {
+	translated := translateUISingleBrackets(s.remarkTemplate)
 	if s.usageShown == nil {
 		s.usageShown = map[string]bool{}
 	}
 	if s.usageShown[email] {
-		return nameOnlyTemplate(s.remarkTemplate)
+		return nameOnlyTemplate(translated)
 	}
 	s.usageShown[email] = true
-	return s.remarkTemplate
+	return translated
 }
 
 // genTemplatedRemark expands the remark template for one client. hostRemark is
 // the host endpoint's remark (empty for a plain inbound); it backs the {{HOST}}
 // token only and never substitutes the inbound remark as the config name.
-func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Client, hostRemark string) string {
+func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Client, hostRemark string, transport string) string {
 	ctx := remarkContext{
 		client:     client,
 		stats:      s.statsForClient(inbound, client),
 		inbound:    inbound,
 		hostRemark: hostRemark,
+		transport:  transport,
 	}
 	tmpl := s.effectiveTemplate(client.Email)
 	// Fall back to the config name when the template is empty or expands to
@@ -320,9 +528,9 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 // config name is always the inbound's own remark; the host's remark is surfaced
 // only through the {{HOST}} token. In the subscription body the rest of the
 // remark template still applies; displays show just the config name.
-func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, hostRemark string) string {
+func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, hostRemark string, transport string) string {
 	if !s.subscriptionBody {
 		return remarkContext{inbound: inbound, hostRemark: hostRemark}.configName()
 	}
-	return s.genTemplatedRemark(inbound, client, hostRemark)
+	return s.genTemplatedRemark(inbound, client, hostRemark, transport)
 }
