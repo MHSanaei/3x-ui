@@ -429,7 +429,7 @@ export default function ClientInfoModal({
               </tbody>
             </table>
 
-            {links.length > 0 && (
+            {!client.wgPeer && links.length > 0 && (
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
                 {links.map((link, idx) => {
@@ -467,7 +467,7 @@ export default function ClientInfoModal({
               </>
             )}
 
-            {showSubscription && subLink && (
+            {!client.wgPeer && showSubscription && subLink && (
               <>
                 <Divider>{t('subscription.title')}</Divider>
                 <div className="link-row">

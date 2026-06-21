@@ -913,7 +913,7 @@ export default function ClientFormModal({
                   </div>
                 ),
               }] : []),
-              {
+              ...(!showWireGuard ? [{
                 key: 'links',
                 label: t('pages.clients.tabLinks'),
                 children: (
@@ -963,7 +963,7 @@ export default function ClientFormModal({
                     </div>
                   </>
                 ),
-              },
+              }] : []),
             ]}
           />
         </Form>
