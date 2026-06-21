@@ -39,7 +39,7 @@ export type TlsCertUsage = z.infer<typeof TlsCertUsageSchema>;
 export const TlsCertFileSchema = z.object({
   certificateFile: z.string().min(1),
   keyFile: z.string().min(1),
-  ocspStapling: z.number().default(3600),
+  ocspStapling: z.number().default(0),
   oneTimeLoading: z.boolean().default(false),
   usage: TlsCertUsageSchema.default('encipherment'),
   buildChain: z.boolean().default(false),
@@ -47,7 +47,7 @@ export const TlsCertFileSchema = z.object({
 export const TlsCertInlineSchema = z.object({
   certificate: z.array(z.string()),
   key: z.array(z.string()),
-  ocspStapling: z.number().default(3600),
+  ocspStapling: z.number().default(0),
   oneTimeLoading: z.boolean().default(false),
   usage: TlsCertUsageSchema.default('encipherment'),
   buildChain: z.boolean().default(false),

@@ -132,7 +132,7 @@ export default function TlsForm({
                   keyFile: '',
                   certificate: [],
                   key: [],
-                  ocspStapling: 3600,
+                  ocspStapling: 0,
                   oneTimeLoading: false,
                   usage: 'encipherment',
                   buildChain: false,
