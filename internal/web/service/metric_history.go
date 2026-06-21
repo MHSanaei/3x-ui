@@ -19,11 +19,10 @@ type MetricSample struct {
 	V float64 `json:"v"`
 }
 
-// metricCapacityDefault caps each ring buffer at ~5h worth of @2s samples
-// or ~25h worth of @10s samples. Plenty for the bucketed aggregation
-// view and small enough that the working set per metric stays under
-// ~150 KiB.
-const metricCapacityDefault = 9000
+// metricCapacityDefault caps each ring buffer at 48h worth of @2s samples.
+// Node metrics arrive less frequently, so they fit the same retention window
+// with room to spare.
+const metricCapacityDefault = 86400
 
 // metricHistory is a thread-safe, in-memory ring buffer keyed by
 // arbitrary strings. Two singletons live below: one for system-wide
