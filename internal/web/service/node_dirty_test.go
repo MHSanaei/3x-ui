@@ -144,3 +144,53 @@ func TestNodeDirty_ClearIsCASOnDirtyAt(t *testing.T) {
 		t.Fatal("matching-token clear must clear the dirty flag")
 	}
 }
+
+// Editing a node must mark it config-dirty so the next traffic-sync tick
+// reconciles (pushes the panel's inbounds to the remote) before pulling a
+// snapshot. Without the dirty flag, re-pointing a node to a fresh server
+// makes the orphan sweep delete every central inbound absent from the empty
+// snapshot (#5461).
+func TestNodeService_UpdateMarksNodeDirty(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	node := &model.Node{
+		Name:     "n1",
+		Address:  "10.0.0.1",
+		Port:     2096,
+		ApiToken: "tok",
+		Enable:   true,
+		Status:   "online",
+	}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	edited := &model.Node{
+		Name:     node.Name,
+		Address:  "10.0.0.2",
+		Port:     2097,
+		ApiToken: node.ApiToken,
+		Enable:   true,
+	}
+	nodeSvc := NodeService{}
+	if err := nodeSvc.Update(node.Id, edited); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	_, _, dirty, _, err := nodeSvc.NodeSyncState(node.Id)
+	if err != nil {
+		t.Fatalf("NodeSyncState: %v", err)
+	}
+	if !dirty {
+		t.Fatal("Update must mark the node config-dirty so sync reconciles before snapshot sweep (#5461)")
+	}
+
+	var got model.Node
+	if err := db.First(&got, node.Id).Error; err != nil {
+		t.Fatalf("reload node: %v", err)
+	}
+	if got.Address != "10.0.0.2" || got.Port != 2097 {
+		t.Fatalf("node row not updated: address=%q port=%d", got.Address, got.Port)
+	}
+}
