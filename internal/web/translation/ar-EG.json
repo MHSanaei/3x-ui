@@ -1838,7 +1838,7 @@
       "idDesc": "عرض معرف Telegram الخاص بك"
     },
     "messages": {
-      "cpuThreshold": "🔴 حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
+      "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
       "selectUserFailed": "❌ حصل خطأ في اختيار المستخدم!",
       "userSaved": "✅ حفظت بيانات مستخدم Telegram.",
       "loginSuccess": "✅ تسجيل الدخول للبانل تم بنجاح.\r\n",

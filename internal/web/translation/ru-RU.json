@@ -1838,7 +1838,7 @@
       "idDesc": "Показать ваш Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%",
+      "cpuThreshold": "Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%",
       "selectUserFailed": "❌ Ошибка при выборе пользователя.",
       "userSaved": "✅ Пользователь Telegram сохранен.",
       "loginSuccess": "✅ Успешный вход в панель.\r\n",

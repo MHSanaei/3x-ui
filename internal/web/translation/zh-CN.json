@@ -1838,7 +1838,7 @@
       "idDesc": "显示您的 Telegram ID"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
+      "cpuThreshold": "CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
       "selectUserFailed": "❌ 用户选择错误！",
       "userSaved": "✅ 电报用户已保存。",
       "loginSuccess": "✅ 成功登录到面板。\r\n",

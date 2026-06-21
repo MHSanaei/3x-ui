@@ -1838,7 +1838,7 @@
       "idDesc": "نمایش شناسه تلگرام شما"
     },
     "messages": {
-      "cpuThreshold": "🔴 بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
+      "cpuThreshold": "بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
       "selectUserFailed": "❌ خطا در انتخاب کاربر!",
       "userSaved": "✅ کاربر تلگرام ذخیره شد.",
       "loginSuccess": "✅ با موفقیت به پنل وارد شدید.\r\n",

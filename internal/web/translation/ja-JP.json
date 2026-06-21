@@ -1838,7 +1838,7 @@
       "idDesc": "Telegram IDを表示"
     },
     "messages": {
-      "cpuThreshold": "🔴 CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
+      "cpuThreshold": "CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
       "selectUserFailed": "❌ ユーザーの選択に失敗しました！",
       "userSaved": "✅ Telegramユーザーが保存されました。",
       "loginSuccess": "✅ パネルに正常にログインしました。\r\n",

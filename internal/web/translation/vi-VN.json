@@ -1838,7 +1838,7 @@
       "idDesc": "Hiển thị ID Telegram của bạn"
     },
     "messages": {
-      "cpuThreshold": "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
+      "cpuThreshold": "Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
       "selectUserFailed": "❌ Lỗi khi chọn người dùng!",
       "userSaved": "✅ Người dùng Telegram đã được lưu.",
       "loginSuccess": "✅ Đăng nhập thành công vào bảng điều khiển.\r\n",

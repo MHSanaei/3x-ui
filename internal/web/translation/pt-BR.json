@@ -1838,7 +1838,7 @@
       "idDesc": "Mostrar seu ID do Telegram"
     },
     "messages": {
-      "cpuThreshold": "🔴 A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
+      "cpuThreshold": "A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
       "selectUserFailed": "❌ Erro na seleção do usuário!",
       "userSaved": "✅ Usuário do Telegram salvo.",
       "loginSuccess": "✅ Conectado ao painel com sucesso.\r\n",

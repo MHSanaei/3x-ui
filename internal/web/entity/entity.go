@@ -46,9 +46,9 @@ type AllSetting struct {
 	TgBotChatId     string `json:"tgBotChatId" form:"tgBotChatId"`              // Telegram chat ID for notifications
 	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`                  // Cron schedule for Telegram notifications
 	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`              // Enable database backup via Telegram
-	TgCpu            int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
-	TgMemory         int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"` // Memory usage threshold for alerts (percent)
-	TgLang           string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
+	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"` // CPU usage threshold for alerts (percent)
+	TgMemory        int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"` // Memory usage threshold for alerts (percent)
+	TgLang          string `json:"tgLang" form:"tgLang"`                        // Telegram bot language
 	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`      // Comma-separated event types to send via Telegram
 
 	// Email (SMTP) notification settings

@@ -537,6 +537,10 @@ func (s *SettingService) GetTgMemory() (int, error) {
 	return s.getInt("tgMemory")
 }
 
+func (s *SettingService) SetTgMemory(value int) error {
+	return s.setInt("tgMemory", value)
+}
+
 func (s *SettingService) GetTgLang() (string, error) {
 	return s.getString("tgLang")
 }

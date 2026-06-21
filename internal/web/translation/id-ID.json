@@ -1838,7 +1838,7 @@
       "idDesc": "Tampilkan ID Telegram Anda"
     },
     "messages": {
-      "cpuThreshold": "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
+      "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
       "selectUserFailed": "❌ Kesalahan dalam pemilihan pengguna!",
       "userSaved": "✅ Pengguna Telegram tersimpan.",
       "loginSuccess": "✅ Berhasil masuk ke panel.\r\n",
