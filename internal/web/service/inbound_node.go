@@ -571,10 +571,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			var deltaUp, deltaDown int64
 			if seen {
 				if deltaUp = canon.Up - base.Up; deltaUp < 0 {
-					deltaUp = canon.Up
+					deltaUp = 0
 				}
 				if deltaDown = canon.Down - base.Down; deltaDown < 0 {
-					deltaDown = canon.Down
+					deltaDown = 0
 				}
 			}
 
