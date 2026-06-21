@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Modal, Spin } from 'antd';
-import { HttpUtil } from '@/utils';
+import { Button, Collapse, Modal, Spin, Tooltip, message } from 'antd';
+import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
+import { HttpUtil, ClipboardManager, FileManager } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
@@ -49,6 +50,55 @@ function buildWgConfig(client: ClientRecord, inbound: InboundOption | undefined)
   if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
   if (wg.keepAlive && wg.keepAlive > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
   return lines.join('\n');
+}
+
+function WgConfigPanel({ config, email }: { config: string; email: string }) {
+  const { t } = useTranslation();
+  const [messageApi, ctx] = message.useMessage();
+
+  async function copy() {
+    const ok = await ClipboardManager.copyText(config);
+    if (ok) messageApi.success(t('copied'));
+  }
+
+  function download() {
+    FileManager.downloadTextFile(config, `${email}.conf`);
+  }
+
+  return (
+    <div>
+      {ctx}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>
+        <Tooltip title={t('copy')}>
+          <Button size="small" icon={<CopyOutlined />} onClick={copy} />
+        </Tooltip>
+        <Tooltip title={t('download')}>
+          <Button size="small" icon={<DownloadOutlined />} onClick={download} />
+        </Tooltip>
+      </div>
+      <pre style={{
+        background: 'var(--ant-color-fill-quaternary, #f5f5f5)',
+        borderRadius: 6,
+        padding: '10px 14px',
+        margin: 0,
+        fontSize: 13,
+        lineHeight: 1.6,
+        overflowX: 'auto',
+        whiteSpace: 'pre',
+        userSelect: 'all',
+      }}>
+        {config}
+      </pre>
+      <div style={{ marginTop: 12 }}>
+        <QrPanel
+          value={config}
+          remark={email}
+          downloadName={`${email}.conf`}
+          showQr={true}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function ClientQrModal({
@@ -124,13 +174,7 @@ export default function ClientQrModal({
       out.push({
         key: 'wg',
         label: 'WireGuard Config',
-        children: (
-          <QrPanel
-            value={wgConfig}
-            remark={client?.email || 'wg'}
-            downloadName={`${client?.email || 'peer'}.conf`}
-          />
-        ),
+        children: <WgConfigPanel config={wgConfig} email={client?.email || 'peer'} />,
       });
     }
 
