@@ -291,6 +291,16 @@ export default function ClientInfoModal({
                           <Tooltip title={t('download')}>
                             <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${client!.email}.conf`)} />
                           </Tooltip>
+                          <Popover
+                            trigger="click"
+                            placement="left"
+                            destroyOnHidden
+                            content={<QrPanel value={wgConfigText} remark={client.email || 'peer'} size={220} />}
+                          >
+                            <Tooltip title={t('pages.clients.qrCode')}>
+                              <Button size="small" type="text" icon={<QrcodeOutlined />} />
+                            </Tooltip>
+                          </Popover>
                         </td>
                       </tr>
                     )}
@@ -455,23 +465,13 @@ export default function ClientInfoModal({
             {wgPeerLink && (
               <>
                 <Divider>Peer link</Divider>
-                <div className="link-row">
-                  <Tag color="gold" className="link-row-tag">WG</Tag>
+                <div className="link-row" style={{ alignItems: 'flex-start' }}>
+                  <Tag color="gold" className="link-row-tag" style={{ marginTop: 2 }}>WG</Tag>
                   <span className="link-row-title link-row-title--wrap">{wgPeerLink}</span>
-                  <div className="link-row-actions">
+                  <div className="link-row-actions" style={{ marginTop: 2 }}>
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(wgPeerLink)} />
                     </Tooltip>
-                    <Popover
-                      trigger="click"
-                      placement="left"
-                      destroyOnHidden
-                      content={<QrPanel value={wgPeerLink} remark={client.email || 'peer'} size={220} />}
-                    >
-                      <Tooltip title={t('pages.clients.qrCode')}>
-                        <Button size="small" icon={<QrcodeOutlined />} />
-                      </Tooltip>
-                    </Popover>
                   </div>
                 </div>
               </>
