@@ -1735,7 +1735,16 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 func (s *ServerService) GetCertHash(certFile string, certContent string) ([]string, error) {
 	var certBytes []byte
 	if path := strings.TrimSpace(certFile); path != "" {
-		b, err := os.ReadFile(path)
+		// Guard against path traversal: only hash certificate files the panel
+		// already references in its own configuration (an inbound's TLS
+		// certificateFile or the panel's own web cert). The path handed to
+		// os.ReadFile comes from that allow-list, never directly from the
+		// caller-supplied value.
+		known, ok := s.resolveKnownCertFile(path)
+		if !ok {
+			return nil, common.NewError("certificate file is not referenced by any inbound or panel setting")
+		}
+		b, err := os.ReadFile(known)
 		if err != nil {
 			return nil, err
 		}
@@ -1779,6 +1788,75 @@ func (s *ServerService) GetCertHash(certFile string, certContent string) ([]stri
 		hashes = append(hashes, hex.EncodeToString(sum[:]))
 	}
 	return hashes, nil
+}
+
+// resolveKnownCertFile checks the caller-supplied certificate path against the
+// set of certificate files the panel already references (inbound TLS configs
+// plus the panel's own web cert) and, on a match, returns the path taken from
+// that configuration — not the caller's value. This both confines reads to
+// known certificates and breaks the user-input-to-filesystem taint flow.
+func (s *ServerService) resolveKnownCertFile(certFile string) (string, bool) {
+	want := filepath.Clean(certFile)
+	for _, known := range s.knownCertFiles() {
+		if filepath.Clean(known) == want {
+			return known, true
+		}
+	}
+	return "", false
+}
+
+// knownCertFiles collects every certificate file path the panel legitimately
+// references: the certificateFile of each inbound's TLS settings and the
+// panel's own web TLS certificate.
+func (s *ServerService) knownCertFiles() []string {
+	var files []string
+	if cert, err := s.settingService.GetCertFile(); err == nil {
+		if cert = strings.TrimSpace(cert); cert != "" {
+			files = append(files, cert)
+		}
+	}
+	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
+		for _, inbound := range inbounds {
+			files = collectCertFiles(inbound.StreamSettings, files)
+		}
+	}
+	return files
+}
+
+// collectCertFiles walks a stream-settings JSON document and appends the value
+// of every "certificateFile" field it finds (TLS settings may nest them under
+// several keys depending on the security type).
+func collectCertFiles(streamSettings string, out []string) []string {
+	streamSettings = strings.TrimSpace(streamSettings)
+	if streamSettings == "" {
+		return out
+	}
+	var parsed any
+	if err := json.Unmarshal([]byte(streamSettings), &parsed); err != nil {
+		return out
+	}
+	return walkCertFiles(parsed, out)
+}
+
+func walkCertFiles(node any, out []string) []string {
+	switch v := node.(type) {
+	case map[string]any:
+		for key, val := range v {
+			if key == "certificateFile" {
+				if path, ok := val.(string); ok {
+					if path = strings.TrimSpace(path); path != "" {
+						out = append(out, path)
+					}
+				}
+			}
+			out = walkCertFiles(val, out)
+		}
+	case []any:
+		for _, item := range v {
+			out = walkCertFiles(item, out)
+		}
+	}
+	return out
 }
 
 // GetRemoteCertHash runs `xray tls ping <server>` to fetch the live certificate
