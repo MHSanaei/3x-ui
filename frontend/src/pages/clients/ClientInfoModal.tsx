@@ -149,7 +149,7 @@ export default function ClientInfoModal({
     const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
     const address = (wg.allowedIPs || []).join(', ') || '10.0.0.2/32';
     const inboundName = wgInbound?.remark || wgInbound?.tag || '';
-    const remarkParts = [inboundName, client.comment].filter(Boolean);
+    const remarkParts = [inboundName, client.email, client.comment].filter(Boolean);
     const remark = remarkParts.join(' - ');
     const lines = [
       '[Interface]',

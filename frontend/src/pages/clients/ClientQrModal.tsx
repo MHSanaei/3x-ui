@@ -44,7 +44,7 @@ function buildWgConfig(client: ClientRecord, inbound: InboundOption | undefined)
   ];
   if (inbound?.wgMtu && inbound.wgMtu > 0) lines.push(`MTU = ${inbound.wgMtu}`);
   const inboundName = inbound?.remark || inbound?.tag || '';
-  const remarkParts = [inboundName, client.comment].filter(Boolean);
+  const remarkParts = [inboundName, client.email, client.comment].filter(Boolean);
   const remark = remarkParts.join(' - ');
   lines.push('');
   if (remark) lines.push(`# ${remark}`);

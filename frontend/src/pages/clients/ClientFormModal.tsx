@@ -363,7 +363,7 @@ export default function ClientFormModal({
     const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
     const address = (form.wgPeer.allowedIPs || []).filter(Boolean).join(', ') || '10.0.0.2/32';
     const inboundName = wgInbound?.remark || wgInbound?.tag || '';
-    const remarkParts = [inboundName, form.comment].filter(Boolean);
+    const remarkParts = [inboundName, form.email, form.comment].filter(Boolean);
     const remark = remarkParts.join(' - ');
     const lines = [
       '[Interface]',
