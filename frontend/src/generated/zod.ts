@@ -347,7 +347,7 @@ export const HostSchema = z.object({
   sortOrder: z.number().int(),
   tags: z.array(z.string()),
   updatedAt: z.number().int(),
-  verifyPeerCertByName: z.boolean(),
+  verifyPeerCertByName: z.string(),
   vlessRoute: z.string(),
 });
 export type Host = z.infer<typeof HostSchema>;

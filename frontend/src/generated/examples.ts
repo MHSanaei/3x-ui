@@ -317,7 +317,7 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "updatedAt": 0,
-    "verifyPeerCertByName": false,
+    "verifyPeerCertByName": "",
     "vlessRoute": ""
   },
   "Inbound": {

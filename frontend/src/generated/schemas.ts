@@ -1448,7 +1448,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "verifyPeerCertByName": {
-        "type": "boolean"
+        "type": "string"
       },
       "vlessRoute": {
         "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",

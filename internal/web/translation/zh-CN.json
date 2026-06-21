@@ -463,6 +463,26 @@
         "moreIssues": "{message}  (另有 {count} 项)"
       },
       "form": {
+        "echSockopt": "ECH Sockopt",
+        "echSockoptTip": "Xray 获取 ECH 配置列表时所用连接的 Socket 选项（例如让该查询通过 dialerProxy 出站）。保持禁用则使用默认值。",
+        "curvePreferences": "曲线偏好",
+        "curvePreferencesTip": "限制服务器提供的 TLS 密钥交换曲线，并按偏好顺序排列（例如 X25519MLKEM768、X25519）。留空则使用 Xray-core 默认值。",
+        "masterKeyLog": "主密钥日志",
+        "masterKeyLogTip": "写入 TLS 主密钥的路径（SSLKEYLOGFILE 格式），用于配合 Wireshark 调试。生产环境请留空——任何拥有该文件的人都能解密流量。",
+        "verifyPeerCertByNameTip": "让客户端以此名称（而非 SNI）验证服务器证书。多个名称用逗号分隔。仅面板使用——会包含在分享链接中（vcn）。这是 allowInsecure 的现代替代方案，Xray 已在 2026-06-01 之后将其移除。",
+        "pinFromCert": "从此入站的证书填充",
+        "pinFromRemote": "通过 ping SNI 获取哈希（xray tls ping）",
+        "pinFromRemoteNoSni": "请先设置 SNI（serverName）才能 ping 远端证书。",
+        "pinFromRemoteFailed": "无法获取远端证书哈希。",
+        "limitFallback": "限制 Fallback",
+        "limitFallbackUpload": "限制 Fallback 上传",
+        "limitFallbackDownload": "限制 Fallback 下载",
+        "afterBytes": "起始字节数",
+        "afterBytesTip": "允许 fallback 以全速运行此字节数，之后开始限速。0 = 从第一个字节起就限速。",
+        "bytesPerSec": "每秒字节数",
+        "bytesPerSecTip": "在达到阈值后对 fallback 流量施加的速度上限（字节/秒），以防探测者把你的服务器当作通往目标的免费带宽。0 = 无限制（禁用此方向）。",
+        "burstBytesPerSec": "突发每秒字节数",
+        "burstBytesPerSecTip": "允许在稳定速率之上的短时突发额度（token-bucket 容量）。若低于“每秒字节数”，则会被提升至与之相同。",
         "moveUp": "上移",
         "moveDown": "下移",
         "addAll": "全部添加",
@@ -591,7 +611,6 @@
         "pinnedPeerCertSha256": "固定对端证书 SHA-256",
         "pinnedPeerCertSha256Tip": "对端证书的 SHA-256 哈希（十六进制字符串，如 e8e2d3…），逗号分隔。仅面板使用 — 不写入服务器的 xray 配置，但会包含在分享链接中，以便客户端固定证书。",
         "pinnedPeerCertSha256Placeholder": "十六进制哈希，逗号分隔",
-        "generateRandomPin": "生成随机哈希",
         "getNewEchCert": "获取新 ECH 证书",
         "show": "显示",
         "xver": "Xver",
@@ -620,7 +639,8 @@
           "node": "节点地址",
           "listen": "入站监听地址",
           "custom": "自定义"
-        }
+        },
+        "verifyPeerCertByName": "按名称验证对端证书"
       },
       "info": {
         "mode": "模式",
@@ -1293,6 +1313,14 @@
       "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。"
     },
     "xray": {
+      "importRules": "导入规则",
+      "exportRules": "导出规则",
+      "importOutbounds": "导入出站",
+      "exportOutbounds": "导出出站",
+      "importInvalidJson": "无效的 JSON——应为数组或包含匹配键的对象。",
+      "metricsListen": "指标端点",
+      "metricsListenDesc": "在此 address:port 上暴露 Xray 的 Prometheus 风格指标（例如 127.0.0.1:11111）。留空则禁用。请绑定到本地回环并通过反向代理转发——它没有身份验证。",
+      "metricsTag": "指标标签",
       "title": "Xray 配置",
       "save": "保存",
       "restart": "重启 Xray",

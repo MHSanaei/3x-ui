@@ -1474,7 +1474,7 @@
             "type": "integer"
           },
           "verifyPeerCertByName": {
-            "type": "boolean"
+            "type": "string"
           },
           "vlessRoute": {
             "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
@@ -4408,6 +4408,98 @@
         }
       }
     },
+    "/panel/api/server/getCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.",
+        "operationId": "post_panel_api_server_getCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getRemoteCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).",
+        "operationId": "post_panel_api_server_getRemoteCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/clientIps": {
       "get": {
         "tags": [
@@ -7259,7 +7351,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7351,7 +7443,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7446,7 +7538,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7586,7 +7678,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7698,7 +7790,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }

@@ -4,9 +4,12 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -1719,6 +1722,102 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 	}
 
 	return keyPair, nil
+}
+
+// GetCertHash parses a certificate (from a file path or inline PEM/DER content)
+// and returns the hex-encoded SHA-256 over each certificate's raw DER — the
+// value xray-core's pinnedPeerCertSha256 (pcs) expects. Lets the panel fill the
+// pinned-cert field from the inbound's own certificate without the user
+// computing the hash by hand.
+func (s *ServerService) GetCertHash(certFile string, certContent string) ([]string, error) {
+	var certBytes []byte
+	if path := strings.TrimSpace(certFile); path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		certBytes = b
+	} else if strings.TrimSpace(certContent) != "" {
+		certBytes = []byte(certContent)
+	} else {
+		return nil, common.NewError("no certificate provided")
+	}
+
+	var certs []*x509.Certificate
+	if bytes.Contains(certBytes, []byte("BEGIN")) {
+		rest := certBytes
+		for {
+			block, remain := pem.Decode(rest)
+			if block == nil {
+				break
+			}
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, common.NewError("unable to decode certificate: ", err)
+			}
+			certs = append(certs, cert)
+			rest = remain
+		}
+	} else {
+		parsed, err := x509.ParseCertificates(certBytes)
+		if err != nil {
+			return nil, common.NewError("unable to parse certificates: ", err)
+		}
+		certs = parsed
+	}
+
+	if len(certs) == 0 {
+		return nil, common.NewError("no certificates found")
+	}
+
+	hashes := make([]string, 0, len(certs))
+	for _, cert := range certs {
+		sum := sha256.Sum256(cert.Raw)
+		hashes = append(hashes, hex.EncodeToString(sum[:]))
+	}
+	return hashes, nil
+}
+
+// GetRemoteCertHash runs `xray tls ping <server>` to fetch the live certificate
+// SHA-256 of a remote endpoint — the value to put in pinnedPeerCertSha256 (pcs)
+// when pinning a server whose certificate file you don't hold (a CDN front, a
+// REALITY dest, an external proxy). Returns the unique leaf-certificate hashes.
+func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
+	server = strings.TrimSpace(server)
+	if server == "" {
+		return nil, common.NewError("no server provided")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, xray.GetBinaryPath(), "tls", "ping", server)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil && out.Len() == 0 {
+		return nil, err
+	}
+
+	hexRe := regexp.MustCompile(`[0-9a-fA-F]{64}`)
+	seen := make(map[string]struct{})
+	var leaves []string
+	for _, line := range strings.Split(out.String(), "\n") {
+		if !strings.Contains(line, "leaf SHA256") {
+			continue
+		}
+		hash := strings.ToLower(hexRe.FindString(line))
+		if hash == "" {
+			continue
+		}
+		if _, ok := seen[hash]; !ok {
+			seen[hash] = struct{}{}
+			leaves = append(leaves, hash)
+		}
+	}
+	if len(leaves) == 0 {
+		return nil, common.NewError("no certificate hash found for ", server)
+	}
+	return leaves, nil
 }
 
 func (s *ServerService) GetNewEchCert(sni string) (any, error) {

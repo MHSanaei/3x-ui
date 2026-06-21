@@ -324,7 +324,7 @@ export interface Host {
   sortOrder: number;
   tags: string[];
   updatedAt: number;
-  verifyPeerCertByName: boolean;
+  verifyPeerCertByName: string;
   vlessRoute: string;
 }
 

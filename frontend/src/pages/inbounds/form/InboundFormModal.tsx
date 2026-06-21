@@ -244,7 +244,8 @@ export default function InboundFormModal({
     randomizeShortIds,
     getNewEchCert,
     clearEchCert,
-    generateRandomPinHash,
+    pinFromCert,
+    pinFromRemote,
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,
@@ -854,7 +855,8 @@ export default function InboundFormModal({
           saving={saving}
           setCertFromPanel={setCertFromPanel}
           clearCertFiles={clearCertFiles}
-          generateRandomPinHash={generateRandomPinHash}
+          pinFromCert={pinFromCert}
+          pinFromRemote={pinFromRemote}
           getNewEchCert={getNewEchCert}
           clearEchCert={clearEchCert}
         />

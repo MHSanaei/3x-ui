@@ -74,6 +74,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
         "echConfigList": "",
         "fingerprint": "chrome",
         "pinnedPeerCertSha256": [],
+        "verifyPeerCertByName": "",
       },
     },
   },
@@ -217,6 +218,7 @@ exports[`InboundSchema (full) fixtures > parses trojan-ws-tls byte-stably 1`] = 
         "echConfigList": "",
         "fingerprint": "chrome",
         "pinnedPeerCertSha256": [],
+        "verifyPeerCertByName": "",
       },
     },
     "wsSettings": {
@@ -394,6 +396,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
         "echConfigList": "",
         "fingerprint": "chrome",
         "pinnedPeerCertSha256": [],
+        "verifyPeerCertByName": "",
       },
     },
     "wsSettings": {
@@ -488,6 +491,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls-pinned byte-stably 
           "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
           "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
         ],
+        "verifyPeerCertByName": "",
       },
     },
     "wsSettings": {
@@ -583,6 +587,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
         "echConfigList": "",
         "fingerprint": "chrome",
         "pinnedPeerCertSha256": [],
+        "verifyPeerCertByName": "",
       },
     },
   },

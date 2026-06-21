@@ -80,6 +80,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.EchConfigList != "" {
 		ep["echConfigList"] = h.EchConfigList
 	}
+	if h.VerifyPeerCertByName != "" {
+		ep["verifyPeerCertByName"] = h.VerifyPeerCertByName
+	}
 	if h.AllowInsecure {
 		ep["allowInsecure"] = true
 	}

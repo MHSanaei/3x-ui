@@ -89,6 +89,9 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
+		return err
+	}
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
@@ -119,6 +122,41 @@ func dropLegacyForeignKeys() error {
 		return err
 	}
 	return nil
+}
+
+// migrateHostVerifyPeerCertByNameColumn converts hosts.verify_peer_cert_by_name
+// from its original boolean shape to the comma-separated string xray-core's
+// verifyPeerCertByName (vcn) actually expects. The legacy boolean was dead
+// (never emitted into links), so its value carries no meaning and is discarded.
+// Idempotent by construction (no HistoryOfSeeders row — writing one here would
+// flip the fresh-DB detection in runSeeders). Runs right after AutoMigrate,
+// before anything reads or writes Host rows (critical on Postgres, where the
+// column stays boolean-typed until the ALTER below).
+func migrateHostVerifyPeerCertByNameColumn() error {
+	if !db.Migrator().HasColumn(&model.Host{}, "verify_peer_cert_by_name") {
+		return nil
+	}
+	if IsPostgres() {
+		// Only convert a still-boolean column; once it is text this is a no-op,
+		// so a user-set name is never wiped on a later restart.
+		var dataType string
+		if err := db.Raw(
+			`SELECT data_type FROM information_schema.columns WHERE table_name = 'hosts' AND column_name = 'verify_peer_cert_by_name'`,
+		).Scan(&dataType).Error; err != nil {
+			return err
+		}
+		if dataType != "boolean" {
+			return nil
+		}
+		if err := db.Exec(`ALTER TABLE hosts ALTER COLUMN verify_peer_cert_by_name DROP DEFAULT`).Error; err != nil {
+			return err
+		}
+		return db.Exec(`ALTER TABLE hosts ALTER COLUMN verify_peer_cert_by_name TYPE text USING ''`).Error
+	}
+	// SQLite keeps the original numeric-affinity column; blank any legacy
+	// integer/null value so it doesn't read back as "0"/"1". After conversion
+	// every value is text, so re-running touches nothing.
+	return db.Exec(`UPDATE hosts SET verify_peer_cert_by_name = '' WHERE verify_peer_cert_by_name IS NULL OR typeof(verify_peer_cert_by_name) <> 'text'`).Error
 }
 
 // seedHostsFromExternalProxy is a one-time, self-gated migration that creates a

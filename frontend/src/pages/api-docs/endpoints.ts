@@ -454,6 +454,27 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": {\n    "echKeySet": "...",\n    "echServerKeys": [...],\n    "echConfigList": "..."\n  }\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/server/getCertHash',
+        summary: 'Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.',
+        params: [
+          { name: 'certFile', in: 'body (form)', type: 'string', desc: 'Path to a certificate file on the server. Takes precedence over certContent.' },
+          { name: 'certContent', in: 'body (form)', type: 'string', desc: 'Inline PEM (or DER) certificate content, used when certFile is empty.' },
+        ],
+        body: 'certFile=/root/cert.crt',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/getRemoteCertHash',
+        summary: 'Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).',
+        params: [
+          { name: 'server', in: 'body (form)', type: 'string', desc: 'Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com.' },
+        ],
+        body: 'server=cloudflare-dns.com',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/server/clientIps',
         summary: 'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',
