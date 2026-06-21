@@ -362,21 +362,23 @@ export default function ClientFormModal({
     const serverPubKey = wgInbound?.wgPublicKey || '';
     const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
     const address = (form.wgPeer.allowedIPs || []).filter(Boolean).join(', ') || '10.0.0.2/32';
+    const inboundName = wgInbound?.remark || wgInbound?.tag || '';
+    const remarkParts = [inboundName, form.comment].filter(Boolean);
+    const remark = remarkParts.join(' - ');
     const lines = [
       '[Interface]',
       `PrivateKey = ${form.wgPeer.privateKey || ''}`,
       `Address = ${address}`,
       'DNS = 8.8.8.8',
-      '',
-      '[Peer]',
-      `PublicKey = ${serverPubKey}`,
-      'AllowedIPs = 0.0.0.0/0, ::/0',
-      `Endpoint = ${endpoint}`,
     ];
+    if (wgInbound?.wgMtu && wgInbound.wgMtu > 0) lines.push(`MTU = ${wgInbound.wgMtu}`);
+    lines.push('');
+    if (remark) lines.push(`# ${remark}`);
+    lines.push('[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
     if (form.wgPeer.preSharedKey) lines.push(`PresharedKey = ${form.wgPeer.preSharedKey}`);
     if (form.wgPeer.keepAlive > 0) lines.push(`PersistentKeepalive = ${form.wgPeer.keepAlive}`);
     return lines.join('\n');
-  }, [showWireGuard, wgInbound, form.wgPeer]);
+  }, [showWireGuard, wgInbound, form.wgPeer, form.comment]);
 
   // When a WG inbound is selected in add mode, suggest the next available IP.
   useEffect(() => {
