@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AutoComplete,
@@ -200,6 +200,7 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const originalAllowedIPs = useRef<string[]>([]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -256,6 +257,7 @@ export default function ClientFormModal({
           ? { publicKey: wg.publicKey || '', privateKey: client.password || '', preSharedKey: wg.preSharedKey || '', allowedIPs: wg.allowedIPs ?? ['10.0.0.2/32'], keepAlive: wg.keepAlive ?? 0 }
           : emptyWgPeer(),
       };
+      originalAllowedIPs.current = wg?.allowedIPs ?? [];
       if (et < 0) {
         next.delayedStart = true;
         next.delayedDays = Math.round(et / -86400000);
@@ -278,6 +280,7 @@ export default function ClientFormModal({
         auth: RandomUtil.randomLowerAndNum(16),
         wgPeer: { publicKey: kp.publicKey, privateKey: kp.privateKey, preSharedKey: '', allowedIPs: ['10.0.0.2/32'], keepAlive: 0 },
       });
+      originalAllowedIPs.current = [];
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -815,6 +818,7 @@ export default function ClientFormModal({
                                 }}
                                 onBlur={(e) => {
                                   if (!resolveWgIp || firstWgInboundId == null || !e.target.value) return;
+                                  if (isEdit && e.target.value === (originalAllowedIPs.current[idx] ?? '')) return;
                                   const resolved = resolveWgIp(firstWgInboundId, e.target.value, isEdit ? form.email : undefined);
                                   if (resolved !== e.target.value) {
                                     const next = [...form.wgPeer.allowedIPs];
