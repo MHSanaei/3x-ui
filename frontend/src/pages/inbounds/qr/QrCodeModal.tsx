@@ -35,6 +35,7 @@ interface QrItem {
   header: string;
   value: string;
   downloadName?: string;
+  showQr?: boolean;
 }
 
 export default function QrCodeModal({
@@ -122,7 +123,7 @@ export default function QrCodeModal({
         downloadName: `peer-${idx + 1}.conf`,
       });
       if (wireguardLinks[idx]) {
-        items.push({ key: `wl${idx}`, header: `Peer ${idx + 1} link`, value: wireguardLinks[idx] });
+        items.push({ key: `wl${idx}`, header: `Peer ${idx + 1} link`, value: wireguardLinks[idx], showQr: false });
       }
     });
     return items;
@@ -137,7 +138,7 @@ export default function QrCodeModal({
           value={item.value}
           remark={item.header}
           downloadName={item.downloadName || ''}
-          showQr={!isPostQuantumLink(item.value)}
+          showQr={item.showQr !== false && !isPostQuantumLink(item.value)}
         />
       ),
     })),
