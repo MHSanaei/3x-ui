@@ -501,7 +501,14 @@ export default function ClientsPage() {
 
   async function onShowQr(row: ClientRecord) {
     const full = await hydrate(row.email);
-    setQrClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    if (!full) {
+      setQrClient(row);
+      setQrOpen(true);
+      return;
+    }
+    const merged: ClientRecord = { ...row, ...full.client, inboundIds: full.inboundIds };
+    if (!merged.wgPeer && row.wgPeer) merged.wgPeer = row.wgPeer;
+    setQrClient(merged);
     setQrOpen(true);
   }
 

@@ -381,6 +381,32 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if existing.Email == "" {
 			continue
 		}
+		if inbound.Protocol == model.WireGuard {
+			wgRec := *existing
+			wgRec.Enable = updated.Enable
+			if updated.Email != "" {
+				wgRec.Email = updated.Email
+			}
+			if updated.Password != "" {
+				wgRec.Password = updated.Password
+			}
+			if updated.Comment != "" {
+				wgRec.Comment = updated.Comment
+			}
+			if updated.WgPeer != nil {
+				if b, mErr := json.Marshal(updated.WgPeer); mErr == nil {
+					wgRec.WgSettings = string(b)
+				}
+			}
+			nr, upErr := s.UpdateWgClient(inboundSvc, ibId, existing.Email, &wgRec)
+			if upErr != nil {
+				return needRestart, upErr
+			}
+			if nr {
+				needRestart = true
+			}
+			continue
+		}
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}

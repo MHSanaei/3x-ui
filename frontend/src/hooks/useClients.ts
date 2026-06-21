@@ -485,6 +485,9 @@ export function useClients() {
     if (base.reverse?.tag) {
       payload.reverse = { tag: base.reverse.tag };
     }
+    if (base.wgPeer) {
+      payload.wgPeer = base.wgPeer;
+    }
     return update(client.email, payload);
   }, [hydrate, update]);
 

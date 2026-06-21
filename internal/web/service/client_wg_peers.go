@@ -21,6 +21,9 @@ func syncWgPeersFromClients(settingsJSON string, clients []*model.ClientRecord) 
 
 	peers := make([]map[string]any, 0, len(clients))
 	for _, rec := range clients {
+		if !rec.Enable {
+			continue
+		}
 		if rec.WgSettings == "" {
 			continue
 		}
