@@ -920,6 +920,8 @@ export type CalendarKind = 'gregorian' | 'jalalian';
 export class IntlUtil {
   static formatDate(date: string | number | Date | null | undefined, calendar: CalendarKind = 'gregorian'): string {
     if (date == null) return '';
+    const d = new Date(date);
+    if (!isFinite(d.getTime())) return '';
     const language = LanguageManager.getLanguage();
     const locale = calendar === 'jalalian' ? 'fa-IR' : language;
 
@@ -934,11 +936,12 @@ export class IntlUtil {
     };
 
     const intl = new Intl.DateTimeFormat(locale, intlOptions);
-    return intl.format(new Date(date));
+    return intl.format(d);
   }
 
   static formatRelativeTime(date: number | null | undefined): string {
     if (date == null) return '';
+    if (!isFinite(date)) return '';
     const language = LanguageManager.getLanguage();
     const now = new Date();
     const diff = date < 0
