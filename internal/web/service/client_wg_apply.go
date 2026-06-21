@@ -13,37 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// wgRecordsForInbound fetches all ClientRecord rows attached to a WireGuard inbound.
-func wgRecordsForInbound(tx *gorm.DB, inboundId int) ([]*model.ClientRecord, error) {
-	if tx == nil {
-		tx = database.GetDB()
-	}
-	var recs []*model.ClientRecord
-	err := tx.Table("clients").
-		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
-		Where("client_inbounds.inbound_id = ?", inboundId).
-		Order("clients.id ASC").
-		Find(&recs).Error
-	return recs, err
-}
-
-// rebuildAndSaveWgPeers rebuilds settings.peers[] from the current clients list
-// and persists the inbound to the database. Must be called inside a transaction.
-func rebuildAndSaveWgPeers(tx *gorm.DB, inbound *model.Inbound) error {
-	recs, err := wgRecordsForInbound(tx, inbound.Id)
-	if err != nil {
-		return err
-	}
-	newSettings, err := syncWgPeersFromClients(inbound.Settings, recs)
-	if err != nil {
-		return err
-	}
-	inbound.Settings = newSettings
-	return tx.Save(inbound).Error
-}
-
 // AddWgClient creates a WireGuard peer as a client record, attaches it to the
-// inbound, rebuilds settings.peers[], and triggers an xray restart.
+// inbound, appends the peer to settings.peers[], and triggers an xray hot-reload.
 func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, rec *model.ClientRecord) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
@@ -62,7 +33,6 @@ func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, r
 		return false, common.NewError("inbound is not WireGuard")
 	}
 
-	// Check for duplicate email.
 	var existing model.ClientRecord
 	checkErr := database.GetDB().Where("email = ?", rec.Email).First(&existing).Error
 	if checkErr == nil {
@@ -70,6 +40,11 @@ func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, r
 	}
 	if !errors.Is(checkErr, gorm.ErrRecordNotFound) {
 		return false, checkErr
+	}
+
+	peer, err := buildPeerMap(rec)
+	if err != nil {
+		return false, err
 	}
 
 	now := time.Now().UnixMilli()
@@ -86,7 +61,12 @@ func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, r
 		if err := tx.Create(&link).Error; err != nil {
 			return err
 		}
-		return rebuildAndSaveWgPeers(tx, inbound)
+		newSettings, sErr := addPeerToSettings(inbound.Settings, peer)
+		if sErr != nil {
+			return sErr
+		}
+		inbound.Settings = newSettings
+		return tx.Save(inbound).Error
 	})
 	if txErr != nil {
 		return false, txErr
@@ -108,7 +88,7 @@ func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, r
 }
 
 // UpdateWgClient finds the peer by email, updates its record and wg_settings,
-// rebuilds settings.peers[], and triggers an xray restart.
+// patches settings.peers[] in-place, and triggers an xray hot-reload.
 func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int, email string, rec *model.ClientRecord) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
@@ -133,12 +113,23 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 	existing.Comment = rec.Comment
 	existing.UpdatedAt = now
 
+	peer, err := buildPeerMap(&existing)
+	if err != nil {
+		return false, err
+	}
+
 	needRestart := false
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
 		if err := tx.Save(&existing).Error; err != nil {
 			return err
 		}
-		return rebuildAndSaveWgPeers(tx, inbound)
+		// peer == nil when WgSettings is empty: treat as disabled in peers[].
+		newSettings, sErr := updatePeerInSettings(inbound.Settings, email, peer, existing.Enable && peer != nil)
+		if sErr != nil {
+			return sErr
+		}
+		inbound.Settings = newSettings
+		return tx.Save(inbound).Error
 	})
 	if txErr != nil {
 		return false, txErr
@@ -159,8 +150,8 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 	return needRestart, nil
 }
 
-// DelWgClient removes the peer by email, rebuilds settings.peers[], and
-// triggers an xray restart.
+// DelWgClient removes the peer by email, removes it from settings.peers[], and
+// triggers an xray hot-reload.
 func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
@@ -183,7 +174,6 @@ func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, e
 			Delete(&model.ClientInbound{}).Error; err != nil {
 			return err
 		}
-		// Check if this client is attached to other inbounds before deleting the record.
 		var otherLinks int64
 		tx.Model(&model.ClientInbound{}).Where("client_id = ?", rec.Id).Count(&otherLinks)
 		if otherLinks == 0 {
@@ -191,7 +181,12 @@ func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, e
 				return err
 			}
 		}
-		return rebuildAndSaveWgPeers(tx, inbound)
+		newSettings, sErr := removePeerFromSettings(inbound.Settings, email)
+		if sErr != nil {
+			return sErr
+		}
+		inbound.Settings = newSettings
+		return tx.Save(inbound).Error
 	})
 	if txErr != nil {
 		return false, txErr
