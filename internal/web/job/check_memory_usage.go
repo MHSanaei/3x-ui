@@ -2,12 +2,15 @@ package job
 
 import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
 // CheckMemJob monitors memory usage and publishes events when threshold is exceeded.
-type CheckMemJob struct{}
+type CheckMemJob struct {
+	settingService service.SettingService
+}
 
 // NewCheckMemJob creates a new memory monitoring job instance.
 func NewCheckMemJob() *CheckMemJob {
