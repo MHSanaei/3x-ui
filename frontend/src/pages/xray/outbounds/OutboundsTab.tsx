@@ -37,8 +37,9 @@ import {
   ImportOutlined,
 } from '@ant-design/icons';
 
-import { FileManager, HttpUtil } from '@/utils';
+import { HttpUtil } from '@/utils';
 import PromptModal from '@/components/feedback/PromptModal';
+import TextModal from '@/components/feedback/TextModal';
 
 import OutboundFormModal from './OutboundFormModal';
 import { propagateOutboundTagRename } from '../basics/helpers';
@@ -226,11 +227,12 @@ export default function OutboundsTab({
   }
 
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportContent, setExportContent] = useState('');
 
   function exportOutbounds() {
-    FileManager.downloadTextFile(JSON.stringify(outbounds, null, 2), 'outbounds.json', {
-      type: 'application/json',
-    });
+    setExportContent(JSON.stringify(outbounds, null, 2));
+    setExportOpen(true);
   }
 
   function importOutbounds(value: string) {
@@ -530,6 +532,14 @@ export default function OutboundsTab({
           type="textarea"
           json
           onConfirm={importOutbounds}
+        />
+        <TextModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          title={t('pages.xray.exportOutbounds')}
+          content={exportContent}
+          fileName="outbounds.json"
+          json
         />
 
         {/* Subscription outbounds (read-only, merged at runtime) */}

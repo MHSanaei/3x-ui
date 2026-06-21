@@ -1,18 +1,19 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Space, Table, Tabs, message } from 'antd';
+import { Button, Dropdown, Modal, Space, Table, Tabs, message } from 'antd';
 import {
   AimOutlined,
   ControlOutlined,
   ExportOutlined,
   ImportOutlined,
+  MoreOutlined,
   PlusOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
 
 import { catTabLabel } from '@/pages/settings/catTabLabel';
-import { FileManager } from '@/utils';
 import PromptModal from '@/components/feedback/PromptModal';
+import TextModal from '@/components/feedback/TextModal';
 import RoutingBasic from './RoutingBasic';
 import RouteTester from './RouteTester';
 import RuleFormModal from './RuleFormModal';
@@ -144,11 +145,12 @@ export default function RoutingTab({
   }, [templateSettings?.routing?.balancers]);
 
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportContent, setExportContent] = useState('');
 
   function exportRules() {
-    FileManager.downloadTextFile(JSON.stringify(rules, null, 2), 'routing-rules.json', {
-      type: 'application/json',
-    });
+    setExportContent(JSON.stringify(rules, null, 2));
+    setExportOpen(true);
   }
 
   function importRules(value: string) {
@@ -333,16 +335,17 @@ export default function RoutingTab({
                   <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
                     {t('pages.xray.Routings')}
                   </Button>
-                  <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>
-                    {t('pages.xray.importRules')}
-                  </Button>
-                  <Button
-                    icon={<ExportOutlined />}
-                    onClick={exportRules}
-                    disabled={rules.length === 0}
+                  <Dropdown
+                    trigger={['click']}
+                    menu={{
+                      items: [
+                        { key: 'import', icon: <ImportOutlined />, label: t('pages.xray.importRules'), onClick: () => setImportOpen(true) },
+                        { key: 'export', icon: <ExportOutlined />, label: t('pages.xray.exportRules'), disabled: rules.length === 0, onClick: exportRules },
+                      ],
+                    }}
                   >
-                    {t('pages.xray.exportRules')}
-                  </Button>
+                    <Button icon={<MoreOutlined />}>{t('more')}</Button>
+                  </Dropdown>
                 </Space>
 
                 {isMobile ? (
@@ -404,6 +407,14 @@ export default function RoutingTab({
         type="textarea"
         json
         onConfirm={importRules}
+      />
+      <TextModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title={t('pages.xray.exportRules')}
+        content={exportContent}
+        fileName="routing-rules.json"
+        json
       />
     </>
   );
