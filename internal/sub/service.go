@@ -929,10 +929,13 @@ func (s *SubService) loadNodes() {
 //   - "node" (default, and any unknown value): the node's address for
 //     node-managed inbounds, then a routable Listen — the pre-strategy order.
 //
-// Every chain ends at the subscriber's request host (s.address). A
-// loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy still overrides everything
-// upstream of this call.
+// Every chain ends at the admin's configured public host (Sub/Web domain) and
+// then the subscriber's request host (s.address). Preferring the configured
+// host over the request host for this last resort keeps a wildcard local inbound
+// from advertising a bogus client IP that leaked into the request Host header
+// behind NAT/proxy/CDN (#5425). A loopback/wildcard bind or a unix-domain-socket
+// listen is a server-side detail and is never advertised; External Proxy still
+// overrides everything upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	var nodeAddr string
 	if inbound.NodeID != nil && s.nodesByID != nil {
@@ -956,6 +959,9 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 		if c != "" {
 			return c
 		}
+	}
+	if d := s.configuredPublicHost(); d != "" {
+		return d
 	}
 	return s.address
 }
