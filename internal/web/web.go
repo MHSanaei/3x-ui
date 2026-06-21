@@ -574,6 +574,8 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		return nil
 	})
 
+	(&service.InboundService{}).ReconcileWgPeers()
+
 	s.startTask(restartXray)
 
 	if startTgBot {

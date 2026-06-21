@@ -264,3 +264,20 @@ func (s *InboundService) MigrateDB() {
 	s.MigrationRequirements()
 	s.MigrationRemoveOrphanedTraffics()
 }
+
+// ReconcileWgPeers syncs settings.peers[] → clients table for every WireGuard
+// inbound. Called on every panel start so peers added/removed directly in the
+// DB (or via xray config) are reflected in the Clients tab without requiring a
+// full migrate-db run.
+func (s *InboundService) ReconcileWgPeers() {
+	var wgInbounds []*model.Inbound
+	if err := database.GetDB().Where("protocol = ?", model.WireGuard).Find(&wgInbounds).Error; err != nil {
+		logger.Warning("ReconcileWgPeers: failed to load WG inbounds:", err)
+		return
+	}
+	for _, wgIb := range wgInbounds {
+		if err := s.clientService.SyncWgInbound(nil, wgIb); err != nil {
+			logger.Warning("ReconcileWgPeers: SyncWgInbound failed for inbound", wgIb.Id, ":", err)
+		}
+	}
+}
