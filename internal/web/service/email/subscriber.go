@@ -53,7 +53,7 @@ func (s *Subscriber) isEventEnabled(t eventbus.EventType) bool {
 	if err != nil || events == "" {
 		return false
 	}
-	for _, e := range strings.Split(events, ",") {
+	for e := range strings.SplitSeq(events, ",") {
 		if strings.TrimSpace(e) == string(t) {
 			return true
 		}

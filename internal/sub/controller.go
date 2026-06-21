@@ -48,6 +48,7 @@ type SUBController struct {
 	subAnnounce      string
 	subEnableRouting bool
 	subRoutingRules  string
+	subHideSettings  bool
 	subPath          string
 	subJsonPath      string
 	subClashPath     string
@@ -74,8 +75,7 @@ func NewSUBController(
 	jsonEnabled bool,
 	clashEnabled bool,
 	encrypt bool,
-	showInfo bool,
-	rModel string,
+	remarkTemplate string,
 	update string,
 	jsonMux string,
 	jsonRules string,
@@ -88,8 +88,9 @@ func NewSUBController(
 	subAnnounce string,
 	subEnableRouting bool,
 	subRoutingRules string,
+	subHideSettings bool,
 ) *SUBController {
-	sub := NewSubService(showInfo, rModel)
+	sub := NewSubService(remarkTemplate)
 	a := &SUBController{
 		subTitle:         subTitle,
 		subSupportUrl:    subSupportUrl,
@@ -97,6 +98,7 @@ func NewSUBController(
 		subAnnounce:      subAnnounce,
 		subEnableRouting: subEnableRouting,
 		subRoutingRules:  subRoutingRules,
+		subHideSettings:  subHideSettings,
 		subPath:          subPath,
 		subJsonPath:      jsonPath,
 		subClashPath:     clashPath,
@@ -138,18 +140,24 @@ func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
+	// The remark template's per-client info is for the content a client app
+	// imports — the raw subscription body. A browser viewing the HTML info page
+	// gets clean, name-only remarks (usage is shown in the page summary).
+	accept := c.GetHeader("Accept")
+	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+	subReq.subscriptionBody = !wantsHTML
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
 	} else {
-		result := ""
+		var result strings.Builder
 		for _, sub := range subs {
-			result += sub + "\n"
+			result.WriteString(sub)
+			result.WriteString("\n")
 		}
 
 		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
-		accept := c.GetHeader("Accept")
-		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
+		if wantsHTML {
 			subURL, subJsonURL, subClashURL := subReq.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
 			if !a.jsonEnabled {
 				subJsonURL = ""
@@ -173,12 +181,12 @@ func (a *SUBController) subs(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		if a.subEncrypt {
-			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
+			c.String(200, base64.StdEncoding.EncodeToString([]byte(result.String())))
 		} else {
-			c.String(200, result)
+			c.String(200, result.String())
 		}
 	}
 }
@@ -352,7 +360,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		c.String(200, jsonSub)
 	}
@@ -369,7 +377,7 @@ func (a *SUBController) subClashs(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 		if a.subTitle != "" {
 			// Clash clients commonly use Content-Disposition to choose the imported profile name.
 			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
@@ -389,6 +397,7 @@ func (a *SUBController) ApplyCommonHeaders(
 	profileAnnounce string,
 	profileEnableRouting bool,
 	profileRoutingRules string,
+	profileHideSettings bool,
 ) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
@@ -411,5 +420,8 @@ func (a *SUBController) ApplyCommonHeaders(
 	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
 	if profileRoutingRules != "" {
 		c.Writer.Header().Set("Routing", profileRoutingRules)
+	}
+	if profileHideSettings {
+		c.Writer.Header().Set("Hide-Settings", "1")
 	}
 }

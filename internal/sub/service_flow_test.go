@@ -66,7 +66,7 @@ const xhttpRealityStream = `{
 }`
 
 func TestGenVlessLink_FlowXhttpRealityVlessenc(t *testing.T) {
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	link := s.genVlessLink(flowTestInbound(xhttpRealityStream, testMlkemEncryption), "user")
 	if !strings.Contains(link, "flow=xtls-rprx-vision") {
 		t.Fatalf("xhttp+reality+vlessenc link must carry the vision flow (#5232), got %q", link)
@@ -74,7 +74,7 @@ func TestGenVlessLink_FlowXhttpRealityVlessenc(t *testing.T) {
 }
 
 func TestGenVlessLink_NoFlowXhttpRealityWithoutVlessenc(t *testing.T) {
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	link := s.genVlessLink(flowTestInbound(xhttpRealityStream, "none"), "user")
 	if strings.Contains(link, "flow=") {
 		t.Fatalf("xhttp+reality without vlessenc must not carry a flow, got %q", link)
@@ -92,7 +92,7 @@ func TestGenVlessLink_FlowTcpRealityStillWorks(t *testing.T) {
 			"settings": {"publicKey": "pub", "fingerprint": "chrome"}
 		}
 	}`
-	s := &SubService{remarkModel: "-ieo"}
+	s := &SubService{}
 	link := s.genVlessLink(flowTestInbound(stream, "none"), "user")
 	if !strings.Contains(link, "flow=xtls-rprx-vision") {
 		t.Fatalf("tcp+reality link must keep the vision flow, got %q", link)

@@ -344,7 +344,12 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		hp := core[at+1:]
 		userInfo, err := base64DecodeFlexible(userB64)
 		if err != nil {
-			userInfo = userB64 // not b64, rare
+			// SIP022 (2022-blake3-*) userinfo is percent-encoded, not base64.
+			if dec, uerr := url.QueryUnescape(userB64); uerr == nil {
+				userInfo = dec
+			} else {
+				userInfo = userB64 // not b64, rare
+			}
 		}
 		colon := strings.LastIndex(hp, ":")
 		if colon < 0 {
@@ -397,11 +402,11 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 }
 
 func splitMethodPass(userInfo string) (string, string) {
-	colon := strings.Index(userInfo, ":")
-	if colon < 0 {
+	before, after, ok := strings.Cut(userInfo, ":")
+	if !ok {
 		return "2022-blake3-aes-128-gcm", userInfo // guess
 	}
-	return userInfo[:colon], userInfo[colon+1:]
+	return before, after
 }
 
 // --- hysteria2 ---

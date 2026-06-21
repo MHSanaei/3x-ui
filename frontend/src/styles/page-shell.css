@@ -176,3 +176,43 @@ body.dark .ant-dropdown-menu-item-divider {
     padding: 8px;
   }
 }
+
+/* Hosts page shares the standard panel page shell (background, transparent
+   layout, content padding, summary-card padding). */
+.hosts-page {
+  --bg-page: #e6e8ec;
+  --bg-card: #ffffff;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.hosts-page.is-dark {
+  --bg-page: #1a1b1f;
+  --bg-card: #23252b;
+}
+
+.hosts-page.is-dark.is-ultra {
+  --bg-page: #000;
+  --bg-card: #101013;
+}
+
+.hosts-page .ant-layout,
+.hosts-page .ant-layout-content,
+.hosts-page .content-shell {
+  background: transparent;
+}
+
+.hosts-page .content-area {
+  padding: 24px;
+}
+
+.hosts-page .summary-card {
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .hosts-page .content-area,
+  .hosts-page .summary-card {
+    padding: 8px;
+  }
+}

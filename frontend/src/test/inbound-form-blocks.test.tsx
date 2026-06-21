@@ -3,7 +3,6 @@ import { Form, type FormInstance } from 'antd';
 import type { ReactNode } from 'react';
 
 import {
-  ExternalProxyForm,
   GrpcForm,
   HttpUpgradeForm,
   KcpForm,
@@ -67,30 +66,13 @@ describe('inbound transport forms', () => {
     expect(fieldLabels()).toMatchSnapshot();
   });
 
-  it('ExternalProxyForm field structure is stable (one TLS entry)', () => {
-    renderInForm(
-      () => <ExternalProxyForm toggleExternalProxy={noop} />,
-      {
-        streamSettings: {
-          externalProxy: [{
-            forceTls: 'tls',
-            dest: '',
-            port: 443,
-            remark: '',
-            sni: '',
-            fingerprint: '',
-            alpn: [],
-          }],
-        },
-      },
-    );
-    expect(fieldLabels()).toMatchSnapshot();
-  });
-
-  it('SockoptForm field structure is stable (enabled + happy eyeballs)', () => {
+  it('SockoptForm field structure is stable (server-side fields only)', () => {
+    // The inbound sockopt form shows only server/listening-side fields;
+    // outbound-only fields (dialerProxy, domainStrategy, interface,
+    // addressPortStrategy, happyEyeballs, tcpMptcp) live in the outbound form.
     renderInForm(
       () => <SockoptForm toggleSockopt={noop} network="tcp" />,
-      { streamSettings: { sockopt: { happyEyeballs: {} } } },
+      { streamSettings: { sockopt: { mark: 0 } } },
     );
     expect(fieldLabels()).toMatchSnapshot();
   });

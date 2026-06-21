@@ -53,7 +53,7 @@ var defaultValueMap = map[string]string{
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
-	"remarkModel":                 "-ieo",
+	"remarkTemplate":              "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -75,6 +75,7 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
+	"subHideSettings":             "false",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -83,8 +84,6 @@ var defaultValueMap = map[string]string{
 	"subKeyFile":                  "",
 	"subUpdates":                  "12",
 	"subEncrypt":                  "true",
-	"subShowInfo":                 "true",
-	"subEmailInRemark":            "true",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -598,8 +597,8 @@ func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
 }
 
-func (s *SettingService) GetRemarkModel() (string, error) {
-	return s.getString("remarkModel")
+func (s *SettingService) GetRemarkTemplate() (string, error) {
+	return s.getString("remarkTemplate")
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {
@@ -700,6 +699,10 @@ func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
 }
 
+func (s *SettingService) GetSubHideSettings() (bool, error) {
+	return s.getBool("subHideSettings")
+}
+
 func (s *SettingService) GetSubListen() (string, error) {
 	return s.getString("subListen")
 }
@@ -742,14 +745,6 @@ func (s *SettingService) GetSubUpdates() (string, error) {
 
 func (s *SettingService) GetSubEncrypt() (bool, error) {
 	return s.getBool("subEncrypt")
-}
-
-func (s *SettingService) GetSubShowInfo() (bool, error) {
-	return s.getBool("subShowInfo")
-}
-
-func (s *SettingService) GetSubEmailInRemark() (bool, error) {
-	return s.getBool("subEmailInRemark")
 }
 
 func (s *SettingService) GetPageSize() (int, error) {
@@ -1192,7 +1187,6 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subURI":          func() (any, error) { return s.GetSubURI() },
 		"subJsonURI":      func() (any, error) { return s.GetSubJsonURI() },
 		"subClashURI":     func() (any, error) { return s.GetSubClashURI() },
-		"remarkModel":     func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":      func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":   func() (any, error) { return s.GetIpLimitEnable() },
 		"accessLogEnable": func() (any, error) { return s.GetAccessLogEnable() },

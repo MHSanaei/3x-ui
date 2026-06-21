@@ -31,6 +31,7 @@ func TestAutoMigrateCreatesHotPathIndexes(t *testing.T) {
 	}{
 		{&model.ClientRecord{}, "idx_client_record_group"},
 		{&xray.ClientTraffic{}, "idx_client_traffics_inbound"},
+		{&xray.ClientTraffic{}, "idx_client_traffics_renew"},
 	}
 	for _, c := range cases {
 		if !db.Migrator().HasIndex(c.model, c.index) {

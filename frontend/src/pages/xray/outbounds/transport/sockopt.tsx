@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Switch, type FormInstance } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
 
+import { CustomSockoptList } from '@/components/form';
 import { DOMAIN_STRATEGY_OPTION, TCP_CONGESTION_OPTION } from '@/schemas/primitives';
 import { HappyEyeballsSchema, SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
@@ -137,53 +138,29 @@ export default function SockoptForm({
                   />
                 </Form.Item>
                 <Form.Item
-                  label={t('pages.xray.outboundForm.ipv6Only')}
-                  name={['streamSettings', 'sockopt', 'V6Only']}
-                  valuePropName="checked"
-                >
-                  <Switch />
-                </Form.Item>
-                <Form.Item
-                  label={t('pages.xray.outboundForm.acceptProxyProtocol')}
-                  name={['streamSettings', 'sockopt', 'acceptProxyProtocol']}
-                  valuePropName="checked"
-                >
-                  <Switch />
-                </Form.Item>
-                <Form.Item
                   label={t('pages.xray.outboundForm.tcpUserTimeoutMs')}
                   name={['streamSettings', 'sockopt', 'tcpUserTimeout']}
                 >
-                  <InputNumber min={0} style={{ width: '100%' }} />
+                  <InputNumber min={0} />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.xray.outboundForm.tcpKeepAliveIdleS')}
                   name={['streamSettings', 'sockopt', 'tcpKeepAliveIdle']}
                 >
-                  <InputNumber min={0} style={{ width: '100%' }} />
+                  <InputNumber min={0} />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.inbounds.form.tcpMaxSeg')}
                   name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
                 >
-                  <InputNumber min={0} style={{ width: '100%' }} />
+                  <InputNumber min={0} />
                 </Form.Item>
                 <Form.Item
                   label={t('pages.inbounds.form.tcpWindowClamp')}
                   name={['streamSettings', 'sockopt', 'tcpWindowClamp']}
                   tooltip={t('pages.inbounds.form.tcpWindowClampHint')}
                 >
-                  <InputNumber min={0} style={{ width: '100%' }} />
-                </Form.Item>
-                <Form.Item
-                  label={t('pages.inbounds.form.trustedXForwardedFor')}
-                  name={['streamSettings', 'sockopt', 'trustedXForwardedFor']}
-                >
-                  <Select
-                    mode="tags"
-                    tokenSeparators={[',', ' ']}
-                    placeholder="trusted-proxy.example,10.0.0.0/8"
-                  />
+                  <InputNumber min={0} />
                 </Form.Item>
                 <Form.Item shouldUpdate noStyle>
                   {() => {
@@ -210,7 +187,7 @@ export default function SockoptForm({
                               label={t('pages.inbounds.form.tryDelayMs')}
                               name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
                             >
-                              <InputNumber min={0} style={{ width: '100%' }} placeholder="0 (disabled) — 250 recommended" />
+                              <InputNumber min={0} placeholder="0 (disabled) — 250 recommended" />
                             </Form.Item>
                             <Form.Item
                               label={t('pages.inbounds.form.prioritizeIPv6')}
@@ -223,13 +200,13 @@ export default function SockoptForm({
                               label={t('pages.inbounds.form.interleave')}
                               name={['streamSettings', 'sockopt', 'happyEyeballs', 'interleave']}
                             >
-                              <InputNumber min={1} style={{ width: '100%' }} />
+                              <InputNumber min={1} />
                             </Form.Item>
                             <Form.Item
                               label={t('pages.inbounds.form.maxConcurrentTry')}
                               name={['streamSettings', 'sockopt', 'happyEyeballs', 'maxConcurrentTry']}
                             >
-                              <InputNumber min={0} style={{ width: '100%' }} />
+                              <InputNumber min={0} />
                             </Form.Item>
                           </>
                         )}
@@ -237,56 +214,7 @@ export default function SockoptForm({
                     );
                   }}
                 </Form.Item>
-                <Form.List name={['streamSettings', 'sockopt', 'customSockopt']}>
-                  {(fields, { add, remove }) => (
-                    <>
-                      <Form.Item label={t('pages.inbounds.form.customSockopt')}>
-                        <Button
-                          type="dashed"
-                          size="small"
-                          onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
-                        >
-                          + {t('pages.inbounds.form.addCustomOption')}
-                        </Button>
-                      </Form.Item>
-                      {fields.map((field) => (
-                        <Space.Compact key={field.key} style={{ display: 'flex', marginBottom: 8 }}>
-                          <Form.Item name={[field.name, 'system']} noStyle>
-                            <Select
-                              placeholder="all"
-                              allowClear
-                              style={{ width: 100 }}
-                              options={[
-                                { value: 'linux', label: 'linux' },
-                                { value: 'windows', label: 'windows' },
-                                { value: 'darwin', label: 'darwin' },
-                              ]}
-                            />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'type']} noStyle>
-                            <Select
-                              style={{ width: 80 }}
-                              options={[
-                                { value: 'int', label: 'int' },
-                                { value: 'str', label: 'str' },
-                              ]}
-                            />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'level']} noStyle>
-                            <Input placeholder="level (6=TCP)" style={{ width: 100 }} />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'opt']} noStyle>
-                            <Input placeholder="opt (decimal)" style={{ width: 120 }} />
-                          </Form.Item>
-                          <Form.Item name={[field.name, 'value']} noStyle>
-                            <Input placeholder="value" style={{ flex: 1 }} />
-                          </Form.Item>
-                          <Button danger onClick={() => remove(field.name)}>−</Button>
-                        </Space.Compact>
-                      ))}
-                    </>
-                  )}
-                </Form.List>
+                <CustomSockoptList />
               </>
             )}
           </>

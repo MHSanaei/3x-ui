@@ -36,12 +36,6 @@ exports[`inbound security forms > TlsForm field structure is stable 1`] = `
 ]
 `;
 
-exports[`inbound transport forms > ExternalProxyForm field structure is stable (one TLS entry) 1`] = `
-[
-  "External Proxy",
-]
-`;
-
 exports[`inbound transport forms > GrpcForm field structure is stable 1`] = `
 [
   "Service Name",
@@ -77,7 +71,7 @@ exports[`inbound transport forms > RawForm field structure is stable 1`] = `
 ]
 `;
 
-exports[`inbound transport forms > SockoptForm field structure is stable (enabled + happy eyeballs) 1`] = `
+exports[`inbound transport forms > SockoptForm field structure is stable (server-side fields only) 1`] = `
 [
   "Sockopt",
   "Real client IP",
@@ -89,21 +83,11 @@ exports[`inbound transport forms > SockoptForm field structure is stable (enable
   "TCP Window Clamp",
   "Proxy Protocol",
   "TCP Fast Open",
-  "Multipath TCP",
   "Penetrate",
   "V6 Only",
-  "Domain Strategy",
   "TCP Congestion",
   "TProxy",
-  "Dialer Proxy",
-  "Interface name",
   "Trusted X-Forwarded-For",
-  "Address+port strategy",
-  "Happy Eyeballs",
-  "Try delay (ms)",
-  "Prioritize IPv6",
-  "Interleave",
-  "Max concurrent try",
   "Custom sockopt",
 ]
 `;
