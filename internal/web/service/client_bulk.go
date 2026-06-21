@@ -732,6 +732,57 @@ type bulkInboundDeleteResult struct {
 	needRestart     bool
 }
 
+// bulkDelWgPeers removes multiple WireGuard peers from settings.peers[] and
+// triggers an xray hot-reload. It is the WG equivalent of bulkDelInboundClients.
+func (s *ClientService) bulkDelWgPeers(
+	inboundSvc *InboundService,
+	inbound *model.Inbound,
+	emails []string,
+	records map[string]*model.ClientRecord,
+) bulkInboundDeleteResult {
+	res := bulkInboundDeleteResult{perEmailSkipped: map[string]string{}}
+
+	newSettings := inbound.Settings
+	for _, email := range emails {
+		if records[email] == nil {
+			res.perEmailSkipped[email] = "client not found"
+			continue
+		}
+		var sErr error
+		newSettings, sErr = removePeerFromSettings(newSettings, email)
+		if sErr != nil {
+			res.perEmailSkipped[email] = sErr.Error()
+		}
+	}
+	inbound.Settings = newSettings
+
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		return tx.Save(inbound).Error
+	})
+	if txErr != nil {
+		for _, email := range emails {
+			if _, skip := res.perEmailSkipped[email]; !skip {
+				res.perEmailSkipped[email] = txErr.Error()
+			}
+		}
+		return res
+	}
+
+	rt, push, _, perr := inboundSvc.nodePushPlan(inbound)
+	if perr != nil {
+		logger.Warning("nodePushPlan failed after WG bulk delete:", perr)
+		res.needRestart = true
+	} else if push {
+		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
+			logger.Warning("WG inbound update on runtime failed:", err)
+			res.needRestart = true
+		}
+	} else {
+		res.needRestart = true
+	}
+	return res
+}
+
 // bulkDelInboundClients removes multiple clients from a single inbound's
 // settings JSON in one read-modify-write cycle, runs the xray runtime
 // RemoveUser/DeleteUser calls, and persists the inbound. The returned map
@@ -755,6 +806,10 @@ func (s *ClientService) bulkDelInboundClients(
 			res.perEmailSkipped[e] = err.Error()
 		}
 		return res
+	}
+
+	if oldInbound.Protocol == model.WireGuard {
+		return s.bulkDelWgPeers(inboundSvc, oldInbound, emails, records)
 	}
 
 	var settings map[string]any
