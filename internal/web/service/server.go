@@ -158,12 +158,15 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // callers from triggering arbitrary aggregation work and keeps the
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
-	2:   true, // Real-time view
-	30:  true, // 30s intervals
-	60:  true, // 1m intervals
-	120: true, // 2m intervals
-	180: true, // 3m intervals
-	300: true, // 5m intervals
+	2:    true, // Real-time view
+	30:   true, // 30s intervals
+	60:   true, // 1m intervals
+	120:  true, // 2m intervals
+	180:  true, // 3m intervals
+	300:  true, // 5m intervals
+	720:  true, // 12m intervals
+	1440: true, // 24m intervals
+	2880: true, // 48m intervals
 }
 
 // IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
