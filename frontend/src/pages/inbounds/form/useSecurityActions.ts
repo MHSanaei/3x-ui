@@ -143,9 +143,14 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
       messageApi.warning(t('pages.inbounds.form.pinFromRemoteNoSni'));
       return;
     }
+    // `xray tls ping` defaults to :443, but a self-hosted inbound rarely
+    // listens there. Append the inbound's own port (unless the SNI already
+    // carries one) so the ping reaches the actual TLS endpoint.
+    const port = form.getFieldValue('port') as number | undefined;
+    const target = /:\d+$/.test(server) || !port ? server : `${server}:${port}`;
     setSaving(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/server/getRemoteCertHash', { server });
+      const msg = await HttpUtil.post('/panel/api/server/getRemoteCertHash', { server: target });
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.form.pinFromRemoteFailed'));
         return;

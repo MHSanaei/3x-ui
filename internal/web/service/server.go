@@ -1896,6 +1896,15 @@ func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
 		}
 	}
 	if len(leaves) == 0 {
+		// Surface why the ping produced no cert (dial refused, timeout, …)
+		// instead of the bare "not found" — the inbound is usually just not
+		// listening for TLS on the pinged port.
+		for _, line := range strings.Split(out.String(), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.Contains(line, "Failed") || strings.Contains(line, "error") {
+				return nil, common.NewError("no certificate hash for ", server, ": ", line)
+			}
+		}
 		return nil, common.NewError("no certificate hash found for ", server)
 	}
 	return leaves, nil
