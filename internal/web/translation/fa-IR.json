@@ -828,6 +828,12 @@
       "delDepleted": "حذف اتمام‌یافته‌ها",
       "delDepletedConfirmTitle": "حذف کلاینت‌های اتمام‌یافته؟",
       "delDepletedConfirmContent": "هر کلاینتی که سهمیه ترافیک‌اش تمام شده یا تاریخ انقضایش گذشته است حذف می‌شود. این عمل غیرقابل بازگشت است.",
+      "exportClients": "خروجی گرفتن از کلاینت‌ها",
+      "importClients": "ورود کلاینت‌ها",
+      "import": "ورود",
+      "delOrphans": "حذف کلاینت‌های بدون اینباند",
+      "delOrphansConfirmTitle": "حذف کلاینت‌های بدون اینباند؟",
+      "delOrphansConfirmContent": "هر کلاینتی که به هیچ اینباندی متصل نیست، همراه با رکورد ترافیک‌اش حذف می‌شود. این عمل غیرقابل بازگشت است.",
       "auth": "احراز",
       "hysteriaAuth": "احراز Hysteria",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} ساخته شد، {failed} ناموفق",
         "bulkAdjusted": "{count} کلاینت تنظیم شد",
         "bulkAdjustedMixed": "{ok} تنظیم، {skipped} رد شد",
-        "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد"
+        "delDepleted": "{count} کلاینت اتمام‌یافته حذف شد",
+        "delOrphans": "{count} کلاینت بدون اینباند حذف شد",
+        "imported": "{count} کلاینت وارد شد",
+        "importedMixed": "{ok} وارد شد، {failed} رد شد"
       }
     },
     "groups": {

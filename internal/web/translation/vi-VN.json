@@ -828,6 +828,12 @@
       "delDepleted": "Xóa hết hạn mức",
       "delDepletedConfirmTitle": "Xóa khách hàng hết hạn mức?",
       "delDepletedConfirmContent": "Gỡ tất cả khách hàng đã dùng hết hạn mức lưu lượng hoặc đã quá hạn. Không thể hoàn tác.",
+      "exportClients": "Xuất khách hàng",
+      "importClients": "Nhập khách hàng",
+      "import": "Nhập",
+      "delOrphans": "Xóa khách hàng không gắn inbound",
+      "delOrphansConfirmTitle": "Xóa khách hàng không thuộc inbound nào?",
+      "delOrphansConfirmContent": "Gỡ tất cả khách hàng không được gắn vào bất kỳ inbound nào, cùng với bản ghi lưu lượng của họ. Không thể hoàn tác.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "Đã tạo {ok}, thất bại {failed}",
         "bulkAdjusted": "Đã điều chỉnh {count} khách hàng",
         "bulkAdjustedMixed": "Đã điều chỉnh {ok}, bỏ qua {skipped}",
-        "delDepleted": "Đã xóa {count} khách hàng hết hạn mức"
+        "delDepleted": "Đã xóa {count} khách hàng hết hạn mức",
+        "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
+        "imported": "Đã nhập {count} khách hàng",
+        "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
       }
     },
     "groups": {

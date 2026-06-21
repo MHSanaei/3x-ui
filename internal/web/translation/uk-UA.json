@@ -828,6 +828,12 @@
       "delDepleted": "Видалити вичерпаних",
       "delDepletedConfirmTitle": "Видалити вичерпаних клієнтів?",
       "delDepletedConfirmContent": "Видаляються всі клієнти, у яких вичерпана квота трафіку або сплив термін. Цю дію неможливо скасувати.",
+      "exportClients": "Експортувати клієнтів",
+      "importClients": "Імпортувати клієнтів",
+      "import": "Імпорт",
+      "delOrphans": "Видалити клієнтів без вхідного",
+      "delOrphansConfirmTitle": "Видалити клієнтів без вхідного?",
+      "delOrphansConfirmContent": "Видаляється кожен клієнт, не прив'язаний до жодного вхідного, разом із його записом трафіку. Цю дію неможливо скасувати.",
       "auth": "Авторизація",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "Створено: {ok}, не вдалось: {failed}",
         "bulkAdjusted": "Змінено клієнтів: {count}",
         "bulkAdjustedMixed": "Змінено: {ok}, пропущено: {skipped}",
-        "delDepleted": "Видалено вичерпаних клієнтів: {count}"
+        "delDepleted": "Видалено вичерпаних клієнтів: {count}",
+        "delOrphans": "Видалено клієнтів без вхідного: {count}",
+        "imported": "Імпортовано клієнтів: {count}",
+        "importedMixed": "Імпортовано: {ok}, пропущено: {failed}"
       }
     },
     "groups": {

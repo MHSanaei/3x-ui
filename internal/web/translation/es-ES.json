@@ -828,6 +828,12 @@
       "delDepleted": "Eliminar agotados",
       "delDepletedConfirmTitle": "¿Eliminar clientes agotados?",
       "delDepletedConfirmContent": "Elimina todos los clientes con cuota agotada o expirados. No se puede deshacer.",
+      "exportClients": "Exportar clientes",
+      "importClients": "Importar clientes",
+      "import": "Importar",
+      "delOrphans": "Eliminar clientes sin entrante",
+      "delOrphansConfirmTitle": "¿Eliminar clientes sin entrante?",
+      "delOrphansConfirmContent": "Elimina todos los clientes que no están vinculados a ningún entrante, junto con su registro de tráfico. No se puede deshacer.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} creados, {failed} fallidos",
         "bulkAdjusted": "{count} clientes ajustados",
         "bulkAdjustedMixed": "{ok} ajustados, {skipped} omitidos",
-        "delDepleted": "{count} clientes agotados eliminados"
+        "delDepleted": "{count} clientes agotados eliminados",
+        "delOrphans": "{count} clientes sin entrante eliminados",
+        "imported": "{count} clientes importados",
+        "importedMixed": "{ok} importados, {failed} omitidos"
       }
     },
     "groups": {

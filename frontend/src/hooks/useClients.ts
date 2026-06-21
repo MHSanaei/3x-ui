@@ -402,6 +402,22 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const delOrphansMut = useMutation({
+    mutationFn: async () => {
+      const raw = await HttpUtil.post('/panel/api/clients/delOrphans');
+      return parseMsg(raw, DelDepletedResultSchema, 'clients/delOrphans');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const importClientsMut = useMutation({
+    mutationFn: async (data: string): Promise<Msg<BulkCreateResult>> => {
+      const raw = await HttpUtil.post('/panel/api/clients/import', { data }, JSON_HEADERS);
+      return parseMsg(raw, BulkCreateResultSchema, 'clients/import');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const create = useCallback((payload: unknown) => createMut.mutateAsync(payload), [createMut]);
   const update = useCallback((email: string, client: unknown) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
@@ -459,6 +475,15 @@ export function useClients() {
   }, [resetTrafficMut]);
   const resetAllTraffics = useCallback(() => resetAllTrafficsMut.mutateAsync(), [resetAllTrafficsMut]);
   const delDepleted = useCallback(() => delDepletedMut.mutateAsync(), [delDepletedMut]);
+  const delOrphans = useCallback(() => delOrphansMut.mutateAsync(), [delOrphansMut]);
+  const importClients = useCallback((data: string) => importClientsMut.mutateAsync(data), [importClientsMut]);
+  // Fetch the exported clients so the page can show them in a CodeMirror viewer
+  // (Copy / Download), rather than triggering an immediate browser download.
+  const exportClients = useCallback(async (): Promise<unknown[] | null> => {
+    const msg = await HttpUtil.get('/panel/api/clients/export');
+    if (!msg?.success) return null;
+    return Array.isArray(msg.obj) ? msg.obj : [];
+  }, []);
 
   const setEnable = useCallback(async (client: ClientRecord, enable: boolean) => {
     if (!client?.email) return null;
@@ -575,6 +600,9 @@ export function useClients() {
     resetTraffic,
     resetAllTraffics,
     delDepleted,
+    delOrphans,
+    exportClients,
+    importClients,
     setEnable,
     applyTrafficEvent,
     applyClientStatsEvent,

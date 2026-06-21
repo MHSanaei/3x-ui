@@ -828,6 +828,12 @@
       "delDepleted": "Excluir esgotados",
       "delDepletedConfirmTitle": "Excluir clientes esgotados?",
       "delDepletedConfirmContent": "Remove todos os clientes cuja cota de tráfego foi esgotada ou cuja expiração já passou. Não é possível desfazer.",
+      "exportClients": "Exportar clientes",
+      "importClients": "Importar clientes",
+      "import": "Importar",
+      "delOrphans": "Excluir clientes sem inbound",
+      "delOrphansConfirmTitle": "Excluir clientes sem inbound?",
+      "delOrphansConfirmContent": "Remove todos os clientes que não estão vinculados a nenhum inbound, junto com seu registro de tráfego. Não é possível desfazer.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} criados, {failed} com falha",
         "bulkAdjusted": "{count} clientes ajustados",
         "bulkAdjustedMixed": "{ok} ajustados, {skipped} ignorados",
-        "delDepleted": "{count} clientes esgotados excluídos"
+        "delDepleted": "{count} clientes esgotados excluídos",
+        "delOrphans": "{count} clientes sem inbound excluídos",
+        "imported": "{count} clientes importados",
+        "importedMixed": "{ok} importados, {failed} ignorados"
       }
     },
     "groups": {

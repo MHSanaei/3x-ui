@@ -828,6 +828,12 @@
       "delDepleted": "Delete depleted",
       "delDepletedConfirmTitle": "Delete depleted clients?",
       "delDepletedConfirmContent": "Removes every client whose traffic quota is exhausted or whose expiry has passed. This cannot be undone.",
+      "exportClients": "Export clients",
+      "importClients": "Import clients",
+      "import": "Import",
+      "delOrphans": "Delete unattached clients",
+      "delOrphansConfirmTitle": "Delete clients without an inbound?",
+      "delOrphansConfirmContent": "Removes every client that is not attached to any inbound, along with its traffic record. This cannot be undone.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} created, {failed} failed",
         "bulkAdjusted": "{count} clients adjusted",
         "bulkAdjustedMixed": "{ok} adjusted, {skipped} skipped",
-        "delDepleted": "{count} depleted clients deleted"
+        "delDepleted": "{count} depleted clients deleted",
+        "delOrphans": "{count} unattached clients deleted",
+        "imported": "{count} clients imported",
+        "importedMixed": "{ok} imported, {failed} skipped"
       }
     },
     "groups": {

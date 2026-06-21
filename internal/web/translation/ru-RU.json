@@ -828,6 +828,12 @@
       "delDepleted": "Удалить исчерпанных",
       "delDepletedConfirmTitle": "Удалить исчерпанных клиентов?",
       "delDepletedConfirmContent": "Удаляются все клиенты, у которых исчерпана квота трафика или истёк срок. Это действие нельзя отменить.",
+      "exportClients": "Экспортировать клиентов",
+      "importClients": "Импортировать клиентов",
+      "import": "Импорт",
+      "delOrphans": "Удалить клиентов без входящего",
+      "delOrphansConfirmTitle": "Удалить клиентов без входящего?",
+      "delOrphansConfirmContent": "Удаляются все клиенты, не привязанные ни к одному входящему, вместе с их записями трафика. Это действие нельзя отменить.",
       "auth": "Авторизация",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "Создано: {ok}, не удалось: {failed}",
         "bulkAdjusted": "Изменено клиентов: {count}",
         "bulkAdjustedMixed": "Изменено: {ok}, пропущено: {skipped}",
-        "delDepleted": "Удалено исчерпанных клиентов: {count}"
+        "delDepleted": "Удалено исчерпанных клиентов: {count}",
+        "delOrphans": "Удалено клиентов без входящего: {count}",
+        "imported": "Импортировано клиентов: {count}",
+        "importedMixed": "Импортировано: {ok}, пропущено: {failed}"
       }
     },
     "groups": {

@@ -828,6 +828,12 @@
       "delDepleted": "使い切ったクライアントを削除",
       "delDepletedConfirmTitle": "使い切ったクライアントを削除しますか?",
       "delDepletedConfirmContent": "トラフィック上限に達したか有効期限が切れたクライアントをすべて削除します。元に戻せません。",
+      "exportClients": "クライアントをエクスポート",
+      "importClients": "クライアントをインポート",
+      "import": "インポート",
+      "delOrphans": "未アタッチのクライアントを削除",
+      "delOrphansConfirmTitle": "インバウンドのないクライアントを削除しますか?",
+      "delOrphansConfirmContent": "どのインバウンドにもアタッチされていないクライアントを、そのトラフィック記録とともにすべて削除します。元に戻せません。",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} 件作成、{failed} 件失敗",
         "bulkAdjusted": "{count} 件のクライアントを調整しました",
         "bulkAdjustedMixed": "{ok} 件調整、{skipped} 件スキップ",
-        "delDepleted": "使い切った {count} 件のクライアントを削除しました"
+        "delDepleted": "使い切った {count} 件のクライアントを削除しました",
+        "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
+        "imported": "{count} 件のクライアントをインポートしました",
+        "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
       }
     },
     "groups": {

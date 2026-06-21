@@ -828,6 +828,12 @@
       "delDepleted": "Süresi/Kotası Bitenleri Sil",
       "delDepletedConfirmTitle": "Tükenmiş Kullanıcılar Silinsin Mi?",
       "delDepletedConfirmContent": "Trafik kotası dolan veya süresi geçen tüm kullanıcılar silinir. Geri alınamaz.",
+      "exportClients": "Kullanıcıları Dışa Aktar",
+      "importClients": "Kullanıcıları İçe Aktar",
+      "import": "İçe Aktar",
+      "delOrphans": "Bağsız Kullanıcıları Sil",
+      "delOrphansConfirmTitle": "Gelen Bağlantısı Olmayan Kullanıcılar Silinsin Mi?",
+      "delOrphansConfirmContent": "Hiçbir gelen bağlantıya bağlı olmayan her kullanıcı, trafik kaydıyla birlikte silinir. Geri alınamaz.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} oluşturuldu, {failed} başarısız",
         "bulkAdjusted": "{count} kullanıcı ayarlandı",
         "bulkAdjustedMixed": "{ok} ayarlandı, {skipped} atlandı",
-        "delDepleted": "{count} tükenmiş kullanıcı silindi"
+        "delDepleted": "{count} tükenmiş kullanıcı silindi",
+        "delOrphans": "{count} bağsız kullanıcı silindi",
+        "imported": "{count} kullanıcı içe aktarıldı",
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
       }
     },
     "groups": {

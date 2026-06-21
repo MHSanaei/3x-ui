@@ -828,6 +828,12 @@
       "delDepleted": "حذف المنتهية",
       "delDepletedConfirmTitle": "حذف العملاء المنتهية حصصهم؟",
       "delDepletedConfirmContent": "يُحذف كل عميل استُنفِدت حصة حركة مروره أو انتهت صلاحيته. لا يمكن التراجع.",
+      "exportClients": "تصدير العملاء",
+      "importClients": "استيراد العملاء",
+      "import": "استيراد",
+      "delOrphans": "حذف العملاء غير المرتبطين",
+      "delOrphansConfirmTitle": "حذف العملاء بلا اتصال وارد؟",
+      "delOrphansConfirmContent": "يزيل كل عميل غير مرتبط بأي اتصال وارد مع سجل حركة مروره. لا يمكن التراجع.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "تم إنشاء {ok}, وفشل {failed}",
         "bulkAdjusted": "تم تعديل {count} عميل",
         "bulkAdjustedMixed": "{ok} تم تعديلهم، {skipped} تم تخطيهم",
-        "delDepleted": "تم حذف {count} عميل منتهٍ"
+        "delDepleted": "تم حذف {count} عميل منتهٍ",
+        "delOrphans": "تم حذف {count} عميل غير مرتبط",
+        "imported": "تم استيراد {count} عميل",
+        "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
       }
     },
     "groups": {

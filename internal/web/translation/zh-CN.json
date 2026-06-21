@@ -828,6 +828,12 @@
       "delDepleted": "删除已耗尽",
       "delDepletedConfirmTitle": "删除已耗尽的客户端？",
       "delDepletedConfirmContent": "删除所有流量配额已用尽或已过期的客户端。该操作不可撤销。",
+      "exportClients": "导出客户端",
+      "importClients": "导入客户端",
+      "import": "导入",
+      "delOrphans": "删除未关联的客户端",
+      "delOrphansConfirmTitle": "删除没有入站的客户端？",
+      "delOrphansConfirmContent": "删除所有未关联到任何入站的客户端及其流量记录。该操作不可撤销。",
       "auth": "认证",
       "hysteriaAuth": "Hysteria 认证",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "已创建 {ok} 个，失败 {failed} 个",
         "bulkAdjusted": "已调整 {count} 个客户端",
         "bulkAdjustedMixed": "已调整 {ok} 个，跳过 {skipped} 个",
-        "delDepleted": "已删除 {count} 个已耗尽的客户端"
+        "delDepleted": "已删除 {count} 个已耗尽的客户端",
+        "delOrphans": "已删除 {count} 个未关联的客户端",
+        "imported": "已导入 {count} 个客户端",
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
       }
     },
     "groups": {

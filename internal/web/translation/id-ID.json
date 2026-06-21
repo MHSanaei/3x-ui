@@ -828,6 +828,12 @@
       "delDepleted": "Hapus yang habis",
       "delDepletedConfirmTitle": "Hapus klien yang habis?",
       "delDepletedConfirmContent": "Hapus setiap klien yang kuota lalu lintasnya habis atau yang masa berlakunya telah berakhir. Tidak dapat dibatalkan.",
+      "exportClients": "Ekspor klien",
+      "importClients": "Impor klien",
+      "import": "Impor",
+      "delOrphans": "Hapus klien tanpa inbound",
+      "delOrphansConfirmTitle": "Hapus klien tanpa inbound?",
+      "delOrphansConfirmContent": "Menghapus setiap klien yang tidak terhubung ke inbound mana pun, beserta catatan lalu lintasnya. Tidak dapat dibatalkan.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
       "uuid": "UUID",
@@ -850,7 +856,10 @@
         "bulkCreatedMixed": "{ok} dibuat, {failed} gagal",
         "bulkAdjusted": "{count} klien disesuaikan",
         "bulkAdjustedMixed": "{ok} disesuaikan, {skipped} dilewati",
-        "delDepleted": "{count} klien habis dihapus"
+        "delDepleted": "{count} klien habis dihapus",
+        "delOrphans": "{count} klien tanpa inbound dihapus",
+        "imported": "{count} klien diimpor",
+        "importedMixed": "{ok} diimpor, {failed} dilewati"
       }
     },
     "groups": {
