@@ -148,6 +148,9 @@ export default function ClientInfoModal({
     const serverPubKey = wgInbound?.wgPublicKey || '';
     const endpoint = `${window.location.hostname}:${wgInbound?.port || ''}`;
     const address = (wg.allowedIPs || []).join(', ') || '10.0.0.2/32';
+    const inboundName = wgInbound?.remark || wgInbound?.tag || '';
+    const remarkParts = [inboundName, client.comment].filter(Boolean);
+    const remark = remarkParts.join(' - ');
     const lines = [
       '[Interface]',
       `PrivateKey = ${client.password || ''}`,
@@ -155,7 +158,9 @@ export default function ClientInfoModal({
       'DNS = 8.8.8.8',
     ];
     if (wgInbound?.wgMtu && wgInbound.wgMtu > 0) lines.push(`MTU = ${wgInbound.wgMtu}`);
-    lines.push('', '[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
+    lines.push('');
+    if (remark) lines.push(`# ${remark}`);
+    lines.push('[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
     if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
     if ((wg.keepAlive ?? 0) > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
     return lines.join('\n');
@@ -285,16 +290,6 @@ export default function ClientInfoModal({
                           </Tooltip>
                           <Tooltip title={t('download')}>
                             <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${client!.email}.conf`)} />
-                          </Tooltip>
-                        </td>
-                      </tr>
-                    )}
-                    {wgPeerLink && (
-                      <tr>
-                        <td>Peer link</td>
-                        <td>
-                          <Tooltip title={t('copy')}>
-                            <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(wgPeerLink)} />
                           </Tooltip>
                         </td>
                       </tr>
@@ -456,6 +451,31 @@ export default function ClientInfoModal({
                 </tr>
               </tbody>
             </table>
+
+            {wgPeerLink && (
+              <>
+                <Divider>Peer link</Divider>
+                <div className="link-row">
+                  <Tag color="gold" className="link-row-tag">WG</Tag>
+                  <span className="link-row-title link-row-title--wrap">{wgPeerLink}</span>
+                  <div className="link-row-actions">
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(wgPeerLink)} />
+                    </Tooltip>
+                    <Popover
+                      trigger="click"
+                      placement="left"
+                      destroyOnHidden
+                      content={<QrPanel value={wgPeerLink} remark={client.email || 'peer'} size={220} />}
+                    >
+                      <Tooltip title={t('pages.clients.qrCode')}>
+                        <Button size="small" icon={<QrcodeOutlined />} />
+                      </Tooltip>
+                    </Popover>
+                  </div>
+                </div>
+              </>
+            )}
 
             {!client.wgPeer && links.length > 0 && (
               <>

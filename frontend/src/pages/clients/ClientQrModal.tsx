@@ -43,7 +43,12 @@ function buildWgConfig(client: ClientRecord, inbound: InboundOption | undefined)
     'DNS = 8.8.8.8',
   ];
   if (inbound?.wgMtu && inbound.wgMtu > 0) lines.push(`MTU = ${inbound.wgMtu}`);
-  lines.push('', '[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
+  const inboundName = inbound?.remark || inbound?.tag || '';
+  const remarkParts = [inboundName, client.comment].filter(Boolean);
+  const remark = remarkParts.join(' - ');
+  lines.push('');
+  if (remark) lines.push(`# ${remark}`);
+  lines.push('[Peer]', `PublicKey = ${serverPubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
   if (wg.preSharedKey) lines.push(`PresharedKey = ${wg.preSharedKey}`);
   if (wg.keepAlive && wg.keepAlive > 0) lines.push(`PersistentKeepalive = ${wg.keepAlive}`);
   return lines.join('\n');
