@@ -1051,7 +1051,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "password": {
-        "description": "Client password",
+        "description": "Client password (WireGuard: private key)",
         "type": "string"
       },
       "reset": {
@@ -1086,6 +1086,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "updated_at": {
         "description": "Last update timestamp",
         "type": "integer"
+      },
+      "wgPeer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WgPeerSettings"
+          }
+        ],
+        "description": "WireGuard peer settings (nil for non-WG clients)",
+        "nullable": true
       }
     },
     "required": [
@@ -1734,6 +1743,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "tlsFlowCapable": {
         "example": true,
         "type": "boolean"
+      },
+      "wgPublicKey": {
+        "description": "WireGuard server public key; only set for wireguard inbounds.",
+        "type": "string"
       }
     },
     "required": [
@@ -2099,6 +2112,31 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "password",
       "username"
+    ],
+    "type": "object"
+  },
+  "WgPeerSettings": {
+    "description": "WgPeerSettings holds WireGuard-specific peer configuration stored as JSON in the clients table.",
+    "properties": {
+      "allowedIPs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "keepAlive": {
+        "type": "integer"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "publicKey"
     ],
     "type": "object"
   }

@@ -248,6 +248,7 @@ export const ClientSchema = z.object({
   tgId: z.number().int(),
   totalGB: z.number().int(),
   updated_at: z.number().int().optional(),
+  wgPeer: z.lazy(() => WgPeerSettingsSchema).nullable().optional(),
 });
 export type Client = z.infer<typeof ClientSchema>;
 
@@ -408,6 +409,7 @@ export const InboundOptionSchema = z.object({
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
+  wgPublicKey: z.string().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
@@ -497,4 +499,12 @@ export const UserSchema = z.object({
   username: z.string(),
 });
 export type User = z.infer<typeof UserSchema>;
+
+export const WgPeerSettingsSchema = z.object({
+  allowedIPs: z.array(z.string()),
+  keepAlive: z.number().int().optional(),
+  preSharedKey: z.string().optional(),
+  publicKey: z.string(),
+});
+export type WgPeerSettings = z.infer<typeof WgPeerSettingsSchema>;
 

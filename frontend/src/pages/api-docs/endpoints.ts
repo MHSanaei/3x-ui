@@ -237,6 +237,37 @@ export const sections: readonly Section[] = [
         body: '{\n  "fallbacks": [\n    { "childId": 11, "path": "/vlws", "xver": 2 },\n    { "childId": 12, "alpn": "h2", "dest": "8443" }\n  ]\n}',
         response: '{\n  "success": true,\n  "msg": "Inbound updated"\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/inbounds/:id/addWgClient',
+        summary: 'Add a WireGuard peer to an existing WireGuard inbound. Creates a client record, attaches it to the inbound, and hot-reloads the inbound in xray.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
+        ],
+        body: '{\n  "email": "peer1",\n  "password": "<private-key>",\n  "wgSettings": {\n    "publicKey": "<public-key>",\n    "allowedIPs": ["10.0.0.2/32"],\n    "preSharedKey": "",\n    "keepAlive": 0\n  }\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/inbounds/:id/updateWgClient',
+        summary: 'Update a WireGuard peer on an existing WireGuard inbound. Identifies the peer by email, updates its record and wg_settings, and hot-reloads the inbound in xray.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
+          { name: 'email', in: 'query', type: 'string', desc: 'Current email (name) of the peer to update.' },
+        ],
+        body: '{\n  "email": "peer1-renamed",\n  "enable": true,\n  "wgSettings": {\n    "publicKey": "<public-key>",\n    "allowedIPs": ["10.0.0.2/32"]\n  }\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/inbounds/:id/delWgClient',
+        summary: 'Remove a WireGuard peer from an inbound by email. Deletes the client record, removes the peer from settings.peers[], and hot-reloads the inbound in xray.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
+          { name: 'email', in: 'query', type: 'string', desc: 'Email (name) of the peer to delete.' },
+        ],
+        response: '{\n  "success": true\n}',
+      },
     ],
   },
 

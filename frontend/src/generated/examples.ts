@@ -221,7 +221,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
-    "updated_at": 0
+    "updated_at": 0,
+    "wgPeer": null
   },
   "ClientInbound": {
     "clientId": 0,
@@ -384,7 +385,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "remark": "VLESS-443",
     "ssMethod": "",
     "tag": "in-443-tcp",
-    "tlsFlowCapable": true
+    "tlsFlowCapable": true,
+    "wgPublicKey": ""
   },
   "Msg": {
     "msg": "",
@@ -462,5 +464,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "password": "",
     "username": ""
+  },
+  "WgPeerSettings": {
+    "allowedIPs": [
+      ""
+    ],
+    "keepAlive": 0,
+    "preSharedKey": "",
+    "publicKey": ""
   }
 };

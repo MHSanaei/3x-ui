@@ -232,6 +232,7 @@ export interface Client {
   tgId: number;
   totalGB: number;
   updated_at?: number;
+  wgPeer?: WgPeerSettings | null;
 }
 
 export interface ClientInbound {
@@ -381,6 +382,7 @@ export interface InboundOption {
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  wgPublicKey?: string;
 }
 
 export interface Msg {
@@ -462,5 +464,12 @@ export interface User {
   id: number;
   password: string;
   username: string;
+}
+
+export interface WgPeerSettings {
+  allowedIPs: string[];
+  keepAlive?: number;
+  preSharedKey?: string;
+  publicKey: string;
 }
 
