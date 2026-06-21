@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -13,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	stdnet "net"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,6 +34,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/google/uuid"
+	utls "github.com/refraction-networking/utls"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
@@ -1859,55 +1860,50 @@ func walkCertFiles(node any, out []string) []string {
 	return out
 }
 
-// GetRemoteCertHash runs `xray tls ping <server>` to fetch the live certificate
-// SHA-256 of a remote endpoint — the value to put in pinnedPeerCertSha256 (pcs)
-// when pinning a server whose certificate file you don't hold (a CDN front, a
-// REALITY dest, an external proxy). Returns the unique leaf-certificate hashes.
+// GetRemoteCertHash opens a uTLS (Chrome fingerprint) handshake to a remote
+// endpoint and returns the hex-encoded SHA-256 of its leaf certificate — the
+// value to put in pinnedPeerCertSha256 (pcs) when pinning a server whose
+// certificate file you don't hold (a CDN front, a REALITY dest, an external
+// proxy). A native handshake replaces the old `xray tls ping` subprocess so the
+// real dial/handshake failure (connection refused, timeout, …) surfaces
+// verbatim. `server` may be host or host:port; the port defaults to 443.
 func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
 	server = strings.TrimSpace(server)
 	if server == "" {
 		return nil, common.NewError("no server provided")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, xray.GetBinaryPath(), "tls", "ping", server)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	if err := cmd.Run(); err != nil && out.Len() == 0 {
-		return nil, err
+	host, port := server, "443"
+	if h, p, err := stdnet.SplitHostPort(server); err == nil {
+		host, port = h, p
 	}
 
-	hexRe := regexp.MustCompile(`[0-9a-fA-F]{64}`)
-	seen := make(map[string]struct{})
-	var leaves []string
-	for _, line := range strings.Split(out.String(), "\n") {
-		if !strings.Contains(line, "leaf SHA256") {
-			continue
-		}
-		hash := strings.ToLower(hexRe.FindString(line))
-		if hash == "" {
-			continue
-		}
-		if _, ok := seen[hash]; !ok {
-			seen[hash] = struct{}{}
-			leaves = append(leaves, hash)
-		}
+	dialer := stdnet.Dialer{Timeout: 10 * time.Second}
+	tcpConn, err := dialer.Dial("tcp", stdnet.JoinHostPort(host, port))
+	if err != nil {
+		return nil, common.NewErrorf("failed to dial %s: %s", stdnet.JoinHostPort(host, port), err)
 	}
-	if len(leaves) == 0 {
-		// Surface why the ping produced no cert (dial refused, timeout, …)
-		// instead of the bare "not found" — the inbound is usually just not
-		// listening for TLS on the pinged port.
-		for _, line := range strings.Split(out.String(), "\n") {
-			line = strings.TrimSpace(line)
-			if strings.Contains(line, "Failed") || strings.Contains(line, "error") {
-				return nil, common.NewError("no certificate hash for ", server, ": ", line)
-			}
-		}
-		return nil, common.NewError("no certificate hash found for ", server)
+	defer tcpConn.Close()
+	_ = tcpConn.SetDeadline(time.Now().Add(15 * time.Second))
+
+	tlsConn := utls.UClient(tcpConn, &utls.Config{
+		ServerName:         host,
+		InsecureSkipVerify: true,
+		NextProtos:         []string{"h2", "http/1.1"},
+	}, utls.HelloChrome_Auto)
+	defer tlsConn.Close()
+	if err := tlsConn.Handshake(); err != nil {
+		return nil, common.NewErrorf("tls handshake with %s failed: %s", host, err)
 	}
-	return leaves, nil
+
+	certs := tlsConn.ConnectionState().PeerCertificates
+	if len(certs) == 0 {
+		return nil, common.NewError("no certificate returned by ", host)
+	}
+	// PeerCertificates[0] is always the leaf the connection verifies against —
+	// robust for IP-only self-signed certs that carry no DNS SANs.
+	sum := sha256.Sum256(certs[0].Raw)
+	return []string{hex.EncodeToString(sum[:])}, nil
 }
 
 func (s *ServerService) GetNewEchCert(sni string) (any, error) {
