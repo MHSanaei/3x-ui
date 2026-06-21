@@ -84,6 +84,7 @@ interface ClientFormModalProps {
   tgBotEnable?: boolean;
   groups?: string[];
   getNextWgAllowedIp?: (inboundId: number) => string;
+  resolveWgIp?: (inboundId: number, ip: string, excludeEmail?: string) => string;
   save: (
     payload: Record<string, unknown> | SaveCreatePayload,
     meta: SaveMetaEdit | SaveMetaCreate,
@@ -183,6 +184,7 @@ export default function ClientFormModal({
   tgBotEnable = false,
   groups = [],
   getNextWgAllowedIp,
+  resolveWgIp,
   save,
   resetTraffic,
   onOpenChange,
@@ -810,6 +812,15 @@ export default function ClientFormModal({
                                   const next = [...form.wgPeer.allowedIPs];
                                   next[idx] = e.target.value;
                                   updateWgPeer('allowedIPs', next);
+                                }}
+                                onBlur={(e) => {
+                                  if (!resolveWgIp || firstWgInboundId == null || !e.target.value) return;
+                                  const resolved = resolveWgIp(firstWgInboundId, e.target.value, isEdit ? form.email : undefined);
+                                  if (resolved !== e.target.value) {
+                                    const next = [...form.wgPeer.allowedIPs];
+                                    next[idx] = resolved;
+                                    updateWgPeer('allowedIPs', next);
+                                  }
                                 }} />
                               <Tooltip title={t('delete')}>
                                 <Button danger icon={<DeleteOutlined />}

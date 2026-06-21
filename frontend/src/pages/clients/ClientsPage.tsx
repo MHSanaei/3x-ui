@@ -313,9 +313,10 @@ export default function ClientsPage() {
     return out;
   }, [inbounds]);
 
-  const getNextWgAllowedIp = useCallback((inboundId: number): string => {
+  const getNextWgAllowedIp = useCallback((inboundId: number, excludeEmail?: string): string => {
     const used = new Set<string>();
     for (const c of clients) {
+      if (excludeEmail && c.email === excludeEmail) continue;
       if (!(c.inboundIds || []).includes(inboundId)) continue;
       for (const ip of c.wgPeer?.allowedIPs || []) {
         used.add(ip.split('/')[0]);
@@ -326,6 +327,25 @@ export default function ClientsPage() {
       if (!used.has(ip)) return `${ip}/32`;
     }
     return '10.0.0.2/32';
+  }, [clients]);
+
+  const resolveWgIp = useCallback((inboundId: number, candidateIp: string, excludeEmail?: string): string => {
+    const host = candidateIp.split('/')[0];
+    const suffix = candidateIp.includes('/') ? `/${candidateIp.split('/')[1]}` : '/32';
+    const used = new Set<string>();
+    for (const c of clients) {
+      if (excludeEmail && c.email === excludeEmail) continue;
+      if (!(c.inboundIds || []).includes(inboundId)) continue;
+      for (const ip of c.wgPeer?.allowedIPs || []) {
+        used.add(ip.split('/')[0]);
+      }
+    }
+    if (!used.has(host)) return candidateIp;
+    for (let i = 2; i <= 254; i++) {
+      const candidate = `10.0.0.${i}`;
+      if (!used.has(candidate)) return `${candidate}${suffix}`;
+    }
+    return candidateIp;
   }, [clients]);
 
   const protocolOptions = useMemo(() => {
@@ -1293,6 +1313,7 @@ export default function ClientsPage() {
             save={onSave}
             resetTraffic={resetTraffic}
             getNextWgAllowedIp={getNextWgAllowedIp}
+            resolveWgIp={resolveWgIp}
             onOpenChange={setFormOpen}
           />
         </LazyMount>
