@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -177,7 +176,6 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 	ambiguous := ambiguousNodeGuids(nodes, selfGuid)
 	effByInbound := make(map[int]string, len(ibRows))
 	inboundCountByGuid := make(map[string]int)
-	ids := make([]int, 0, len(ibRows))
 	for _, r := range ibRows {
 		guid := r.OriginNodeGuid
 		if guid == "" {
@@ -196,43 +194,37 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 		}
 		effByInbound[r.Id] = guid
 		inboundCountByGuid[guid]++
-		ids = append(ids, r.Id)
 	}
 
-	now := time.Now().UnixMilli()
+	// Classify by EMAIL (not the stale client_traffics.inbound_id) and bucket
+	// each client under its inbound's effective attribution GUID, deduping a
+	// client attached to several inbounds under the same GUID.
 	depletedByGuid := make(map[string]int)
 	disabledByGuid := make(map[string]int)
 	activeByGuid := make(map[string]int)
-	if len(ids) > 0 {
-		type tRow struct {
-			InboundID  int `gorm:"column:inbound_id"`
-			Enable     bool
-			Total      int64
-			Up         int64
-			Down       int64
-			ExpiryTime int64 `gorm:"column:expiry_time"`
-		}
-		var tRows []tRow
-		if err := db.Table("client_traffics").
-			Select("inbound_id, enable, total, up, down, expiry_time").
-			Where("inbound_id IN ?", ids).Scan(&tRows).Error; err == nil {
-			for _, row := range tRows {
-				guid, ok := effByInbound[row.InboundID]
-				if !ok {
-					continue
-				}
-				expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
-				exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-				// Depleted (expired/exhausted) wins over disabled, matching the
-				// inbound page, so the buckets stay mutually exclusive.
-				switch {
-				case expired || exhausted:
-					depletedByGuid[guid]++
-				case !row.Enable:
-					disabledByGuid[guid]++
-				default:
-					activeByGuid[guid]++
-				}
+	if statuses, err := s.nodeClientStatuses(); err == nil {
+		seen := make(map[string]map[int]struct{})
+		for _, st := range statuses {
+			guid, ok := effByInbound[st.InboundID]
+			if !ok {
+				continue
+			}
+			clientsSeen := seen[guid]
+			if clientsSeen == nil {
+				clientsSeen = make(map[int]struct{})
+				seen[guid] = clientsSeen
+			}
+			if _, dup := clientsSeen[st.ClientID]; dup {
+				continue
+			}
+			clientsSeen[st.ClientID] = struct{}{}
+			switch {
+			case st.Depleted:
+				depletedByGuid[guid]++
+			case st.Disabled:
+				disabledByGuid[guid]++
+			default:
+				activeByGuid[guid]++
 			}
 		}
 	}

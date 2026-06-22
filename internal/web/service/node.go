@@ -123,10 +123,8 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		return nodes, nil
 	}
 	inboundsByNode := make(map[int][]int, len(nodes))
-	nodeByInbound := make(map[int]int, len(inboundRows))
 	for _, row := range inboundRows {
 		inboundsByNode[row.NodeID] = append(inboundsByNode[row.NodeID], row.Id)
-		nodeByInbound[row.Id] = row.NodeID
 	}
 
 	type clientCountRow struct {
@@ -151,54 +149,30 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		}
 	}
 
-	now := time.Now().UnixMilli()
-	type trafficRow struct {
-		InboundID  int `gorm:"column:inbound_id"`
-		Email      string
-		Enable     bool
-		Total      int64
-		Up         int64
-		Down       int64
-		ExpiryTime int64 `gorm:"column:expiry_time"`
-	}
-	var trafficRows []trafficRow
-	inboundIDs := make([]int, 0, len(nodeByInbound))
-	for id := range nodeByInbound {
-		inboundIDs = append(inboundIDs, id)
-	}
-	// Chunk the IN clause to avoid "too many SQL variables" on SQLite
-	// when there are many node-owned inbounds (common with many nodes).
-	// sqliteMaxVars is defined in this package (inbound.go).
-	for _, batch := range chunkInts(inboundIDs, sqliteMaxVars) {
-		var page []trafficRow
-		if err := db.Table("client_traffics").
-			Select("inbound_id, email, enable, total, up, down, expiry_time").
-			Where("inbound_id IN ?", batch).
-			Scan(&page).Error; err == nil {
-			trafficRows = append(trafficRows, page...)
-		}
-	}
 	depletedByNode := make(map[int]int)
 	disabledByNode := make(map[int]int)
 	activeByNode := make(map[int]int)
-	if len(trafficRows) > 0 {
-		for _, row := range trafficRows {
-			nodeID, ok := nodeByInbound[row.InboundID]
-			if !ok {
-				continue
-			}
-			expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
-			exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-			// Same precedence as the inbound page: depleted (expired/exhausted)
-			// wins over disabled, so the two buckets don't double-count.
-			switch {
-			case expired || exhausted:
-				depletedByNode[nodeID]++
-			case !row.Enable:
-				disabledByNode[nodeID]++
-			default:
-				activeByNode[nodeID]++
-			}
+	statuses, _ := s.nodeClientStatuses()
+	seen := make(map[int]map[int]struct{}, len(nodes))
+	for _, st := range statuses {
+		clientsSeen := seen[st.NodeID]
+		if clientsSeen == nil {
+			clientsSeen = make(map[int]struct{})
+			seen[st.NodeID] = clientsSeen
+		}
+		if _, dup := clientsSeen[st.ClientID]; dup {
+			// A client attached to several inbounds of one node counts once,
+			// matching the distinct ClientCount above.
+			continue
+		}
+		clientsSeen[st.ClientID] = struct{}{}
+		switch {
+		case st.Depleted:
+			depletedByNode[st.NodeID]++
+		case st.Disabled:
+			disabledByNode[st.NodeID]++
+		default:
+			activeByNode[st.NodeID]++
 		}
 	}
 	onlineByGuid := s.onlineEmailsByGuid()
@@ -216,6 +190,62 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	}
 
 	return nodes, nil
+}
+
+// nodeClientStatus is one node-hosted client's classification, carrying enough
+// identity for callers to bucket it by node id or by attribution GUID.
+type nodeClientStatus struct {
+	InboundID int
+	NodeID    int
+	ClientID  int
+	Depleted  bool
+	Disabled  bool
+}
+
+// nodeClientStatuses classifies every client attached to a node-hosted inbound as
+// depleted / disabled / active, matching client_traffics by EMAIL rather than by
+// inbound_id. client_traffics.inbound_id goes stale after an inbound is
+// delete+recreated, so filtering by it silently drops most rows; the
+// client_inbounds -> clients join is the reliable client set and the email join
+// pulls each client's live counters. Precedence matches the inbound page:
+// depleted (expired/exhausted) wins over disabled.
+func (s *NodeService) nodeClientStatuses() ([]nodeClientStatus, error) {
+	type row struct {
+		InboundID  int   `gorm:"column:inbound_id"`
+		NodeID     int   `gorm:"column:node_id"`
+		ClientID   int   `gorm:"column:client_id"`
+		Enable     bool  `gorm:"column:enable"`
+		Total      int64 `gorm:"column:total"`
+		Up         int64 `gorm:"column:up"`
+		Down       int64 `gorm:"column:down"`
+		ExpiryTime int64 `gorm:"column:expiry_time"`
+	}
+	var rows []row
+	if err := database.GetDB().Table("inbounds").
+		Select("inbounds.id AS inbound_id, inbounds.node_id AS node_id, clients.id AS client_id, " +
+			"clients.enable AS enable, ct.total AS total, ct.up AS up, ct.down AS down, ct.expiry_time AS expiry_time").
+		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = clients.email").
+		Where("inbounds.node_id IS NOT NULL").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	now := time.Now().UnixMilli()
+	out := make([]nodeClientStatus, 0, len(rows))
+	for _, r := range rows {
+		st := nodeClientStatus{InboundID: r.InboundID, NodeID: r.NodeID, ClientID: r.ClientID}
+		expired := r.ExpiryTime > 0 && r.ExpiryTime <= now
+		exhausted := r.Total > 0 && r.Up+r.Down >= r.Total
+		switch {
+		case expired || exhausted:
+			st.Depleted = true
+		case !r.Enable:
+			st.Disabled = true
+		}
+		out = append(out, st)
+	}
+	return out, nil
 }
 
 func (s *NodeService) onlineEmailsByGuid() map[string]map[string]struct{} {
