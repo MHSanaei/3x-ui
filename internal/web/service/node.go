@@ -192,13 +192,14 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		}
 	}
 	onlineByGuid := s.onlineEmailsByGuid()
+	shared := sharedNodeGuids(nodes)
 	for _, n := range nodes {
 		n.InboundCount = len(inboundsByNode[n.Id])
 		n.DepletedCount = depletedByNode[n.Id]
 		// Online is attributed to the node that physically hosts the client
 		// (by GUID): a client on a sub-node counts under the sub-node, not
 		// the intermediate node it syncs through (#4983).
-		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n)])
+		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n, shared)])
 	}
 
 	return nodes, nil
@@ -218,14 +219,41 @@ func (s *NodeService) onlineEmailsByGuid() map[string]map[string]struct{} {
 	return out
 }
 
-// effectiveNodeGuid is a node's stable online-attribution key: its reported
-// panelGuid, or a master-local synthetic id when the node is an old build that
-// hasn't reported one yet (#4983).
-func effectiveNodeGuid(n *model.Node) string {
-	if n.Guid != "" {
-		return n.Guid
+// effectiveNodeGuid is a node's stable online/inbound attribution key: its
+// reported panelGuid, or a master-local synthetic node-id fallback when the node
+// has no GUID yet (old build) or shares its GUID with another direct node. The
+// shared case is a cloned server — the panelGuid is copied with the disk image —
+// where an identical GUID would otherwise collapse two physical nodes into one
+// #4983 attribution bucket. shared comes from sharedNodeGuids.
+func effectiveNodeGuid(n *model.Node, shared map[string]struct{}) string {
+	if n.Guid == "" {
+		return synthNodeGuid(n.Id)
 	}
-	return synthNodeGuid(n.Id)
+	if n.Id > 0 {
+		if _, dup := shared[n.Guid]; dup {
+			return synthNodeGuid(n.Id)
+		}
+	}
+	return n.Guid
+}
+
+// sharedNodeGuids returns the panelGuids reported by more than one of this
+// master's own direct nodes (Id > 0). Transitive sub-nodes (Id 0) carry distinct
+// descendant GUIDs by construction and are excluded.
+func sharedNodeGuids(nodes []*model.Node) map[string]struct{} {
+	counts := make(map[string]int, len(nodes))
+	for _, n := range nodes {
+		if n.Id > 0 && n.Guid != "" {
+			counts[n.Guid]++
+		}
+	}
+	shared := make(map[string]struct{})
+	for guid, c := range counts {
+		if c > 1 {
+			shared[guid] = struct{}{}
+		}
+	}
+	return shared
 }
 
 func (s *NodeService) GetById(id int) (*model.Node, error) {

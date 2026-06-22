@@ -174,6 +174,7 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 	if err := db.Table("inbounds").Select("id, node_id, origin_node_guid").Scan(&ibRows).Error; err != nil {
 		return
 	}
+	shared := sharedNodeGuids(nodes)
 	effByInbound := make(map[int]string, len(ibRows))
 	inboundCountByGuid := make(map[string]int)
 	ids := make([]int, 0, len(ibRows))
@@ -184,6 +185,13 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 				guid = synthNodeGuid(*r.NodeID)
 			} else {
 				guid = selfGuid
+			}
+		} else if r.NodeID != nil {
+			// Origin still holds a GUID two direct nodes share (cloned server,
+			// not yet re-attributed): bucket under the hosting node's unique id
+			// so the clones don't merge.
+			if _, dup := shared[guid]; dup {
+				guid = synthNodeGuid(*r.NodeID)
 			}
 		}
 		effByInbound[r.Id] = guid
@@ -222,7 +230,7 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 
 	onlineByGuid := s.onlineEmailsByGuid()
 	for _, n := range nodes {
-		guid := effectiveNodeGuid(n)
+		guid := effectiveNodeGuid(n, shared)
 		n.InboundCount = inboundCountByGuid[guid]
 		n.OnlineCount = len(onlineByGuid[guid])
 		n.DepletedCount = depletedByGuid[guid]

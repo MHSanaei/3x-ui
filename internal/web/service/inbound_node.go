@@ -211,16 +211,28 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// originGuidFor attributes a synced inbound to the panel that physically
 	// hosts it: inbounds the node forwards from its own sub-nodes already carry
 	// a non-empty OriginNodeGuid (kept as-is across hops); the node's own local
-	// inbounds report empty, so they are attributed to the node's own GUID. An
-	// empty result (old-build node with no GUID yet) leaves attribution to the
-	// node_id fallback downstream (#4983).
+	// inbounds report empty, so they are attributed to the node's own key. That
+	// key is the node's panelGuid, unless another of this master's nodes reports
+	// the same GUID (cloned server — the panelGuid ships in the copied settings),
+	// in which case it would collapse both nodes into one #4983 bucket, so fall
+	// back to the node-unique id. Old-build nodes with no GUID use the id too.
 	var nodeRow model.Node
 	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	guidShared := false
+	if nodeRow.Guid != "" {
+		var sameGuid int64
+		db.Model(&model.Node{}).Where("guid = ?", nodeRow.Guid).Count(&sameGuid)
+		guidShared = sameGuid > 1
+	}
+	selfKey := nodeRow.Guid
+	if selfKey == "" || guidShared {
+		selfKey = synthNodeGuid(nodeID)
+	}
 	originGuidFor := func(snapIb *model.Inbound) string {
 		if snapIb.OriginNodeGuid != "" {
 			return snapIb.OriginNodeGuid
 		}
-		return nodeRow.Guid
+		return selfKey
 	}
 
 	var central []model.Inbound
@@ -810,14 +822,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	if p != nil {
 		tree := snap.OnlineTree
-		if len(tree) == 0 && len(snap.OnlineEmails) > 0 {
+		switch {
+		case len(tree) == 0 && len(snap.OnlineEmails) > 0:
 			// Old-build node (no GUID tree): key its flat online list under its
 			// own effective identity so attribution still works for that branch.
-			effectiveGuid := nodeRow.Guid
-			if effectiveGuid == "" {
-				effectiveGuid = synthNodeGuid(nodeID)
+			tree = map[string][]string{selfKey: snap.OnlineEmails}
+		case guidShared && len(tree) > 0:
+			// Newer cloned node: its own clients arrive keyed under the shared
+			// panelGuid. Remap just that entry to the node-unique key so the
+			// clones don't merge; descendant subtrees keep their distinct GUIDs.
+			if _, ok := tree[nodeRow.Guid]; ok {
+				remapped := make(map[string][]string, len(tree))
+				for g, emails := range tree {
+					if g == nodeRow.Guid {
+						g = selfKey
+					}
+					remapped[g] = emails
+				}
+				tree = remapped
 			}
-			tree = map[string][]string{effectiveGuid: snap.OnlineEmails}
 		}
 		p.SetNodeOnlineTree(nodeID, tree)
 	}
