@@ -32,6 +32,14 @@ type DBInboundInstance = InstanceType<typeof DBInbound>;
 // deltas accumulated over this window, so dividing by it yields bytes/sec.
 const TRAFFIC_POLL_INTERVAL_S = 5;
 
+// Speed is delta-derived, so it can't be recomputed until the first poll after
+// mount; navigating away and back would otherwise blank the column for up to one
+// poll. Cache the last speed map across mounts (module scope) and reseed from it
+// while recent, so returning to the page shows the last throughput immediately
+// and the next poll refreshes it.
+const SPEED_CACHE_TTL_MS = 15000;
+let inboundSpeedCache: { at: number; data: Record<number, InboundSpeedEntry> } = { at: 0, data: {} };
+
 interface TrafficDelta {
   Tag: string;
   Up: number;
@@ -191,7 +199,12 @@ export function useInbounds() {
   const [clientCount, setClientCount] = useState<Record<number, ClientRollup>>({});
   const [statsVersion, setStatsVersion] = useState(0);
 
-  const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeedEntry>>({});
+  const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeedEntry>>(() =>
+    Date.now() - inboundSpeedCache.at < SPEED_CACHE_TTL_MS ? inboundSpeedCache.data : {},
+  );
+  useEffect(() => {
+    inboundSpeedCache = { at: Date.now(), data: inboundSpeed };
+  }, [inboundSpeed]);
 
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const onlineClientsRef = useRef<string[]>([]);
