@@ -849,13 +849,19 @@ func (s *InboundService) GetActiveInboundsByGuid() map[string][]string {
 	if p == nil {
 		return map[string][]string{}
 	}
-	active := p.GetLocalActiveInbounds()
-	if len(active) == 0 {
-		return map[string][]string{}
-	}
 	guid := s.panelGuid()
 	if guid == "" {
 		return map[string][]string{}
+	}
+	// Always include the local panel's GUID key, even when no inbounds are
+	// active. A missing key means "unknown node — don't gate" (correct for
+	// remote nodes that haven't reported yet). An empty slice means "this
+	// panel is known but no inbounds carried traffic" — without this
+	// distinction, multi-inbound clients appear online on every inbound they
+	// are attached to whenever the local xray is idle.
+	active := p.GetLocalActiveInbounds()
+	if active == nil {
+		active = []string{}
 	}
 	return map[string][]string{guid: active}
 }
