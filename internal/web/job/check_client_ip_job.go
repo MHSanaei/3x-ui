@@ -88,11 +88,12 @@ func (j *CheckClientIpJob) Run() {
 	}
 }
 
-// resolveEnforce decides whether limits can actually be enforced this run,
-// warning when fail2ban is missing on a platform that needs it.
+// resolveEnforce decides whether limits can actually be enforced this run.
+// Without fail2ban on a platform that needs it the limit can't be applied, so
+// enforcement is skipped (the panel resets these limits to 0 on upgrade and
+// disables the field, so this is normally a no-op).
 func (j *CheckClientIpJob) resolveEnforce(hasLimit, f2bInstalled bool) bool {
 	if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
-		logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
 		return false
 	}
 	return hasLimit
