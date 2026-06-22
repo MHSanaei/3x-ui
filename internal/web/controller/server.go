@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
@@ -294,10 +293,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := "x-ui.db"
-	if database.IsPostgres() {
-		filename = "x-ui.dump"
-	}
+	filename := a.serverService.BackupFilename()
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
