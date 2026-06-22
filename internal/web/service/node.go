@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -192,14 +193,15 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		}
 	}
 	onlineByGuid := s.onlineEmailsByGuid()
-	shared := sharedNodeGuids(nodes)
+	selfGuid, _ := (&SettingService{}).GetPanelGuid()
+	ambiguous := ambiguousNodeGuids(nodes, selfGuid)
 	for _, n := range nodes {
 		n.InboundCount = len(inboundsByNode[n.Id])
 		n.DepletedCount = depletedByNode[n.Id]
 		// Online is attributed to the node that physically hosts the client
 		// (by GUID): a client on a sub-node counts under the sub-node, not
 		// the intermediate node it syncs through (#4983).
-		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n, shared)])
+		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n, ambiguous)])
 	}
 
 	return nodes, nil
@@ -221,39 +223,67 @@ func (s *NodeService) onlineEmailsByGuid() map[string]map[string]struct{} {
 
 // effectiveNodeGuid is a node's stable online/inbound attribution key: its
 // reported panelGuid, or a master-local synthetic node-id fallback when the node
-// has no GUID yet (old build) or shares its GUID with another direct node. The
-// shared case is a cloned server — the panelGuid is copied with the disk image —
-// where an identical GUID would otherwise collapse two physical nodes into one
-// #4983 attribution bucket. shared comes from sharedNodeGuids.
-func effectiveNodeGuid(n *model.Node, shared map[string]struct{}) string {
+// has no GUID yet (old build) or its GUID is ambiguous. ambiguous comes from
+// ambiguousNodeGuids.
+func effectiveNodeGuid(n *model.Node, ambiguous map[string]struct{}) string {
 	if n.Guid == "" {
 		return synthNodeGuid(n.Id)
 	}
 	if n.Id > 0 {
-		if _, dup := shared[n.Guid]; dup {
+		if _, bad := ambiguous[n.Guid]; bad {
 			return synthNodeGuid(n.Id)
 		}
 	}
 	return n.Guid
 }
 
-// sharedNodeGuids returns the panelGuids reported by more than one of this
-// master's own direct nodes (Id > 0). Transitive sub-nodes (Id 0) carry distinct
-// descendant GUIDs by construction and are excluded.
-func sharedNodeGuids(nodes []*model.Node) map[string]struct{} {
+// ambiguousNodeGuids returns the panelGuids a node must not be attributed under
+// directly, because doing so would merge two distinct identities: a GUID
+// reported by more than one of this master's direct nodes (cloned node servers
+// ship the same panelGuid in their copied settings), or a GUID equal to the
+// master's own panelGuid (a node cloned from the master). A node holding such a
+// GUID falls back to its node-unique synthNodeGuid. Transitive sub-nodes (Id 0)
+// carry distinct descendant GUIDs by construction and are excluded.
+func ambiguousNodeGuids(nodes []*model.Node, selfGuid string) map[string]struct{} {
 	counts := make(map[string]int, len(nodes))
 	for _, n := range nodes {
 		if n.Id > 0 && n.Guid != "" {
 			counts[n.Guid]++
 		}
 	}
-	shared := make(map[string]struct{})
+	ambiguous := make(map[string]struct{})
 	for guid, c := range counts {
 		if c > 1 {
-			shared[guid] = struct{}{}
+			ambiguous[guid] = struct{}{}
 		}
 	}
-	return shared
+	if selfGuid != "" {
+		if _, ok := counts[selfGuid]; ok {
+			ambiguous[selfGuid] = struct{}{}
+		}
+	}
+	return ambiguous
+}
+
+// effectiveNodeKey returns one node's attribution key without a preloaded node
+// list — its panelGuid when that GUID uniquely identifies it among the master's
+// nodes and differs from the master's own, otherwise its node-unique
+// synthNodeGuid. Same rule as effectiveNodeGuid + ambiguousNodeGuids, for the
+// write paths that handle a single node (online tree, IP attribution).
+func effectiveNodeKey(node *model.Node) string {
+	if node == nil {
+		return ""
+	}
+	if node.Guid == "" {
+		return synthNodeGuid(node.Id)
+	}
+	var sameGuid int64
+	database.GetDB().Model(&model.Node{}).Where("guid = ?", node.Guid).Count(&sameGuid)
+	masterGuid, _ := (&SettingService{}).GetPanelGuid()
+	if sameGuid > 1 || node.Guid == masterGuid {
+		return synthNodeGuid(node.Id)
+	}
+	return node.Guid
 }
 
 func (s *NodeService) GetById(id int) (*model.Node, error) {
@@ -484,7 +514,9 @@ func (s *NodeService) Delete(id int) error {
 		return common.NewError(fmt.Sprintf("cannot delete node: %d inbound(s) still attached to it; detach or delete them first", attached))
 	}
 	// Capture the node's guid before deleting the row so we can drop its per-node
-	// IP attribution (NodeClientIp is keyed by guid, not node id).
+	// IP attribution. NodeClientIp is keyed by the node's attribution key, which
+	// is its guid normally but its node-unique key for a cloned/ambiguous-guid
+	// node (see effectiveNodeKey) — so we purge both below.
 	var guid string
 	var n model.Node
 	if err := db.Select("guid").Where("id = ?", id).First(&n).Error; err == nil {
@@ -498,10 +530,12 @@ func (s *NodeService) Delete(id int) error {
 		if err := tx.Where("node_id = ?", id).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return err
 		}
+		guids := []string{synthNodeGuid(id)}
 		if guid != "" {
-			if err := tx.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error; err != nil {
-				return err
-			}
+			guids = append(guids, guid)
+		}
+		if err := tx.Where("node_guid IN ?", guids).Delete(&model.NodeClientIp{}).Error; err != nil {
+			return err
 		}
 		return tx.Where("id = ?", id).Delete(&model.Node{}).Error
 	}); err != nil {
@@ -621,6 +655,7 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 	// failed probe) reports none, so the stable identity survives blips.
 	if p.Guid != "" {
 		updates["guid"] = p.Guid
+		s.warnOnDuplicateGuid(id, p.Guid)
 	}
 	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -633,6 +668,30 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
 	}
 	return nil
+}
+
+// warnedDupGuid remembers the (nodeID -> guid) pairs already warned about so a
+// cloned-server collision is logged once, not every heartbeat.
+var warnedDupGuid sync.Map
+
+// warnOnDuplicateGuid logs once when a node reports a panelGuid already held by
+// another node or by the master itself (the cloned-server footgun). Attribution
+// still works — it falls back to node-unique keys — but the operator should
+// regenerate the duplicate panelGuid to restore real identity and per-node IP
+// attribution. Re-arms if the collision later clears.
+func (s *NodeService) warnOnDuplicateGuid(id int, guid string) {
+	var clash int64
+	database.GetDB().Model(&model.Node{}).Where("guid = ? AND id <> ?", guid, id).Count(&clash)
+	masterGuid, _ := (&SettingService{}).GetPanelGuid()
+	if clash == 0 && guid != masterGuid {
+		warnedDupGuid.Delete(id)
+		return
+	}
+	if prev, ok := warnedDupGuid.Load(id); ok && prev == guid {
+		return
+	}
+	warnedDupGuid.Store(id, guid)
+	logger.Warningf("node %d reports panelGuid %s already used by another node or the master (cloned server?) — regenerate it on that node so online and IP attribution stay per-node", id, guid)
 }
 
 func (s *NodeService) MarkNodeDirty(id int) error {

@@ -307,7 +307,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if guidTrees, err := rt.FetchClientIpsByGuid(ipCtx); err != nil {
 		logger.Debugf("node traffic sync: fetch client ip attribution from %s failed: %v", n.Name, err)
 	} else if len(guidTrees) > 0 {
-		if err := j.inboundService.MergeClientIpsByGuid(guidTrees); err != nil {
+		if err := j.inboundService.MergeClientIpsByGuid(n, guidTrees); err != nil {
 			logger.Warningf("node traffic sync: merge client ip attribution from %s failed: %v", n.Name, err)
 		}
 	}
