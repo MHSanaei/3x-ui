@@ -311,7 +311,8 @@ func (a *ServerController) getDb(c *gin.Context) {
 // getMigration downloads a cross-engine migration file: a .dump on SQLite or a
 // .db SQLite database on PostgreSQL, so the data can seed the other backend.
 func (a *ServerController) getMigration(c *gin.Context) {
-	data, filename, err := a.serverService.GetMigration()
+	excludeHostSpecific := c.Query("excludeHostSpecific") == "true"
+	data, filename, err := a.serverService.GetMigration(excludeHostSpecific)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.getDatabaseError"), err)
 		return

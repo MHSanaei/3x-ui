@@ -505,11 +505,13 @@ func main() {
 	var migrateDump string
 	var migrateRestore string
 	var migrateOut string
+	var migrateExcludeHostSpecific bool
 	migrateDbCmd.StringVar(&migrateDsn, "dsn", "", "Destination PostgreSQL DSN (postgres://user:pass@host:port/db?sslmode=disable)")
 	migrateDbCmd.StringVar(&migrateSrc, "src", "", "Source SQLite file (defaults to the configured x-ui.db)")
 	migrateDbCmd.StringVar(&migrateDump, "dump", "", "Write a portable SQL text dump of --src to this file (.db -> .dump)")
 	migrateDbCmd.StringVar(&migrateRestore, "restore", "", "Rebuild a SQLite database from this SQL text dump (.dump -> .db); requires --out")
 	migrateDbCmd.StringVar(&migrateOut, "out", "", "Destination SQLite file for --restore (must not already exist)")
+	migrateDbCmd.BoolVar(&migrateExcludeHostSpecific, "exclude-host-specific", false, "Exclude host-specific SSL certificate/key settings from --dump output")
 
 	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
 	var port int
@@ -585,7 +587,17 @@ func main() {
 		}
 		switch {
 		case migrateDump != "":
-			if err := database.DumpSQLite(src, migrateDump); err != nil {
+			if migrateExcludeHostSpecific {
+				data, err := database.DumpSQLiteToBytesWithOptions(src, database.PortableDumpOptions{ExcludeHostSpecific: true})
+				if err != nil {
+					fmt.Println("dump failed:", err)
+					os.Exit(1)
+				}
+				if err := os.WriteFile(migrateDump, data, 0o644); err != nil {
+					fmt.Println("dump failed:", err)
+					os.Exit(1)
+				}
+			} else if err := database.DumpSQLite(src, migrateDump); err != nil {
 				fmt.Println("dump failed:", err)
 				os.Exit(1)
 			}

@@ -13,6 +13,18 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// PortableDumpOptions controls optional sanitization for exported SQLite dumps.
+type PortableDumpOptions struct {
+	ExcludeHostSpecific bool
+}
+
+var hostSpecificSettingKeys = map[string]struct{}{
+	"webCertFile": {},
+	"webKeyFile":  {},
+	"subCertFile": {},
+	"subKeyFile":  {},
+}
+
 // DumpSQLite writes a portable SQL text dump of the SQLite database at srcPath
 // to outPath. The output mirrors the `sqlite3 .dump` format (schema + data +
 // indexes wrapped in a transaction), so it can be rebuilt with RestoreSQLite or
@@ -29,6 +41,12 @@ func DumpSQLite(srcPath, outPath string) error {
 // DumpSQLiteToBytes builds the same `sqlite3 .dump`-style SQL text as DumpSQLite
 // but returns it in memory, which the panel uses to stream a migration download.
 func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
+	return DumpSQLiteToBytesWithOptions(srcPath, PortableDumpOptions{})
+}
+
+// DumpSQLiteToBytesWithOptions builds the same `sqlite3 .dump`-style SQL text as
+// DumpSQLite, with optional sanitization for migrations to another host.
+func DumpSQLiteToBytesWithOptions(srcPath string, opts PortableDumpOptions) ([]byte, error) {
 	if _, err := os.Stat(srcPath); err != nil {
 		return nil, fmt.Errorf("source sqlite not found at %s: %w", srcPath, err)
 	}
@@ -37,6 +55,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	sqlDB, err := gdb.DB()
 	if err != nil {
 		return nil, err
@@ -50,10 +69,12 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	// Tables in creation order, each followed by its data.
 	type object struct{ name, ddl string }
 	var tables []object
+
 	rows, err := sqlDB.Query(`SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY rowid`)
 	if err != nil {
 		return nil, err
 	}
+
 	for rows.Next() {
 		var o object
 		if err := rows.Scan(&o.name, &o.ddl); err != nil {
@@ -62,6 +83,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 		}
 		tables = append(tables, o)
 	}
+
 	if err := rows.Err(); err != nil {
 		rows.Close()
 		return nil, err
@@ -71,7 +93,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	for _, t := range tables {
 		b.WriteString(t.ddl)
 		b.WriteString(";\n")
-		if err := dumpTableData(sqlDB, t.name, &b); err != nil {
+		if err := dumpTableDataWithOptions(sqlDB, t.name, &b, opts); err != nil {
 			return nil, err
 		}
 	}
@@ -79,7 +101,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	// AUTOINCREMENT bookkeeping, restored verbatim like the sqlite3 CLI does.
 	if sqliteTableExists(sqlDB, "sqlite_sequence") {
 		b.WriteString("DELETE FROM sqlite_sequence;\n")
-		if err := dumpTableData(sqlDB, "sqlite_sequence", &b); err != nil {
+		if err := dumpTableDataWithOptions(sqlDB, "sqlite_sequence", &b, opts); err != nil {
 			return nil, err
 		}
 	}
@@ -89,6 +111,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for rows2.Next() {
 		var ddl string
 		if err := rows2.Scan(&ddl); err != nil {
@@ -98,6 +121,7 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 		b.WriteString(ddl)
 		b.WriteString(";\n")
 	}
+
 	if err := rows2.Err(); err != nil {
 		rows2.Close()
 		return nil, err
@@ -105,7 +129,6 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	rows2.Close()
 
 	b.WriteString("COMMIT;\n")
-
 	return []byte(b.String()), nil
 }
 
@@ -117,6 +140,7 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 	if err != nil {
 		return err
 	}
+
 	if _, err := os.Stat(dstPath); err == nil {
 		return fmt.Errorf("destination already exists: %s", dstPath)
 	}
@@ -125,6 +149,7 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 	if err != nil {
 		return err
 	}
+
 	sqlDB, err := gdb.DB()
 	if err != nil {
 		return err
@@ -136,11 +161,16 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 		os.Remove(dstPath)
 		return fmt.Errorf("restore failed: %w", err)
 	}
+
 	return sqlDB.Close()
 }
 
 // dumpTableData appends one INSERT statement per row of table to b.
 func dumpTableData(db *sql.DB, table string, b *strings.Builder) error {
+	return dumpTableDataWithOptions(db, table, b, PortableDumpOptions{})
+}
+
+func dumpTableDataWithOptions(db *sql.DB, table string, b *strings.Builder, opts PortableDumpOptions) error {
 	rows, err := db.Query(`SELECT * FROM "` + table + `"`)
 	if err != nil {
 		return err
@@ -151,28 +181,72 @@ func dumpTableData(db *sql.DB, table string, b *strings.Builder) error {
 	if err != nil {
 		return err
 	}
+
 	n := len(cols)
+	keyCol := -1
+	valueCol := -1
+
+	if opts.ExcludeHostSpecific && table == "settings" {
+		keyCol = columnIndex(cols, "key")
+		valueCol = columnIndex(cols, "value")
+	}
+
 	prefix := `INSERT INTO "` + table + `" VALUES(`
 
 	for rows.Next() {
 		vals := make([]any, n)
 		ptrs := make([]any, n)
+
 		for i := range vals {
 			ptrs[i] = &vals[i]
 		}
+
 		if err := rows.Scan(ptrs...); err != nil {
 			return err
 		}
+
+		if keyCol >= 0 && valueCol >= 0 {
+			if key, ok := stringValue(vals[keyCol]); ok {
+				if _, found := hostSpecificSettingKeys[key]; found {
+					vals[valueCol] = ""
+				}
+			}
+		}
+
 		b.WriteString(prefix)
+
 		for i, v := range vals {
 			if i > 0 {
 				b.WriteByte(',')
 			}
 			b.WriteString(sqliteLiteral(v))
 		}
+
 		b.WriteString(");\n")
 	}
+
 	return rows.Err()
+}
+
+func columnIndex(cols []string, name string) int {
+	for i, col := range cols {
+		if col == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func stringValue(v any) (string, bool) {
+	switch x := v.(type) {
+	case string:
+		return x, true
+	case []byte:
+		if utf8.Valid(x) {
+			return string(x), true
+		}
+	}
+	return "", false
 }
 
 // sqliteLiteral renders a scanned column value as a SQLite SQL literal.
@@ -195,11 +269,14 @@ func sqliteLiteral(v any) string {
 		if utf8.Valid(x) {
 			return quoteSQLiteText(string(x))
 		}
+
 		var sb strings.Builder
 		sb.WriteString("X'")
+
 		for _, c := range x {
 			fmt.Fprintf(&sb, "%02x", c)
 		}
+
 		sb.WriteByte('\'')
 		return sb.String()
 	default:

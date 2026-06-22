@@ -1233,7 +1233,7 @@ func (s *ServerService) GetDb() ([]byte, error) {
 // SQLite panel it returns a portable .dump (SQL text), and on a PostgreSQL panel
 // it returns a .db SQLite database built from the live data. Either output can
 // then seed a panel running on the other backend.
-func (s *ServerService) GetMigration() ([]byte, string, error) {
+func (s *ServerService) GetMigration(excludeHostSpecific bool) ([]byte, string, error) {
 	if database.IsPostgres() {
 		tmp, err := os.CreateTemp("", "x-ui-migration-*.db")
 		if err != nil {
@@ -1257,7 +1257,8 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	if err := database.Checkpoint(); err != nil {
 		return nil, "", err
 	}
-	data, err := database.DumpSQLiteToBytes(config.GetDBPath())
+	dumpOpts := database.PortableDumpOptions{ExcludeHostSpecific: excludeHostSpecific}
+	data, err := database.DumpSQLiteToBytesWithOptions(config.GetDBPath(), dumpOpts)
 	if err != nil {
 		return nil, "", err
 	}
