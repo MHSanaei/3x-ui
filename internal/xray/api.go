@@ -594,6 +594,19 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 			processClientTraffic(matches, value, emailTrafficMap)
 		}
 	}
+
+	// Drop delta baselines for stats that no longer exist (deleted inbounds or
+	// clients), which otherwise linger until the next Xray restart. Only rebuild
+	// when the map has drifted past 2x the live set, so the steady-state hot path
+	// stays allocation-free.
+	if n := len(resp.GetStat()); n > 0 && len(x.StatsLastValues) > 2*n {
+		pruned := make(map[string]int64, n)
+		for _, stat := range resp.GetStat() {
+			pruned[stat.Name] = x.StatsLastValues[stat.Name]
+		}
+		x.StatsLastValues = pruned
+	}
+
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
 }
 

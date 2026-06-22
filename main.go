@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -48,6 +50,21 @@ func runWebServer() {
 	}
 
 	godotenv.Load()
+
+	if limit, source := sys.ApplyMemoryLimit(); limit > 0 {
+		logger.Infof("Go memory soft limit set to %d MiB (%s)", limit>>20, source)
+	} else {
+		logger.Info("Go memory soft limit not enforced: ", source)
+	}
+
+	if os.Getenv("XUI_PPROF") == "true" {
+		go func() {
+			logger.Info("pprof profiling server listening on 127.0.0.1:6060")
+			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
+				logger.Warning("pprof server stopped: ", err)
+			}
+		}()
+	}
 
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {

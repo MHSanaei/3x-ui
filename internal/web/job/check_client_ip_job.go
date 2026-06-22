@@ -157,7 +157,7 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 
-	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("settings LIKE ?", "%limitIp%").Find(&inbounds).Error
 	if err != nil {
 		return false
 	}
