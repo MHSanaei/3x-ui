@@ -34,6 +34,9 @@ type NodeTrafficSyncJob struct {
 	lastIpSync     int64
 	globalPushMu   sync.Mutex
 	lastGlobalPush int64
+	// noGuidIpEndpoint tracks nodes (by id) whose client-IP attribution endpoint
+	// returned 404, so an old-build node is noted once instead of every cycle.
+	noGuidIpEndpoint sync.Map
 }
 
 type atomicBool struct {
@@ -303,12 +306,22 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 
 	// Per-node IP attribution: pull the node's guid-keyed subtree (its own
 	// observations plus any descendants) so the master can tell which node each
-	// IP is on. Old nodes without the endpoint just return an error — skip them.
+	// IP is on. Old nodes without the endpoint return HTTP 404 every cycle — note
+	// it once per node (re-armed on recovery) instead of flooding the log.
 	if guidTrees, err := rt.FetchClientIpsByGuid(ipCtx); err != nil {
-		logger.Debugf("node traffic sync: fetch client ip attribution from %s failed: %v", n.Name, err)
-	} else if len(guidTrees) > 0 {
-		if err := j.inboundService.MergeClientIpsByGuid(n, guidTrees); err != nil {
-			logger.Warningf("node traffic sync: merge client ip attribution from %s failed: %v", n.Name, err)
+		if strings.Contains(err.Error(), "HTTP 404") {
+			if _, seen := j.noGuidIpEndpoint.LoadOrStore(n.Id, true); !seen {
+				logger.Debugf("node traffic sync: node %s has no client-IP attribution endpoint (old build)", n.Name)
+			}
+		} else {
+			logger.Debugf("node traffic sync: fetch client ip attribution from %s failed: %v", n.Name, err)
+		}
+	} else {
+		j.noGuidIpEndpoint.Delete(n.Id)
+		if len(guidTrees) > 0 {
+			if err := j.inboundService.MergeClientIpsByGuid(n, guidTrees); err != nil {
+				logger.Warningf("node traffic sync: merge client ip attribution from %s failed: %v", n.Name, err)
+			}
 		}
 	}
 }
