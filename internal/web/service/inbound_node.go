@@ -201,6 +201,29 @@ func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnaps
 	return structuralChange, err
 }
 
+// GetNodeInboundTrafficTotals returns the current cumulative up/down for every
+// node-hosted inbound, keyed by tag. The node sync diffs successive snapshots of
+// this to derive per-inbound speed for the dashboard — node inbounds have no
+// local Xray poll to produce live deltas the way local inbounds do.
+func (s *InboundService) GetNodeInboundTrafficTotals() (map[string][2]int64, error) {
+	var rows []struct {
+		Tag  string
+		Up   int64
+		Down int64
+	}
+	if err := database.GetDB().Table("inbounds").
+		Select("tag, up, down").
+		Where("node_id IS NOT NULL").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[string][2]int64, len(rows))
+	for _, r := range rows {
+		out[r.Tag] = [2]int64{r.Up, r.Down}
+	}
+	return out, nil
+}
+
 func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil
@@ -209,18 +232,23 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	now := time.Now().UnixMilli()
 
 	// originGuidFor attributes a synced inbound to the panel that physically
-	// hosts it: inbounds the node forwards from its own sub-nodes already carry
-	// a non-empty OriginNodeGuid (kept as-is across hops); the node's own local
-	// inbounds report empty, so they are attributed to the node's own GUID. An
-	// empty result (old-build node with no GUID yet) leaves attribution to the
-	// node_id fallback downstream (#4983).
+	// hosts it. A node's OWN inbounds report either an empty origin or — on
+	// builds that set it locally — the node's own panelGuid; both resolve to
+	// selfKey, which is the node's panelGuid unless that GUID is ambiguous
+	// (shared with another node or the master, i.e. a cloned server), in which
+	// case it falls back to the node-unique id so #4983 attribution doesn't
+	// collapse two physical nodes into one bucket. Only a DIFFERENT, non-empty
+	// origin (an inbound the node forwards from its own sub-node) is kept as-is,
+	// so a chained Node1->Node2->Node3 still attributes Node3's inbounds to Node3.
 	var nodeRow model.Node
 	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
+	guidShared := nodeRow.Guid != "" && selfKey != nodeRow.Guid
 	originGuidFor := func(snapIb *model.Inbound) string {
-		if snapIb.OriginNodeGuid != "" {
+		if snapIb.OriginNodeGuid != "" && snapIb.OriginNodeGuid != nodeRow.Guid {
 			return snapIb.OriginNodeGuid
 		}
-		return nodeRow.Guid
+		return selfKey
 	}
 
 	var central []model.Inbound
@@ -492,6 +520,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	for _, c := range central {
 		if dirty {
+			continue
+		}
+		if len(snapTags) == 0 {
+			// A node mid-restart or with a transient DB error can return an empty
+			// inbound list with success=true. Treat "zero inbounds reported" as
+			// "nothing to say", not "delete all my inbounds" — otherwise a blip
+			// wipes the node's central inbounds and every client on them (and
+			// resets traffic history on re-create). A real per-inbound deletion
+			// still sweeps, because the node keeps reporting its other inbounds.
 			continue
 		}
 		if _, kept := snapTags[c.Tag]; kept {
@@ -810,14 +847,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	if p != nil {
 		tree := snap.OnlineTree
-		if len(tree) == 0 && len(snap.OnlineEmails) > 0 {
+		switch {
+		case len(tree) == 0 && len(snap.OnlineEmails) > 0:
 			// Old-build node (no GUID tree): key its flat online list under its
 			// own effective identity so attribution still works for that branch.
-			effectiveGuid := nodeRow.Guid
-			if effectiveGuid == "" {
-				effectiveGuid = synthNodeGuid(nodeID)
+			tree = map[string][]string{selfKey: snap.OnlineEmails}
+		case guidShared && len(tree) > 0:
+			// Newer cloned node: its own clients arrive keyed under the shared
+			// panelGuid. Remap just that entry to the node-unique key so the
+			// clones don't merge; descendant subtrees keep their distinct GUIDs.
+			if _, ok := tree[nodeRow.Guid]; ok {
+				remapped := make(map[string][]string, len(tree))
+				for g, emails := range tree {
+					if g == nodeRow.Guid {
+						g = selfKey
+					}
+					remapped[g] = emails
+				}
+				tree = remapped
 			}
-			tree = map[string][]string{effectiveGuid: snap.OnlineEmails}
 		}
 		p.SetNodeOnlineTree(nodeID, tree)
 	}

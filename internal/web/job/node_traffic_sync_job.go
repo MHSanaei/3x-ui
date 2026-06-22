@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const (
@@ -21,7 +22,17 @@ const (
 	nodeClientIpSyncInterval      = 10 * time.Second
 	nodeClientIpSyncTimeout       = 6 * time.Second
 	nodeGlobalPushInterval        = 30 * time.Second
+	// nodeInboundSpeedWindowMs is the poll window node-inbound speed deltas are
+	// normalized to; it MUST match the dashboard's TRAFFIC_POLL_INTERVAL_S (5s),
+	// the fixed divisor the frontend applies to turn a delta into a rate.
+	nodeInboundSpeedWindowMs int64 = 5000
 )
+
+// inboundSample is a node inbound's last-seen cumulative up/down and the time
+// (unix millis) its counter last changed, used to derive a normalized speed.
+type inboundSample struct {
+	up, down, at int64
+}
 
 type NodeTrafficSyncJob struct {
 	nodeService    service.NodeService
@@ -34,6 +45,14 @@ type NodeTrafficSyncJob struct {
 	lastIpSync     int64
 	globalPushMu   sync.Mutex
 	lastGlobalPush int64
+	// noGuidIpEndpoint tracks nodes (by id) whose client-IP attribution endpoint
+	// returned 404, so an old-build node is noted once instead of every cycle.
+	noGuidIpEndpoint sync.Map
+	// prevInboundTotals holds the previous poll's cumulative up/down (and the time
+	// the counter last changed) per node inbound tag, so the next poll can derive
+	// a per-inbound speed delta — node inbounds have no local Xray poll. Touched
+	// only from Run (serialized).
+	prevInboundTotals map[string]inboundSample
 }
 
 type atomicBool struct {
@@ -137,6 +156,10 @@ func (j *NodeTrafficSyncJob) Run() {
 	// xray's clients and inbounds still age out between traffic polls.
 	j.inboundService.RefreshLocalOnlineClients(nil, nil)
 
+	// Derive per-node-inbound speed every tick (keeps the baseline fresh even
+	// with no dashboard open); only broadcast it when someone is watching.
+	inboundSpeed := j.nodeInboundSpeed()
+
 	if !websocket.HasClients() {
 		return
 	}
@@ -145,12 +168,18 @@ func (j *NodeTrafficSyncJob) Run() {
 	if online == nil {
 		online = []string{}
 	}
-	websocket.BroadcastTraffic(map[string]any{
+	trafficPayload := map[string]any{
 		"onlineClients":  online,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
 		"lastOnlineMap":  lastOnline,
-	})
+	}
+	// Always send the key so the dashboard clears node inbounds that went idle
+	// this tick. A nil result (query error) marshals to null and is skipped
+	// client-side, leaving the last shown value untouched; an empty (non-nil)
+	// slice marshals to [] and clears stale speeds.
+	trafficPayload["nodeTraffics"] = inboundSpeed
+	websocket.BroadcastTraffic(trafficPayload)
 
 	clientStats := map[string]any{}
 	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
@@ -171,6 +200,65 @@ func (j *NodeTrafficSyncJob) Run() {
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 		websocket.BroadcastInvalidate(websocket.MessageTypeClients)
 	}
+}
+
+// nodeInboundSpeed derives a per-node-inbound speed delta by diffing the current
+// cumulative up/down against the previous poll's, keyed by the central tag the
+// dashboard matches. The node's counter keeps climbing while the master can't
+// reach it, so the first delta after a gap (node outage, skipped poll, slow
+// node) spans more than one poll window; it is normalized to the fixed
+// nodeInboundSpeedWindowMs using the real elapsed time so the dashboard's fixed
+// divisor yields the true average rate over the gap instead of an impossible
+// one-tick spike. The change timestamp only advances when the value actually
+// moves, so an idle stretch is averaged correctly when traffic resumes. A reset
+// rebaselines to the lower value; a first-seen tag yields no delta until the
+// next poll.
+func (j *NodeTrafficSyncJob) nodeInboundSpeed() []*xray.Traffic {
+	totals, err := j.inboundService.GetNodeInboundTrafficTotals()
+	if err != nil {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	deltas := make([]*xray.Traffic, 0, len(totals))
+	next := make(map[string]inboundSample, len(totals))
+	for tag, cur := range totals {
+		prev, ok := j.prevInboundTotals[tag]
+		if !ok {
+			next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
+			continue
+		}
+		dUp := cur[0] - prev.up
+		dDown := cur[1] - prev.down
+		if dUp <= 0 && dDown <= 0 {
+			// No movement, or a counter reset: hold the change timestamp so a
+			// later jump is averaged over the real elapsed window, not shown as a
+			// spike. Adopt the lower value on a reset.
+			if cur[0] < prev.up || cur[1] < prev.down {
+				next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
+			} else {
+				next[tag] = prev
+			}
+			continue
+		}
+		if dUp < 0 {
+			dUp = 0
+		}
+		if dDown < 0 {
+			dDown = 0
+		}
+		elapsed := now - prev.at
+		if elapsed < nodeInboundSpeedWindowMs {
+			elapsed = nodeInboundSpeedWindowMs
+		}
+		up := dUp * nodeInboundSpeedWindowMs / elapsed
+		down := dDown * nodeInboundSpeedWindowMs / elapsed
+		if up > 0 || down > 0 {
+			deltas = append(deltas, &xray.Traffic{Tag: tag, IsInbound: true, Up: up, Down: down})
+		}
+		next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
+	}
+	j.prevInboundTotals = next
+	return deltas
 }
 
 // maybePushGlobals broadcasts this panel's aggregated per-client usage to its
@@ -303,12 +391,22 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 
 	// Per-node IP attribution: pull the node's guid-keyed subtree (its own
 	// observations plus any descendants) so the master can tell which node each
-	// IP is on. Old nodes without the endpoint just return an error — skip them.
+	// IP is on. Old nodes without the endpoint return HTTP 404 every cycle — note
+	// it once per node (re-armed on recovery) instead of flooding the log.
 	if guidTrees, err := rt.FetchClientIpsByGuid(ipCtx); err != nil {
-		logger.Debugf("node traffic sync: fetch client ip attribution from %s failed: %v", n.Name, err)
-	} else if len(guidTrees) > 0 {
-		if err := j.inboundService.MergeClientIpsByGuid(guidTrees); err != nil {
-			logger.Warningf("node traffic sync: merge client ip attribution from %s failed: %v", n.Name, err)
+		if strings.Contains(err.Error(), "HTTP 404") {
+			if _, seen := j.noGuidIpEndpoint.LoadOrStore(n.Id, true); !seen {
+				logger.Debugf("node traffic sync: node %s has no client-IP attribution endpoint (old build)", n.Name)
+			}
+		} else {
+			logger.Debugf("node traffic sync: fetch client ip attribution from %s failed: %v", n.Name, err)
+		}
+	} else {
+		j.noGuidIpEndpoint.Delete(n.Id)
+		if len(guidTrees) > 0 {
+			if err := j.inboundService.MergeClientIpsByGuid(n, guidTrees); err != nil {
+				logger.Warningf("node traffic sync: merge client ip attribution from %s failed: %v", n.Name, err)
+			}
 		}
 	}
 }

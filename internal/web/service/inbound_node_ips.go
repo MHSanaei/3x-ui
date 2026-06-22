@@ -113,8 +113,26 @@ func (s *InboundService) RecordLocalClientIps(panelGuid string, observed map[str
 
 // MergeClientIpsByGuid folds a node's guid-keyed attribution report (its own
 // panelGuid subtree plus any descendants) into the local table, preserving which
-// physical node each IP is on across a chain.
-func (s *InboundService) MergeClientIpsByGuid(trees map[string]map[string][]model.ClientIpEntry) error {
+// physical node each IP is on across a chain. When node is non-nil and its own
+// panelGuid is ambiguous (shared with another node or the master — a cloned
+// server), the node's own subtree is remapped to its node-unique key so two
+// clones don't collapse into one attribution row; descendant subtrees keep their
+// distinct GUIDs. A nil node merges the report verbatim.
+func (s *InboundService) MergeClientIpsByGuid(node *model.Node, trees map[string]map[string][]model.ClientIpEntry) error {
+	if node != nil && node.Guid != "" {
+		if eff := effectiveNodeKey(node); eff != node.Guid {
+			if sub, ok := trees[node.Guid]; ok {
+				delete(trees, node.Guid)
+				if existing, ok := trees[eff]; ok {
+					for email, ips := range sub {
+						existing[email] = append(existing[email], ips...)
+					}
+				} else {
+					trees[eff] = sub
+				}
+			}
+		}
+	}
 	for guid, perEmail := range trees {
 		if err := upsertNodeClientIps(guid, perEmail); err != nil {
 			return err
@@ -242,18 +260,24 @@ func (s *InboundService) GetClientIpsWithNodes(email string) ([]ClientIpInfo, er
 	return out, nil
 }
 
-// nodeGuidNameMap maps each known node's stable guid to its display name.
+// nodeGuidNameMap maps each known node's attribution key to its display name,
+// keyed by effectiveNodeGuid so a cloned node's IPs (stored under its node-unique
+// key) still resolve to the right name instead of colliding under a shared GUID.
 func (s *InboundService) nodeGuidNameMap() map[string]string {
 	db := database.GetDB()
 	var nodes []model.Node
 	if err := db.Model(&model.Node{}).Find(&nodes).Error; err != nil {
 		return map[string]string{}
 	}
+	ptrs := make([]*model.Node, len(nodes))
+	for i := range nodes {
+		ptrs[i] = &nodes[i]
+	}
+	selfGuid, _ := (&SettingService{}).GetPanelGuid()
+	ambiguous := ambiguousNodeGuids(ptrs, selfGuid)
 	m := make(map[string]string, len(nodes))
-	for _, n := range nodes {
-		if n.Guid != "" {
-			m[n.Guid] = n.Name
-		}
+	for i := range nodes {
+		m[effectiveNodeGuid(&nodes[i], ambiguous)] = nodes[i].Name
 	}
 	return m
 }
