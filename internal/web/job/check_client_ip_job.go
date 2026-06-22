@@ -134,21 +134,34 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 
 func (j *CheckClientIpJob) clearAccessLog() {
 	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-	j.checkError(err)
+	if err != nil {
+		j.checkError(err)
+		return
+	}
 	defer logAccessP.Close()
 
 	accessLogPath, err := xray.GetAccessLogPath()
-	j.checkError(err)
+	if err != nil {
+		j.checkError(err)
+		return
+	}
 
 	file, err := os.Open(accessLogPath)
-	j.checkError(err)
+	if err != nil {
+		j.checkError(err)
+		return
+	}
 	defer file.Close()
 
-	_, err = io.Copy(logAccessP, file)
-	j.checkError(err)
+	if _, err = io.Copy(logAccessP, file); err != nil {
+		j.checkError(err)
+		return
+	}
 
-	err = os.Truncate(accessLogPath, 0)
-	j.checkError(err)
+	if err = os.Truncate(accessLogPath, 0); err != nil {
+		j.checkError(err)
+		return
+	}
 
 	j.lastClear = time.Now().Unix()
 }
@@ -188,8 +201,16 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 	emailRegex := regexp.MustCompile(`email: (.+)$`)
 	timestampRegex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})`)
 
-	accessLogPath, _ := xray.GetAccessLogPath()
-	file, _ := os.Open(accessLogPath)
+	accessLogPath, err := xray.GetAccessLogPath()
+	if err != nil {
+		j.checkError(err)
+		return false
+	}
+	file, err := os.Open(accessLogPath)
+	if err != nil {
+		j.checkError(err)
+		return false
+	}
 	defer file.Close()
 
 	// Track IPs with their last seen timestamp
@@ -402,6 +423,15 @@ func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
 		}
 		return false
 	}
+
+	file, err := os.Open(accessLogPath)
+	if err != nil {
+		if iplimitActive {
+			logger.Warning("[LimitIP] Access log is not readable:", err)
+		}
+		return false
+	}
+	_ = file.Close()
 
 	return true
 }
@@ -685,10 +715,30 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	db := database.GetDB()
 	inbound := &model.Inbound{}
 
-	err := db.Model(&model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").First(inbound).Error
-	if err != nil {
-		return nil, err
+	err := db.Model(&model.Inbound{}).
+		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email = ?", clientEmail).
+		First(inbound).Error
+	if err == nil {
+		return inbound, nil
 	}
 
-	return inbound, nil
+	var candidates []model.Inbound
+	if listErr := db.Model(&model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").Find(&candidates).Error; listErr != nil {
+		return nil, listErr
+	}
+	for i := range candidates {
+		settings := map[string][]model.Client{}
+		if jsonErr := json.Unmarshal([]byte(candidates[i].Settings), &settings); jsonErr != nil {
+			continue
+		}
+		for _, client := range settings["clients"] {
+			if client.Email == clientEmail {
+				return &candidates[i], nil
+			}
+		}
+	}
+
+	return nil, err
 }

@@ -60,6 +60,11 @@ func setupIntegrationDB(t *testing.T) {
 // given email and ip limit.
 func seedInboundWithClient(t *testing.T, tag, email string, limitIp int) {
 	t.Helper()
+	seedInboundOnlyWithClient(t, tag, email, limitIp)
+}
+
+func seedInboundOnlyWithClient(t *testing.T, tag, email string, limitIp int) *model.Inbound {
+	t.Helper()
 	settings := map[string]any{
 		"clients": []map[string]any{
 			{
@@ -83,6 +88,21 @@ func seedInboundWithClient(t *testing.T, tag, email string, limitIp int) {
 	if err := database.GetDB().Create(inbound).Error; err != nil {
 		t.Fatalf("seed inbound: %v", err)
 	}
+	return inbound
+}
+
+func seedLinkedInboundWithClient(t *testing.T, tag, email string, limitIp int) *model.Inbound {
+	t.Helper()
+	inbound := seedInboundOnlyWithClient(t, tag, email, limitIp)
+	client := &model.ClientRecord{Email: email}
+	if err := database.GetDB().Create(client).Error; err != nil {
+		t.Fatalf("seed client record: %v", err)
+	}
+	link := &model.ClientInbound{ClientId: client.Id, InboundId: inbound.Id}
+	if err := database.GetDB().Create(link).Error; err != nil {
+		t.Fatalf("seed client inbound link: %v", err)
+	}
+	return inbound
 }
 
 // seed an InboundClientIps row with the given blob.
@@ -168,6 +188,31 @@ func TestRun_DisabledFail2BanSkipsProbeAndBanLog(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("disabled fail2ban should not persist IP-limit rows, got %d", count)
+	}
+}
+
+func TestGetInboundByEmailUsesClientInboundLink(t *testing.T) {
+	setupIntegrationDB(t)
+
+	want := seedLinkedInboundWithClient(t, "linked-inbound", "exact@example.com", 1)
+	seedInboundOnlyWithClient(t, "other-inbound", "not-exact@example.com", 1)
+
+	got, err := (&CheckClientIpJob{}).getInboundByEmail("exact@example.com")
+	if err != nil {
+		t.Fatalf("getInboundByEmail returned error: %v", err)
+	}
+	if got.Id != want.Id {
+		t.Fatalf("getInboundByEmail returned inbound %d, want %d", got.Id, want.Id)
+	}
+}
+
+func TestGetInboundByEmailRejectsSubstringFallbackMatch(t *testing.T) {
+	setupIntegrationDB(t)
+
+	seedInboundOnlyWithClient(t, "substring-only", "joann@example.com", 1)
+
+	if got, err := (&CheckClientIpJob{}).getInboundByEmail("ann@example.com"); err == nil {
+		t.Fatalf("substring email matched inbound %d; want no exact match", got.Id)
 	}
 }
 
