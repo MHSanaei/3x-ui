@@ -111,6 +111,8 @@
     "nodes": "النودز",
     "settings": "إعدادات اللوحة",
     "xray": "إعدادات Xray",
+    "routing": "التوجيه",
+    "outbounds": "الصادرات",
     "apiDocs": "توثيق API",
     "logout": "تسجيل خروج",
     "link": "إدارة",

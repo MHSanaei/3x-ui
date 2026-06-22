@@ -111,6 +111,8 @@
     "nodes": "Düğümler",
     "settings": "Panel Ayarları",
     "xray": "Xray Yapılandırmaları",
+    "routing": "Yönlendirme",
+    "outbounds": "Giden Bağlantılar",
     "apiDocs": "API Belgeleri",
     "logout": "Çıkış Yap",
     "link": "Yönet",

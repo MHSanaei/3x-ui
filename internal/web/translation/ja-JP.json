@@ -111,6 +111,8 @@
     "nodes": "ノード",
     "settings": "パネル設定",
     "xray": "Xray 設定",
+    "routing": "ルーティング",
+    "outbounds": "アウトバウンド",
     "apiDocs": "API ドキュメント",
     "logout": "ログアウト",
     "link": "リンク管理",

@@ -111,6 +111,8 @@
     "nodes": "节点",
     "settings": "面板设置",
     "xray": "Xray 配置",
+    "routing": "路由",
+    "outbounds": "出站",
     "apiDocs": "API 文档",
     "logout": "退出登录",
     "link": "管理",

@@ -111,6 +111,8 @@
     "nodes": "Nodos",
     "settings": "Ajustes del panel",
     "xray": "Configuración Xray",
+    "routing": "Enrutamiento",
+    "outbounds": "Salidas",
     "apiDocs": "Documentación de la API",
     "logout": "Cerrar Sesión",
     "link": "Gestionar",

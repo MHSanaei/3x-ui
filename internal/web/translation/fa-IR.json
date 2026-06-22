@@ -111,6 +111,8 @@
     "nodes": "نودها",
     "settings": "تنظیمات پنل",
     "xray": "پیکربندی Xray",
+    "routing": "مسیریابی",
+    "outbounds": "خروجی‌ها",
     "apiDocs": "مستندات API",
     "logout": "خروج",
     "link": "مدیریت",

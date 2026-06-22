@@ -111,6 +111,8 @@
     "nodes": "Node",
     "settings": "Pengaturan Panel",
     "xray": "Konfigurasi Xray",
+    "routing": "Pengalihan",
+    "outbounds": "Outbound",
     "apiDocs": "Dokumentasi API",
     "logout": "Keluar",
     "link": "Kelola",

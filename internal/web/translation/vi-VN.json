@@ -111,6 +111,8 @@
     "nodes": "Nút",
     "settings": "Cài đặt bảng điều khiển",
     "xray": "Cấu hình Xray",
+    "routing": "Định tuyến",
+    "outbounds": "Outbound",
     "apiDocs": "Tài liệu API",
     "logout": "Đăng xuất",
     "link": "Quản lý",
