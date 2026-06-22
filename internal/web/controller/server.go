@@ -298,7 +298,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := a.serverService.BackupFilename()
+	filename := a.serverService.BackupFilename(c.Request.Host)
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return

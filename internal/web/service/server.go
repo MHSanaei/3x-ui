@@ -1281,25 +1281,30 @@ func (s *ServerService) GetDb() ([]byte, error) {
 }
 
 // BackupFilename returns the filename for a database backup, named after the
-// panel's address — the configured web domain, or the server's public IP when
-// no domain is set — so a downloaded or Telegram-sent backup identifies the
-// server it came from. The extension is .dump on PostgreSQL and .db on SQLite;
-// the base falls back to "x-ui" when no address is known.
-func (s *ServerService) BackupFilename() string {
+// panel's address so a downloaded or Telegram-sent backup identifies the server
+// it came from. requestHost is the browser's address (the getDb handler passes
+// c.Request.Host, matching the host shown in the panel title); it is preferred
+// when present, otherwise the configured web domain and then the server's public
+// IP are used. The extension is .dump on PostgreSQL and .db on SQLite; the base
+// falls back to "x-ui" when no address is known.
+func (s *ServerService) BackupFilename(requestHost string) string {
 	ext := ".db"
 	if database.IsPostgres() {
 		ext = ".dump"
 	}
-	return s.backupHost() + ext
+	return s.backupHost(requestHost) + ext
 }
 
-// backupHost picks the address used to name backup files, preferring the
-// configured web domain and otherwise the cached public IP (IPv4 before IPv6),
-// reduced to safe filename characters.
-func (s *ServerService) backupHost() string {
-	host := ""
-	if domain, err := s.settingService.GetWebDomain(); err == nil {
-		host = strings.TrimSpace(domain)
+// backupHost picks the address used to name backup files: the browser's request
+// host (port stripped, the same value the panel title shows) when available,
+// otherwise the configured web domain and then the cached public IP (IPv4 before
+// IPv6), reduced to safe filename characters.
+func (s *ServerService) backupHost(requestHost string) string {
+	host := extractHostname(strings.TrimSpace(requestHost))
+	if host == "" {
+		if domain, err := s.settingService.GetWebDomain(); err == nil {
+			host = strings.TrimSpace(domain)
+		}
 	}
 	if host == "" {
 		if st := s.LastStatus(); st != nil {
