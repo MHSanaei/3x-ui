@@ -385,10 +385,10 @@ export default function NodeList({
     {
       title: t('clients'),
       align: 'center',
-      width: 160,
+      width: 220,
       render: (_value, record) => (
-        <Space size={2} wrap>
-          <Tag><TeamOutlined /> {record.clientCount || 0}</Tag>
+        <Space size={2}>
+          <Tag style={{ margin: 0 }}><TeamOutlined /> {record.clientCount || 0}</Tag>
           {record.activeCount ? (
             <Tooltip title={t('subscription.active')}>
               <Tag color="green" style={{ margin: 0 }}>{record.activeCount}</Tag>
