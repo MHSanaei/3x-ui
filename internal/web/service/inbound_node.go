@@ -201,6 +201,29 @@ func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnaps
 	return structuralChange, err
 }
 
+// GetNodeInboundTrafficTotals returns the current cumulative up/down for every
+// node-hosted inbound, keyed by tag. The node sync diffs successive snapshots of
+// this to derive per-inbound speed for the dashboard — node inbounds have no
+// local Xray poll to produce live deltas the way local inbounds do.
+func (s *InboundService) GetNodeInboundTrafficTotals() (map[string][2]int64, error) {
+	var rows []struct {
+		Tag  string
+		Up   int64
+		Down int64
+	}
+	if err := database.GetDB().Table("inbounds").
+		Select("tag, up, down").
+		Where("node_id IS NOT NULL").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[string][2]int64, len(rows))
+	for _, r := range rows {
+		out[r.Tag] = [2]int64{r.Up, r.Down}
+	}
+	return out, nil
+}
+
 func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil

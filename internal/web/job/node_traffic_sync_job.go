@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 const (
@@ -37,6 +38,10 @@ type NodeTrafficSyncJob struct {
 	// noGuidIpEndpoint tracks nodes (by id) whose client-IP attribution endpoint
 	// returned 404, so an old-build node is noted once instead of every cycle.
 	noGuidIpEndpoint sync.Map
+	// prevInboundTotals holds the previous poll's cumulative up/down per node
+	// inbound tag, so the next poll can derive a per-inbound speed delta (node
+	// inbounds have no local Xray poll). Touched only from Run (serialized).
+	prevInboundTotals map[string][2]int64
 }
 
 type atomicBool struct {
@@ -140,6 +145,10 @@ func (j *NodeTrafficSyncJob) Run() {
 	// xray's clients and inbounds still age out between traffic polls.
 	j.inboundService.RefreshLocalOnlineClients(nil, nil)
 
+	// Derive per-node-inbound speed every tick (keeps the baseline fresh even
+	// with no dashboard open); only broadcast it when someone is watching.
+	inboundSpeed := j.nodeInboundSpeed()
+
 	if !websocket.HasClients() {
 		return
 	}
@@ -148,12 +157,18 @@ func (j *NodeTrafficSyncJob) Run() {
 	if online == nil {
 		online = []string{}
 	}
-	websocket.BroadcastTraffic(map[string]any{
+	trafficPayload := map[string]any{
 		"onlineClients":  online,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
 		"lastOnlineMap":  lastOnline,
-	})
+	}
+	// Always send the key so the dashboard clears node inbounds that went idle
+	// this tick. A nil result (query error) marshals to null and is skipped
+	// client-side, leaving the last shown value untouched; an empty (non-nil)
+	// slice marshals to [] and clears stale speeds.
+	trafficPayload["nodeTraffics"] = inboundSpeed
+	websocket.BroadcastTraffic(trafficPayload)
 
 	clientStats := map[string]any{}
 	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
@@ -181,6 +196,37 @@ func (j *NodeTrafficSyncJob) Run() {
 // enforce its quota locally (see InboundService.AcceptGlobalTraffic). Scoped
 // per node to the clients that node actually hosts, and throttled — the
 // aggregates only need to reach nodes on a human timescale, not every poll.
+// nodeInboundSpeed diffs the current node-inbound cumulative totals against the
+// previous poll's and returns per-inbound byte deltas (clamped at 0 on a reset),
+// keyed by the central tag the dashboard matches. It updates the baseline for
+// the next poll. A node that failed to sync this tick keeps its stale total, so
+// its delta is 0 — no phantom speed — and a tag seen for the first time yields
+// no delta until the next poll.
+func (j *NodeTrafficSyncJob) nodeInboundSpeed() []*xray.Traffic {
+	totals, err := j.inboundService.GetNodeInboundTrafficTotals()
+	if err != nil {
+		return nil
+	}
+	deltas := make([]*xray.Traffic, 0, len(totals))
+	for tag, cur := range totals {
+		if prev, ok := j.prevInboundTotals[tag]; ok {
+			dUp := cur[0] - prev[0]
+			dDown := cur[1] - prev[1]
+			if dUp < 0 {
+				dUp = 0
+			}
+			if dDown < 0 {
+				dDown = 0
+			}
+			if dUp > 0 || dDown > 0 {
+				deltas = append(deltas, &xray.Traffic{Tag: tag, IsInbound: true, Up: dUp, Down: dDown})
+			}
+		}
+	}
+	j.prevInboundTotals = totals
+	return deltas
+}
+
 func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*model.Node) {
 	j.globalPushMu.Lock()
 	now := time.Now().Unix()
