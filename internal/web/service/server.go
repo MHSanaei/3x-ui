@@ -1229,6 +1229,61 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	return fileContents, nil
 }
 
+// BackupFilename returns the filename for a database backup, named after the
+// panel's address — the configured web domain, or the server's public IP when
+// no domain is set — so a downloaded or Telegram-sent backup identifies the
+// server it came from. The extension is .dump on PostgreSQL and .db on SQLite;
+// the base falls back to "x-ui" when no address is known.
+func (s *ServerService) BackupFilename() string {
+	ext := ".db"
+	if database.IsPostgres() {
+		ext = ".dump"
+	}
+	return s.backupHost() + ext
+}
+
+// backupHost picks the address used to name backup files, preferring the
+// configured web domain and otherwise the cached public IP (IPv4 before IPv6),
+// reduced to safe filename characters.
+func (s *ServerService) backupHost() string {
+	host := ""
+	if domain, err := s.settingService.GetWebDomain(); err == nil {
+		host = strings.TrimSpace(domain)
+	}
+	if host == "" {
+		if st := s.LastStatus(); st != nil {
+			if ip := st.PublicIP.IPv4; ip != "" && ip != "N/A" {
+				host = ip
+			} else if ip := st.PublicIP.IPv6; ip != "" && ip != "N/A" {
+				host = ip
+			}
+		}
+	}
+	return sanitizeBackupHost(host)
+}
+
+// sanitizeBackupHost reduces a host to characters safe in a download filename
+// (the getDb handler enforces ^[a-zA-Z0-9_\-.]+$). IPv6 brackets are stripped
+// and any other character — such as the colons in an IPv6 address — becomes a
+// hyphen. Returns "x-ui" when nothing usable remains.
+func sanitizeBackupHost(host string) string {
+	host = strings.Trim(host, "[]")
+	var b strings.Builder
+	for _, r := range host {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '-', r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('-')
+		}
+	}
+	out := strings.Trim(b.String(), ".-")
+	if out == "" {
+		return "x-ui"
+	}
+	return out
+}
+
 // GetMigration produces a cross-engine migration file plus its filename: on a
 // SQLite panel it returns a portable .dump (SQL text), and on a PostgreSQL panel
 // it returns a .db SQLite database built from the live data. Either output can

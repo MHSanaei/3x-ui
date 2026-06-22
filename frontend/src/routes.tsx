@@ -30,6 +30,8 @@ const routes: RouteObject[] = [
       { path: 'hosts', element: withSuspense(<HostsPage />) },
       { path: 'settings', element: withSuspense(<SettingsPage />) },
       { path: 'xray', element: withSuspense(<XrayPage />) },
+      { path: 'outbound', element: withSuspense(<XrayPage />) },
+      { path: 'routing', element: withSuspense(<XrayPage />) },
       { path: 'api-docs', element: withSuspense(<ApiDocsPage />) },
     ],
   },

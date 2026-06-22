@@ -650,6 +650,9 @@ func main() {
 				return
 			}
 		}
+		if webCertFile != "" || webKeyFile != "" {
+			updateCert(webCertFile, webKeyFile)
+		}
 		if show {
 			showSetting(show)
 		}

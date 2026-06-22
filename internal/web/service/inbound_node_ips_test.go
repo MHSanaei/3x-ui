@@ -103,7 +103,7 @@ func TestGetClientIpNodeAttribution_NewestGuidWins(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("record gA: %v", err)
 	}
-	if err := svc.MergeClientIpsByGuid(map[string]map[string][]model.ClientIpEntry{
+	if err := svc.MergeClientIpsByGuid(nil, map[string]map[string][]model.ClientIpEntry{
 		"gB": {"u@x": {{IP: "9.9.9.9", Timestamp: now}}},
 	}); err != nil {
 		t.Fatalf("merge gB: %v", err)
@@ -145,7 +145,7 @@ func TestGetClientIpsWithNodes_LabelsNodes(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("record local: %v", err)
 	}
-	if err := svc.MergeClientIpsByGuid(map[string]map[string][]model.ClientIpEntry{
+	if err := svc.MergeClientIpsByGuid(nil, map[string]map[string][]model.ClientIpEntry{
 		"node-guid": {"u@x": {{IP: "2.2.2.2", Timestamp: now}}},
 	}); err != nil {
 		t.Fatalf("merge node: %v", err)
