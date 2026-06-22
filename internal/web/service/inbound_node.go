@@ -209,19 +209,20 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	now := time.Now().UnixMilli()
 
 	// originGuidFor attributes a synced inbound to the panel that physically
-	// hosts it: inbounds the node forwards from its own sub-nodes already carry
-	// a non-empty OriginNodeGuid (kept as-is across hops); the node's own local
-	// inbounds report empty, so they are attributed to the node's own key —
-	// effectiveNodeKey, which is the node's panelGuid unless that GUID is
-	// ambiguous (shared with another node or the master, i.e. a cloned server),
-	// in which case it falls back to the node-unique id so #4983 attribution
-	// doesn't collapse two physical nodes into one bucket.
+	// hosts it. A node's OWN inbounds report either an empty origin or — on
+	// builds that set it locally — the node's own panelGuid; both resolve to
+	// selfKey, which is the node's panelGuid unless that GUID is ambiguous
+	// (shared with another node or the master, i.e. a cloned server), in which
+	// case it falls back to the node-unique id so #4983 attribution doesn't
+	// collapse two physical nodes into one bucket. Only a DIFFERENT, non-empty
+	// origin (an inbound the node forwards from its own sub-node) is kept as-is,
+	// so a chained Node1->Node2->Node3 still attributes Node3's inbounds to Node3.
 	var nodeRow model.Node
 	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
 	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
 	guidShared := nodeRow.Guid != "" && selfKey != nodeRow.Guid
 	originGuidFor := func(snapIb *model.Inbound) string {
-		if snapIb.OriginNodeGuid != "" {
+		if snapIb.OriginNodeGuid != "" && snapIb.OriginNodeGuid != nodeRow.Guid {
 			return snapIb.OriginNodeGuid
 		}
 		return selfKey
