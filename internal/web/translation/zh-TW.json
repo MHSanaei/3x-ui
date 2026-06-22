@@ -640,7 +640,7 @@
         "tagHelp": "Optional Xray inbound tag used by routing rules. Leave empty to let the panel assign one automatically (e.g. in-443-tcp).",
         "tagPlaceholder": "Leave empty for auto",
         "tagDuplicate": "Tag already used by another inbound",
-        "tagAutoPreview": "Auto: {{tag}}",
+        "tagAutoPreview": "Auto: {tag}",
         "shareAddrStrategyOptions": {
           "node": "節點地址",
           "listen": "入站監聽地址",

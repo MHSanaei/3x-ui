@@ -83,15 +83,15 @@ func createTestInbound(t *testing.T) *model.Inbound {
 	t.Helper()
 	inboundSvc := &InboundService{}
 	ib := &model.Inbound{
-		Remark:       "e2e-routing-sync",
-		Enable:       true,
-		Port:         59201,
-		Protocol:     model.Protocol("vless"),
-		Tag:          "e2e-routing-tag",
-		Listen:       "",
-		Settings:     `{"clients":[],"decryption":"none","fallbacks":[]}`,
+		Remark:         "e2e-routing-sync",
+		Enable:         true,
+		Port:           59201,
+		Protocol:       model.Protocol("vless"),
+		Tag:            "e2e-routing-tag",
+		Listen:         "",
+		Settings:       `{"clients":[],"decryption":"none","fallbacks":[]}`,
 		StreamSettings: `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`,
-		Sniffing:     `{"enabled":false,"destOverride":["http","tls","quic","fakedns"]}`,
+		Sniffing:       `{"enabled":false,"destOverride":["http","tls","quic","fakedns"]}`,
 	}
 	created, _, err := inboundSvc.AddInbound(ib)
 	if err != nil {
