@@ -423,6 +423,7 @@ export const MsgSchema = z.object({
 export type Msg = z.infer<typeof MsgSchema>;
 
 export const NodeSchema = z.object({
+  activeCount: z.number().int(),
   address: z.string(),
   allowPrivateAddress: z.boolean(),
   apiToken: z.string(),
@@ -433,6 +434,7 @@ export const NodeSchema = z.object({
   cpuPct: z.number(),
   createdAt: z.number().int(),
   depletedCount: z.number().int(),
+  disabledCount: z.number().int(),
   enable: z.boolean(),
   guid: z.string(),
   id: z.number().int(),

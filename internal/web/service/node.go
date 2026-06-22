@@ -179,6 +179,8 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		}
 	}
 	depletedByNode := make(map[int]int)
+	disabledByNode := make(map[int]int)
+	activeByNode := make(map[int]int)
 	if len(trafficRows) > 0 {
 		for _, row := range trafficRows {
 			nodeID, ok := nodeByInbound[row.InboundID]
@@ -187,8 +189,15 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 			}
 			expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
 			exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-			if expired || exhausted {
+			// Same precedence as the inbound page: depleted (expired/exhausted)
+			// wins over disabled, so the two buckets don't double-count.
+			switch {
+			case expired || exhausted:
 				depletedByNode[nodeID]++
+			case !row.Enable:
+				disabledByNode[nodeID]++
+			default:
+				activeByNode[nodeID]++
 			}
 		}
 	}
@@ -198,6 +207,8 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	for _, n := range nodes {
 		n.InboundCount = len(inboundsByNode[n.Id])
 		n.DepletedCount = depletedByNode[n.Id]
+		n.DisabledCount = disabledByNode[n.Id]
+		n.ActiveCount = activeByNode[n.Id]
 		// Online is attributed to the node that physically hosts the client
 		// (by GUID): a client on a sub-node counts under the sub-node, not
 		// the intermediate node it syncs through (#4983).

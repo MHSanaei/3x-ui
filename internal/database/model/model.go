@@ -545,6 +545,8 @@ type Node struct {
 	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
 	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
 	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
+	ActiveCount   int `json:"activeCount" gorm:"-" example:"23"`
+	DisabledCount int `json:"disabledCount" gorm:"-" example:"3"`
 	DepletedCount int `json:"depletedCount" gorm:"-" example:"1"`
 
 	// ParentGuid + Transitive are set only when a node is surfaced as part of a

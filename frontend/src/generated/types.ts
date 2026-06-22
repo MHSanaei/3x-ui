@@ -394,6 +394,7 @@ export interface Msg {
 }
 
 export interface Node {
+  activeCount: number;
   address: string;
   allowPrivateAddress: boolean;
   apiToken: string;
@@ -404,6 +405,7 @@ export interface Node {
   cpuPct: number;
   createdAt: number;
   depletedCount: number;
+  disabledCount: number;
   enable: boolean;
   guid: string;
   id: number;

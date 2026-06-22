@@ -396,6 +396,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "success": false
   },
   "Node": {
+    "activeCount": 23,
     "address": "node1.example.com",
     "allowPrivateAddress": false,
     "apiToken": "abcdef0123456789",
@@ -406,6 +407,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "cpuPct": 23.5,
     "createdAt": 1700000000,
     "depletedCount": 1,
+    "disabledCount": 3,
     "enable": true,
     "guid": "",
     "id": 1,

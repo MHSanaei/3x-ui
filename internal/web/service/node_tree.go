@@ -201,6 +201,8 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 
 	now := time.Now().UnixMilli()
 	depletedByGuid := make(map[string]int)
+	disabledByGuid := make(map[string]int)
+	activeByGuid := make(map[string]int)
 	if len(ids) > 0 {
 		type tRow struct {
 			InboundID  int `gorm:"column:inbound_id"`
@@ -221,8 +223,15 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 				}
 				expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
 				exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-				if expired || exhausted {
+				// Depleted (expired/exhausted) wins over disabled, matching the
+				// inbound page, so the buckets stay mutually exclusive.
+				switch {
+				case expired || exhausted:
 					depletedByGuid[guid]++
+				case !row.Enable:
+					disabledByGuid[guid]++
+				default:
+					activeByGuid[guid]++
 				}
 			}
 		}
@@ -234,5 +243,7 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 		n.InboundCount = inboundCountByGuid[guid]
 		n.OnlineCount = len(onlineByGuid[guid])
 		n.DepletedCount = depletedByGuid[guid]
+		n.DisabledCount = disabledByGuid[guid]
+		n.ActiveCount = activeByGuid[guid]
 	}
 }
