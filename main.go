@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
+	"github.com/mhsanaei/3x-ui/v3/internal/tunnelmonitor"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web"
@@ -100,6 +102,27 @@ func runWebServer() {
 		default:
 		}
 	})
+
+	var stopTunnelHealthMonitor context.CancelFunc
+	monitorCfg := tunnelmonitor.ConfigFromEnv()
+	if monitorCfg.Enabled {
+		monitorCtx, cancel := context.WithCancel(context.Background())
+		stopTunnelHealthMonitor = cancel
+
+		monitor, err := tunnelmonitor.New(monitorCfg, func(ctx context.Context) error {
+			select {
+			case sigCh <- sys.SIGUSR1:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
+		if err != nil {
+			logger.Warning("Tunnel health monitor disabled: ", err)
+		} else {
+			go monitor.Run(monitorCtx)
+		}
+	}
 	for {
 		sig := <-sigCh
 
@@ -142,6 +165,10 @@ func runWebServer() {
 			}
 
 		default:
+			if stopTunnelHealthMonitor != nil {
+				stopTunnelHealthMonitor()
+			}
+
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
 			tgbot.StopBot()
 			// ------------------------------------------------------------
