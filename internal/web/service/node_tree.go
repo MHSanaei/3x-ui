@@ -221,7 +221,7 @@ func (s *NodeService) recountByGuid(nodes []*model.Node, selfGuid string) {
 				}
 				expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
 				exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-				if expired || exhausted || !row.Enable {
+				if expired || exhausted {
 					depletedByGuid[guid]++
 				}
 			}

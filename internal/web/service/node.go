@@ -187,7 +187,7 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 			}
 			expired := row.ExpiryTime > 0 && row.ExpiryTime <= now
 			exhausted := row.Total > 0 && row.Up+row.Down >= row.Total
-			if expired || exhausted || !row.Enable {
+			if expired || exhausted {
 				depletedByNode[nodeID]++
 			}
 		}
