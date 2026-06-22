@@ -3316,6 +3316,45 @@
         }
       }
     },
+    "/panel/api/server/fail2banStatus": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the \"IP Limit\" field, since enforcement depends on Fail2ban being installed.",
+        "operationId": "get_panel_api_server_fail2banStatus",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "enabled": true,
+                    "installed": true,
+                    "usable": true,
+                    "windows": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/cpuHistory/{bucket}": {
       "get": {
         "tags": [

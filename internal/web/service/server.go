@@ -142,6 +142,10 @@ type ServerService struct {
 
 	versionsCacheMu sync.Mutex
 	versionsCache   *cachedXrayVersions
+
+	fail2banMu        sync.Mutex
+	fail2banInstalled bool
+	fail2banCheckedAt time.Time
 }
 
 type cachedXrayVersions struct {
@@ -183,6 +187,53 @@ func (s *ServerService) LastStatus() *Status {
 	s.lastStatusMu.RLock()
 	defer s.lastStatusMu.RUnlock()
 	return s.lastStatus
+}
+
+// Fail2banStatus tells the frontend whether the per-client IP limit can
+// actually be enforced. Enforcement depends on fail2ban, so a limit set
+// without it would silently do nothing.
+type Fail2banStatus struct {
+	Enabled   bool `json:"enabled"`
+	Installed bool `json:"installed"`
+	Usable    bool `json:"usable"`
+	Windows   bool `json:"windows"`
+}
+
+const fail2banInstalledCacheTTL = 30 * time.Second
+
+func (s *ServerService) GetFail2banStatus() Fail2banStatus {
+	enabled := isFail2banEnabled()
+
+	installed := false
+	if enabled {
+		installed = s.isFail2banInstalled()
+	}
+
+	return Fail2banStatus{
+		Enabled:   enabled,
+		Installed: installed,
+		Usable:    enabled && installed,
+		Windows:   runtime.GOOS == "windows",
+	}
+}
+
+func isFail2banEnabled() bool {
+	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	return !ok || value == "true"
+}
+
+func (s *ServerService) isFail2banInstalled() bool {
+	s.fail2banMu.Lock()
+	defer s.fail2banMu.Unlock()
+
+	if !s.fail2banCheckedAt.IsZero() && time.Since(s.fail2banCheckedAt) < fail2banInstalledCacheTTL {
+		return s.fail2banInstalled
+	}
+
+	err := exec.Command("fail2ban-client", "-h").Run()
+	s.fail2banInstalled = err == nil
+	s.fail2banCheckedAt = time.Now()
+	return s.fail2banInstalled
 }
 
 // RefreshStatus collects a new system snapshot, stores it as LastStatus, and
