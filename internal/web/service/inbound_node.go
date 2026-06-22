@@ -499,6 +499,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if dirty {
 			continue
 		}
+		if len(snapTags) == 0 {
+			// A node mid-restart or with a transient DB error can return an empty
+			// inbound list with success=true. Treat "zero inbounds reported" as
+			// "nothing to say", not "delete all my inbounds" — otherwise a blip
+			// wipes the node's central inbounds and every client on them (and
+			// resets traffic history on re-create). A real per-inbound deletion
+			// still sweeps, because the node keeps reporting its other inbounds.
+			continue
+		}
 		if _, kept := snapTags[c.Tag]; kept {
 			continue
 		}

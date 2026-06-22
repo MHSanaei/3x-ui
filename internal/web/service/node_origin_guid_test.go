@@ -131,6 +131,43 @@ func TestSetRemoteTraffic_RemapsClonedNodeOwnGuidOrigin(t *testing.T) {
 	}
 }
 
+// A node mid-restart can return an empty inbound list with success=true. The
+// sync must NOT treat that as "delete all my inbounds" — otherwise a blip wipes
+// the node's central inbounds and every client on them (what happened to the
+// Germany node: 0 clients but still online).
+func TestSetRemoteTraffic_EmptySnapshotKeepsCentralInbounds(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	const nodeID = 1
+	if err := db.Create(&model.Node{
+		Id: nodeID, Name: "n", Address: "10.0.0.1", Port: 2053, ApiToken: "t", Guid: "g",
+	}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	nidPtr := nodeID
+	if err := db.Create(&model.Inbound{
+		UserId: 1, NodeID: &nidPtr, Tag: "remote-in", Enable: true,
+		Port: 443, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+	}).Error; err != nil {
+		t.Fatalf("create central inbound: %v", err)
+	}
+
+	// Empty snapshot — the node reported no inbounds this cycle.
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(nodeID, &runtime.TrafficSnapshot{}, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	var count int64
+	if err := db.Model(&model.Inbound{}).Where("tag = ?", "remote-in").Count(&count).Error; err != nil {
+		t.Fatalf("count inbounds: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("empty snapshot must not delete the central inbound; got count = %d", count)
+	}
+}
+
 func TestSetRemoteTraffic_PreservesLocalShareAddressStrategy(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
