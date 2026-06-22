@@ -385,28 +385,28 @@ export default function NodeList({
     {
       title: t('clients'),
       align: 'center',
-      width: 220,
+      width: 180,
       render: (_value, record) => (
         <Space size={2}>
-          <Tag style={{ margin: 0 }}><TeamOutlined /> {record.clientCount || 0}</Tag>
+          <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}><TeamOutlined /> {record.clientCount || 0}</Tag>
           {record.activeCount ? (
             <Tooltip title={t('subscription.active')}>
-              <Tag color="green" style={{ margin: 0 }}>{record.activeCount}</Tag>
+              <Tag color="green" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.activeCount}</Tag>
             </Tooltip>
           ) : null}
           {record.disabledCount ? (
             <Tooltip title={t('disabled')}>
-              <Tag style={{ margin: 0 }}>{record.disabledCount}</Tag>
+              <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.disabledCount}</Tag>
             </Tooltip>
           ) : null}
           {record.depletedCount ? (
             <Tooltip title={t('depleted')}>
-              <Tag color="red" style={{ margin: 0 }}>{record.depletedCount}</Tag>
+              <Tag color="red" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.depletedCount}</Tag>
             </Tooltip>
           ) : null}
           {record.onlineCount ? (
             <Tooltip title={t('online')}>
-              <Tag color="blue" style={{ margin: 0 }}>{record.onlineCount}</Tag>
+              <Tag color="blue" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.onlineCount}</Tag>
             </Tooltip>
           ) : null}
         </Space>
