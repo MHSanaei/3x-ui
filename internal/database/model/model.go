@@ -57,6 +57,11 @@ type Inbound struct {
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
+	// Multiplier scales how fast a client's Real traffic on this inbound draws down
+	// its quota (Billed = Real × Multiplier). 0.1–100, default 1. Governs client
+	// quota accounting only — the inbound's own Up/Down/Total above stay Real.
+	Multiplier float64 `json:"multiplier" form:"multiplier" gorm:"default:1" validate:"omitempty,gte=0.1,lte=100" example:"1"`
+
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`

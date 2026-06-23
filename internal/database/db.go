@@ -80,6 +80,7 @@ func initModels() error {
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
+		&model.ClientInboundTraffic{},
 	}
 	for _, mdl := range models {
 		if err := db.AutoMigrate(mdl); err != nil {
@@ -106,6 +107,9 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := backfillBilledTraffic(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -124,6 +128,19 @@ func dropLegacyForeignKeys() error {
 		return err
 	}
 	return nil
+}
+
+// backfillBilledTraffic seeds the Billed columns (billed_up/billed_down on
+// client_traffics) added for the Traffic Multiplier feature. Existing rows
+// predate multipliers — every inbound was effectively 1x — so Billed == Real for
+// them. Idempotent by construction: only rows whose Billed is still zero while
+// Real moved are seeded, so a later restart (active clients already have Billed
+// > 0) and a freshly reset client (Real 0) are both left untouched. Runs right
+// after AutoMigrate so quota enforcement on Billed is correct from first boot.
+func backfillBilledTraffic() error {
+	return db.Exec(
+		`UPDATE client_traffics SET billed_up = up, billed_down = down WHERE billed_up = 0 AND billed_down = 0 AND (up > 0 OR down > 0)`,
+	).Error
 }
 
 // migrateHostVerifyPeerCertByNameColumn converts hosts.verify_peer_cert_by_name

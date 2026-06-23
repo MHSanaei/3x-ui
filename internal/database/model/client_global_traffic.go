@@ -16,5 +16,9 @@ type ClientGlobalTraffic struct {
 	Email      string `json:"email" gorm:"uniqueIndex:idx_master_email,priority:2;index:idx_client_global_email;not null"`
 	Up         int64  `json:"up"`
 	Down       int64  `json:"down"`
-	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	// BilledUp/BilledDown carry the master's aggregated Billed total so a node can
+	// enforce the fleet-wide billed quota locally. Folded with MAX, like Up/Down.
+	BilledUp   int64 `json:"billedUp" gorm:"default:0"`
+	BilledDown int64 `json:"billedDown" gorm:"default:0"`
+	UpdatedAt  int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
