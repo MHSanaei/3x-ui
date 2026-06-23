@@ -54,3 +54,38 @@ func TestAggregateTrafficByEmails_FallsBackToClientLimits(t *testing.T) {
 		t.Errorf("expiry = %d, want %d (fallback to clients table)", agg.ExpiryTime, expiry)
 	}
 }
+
+// The aggregate must carry Billed alongside Real so the Subscription-Userinfo
+// header, the sub info page and the remark tokens all report the figure quota
+// enforcement actually cuts on (Billed), keeping them consistent on non-1x
+// inbounds where Billed != Real.
+func TestAggregateTrafficByEmails_CarriesBilled(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	const email = "billed@example.com"
+	db := database.GetDB()
+	if err := db.Create(&xray.ClientTraffic{
+		Email:      email,
+		Up:         100,
+		Down:       200,
+		BilledUp:   250,
+		BilledDown: 400,
+		Enable:     true,
+	}).Error; err != nil {
+		t.Fatalf("seed client traffic: %v", err)
+	}
+
+	var s SubService
+	agg, _ := s.AggregateTrafficByEmails([]string{email})
+	if agg.Up != 100 || agg.Down != 200 {
+		t.Errorf("real = up %d/down %d, want 100/200", agg.Up, agg.Down)
+	}
+	if agg.BilledUp != 250 || agg.BilledDown != 400 {
+		t.Errorf("billed = up %d/down %d, want 250/400", agg.BilledUp, agg.BilledDown)
+	}
+}

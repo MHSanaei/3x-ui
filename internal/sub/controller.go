@@ -176,7 +176,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		}
 
 		// Add headers
-		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.BilledUp, traffic.BilledDown, traffic.Total, traffic.ExpiryTime/1000)
 		profileUrl := a.subProfileUrl
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)

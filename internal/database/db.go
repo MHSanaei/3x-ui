@@ -130,16 +130,26 @@ func dropLegacyForeignKeys() error {
 	return nil
 }
 
-// backfillBilledTraffic seeds the Billed columns (billed_up/billed_down on
-// client_traffics) added for the Traffic Multiplier feature. Existing rows
-// predate multipliers — every inbound was effectively 1x — so Billed == Real for
-// them. Idempotent by construction: only rows whose Billed is still zero while
-// Real moved are seeded, so a later restart (active clients already have Billed
-// > 0) and a freshly reset client (Real 0) are both left untouched. Runs right
-// after AutoMigrate so quota enforcement on Billed is correct from first boot.
+// backfillBilledTraffic seeds the Billed columns (billed_up/billed_down) added
+// for the Traffic Multiplier feature on both client_traffics and the per-node
+// delta baseline node_client_traffics. Existing rows predate multipliers — every
+// inbound was effectively 1x — so Billed == Real for them. Seeding the node
+// baseline is load-bearing on a multi-node master: AutoMigrate adds billed_* with
+// default 0 while up/down keep their pre-upgrade totals, so without this the first
+// node-traffic sync would fold deltaBilled = canon.Billed - 0 (the node's entire
+// history) on top of the already-backfilled client_traffics, one-time double-billing
+// every node client. Idempotent by construction: only rows whose Billed is still
+// zero while Real moved are seeded, so a later restart (active rows already have
+// Billed > 0) and a freshly reset client (Real 0) are both left untouched. Runs
+// right after AutoMigrate so quota enforcement on Billed is correct from first boot.
 func backfillBilledTraffic() error {
-	return db.Exec(
+	if err := db.Exec(
 		`UPDATE client_traffics SET billed_up = up, billed_down = down WHERE billed_up = 0 AND billed_down = 0 AND (up > 0 OR down > 0)`,
+	).Error; err != nil {
+		return err
+	}
+	return db.Exec(
+		`UPDATE node_client_traffics SET billed_up = up, billed_down = down WHERE billed_up = 0 AND billed_down = 0 AND (up > 0 OR down > 0)`,
 	).Error
 }
 

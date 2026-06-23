@@ -534,8 +534,9 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 			ipLogger.Printf("[LIMIT_IP] Email = %s || Disconnecting OLD IP = %s || Timestamp = %d", clientEmail, ipTime.IP, ipTime.Timestamp)
 		}
 
-		// force xray to drop existing connections from banned ips
-		j.disconnectClientTemporarily(inbound, clientEmail, clients)
+		// force xray to drop existing connections from banned ips, on every inbound
+		// the client is attached to (not just the one resolved by email)
+		j.disconnectClientAcrossInbounds(inbound, clientEmail, clients)
 	}
 
 	// keep kept-live + historical in the blob so the panel keeps showing
@@ -699,4 +700,38 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	}
 
 	return inbound, nil
+}
+
+func (j *CheckClientIpJob) getInboundsByEmail(clientEmail string) ([]*model.Inbound, error) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	if err := db.Model(&model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").Find(&inbounds).Error; err != nil {
+		return nil, err
+	}
+	return inbounds, nil
+}
+
+// disconnectClientAcrossInbounds force-drops clientEmail on every inbound it is
+// attached to. The IP-limit count is aggregated per logical client across all of
+// the client's inbounds, but Xray meters each (client, inbound) pair under its own
+// per-attachment identity, so a single-inbound remove/re-add would leave the
+// over-limit connection alive on the client's other inbounds. primary is the
+// inbound the caller already resolved; its parsed clients are reused to avoid a
+// reparse. A substring settings match that isn't a real attachment is harmless:
+// disconnectClientTemporarily exact-matches the email and returns early when absent.
+func (j *CheckClientIpJob) disconnectClientAcrossInbounds(primary *model.Inbound, clientEmail string, primaryClients []model.Client) {
+	inbounds, err := j.getInboundsByEmail(clientEmail)
+	if err != nil || len(inbounds) == 0 {
+		j.disconnectClientTemporarily(primary, clientEmail, primaryClients)
+		return
+	}
+	for _, ib := range inbounds {
+		clients := primaryClients
+		if ib.Id != primary.Id {
+			settings := map[string][]model.Client{}
+			json.Unmarshal([]byte(ib.Settings), &settings)
+			clients = settings["clients"]
+		}
+		j.disconnectClientTemporarily(ib, clientEmail, clients)
+	}
 }

@@ -463,7 +463,7 @@ func clientMatchesBucket(c ClientWithAttachments, bucket string, onlineSet map[s
 	}
 	used := int64(0)
 	if c.Traffic != nil {
-		used = c.Traffic.Up + c.Traffic.Down
+		used = c.Traffic.BilledUp + c.Traffic.BilledDown
 	}
 	exhausted := c.TotalGB > 0 && used >= c.TotalGB
 	expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs
@@ -523,7 +523,7 @@ func sortClients(rows []ClientWithAttachments, sortKey, order string) {
 			if a.TotalGB > 0 {
 				used := int64(0)
 				if a.Traffic != nil {
-					used = a.Traffic.Up + a.Traffic.Down
+					used = a.Traffic.BilledUp + a.Traffic.BilledDown
 				}
 				ra = a.TotalGB - used
 			}
@@ -531,7 +531,7 @@ func sortClients(rows []ClientWithAttachments, sortKey, order string) {
 			if b.TotalGB > 0 {
 				used := int64(0)
 				if b.Traffic != nil {
-					used = b.Traffic.Up + b.Traffic.Down
+					used = b.Traffic.BilledUp + b.Traffic.BilledDown
 				}
 				rb = b.TotalGB - used
 			}

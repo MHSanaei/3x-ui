@@ -100,7 +100,10 @@ export default function InboundList({
     let rows = dbInbounds;
     if (nodeFilter === 0) rows = rows.filter((ib) => ib.nodeId == null);
     else if (nodeFilter !== 'all') rows = rows.filter((ib) => ib.nodeId === nodeFilter);
-    if (multiplierFilter) {
+    // Only honour the multiplier filter while its control is shown; otherwise a
+    // stale selection (left over after the last non-1x inbound became 1x) would
+    // keep hiding rows with no visible way to clear it.
+    if (hasMultipliers && multiplierFilter) {
       rows = rows.filter((ib) => {
         const m = inboundMultiplier(ib);
         switch (multiplierFilter) {
@@ -112,7 +115,7 @@ export default function InboundList({
       });
     }
     return rows;
-  }, [dbInbounds, nodeFilter, multiplierFilter]);
+  }, [dbInbounds, nodeFilter, multiplierFilter, hasMultipliers]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;

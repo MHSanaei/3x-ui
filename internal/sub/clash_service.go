@@ -107,7 +107,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", err
 	}
 
-	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.BilledUp, traffic.BilledDown, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalYAML), header, nil
 }
 

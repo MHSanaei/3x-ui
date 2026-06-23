@@ -220,7 +220,7 @@ func (t *Tgbot) getExhausted(chatId int64) {
 					seenClients[client.Email] = true
 					if client.Enable {
 						if (client.ExpiryTime > 0 && (client.ExpiryTime-now < exDiff)) ||
-							(client.Total > 0 && (client.Total-(client.Up+client.Down) < trDiff)) {
+							(client.Total > 0 && (client.Total-(client.BilledUp+client.BilledDown) < trDiff)) {
 							exhaustedClients = append(exhaustedClients, client)
 						}
 					} else {
@@ -322,7 +322,7 @@ func (t *Tgbot) notifyExhausted() {
 									for _, traffic := range traffics {
 										if traffic.Enable {
 											if (traffic.ExpiryTime > 0 && (traffic.ExpiryTime-now < exDiff)) ||
-												(traffic.Total > 0 && (traffic.Total-(traffic.Up+traffic.Down) < trDiff)) {
+												(traffic.Total > 0 && (traffic.Total-(traffic.BilledUp+traffic.BilledDown) < trDiff)) {
 												exhaustedClients = append(exhaustedClients, *traffic)
 											}
 										} else {

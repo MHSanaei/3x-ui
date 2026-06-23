@@ -297,6 +297,8 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 		if first {
 			agg.Up = ct.Up
 			agg.Down = ct.Down
+			agg.BilledUp = ct.BilledUp
+			agg.BilledDown = ct.BilledDown
 			agg.Total = total
 			agg.ExpiryTime = subscriptionExpiryFromClient(now, expiry)
 			first = false
@@ -304,6 +306,8 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 		}
 		agg.Up += ct.Up
 		agg.Down += ct.Down
+		agg.BilledUp += ct.BilledUp
+		agg.BilledDown += ct.BilledDown
 		if agg.Total == 0 || total == 0 {
 			agg.Total = 0
 		} else {
@@ -2313,14 +2317,14 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
 func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, emails []string, subURL, subJsonURL, subClashURL string, basePath string, subTitle string, subSupportUrl string) PageData {
-	download := common.FormatTraffic(traffic.Down)
-	upload := common.FormatTraffic(traffic.Up)
+	download := common.FormatTraffic(traffic.BilledDown)
+	upload := common.FormatTraffic(traffic.BilledUp)
 	total := "∞"
-	used := common.FormatTraffic(traffic.Up + traffic.Down)
+	used := common.FormatTraffic(traffic.BilledUp + traffic.BilledDown)
 	remained := ""
 	if traffic.Total > 0 {
 		total = common.FormatTraffic(traffic.Total)
-		left := max(traffic.Total-(traffic.Up+traffic.Down), 0)
+		left := max(traffic.Total-(traffic.BilledUp+traffic.BilledDown), 0)
 		remained = common.FormatTraffic(left)
 	}
 
