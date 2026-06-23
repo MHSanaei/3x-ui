@@ -936,7 +936,7 @@ func (s *ServerService) fetchXrayDigestSHA256(client *http.Client, dgstURL strin
 // parseXrayDigestSHA256 extracts the lowercase SHA2-256 hex from an XTLS .dgst
 // file, whose lines are "ALGO= <hex>" (the relevant one being "SHA2-256= ...").
 func parseXrayDigestSHA256(dgst []byte) (string, error) {
-	for _, line := range strings.Split(string(dgst), "\n") {
+	for line := range strings.SplitSeq(string(dgst), "\n") {
 		rest, ok := strings.CutPrefix(strings.TrimSpace(line), "SHA2-256=")
 		if !ok {
 			continue
