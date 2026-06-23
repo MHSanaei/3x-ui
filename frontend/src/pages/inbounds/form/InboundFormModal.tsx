@@ -193,7 +193,6 @@ export default function InboundFormModal({
   // actually live on a node — otherwise the node address it would resolve to is
   // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
-  const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
   const ssMethod = Form.useWatch(['settings', 'method'], form);
   const isSSWith2022 = isSS2022({
@@ -709,7 +708,7 @@ export default function InboundFormModal({
   // etc., not empty strings).
   // Seed each network's settings blob with its Zod schema defaults so
   // every Form.Item inside the network sub-form has a defined starting
-  // value. XHTTP in particular has ~20 fields (sessionPlacement,
+  // value. XHTTP in particular has ~20 fields (sessionIDPlacement,
   // seqPlacement, xPaddingMethod, uplinkHTTPMethod, ...) whose value
   // is the literal "" sentinel meaning "let xray-core pick its
   // default". Without seeding "", the Form.Item reads `undefined` and
@@ -977,7 +976,7 @@ export default function InboundFormModal({
     </div>
   );
 
-  const sniffingTab = <SniffingTab sniffingEnabled={sniffingEnabled} />;
+  const sniffingTab = <SniffingTab />;
 
   return (
     <>

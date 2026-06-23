@@ -182,7 +182,6 @@ describe('outbound-form-adapter: round-trip', () => {
         mtu: 1420,
         secretKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
         address: ['10.0.0.1', 'fd00::1'],
-        workers: 2,
         peers: [{ publicKey: 'pk', allowedIPs: ['0.0.0.0/0'], endpoint: 'e:51820', preSharedKey: 'psk' }],
         reserved: [1, 2, 3],
         noKernelTun: false,
@@ -357,6 +356,39 @@ describe('outbound-form-adapter: round-trip', () => {
       settings: { inboundTag: 'tagged-inbound' },
     }));
     expect(back.settings).toEqual({ inboundTag: 'tagged-inbound' });
+  });
+
+  it('loopback omits sniffing when disabled', () => {
+    const form = rawOutboundToFormValues({
+      protocol: 'loopback',
+      settings: { inboundTag: 'tagged-inbound' },
+    });
+    if (form.protocol === 'loopback') {
+      expect(form.settings.sniffing.enabled).toBe(false);
+    }
+    const back = formValuesToWirePayload(form);
+    expect(back.settings).not.toHaveProperty('sniffing');
+  });
+
+  it('loopback round-trips sniffing when enabled', () => {
+    const wire = {
+      protocol: 'loopback',
+      settings: {
+        inboundTag: 'tagged-inbound',
+        sniffing: { enabled: true, destOverride: ['tls', 'http'], routeOnly: true },
+      },
+    };
+    const form = rawOutboundToFormValues(wire);
+    if (form.protocol === 'loopback') {
+      expect(form.settings.sniffing.enabled).toBe(true);
+      expect(form.settings.sniffing.destOverride).toEqual(['tls', 'http']);
+      expect(form.settings.sniffing.routeOnly).toBe(true);
+    }
+    const back = formValuesToWirePayload(form);
+    const sniffing = (back.settings as Record<string, unknown>).sniffing as Record<string, unknown>;
+    expect(sniffing.enabled).toBe(true);
+    expect(sniffing.destOverride).toEqual(['tls', 'http']);
+    expect(sniffing.routeOnly).toBe(true);
   });
 
   it('unknown protocol falls back to vless without throwing', () => {

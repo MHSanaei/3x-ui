@@ -747,7 +747,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			url.QueryEscape(inboundPassword),
 			url.QueryEscape(clients[clientIndex].Password))
 	} else {
-		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, clients[clientIndex].Password))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -1731,7 +1731,7 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 
 	stringFields := []string{
 		"uplinkHTTPMethod",
-		"sessionPlacement", "sessionKey",
+		"sessionIDPlacement", "sessionIDKey", "sessionIDTable", "sessionIDLength",
 		"seqPlacement", "seqKey",
 		"uplinkDataPlacement", "uplinkDataKey",
 		"scMaxEachPostBytes", "scMinPostsIntervalMs",
@@ -1747,6 +1747,20 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	for _, field := range stringFields {
 		if v, ok := xhttp[field].(string); ok && len(v) > 0 && v != coreDefaults[field] {
 			extra[field] = v
+		}
+	}
+
+	// Legacy inbounds (pre xray-core #6258) stored sessionPlacement/sessionKey.
+	// Lift them onto the renamed keys so links from not-yet-resaved configs
+	// still carry the session settings. Mirrors the frontend migration.
+	for legacy, renamed := range map[string]string{
+		"sessionPlacement": "sessionIDPlacement",
+		"sessionKey":       "sessionIDKey",
+	} {
+		if _, exists := extra[renamed]; !exists {
+			if v, ok := xhttp[legacy].(string); ok && len(v) > 0 {
+				extra[renamed] = v
+			}
 		}
 	}
 

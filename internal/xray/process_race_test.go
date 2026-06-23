@@ -19,9 +19,7 @@ func TestProcessLifecycleFieldsRaceSafe(t *testing.T) {
 	stop := make(chan struct{})
 
 	// Writer: churn cmd/done/exitErr like Start + waitForCommand.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case <-stop:
@@ -34,13 +32,11 @@ func TestProcessLifecycleFieldsRaceSafe(t *testing.T) {
 			p.mu.Unlock()
 			p.setExitErr(errors.New("boom"))
 		}
-	}()
+	})
 
 	// Readers: the concurrent status getters.
-	for i := 0; i < 4; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 4 {
+		wg.Go(func() {
 			for {
 				select {
 				case <-stop:
@@ -51,7 +47,7 @@ func TestProcessLifecycleFieldsRaceSafe(t *testing.T) {
 				_ = p.GetErr()
 				_ = p.GetResult()
 			}
-		}()
+		})
 	}
 
 	time.Sleep(50 * time.Millisecond)

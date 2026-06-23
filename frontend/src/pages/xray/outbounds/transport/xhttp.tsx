@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
+import { AutoComplete, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
 
 import { HeaderMapEditor } from '@/components/form';
+import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
+import { XHTTP_SESSION_ID_TABLES } from '@/schemas/protocols/stream/xhttp';
 
 import { MODE_OPTIONS } from '../outbound-form-constants';
 
@@ -145,7 +147,7 @@ export default function XhttpForm({ form, onXmuxToggle }: XhttpFormProps) {
           only matters when placement is not 'path'. */}
       <Form.Item
         label={t('pages.inbounds.form.sessionPlacement')}
-        name={['streamSettings', 'xhttpSettings', 'sessionPlacement']}
+        name={['streamSettings', 'xhttpSettings', 'sessionIDPlacement']}
       >
         <Select
           placeholder="Default (path)"
@@ -161,15 +163,45 @@ export default function XhttpForm({ form, onXmuxToggle }: XhttpFormProps) {
       <Form.Item shouldUpdate noStyle>
         {() => {
           const placement = form.getFieldValue([
-            'streamSettings', 'xhttpSettings', 'sessionPlacement',
+            'streamSettings', 'xhttpSettings', 'sessionIDPlacement',
           ]);
           if (!placement || placement === 'path') return null;
           return (
             <Form.Item
               label={t('pages.inbounds.form.sessionKey')}
-              name={['streamSettings', 'xhttpSettings', 'sessionKey']}
+              name={['streamSettings', 'xhttpSettings', 'sessionIDKey']}
             >
               <Input placeholder="x_session" />
+            </Form.Item>
+          );
+        }}
+      </Form.Item>
+      <Form.Item
+        label={t('pages.inbounds.form.sessionIDTable')}
+        tooltip={t('pages.inbounds.form.sessionIDTableHint')}
+        name={['streamSettings', 'xhttpSettings', 'sessionIDTable']}
+        rules={[{ validator: validateSessionIDTable }]}
+      >
+        <AutoComplete
+          allowClear
+          options={XHTTP_SESSION_ID_TABLES.map((v) => ({ value: v }))}
+          placeholder="Base62"
+        />
+      </Form.Item>
+      <Form.Item shouldUpdate noStyle>
+        {() => {
+          const table = form.getFieldValue([
+            'streamSettings', 'xhttpSettings', 'sessionIDTable',
+          ]);
+          if (!table) return null;
+          return (
+            <Form.Item
+              label={t('pages.inbounds.form.sessionIDLength')}
+              tooltip={t('pages.inbounds.form.sessionIDLengthHint')}
+              name={['streamSettings', 'xhttpSettings', 'sessionIDLength']}
+              rules={[{ validator: validateSessionIDLength }]}
+            >
+              <Input placeholder="8-16" />
             </Form.Item>
           );
         }}

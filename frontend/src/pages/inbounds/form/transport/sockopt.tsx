@@ -11,8 +11,10 @@ const TRANSPORT_PROXY_FIELD: Record<string, string> = {
   ws: 'wsSettings',
   httpupgrade: 'httpupgradeSettings',
 };
-// Transports on which xray-core honors sockopt.trustedXForwardedFor.
-const TRUSTED_HEADER_NETWORKS = ['ws', 'httpupgrade', 'xhttp'];
+// Transports on which xray-core honors sockopt.trustedXForwardedFor. gRPC joined
+// in v26.6.22 (xray-core 711aea4): it now reads X-Forwarded-For via this option
+// instead of the old x-real-ip gRPC metadata.
+const TRUSTED_HEADER_NETWORKS = ['ws', 'httpupgrade', 'xhttp', 'grpc'];
 
 type RealClientIpPreset = 'off' | 'cloudflare' | 'proxy';
 
@@ -27,7 +29,7 @@ export default function SockoptForm({
 
   // Presets write the same sockopt fields the user could set by hand below,
   // picking the mechanism xray-core actually honors for the chosen transport:
-  // CF-Connecting-IP via trustedXForwardedFor (ws/httpupgrade/xhttp) or the
+  // CF-Connecting-IP via trustedXForwardedFor (ws/httpupgrade/xhttp/grpc) or the
   // PROXY-protocol header via acceptProxyProtocol (every transport but mKCP).
   const applyRealClientIpPreset = (
     preset: RealClientIpPreset,
@@ -60,7 +62,7 @@ export default function SockoptForm({
     }
 
     // proxy — clear trustedXForwardedFor so a lingering header can't override the
-    // PROXY-recovered IP (xray reads the header last on ws/httpupgrade/xhttp).
+    // PROXY-recovered IP (xray reads the header last on ws/httpupgrade/xhttp/grpc).
     setFieldValue(['streamSettings', 'sockopt', 'trustedXForwardedFor'], []);
     setFieldValue(['streamSettings', 'sockopt', 'acceptProxyProtocol'], true);
     if (transportField) setFieldValue(['streamSettings', transportField, 'acceptProxyProtocol'], true);

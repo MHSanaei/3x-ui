@@ -1,0 +1,13 @@
+{
+  "tcp": [
+    {
+      "type": "fragment",
+      "settings": {
+        "packets": "tlshello",
+        "lengths": ["10-20", "50-100"],
+        "delays": ["5-10", "0"],
+        "maxSplit": "0"
+      }
+    }
+  ]
+}
