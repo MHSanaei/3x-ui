@@ -792,14 +792,16 @@ func (s *SettingService) SeedSubJsonTemplateIfEmpty(defaultTemplate string) erro
 		return nil
 	}
 	setting, err := s.getSetting("subJsonTemplate")
-	if err == nil && strings.TrimSpace(setting.Value) != "" {
-		return nil
+	if err == nil {
+		if strings.TrimSpace(setting.Value) != "" {
+			return nil
+		}
+		return s.saveSetting("subJsonTemplate", defaultTemplate)
 	}
-	if database.IsNotFound(err) || strings.TrimSpace(setting.Value) == "" {
+	if database.IsNotFound(err) {
 		return s.saveSetting("subJsonTemplate", defaultTemplate)
 	}
 	return err
-}
 
 func (s *SettingService) GetSubThemeDir() (string, error) {
 	return s.getString("subThemeDir")
