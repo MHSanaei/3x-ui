@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -47,6 +48,25 @@ func (s *ClientService) EffectiveFlow(tx *gorm.DB, recordId int) (string, error)
 		return "", nil
 	}
 	return flows[0], nil
+}
+
+// EffectiveFlowByEmail returns the client's intended flow (the non-empty
+// flow_override on any of its inbounds, lowest inbound_id first), resolved from
+// the client's email. Returns "" when the client is unknown or carries no flow
+// on any inbound. Used to restore a stripped flow onto an inbound that has just
+// become flow-eligible.
+func (s *ClientService) EffectiveFlowByEmail(tx *gorm.DB, email string) (string, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	rec, err := s.GetRecordByEmail(tx, email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", nil
+		}
+		return "", err
+	}
+	return s.EffectiveFlow(tx, rec.Id)
 }
 
 func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int, error) {
