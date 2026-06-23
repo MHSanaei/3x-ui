@@ -708,7 +708,7 @@ export default function InboundFormModal({
   // etc., not empty strings).
   // Seed each network's settings blob with its Zod schema defaults so
   // every Form.Item inside the network sub-form has a defined starting
-  // value. XHTTP in particular has ~20 fields (sessionPlacement,
+  // value. XHTTP in particular has ~20 fields (sessionIDPlacement,
   // seqPlacement, xPaddingMethod, uplinkHTTPMethod, ...) whose value
   // is the literal "" sentinel meaning "let xray-core pick its
   // default". Without seeding "", the Form.Item reads `undefined` and
