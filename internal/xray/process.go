@@ -65,16 +65,6 @@ func GetIPLimitBannedPrevLogPath() string {
 	return config.GetLogFolder() + "/3xipl-banned.prev.log"
 }
 
-// GetAccessPersistentLogPath returns the path to the persistent access log file.
-func GetAccessPersistentLogPath() string {
-	return config.GetLogFolder() + "/3xipl-ap.log"
-}
-
-// GetAccessPersistentPrevLogPath returns the path to the previous persistent access log file.
-func GetAccessPersistentPrevLogPath() string {
-	return config.GetLogFolder() + "/3xipl-ap.prev.log"
-}
-
 // GetAccessLogPath reads the Xray config and returns the access log file path.
 func GetAccessLogPath() (string, error) {
 	config, err := os.ReadFile(GetConfigPath())
