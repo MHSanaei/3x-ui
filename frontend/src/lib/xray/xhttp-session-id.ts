@@ -22,9 +22,13 @@ export function validateSessionIDLength(_rule: unknown, value: unknown): Promise
   if (!/^\d+(?:-\d+)?$/.test(str)) {
     return Promise.reject(new Error('Use a length or range, e.g. 8 or 8-16'));
   }
-  const from = Number(str.split('-')[0]);
+  const parts = str.split('-');
+  const from = Number(parts[0]);
   if (!Number.isFinite(from) || from <= 0) {
     return Promise.reject(new Error('sessionIDLength minimum must be greater than 0'));
+  }
+  if (parts.length === 2 && Number(parts[1]) < from) {
+    return Promise.reject(new Error('sessionIDLength range upper bound must be ≥ lower bound'));
   }
   return Promise.resolve();
 }

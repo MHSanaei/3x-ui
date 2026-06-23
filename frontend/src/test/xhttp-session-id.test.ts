@@ -46,7 +46,9 @@ describe('sessionID validators', () => {
     await expect(validateSessionIDLength(null, '')).resolves.toBeUndefined();
     await expect(validateSessionIDLength(null, '8')).resolves.toBeUndefined();
     await expect(validateSessionIDLength(null, '16-32')).resolves.toBeUndefined();
+    await expect(validateSessionIDLength(null, '8-8')).resolves.toBeUndefined();
     await expect(validateSessionIDLength(null, '0-16')).rejects.toThrow();
+    await expect(validateSessionIDLength(null, '32-16')).rejects.toThrow();
     await expect(validateSessionIDLength(null, 'abc')).rejects.toThrow();
   });
 });
