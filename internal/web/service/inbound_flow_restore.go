@@ -63,7 +63,7 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(settings, streamSet
 	if !changed {
 		return settings, false
 	}
-	out, err := json.Marshal(parsed)
+	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false
 	}
