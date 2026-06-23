@@ -586,7 +586,7 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
-	merged := make([]any, 0, len(prepend)+len(templateOutbounds)+len(appendList))
+	var merged []any
 	merged = append(merged, prepend...)
 	merged = append(merged, templateOutbounds...)
 	merged = append(merged, appendList...)
