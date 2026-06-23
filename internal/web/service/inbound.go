@@ -1077,6 +1077,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
 		oldInbound.Sniffing = inbound.Sniffing
+		// Preserve the existing Traffic Multiplier when the caller supplies none (an
+		// older form, or a node deploy from an old master); any real value (always
+		// >= 0.1) updates it. Governs client quota billing on this inbound only.
+		if inbound.Multiplier > 0 {
+			oldInbound.Multiplier = inbound.Multiplier
+		}
 		if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
 			normalizeInboundShareAddress(oldInbound)
 			inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy

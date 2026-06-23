@@ -161,15 +161,17 @@ const resetGracePeriodMs int64 = 30000
 const onlineGracePeriodMs int64 = 20000
 
 type nodeTrafficCounter struct {
-	Up   int64
-	Down int64
+	Up         int64
+	Down       int64
+	BilledUp   int64
+	BilledDown int64
 }
 
-func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email string, up, down int64) error {
+func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email string, up, down, billedUp, billedDown int64) error {
 	return tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "node_id"}, {Name: "email"}},
-		DoUpdates: clause.AssignmentColumns([]string{"up", "down"}),
-	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down}).Error
+		DoUpdates: clause.AssignmentColumns([]string{"up", "down", "billed_up", "billed_down"}),
+	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down, BilledUp: billedUp, BilledDown: billedDown}).Error
 }
 
 // mergeActivationExpiry reconciles a node-reported client expiry with the value
@@ -304,7 +306,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	for i := range baselineRows {
-		nodeBaselines[baselineRows[i].Email] = nodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down}
+		nodeBaselines[baselineRows[i].Email] = nodeTrafficCounter{Up: baselineRows[i].Up, Down: baselineRows[i].Down, BilledUp: baselineRows[i].BilledUp, BilledDown: baselineRows[i].BilledDown}
 	}
 
 	var defaultUserId int
@@ -345,6 +347,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			if snapIb.ClientStats[i].Down > cur.Down {
 				cur.Down = snapIb.ClientStats[i].Down
+			}
+			if snapIb.ClientStats[i].BilledUp > cur.BilledUp {
+				cur.BilledUp = snapIb.ClientStats[i].BilledUp
+			}
+			if snapIb.ClientStats[i].BilledDown > cur.BilledDown {
+				cur.BilledDown = snapIb.ClientStats[i].BilledDown
 			}
 			nodeEmailTotals[email] = cur
 		}
@@ -456,6 +464,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				ExpiryTime:           snapIb.ExpiryTime,
 				Up:                   snapIb.Up,
 				Down:                 snapIb.Down,
+				Multiplier:           snapIb.Multiplier,
 				ShareAddrStrategy:    "node",
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
@@ -606,13 +615,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			canon := nodeEmailTotals[cs.Email]
 
 			base, seen := nodeBaselines[cs.Email]
-			var deltaUp, deltaDown int64
+			var deltaUp, deltaDown, deltaBilledUp, deltaBilledDown int64
 			if seen {
 				if deltaUp = canon.Up - base.Up; deltaUp < 0 {
 					deltaUp = 0
 				}
 				if deltaDown = canon.Down - base.Down; deltaDown < 0 {
 					deltaDown = 0
+				}
+				// The node already applied its inbounds' multipliers, so its Billed
+				// is a raw baseline here too — fold the delta, never re-multiply.
+				if deltaBilledUp = canon.BilledUp - base.BilledUp; deltaBilledUp < 0 {
+					deltaBilledUp = 0
+				}
+				if deltaBilledDown = canon.BilledDown - base.BilledDown; deltaBilledDown < 0 {
+					deltaBilledDown = 0
 				}
 			}
 
@@ -639,10 +656,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				centralCSByEmail[cs.Email] = row
 				existingEmails[cs.Email] = struct{}{}
 				structuralChange = true
-				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
+				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down, canon.BilledUp, canon.BilledDown); err != nil {
 					return false, err
 				}
-				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down}
+				nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down, BilledUp: canon.BilledUp, BilledDown: canon.BilledDown}
 				continue
 			}
 
@@ -665,23 +682,23 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = up + ?, down = down + ?, enable = %s, total = ?,
+					 SET up = up + ?, down = down + ?, billed_up = billed_up + ?, billed_down = billed_down + ?, enable = %s, total = ?,
 					     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
 					     reset = ?, last_online = %s
 					 WHERE email = ?`,
 					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),
-				deltaUp, deltaDown, cs.Enable, cs.Total,
+				deltaUp, deltaDown, deltaBilledUp, deltaBilledDown, cs.Enable, cs.Total,
 				cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
 				return false, err
 			}
-			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
+			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down, canon.BilledUp, canon.BilledDown); err != nil {
 				return false, err
 			}
-			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down}
+			nodeBaselines[cs.Email] = nodeTrafficCounter{Up: canon.Up, Down: canon.Down, BilledUp: canon.BilledUp, BilledDown: canon.BilledDown}
 		}
 
 		for k, existing := range centralCS {

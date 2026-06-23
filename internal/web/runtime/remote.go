@@ -665,6 +665,11 @@ func (r *Remote) PushGlobalClientTraffics(ctx context.Context, masterGuid string
 func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	v := url.Values{}
 	v.Set("total", strconv.FormatInt(ib.Total, 10))
+	// Carry the Traffic Multiplier so the node bills its own slice. Form fields are
+	// opt-in, so an old node simply ignores it (and an old master never sends it).
+	if ib.Multiplier > 0 {
+		v.Set("multiplier", strconv.FormatFloat(ib.Multiplier, 'f', -1, 64))
+	}
 	v.Set("remark", ib.Remark)
 	v.Set("subSortIndex", strconv.Itoa(ib.SubSortIndex))
 	v.Set("enable", strconv.FormatBool(ib.Enable))

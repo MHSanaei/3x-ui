@@ -140,6 +140,12 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 				if globals[i].Down > r.Down {
 					r.Down = globals[i].Down
 				}
+				if globals[i].BilledUp > r.BilledUp {
+					r.BilledUp = globals[i].BilledUp
+				}
+				if globals[i].BilledDown > r.BilledDown {
+					r.BilledDown = globals[i].BilledDown
+				}
 			}
 		}
 	}
