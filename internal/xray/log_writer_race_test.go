@@ -16,18 +16,18 @@ func TestLogWriterLastLineConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(writers + readers)
 
-	for i := 0; i < writers; i++ {
+	for range writers {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < iterations; j++ {
+			for range iterations {
 				_, _ = lw.Write([]byte("2024/01/01 00:00:00.000000 [Info] connection accepted"))
 			}
 		}()
 	}
-	for i := 0; i < readers; i++ {
+	for range readers {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < iterations; j++ {
+			for range iterations {
 				_ = lw.LastLine()
 			}
 		}()

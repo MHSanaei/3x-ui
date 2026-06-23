@@ -747,7 +747,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			url.QueryEscape(inboundPassword),
 			url.QueryEscape(clients[clientIndex].Password))
 	} else {
-		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, clients[clientIndex].Password))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)

@@ -320,33 +320,33 @@ func TestBuildProxy_VLESSNoneEncryptionOmittedForClash(t *testing.T) {
 
 func TestBuildXhttpClashOpts_FullFieldMapping(t *testing.T) {
 	xhttp := map[string]any{
-		"path":    "/api/v1",
-		"mode":    "stream-up",
-		"host":    "example.com",
-		"xPaddingBytes":    "100-1000",
-		"xPaddingObfsMode": true,
-		"xPaddingKey":       "mykey",
-		"xPaddingHeader":    "X-Trace-ID",
-		"xPaddingPlacement": "queryInHeader",
-		"xPaddingMethod":    "tokenish",
-		"uplinkHTTPMethod":  "POST",
-		"sessionPlacement":  "query",
-		"sessionKey":        "sess",
-		"seqPlacement":      "header",
-		"seqKey":            "seq",
-		"uplinkDataPlacement": "body",
-		"uplinkDataKey":      "udata",
-		"uplinkChunkSize":    "64-256",
-		"noGRPCHeader":       true,
-		"scMaxEachPostBytes": "500000",
+		"path":                 "/api/v1",
+		"mode":                 "stream-up",
+		"host":                 "example.com",
+		"xPaddingBytes":        "100-1000",
+		"xPaddingObfsMode":     true,
+		"xPaddingKey":          "mykey",
+		"xPaddingHeader":       "X-Trace-ID",
+		"xPaddingPlacement":    "queryInHeader",
+		"xPaddingMethod":       "tokenish",
+		"uplinkHTTPMethod":     "POST",
+		"sessionPlacement":     "query",
+		"sessionKey":           "sess",
+		"seqPlacement":         "header",
+		"seqKey":               "seq",
+		"uplinkDataPlacement":  "body",
+		"uplinkDataKey":        "udata",
+		"uplinkChunkSize":      "64-256",
+		"noGRPCHeader":         true,
+		"scMaxEachPostBytes":   "500000",
 		"scMinPostsIntervalMs": "50",
 		"xmux": map[string]any{
 			"maxConcurrency":   "16-32",
 			"maxConnections":   "4",
 			"cMaxReuseTimes":   "8",
-			"hMaxRequestTimes":  "600-900",
-			"hMaxReusableSecs":  "1800-3000",
-			"hKeepAlivePeriod":  float64(60),
+			"hMaxRequestTimes": "600-900",
+			"hMaxReusableSecs": "1800-3000",
+			"hKeepAlivePeriod": float64(60),
 		},
 		"headers": map[string]any{
 			"User-Agent": "chrome",
@@ -473,8 +473,8 @@ func TestBuildXhttpClashOpts_FullFieldMapping(t *testing.T) {
 
 func TestBuildXhttpClashOpts_DPIDefaultsFiltered(t *testing.T) {
 	xhttp := map[string]any{
-		"path":                "/",
-		"mode":                "stream-up",
+		"path":                 "/",
+		"mode":                 "stream-up",
 		"scMaxEachPostBytes":   "1000000",
 		"scMinPostsIntervalMs": "30",
 	}
@@ -494,9 +494,9 @@ func TestBuildXhttpClashOpts_PaddingObfsGate(t *testing.T) {
 	// Sub-test 1: obfs mode false — gated fields should not appear
 	t.Run("ObfsModeFalse", func(t *testing.T) {
 		xhttp := map[string]any{
-			"path":            "/",
+			"path":             "/",
 			"xPaddingObfsMode": false,
-			"xPaddingKey":     "should-not-appear",
+			"xPaddingKey":      "should-not-appear",
 		}
 		opts := buildXhttpClashOpts(xhttp)
 		if opts == nil {
@@ -553,9 +553,9 @@ func TestBuildXhttpClashOpts_XmuxMapsToReuseSettings(t *testing.T) {
 				"maxConcurrency":   "16-32",
 				"maxConnections":   "4",
 				"cMaxReuseTimes":   "8",
-				"hMaxRequestTimes":  "600-900",
-				"hMaxReusableSecs":  "1800-3000",
-				"hKeepAlivePeriod":  float64(60),
+				"hMaxRequestTimes": "600-900",
+				"hMaxReusableSecs": "1800-3000",
+				"hKeepAlivePeriod": float64(60),
 			},
 		}
 		opts := buildXhttpClashOpts(xhttp)

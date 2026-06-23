@@ -3,6 +3,7 @@
 package xray
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -14,6 +15,52 @@ import (
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/op/go-logging"
 )
+
+func TestWriteFileAtomicModeAndRenameFailure(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := writeFileAtomic(path, []byte("new"), 0o600); err != nil {
+		t.Fatalf("writeFileAtomic: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if string(data) != "new" {
+		t.Fatalf("content = %q, want new", data)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode = %o, want 600", info.Mode().Perm())
+	}
+
+	originalRename := renameFile
+	renameFile = func(_, _ string) error { return errors.New("injected rename failure") }
+	t.Cleanup(func() { renameFile = originalRename })
+	if err := writeFileAtomic(path, []byte("partial"), 0o600); err == nil {
+		t.Fatal("rename failure = nil")
+	}
+	data, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read preserved file: %v", err)
+	}
+	if string(data) != "new" {
+		t.Fatalf("content after failed rename = %q, want committed content", data)
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, ".config-*.tmp"))
+	if err != nil {
+		t.Fatalf("glob: %v", err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("temporary files leaked: %v", matches)
+	}
+}
 
 func TestStopWaitsForGracefulExit(t *testing.T) {
 	initProcessTestLogger(t)

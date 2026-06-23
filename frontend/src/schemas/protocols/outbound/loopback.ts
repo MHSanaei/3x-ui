@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
-// Loopback outbound reinjects traffic back into a named inbound for chained
-// routing. The single `inboundTag` field references an inbound tag by name.
+import { SniffingSchema } from '@/schemas/primitives';
+
 export const LoopbackOutboundSettingsSchema = z.object({
   inboundTag: z.string().optional(),
+  sniffing: SniffingSchema.optional(),
 });
 export type LoopbackOutboundSettings = z.infer<typeof LoopbackOutboundSettingsSchema>;

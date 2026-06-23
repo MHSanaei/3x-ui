@@ -20,6 +20,8 @@ export const NodeRecordSchema = z.object({
   inboundCount: z.number().optional(),
   clientCount: z.number().optional(),
   onlineCount: z.number().optional(),
+  activeCount: z.number().optional(),
+  disabledCount: z.number().optional(),
   depletedCount: z.number().optional(),
   lastHeartbeat: z.number().optional(),
   lastError: z.string().optional(),

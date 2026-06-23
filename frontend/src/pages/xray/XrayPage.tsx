@@ -78,7 +78,8 @@ export default function XrayPage() {
   const [advSettings, setAdvSettings] = useState<AdvKey>('xraySetting');
   const location = useLocation();
   const navigate = useNavigate();
-  const sectionSlug = location.hash.replace(/^#/, '');
+  const pathSection = location.pathname === '/outbound' ? 'outbound' : location.pathname === '/routing' ? 'routing' : '';
+  const sectionSlug = pathSection || location.hash.replace(/^#/, '');
   const activeSection = SECTION_SLUGS.includes(sectionSlug) ? sectionSlug : 'basic';
 
   const mutate = useCallback(

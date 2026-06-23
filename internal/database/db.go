@@ -11,7 +11,9 @@ import (
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"path"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -464,7 +466,102 @@ func runSeeders(isUsersEmpty bool) error {
 	if err := seedHostsFromExternalProxy(); err != nil {
 		return err
 	}
+
+	// Self-gated on the "ResetIpLimitNoFail2ban" row.
+	if err := resetIpLimitsWithoutFail2ban(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// resetIpLimitsWithoutFail2ban zeroes every client's IP limit on hosts where
+// fail2ban can't enforce it (not installed, or the integration disabled). The
+// limit silently does nothing there yet kept logging a repeated warning, so a
+// stale value is just misleading — the panel also disables the field on these
+// hosts. One-time, self-gated on the seeder row.
+func resetIpLimitsWithoutFail2ban() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "ResetIpLimitNoFail2ban") {
+		return nil
+	}
+
+	if fail2banCanEnforce() {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("ResetIpLimitNoFail2ban: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			clients, ok := settings["clients"].([]any)
+			if !ok {
+				continue
+			}
+			mutated := false
+			for i, raw := range clients {
+				obj, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				v, present := obj["limitIp"]
+				if !present {
+					continue
+				}
+				if n, isNum := v.(float64); isNum && n == 0 {
+					continue
+				}
+				obj["limitIp"] = 0
+				clients[i] = obj
+				mutated = true
+			}
+			if !mutated {
+				continue
+			}
+			settings["clients"] = clients
+			newSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				log.Printf("ResetIpLimitNoFail2ban: skip inbound %d (marshal failed): %v", inbound.Id, err)
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Model(&model.ClientRecord{}).Where("limit_ip <> ?", 0).
+			Update("limit_ip", 0).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	})
+}
+
+// fail2banCanEnforce reports whether per-client IP limits can actually be
+// enforced on this host: the integration must be enabled (XUI_ENABLE_FAIL2BAN)
+// and fail2ban-client must be present. Mirrors the service-layer check, kept
+// local to avoid an import cycle.
+func fail2banCanEnforce() bool {
+	if v, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); ok && v != "true" {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		return false
+	}
+	return exec.Command("fail2ban-client", "-h").Run() == nil
 }
 
 // clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a

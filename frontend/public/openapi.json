@@ -1826,6 +1826,10 @@
       "Node": {
         "description": "Node represents a remote 3x-ui panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
         "properties": {
+          "activeCount": {
+            "example": 23,
+            "type": "integer"
+          },
           "address": {
             "example": "node1.example.com",
             "type": "string"
@@ -1861,6 +1865,10 @@
           },
           "depletedCount": {
             "example": 1,
+            "type": "integer"
+          },
+          "disabledCount": {
+            "example": 3,
             "type": "integer"
           },
           "enable": {
@@ -1993,6 +2001,7 @@
           }
         },
         "required": [
+          "activeCount",
           "address",
           "allowPrivateAddress",
           "apiToken",
@@ -2003,6 +2012,7 @@
           "cpuPct",
           "createdAt",
           "depletedCount",
+          "disabledCount",
           "enable",
           "guid",
           "id",
@@ -3298,6 +3308,45 @@
                       "load5": 0.3,
                       "load15": 0.2
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/fail2banStatus": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the \"IP Limit\" field, since enforcement depends on Fail2ban being installed.",
+        "operationId": "get_panel_api_server_fail2banStatus",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "enabled": true,
+                    "installed": true,
+                    "usable": true,
+                    "windows": false
                   }
                 }
               }
@@ -6683,6 +6732,7 @@
                   "success": true,
                   "obj": [
                     {
+                      "activeCount": 23,
                       "address": "node1.example.com",
                       "allowPrivateAddress": false,
                       "apiToken": "abcdef0123456789",
@@ -6693,6 +6743,7 @@
                       "cpuPct": 23.5,
                       "createdAt": 1700000000,
                       "depletedCount": 1,
+                      "disabledCount": 3,
                       "enable": true,
                       "guid": "",
                       "id": 1,

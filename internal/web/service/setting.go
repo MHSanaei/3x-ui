@@ -23,6 +23,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 //go:embed config.json
@@ -1049,17 +1051,37 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	v := reflect.ValueOf(allSetting).Elem()
 	t := reflect.TypeFor[entity.AllSetting]()
 	fields := reflect_util.GetFields(t)
-	errs := make([]error, 0)
-	for _, field := range fields {
-		key := field.Tag.Get("json")
-		fieldV := v.FieldByName(field.Name)
-		value := fmt.Sprint(fieldV.Interface())
-		err := s.saveSetting(key, value)
-		if err != nil {
-			errs = append(errs, err)
+
+	db := database.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		var existing []*model.Setting
+		if err := tx.Find(&existing).Error; err != nil {
+			return err
 		}
-	}
-	return common.Combine(errs...)
+		byKey := make(map[string]*model.Setting, len(existing))
+		for _, st := range existing {
+			byKey[st.Key] = st
+		}
+		for _, field := range fields {
+			key := field.Tag.Get("json")
+			fieldV := v.FieldByName(field.Name)
+			value := fmt.Sprint(fieldV.Interface())
+			if st, ok := byKey[key]; ok {
+				if st.Value == value {
+					continue
+				}
+				st.Value = value
+				if err := tx.Save(st).Error; err != nil {
+					return err
+				}
+				continue
+			}
+			if err := tx.Create(&model.Setting{Key: key, Value: value}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {

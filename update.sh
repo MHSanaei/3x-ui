@@ -854,6 +854,33 @@ config_after_update() {
     fi
 }
 
+# setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
+# by invoking the freshly downloaded x-ui CLI. IP Limit is load-bearing on
+# fail2ban (without it the panel disables the limitIp field and zeroes existing
+# limits), so updating an older install should make it work without a manual
+# trip through the IP Limit menu. Non-fatal: a fail2ban failure must never abort
+# the update. XUI_ENABLE_FAIL2BAN is honored (load_xui_env exports it from the
+# persisted env file, so a deliberate opt-out survives updates).
+setup_fail2ban() {
+    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
+        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
+        return 0
+    fi
+
+    if [[ ! -x /usr/bin/x-ui ]]; then
+        echo -e "${yellow}x-ui CLI not found; skipping Fail2ban auto-setup.${plain}"
+        return 0
+    fi
+
+    echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
+    if /usr/bin/x-ui setup-fail2ban; then
+        echo -e "${green}Fail2ban setup complete.${plain}"
+    else
+        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' and open the IP Limit menu. Continuing.${plain}"
+    fi
+    return 0
+}
+
 update_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -870,20 +897,12 @@ update_x-ui() {
 
     tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2> /dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [[ ! -n "$tag_version" ]]; then
-        echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$tag_version" ]]; then
-            _fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
-        fi
+        _fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
     ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
-        if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
-        fi
+        _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
     fi
 
     if [[ -e ${xui_folder}/ ]]; then
@@ -950,11 +969,7 @@ update_x-ui() {
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
     ${curl_bin} -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
-        ${curl_bin} -4fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
-        fi
+        _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
     fi
 
     chmod +x ${xui_folder}/x-ui.sh > /dev/null 2>&1
@@ -973,10 +988,7 @@ update_x-ui() {
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
         ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
-            fi
+            _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
         fi
         chmod +x /etc/init.d/x-ui > /dev/null 2>&1
         chown root:root /etc/init.d/x-ui > /dev/null 2>&1
@@ -1027,13 +1039,13 @@ update_x-ui() {
                 echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
                 case "${release}" in
                     ubuntu | debian | armbian)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
                         ;;
                     arch | manjaro | parch)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
                         ;;
                     *)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
                         ;;
                 esac
 
@@ -1051,6 +1063,11 @@ update_x-ui() {
     fi
 
     config_after_update
+
+    # IP Limit relies on fail2ban; install + configure it now so the feature
+    # works out of the box on update too (no-op when XUI_ENABLE_FAIL2BAN=false).
+    # Never fatal.
+    setup_fail2ban
 
     echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
     echo -e ""
