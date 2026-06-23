@@ -248,7 +248,9 @@ const bulkFlowClear = "none"
 
 // bulkFlowAllowed whitelists the flow directives BulkAdjust accepts. Anything
 // outside this set is treated as "" (leave flow untouched) so a malformed or
-// hostile value can never be injected into a client's settings.
+// hostile value can never be injected into a client's settings. The dropdown in
+// ClientBulkAdjustModal.tsx offers the same set ("" / "none" / TLS_FLOW_CONTROL);
+// keep the two in sync.
 var bulkFlowAllowed = map[string]struct{}{
 	"":                        {},
 	bulkFlowClear:             {},
@@ -399,6 +401,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 	needRestart := false
 	flowHonored := map[string]bool{}
+	flowIneligible := map[string]bool{}
 	for inboundId, ibEmails := range emailsByInbound {
 		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan, flow)
 		if ibRes.needRestart {
@@ -407,16 +410,14 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		for email := range ibRes.flowHonored {
 			flowHonored[email] = true
 		}
+		for email := range ibRes.flowIneligible {
+			flowIneligible[email] = true
+		}
 		for email, reason := range ibRes.perEmailSkipped {
 			if _, already := skippedReasons[email]; !already {
 				skippedReasons[email] = reason
 			}
 		}
-	}
-	// A flow change honored on any inbound clears a skip reason another
-	// (ineligible) inbound may have recorded for the same client.
-	for email := range flowHonored {
-		delete(skippedReasons, email)
 	}
 
 	adjusted := map[string]struct{}{}
@@ -450,13 +451,30 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	for email, reason := range skippedReasons {
 		result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: reason})
 	}
+	// Report a flow directive that no inbound could carry — only when it was not
+	// honored anywhere and the client has no other (expiry/total) skip reason.
+	// The expiry/total part, if any, has already been applied and counted above.
+	for email := range flowIneligible {
+		if flowHonored[email] {
+			continue
+		}
+		if _, already := skippedReasons[email]; already {
+			continue
+		}
+		result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "flow not supported on inbound"})
+	}
 	return result, needRestart, nil
 }
 
 type bulkInboundAdjustResult struct {
 	perEmailSkipped map[string]string
 	flowHonored     map[string]bool
-	needRestart     bool
+	// flowIneligible is tracked apart from perEmailSkipped: a flow directive
+	// that an inbound cannot carry must not suppress the expiry/total write for
+	// the same client (which would diverge the inbound JSON / ClientRecord from
+	// ClientTraffic). It only feeds the final Skipped report.
+	flowIneligible map[string]bool
+	needRestart    bool
 }
 
 // bulkAdjustInboundClients applies expiry/total deltas to multiple clients
@@ -472,7 +490,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 	plan map[string]*bulkAdjustEntry,
 	flow string,
 ) bulkInboundAdjustResult {
-	res := bulkInboundAdjustResult{perEmailSkipped: map[string]string{}, flowHonored: map[string]bool{}}
+	res := bulkInboundAdjustResult{perEmailSkipped: map[string]string{}, flowHonored: map[string]bool{}, flowIneligible: map[string]bool{}}
 
 	defer lockInbound(inboundId).Unlock()
 
@@ -541,8 +559,10 @@ func (s *ClientService) bulkAdjustInboundClients(
 					flowChanged = true
 				}
 				res.flowHonored[targetEmail] = true
-			} else if _, done := res.flowHonored[targetEmail]; !done {
-				res.perEmailSkipped[targetEmail] = "flow not supported on inbound"
+			} else {
+				// Record separately so this never suppresses the expiry/total
+				// write for the same client (see flowIneligible doc).
+				res.flowIneligible[targetEmail] = true
 			}
 		}
 		c["updated_at"] = nowMs

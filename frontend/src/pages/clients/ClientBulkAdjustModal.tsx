@@ -7,9 +7,6 @@ import { TLS_FLOW_CONTROL } from '@/schemas/primitives/flow';
 
 const GB = 1024 * 1024 * 1024;
 
-// '' leaves flow untouched; 'none' clears it on every selected client; the
-// vision values mirror the per-client credential tab. Kept in sync with the
-// backend whitelist in internal/web/service/client_bulk.go.
 const FLOW_CLEAR = 'none';
 
 interface ClientBulkAdjustModalProps {

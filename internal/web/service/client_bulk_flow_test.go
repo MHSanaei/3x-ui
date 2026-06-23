@@ -2,9 +2,11 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // mkInboundStream is mkInbound with explicit stream settings, needed to make an
@@ -148,5 +150,68 @@ func TestBulkAdjust_NoDirectiveErrors(t *testing.T) {
 	// An unknown flow directive is ignored (treated as ""), so it also errors.
 	if _, _, err := svc.BulkAdjust(inboundSvc, []string{"any@x"}, 0, 0, "bogus-flow"); err == nil {
 		t.Fatalf("unknown flow should be ignored and error like an empty directive")
+	}
+}
+
+// TestBulkAdjust_DaysApplyDespiteIneligibleFlow is the regression for the review
+// blocker: when a client on a flow-ineligible inbound is adjusted with BOTH a
+// days/traffic delta AND a flow directive, the days/traffic change must still be
+// persisted to ClientTraffic (not just the inbound JSON / ClientRecord) and the
+// client must count as adjusted, while the unhonored flow is reported separately.
+func TestBulkAdjust_DaysApplyDespiteIneligibleFlow(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const day = int64(24 * 60 * 60 * 1000)
+	const gb = int64(1) << 30
+	baseExpiry := time.Now().UnixMilli() + 30*day
+	baseTotal := 10 * gb
+
+	clients := []model.Client{
+		{Email: "mix@x", ID: "44444444-4444-4444-4444-444444444444", SubID: "mix", Enable: true, ExpiryTime: baseExpiry, TotalGB: baseTotal},
+	}
+	ib := mkInboundStream(t, 30201, model.VLESS, clientsSettings(t, clients), wsStream)
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	// ClientTraffic is the store the enforcement job reads; seed it to match.
+	if err := database.GetDB().Create(&xray.ClientTraffic{Email: "mix@x", Enable: true, ExpiryTime: baseExpiry, Total: baseTotal}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{"mix@x"}, 7, gb, "xtls-rprx-vision")
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if res.Adjusted != 1 {
+		t.Fatalf("days/traffic should still be applied: Adjusted=%d skipped=%v", res.Adjusted, res.Skipped)
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Email != "mix@x" {
+		t.Fatalf("expected mix@x reported for the unhonored flow, got %v", res.Skipped)
+	}
+
+	wantExpiry := baseExpiry + 7*day
+	wantTotal := baseTotal + gb
+
+	// ClientRecord (inbound-derived) advanced.
+	if rec, err := svc.GetRecordByEmail(nil, "mix@x"); err != nil {
+		t.Fatalf("record: %v", err)
+	} else if rec.ExpiryTime != wantExpiry || rec.TotalGB != wantTotal {
+		t.Fatalf("ClientRecord not advanced: expiry=%d total=%d", rec.ExpiryTime, rec.TotalGB)
+	}
+
+	// ClientTraffic advanced in lockstep — no divergence.
+	var ct xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", "mix@x").First(&ct).Error; err != nil {
+		t.Fatalf("traffic row: %v", err)
+	}
+	if ct.ExpiryTime != wantExpiry || ct.Total != wantTotal {
+		t.Fatalf("ClientTraffic diverged: expiry=%d total=%d, want expiry=%d total=%d", ct.ExpiryTime, ct.Total, wantExpiry, wantTotal)
+	}
+
+	// Flow left untouched on the ineligible inbound.
+	if got := flowOf(t, svc, "mix@x"); got != "" {
+		t.Fatalf("flow should stay empty on ineligible inbound, got %q", got)
 	}
 }
