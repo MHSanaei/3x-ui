@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "override بلاک پیش‌فرض IP خصوصی Xray",
         "blockDelay": "تأخیر بلاک (ms)",
         "reverseSniffing": "Sniffing معکوس",
-        "workers": "Workerها",
         "reserved": "رزرو شده",
         "minUploadInterval": "حداقل بازه آپلود (ms)",
         "maxUploadSizeBytes": "حداکثر اندازه آپلود (بایت)",

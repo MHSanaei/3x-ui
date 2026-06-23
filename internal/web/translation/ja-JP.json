@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Xray のデフォルトプライベート IP ブロックを上書き",
         "blockDelay": "ブロック遅延 (ms)",
         "reverseSniffing": "逆 sniffing",
-        "workers": "Workers",
         "reserved": "予約",
         "minUploadInterval": "最小アップロード間隔 (ms)",
         "maxUploadSizeBytes": "最大アップロードサイズ (バイト)",

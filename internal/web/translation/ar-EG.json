@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "تجاوز حظر IP الخاص الافتراضي في Xray",
         "blockDelay": "تأخير الحظر (ms)",
         "reverseSniffing": "Sniffing عكسي",
-        "workers": "Workers",
         "reserved": "محجوز",
         "minUploadInterval": "أدنى فاصل رفع (ms)",
         "maxUploadSizeBytes": "حجم الرفع الأقصى (بايت)",
