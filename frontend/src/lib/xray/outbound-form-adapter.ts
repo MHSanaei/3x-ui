@@ -1,6 +1,7 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
+import type { Sniffing, SniffingDest } from '@/schemas/primitives';
 
 import type {
   DnsOutboundFormSettings,
@@ -13,7 +14,6 @@ import type {
   OutboundFormSettings,
   OutboundFormValues,
   OutboundStreamFormValues,
-  ReverseSniffingForm,
   ShadowsocksOutboundFormSettings,
   TrojanOutboundFormSettings,
   VlessOutboundFormSettings,
@@ -55,21 +55,28 @@ function asPort(value: unknown, fallback: number): number {
   return n;
 }
 
-const REVERSE_SNIFFING_DEFAULT: ReverseSniffingForm = {
+const SNIFFING_DEST_VALUES: readonly SniffingDest[] = ['http', 'tls', 'quic', 'fakedns'];
+
+const SNIFFING_DEFAULT: Sniffing = {
   enabled: false,
-  destOverride: ['http', 'tls', 'quic', 'fakedns'],
+  destOverride: [...SNIFFING_DEST_VALUES],
   metadataOnly: false,
   routeOnly: false,
   ipsExcluded: [],
   domainsExcluded: [],
 };
 
-function reverseSniffingFromWire(raw: unknown): ReverseSniffingForm {
+// Shared by VLESS reverse sniffing and the loopback outbound — both edit the
+// same xray SniffingConfig. Unknown destOverride tokens are dropped so the
+// value satisfies SniffingSchema's enum.
+function sniffingFromWire(raw: unknown): Sniffing {
   const r = asObject(raw);
-  const dest = asArray(r.destOverride).map((x) => asString(x));
+  const dest = asArray(r.destOverride)
+    .map((x) => asString(x))
+    .filter((x): x is SniffingDest => (SNIFFING_DEST_VALUES as readonly string[]).includes(x));
   return {
     enabled: asBool(r.enabled),
-    destOverride: dest.length > 0 ? dest : ['http', 'tls', 'quic', 'fakedns'],
+    destOverride: dest.length > 0 ? dest : [...SNIFFING_DEST_VALUES],
     metadataOnly: asBool(r.metadataOnly),
     routeOnly: asBool(r.routeOnly),
     ipsExcluded: asArray(r.ipsExcluded).map((x) => asString(x)),
@@ -112,8 +119,8 @@ function vlessFromWire(raw: Raw): VlessOutboundFormSettings {
   const reverse = asObject(raw.reverse);
   const reverseTag = asString(reverse.tag);
   const reverseSniffing = reverseTag
-    ? reverseSniffingFromWire(reverse.sniffing)
-    : REVERSE_SNIFFING_DEFAULT;
+    ? sniffingFromWire(reverse.sniffing)
+    : SNIFFING_DEFAULT;
   const savedSeed = asArray(raw.testseed);
   const testseed = savedSeed.length === 4
     && savedSeed.every((n) => Number.isInteger(n) && (n as number) > 0)
@@ -324,7 +331,10 @@ function dnsFromWire(raw: Raw): DnsOutboundFormSettings {
 }
 
 function loopbackFromWire(raw: Raw): LoopbackOutboundFormSettings {
-  return { inboundTag: asString(raw.inboundTag) };
+  return {
+    inboundTag: asString(raw.inboundTag),
+    sniffing: sniffingFromWire(raw.sniffing),
+  };
 }
 
 function muxFromWire(raw: unknown): MuxForm {
@@ -417,7 +427,7 @@ function vmessToWire(s: VmessOutboundFormSettings) {
   };
 }
 
-function reverseSniffingToWire(s: ReverseSniffingForm) {
+function sniffingToWire(s: Sniffing) {
   return {
     enabled: s.enabled,
     destOverride: s.destOverride,
@@ -437,8 +447,8 @@ function vlessToWire(s: VlessOutboundFormSettings) {
     encryption: s.encryption || 'none',
   };
   if (s.reverseTag) {
-    const sn = reverseSniffingToWire(s.reverseSniffing);
-    const defaultSn = reverseSniffingToWire(REVERSE_SNIFFING_DEFAULT);
+    const sn = sniffingToWire(s.reverseSniffing);
+    const defaultSn = sniffingToWire(SNIFFING_DEFAULT);
     result.reverse = {
       tag: s.reverseTag,
       sniffing: JSON.stringify(sn) === JSON.stringify(defaultSn) ? {} : sn,
@@ -563,7 +573,13 @@ function dnsToWire(s: DnsOutboundFormSettings) {
 }
 
 function loopbackToWire(s: LoopbackOutboundFormSettings) {
-  return { inboundTag: s.inboundTag || undefined };
+  const result: Raw = { inboundTag: s.inboundTag || undefined };
+  // Sniffing rides only when enabled — a disabled block is a no-op for
+  // xray's BuildSniffingRequest, so omitting it keeps the wire minimal.
+  if (s.sniffing.enabled) {
+    result.sniffing = sniffingToWire(s.sniffing);
+  }
+  return result;
 }
 
 // canEnableMux mirrors the legacy Outbound.canEnableMux().

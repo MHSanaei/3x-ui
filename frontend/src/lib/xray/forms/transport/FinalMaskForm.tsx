@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AutoComplete, Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd/es/form';
@@ -68,7 +69,9 @@ function asPath(name: NamePath): (string | number)[] {
 function defaultTcpMaskSettings(type: string): Record<string, unknown> {
   switch (type) {
     case 'fragment':
-      return { packets: '1-3', length: '100-200', delay: '', maxSplit: '' };
+      // `lengths`/`delays` are per-segment range arrays (xray-core #6334);
+      // a single length entry reproduces the legacy single-range behavior.
+      return { packets: '1-3', lengths: ['100-200'], delays: [], maxSplit: '' };
     case 'sudoku':
       return {
         password: '', ascii: '', customTable: '', customTables: [],
@@ -79,6 +82,32 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
     default:
       return {};
   }
+}
+
+// xray-core #6334 replaced a fragment mask's single `length`/`delay` ranges
+// with `lengths`/`delays` arrays (the singular keys remain in core only as a
+// fallback). Lift any legacy singular value into a one-element array so the
+// list UI shows it, and drop the singular key so we never emit both.
+function migrateFragmentSettings(settings: Record<string, unknown>): { next: Record<string, unknown>; changed: boolean } {
+  const out: Record<string, unknown> = { ...settings };
+  let changed = false;
+  if (!Array.isArray(out.lengths) && typeof out.length === 'string' && out.length.trim() !== '') {
+    out.lengths = [out.length];
+    changed = true;
+  }
+  if ('length' in out) {
+    delete out.length;
+    changed = true;
+  }
+  if (!Array.isArray(out.delays) && typeof out.delay === 'string' && out.delay.trim() !== '') {
+    out.delays = [out.delay];
+    changed = true;
+  }
+  if ('delay' in out) {
+    delete out.delay;
+    changed = true;
+  }
+  return { next: out, changed };
 }
 
 function defaultUdpMaskSettings(type: string): Record<string, unknown> {
@@ -137,6 +166,29 @@ function defaultUdpHop(): Record<string, unknown> {
 
 export default function FinalMaskForm({ name, network, protocol, form, showAll = false }: FinalMaskFormProps) {
   const base = asPath(name);
+
+  // Migrate legacy single-range fragment masks to the per-segment arrays once
+  // on mount so configs saved before #6334 render in the list UI.
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current) return;
+    migratedRef.current = true;
+    const tcp = form.getFieldValue([...base, 'tcp']);
+    if (!Array.isArray(tcp)) return;
+    let anyChanged = false;
+    const next = tcp.map((mask) => {
+      if (!mask || typeof mask !== 'object') return mask;
+      const m = mask as Record<string, unknown>;
+      if (m.type !== 'fragment' || !m.settings || typeof m.settings !== 'object') return mask;
+      const { next: migrated, changed } = migrateFragmentSettings(m.settings as Record<string, unknown>);
+      if (!changed) return mask;
+      anyChanged = true;
+      return { ...m, settings: migrated };
+    });
+    if (anyChanged) form.setFieldValue([...base, 'tcp'], next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isHysteria = protocol === OutboundProtocols.Hysteria || protocol === 'hysteria';
   // Wireguard carries no user-selectable transport (always a UDP listener/
   // dialer), so only the UDP mask section applies — TCP masks would never
@@ -261,16 +313,19 @@ function TcpMaskItem({
                     placeholder="tlshello or n-m, e.g. 1-3"
                   />
                 </Form.Item>
-                <Form.Item
-                  label="Length"
-                  name={[fieldName, 'settings', 'length']}
-                  rules={[{ validator: validateFragmentLength }]}
-                >
-                  <Input placeholder="e.g. 100-200" />
-                </Form.Item>
-                <Form.Item label="Delay" name={[fieldName, 'settings', 'delay']}>
-                  <Input />
-                </Form.Item>
+                <FragmentRangeList
+                  listName={[fieldName, 'settings', 'lengths']}
+                  label="Lengths"
+                  placeholder="e.g. 100-200"
+                  minItems={1}
+                  validator={validateFragmentLength}
+                />
+                <FragmentRangeList
+                  listName={[fieldName, 'settings', 'delays']}
+                  label="Delays"
+                  placeholder="e.g. 10-20 or 0"
+                  validator={validateFragmentDelayEntry}
+                />
                 <Form.Item label="Max Split" name={[fieldName, 'settings', 'maxSplit']}>
                   <Input />
                 </Form.Item>
@@ -321,9 +376,6 @@ function validateFragmentPackets(_rule: unknown, value: unknown): Promise<void> 
   return Promise.reject(new Error('Use "tlshello" or a packet range like 1-3'));
 }
 
-// Walks a deep object path safely. Used inside shouldUpdate which gets
-// the whole form values blob; we need to compare a deep field across
-// prev/curr without crashing on missing intermediates.
 function validateFragmentLength(_rule: unknown, value: unknown): Promise<void> {
   const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
   if (str.length === 0) {
@@ -334,6 +386,61 @@ function validateFragmentLength(_rule: unknown, value: unknown): Promise<void> {
     return Promise.reject(new Error('Length minimum must be greater than 0 (e.g. 100-200)'));
   }
   return Promise.resolve();
+}
+
+// A delay segment is a millisecond value or range; 0 is allowed (no delay),
+// but an empty row would serialize as "" and break xray's Int32Range parse,
+// so require a value and let the user remove the row instead.
+function validateFragmentDelayEntry(_rule: unknown, value: unknown): Promise<void> {
+  const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  if (str.length === 0) {
+    return Promise.reject(new Error("Delay is required — remove the row if you don't want a delay"));
+  }
+  if (!/^\d+(?:-\d+)?$/.test(str)) {
+    return Promise.reject(new Error('Use a delay in ms, e.g. 10 or 10-20'));
+  }
+  return Promise.resolve();
+}
+
+// Per-segment range list for a fragment mask's `lengths`/`delays` (xray-core
+// #6334): an editable list of dash-range strings. xray applies entry N to
+// fragment segment N, clamping to the last entry. `minItems` keeps at least
+// one length row so the config never collapses to an empty (rejected) list.
+function FragmentRangeList({
+  listName, label, placeholder, validator, minItems = 0,
+}: {
+  listName: (string | number)[];
+  label: string;
+  placeholder: string;
+  validator?: (rule: unknown, value: unknown) => Promise<void>;
+  minItems?: number;
+}) {
+  return (
+    <Form.List name={listName}>
+      {(fields, { add, remove }) => (
+        <>
+          <Form.Item label={label}>
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => add('')} />
+          </Form.Item>
+          {fields.map((field, idx) => (
+            <Form.Item
+              key={field.key}
+              label={`#${idx + 1}`}
+              name={field.name}
+              rules={validator ? [{ validator }] : undefined}
+            >
+              <Input
+                placeholder={placeholder}
+                addonAfter={fields.length > minItems
+                  ? <DeleteOutlined className="danger-icon" onClick={() => remove(field.name)} />
+                  : null}
+              />
+            </Form.Item>
+          ))}
+        </>
+      )}
+    </Form.List>
+  );
 }
 
 // randRange bytes must sit in 0-255 — xray rejects the whole config with
