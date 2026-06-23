@@ -655,7 +655,10 @@ func (x *XrayAPI) GetOnlineUsers() ([]OnlineUser, error) {
 			}
 			ips = append(ips, OnlineIP{IP: entry.GetIp(), LastSeen: entry.GetLastSeen()})
 		}
-		users = append(users, OnlineUser{Email: u.GetEmail(), IPs: ips})
+		// Decode the per-attachment accounting identity back to the logical email
+		// so every consumer (IP-limit grouping, online set, last-online) sees one
+		// client across its inbounds, not one per attachment.
+		users = append(users, OnlineUser{Email: DecodeStatEmailValue(u.GetEmail()), IPs: ips})
 	}
 	return users, nil
 }

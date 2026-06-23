@@ -215,7 +215,10 @@ func (j *CheckClientIpJob) processLogFile(enforce bool) bool {
 		if len(emailMatches) < 2 {
 			continue
 		}
-		email := emailMatches[1]
+		// The access log carries the per-attachment accounting identity Xray was
+		// configured with; map it back to the logical client so IP-limit grouping
+		// stays per-client across a client's inbounds.
+		email := xray.DecodeStatEmailValue(emailMatches[1])
 
 		// Extract timestamp from log line
 		var timestamp int64
@@ -584,6 +587,10 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	if clientConfig == nil {
 		return
 	}
+	// Xray meters this attachment under its per-attachment accounting identity, so
+	// the live remove/re-add must use that encoded email, not the logical one.
+	encodedEmail := xray.EncodeStatEmail(inbound.Id, clientEmail)
+	clientConfig["email"] = encodedEmail
 
 	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
 	protocol := string(inbound.Protocol)
@@ -609,7 +616,7 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	}
 
 	// Remove user to disconnect all connections
-	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
+	err = xrayAPI.RemoveUser(inbound.Tag, encodedEmail)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to remove user %s: %v", clientEmail, err)
 		return
