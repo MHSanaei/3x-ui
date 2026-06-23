@@ -246,10 +246,7 @@ func (j *NodeTrafficSyncJob) nodeInboundSpeed() []*xray.Traffic {
 		if dDown < 0 {
 			dDown = 0
 		}
-		elapsed := now - prev.at
-		if elapsed < nodeInboundSpeedWindowMs {
-			elapsed = nodeInboundSpeedWindowMs
-		}
+		elapsed := max(now-prev.at, nodeInboundSpeedWindowMs)
 		up := dUp * nodeInboundSpeedWindowMs / elapsed
 		down := dDown * nodeInboundSpeedWindowMs / elapsed
 		if up > 0 || down > 0 {
