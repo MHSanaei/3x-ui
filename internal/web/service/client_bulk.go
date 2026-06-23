@@ -242,6 +242,20 @@ type bulkAdjustEntry struct {
 	newTotal    int64
 }
 
+// bulkFlowClear is the directive that strips the XTLS flow from every selected
+// client. The vision values are the only positive flows xray accepts.
+const bulkFlowClear = "none"
+
+// bulkFlowAllowed whitelists the flow directives BulkAdjust accepts. Anything
+// outside this set is treated as "" (leave flow untouched) so a malformed or
+// hostile value can never be injected into a client's settings.
+var bulkFlowAllowed = map[string]struct{}{
+	"":                        {},
+	bulkFlowClear:             {},
+	"xtls-rprx-vision":        {},
+	"xtls-rprx-vision-udp443": {},
+}
+
 // BulkAdjust shifts ExpiryTime by addDays (days) and TotalGB by addBytes
 // for every email in the list. Clients whose corresponding field is
 // unlimited (0) are skipped — bulk extend should not accidentally
@@ -250,12 +264,17 @@ type bulkAdjustEntry struct {
 // Like BulkDelete, the work is grouped by inbound so each inbound's
 // settings JSON is parsed and written exactly once regardless of how
 // many target emails it contains.
-func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64) (BulkAdjustResult, bool, error) {
+func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, addDays int, addBytes int64, flow string) (BulkAdjustResult, bool, error) {
 	result := BulkAdjustResult{}
 	if len(emails) == 0 {
 		return result, false, nil
 	}
-	if addDays == 0 && addBytes == 0 {
+	flow = strings.TrimSpace(flow)
+	if _, ok := bulkFlowAllowed[flow]; !ok {
+		flow = "" // ignore unknown directives — "" means "leave flow untouched"
+	}
+	adjustFlow := flow != ""
+	if addDays == 0 && addBytes == 0 && !adjustFlow {
 		return result, false, common.NewError("no adjustment specified")
 	}
 
@@ -342,7 +361,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 				entry.newTotal = next
 			}
 		}
-		if entry.applyExpiry || entry.applyTotal {
+		if entry.applyExpiry || entry.applyTotal || adjustFlow {
 			plan[email] = entry
 		}
 	}
@@ -379,10 +398,14 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	}
 
 	needRestart := false
+	flowHonored := map[string]bool{}
 	for inboundId, ibEmails := range emailsByInbound {
-		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan)
+		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan, flow)
 		if ibRes.needRestart {
 			needRestart = true
+		}
+		for email := range ibRes.flowHonored {
+			flowHonored[email] = true
 		}
 		for email, reason := range ibRes.perEmailSkipped {
 			if _, already := skippedReasons[email]; !already {
@@ -390,7 +413,13 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			}
 		}
 	}
+	// A flow change honored on any inbound clears a skip reason another
+	// (ineligible) inbound may have recorded for the same client.
+	for email := range flowHonored {
+		delete(skippedReasons, email)
+	}
 
+	adjusted := map[string]struct{}{}
 	for email, entry := range plan {
 		if _, skipped := skippedReasons[email]; skipped {
 			continue
@@ -402,17 +431,21 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		if entry.applyTotal {
 			updates["total"] = entry.newTotal
 		}
-		if len(updates) == 0 {
-			continue
-		}
-		if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
-			if _, already := skippedReasons[email]; !already {
-				skippedReasons[email] = err.Error()
+		if len(updates) > 0 {
+			if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
+				if _, already := skippedReasons[email]; !already {
+					skippedReasons[email] = err.Error()
+				}
+				continue
 			}
-			continue
 		}
-		result.Adjusted++
+		// Counted when expiry/total changed, or a flow directive was honored
+		// for this client (flow lives in the inbound JSON, not ClientTraffic).
+		if len(updates) > 0 || flowHonored[email] {
+			adjusted[email] = struct{}{}
+		}
 	}
+	result.Adjusted = len(adjusted)
 
 	for email, reason := range skippedReasons {
 		result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: reason})
@@ -422,6 +455,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 type bulkInboundAdjustResult struct {
 	perEmailSkipped map[string]string
+	flowHonored     map[string]bool
 	needRestart     bool
 }
 
@@ -436,8 +470,9 @@ func (s *ClientService) bulkAdjustInboundClients(
 	inboundId int,
 	emails []string,
 	plan map[string]*bulkAdjustEntry,
+	flow string,
 ) bulkInboundAdjustResult {
-	res := bulkInboundAdjustResult{perEmailSkipped: map[string]string{}}
+	res := bulkInboundAdjustResult{perEmailSkipped: map[string]string{}, flowHonored: map[string]bool{}}
 
 	defer lockInbound(inboundId).Unlock()
 
@@ -469,8 +504,15 @@ func (s *ClientService) bulkAdjustInboundClients(
 		wantedEmails[email] = struct{}{}
 	}
 
+	// Flow eligibility is a property of the inbound (protocol + transport), so
+	// resolve it once. Clearing flow is always allowed; setting a vision flow
+	// is only honored on an inbound that can carry it.
+	flowEligible := flow == bulkFlowClear ||
+		inboundCanEnableTlsFlow(string(oldInbound.Protocol), oldInbound.StreamSettings, oldInbound.Settings)
+
 	interfaceClients, _ := settings["clients"].([]any)
 	foundEmails := map[string]bool{}
+	flowChanged := false
 	nowMs := time.Now().Unix() * 1000
 	for i, client := range interfaceClients {
 		c, ok := client.(map[string]any)
@@ -487,6 +529,21 @@ func (s *ClientService) bulkAdjustInboundClients(
 		}
 		if entry.applyTotal {
 			c["totalGB"] = entry.newTotal
+		}
+		if flow != "" {
+			if flowEligible {
+				want := ""
+				if flow != bulkFlowClear {
+					want = flow
+				}
+				if cur, _ := c["flow"].(string); cur != want {
+					c["flow"] = want
+					flowChanged = true
+				}
+				res.flowHonored[targetEmail] = true
+			} else if _, done := res.flowHonored[targetEmail]; !done {
+				res.perEmailSkipped[targetEmail] = "flow not supported on inbound"
+			}
 		}
 		c["updated_at"] = nowMs
 		interfaceClients[i] = c
@@ -513,6 +570,13 @@ func (s *ClientService) bulkAdjustInboundClients(
 	}
 	oldInbound.Settings = string(newSettings)
 
+	// A flow change rewrites the user's xray config, which the lightweight
+	// UpdateUser push below does not carry. Local nodes reload via restart;
+	// remote nodes get a full reconcile (MarkNodeDirty) instead of a per-user push.
+	if flowChanged && oldInbound.NodeID == nil {
+		res.needRestart = true
+	}
+
 	markDirty := false
 	if oldInbound.NodeID != nil {
 		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
@@ -524,6 +588,10 @@ func (s *ClientService) bulkAdjustInboundClients(
 		} else {
 			if dirty {
 				markDirty = true
+			}
+			if flowChanged {
+				markDirty = true
+				push = false
 			}
 			// Large batches collapse into one reconcile push rather than M updates.
 			if push && len(foundEmails) > nodeBulkPushThreshold {

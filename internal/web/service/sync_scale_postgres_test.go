@@ -346,7 +346,7 @@ func TestBulkOpsPostgresScale(t *testing.T) {
 			}
 
 			t0 := time.Now()
-			if _, _, err := svc.BulkAdjust(inboundSvc, emailsM, 7, 1<<30); err != nil {
+			if _, _, err := svc.BulkAdjust(inboundSvc, emailsM, 7, 1<<30, ""); err != nil {
 				t.Fatalf("BulkAdjust: %v", err)
 			}
 			adjustDur := time.Since(t0)
