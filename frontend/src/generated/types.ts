@@ -272,6 +272,8 @@ export interface ClientReverse {
 }
 
 export interface ClientTraffic {
+  billedDown: number;
+  billedUp: number;
   down: number;
   email: string;
   enable: boolean;
@@ -341,6 +343,7 @@ export interface Inbound {
   id: number;
   lastTrafficResetTime: number;
   listen: string;
+  multiplier: number;
   nodeId?: number | null;
   originNodeGuid?: string;
   port: number;

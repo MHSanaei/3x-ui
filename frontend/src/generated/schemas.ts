@@ -1248,6 +1248,15 @@ export const SCHEMAS: Record<string, unknown> = {
   "ClientTraffic": {
     "description": "ClientTraffic represents traffic statistics and limits for a specific client.\nIt tracks upload/download usage, expiry times, and online status for inbound clients.",
     "properties": {
+      "billedDown": {
+        "example": 2097152,
+        "type": "integer"
+      },
+      "billedUp": {
+        "description": "BilledUp/BilledDown are the per-client aggregate Billed Traffic (Real after\neach inbound's Traffic Multiplier, summed across attachments), accrued\nnon-retroactively. Quota enforcement compares BilledUp+BilledDown to Total;\nUp/Down stay Real. Equal to Up/Down on a pure-1x deployment.",
+        "example": 1048576,
+        "type": "integer"
+      },
       "down": {
         "example": 2097152,
         "type": "integer"
@@ -1298,6 +1307,8 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "billedDown",
+      "billedUp",
       "down",
       "email",
       "enable",
@@ -1564,6 +1575,13 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Xray configuration fields",
         "type": "string"
       },
+      "multiplier": {
+        "description": "Multiplier scales how fast a client's Real traffic on this inbound draws down\nits quota (Billed = Real × Multiplier). 0.1–100, default 1. Governs client\nquota accounting only — the inbound's own Up/Down/Total above stay Real.",
+        "example": 1,
+        "maximum": 100,
+        "minimum": 0.1,
+        "type": "number"
+      },
       "nodeId": {
         "nullable": true,
         "type": "integer"
@@ -1652,6 +1670,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "lastTrafficResetTime",
       "listen",
+      "multiplier",
       "port",
       "protocol",
       "remark",

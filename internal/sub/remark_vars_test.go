@@ -15,6 +15,33 @@ func expandCtx(client model.Client, stats xray.ClientTraffic, inbound *model.Inb
 	return remarkContext{client: client, stats: stats, inbound: inbound}
 }
 
+func TestRemarkVar_Multiplier(t *testing.T) {
+	cases := []struct {
+		mult float64
+		want string
+	}{
+		{2, "2x"},
+		{0.5, "0.5x"},
+		{2.5, "2.5x"},
+		{1, ""}, // neutral multiplier is hidden
+		{0, ""}, // unset is hidden
+	}
+	for _, c := range cases {
+		ctx := expandCtx(model.Client{}, xray.ClientTraffic{}, &model.Inbound{Multiplier: c.mult})
+		if got := remarkVarValue("MULTIPLIER", ctx); got != c.want {
+			t.Errorf("MULTIPLIER at %v = %q, want %q", c.mult, got, c.want)
+		}
+	}
+	if got := remarkVarValue("MULTIPLIER", expandCtx(model.Client{}, xray.ClientTraffic{}, nil)); got != "" {
+		t.Errorf("MULTIPLIER with nil inbound = %q, want empty", got)
+	}
+	// The single-brace UI token translates to the internal token and renders.
+	ctx := expandCtx(model.Client{}, xray.ClientTraffic{}, &model.Inbound{Multiplier: 2})
+	if got := expandRemarkVars("{MULTIPLIER}", ctx); got != "2x" {
+		t.Errorf("expandRemarkVars({MULTIPLIER}) = %q, want 2x", got)
+	}
+}
+
 func TestExpandRemarkVars(t *testing.T) {
 	inbound := &model.Inbound{Remark: "Germany"}
 	client := model.Client{

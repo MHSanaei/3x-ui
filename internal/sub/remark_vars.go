@@ -71,6 +71,7 @@ var uiTokenMap = map[string]string{
 	"USAGE_PERCENTAGE":   "USAGE_PERCENTAGE",
 	"PROTOCOL":           "PROTOCOL",
 	"TRANSPORT":          "TRANSPORT",
+	"MULTIPLIER":         "MULTIPLIER",
 }
 
 // translateUISingleBrackets converts user-friendly single-brace tokens to the
@@ -226,6 +227,18 @@ func remarkVarValue(token string, ctx remarkContext) string {
 		return ""
 	case "TRANSPORT":
 		return ctx.transport
+	case "MULTIPLIER":
+		// The inbound's Traffic Multiplier, e.g. "2x" / "0.5x". Hidden (empty) at
+		// the neutral 1x so default tunnels stay clean. Per-inbound, so it renders
+		// on every link rather than only the client's first.
+		if ctx.inbound == nil {
+			return ""
+		}
+		m := ctx.inbound.Multiplier
+		if m <= 0 || m == 1 {
+			return ""
+		}
+		return strconv.FormatFloat(m, 'f', -1, 64) + "x"
 	case "TIME_LEFT":
 		return timeLeftLabel(st.ExpiryTime)
 	case "JALALI_EXPIRE_DATE":

@@ -636,6 +636,17 @@ export default function InboundFormModal({
       </Form.Item>
 
       <Form.Item
+        name="multiplier"
+        label={
+          <Tooltip title={t('pages.inbounds.trafficMultiplierDesc')}>
+            {t('pages.inbounds.trafficMultiplier')}
+          </Tooltip>
+        }
+      >
+        <InputNumber min={0.1} max={100} step={0.1} style={{ width: '100%' }} />
+      </Form.Item>
+
+      <Form.Item
         label={
           <Tooltip title={t('pages.inbounds.leaveBlankToNeverExpire')}>
             {t('pages.inbounds.expireDate')}

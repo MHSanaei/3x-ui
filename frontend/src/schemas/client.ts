@@ -6,6 +6,10 @@ const nullableNumberArray = z.array(z.number()).nullable().transform((v) => v ??
 export const ClientTrafficSchema = z.object({
   up: z.number().optional(),
   down: z.number().optional(),
+  // Billed = Real after each inbound's Traffic Multiplier; what quota is measured
+  // against. Equals up/down on a pure-1x deployment.
+  billedUp: z.number().optional(),
+  billedDown: z.number().optional(),
   total: z.number().optional(),
   expiryTime: z.number().optional(),
   enable: z.boolean().optional(),

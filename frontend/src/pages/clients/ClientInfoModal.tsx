@@ -108,11 +108,14 @@ export default function ClientInfoModal({
   const traffic = client?.traffic || null;
   const totalBytes = client?.totalGB || 0;
   const used = (traffic?.up || 0) + (traffic?.down || 0);
+  // Billed = Real after each inbound's multiplier; what the quota is measured
+  // against (equals `used` on a pure-1x deployment).
+  const billed = (traffic?.billedUp || 0) + (traffic?.billedDown || 0);
   const remaining = useMemo(() => {
     if (totalBytes <= 0) return -1;
-    const r = totalBytes - used;
+    const r = totalBytes - billed;
     return r > 0 ? r : 0;
-  }, [totalBytes, used]);
+  }, [totalBytes, billed]);
 
   const subLink = useMemo(() => {
     if (!client?.subId || !subSettings?.subURI) return '';
@@ -260,6 +263,16 @@ export default function ClientInfoModal({
                     </span>
                   </td>
                 </tr>
+                {billed !== used && (
+                  <tr>
+                    <td>{t('pages.clients.billedTraffic')}</td>
+                    <td>
+                      <Tag color="blue">
+                        {SizeFormatter.sizeFormat(billed)} / {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
+                      </Tag>
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td>{t('remained')}</td>
                   <td>

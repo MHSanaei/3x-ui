@@ -258,6 +258,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": ""
   },
   "ClientTraffic": {
+    "billedDown": 2097152,
+    "billedUp": 1048576,
     "down": 2097152,
     "email": "user1",
     "enable": true,
@@ -327,6 +329,8 @@ export const EXAMPLES: Record<string, unknown> = {
   "Inbound": {
     "clientStats": [
       {
+        "billedDown": 2097152,
+        "billedUp": 1048576,
         "down": 2097152,
         "email": "user1",
         "enable": true,
@@ -348,6 +352,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 1,
     "lastTrafficResetTime": 0,
     "listen": "",
+    "multiplier": 1,
     "nodeId": null,
     "originNodeGuid": "",
     "port": 443,

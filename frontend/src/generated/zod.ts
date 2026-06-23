@@ -292,6 +292,8 @@ export const ClientReverseSchema = z.object({
 export type ClientReverse = z.infer<typeof ClientReverseSchema>;
 
 export const ClientTrafficSchema = z.object({
+  billedDown: z.number().int(),
+  billedUp: z.number().int(),
   down: z.number().int(),
   email: z.string(),
   enable: z.boolean(),
@@ -365,6 +367,7 @@ export const InboundSchema = z.object({
   id: z.number().int(),
   lastTrafficResetTime: z.number().int(),
   listen: z.string(),
+  multiplier: z.number().min(0.1).max(100),
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),

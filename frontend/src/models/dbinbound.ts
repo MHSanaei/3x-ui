@@ -92,6 +92,7 @@ export class DBInbound {
     subSortIndex: number;
     originNodeGuid: string;
     fallbackParent: FallbackParentRef | null;
+    multiplier: number;
 
     private _clientStatsMap: Map<string, ClientStats> | null = null;
 
@@ -121,6 +122,7 @@ export class DBInbound {
         this.subSortIndex = 1;
         this.originNodeGuid = "";
         this.fallbackParent = null;
+        this.multiplier = 1;
         if (data == null) {
             return;
         }

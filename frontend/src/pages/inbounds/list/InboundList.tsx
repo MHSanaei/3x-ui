@@ -32,6 +32,10 @@ import InboundStatsModal from './InboundStatsModal';
 import type { DBInboundRecord, GeneralAction, InboundListProps, RowAction } from './types';
 import './InboundList.css';
 
+// Effective Traffic Multiplier of a list row (defaults to the neutral 1x).
+const inboundMultiplier = (ib: DBInboundRecord): number =>
+  typeof ib.multiplier === 'number' && ib.multiplier > 0 ? ib.multiplier : 1;
+
 export default function InboundList({
   dbInbounds,
   clientCount,
@@ -55,6 +59,8 @@ export default function InboundList({
   // Node filter (#4997): 'all' shows everything, 0 is the local-panel
   // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
   const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
+  // Multiplier filter: null = all; 'gt1'/'eq1'/'lt1' = range buckets; 'eq:<n>' = exact value.
+  const [multiplierFilter, setMultiplierFilter] = useState<string | null>(null);
 
   const showNodeFilter = useMemo(
     () => nodesById.size > 0 || dbInbounds.some((ib) => ib.nodeId != null),
@@ -70,11 +76,43 @@ export default function InboundList({
     [nodesById, t],
   );
 
+  // Only surface the multiplier filter when at least one inbound is non-default,
+  // so a pure-1x deployment's toolbar stays uncluttered.
+  const hasMultipliers = useMemo(
+    () => dbInbounds.some((ib) => inboundMultiplier(ib) !== 1),
+    [dbInbounds],
+  );
+
+  const multiplierOptions = useMemo(() => {
+    const opts = [
+      { value: 'gt1', label: '> 1×' },
+      { value: 'eq1', label: '= 1×' },
+      { value: 'lt1', label: '< 1×' },
+    ];
+    const distinct = Array.from(new Set(dbInbounds.map(inboundMultiplier)))
+      .filter((m) => m !== 1)
+      .sort((a, b) => a - b);
+    for (const m of distinct) opts.push({ value: `eq:${m}`, label: `= ${m}×` });
+    return opts;
+  }, [dbInbounds]);
+
   const visibleInbounds = useMemo(() => {
-    if (nodeFilter === 'all') return dbInbounds;
-    if (nodeFilter === 0) return dbInbounds.filter((ib) => ib.nodeId == null);
-    return dbInbounds.filter((ib) => ib.nodeId === nodeFilter);
-  }, [dbInbounds, nodeFilter]);
+    let rows = dbInbounds;
+    if (nodeFilter === 0) rows = rows.filter((ib) => ib.nodeId == null);
+    else if (nodeFilter !== 'all') rows = rows.filter((ib) => ib.nodeId === nodeFilter);
+    if (multiplierFilter) {
+      rows = rows.filter((ib) => {
+        const m = inboundMultiplier(ib);
+        switch (multiplierFilter) {
+          case 'gt1': return m > 1;
+          case 'eq1': return m === 1;
+          case 'lt1': return m < 1;
+          default: return multiplierFilter.startsWith('eq:') && m === Number(multiplierFilter.slice(3));
+        }
+      });
+    }
+    return rows;
+  }, [dbInbounds, nodeFilter, multiplierFilter]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -175,6 +213,17 @@ export default function InboundList({
               options={nodeFilterOptions}
               popupMatchSelectWidth={false}
               style={{ minWidth: isMobile ? 90 : 140 }}
+            />
+          )}
+          {hasMultipliers && (
+            <Select
+              value={multiplierFilter}
+              onChange={(v) => setMultiplierFilter(v ?? null)}
+              options={multiplierOptions}
+              placeholder={t('pages.inbounds.trafficMultiplier')}
+              allowClear
+              popupMatchSelectWidth={false}
+              style={{ minWidth: isMobile ? 110 : 150 }}
             />
           )}
           {selectedRowKeys.length > 0 && (

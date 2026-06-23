@@ -34,6 +34,7 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'TRAFFIC_TOTAL_BYTES', group: 'traffic', sample: '53687091200' },
   { token: 'UP', group: 'traffic', sample: '5.20GB' },
   { token: 'DOWN', group: 'traffic', sample: '3.20GB' },
+  { token: 'MULTIPLIER', group: 'traffic', sample: '2x' },
   // Time / status
   { token: 'STATUS', group: 'time', sample: 'active' },
   { token: 'DAYS_LEFT', group: 'time', sample: '12' },

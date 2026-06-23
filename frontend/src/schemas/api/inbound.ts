@@ -28,6 +28,8 @@ export const InboundCoreSchema = z.object({
   up: z.number().int().min(0).default(0),
   down: z.number().int().min(0).default(0),
   total: z.number().int().min(0).default(0),
+  // Per-inbound Traffic Multiplier: Billed = Real x multiplier. 0.1-100, default 1.
+  multiplier: z.number().min(0.1).max(100).default(1),
   remark: z.string().default(''),
   enable: z.boolean().default(true),
   expiryTime: z.number().int().default(0),
