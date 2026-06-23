@@ -142,6 +142,10 @@ type ServerService struct {
 
 	versionsCacheMu sync.Mutex
 	versionsCache   *cachedXrayVersions
+
+	fail2banMu        sync.Mutex
+	fail2banInstalled bool
+	fail2banCheckedAt time.Time
 }
 
 type cachedXrayVersions struct {
@@ -183,6 +187,53 @@ func (s *ServerService) LastStatus() *Status {
 	s.lastStatusMu.RLock()
 	defer s.lastStatusMu.RUnlock()
 	return s.lastStatus
+}
+
+// Fail2banStatus tells the frontend whether the per-client IP limit can
+// actually be enforced. Enforcement depends on fail2ban, so a limit set
+// without it would silently do nothing.
+type Fail2banStatus struct {
+	Enabled   bool `json:"enabled"`
+	Installed bool `json:"installed"`
+	Usable    bool `json:"usable"`
+	Windows   bool `json:"windows"`
+}
+
+const fail2banInstalledCacheTTL = 30 * time.Second
+
+func (s *ServerService) GetFail2banStatus() Fail2banStatus {
+	enabled := isFail2banEnabled()
+
+	installed := false
+	if enabled {
+		installed = s.isFail2banInstalled()
+	}
+
+	return Fail2banStatus{
+		Enabled:   enabled,
+		Installed: installed,
+		Usable:    enabled && installed,
+		Windows:   runtime.GOOS == "windows",
+	}
+}
+
+func isFail2banEnabled() bool {
+	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
+	return !ok || value == "true"
+}
+
+func (s *ServerService) isFail2banInstalled() bool {
+	s.fail2banMu.Lock()
+	defer s.fail2banMu.Unlock()
+
+	if !s.fail2banCheckedAt.IsZero() && time.Since(s.fail2banCheckedAt) < fail2banInstalledCacheTTL {
+		return s.fail2banInstalled
+	}
+
+	err := exec.Command("fail2ban-client", "-h").Run()
+	s.fail2banInstalled = err == nil
+	s.fail2banCheckedAt = time.Now()
+	return s.fail2banInstalled
 }
 
 // RefreshStatus collects a new system snapshot, stores it as LastStatus, and
@@ -1227,6 +1278,66 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	}
 
 	return fileContents, nil
+}
+
+// BackupFilename returns the filename for a database backup, named after the
+// panel's address so a downloaded or Telegram-sent backup identifies the server
+// it came from. requestHost is the browser's address (the getDb handler passes
+// c.Request.Host, matching the host shown in the panel title); it is preferred
+// when present, otherwise the configured web domain and then the server's public
+// IP are used. The extension is .dump on PostgreSQL and .db on SQLite; the base
+// falls back to "x-ui" when no address is known.
+func (s *ServerService) BackupFilename(requestHost string) string {
+	ext := ".db"
+	if database.IsPostgres() {
+		ext = ".dump"
+	}
+	return s.backupHost(requestHost) + ext
+}
+
+// backupHost picks the address used to name backup files: the browser's request
+// host (port stripped, the same value the panel title shows) when available,
+// otherwise the configured web domain and then the cached public IP (IPv4 before
+// IPv6), reduced to safe filename characters.
+func (s *ServerService) backupHost(requestHost string) string {
+	host := extractHostname(strings.TrimSpace(requestHost))
+	if host == "" {
+		if domain, err := s.settingService.GetWebDomain(); err == nil {
+			host = strings.TrimSpace(domain)
+		}
+	}
+	if host == "" {
+		if st := s.LastStatus(); st != nil {
+			if ip := st.PublicIP.IPv4; ip != "" && ip != "N/A" {
+				host = ip
+			} else if ip := st.PublicIP.IPv6; ip != "" && ip != "N/A" {
+				host = ip
+			}
+		}
+	}
+	return sanitizeBackupHost(host)
+}
+
+// sanitizeBackupHost reduces a host to characters safe in a download filename
+// (the getDb handler enforces ^[a-zA-Z0-9_\-.]+$). IPv6 brackets are stripped
+// and any other character — such as the colons in an IPv6 address — becomes a
+// hyphen. Returns "x-ui" when nothing usable remains.
+func sanitizeBackupHost(host string) string {
+	host = strings.Trim(host, "[]")
+	var b strings.Builder
+	for _, r := range host {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '-', r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('-')
+		}
+	}
+	out := strings.Trim(b.String(), ".-")
+	if out == "" {
+		return "x-ui"
+	}
+	return out
 }
 
 // GetMigration produces a cross-engine migration file plus its filename: on a

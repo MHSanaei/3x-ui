@@ -31,6 +31,9 @@ func NewSubscriber(settingService service.SettingService, emailService *EmailSer
 
 // HandleEvent is the eventbus subscriber callback.
 func (s *Subscriber) HandleEvent(e eventbus.Event) {
+	if on, err := s.settingService.GetSmtpEnable(); err != nil || !on {
+		return
+	}
 	if !s.isEventEnabled(e.Type) {
 		return
 	}
