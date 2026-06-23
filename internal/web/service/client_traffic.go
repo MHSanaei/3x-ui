@@ -95,7 +95,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 				res := tx.Model(xray.ClientTraffic{}).
 					Where("email IN ?", batch).
-					Updates(map[string]any{"enable": true, "up": 0, "down": 0})
+					Updates(map[string]any{"enable": true, "up": 0, "down": 0, "billed_up": 0, "billed_down": 0})
 				if res.Error != nil {
 					return res.Error
 				}
@@ -108,6 +108,9 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 				if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 					return err
 				}
+			}
+			if err := clearAttachmentTraffic(tx, cleanEmails...); err != nil {
+				return err
 			}
 			return nil
 		})
@@ -152,7 +155,7 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 
 		result := tx.Model(xray.ClientTraffic{}).
 			Where("email IN ?", resetEmails).
-			Updates(map[string]any{"enable": true, "up": 0, "down": 0})
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0, "billed_up": 0, "billed_down": 0})
 
 		if result.Error != nil {
 			return result.Error
@@ -166,6 +169,10 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 			if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return err
 			}
+		}
+
+		if err := clearAttachmentTraffic(tx, resetEmails...); err != nil {
+			return err
 		}
 
 		inboundWhereText := "id "
@@ -190,11 +197,14 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 	db := database.GetDB()
 	res := db.Model(&xray.ClientTraffic{}).
 		Where("1 = 1").
-		Updates(map[string]any{"up": 0, "down": 0})
+		Updates(map[string]any{"up": 0, "down": 0, "billed_up": 0, "billed_down": 0})
 	if res.Error != nil {
 		return false, res.Error
 	}
 	if err := db.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+		return false, err
+	}
+	if err := db.Where("1 = 1").Delete(&model.ClientInboundTraffic{}).Error; err != nil {
 		return false, err
 	}
 	return res.RowsAffected > 0, nil

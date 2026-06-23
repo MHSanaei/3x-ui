@@ -69,6 +69,8 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 				Email:      email,
 				Up:         t.Up,
 				Down:       t.Down,
+				BilledUp:   t.BilledUp,
+				BilledDown: t.BilledDown,
 				UpdatedAt:  now,
 			})
 		}
@@ -77,7 +79,7 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 			for _, batch := range chunkGlobalRows(rows, 200) {
 				if err := tx.Clauses(clause.OnConflict{
 					Columns:   []clause.Column{{Name: "master_guid"}, {Name: "email"}},
-					DoUpdates: clause.AssignmentColumns([]string{"up", "down", "updated_at"}),
+					DoUpdates: clause.AssignmentColumns([]string{"up", "down", "billed_up", "billed_down", "updated_at"}),
 				}).Create(&batch).Error; err != nil {
 					return err
 				}

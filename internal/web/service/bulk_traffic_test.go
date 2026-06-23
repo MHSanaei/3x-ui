@@ -16,6 +16,8 @@ func mkTraffic(t *testing.T, inboundId int, email string, up, down, total, expir
 		Email:      email,
 		Up:         up,
 		Down:       down,
+		BilledUp:   up,
+		BilledDown: down,
 		Total:      total,
 		ExpiryTime: expiry,
 		Enable:     enable,

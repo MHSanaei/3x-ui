@@ -1171,7 +1171,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
-	depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+	depletedClause := "reset = 0 and ((total > 0 and billed_up + billed_down >= total) or (expiry_time > 0 and expiry_time <= ?))"
 
 	var rows []xray.ClientTraffic
 	if err := db.Where(depletedClause, now).Find(&rows).Error; err != nil {

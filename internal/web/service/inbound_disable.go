@@ -53,11 +53,11 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 // pushed into client_global_traffics — that's what lets a node cut a client
 // whose combined usage exceeds the quota even though the local share doesn't
 // (placeholders: now).
-const depletedClientsCond = `((total > 0 AND up + down >= total)
+const depletedClientsCond = `((total > 0 AND billed_up + billed_down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?)
 	OR (total > 0 AND EXISTS (
 		SELECT 1 FROM client_global_traffics g
-		WHERE g.email = client_traffics.email AND g.up + g.down >= client_traffics.total
+		WHERE g.email = client_traffics.email AND g.billed_up + g.billed_down >= client_traffics.total
 	)))`
 
 // depletedClientsCondLocal is depletedClientsCond without the cross-panel
@@ -65,7 +65,7 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 // turns every traffic poll into a full client_traffics scan; on a panel no
 // master pushes to (the common case) client_global_traffics is empty, so the
 // branch can never match and is pure CPU cost (#5392).
-const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
+const depletedClientsCondLocal = `((total > 0 AND billed_up + billed_down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
 
 // depletedCond returns the local-only predicate unless this panel actually

@@ -11,7 +11,7 @@ import (
 func seedClientRow(t *testing.T, email string, inboundId int, up, down, total int64) {
 	t.Helper()
 	db := database.GetDB()
-	if err := db.Create(&xray.ClientTraffic{InboundId: inboundId, Email: email, Enable: true, Up: up, Down: down, Total: total}).Error; err != nil {
+	if err := db.Create(&xray.ClientTraffic{InboundId: inboundId, Email: email, Enable: true, Up: up, Down: down, BilledUp: up, BilledDown: down, Total: total}).Error; err != nil {
 		t.Fatalf("seed client_traffics %q: %v", email, err)
 	}
 }
@@ -96,7 +96,7 @@ func TestGlobalUsage_DisablesClient(t *testing.T) {
 	// 200 of 1000 used locally — local check alone would never trip.
 	seedClientRow(t, "cap", 1, 100, 100, 1000)
 
-	if err := svc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: "cap", Up: 800, Down: 700}}); err != nil {
+	if err := svc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: "cap", Up: 800, Down: 700, BilledUp: 800, BilledDown: 700}}); err != nil {
 		t.Fatalf("AcceptGlobalTraffic: %v", err)
 	}
 

@@ -494,6 +494,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 			traffic.ExpiryTime = newExpiryTime
 			traffic.Down = 0
 			traffic.Up = 0
+			traffic.BilledUp = 0
+			traffic.BilledDown = 0
 			if !traffic.Enable {
 				traffic.Enable = true
 				c["enable"] = true
@@ -543,6 +545,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	// A renewed client starts a fresh quota window: drop the cross-panel rows
 	// too, or the stale pushed totals would re-deplete it immediately.
 	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
+		return false, 0, err
+	}
+	// A renewed client also starts a fresh per-tunnel breakdown.
+	if err = clearAttachmentTraffic(tx, renewEmails...); err != nil {
 		return false, 0, err
 	}
 	if p != nil {
@@ -601,6 +607,23 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	return err
 }
 
+// clearAttachmentTraffic drops the per-attachment Real+Billed rows for the given
+// emails. Called by every reset/renew/delete path so a fresh quota cycle (or a
+// removed client) leaves no stale per-tunnel breakdown behind. Detach does NOT
+// call this: a detached attachment's Billed is retained on the per-client
+// aggregate (no refund), per the design.
+func clearAttachmentTraffic(tx *gorm.DB, emails ...string) error {
+	if len(emails) == 0 {
+		return nil
+	}
+	for _, batch := range chunkStrings(emails, sqliteMaxVars) {
+		if err := tx.Where("email IN ?", batch).Delete(&model.ClientInboundTraffic{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
 		return err
@@ -608,7 +631,10 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	if err := clearGlobalTraffic(tx, email); err != nil {
 		return err
 	}
-	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
+	if err := tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+		return err
+	}
+	return clearAttachmentTraffic(tx, email)
 }
 
 func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) error {
@@ -625,6 +651,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("email IN ?", batch).Delete(&model.ClientInboundTraffic{}).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -637,10 +666,13 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 		}
 		if err := db.Model(xray.ClientTraffic{}).
 			Where("email = ?", clientEmail).
-			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0, "billed_up": 0, "billed_down": 0}).Error; err != nil {
 			return err
 		}
-		return db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
+		if err := db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+			return err
+		}
+		return clearAttachmentTraffic(db, clientEmail)
 	})
 }
 
@@ -724,6 +756,8 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 
 	traffic.Up = 0
 	traffic.Down = 0
+	traffic.BilledUp = 0
+	traffic.BilledDown = 0
 	traffic.Enable = true
 
 	db := database.GetDB()
@@ -735,6 +769,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		return false, err
 	}
 	if err := db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+		return false, err
+	}
+	if err := clearAttachmentTraffic(db, clientEmail); err != nil {
 		return false, err
 	}
 
@@ -829,7 +866,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	// Collect depleted emails globally — a shared-email row owned by one
 	// inbound depletes every sibling that lists the email.
 	now := time.Now().Unix() * 1000
-	depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+	depletedClause := "reset = 0 and ((total > 0 and billed_up + billed_down >= total) or (expiry_time > 0 and expiry_time <= ?))"
 	var depletedRows []xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).
 		Where(depletedClause, now).
@@ -914,8 +951,19 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	// Drop now-orphaned rows. With id >= 0, a row is safe to drop only when
 	// no out-of-scope inbound still references the email.
 	if id < 0 {
-		err = tx.Where(depletedClause, now).Delete(xray.ClientTraffic{}).Error
-		return err
+		if err = tx.Where(depletedClause, now).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		dropped := make([]string, 0, len(depletedEmails))
+		for e := range depletedEmails {
+			dropped = append(dropped, e)
+		}
+		for _, batch := range chunkStrings(dropped, sqliteMaxVars) {
+			if err = tx.Where("LOWER(email) IN ?", batch).Delete(&model.ClientInboundTraffic{}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	emails := make([]string, 0, len(depletedEmails))
 	for e := range depletedEmails {
@@ -944,6 +992,9 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	}
 	if len(toDelete) > 0 {
 		if err = tx.Where("LOWER(email) IN ?", toDelete).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err = tx.Where("LOWER(email) IN ?", toDelete).Delete(&model.ClientInboundTraffic{}).Error; err != nil {
 			return err
 		}
 	}
