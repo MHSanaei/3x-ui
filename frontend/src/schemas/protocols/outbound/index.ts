@@ -26,10 +26,6 @@ export * from './vless';
 export * from './vmess';
 export * from './wireguard';
 
-// Outbound discriminated union spans 13 protocols (mixed/tunnel are
-// inbound-only; freedom/blackhole/dns/loopback are outbound-only). The wire
-// shape is `{ protocol, settings }` — same wrapper pattern as the inbound
-// union, even though some leaf schemas (freedom, blackhole) are sparse.
 export const OutboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('vmess'),       settings: VmessOutboundSettingsSchema }),
   z.object({ protocol: z.literal('vless'),       settings: VlessOutboundSettingsSchema }),

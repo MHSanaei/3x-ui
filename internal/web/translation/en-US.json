@@ -564,7 +564,7 @@
         "tcpCongestion": "TCP Congestion",
         "dialerProxy": "Dialer Proxy",
         "trustedXForwardedFor": "Trusted X-Forwarded-For",
-        "trustedXForwardedForHint": "Trust this request header for the real client IP (e.g. CF-Connecting-IP behind Cloudflare's CDN). Only honored on WebSocket, HTTPUpgrade and XHTTP transports. Leave empty to ignore forwarded headers.",
+        "trustedXForwardedForHint": "Trust this request header for the real client IP (e.g. CF-Connecting-IP behind Cloudflare's CDN). Only honored on WebSocket, HTTPUpgrade, XHTTP and gRPC transports. Leave empty to ignore forwarded headers.",
         "proxyProtocolHint": "Accept the PROXY-protocol header to learn the real client IP from an upstream L4 tunnel or relay (HAProxy, gost, nginx-stream, Xray dokodemo-door) or Cloudflare Spectrum. The upstream MUST emit PROXY protocol. Works on TCP, WebSocket, HTTPUpgrade and gRPC; not on mKCP.",
         "realClientIp": "Real client IP",
         "realClientIpHint": "Capture the visitor's real IP when traffic reaches this inbound through a CDN or relay, instead of recording the intermediary's address. Pick a preset to fill the matching sockopt fields below. These fields are never sent to clients in subscriptions.",

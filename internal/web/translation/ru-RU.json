@@ -585,7 +585,7 @@
         "tcpCongestion": "TCP Congestion",
         "dialerProxy": "Dialer Proxy",
         "trustedXForwardedFor": "Доверенный X-Forwarded-For",
-        "trustedXForwardedForHint": "Доверять этому заголовку запроса для определения реального IP клиента (например, CF-Connecting-IP за CDN Cloudflare). Работает только на транспортах WebSocket, HTTPUpgrade и XHTTP. Оставьте пустым, чтобы игнорировать заголовки пересылки.",
+        "trustedXForwardedForHint": "Доверять этому заголовку запроса для определения реального IP клиента (например, CF-Connecting-IP за CDN Cloudflare). Работает только на транспортах WebSocket, HTTPUpgrade, XHTTP и gRPC. Оставьте пустым, чтобы игнорировать заголовки пересылки.",
         "proxyProtocolHint": "Принимать заголовок PROXY protocol, чтобы получить реальный IP клиента от вышестоящего L4-туннеля или релея (HAProxy, gost, nginx-stream, Xray dokodemo-door) либо Cloudflare Spectrum. Вышестоящий узел ДОЛЖЕН отправлять PROXY protocol. Работает на TCP, WebSocket, HTTPUpgrade и gRPC; не работает на mKCP.",
         "realClientIp": "Реальный IP клиента",
         "realClientIpHint": "Получать реальный IP посетителя, когда трафик приходит на этот входящий через CDN или релей, вместо адреса промежуточного узла. Выберите пресет, чтобы заполнить соответствующие поля sockopt ниже. Эти поля никогда не отправляются клиентам в подписках.",

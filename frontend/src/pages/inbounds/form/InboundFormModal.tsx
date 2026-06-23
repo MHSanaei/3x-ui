@@ -193,7 +193,6 @@ export default function InboundFormModal({
   // actually live on a node — otherwise the node address it would resolve to is
   // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
-  const sniffingEnabled = Form.useWatch(['sniffing', 'enabled'], form) ?? false;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
   const ssMethod = Form.useWatch(['settings', 'method'], form);
   const isSSWith2022 = isSS2022({
@@ -988,7 +987,7 @@ export default function InboundFormModal({
     </div>
   );
 
-  const sniffingTab = <SniffingTab sniffingEnabled={sniffingEnabled} />;
+  const sniffingTab = <SniffingTab />;
 
   return (
     <>

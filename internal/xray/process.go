@@ -65,16 +65,6 @@ func GetIPLimitBannedPrevLogPath() string {
 	return config.GetLogFolder() + "/3xipl-banned.prev.log"
 }
 
-// GetAccessPersistentLogPath returns the path to the persistent access log file.
-func GetAccessPersistentLogPath() string {
-	return config.GetLogFolder() + "/3xipl-ap.log"
-}
-
-// GetAccessPersistentPrevLogPath returns the path to the previous persistent access log file.
-func GetAccessPersistentPrevLogPath() string {
-	return config.GetLogFolder() + "/3xipl-ap.prev.log"
-}
-
 // GetAccessLogPath reads the Xray config and returns the access log file path.
 func GetAccessLogPath() (string, error) {
 	config, err := os.ReadFile(GetConfigPath())
@@ -526,7 +516,7 @@ func (p *process) Start() (err error) {
 	if p.configPath != "" {
 		configPath = p.configPath
 	}
-	err = os.WriteFile(configPath, data, 0644)
+	err = writeFileAtomic(configPath, data, 0o600)
 	if err != nil {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
@@ -545,6 +535,54 @@ func (p *process) Start() (err error) {
 
 	return nil
 }
+
+// writeFileAtomic writes data to path via a same-directory temp file that is
+// permissioned, synced, and renamed into place, so a crash can never leave a
+// partial config; the config holds credentials, hence the 0600 perm. After the
+// rename the parent directory is fsynced to persist the directory entry. That
+// final step is skipped on Windows, where directory fsync is unsupported and
+// os.Rename already uses replace-existing semantics.
+func writeFileAtomic(path string, data []byte, perm os.FileMode) (err error) {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".config-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		if err != nil {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	if err = tmp.Chmod(perm); err != nil {
+		return err
+	}
+	if _, err = tmp.Write(data); err != nil {
+		return err
+	}
+	if err = tmp.Sync(); err != nil {
+		return err
+	}
+	if err = tmp.Close(); err != nil {
+		return err
+	}
+	if err = renameFile(tmpPath, path); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	dirHandle, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	err = dirHandle.Sync()
+	_ = dirHandle.Close()
+	return err
+}
+
+var renameFile = os.Rename
 
 func (p *process) startCommand(cmd *exec.Cmd) error {
 	p.mu.Lock()
