@@ -805,6 +805,12 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err := db.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
 		return needRestart, err
 	}
+	// The per-attachment traffic ledger is keyed by inbound_id with no FK/cascade;
+	// drop this inbound's rows so they don't orphan (and double-count against the
+	// per-tunnel breakdown if the autoincrement id is later reused).
+	if err := db.Where("inbound_id = ?", id).Delete(&model.ClientInboundTraffic{}).Error; err != nil {
+		return needRestart, err
+	}
 	if markDirty && ib.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
 			logger.Warning("mark node dirty failed:", dErr)

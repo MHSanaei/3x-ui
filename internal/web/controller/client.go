@@ -126,12 +126,13 @@ func (a *ClientController) get(c *gin.Context) {
 		return
 	}
 	rec.Flow = flow
-	// Consumed bytes (up+down, including cross-node global overlay) so API
-	// consumers can pair usage with the client's totalGB quota (#4973).
+	// Billed bytes (Real x each inbound's multiplier, including cross-node global
+	// overlay) so API consumers can pair usage with the client's totalGB quota
+	// (#4973) — this is the figure quota enforcement compares against.
 	// Best-effort: a traffic lookup failure must not break the client fetch.
 	var usedTraffic int64
 	if t, tErr := a.inboundService.GetClientTrafficByEmail(email); tErr == nil && t != nil {
-		usedTraffic = t.Up + t.Down
+		usedTraffic = t.BilledUp + t.BilledDown
 	}
 	jsonObj(c, gin.H{"client": rec, "inboundIds": inboundIds, "externalLinks": externalLinks, "usedTraffic": usedTraffic}, nil)
 }

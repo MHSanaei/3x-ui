@@ -234,7 +234,7 @@ func buildClientsSummary(all []ClientWithAttachments, onlineSet map[string]struc
 	for _, c := range all {
 		used := int64(0)
 		if c.Traffic != nil {
-			used = c.Traffic.Up + c.Traffic.Down
+			used = c.Traffic.BilledUp + c.Traffic.BilledDown
 		}
 		exhausted := c.TotalGB > 0 && used >= c.TotalGB
 		expired := c.ExpiryTime > 0 && c.ExpiryTime <= nowMs

@@ -35,3 +35,30 @@ func TestNodeSync_FoldsBilled(t *testing.T) {
 		t.Errorf("billed delta: billedUp=%d billedDown=%d, want 400/400", ct.BilledUp, ct.BilledDown)
 	}
 }
+
+// TestNodeSync_OldNodeBilledFallback verifies the version-skew degrade: an old
+// node reports Real but no Billed (the field decodes to 0), and the master folds
+// the Real delta as Billed (a neutral 1x) instead of leaving Billed at 0 forever
+// — so Billed-based quota enforcement still works for node-only clients.
+func TestNodeSync_OldNodeBilledFallback(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-old", 41011)
+	svc := &InboundService{}
+	const email = "olde"
+
+	// Old node: Up/Down set, BilledUp/BilledDown absent (0). First sync seeds the baseline.
+	syncNode(t, svc, 1, "n1-old", xray.ClientTraffic{Email: email, Up: 100, Down: 100, Enable: true})
+	if ct := readTraffic(t, db, email); ct.Up+ct.Down != 0 || ct.BilledUp+ct.BilledDown != 0 {
+		t.Fatalf("first sync should import nothing")
+	}
+
+	// Second sync grows Real by 50/50 with Billed still 0; the master bills it at 1x.
+	syncNode(t, svc, 1, "n1-old", xray.ClientTraffic{Email: email, Up: 150, Down: 150, Enable: true})
+	ct := readTraffic(t, db, email)
+	if ct.Up != 50 || ct.Down != 50 {
+		t.Errorf("real delta up=%d down=%d, want 50/50", ct.Up, ct.Down)
+	}
+	if ct.BilledUp != 50 || ct.BilledDown != 50 {
+		t.Errorf("billed (1x fallback) up=%d down=%d, want 50/50", ct.BilledUp, ct.BilledDown)
+	}
+}

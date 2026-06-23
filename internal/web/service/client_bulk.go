@@ -897,7 +897,7 @@ func (s *ClientService) bulkDelInboundClients(
 				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
 				if err1 == nil {
 					logger.Debug("Client deleted on", rt.Name(), ":", email)
-				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+				} else if strings.Contains(err1.Error(), "not found") {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
 					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)

@@ -194,7 +194,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 				if rterr != nil {
 					needRestart = true
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, t.email); err1 != nil {
-					if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.email)) {
+					if !strings.Contains(err1.Error(), "not found") {
 						needRestart = true
 					}
 				}
@@ -668,7 +668,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
 					if err1 == nil {
 						logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
-					} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
+					} else if strings.Contains(err1.Error(), "not found") {
 						logger.Debug("User is already deleted. Nothing to do more...")
 					} else {
 						logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
@@ -839,7 +839,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {
 					logger.Debug("Client deleted on", rt.Name(), ":", email)
 					needRestart = false
-				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+				} else if strings.Contains(err1.Error(), "not found") {
 					logger.Debug("User is already deleted. Nothing to do more...")
 				} else {
 					logger.Debug("Error in deleting client on", rt.Name(), ":", email)

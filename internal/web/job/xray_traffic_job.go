@@ -129,7 +129,7 @@ func (j *XrayTrafficJob) Run() {
 	}
 	websocket.BroadcastTraffic(map[string]any{
 		"traffics":       traffics,
-		"clientTraffics": clientTraffics,
+		"clientTraffics": aggregateClientTraffics(clientTraffics),
 		"onlineClients":  onlineClients,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
@@ -158,6 +158,40 @@ func (j *XrayTrafficJob) Run() {
 	}
 }
 
+// aggregateClientTraffics collapses the per-attachment ClientTraffic slice (one
+// entry per (client, inbound) since the per-attachment metering change) back to
+// one row per logical email, summing Real and Billed. The dashboard WS payload
+// and the external-inform webhook both pre-date — and external consumers expect —
+// a per-client shape; the DB accrual path keeps the raw per-attachment slice.
+func aggregateClientTraffics(in []*xray.ClientTraffic) []*xray.ClientTraffic {
+	if len(in) == 0 {
+		return in
+	}
+	byEmail := make(map[string]*xray.ClientTraffic, len(in))
+	order := make([]string, 0, len(in))
+	for _, ct := range in {
+		if ct == nil {
+			continue
+		}
+		if agg := byEmail[ct.Email]; agg != nil {
+			agg.Up += ct.Up
+			agg.Down += ct.Down
+			agg.BilledUp += ct.BilledUp
+			agg.BilledDown += ct.BilledDown
+			continue
+		}
+		cp := *ct
+		cp.InboundId = 0
+		byEmail[ct.Email] = &cp
+		order = append(order, ct.Email)
+	}
+	out := make([]*xray.ClientTraffic, 0, len(order))
+	for _, email := range order {
+		out = append(out, byEmail[email])
+	}
+	return out
+}
+
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {
 	informURL, err := j.settingService.GetExternalTrafficInformURI()
 	if err != nil {
@@ -169,7 +203,7 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 		logger.Warning("ExternalTrafficInformURI blocked:", err)
 		return
 	}
-	requestBody, err := json.Marshal(map[string]any{"clientTraffics": clientTraffics, "inboundTraffics": inboundTraffics})
+	requestBody, err := json.Marshal(map[string]any{"clientTraffics": aggregateClientTraffics(clientTraffics), "inboundTraffics": inboundTraffics})
 	if err != nil {
 		logger.Warning("parse client/inbound traffic failed:", err)
 		return

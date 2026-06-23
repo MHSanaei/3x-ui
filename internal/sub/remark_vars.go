@@ -146,7 +146,7 @@ func expandSegment(seg string, ctx remarkContext) (string, bool) {
 func remarkVarValue(token string, ctx remarkContext) string {
 	c := ctx.client
 	st := ctx.stats
-	used := st.Up + st.Down
+	used := st.BilledUp + st.BilledDown
 	switch token {
 	case "EMAIL", "USERNAME":
 		return c.Email
@@ -255,7 +255,7 @@ func clientStatus(st xray.ClientTraffic) string {
 	if st.ExpiryTime > 0 && st.ExpiryTime/1000 < time.Now().Unix() {
 		return "expired"
 	}
-	if st.Total > 0 && st.Up+st.Down >= st.Total {
+	if st.Total > 0 && st.BilledUp+st.BilledDown >= st.Total {
 		return "depleted"
 	}
 	return "active"
@@ -319,7 +319,7 @@ func usagePercentage(st xray.ClientTraffic) string {
 	if st.Total <= 0 {
 		return ""
 	}
-	used := st.Up + st.Down
+	used := st.BilledUp + st.BilledDown
 	pct := float64(used) / float64(st.Total) * 100
 	if pct > 100 {
 		pct = 100 // clamp over-quota usage, consistent with TRAFFIC_LEFT

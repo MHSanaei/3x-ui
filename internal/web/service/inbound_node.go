@@ -496,6 +496,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
+			// Mirror the node's reported multiplier like every other config field
+			// (display + {MULTIPLIER} sub token); guard >0 so an old node reporting 0
+			// never wipes the value the master deployed.
+			if snapIb.Multiplier > 0 {
+				updates["multiplier"] = snapIb.Multiplier
+			}
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
@@ -613,6 +619,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 			// Node-wide total, not this inbound's possibly-stale copy (#5274).
 			canon := nodeEmailTotals[cs.Email]
+			// An old-build node reports no Billed (the JSON field decodes to 0), so
+			// fall back to Real (a neutral 1x bill). Otherwise the master's Billed for
+			// a node-only client would stay 0 forever and Billed-based enforcement
+			// (and the cross-panel combined-usage check) would never fire for it.
+			if canon.BilledUp == 0 && canon.Up > 0 {
+				canon.BilledUp = canon.Up
+			}
+			if canon.BilledDown == 0 && canon.Down > 0 {
+				canon.BilledDown = canon.Down
+			}
 
 			base, seen := nodeBaselines[cs.Email]
 			var deltaUp, deltaDown, deltaBilledUp, deltaBilledDown int64

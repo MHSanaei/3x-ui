@@ -55,10 +55,12 @@ func TestExpandRemarkVars(t *testing.T) {
 	}
 	// 50GB total, 8GB used (5 up + 3 down), enabled, no expiry.
 	stats := xray.ClientTraffic{
-		Enable: true,
-		Total:  50 * gb,
-		Up:     5 * gb,
-		Down:   3 * gb,
+		Enable:     true,
+		Total:      50 * gb,
+		Up:         5 * gb,
+		Down:       3 * gb,
+		BilledUp:   5 * gb,
+		BilledDown: 3 * gb,
 	}
 	ctx := expandCtx(client, stats, inbound)
 
@@ -118,7 +120,7 @@ func TestExpandRemarkVars_EdgeCases(t *testing.T) {
 		t.Errorf("zero TgID = %q, want empty", got)
 	}
 	// Over-quota usage clamps left to 0, not negative.
-	over := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, Total: gb, Up: 2 * gb}, nil)
+	over := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, Total: gb, Up: 2 * gb, BilledUp: 2 * gb}, nil)
 	if got := expandRemarkVars("{{TRAFFIC_LEFT_BYTES}}", over); got != "0" {
 		t.Errorf("over-quota TRAFFIC_LEFT_BYTES = %q, want 0", got)
 	}
@@ -142,7 +144,7 @@ func TestExpandRemarkVars_DropUnlimitedSegments(t *testing.T) {
 	}
 
 	// Limited traffic but no expiry → traffic stays, the expiry segment drops.
-	noExpiry := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, Total: 50 * gb, Up: 8 * gb}, inbound)
+	noExpiry := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, Total: 50 * gb, Up: 8 * gb, BilledUp: 8 * gb}, inbound)
 	if got := expandRemarkVars(tmpl, noExpiry); got != "host|📊42.00GB" {
 		t.Errorf("no-expiry = %q, want %q", got, "host|📊42.00GB")
 	}
@@ -164,7 +166,7 @@ func TestClientStatus(t *testing.T) {
 		{"disabled", xray.ClientTraffic{Enable: false}, "disabled"},
 		{"active", xray.ClientTraffic{Enable: true}, "active"},
 		{"expired", xray.ClientTraffic{Enable: true, ExpiryTime: 1000}, "expired"}, // 1s past epoch
-		{"depleted", xray.ClientTraffic{Enable: true, Total: gb, Up: gb}, "depleted"},
+		{"depleted", xray.ClientTraffic{Enable: true, Total: gb, Up: gb, BilledUp: gb}, "depleted"},
 	}
 	for _, c := range cases {
 		if got := clientStatus(c.st); got != c.want {
@@ -184,6 +186,8 @@ func hostRemarkService(template string) (*SubService, *model.Inbound, model.Clie
 			Total:      100 * gb,
 			Up:         15 * gb,
 			Down:       5 * gb,
+			BilledUp:   15 * gb,
+			BilledDown: 5 * gb,
 			ExpiryTime: -864_000_000, // delayed-start: deterministic 10 days
 		}},
 	}
@@ -302,7 +306,7 @@ func TestNameOnlyTemplate(t *testing.T) {
 func TestStatsForClient_CrossInboundFallback(t *testing.T) {
 	s := &SubService{
 		statsByEmail: map[string]xray.ClientTraffic{
-			"john@example.com": {Email: "john@example.com", Total: 100 * gb, Up: 15 * gb, Down: 5 * gb},
+			"john@example.com": {Email: "john@example.com", Total: 100 * gb, Up: 15 * gb, Down: 5 * gb, BilledUp: 15 * gb, BilledDown: 5 * gb},
 		},
 	}
 	// Inbound B carries no ClientStats for john (his row is owned by inbound A).
@@ -333,7 +337,7 @@ func TestStatusEmoji(t *testing.T) {
 		want  string
 	}{
 		{xray.ClientTraffic{Enable: true, Total: 10 * gb, Up: gb}, "✅"},
-		{xray.ClientTraffic{Enable: true, Total: 10 * gb, Up: 10 * gb, Down: 1}, "🚫"},
+		{xray.ClientTraffic{Enable: true, Total: 10 * gb, Up: 10 * gb, Down: 1, BilledUp: 10 * gb, BilledDown: 1}, "🚫"},
 		{xray.ClientTraffic{Enable: false}, "🚫"},
 		{xray.ClientTraffic{Enable: true, ExpiryTime: 1000}, "⏳"},
 	}
@@ -345,17 +349,17 @@ func TestStatusEmoji(t *testing.T) {
 }
 
 func TestUsagePercentage(t *testing.T) {
-	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb}); got != "50.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb, BilledUp: 25 * gb, BilledDown: 25 * gb}); got != "50.0%" {
 		t.Errorf("usagePercentage 50%% = %q", got)
 	}
 	if got := usagePercentage(xray.ClientTraffic{Total: 0}); got != "" {
 		t.Errorf("usagePercentage unlimited = %q, want empty", got)
 	}
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb, BilledUp: 10 * gb}); got != "100.0%" {
 		t.Errorf("usagePercentage 100%% = %q", got)
 	}
 	// Over-quota usage clamps to 100%, consistent with TRAFFIC_LEFT.
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb, BilledUp: 25 * gb}); got != "100.0%" {
 		t.Errorf("usagePercentage over-quota = %q, want 100.0%%", got)
 	}
 }
@@ -400,7 +404,7 @@ func TestJalaliExpireDateLabel(t *testing.T) {
 func TestExpandNewTokensInTemplate(t *testing.T) {
 	inbound := &model.Inbound{Remark: "DE", Protocol: "vless"}
 	client := model.Client{Email: "alice@test.com", ID: "abc-123"}
-	stats := xray.ClientTraffic{Enable: true, Total: 100 * gb, Up: 50 * gb, Down: 0}
+	stats := xray.ClientTraffic{Enable: true, Total: 100 * gb, Up: 50 * gb, Down: 0, BilledUp: 50 * gb}
 	ctx := remarkContext{
 		client:    client,
 		stats:     stats,
@@ -442,7 +446,7 @@ func TestTranslateUISingleBrackets(t *testing.T) {
 
 func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 	inbound := &model.Inbound{Remark: "DE", Protocol: "vless"}
-	stats := xray.ClientTraffic{Enable: true, Total: 100 * gb, Up: 50 * gb, Down: 0}
+	stats := xray.ClientTraffic{Enable: true, Total: 100 * gb, Up: 50 * gb, Down: 0, BilledUp: 50 * gb}
 	ctx := remarkContext{
 		client:    model.Client{Email: "alice@test.com"},
 		stats:     stats,

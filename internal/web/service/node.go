@@ -218,12 +218,14 @@ func (s *NodeService) nodeClientStatuses() ([]nodeClientStatus, error) {
 		Total      int64 `gorm:"column:total"`
 		Up         int64 `gorm:"column:up"`
 		Down       int64 `gorm:"column:down"`
+		BilledUp   int64 `gorm:"column:billed_up"`
+		BilledDown int64 `gorm:"column:billed_down"`
 		ExpiryTime int64 `gorm:"column:expiry_time"`
 	}
 	var rows []row
 	if err := database.GetDB().Table("inbounds").
 		Select("inbounds.id AS inbound_id, inbounds.node_id AS node_id, clients.id AS client_id, " +
-			"clients.enable AS enable, ct.total AS total, ct.up AS up, ct.down AS down, ct.expiry_time AS expiry_time").
+			"clients.enable AS enable, ct.total AS total, ct.up AS up, ct.down AS down, ct.billed_up AS billed_up, ct.billed_down AS billed_down, ct.expiry_time AS expiry_time").
 		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
 		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
 		Joins("LEFT JOIN client_traffics ct ON ct.email = clients.email").
@@ -236,7 +238,7 @@ func (s *NodeService) nodeClientStatuses() ([]nodeClientStatus, error) {
 	for _, r := range rows {
 		st := nodeClientStatus{InboundID: r.InboundID, NodeID: r.NodeID, ClientID: r.ClientID}
 		expired := r.ExpiryTime > 0 && r.ExpiryTime <= now
-		exhausted := r.Total > 0 && r.Up+r.Down >= r.Total
+		exhausted := r.Total > 0 && r.BilledUp+r.BilledDown >= r.Total
 		switch {
 		case expired || exhausted:
 			st.Depleted = true

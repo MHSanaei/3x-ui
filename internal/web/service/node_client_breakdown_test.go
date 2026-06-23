@@ -51,7 +51,7 @@ func TestGetAll_ClientBreakdownMatchesByEmailNotStaleInboundId(t *testing.T) {
 	rows := []*xray.ClientTraffic{
 		{InboundId: staleInboundID, Email: "active@x", Enable: true},
 		{InboundId: staleInboundID, Email: "disabled@x", Enable: false},
-		{InboundId: staleInboundID, Email: "depleted@x", Enable: true, Total: 100, Up: 60, Down: 60}, // exhausted
+		{InboundId: staleInboundID, Email: "depleted@x", Enable: true, Total: 100, Up: 60, Down: 60, BilledUp: 60, BilledDown: 60}, // exhausted
 	}
 	for _, r := range rows {
 		if err := db.Create(r).Error; err != nil {

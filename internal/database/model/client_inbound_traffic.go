@@ -9,10 +9,12 @@ package model
 // multiplier change never re-bills the past.
 //
 // The per-client aggregate (Real up/down + billed_up/billed_down) lives on
-// client_traffics, which is what quota enforcement reads; this table is the
-// per-tunnel breakdown shown in the client modal and the basis for exact
-// attribution when a client is detached from one inbound. Rows are retained on
-// detach (no refund) and cleared on traffic reset/renew.
+// client_traffics, which is what quota enforcement reads. This table is the
+// per-attachment ledger that backs the per-tunnel usage breakdown (the modal
+// surfaces the per-client totals today; a drill-down that reads these rows is a
+// follow-up) and exact detach attribution. Rows are retained on detach (no
+// refund), cleared on traffic reset/renew, and dropped with the inbound or on
+// client delete.
 type ClientInboundTraffic struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	InboundId  int    `json:"inboundId" gorm:"uniqueIndex:idx_client_inbound_traffic,priority:1;not null;index"`
