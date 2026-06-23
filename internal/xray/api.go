@@ -693,15 +693,20 @@ func processTraffic(matches []string, value int64, trafficMap map[string]*Traffi
 	}
 }
 
-// processClientTraffic updates clientTrafficMap with upload/download values for a client email.
+// processClientTraffic updates clientTrafficMap with upload/download values for a
+// client. The stat name carries the per-attachment accounting identity
+// ("<inboundId>::<email>"), so it is keyed by that raw identity — keeping each
+// (client, inbound) pair a distinct entry — while the decoded logical email and
+// inbound id are stored on the struct for downstream per-attachment accrual.
 func processClientTraffic(matches []string, value int64, clientTrafficMap map[string]*ClientTraffic) {
-	email := matches[1]
+	statKey := matches[1]
 	isDown := matches[2] == "downlink"
 
-	traffic, ok := clientTrafficMap[email]
+	traffic, ok := clientTrafficMap[statKey]
 	if !ok {
-		traffic = &ClientTraffic{Email: email}
-		clientTrafficMap[email] = traffic
+		inboundId, email, _ := DecodeStatEmail(statKey)
+		traffic = &ClientTraffic{Email: email, InboundId: inboundId}
+		clientTrafficMap[statKey] = traffic
 	}
 
 	if isDown {

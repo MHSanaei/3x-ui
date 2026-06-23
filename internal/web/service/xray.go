@@ -166,7 +166,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"
 			}
-			entry := map[string]any{"email": c.Email}
+			// Encode the per-attachment accounting identity ("<inboundId>::<email>")
+			// so Xray meters this (client, inbound) pair separately for the Traffic
+			// Multiplier feature. Decoded back to the logical email on the stats path
+			// and everywhere outside the Xray boundary.
+			entry := map[string]any{"email": xray.EncodeStatEmail(inbound.Id, c.Email)}
 			switch inbound.Protocol {
 			case model.VLESS:
 				if c.ID != "" {

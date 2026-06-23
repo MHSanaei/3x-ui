@@ -83,8 +83,18 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 	if ib.Protocol == model.MTProto {
 		return nil
 	}
+	// Meter this attachment under its per-attachment accounting identity so the
+	// inbound's Traffic Multiplier can bill it separately. Copy the map so the
+	// caller's logical email is left untouched.
+	user := make(map[string]any, len(userMap))
+	for k, v := range userMap {
+		user[k] = v
+	}
+	if email, ok := user["email"].(string); ok {
+		user["email"] = xray.EncodeStatEmail(ib.Id, email)
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
-		return api.AddUser(string(ib.Protocol), ib.Tag, userMap)
+		return api.AddUser(string(ib.Protocol), ib.Tag, user)
 	})
 }
 
@@ -93,7 +103,7 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
-		return api.RemoveUser(ib.Tag, email)
+		return api.RemoveUser(ib.Tag, xray.EncodeStatEmail(ib.Id, email))
 	})
 }
 

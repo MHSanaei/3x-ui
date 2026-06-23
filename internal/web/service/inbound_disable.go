@@ -143,7 +143,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	if p != nil && len(localTargets) > 0 {
 		s.xrayApi.Init(p.GetAPIPort())
 		for _, t := range localTargets {
-			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
+			err1 := s.xrayApi.RemoveUser(t.Tag, xray.EncodeStatEmail(t.InboundID, t.Email))
 			if err1 == nil {
 				logger.Debug("Client disabled by api:", t.Email)
 			} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.Email)) {

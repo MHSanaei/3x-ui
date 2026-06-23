@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -98,13 +99,69 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 	return nil
 }
 
+// billedBytes applies an inbound's Traffic Multiplier to a Real byte delta,
+// rounding to the nearest byte. Multiplier 1 (the common case) and a zero delta
+// are returned unchanged, so a pure-1x deployment accrues Billed == Real exactly.
+func billedBytes(real int64, multiplier float64) int64 {
+	if multiplier == 1 || real == 0 {
+		return real
+	}
+	return int64(math.Round(float64(real) * multiplier))
+}
+
+// loadInboundMultipliers returns the Traffic Multiplier for every inbound id that
+// appears in the per-attachment traffic deltas, in one query. Inbounds missing
+// from the result (or with a non-positive multiplier) bill at 1x. Looked up every
+// call rather than cached, since an admin can edit a multiplier at any time
+// outside the traffic writer.
+func (s *InboundService) loadInboundMultipliers(tx *gorm.DB, traffics []*xray.ClientTraffic) map[int]float64 {
+	idSet := make(map[int]struct{})
+	for _, t := range traffics {
+		if t != nil && t.InboundId > 0 {
+			idSet[t.InboundId] = struct{}{}
+		}
+	}
+	if len(idSet) == 0 {
+		return nil
+	}
+	ids := make([]int, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+	var rows []struct {
+		Id         int
+		Multiplier float64
+	}
+	out := make(map[int]float64, len(ids))
+	if err := tx.Model(&model.Inbound{}).Select("id, multiplier").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+		logger.Warning("loadInboundMultipliers:", err)
+		return out
+	}
+	for _, r := range rows {
+		if r.Multiplier > 0 {
+			out[r.Id] = r.Multiplier
+		}
+	}
+	return out
+}
+
 func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTraffic) (err error) {
 	if len(traffics) == 0 {
 		return nil
 	}
 
+	// Distinct logical emails. traffics now holds one entry per (client, inbound)
+	// attachment, so the same email can appear several times.
+	emailSet := make(map[string]struct{}, len(traffics))
 	emails := make([]string, 0, len(traffics))
 	for _, traffic := range traffics {
+		if traffic == nil {
+			continue
+		}
+		if _, ok := emailSet[traffic.Email]; ok {
+			continue
+		}
+		emailSet[traffic.Email] = struct{}{}
 		emails = append(emails, traffic.Email)
 	}
 	dbClientTraffics := make([]*xray.ClientTraffic, 0, len(traffics))
@@ -133,30 +190,89 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
-	// Index by email for O(N) merge.
-	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
-	for i := range traffics {
-		if traffics[i] != nil {
-			trafficByEmail[traffics[i].Email] = traffics[i]
+	now := time.Now().UnixMilli()
+
+	// Per-attachment accrual for the Traffic Multiplier feature. Each entry in
+	// traffics is one (client, inbound) slice, decoded from the encoded Xray stat
+	// identity, so its InboundId is authoritative. Accrue Real per attachment plus
+	// Billed = Real x the inbound's CURRENT multiplier (so a later multiplier
+	// change never re-bills the past), then fold both into the per-client
+	// aggregate that quota enforcement reads. Entries whose email has no
+	// client_traffics row (unknown client) are skipped, matching the aggregate.
+	multByInbound := s.loadInboundMultipliers(tx, traffics)
+	known := make(map[string]struct{}, len(dbClientTraffics))
+	for _, ct := range dbClientTraffics {
+		known[ct.Email] = struct{}{}
+	}
+	type emailDelta struct{ up, down, billedUp, billedDown int64 }
+	perEmail := make(map[string]*emailDelta, len(dbClientTraffics))
+	for _, e := range traffics {
+		if e == nil || (e.Up == 0 && e.Down == 0) {
+			continue
+		}
+		if _, ok := known[e.Email]; !ok {
+			continue
+		}
+		mult := 1.0
+		if e.InboundId > 0 {
+			if m, ok := multByInbound[e.InboundId]; ok {
+				mult = m
+			}
+		}
+		bUp := billedBytes(e.Up, mult)
+		bDown := billedBytes(e.Down, mult)
+
+		d := perEmail[e.Email]
+		if d == nil {
+			d = &emailDelta{}
+			perEmail[e.Email] = d
+		}
+		d.up += e.Up
+		d.down += e.Down
+		d.billedUp += bUp
+		d.billedDown += bDown
+
+		// Upsert the per-attachment Real + Billed row (the per-tunnel breakdown
+		// and the basis for exact detach attribution).
+		if e.InboundId > 0 {
+			row := &model.ClientInboundTraffic{
+				InboundId:  e.InboundId,
+				Email:      e.Email,
+				Up:         e.Up,
+				Down:       e.Down,
+				BilledUp:   bUp,
+				BilledDown: bDown,
+			}
+			if err = tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{{Name: "inbound_id"}, {Name: "email"}},
+				DoUpdates: clause.Assignments(map[string]any{
+					"up":          gorm.Expr("up + ?", e.Up),
+					"down":        gorm.Expr("down + ?", e.Down),
+					"billed_up":   gorm.Expr("billed_up + ?", bUp),
+					"billed_down": gorm.Expr("billed_down + ?", bDown),
+				}),
+			}).Create(row).Error; err != nil {
+				logger.Warning("AddClientTraffic upsert attachment ", err)
+			}
 		}
 	}
-	now := time.Now().UnixMilli()
-	// Use atomic per-row UPDATE instead of read-modify-write Save. tx.Save
-	// issues UPDATEs in slice order, which varies between concurrent callers;
-	// on PostgreSQL two transactions locking the same rows in opposite order
-	// deadlock. An atomic "SET up = up + ?" never holds a row lock across a
-	// subsequent lock acquisition, so concurrent writers cannot deadlock.
+
+	// Atomic per-row UPDATE of the per-client aggregate. tx.Save issues UPDATEs in
+	// slice order, which varies between concurrent callers; on PostgreSQL two
+	// transactions locking the same rows in opposite order deadlock. An atomic
+	// "SET up = up + ?" never holds a row lock across a subsequent acquisition, so
+	// concurrent writers cannot deadlock.
 	for _, ct := range dbClientTraffics {
-		t, ok := trafficByEmail[ct.Email]
-		if !ok || (t.Up == 0 && t.Down == 0) {
+		d, ok := perEmail[ct.Email]
+		if !ok || (d.up == 0 && d.down == 0) {
 			continue
 		}
 		if err = tx.Exec(
 			fmt.Sprintf(
-				`UPDATE client_traffics SET up = up + ?, down = down + ?, last_online = %s WHERE email = ?`,
+				`UPDATE client_traffics SET up = up + ?, down = down + ?, billed_up = billed_up + ?, billed_down = billed_down + ?, last_online = %s WHERE email = ?`,
 				database.GreatestExpr("last_online", "?"),
 			),
-			t.Up, t.Down, now, ct.Email,
+			d.up, d.down, d.billedUp, d.billedDown, now, ct.Email,
 		).Error; err != nil {
 			logger.Warning("AddClientTraffic update data ", err)
 		}
@@ -313,9 +429,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	var inbounds []*model.Inbound
 	needRestart := false
 	var clientsToAdd []struct {
-		protocol string
-		tag      string
-		client   map[string]any
+		protocol  string
+		tag       string
+		inboundId int
+		client    map[string]any
 	}
 
 	// Resolve the inbounds to renew through the client_inbounds link rather than
@@ -382,13 +499,15 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 				c["enable"] = true
 				clientsToAdd = append(clientsToAdd,
 					struct {
-						protocol string
-						tag      string
-						client   map[string]any
+						protocol  string
+						tag       string
+						inboundId int
+						client    map[string]any
 					}{
-						protocol: string(inbounds[inbound_index].Protocol),
-						tag:      inbounds[inbound_index].Tag,
-						client:   c,
+						protocol:  string(inbounds[inbound_index].Protocol),
+						tag:       inbounds[inbound_index].Tag,
+						inboundId: inbounds[inbound_index].Id,
+						client:    c,
 					})
 			}
 			clients[client_index] = any(c)
@@ -432,7 +551,17 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 			return true, int64(len(traffics)), nil
 		}
 		for _, clientToAdd := range clientsToAdd {
-			err1 = s.xrayApi.AddUser(clientToAdd.protocol, clientToAdd.tag, clientToAdd.client)
+			// Re-add under the per-attachment accounting identity so renewed clients
+			// keep metering separately per inbound. Copy so the settings map (written
+			// back above) keeps its logical email.
+			user := make(map[string]any, len(clientToAdd.client))
+			for k, v := range clientToAdd.client {
+				user[k] = v
+			}
+			if email, ok := user["email"].(string); ok {
+				user["email"] = xray.EncodeStatEmail(clientToAdd.inboundId, email)
+			}
+			err1 = s.xrayApi.AddUser(clientToAdd.protocol, clientToAdd.tag, user)
 			if err1 != nil {
 				needRestart = true
 			}
