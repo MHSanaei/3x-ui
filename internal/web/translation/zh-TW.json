@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "覆寫 Xray 預設的私有 IP 封鎖",
         "blockDelay": "阻斷延遲 (ms)",
         "reverseSniffing": "反向 sniffing",
-        "workers": "Workers",
         "reserved": "保留",
         "minUploadInterval": "最小上傳間隔 (ms)",
         "maxUploadSizeBytes": "最大上傳大小 (位元組)",

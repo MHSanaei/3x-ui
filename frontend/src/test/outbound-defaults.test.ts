@@ -111,7 +111,6 @@ describe('outbound default factories: shape snapshots', () => {
     const out = createDefaultWireguardOutboundSettings({ secretKey: SAMPLE_SECRET });
     expect(out.secretKey).toBe(SAMPLE_SECRET);
     expect(out.mtu).toBe(1420);
-    expect(out.workers).toBe(2);
     expect(out.address).toEqual([]);
     expect(out.noKernelTun).toBe(false);
     expect(out.peers).toEqual([{

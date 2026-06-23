@@ -38,7 +38,6 @@ export const WireguardInboundSettingsSchema = z.object({
   secretKey: z.string().min(1),
   peers: z.array(WireguardInboundPeerSchema).default([]),
   noKernelTun: z.boolean().default(false),
-  workers: optionalClearedInt(z.number().int().min(1)),
   domainStrategy: WireguardDomainStrategySchema.optional(),
 });
 export type WireguardInboundSettings = z.infer<typeof WireguardInboundSettingsSchema>;
