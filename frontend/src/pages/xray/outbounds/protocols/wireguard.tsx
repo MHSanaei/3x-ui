@@ -43,9 +43,6 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
       <Form.Item label="MTU" name={['settings', 'mtu']}>
         <InputNumber min={0} />
       </Form.Item>
-      <Form.Item label={t('pages.xray.outboundForm.workers')} name={['settings', 'workers']}>
-        <InputNumber min={0} />
-      </Form.Item>
       <Form.Item
         label={t('pages.inbounds.info.noKernelTun')}
         name={['settings', 'noKernelTun']}

@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Ghi đè chặn IP riêng mặc định của Xray",
         "blockDelay": "Trễ chặn (ms)",
         "reverseSniffing": "Sniffing ngược",
-        "workers": "Workers",
         "reserved": "Đã đặt trước",
         "minUploadInterval": "Khoảng upload tối thiểu (ms)",
         "maxUploadSizeBytes": "Kích thước upload tối đa (byte)",

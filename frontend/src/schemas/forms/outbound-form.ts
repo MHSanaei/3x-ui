@@ -103,7 +103,6 @@ export const WireguardOutboundFormSettingsSchema = z.object({
   secretKey: z.string().default(''),
   pubKey: z.string().default(''),
   address: z.string().default(''),
-  workers: z.number().int().min(0).default(2),
   domainStrategy: z.union([WireguardDomainStrategySchema, z.literal('')]).default(''),
   reserved: z.string().default(''),
   peers: z.array(WireguardOutboundFormPeerSchema).default([]),

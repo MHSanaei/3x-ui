@@ -1597,7 +1597,6 @@
         "overrideXrayPrivateIp": "Override Xray's default private-IP block",
         "blockDelay": "Block delay (ms)",
         "reverseSniffing": "Reverse Sniffing",
-        "workers": "Workers",
         "reserved": "Reserved",
         "minUploadInterval": "Min upload interval (ms)",
         "maxUploadSizeBytes": "Max upload size (bytes)",

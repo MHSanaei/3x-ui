@@ -182,7 +182,6 @@ describe('outbound-form-adapter: round-trip', () => {
         mtu: 1420,
         secretKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
         address: ['10.0.0.1', 'fd00::1'],
-        workers: 2,
         peers: [{ publicKey: 'pk', allowedIPs: ['0.0.0.0/0'], endpoint: 'e:51820', preSharedKey: 'psk' }],
         reserved: [1, 2, 3],
         noKernelTun: false,

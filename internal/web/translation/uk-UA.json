@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Перевизначити дефолтний блок приватних IP у Xray",
         "blockDelay": "Затримка блоку (мс)",
         "reverseSniffing": "Зворотний sniffing",
-        "workers": "Воркери",
         "reserved": "Зарезервовано",
         "minUploadInterval": "Мін. інтервал завантаження (мс)",
         "maxUploadSizeBytes": "Макс. розмір завантаження (байт)",

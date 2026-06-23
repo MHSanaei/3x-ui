@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Timpa blok IP privat default Xray",
         "blockDelay": "Penundaan blokir (ms)",
         "reverseSniffing": "Sniffing terbalik",
-        "workers": "Workers",
         "reserved": "Dicadangkan",
         "minUploadInterval": "Min. interval upload (ms)",
         "maxUploadSizeBytes": "Ukuran upload maks. (byte)",

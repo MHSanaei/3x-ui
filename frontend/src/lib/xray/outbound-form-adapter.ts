@@ -205,7 +205,6 @@ function wireguardFromWire(raw: Raw): WireguardOutboundFormSettings {
     secretKey,
     pubKey,
     address: addressArr.join(','),
-    workers: asNumber(raw.workers, 2),
     domainStrategy: ((): WireguardOutboundFormSettings['domainStrategy'] => {
       const allowed = ['ForceIP', 'ForceIPv4', 'ForceIPv4v6', 'ForceIPv6', 'ForceIPv6v4'];
       const s = asString(raw.domainStrategy);
@@ -495,7 +494,6 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
     mtu: s.mtu || undefined,
     secretKey: s.secretKey,
     address: s.address ? s.address.split(',').map((x) => x.trim()).filter(Boolean) : [],
-    workers: s.workers || undefined,
     domainStrategy: s.domainStrategy || undefined,
     reserved: s.reserved
       ? s.reserved.split(',').map((x) => Number(x.trim())).filter((n) => Number.isFinite(n))

@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Sobrescribir el bloqueo de IP privada por defecto de Xray",
         "blockDelay": "Retraso de bloqueo (ms)",
         "reverseSniffing": "Sniffing inverso",
-        "workers": "Workers",
         "reserved": "Reservado",
         "minUploadInterval": "Intervalo mín. de subida (ms)",
         "maxUploadSizeBytes": "Tamaño máx. de subida (bytes)",

@@ -1489,7 +1489,6 @@
         "overrideXrayPrivateIp": "Xray'in varsayılan özel IP bloğunu geçersiz kıl",
         "blockDelay": "Engelleme Gecikmesi (ms)",
         "reverseSniffing": "Ters Sniffing",
-        "workers": "Workers",
         "reserved": "Ayrılmış",
         "minUploadInterval": "Min. Yükleme Aralığı (ms)",
         "maxUploadSizeBytes": "Maks. Yükleme Boyutu (bayt)",
