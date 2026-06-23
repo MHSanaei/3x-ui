@@ -583,7 +583,7 @@
         "tcpCongestion": "TCP Congestion",
         "dialerProxy": "Dialer Proxy",
         "trustedXForwardedFor": "X-Forwarded-For tin cậy",
-        "trustedXForwardedForHint": "Tin cậy header yêu cầu này để lấy IP thật của client (ví dụ CF-Connecting-IP phía sau CDN của Cloudflare). Chỉ có hiệu lực trên các transport WebSocket, HTTPUpgrade và XHTTP. Để trống để bỏ qua các header chuyển tiếp.",
+        "trustedXForwardedForHint": "Tin cậy header yêu cầu này để lấy IP thật của client (ví dụ CF-Connecting-IP phía sau CDN của Cloudflare). Chỉ có hiệu lực trên các transport WebSocket, HTTPUpgrade, XHTTP và gRPC. Để trống để bỏ qua các header chuyển tiếp.",
         "proxyProtocolHint": "Chấp nhận header PROXY protocol để lấy IP thật của client từ tunnel/relay L4 phía trên (HAProxy, gost, nginx-stream, Xray dokodemo-door) hoặc Cloudflare Spectrum. Phía trên PHẢI gửi PROXY protocol. Hoạt động trên TCP, WebSocket, HTTPUpgrade và gRPC; không hoạt động trên mKCP.",
         "realClientIp": "IP thật của client",
         "realClientIpHint": "Lấy IP thật của khách khi lưu lượng đến inbound này qua CDN hoặc relay, thay vì ghi lại địa chỉ của trung gian. Chọn một preset để tự điền các trường sockopt tương ứng bên dưới. Các trường này không bao giờ được gửi đến client trong subscription.",

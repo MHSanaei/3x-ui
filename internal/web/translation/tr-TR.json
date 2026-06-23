@@ -562,7 +562,7 @@
         "tcpCongestion": "TCP Congestion",
         "dialerProxy": "Dialer Proxy",
         "trustedXForwardedFor": "Güvenilir X-Forwarded-For",
-        "trustedXForwardedForHint": "Gerçek istemci IP'sini almak için bu istek başlığına güven (örn. Cloudflare CDN arkasındaki CF-Connecting-IP). Yalnızca WebSocket, HTTPUpgrade ve XHTTP taşımalarında geçerlidir. İletilen başlıkları yok saymak için boş bırakın.",
+        "trustedXForwardedForHint": "Gerçek istemci IP'sini almak için bu istek başlığına güven (örn. Cloudflare CDN arkasındaki CF-Connecting-IP). Yalnızca WebSocket, HTTPUpgrade, XHTTP ve gRPC taşımalarında geçerlidir. İletilen başlıkları yok saymak için boş bırakın.",
         "proxyProtocolHint": "Gerçek istemci IP'sini bir üst L4 tüneli veya rölesi (HAProxy, gost, nginx-stream, Xray dokodemo-door) ya da Cloudflare Spectrum üzerinden öğrenmek için PROXY protocol başlığını kabul et. Üst sunucu PROXY protocol göndermek ZORUNDADIR. TCP, WebSocket, HTTPUpgrade ve gRPC üzerinde çalışır; mKCP üzerinde çalışmaz.",
         "realClientIp": "Gerçek istemci IP'si",
         "realClientIpHint": "Trafik bu gelen bağlantıya bir CDN veya röle üzerinden ulaştığında, aracı adresini kaydetmek yerine ziyaretçinin gerçek IP'sini al. Aşağıdaki ilgili sockopt alanlarını doldurmak için bir hazır ayar seç. Bu alanlar aboneliklerde istemcilere asla gönderilmez.",
