@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -50,23 +49,42 @@ func (s *ClientService) EffectiveFlow(tx *gorm.DB, recordId int) (string, error)
 	return flows[0], nil
 }
 
-// EffectiveFlowByEmail returns the client's intended flow (the non-empty
-// flow_override on any of its inbounds, lowest inbound_id first), resolved from
-// the client's email. Returns "" when the client is unknown or carries no flow
-// on any inbound. Used to restore a stripped flow onto an inbound that has just
-// become flow-eligible.
-func (s *ClientService) EffectiveFlowByEmail(tx *gorm.DB, email string) (string, error) {
+// EffectiveFlowsByEmails resolves the intended flow (non-empty flow_override,
+// lowest inbound_id first — same rule as EffectiveFlow) for many clients in one
+// query, keyed by email. Emails absent from the result carry no flow anywhere.
+// Batched so flow restoration on an inbound with many clients is O(1) queries
+// instead of O(clients). Used to restore a stripped flow onto an inbound that
+// has just become flow-eligible.
+func (s *ClientService) EffectiveFlowsByEmails(tx *gorm.DB, emails []string) (map[string]string, error) {
 	if tx == nil {
 		tx = database.GetDB()
 	}
-	rec, err := s.GetRecordByEmail(tx, email)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil
-		}
-		return "", err
+	out := make(map[string]string, len(emails))
+	if len(emails) == 0 {
+		return out, nil
 	}
-	return s.EffectiveFlow(tx, rec.Id)
+	type row struct {
+		Email string
+		Flow  string `gorm:"column:flow_override"`
+	}
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var rows []row
+		err := tx.Table("client_inbounds").
+			Select("clients.email AS email, client_inbounds.flow_override AS flow_override").
+			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+			Where("clients.email IN ? AND client_inbounds.flow_override <> ?", batch, "").
+			Order("client_inbounds.inbound_id ASC").
+			Scan(&rows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			if _, seen := out[r.Email]; !seen { // ordered by inbound_id ASC → first = lowest
+				out[r.Email] = r.Flow
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int, error) {
