@@ -55,7 +55,7 @@ export default function FilterDrawer({
     () =>
       inbounds.map((ib) => ({
         value: ib.id,
-        label: formatInboundLabel(ib.tag, ib.remark),
+        label: formatInboundLabel(ib.tag, ib.remark, ib.port),
       })),
     [inbounds],
   );

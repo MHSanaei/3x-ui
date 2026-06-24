@@ -11,6 +11,7 @@ import {
 
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { InboundOption } from '@/hooks/useClients';
+import type { NodeRecord } from '@/schemas/node';
 
 const ICON_BUTTON_STYLE = { fontSize: 16 } as const;
 
@@ -94,7 +95,6 @@ export const ClientRowActions = memo(function ClientRowActions({
   );
 });
 
-const CHIP_STYLE = { margin: 2 } as const;
 const OVERFLOW_CHIP_STYLE = { margin: 2, cursor: 'pointer' } as const;
 const OVERFLOW_LIST_STYLE = {
   display: 'flex',
@@ -108,6 +108,8 @@ const OVERFLOW_LIST_STYLE = {
 interface ClientInboundChipsProps {
   ids: number[];
   inboundsById: Record<number, InboundOption>;
+  nodesById?: ReadonlyMap<number, NodeRecord>;
+  localNodeLabel?: string;
   protocolColors: Record<string, string>;
   chipLimit: number;
 }
@@ -117,21 +119,35 @@ interface ClientInboundChipsProps {
 export const ClientInboundChips = memo(function ClientInboundChips({
   ids,
   inboundsById,
+  nodesById,
+  localNodeLabel,
   protocolColors,
   chipLimit,
 }: ClientInboundChipsProps) {
   if (ids.length === 0) return <span className="cell-empty">—</span>;
 
-  const label = (id: number) => {
+  const inboundLabel = (id: number) => {
     const ib = inboundsById[id];
-    return formatInboundLabel(ib?.tag, ib?.remark);
+    return formatInboundLabel(ib?.tag, ib?.remark, ib?.port);
+  };
+  const nodeLabel = (id: number) => {
+    const ib = inboundsById[id];
+    if (!ib || !nodesById) return '';
+    if (ib.nodeId == null) return localNodeLabel || '';
+    const node = nodesById.get(ib.nodeId);
+    return (node?.remark || node?.name || node?.address || `#${ib.nodeId}`).trim();
   };
   const chip = (id: number) => {
-    const proto = (inboundsById[id]?.protocol || '').toLowerCase();
+    const ib = inboundsById[id];
+    const proto = (ib?.protocol || '').toLowerCase();
+    const inbound = inboundLabel(id);
+    const node = nodeLabel(id);
+    const fullLabel = node && inbound ? `${node} / ${inbound}` : node || inbound;
     return (
-      <Tooltip key={id} title={label(id)}>
-        <Tag color={protocolColors[proto] ?? 'default'} style={CHIP_STYLE}>
-          {label(id)}
+      <Tooltip key={id} title={fullLabel}>
+        <Tag color={protocolColors[proto] ?? 'default'} className="client-inbound-chip">
+          {node && <span className="client-inbound-node">{node}</span>}
+          <span className="client-inbound-name">{inbound}</span>
         </Tag>
       </Tooltip>
     );

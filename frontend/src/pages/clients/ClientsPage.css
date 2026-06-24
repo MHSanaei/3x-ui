@@ -203,6 +203,34 @@
   max-width: 220px;
 }
 
+.client-inbound-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 190px;
+  margin: 2px;
+  line-height: 1.25;
+  padding-block: 2px;
+}
+
+.client-inbound-node,
+.client-inbound-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-inbound-node {
+  font-weight: 600;
+}
+
+.client-inbound-name {
+  font-size: 11px;
+  opacity: 0.72;
+}
+
 .client-cards {
   display: flex;
   flex-direction: column;

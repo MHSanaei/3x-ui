@@ -500,6 +500,11 @@ export default function ClientsPage() {
     for (const ib of inbounds) out[ib.id] = ib;
     return out;
   }, [inbounds]);
+  const nodesById = useMemo(() => {
+    const out = new Map<number, (typeof nodes)[number]>();
+    for (const node of nodes || []) out.set(node.id, node);
+    return out;
+  }, [nodes]);
 
   const protocolOptions = useMemo(() => {
     const values = new Set<string>(
@@ -518,7 +523,7 @@ export default function ClientsPage() {
 
   function inboundLabel(id: number) {
     const ib = inboundsById[id];
-    return formatInboundLabel(ib?.tag, ib?.remark);
+    return formatInboundLabel(ib?.tag, ib?.remark, ib?.port);
   }
 
   const clientBucket = useCallback(
@@ -1103,6 +1108,8 @@ export default function ClientsPage() {
             <ClientInboundChips
               ids={record.inboundIds || EMPTY_INBOUND_IDS}
               inboundsById={inboundsById}
+              nodesById={nodesById}
+              localNodeLabel={t('pages.clients.filters.localPanel')}
               protocolColors={INBOUND_PROTOCOL_COLORS}
               chipLimit={INBOUND_CHIP_LIMIT}
             />
@@ -1166,6 +1173,7 @@ export default function ClientsPage() {
       clientBucket,
       isOnline,
       inboundsById,
+      nodesById,
       filters,
       allGroups,
       datepicker,
