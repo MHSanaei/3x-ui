@@ -20,6 +20,15 @@ var version string
 //go:embed name
 var name string
 
+// buildCommit and buildDate are injected at build time via `-ldflags -X` for
+// CI per-commit (dev channel) builds; see .github/workflows/release.yml. They
+// stay empty for a plain `go build` and for stable tagged releases, which is how
+// IsDevBuild tells a rolling dev build apart from a stable/local one.
+var (
+	buildCommit string
+	buildDate   string
+)
+
 // LogLevel represents the logging level for the application.
 type LogLevel string
 
@@ -40,6 +49,23 @@ func GetVersion() string {
 // GetName returns the name of the 3x-ui application.
 func GetName() string {
 	return strings.TrimSpace(name)
+}
+
+// GetBuildCommit returns the short git commit this binary was built from, or an
+// empty string for a plain/local build or a stable tagged release.
+func GetBuildCommit() string {
+	return strings.TrimSpace(buildCommit)
+}
+
+// GetBuildDate returns the UTC build timestamp injected at build time, or empty.
+func GetBuildDate() string {
+	return strings.TrimSpace(buildDate)
+}
+
+// IsDevBuild reports whether this binary is a CI per-commit (dev channel) build,
+// detected by the injected commit. Stable releases and local builds return false.
+func IsDevBuild() bool {
+	return GetBuildCommit() != ""
 }
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.

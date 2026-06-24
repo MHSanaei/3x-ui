@@ -4240,6 +4240,46 @@
         }
       }
     },
+    "/panel/api/server/setUpdateChannel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.",
+        "operationId": "post_panel_api_server_setUpdateChannel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/updateGeofile": {
       "post": {
         "tags": [

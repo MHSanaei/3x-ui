@@ -350,13 +350,13 @@ export function useClients() {
 
   const attachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, JSON_HEADERS),
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, { ...JSON_HEADERS, silentSuccess: true }),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
   const setExternalLinksMut = useMutation({
     mutationFn: ({ email, externalLinks }: { email: string; externalLinks: ExternalLinkInput[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/externalLinks`, { externalLinks }, JSON_HEADERS),
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/externalLinks`, { externalLinks }, { ...JSON_HEADERS, silentSuccess: true }),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -370,7 +370,7 @@ export function useClients() {
 
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, JSON_HEADERS),
+      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, { ...JSON_HEADERS, silentSuccess: true }),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 

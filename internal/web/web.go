@@ -623,6 +623,28 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		return nil
 	})
 
+	controller.SetReloadTgbotFunc(func() {
+		enabled, err := s.settingService.GetTgbotEnabled()
+		if err != nil || !enabled {
+			if s.tgbotService.IsRunning() {
+				s.tgbotService.Stop()
+			}
+			if s.bus != nil {
+				s.bus.Unsubscribe("tg-notifier")
+			}
+			return
+		}
+		// Start() stops any previous receiver first, so it is safe whether or not the bot is already running.
+		tgBot := s.tgbotService.NewTgbot()
+		if startErr := tgBot.Start(i18nFS); startErr != nil {
+			logger.Warning("reload Telegram bot failed:", startErr)
+			return
+		}
+		if s.bus != nil {
+			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
+		}
+	})
+
 	s.startTask(restartXray)
 
 	if startTgBot {

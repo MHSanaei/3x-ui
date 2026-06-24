@@ -8,6 +8,7 @@ import type {
   DnsRuleForm,
   FreedomFinalRuleForm,
   FreedomOutboundFormSettings,
+  HttpOutboundFormSettings,
   HysteriaOutboundFormSettings,
   LoopbackOutboundFormSettings,
   MuxForm,
@@ -175,6 +176,26 @@ function simpleAuthFromWire(raw: Raw, defaultPort: number): SimpleAuthFormSettin
     port: asPort(s.port, defaultPort),
     user: asString(u.user),
     pass: asString(u.pass),
+  };
+}
+
+function stringRecordFromWire(raw: unknown): Record<string, string> {
+  const obj = asObject(raw);
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string') out[k] = v;
+  }
+  return out;
+}
+
+// HTTP outbound reuses the SOCKS server/user shape but also carries xray's
+// top-level `settings.headers` (HTTPClientConfig.Headers), the CONNECT
+// headers sent to the upstream proxy. xray ignores per-server `headers`,
+// so only the settings-level map round-trips (issue #5519).
+function httpFromWire(raw: Raw): HttpOutboundFormSettings {
+  return {
+    ...simpleAuthFromWire(raw, 8080),
+    headers: stringRecordFromWire(raw.headers),
   };
 }
 
@@ -395,7 +416,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'trojan':      typed = { protocol: 'trojan',      settings: trojanFromWire(settings) }; break;
     case 'shadowsocks': typed = { protocol: 'shadowsocks', settings: shadowsocksFromWire(settings) }; break;
     case 'socks':       typed = { protocol: 'socks',       settings: simpleAuthFromWire(settings, 1080) }; break;
-    case 'http':        typed = { protocol: 'http',        settings: simpleAuthFromWire(settings, 8080) }; break;
+    case 'http':        typed = { protocol: 'http',        settings: httpFromWire(settings) }; break;
     case 'wireguard':   typed = { protocol: 'wireguard',   settings: wireguardFromWire(settings) }; break;
     case 'hysteria':    typed = { protocol: 'hysteria',    settings: hysteriaFromWire(settings) }; break;
     case 'freedom':     typed = { protocol: 'freedom',     settings: freedomFromWire(settings) }; break;
@@ -487,6 +508,14 @@ function simpleAuthToWire(s: SimpleAuthFormSettings) {
       users: s.user ? [{ user: s.user, pass: s.pass }] : [],
     }],
   };
+}
+
+function httpToWire(s: HttpOutboundFormSettings): Raw {
+  const wire: Raw = simpleAuthToWire(s);
+  if (s.headers && Object.keys(s.headers).length > 0) {
+    wire.headers = s.headers;
+  }
+  return wire;
 }
 
 function wireguardToWire(s: WireguardOutboundFormSettings) {
@@ -629,7 +658,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     case 'trojan':      settings = trojanToWire(values.settings); break;
     case 'shadowsocks': settings = shadowsocksToWire(values.settings); break;
     case 'socks':       settings = simpleAuthToWire(values.settings); break;
-    case 'http':        settings = simpleAuthToWire(values.settings); break;
+    case 'http':        settings = httpToWire(values.settings); break;
     case 'wireguard':   settings = wireguardToWire(values.settings); break;
     case 'hysteria':    settings = hysteriaToWire(values.settings); break;
     case 'freedom':     settings = freedomToWire(values.settings); break;
