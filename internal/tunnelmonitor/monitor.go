@@ -5,16 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"golang.org/x/net/proxy"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 )
 
 const (
@@ -116,7 +114,7 @@ func (c Config) Normalize() Config {
 func New(cfg Config, recover RecoveryFunc) (*Monitor, error) {
 	cfg = cfg.Normalize()
 
-	client, err := newHTTPClient(cfg)
+	client, err := netproxy.NewHTTPClient(cfg.ProxyURL, cfg.Timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +179,7 @@ func (m *Monitor) Step(ctx context.Context) (bool, error) {
 
 		now := m.now()
 		if !m.lastRecovery.IsZero() && now.Sub(m.lastRecovery) < m.cfg.Cooldown {
+			m.failures = m.cfg.FailureThreshold
 			return false, fmt.Errorf("probe failed %d/%d; recovery cooldown active: %w", m.failures, m.cfg.FailureThreshold, err)
 		}
 
@@ -223,75 +222,6 @@ func (m *Monitor) probe(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func newHTTPClient(cfg Config) (*http.Client, error) {
-	dialer := &net.Dialer{
-		Timeout:   cfg.Timeout,
-		KeepAlive: 30 * time.Second,
-	}
-
-	transport := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           dialer.DialContext,
-		ForceAttemptHTTP2:     true,
-		TLSHandshakeTimeout:   cfg.Timeout,
-		ResponseHeaderTimeout: cfg.Timeout,
-		ExpectContinueTimeout: time.Second,
-	}
-
-	if cfg.ProxyURL != "" {
-		proxyURL, err := url.Parse(cfg.ProxyURL)
-		if err != nil {
-			return nil, fmt.Errorf("parse tunnel health proxy URL: %w", err)
-		}
-
-		switch strings.ToLower(proxyURL.Scheme) {
-		case "http", "https":
-			transport.Proxy = http.ProxyURL(proxyURL)
-		case "socks5", "socks5h":
-			socksURL := *proxyURL
-			socksURL.Scheme = "socks5"
-
-			socksDialer, err := proxy.FromURL(&socksURL, proxy.Direct)
-			if err != nil {
-				return nil, fmt.Errorf("create SOCKS proxy dialer: %w", err)
-			}
-
-			transport.Proxy = nil
-			transport.DialContext = dialContextWithProxy(socksDialer)
-		default:
-			return nil, fmt.Errorf("unsupported tunnel health proxy scheme %q", proxyURL.Scheme)
-		}
-	}
-
-	return &http.Client{
-		Timeout:   cfg.Timeout,
-		Transport: transport,
-	}, nil
-}
-
-func dialContextWithProxy(dialer proxy.Dialer) func(context.Context, string, string) (net.Conn, error) {
-	return func(ctx context.Context, network string, address string) (net.Conn, error) {
-		type result struct {
-			conn net.Conn
-			err  error
-		}
-
-		ch := make(chan result, 1)
-
-		go func() {
-			conn, err := dialer.Dial(network, address)
-			ch <- result{conn: conn, err: err}
-		}()
-
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case res := <-ch:
-			return res.conn, res.err
-		}
-	}
 }
 
 func parseBool(value string) bool {

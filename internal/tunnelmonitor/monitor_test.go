@@ -7,7 +7,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/op/go-logging"
 )
+
+func TestMain(m *testing.M) {
+	logger.InitLogger(logging.ERROR)
+	m.Run()
+}
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
