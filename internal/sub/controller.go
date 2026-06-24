@@ -49,13 +49,17 @@ type SUBController struct {
 	subEnableRouting bool
 	subRoutingRules  string
 	subHideSettings  bool
-	subPath          string
-	subJsonPath      string
-	subClashPath     string
-	jsonEnabled      bool
-	clashEnabled     bool
-	subEncrypt       bool
-	updateInterval   string
+
+	subIncyEnableRouting bool
+	subIncyRoutingRules  string
+
+	subPath        string
+	subJsonPath    string
+	subClashPath   string
+	jsonEnabled    bool
+	clashEnabled   bool
+	subEncrypt     bool
+	updateInterval string
 
 	subService      *SubService
 	subJsonService  *SubJsonService
@@ -89,6 +93,8 @@ func NewSUBController(
 	subEnableRouting bool,
 	subRoutingRules string,
 	subHideSettings bool,
+	subIncyEnableRouting bool,
+	subIncyRoutingRules string,
 ) *SUBController {
 	sub := NewSubService(remarkTemplate)
 	a := &SUBController{
@@ -99,13 +105,17 @@ func NewSUBController(
 		subEnableRouting: subEnableRouting,
 		subRoutingRules:  subRoutingRules,
 		subHideSettings:  subHideSettings,
-		subPath:          subPath,
-		subJsonPath:      jsonPath,
-		subClashPath:     clashPath,
-		jsonEnabled:      jsonEnabled,
-		clashEnabled:     clashEnabled,
-		subEncrypt:       encrypt,
-		updateInterval:   update,
+
+		subIncyEnableRouting: subIncyEnableRouting,
+		subIncyRoutingRules:  subIncyRoutingRules,
+
+		subPath:        subPath,
+		subJsonPath:    jsonPath,
+		subClashPath:   clashPath,
+		jsonEnabled:    jsonEnabled,
+		clashEnabled:   clashEnabled,
+		subEncrypt:     encrypt,
+		updateInterval: update,
 
 		subService:      sub,
 		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
@@ -182,6 +192,11 @@ func (a *SUBController) subs(c *gin.Context) {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+
+		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
+			result.WriteString(a.subIncyRoutingRules)
+			result.WriteString("\n")
+		}
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result.String())))
