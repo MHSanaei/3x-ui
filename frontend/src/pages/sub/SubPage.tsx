@@ -421,7 +421,7 @@ export default function SubPage() {
                         const parts = parseLinkParts(link);
                         const fallback = `Link ${idx + 1}`;
                         const rowTitle = parts?.remark || fallback;
-                        const qrLabel = [parts?.remark, linkEmails[idx]].filter(Boolean).join('-') || rowTitle;
+                        const qrLabel = parts?.remark || rowTitle;
                         const canQr = !isPostQuantumLink(link);
                         return (
                           <div key={link} className="sub-link-row">

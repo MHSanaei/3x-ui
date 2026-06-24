@@ -402,6 +402,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/setUpdateChannel',
+        summary: 'Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.',
+        body: '{\n  "dev": true\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/updateGeofile',
         summary: 'Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.',
         params: [

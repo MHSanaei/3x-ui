@@ -97,7 +97,13 @@ jobs:
           export CC=$(realpath "$(find "$TOOLCHAIN_DIR/bin" -name '*-gcc.br_real' -type f -executable | head -n1)")
           [ -z "$CC" ] && { echo "No gcc.br_real found in $TOOLCHAIN_DIR/bin" >&2; exit 1; }
           cd -
-          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
+          # Stamp the commit into per-commit (dev channel) builds only; tagged
+          # stable releases stay unstamped so config.IsDevBuild() returns false.
+          LDFLAGS="-w -s -linkmode external -extldflags '-static'"
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            LDFLAGS="$LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.buildCommit=${GITHUB_SHA::8} -X github.com/mhsanaei/3x-ui/v3/internal/config.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+          go build -ldflags "$LDFLAGS" -o xui-release -v main.go
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
 
@@ -245,7 +251,12 @@ jobs:
           go version
           gcc --version
 
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+          # Stamp the commit into per-commit (dev channel) builds only.
+          LDFLAGS="-w -s"
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            LDFLAGS="$LDFLAGS -X github.com/mhsanaei/3x-ui/v3/internal/config.buildCommit=${GITHUB_SHA:0:8} -X github.com/mhsanaei/3x-ui/v3/internal/config.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+          go build -ldflags "$LDFLAGS" -o xui-release.exe -v main.go
 
       - name: Copy and download resources
         shell: pwsh
@@ -302,3 +313,61 @@ jobs:
           asset_name: x-ui-windows-amd64.zip
           overwrite: true
           prerelease: true
+
+  # =================================
+  #  Rolling dev channel (per-commit)
+  # =================================
+  # Publishes/overwrites the build artifacts to a single fixed-tag pre-release
+  # `dev-latest`, force-moved to the new commit on every push to main. The panel's
+  # "Dev" update channel installs from this tag. `--latest=false` is load-bearing:
+  # it keeps releases/latest pointing at the real stable tag, so the stable
+  # channel is unaffected.
+  publish-dev:
+    name: Publish rolling dev release
+    needs: [build, build-windows]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Serialize racing pushes; never cancel an in-flight upload, or the dev
+    # release could be left with a partial asset set.
+    concurrency:
+      group: dev-release
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dev-artifacts
+          merge-multiple: true
+
+      - name: Publish dev-latest pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -e
+          short="${COMMIT::8}"
+          notes="Rolling development build — installs via the panel's Dev update channel.
+
+          commit=${COMMIT}
+          built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          Automated per-commit build from main. Not a stable release."
+
+          # Force-move the dev-latest tag to this commit so the release tracks it.
+          git tag -f dev-latest "${COMMIT}"
+          git push -f origin refs/tags/dev-latest
+
+          if gh release view dev-latest >/dev/null 2>&1; then
+            gh release edit dev-latest --prerelease --latest=false \
+              --title "Dev build ${short}" --notes "${notes}"
+          else
+            gh release create dev-latest --prerelease --latest=false \
+              --target "${COMMIT}" --title "Dev build ${short}" --notes "${notes}"
+          fi
+
+          gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip --clobber
