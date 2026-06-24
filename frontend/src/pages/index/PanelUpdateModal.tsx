@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Modal, Tag } from 'antd';
+import { Alert, Button, Modal, Switch, Tag } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -7,8 +8,11 @@ import { HttpUtil, PromiseUtil } from '@/utils';
 import './PanelUpdateModal.css';
 
 export interface PanelUpdateInfo {
+  channel?: string;
   currentVersion: string;
   latestVersion: string;
+  currentCommit?: string;
+  latestCommit?: string;
   updateAvailable: boolean;
 }
 
@@ -20,13 +24,27 @@ interface BusyEvent {
 interface PanelUpdateModalProps {
   open: boolean;
   info: PanelUpdateInfo;
+  isDevBuild?: boolean;
+  devChannelEnable?: boolean;
+  onChannelChange?: (dev: boolean) => void | Promise<void>;
   onClose: () => void;
   onBusy: (e: BusyEvent) => void;
 }
 
-export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelUpdateModalProps) {
+export default function PanelUpdateModal({
+  open,
+  info,
+  isDevBuild,
+  devChannelEnable,
+  onChannelChange,
+  onClose,
+  onBusy,
+}: PanelUpdateModalProps) {
   const { t } = useTranslation();
   const [modal, contextHolder] = Modal.useModal();
+  const [channelBusy, setChannelBusy] = useState(false);
+
+  const isDev = info.channel === 'dev';
 
   async function pollUntilBack(): Promise<boolean> {
     await PromiseUtil.sleep(5000);
@@ -41,6 +59,16 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
       await PromiseUtil.sleep(2000);
     }
     return false;
+  }
+
+  async function handleChannel(checked: boolean) {
+    if (!onChannelChange) return;
+    setChannelBusy(true);
+    try {
+      await onChannelChange(checked);
+    } finally {
+      setChannelBusy(false);
+    }
   }
 
   function updatePanel() {
@@ -84,15 +112,41 @@ export default function PanelUpdateModal({ open, info, onClose, onBusy }: PanelU
           />
         )}
 
+        {isDevBuild && (
+          <div className="version-list">
+            <div className="version-list-item">
+              <span>{t('pages.index.devChannel')}</span>
+              <Switch
+                checked={!!devChannelEnable}
+                loading={channelBusy}
+                onChange={handleChannel}
+              />
+            </div>
+          </div>
+        )}
+
+        {devChannelEnable && (
+          <Alert
+            type="info"
+            className="mb-12"
+            title={t('pages.index.devChannelWarning')}
+            showIcon
+          />
+        )}
+
         <div className="version-list">
           <div className="version-list-item">
-            <span>{t('pages.index.currentPanelVersion')}</span>
-            <Tag color="green">v{info.currentVersion || '?'}</Tag>
+            <span>{isDev ? t('pages.index.currentCommit') : t('pages.index.currentPanelVersion')}</span>
+            {isDev ? (
+              <Tag color="green">{info.currentCommit || '?'}</Tag>
+            ) : (
+              <Tag color="green">v{info.currentVersion || '?'}</Tag>
+            )}
           </div>
           {info.updateAvailable ? (
             <div className="version-list-item">
-              <span>{t('pages.index.latestPanelVersion')}</span>
-              <Tag color="purple">{info.latestVersion || '-'}</Tag>
+              <span>{isDev ? t('pages.index.latestCommit') : t('pages.index.latestPanelVersion')}</span>
+              <Tag color="purple">{(isDev ? info.latestCommit : info.latestVersion) || '-'}</Tag>
             </div>
           ) : (
             <div className="version-list-item">
