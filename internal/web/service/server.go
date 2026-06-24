@@ -117,7 +117,10 @@ type Status struct {
 
 // Release represents information about a software release from GitHub.
 type Release struct {
-	TagName string `json:"tag_name"` // The tag name of the release
+	TagName         string `json:"tag_name"`         // The tag name of the release
+	Body            string `json:"body"`             // The release notes; the dev channel reads its commit from here
+	TargetCommitish string `json:"target_commitish"` // The branch/commit the tag points at
+	Prerelease      bool   `json:"prerelease"`       // Whether this is a pre-release
 }
 
 // ServerService provides business logic for server monitoring and management.

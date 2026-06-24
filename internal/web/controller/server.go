@@ -69,6 +69,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/updatePanel", a.updatePanel)
+	g.POST("/setUpdateChannel", a.setUpdateChannel)
 	g.POST("/updateGeofile", a.updateGeofile)
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
@@ -209,6 +210,19 @@ func (a *ServerController) installXray(c *gin.Context) {
 func (a *ServerController) updatePanel(c *gin.Context) {
 	err := a.panelService.StartUpdate()
 	jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), err)
+}
+
+// setUpdateChannel toggles whether self-update tracks the rolling dev release.
+func (a *ServerController) setUpdateChannel(c *gin.Context) {
+	var req struct {
+		Dev bool `json:"dev"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, "invalid data", err)
+		return
+	}
+	err := a.settingService.SetDevChannelEnable(req.Dev)
+	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
 }
 
 // updateGeofile updates the specified geo file for Xray.
