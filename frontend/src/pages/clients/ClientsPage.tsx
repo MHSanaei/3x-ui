@@ -1418,8 +1418,8 @@ export default function ClientsPage() {
             open={bulkAdjustOpen}
             count={selectedRowKeys.length}
             onOpenChange={setBulkAdjustOpen}
-            onSubmit={async (addDays, addBytes) => {
-              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes);
+            onSubmit={async (addDays, addBytes, flow) => {
+              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes, flow);
               if (msg?.success) {
                 setSelectedRowKeys([]);
                 return msg.obj ?? { adjusted: 0 };

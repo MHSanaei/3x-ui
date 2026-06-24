@@ -188,8 +188,9 @@ export const ClientBulkAdjustFormSchema = z
   .object({
     addDays: z.number().int(),
     addGB: z.number(),
+    flow: z.string().optional().default(''),
   })
-  .refine((v) => v.addDays !== 0 || v.addGB !== 0, {
+  .refine((v) => v.addDays !== 0 || v.addGB !== 0 || v.flow !== '', {
     message: 'pages.clients.bulkAdjustNothing',
   });
 

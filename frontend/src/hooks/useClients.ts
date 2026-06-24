@@ -341,7 +341,7 @@ export function useClients() {
   });
 
   const bulkAdjustMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; addDays: number; addBytes: number }): Promise<Msg<BulkAdjustResult>> => {
+    mutationFn: async (payload: { emails: string[]; addDays: number; addBytes: number; flow: string }): Promise<Msg<BulkAdjustResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
     },
@@ -435,9 +435,9 @@ export function useClients() {
     if (!Array.isArray(payloads) || payloads.length === 0) return Promise.resolve(null as unknown as Msg<BulkCreateResult>);
     return bulkCreateMut.mutateAsync(payloads);
   }, [bulkCreateMut]);
-  const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number) => {
+  const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number, flow = '') => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
+    return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow });
   }, [bulkAdjustMut]);
   const bulkAddToGroup = useCallback((emails: string[], group: string) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
