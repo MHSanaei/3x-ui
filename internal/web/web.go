@@ -264,8 +264,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		c.JSON(http.StatusOK, gin.H{})
 	})
 
-	// Add a catch-all route to handle undefined paths and return 404
+	// Let unknown panel document routes fall back to the SPA shell, while every
+	// non-SPA miss still returns a hard 404.
 	engine.NoRoute(func(c *gin.Context) {
+		if s.panel.HandleNoRoutePanelSPA(c) {
+			return
+		}
 		c.AbortWithStatus(http.StatusNotFound)
 	})
 
