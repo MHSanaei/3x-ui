@@ -164,15 +164,15 @@ func hostRemarkService(template string) (*SubService, *model.Inbound, model.Clie
 	return s, inbound, client
 }
 
-// The config name is always the inbound's own remark; the host endpoint's remark
-// never substitutes it (it is reachable only through {{HOST}}).
-func TestGenHostRemark_ConfigNameUsesInbound(t *testing.T) {
-	s, inbound, client := hostRemarkService("") // no template → config name only
-	if got := s.genHostRemark(inbound, client, "Relay", ""); got != "DE" {
-		t.Fatalf("genHostRemark = %q, want %q (inbound remark, host ignored)", got, "DE")
+// With no template configured, genHostRemark falls back to the inbound remark,
+// host and email joined by "-".
+func TestGenHostRemark_NoTemplate_Fallback(t *testing.T) {
+	s, inbound, client := hostRemarkService("")
+	if got := s.genHostRemark(inbound, client, "Relay", ""); got != "DE-Relay-john@example.com" {
+		t.Fatalf("genHostRemark = %q, want %q", got, "DE-Relay-john@example.com")
 	}
-	if got := s.genHostRemark(inbound, client, "", ""); got != "DE" {
-		t.Fatalf("genHostRemark (no host remark) = %q, want %q", got, "DE")
+	if got := s.genHostRemark(inbound, client, "", ""); got != "DE-john@example.com" {
+		t.Fatalf("genHostRemark (no host remark) = %q, want %q", got, "DE-john@example.com")
 	}
 }
 
@@ -232,23 +232,29 @@ func TestUsageOnFirstLinkOnly(t *testing.T) {
 }
 
 func TestRemarkInDisplayContext(t *testing.T) {
-	s, inbound, client := hostRemarkService("{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
+	s, inbound, client := hostRemarkService("{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
 	s.subscriptionBody = false
-	if got := s.genHostRemark(inbound, client, "CDN", ""); got != "DE-CDN-john@example.com" {
-		t.Fatalf("display host link = %q, want %q", got, "DE-CDN-john@example.com")
+	const want = "DE-john@example.com"
+	if got := s.genHostRemark(inbound, client, "CDN", ""); got != want {
+		t.Fatalf("display host link = %q, want %q", got, want)
 	}
-	if got := s.genHostRemark(inbound, client, "", ""); got != "DE-john@example.com" {
-		t.Fatalf("display host link (no host) = %q, want %q", got, "DE-john@example.com")
+	if got := s.genHostRemark(inbound, client, "", ""); got != want {
+		t.Fatalf("display host link (no host) = %q, want %q", got, want)
 	}
-	if got := s.genRemark(inbound, client.Email, "", ""); got != "DE-john@example.com" {
-		t.Fatalf("display genRemark = %q, want %q", got, "DE-john@example.com")
+	if got := s.genRemark(inbound, client.Email, "", ""); got != want {
+		t.Fatalf("display genRemark = %q, want %q", got, want)
+	}
+	s2, inbound2, client2 := hostRemarkService("{{INBOUND}}-{{HOST}}|📊{{TRAFFIC_LEFT}}")
+	s2.subscriptionBody = false
+	if got := s2.genHostRemark(inbound2, client2, "CDN", ""); got != "DE-CDN" {
+		t.Fatalf("display host link with HOST token = %q, want %q", got, "DE-CDN")
 	}
 }
 
 // nameOnlyTemplate drops the info part (and its leading decoration), keeping name.
 func TestNameOnlyTemplate(t *testing.T) {
 	cases := map[string]string{
-		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D": "{{INBOUND}}",           // the default → name only
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D": "{{INBOUND}}",           // usage tail stripped
 		"{{EMAIL}} {{INBOUND}} ⏳{{DAYS_LEFT}}":          "{{EMAIL}} {{INBOUND}}", // multi-token name survives the trim
 		"{{INBOUND}} | {{STATUS}}":                      "{{INBOUND}}",
 		"{{INBOUND}}-{{EMAIL}}":                         "{{INBOUND}}-{{EMAIL}}", // no info tokens → unchanged

@@ -1634,11 +1634,12 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 // genRemark builds the remark for a non-host link (raw default / legacy
-// externalProxy / synthetic JSON-Clash entry). In the subscription body a set
-// remark template takes over; otherwise (and in every display context) the
-// remark is just the config name (inbound remark, then extra).
+// externalProxy / synthetic JSON-Clash entry). A set remark template drives it
+// in both the body and display contexts (genTemplatedRemark renders the
+// name-only part on displays); with no template it falls back to the inbound
+// remark, extra and email joined by "-".
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
-	if s.remarkTemplate != "" && s.subscriptionBody {
+	if s.remarkTemplate != "" {
 		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
 	return fallbackRemark(inbound.Remark, extra, email)
@@ -2336,6 +2337,19 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		datepicker = "gregorian"
 	}
 
+	pageLinks := make([]string, 0, len(subs))
+	pageEmails := make([]string, 0, len(subs))
+	for i, sub := range subs {
+		email := ""
+		if i < len(emails) {
+			email = emails[i]
+		}
+		for _, link := range splitLinkLines(sub) {
+			pageLinks = append(pageLinks, link)
+			pageEmails = append(pageEmails, email)
+		}
+	}
+
 	return PageData{
 		Host:          hostHeader,
 		BasePath:      basePath,
@@ -2357,8 +2371,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubClashUrl:   subClashURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
-		Result:        subs,
-		Emails:        emails,
+		Result:        pageLinks,
+		Emails:        pageEmails,
 	}
 }
 
