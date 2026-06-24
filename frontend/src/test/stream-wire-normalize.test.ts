@@ -53,6 +53,28 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(out).not.toHaveProperty('headers');
   });
 
+  it('preserves non-default scMinPostsIntervalMs on inbound for subscriptions', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'packet-up',
+      scMinPostsIntervalMs: '50-150',
+      enableXmux: false,
+    }, 'inbound');
+
+    expect(out.scMinPostsIntervalMs).toBe('50-150');
+  });
+
+  it('strips empty scMinPostsIntervalMs on inbound', () => {
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'packet-up',
+      scMinPostsIntervalMs: '',
+      enableXmux: false,
+    }, 'inbound');
+
+    expect(out).not.toHaveProperty('scMinPostsIntervalMs');
+  });
+
   it('keeps xmux on outbound stream-one', () => {
     const out = normalizeXhttpForWire({
       path: '/app',
@@ -339,6 +361,102 @@ describe('inbound formValuesToWirePayload integration', () => {
     const tls = stream.tlsSettings as Record<string, unknown>;
     const settings = tls.settings as Record<string, unknown>;
     expect(settings).not.toHaveProperty('fingerprint');
+  });
+
+  it('preserves non-default scMinPostsIntervalMs in packet-up inbound wire payload for subscriptions', () => {
+    const values = {
+      remark: 't',
+      enable: true,
+      port: 443,
+      listen: '0.0.0.0',
+      tag: 'in-443',
+      expiryTime: 0,
+      sniffing: { enabled: false },
+      up: 0,
+      down: 0,
+      total: 0,
+      trafficReset: 'never',
+      lastTrafficResetTime: 0,
+      nodeId: null,
+      protocol: 'vless',
+      settings: { clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }], decryption: 'none' },
+      streamSettings: {
+        network: 'xhttp',
+        security: 'reality',
+        realitySettings: {
+          target: 'play.google.com:443',
+          privateKey: 'priv',
+          serverNames: ['play.google.com'],
+          shortIds: ['44003d86dc1e'],
+          settings: { publicKey: 'pub', fingerprint: 'chrome', spiderX: '/' },
+        },
+        xhttpSettings: {
+          path: '/app',
+          host: 'play.google.com',
+          mode: 'packet-up',
+          scMinPostsIntervalMs: '50-150',
+        },
+        sockopt: {},
+      },
+    };
+
+    const parsed = InboundFormSchema.safeParse(values);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw parsed.error;
+
+    const payload = formValuesToWirePayload(parsed.data);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+
+    expect(xhttp.scMinPostsIntervalMs).toBe('50-150');
+  });
+
+  it('strips default scMinPostsIntervalMs=30 from inbound wire payload', () => {
+    const values = {
+      remark: 't',
+      enable: true,
+      port: 443,
+      listen: '0.0.0.0',
+      tag: 'in-443',
+      expiryTime: 0,
+      sniffing: { enabled: false },
+      up: 0,
+      down: 0,
+      total: 0,
+      trafficReset: 'never',
+      lastTrafficResetTime: 0,
+      nodeId: null,
+      protocol: 'vless',
+      settings: { clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }], decryption: 'none' },
+      streamSettings: {
+        network: 'xhttp',
+        security: 'reality',
+        realitySettings: {
+          target: 'play.google.com:443',
+          privateKey: 'priv',
+          serverNames: ['play.google.com'],
+          shortIds: ['44003d86dc1e'],
+          settings: { publicKey: 'pub', fingerprint: 'chrome', spiderX: '/' },
+        },
+        xhttpSettings: {
+          path: '/app',
+          host: 'play.google.com',
+          mode: 'packet-up',
+          scMinPostsIntervalMs: '30',
+        },
+        sockopt: {},
+      },
+    };
+
+    const parsed = InboundFormSchema.safeParse(values);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw parsed.error;
+
+    const payload = formValuesToWirePayload(parsed.data);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, unknown>;
+    const xhttp = stream.xhttpSettings as Record<string, unknown>;
+
+    expect(xhttp).not.toHaveProperty('scMinPostsIntervalMs');
   });
 });
 

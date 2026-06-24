@@ -4,7 +4,7 @@ exports[`genHysteriaLink > hysteria-v1-tls: byte-stable 1`] = `"hysteria://hyst-
 
 exports[`genInboundLinks orchestrator > hysteria-v1-tls: byte-stable 1`] = `"hysteria://hyst-v1-auth-XYZ@override.test:36715?security=tls&fp=chrome&alpn=h3&sni=hysteria.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206Wm1GclpTMXpaWEoyWlhJdGNHRnpjM2R2Y21RdE1EQXdNUT09OmRHVnpkQzFqYkdsbGJuUXRjR0Z6YzNkdmNtUXRNUT09@override.test:8388?type=tcp#parity-test"`;
+exports[`genInboundLinks orchestrator > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://2022-blake3-aes-256-gcm:ZmFrZS1zZXJ2ZXItcGFzc3dvcmQtMDAwMQ%3D%3D:dGVzdC1jbGllbnQtcGFzc3dvcmQtMQ%3D%3D@override.test:8388?type=tcp#parity-test"`;
 
 exports[`genInboundLinks orchestrator > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@override.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test"`;
 
@@ -32,7 +32,7 @@ PersistentKeepalive = 25
 "
 `;
 
-exports[`genShadowsocksLink > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206Wm1GclpTMXpaWEoyWlhJdGNHRnpjM2R2Y21RdE1EQXdNUT09OmRHVnpkQzFqYkdsbGJuUXRjR0Z6YzNkdmNtUXRNUT09@example.test:8388?type=tcp#parity-test"`;
+exports[`genShadowsocksLink > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://2022-blake3-aes-256-gcm:ZmFrZS1zZXJ2ZXItcGFzc3dvcmQtMDAwMQ%3D%3D:dGVzdC1jbGllbnQtcGFzc3dvcmQtMQ%3D%3D@example.test:8388?type=tcp#parity-test"`;
 
 exports[`genTrojanLink > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@example.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test"`;
 

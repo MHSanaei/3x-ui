@@ -172,6 +172,16 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		defaultDest = host
 	}
 
+	// Per-inbound xmux takes precedence over the global subJsonMux.
+	// When xmux is present inside xhttpSettings, XHTTP multiplexing
+	// is handled by xmux — don't also set the legacy outbound.Mux.
+	mux := s.mux
+	if xhttp, ok := stream["xhttpSettings"].(map[string]any); ok {
+		if _, hasXmux := xhttp["xmux"]; hasXmux {
+			mux = ""
+		}
+	}
+
 	externalProxies, ok := stream["externalProxy"].([]any)
 	hasExternalProxy := ok && len(externalProxies) > 0
 	if !hasExternalProxy {
@@ -186,12 +196,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 	}
 
 	delete(stream, "externalProxy")
+	network, _ := stream["network"].(string)
 
 	for _, ep := range externalProxies {
 		extPrxy := ep.(map[string]any)
 		// Expand the host's {{VAR}} remark template for this client (no-op for
 		// the synthetic/legacy entry) before it's used as the config remark.
-		subReq.renderHostRemark(inbound, client, extPrxy)
+		subReq.renderHostRemark(inbound, client, extPrxy, network)
 		inbound.Listen = extPrxy["dest"].(string)
 		inbound.Port = int(extPrxy["port"].(float64))
 		newStream := cloneStreamForExternalProxy(stream)
@@ -219,21 +230,22 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 		switch inbound.Protocol {
 		case "vmess":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, hostMux))
+			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "vless":
-			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, hostMux))
+			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "trojan", "shadowsocks":
-			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, hostMux))
+			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client))
+			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
 		newConfigJson := make(map[string]any)
 		maps.Copy(newConfigJson, s.configJson)
 
+		transport, _ := newStream["network"].(string)
 		newConfigJson["outbounds"] = newOutbounds
-		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy)
+		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy, transport)
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)
@@ -319,6 +331,9 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	if ech, ok := tlsClientSettings["echConfigList"].(string); ok && ech != "" {
 		tlsData["echConfigList"] = ech
 	}
+	if vcn, ok := verifyPeerCertByNameValue(tlsClientSettings); ok {
+		tlsData["verifyPeerCertByName"] = vcn
+	}
 	// xray-core now parses pinnedPeerCertSha256 as a comma-separated string, not
 	// an array; emit the joined form so v2ray clients can import the config (#5401).
 	if pins, ok := pinnedSha256List(tlsClientSettings); ok {
@@ -362,12 +377,12 @@ func jsonMux(global, override string) string {
 	return global
 }
 
-func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
+func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+	if mux != "" {
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
@@ -388,11 +403,11 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
+func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+	if mux != "" {
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
@@ -417,7 +432,7 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, muxOverride string) json_util.RawMessage {
+func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	serverData := make([]ServerSetting, 1)
@@ -444,7 +459,7 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
-	if mux := jsonMux(s.mux, muxOverride); mux != "" {
+	if mux != "" {
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 	outbound.StreamSettings = streamSettings
@@ -470,14 +485,14 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 	return result
 }
 
-func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
 
-	if s.mux != "" {
-		outbound.Mux = json_util.RawMessage(s.mux)
+	if mux != "" {
+		outbound.Mux = json_util.RawMessage(mux)
 	}
 
 	var settings, stream map[string]any

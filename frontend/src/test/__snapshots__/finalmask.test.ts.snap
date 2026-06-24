@@ -101,6 +101,29 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses salamander-gecko byte-s
 }
 `;
 
+exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-fragment-segments byte-stably 1`] = `
+{
+  "tcp": [
+    {
+      "settings": {
+        "delays": [
+          "5-10",
+          "0",
+        ],
+        "lengths": [
+          "10-20",
+          "50-100",
+        ],
+        "maxSplit": "0",
+        "packets": "tlshello",
+      },
+      "type": "fragment",
+    },
+  ],
+  "udp": [],
+}
+`;
+
 exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`] = `
 {
   "tcp": [

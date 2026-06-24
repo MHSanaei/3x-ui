@@ -121,6 +121,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
+	// Template outbounds authored before the xray-core #6258 XHTTP rename may
+	// still carry sessionPlacement/sessionKey; lift them too (same reason as
+	// the per-inbound lift below).
+	xrayConfig.OutboundConfigs = liftOutboundsXhttpSessionIDKeys(xrayConfig.OutboundConfigs)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -250,6 +254,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 
 			delete(stream, "externalProxy")
+
+			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
+			// kept no fallback. Lift legacy sessionPlacement/sessionKey onto the
+			// new names here so inbounds stored before the rename keep working
+			// without the admin re-saving them.
+			liftXhttpSessionIDKeys(stream)
 
 			newStream, err := json.MarshalIndent(stream, "", "  ")
 			if err != nil {
@@ -576,7 +586,7 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
-	merged := make([]any, 0, len(prepend)+len(templateOutbounds)+len(appendList))
+	var merged []any
 	merged = append(merged, prepend...)
 	merged = append(merged, templateOutbounds...)
 	merged = append(merged, appendList...)
@@ -1077,4 +1087,61 @@ func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 // DidXrayCrash checks if Xray crashed by verifying it's not running and wasn't manually stopped.
 func (s *XrayService) DidXrayCrash() bool {
 	return !s.IsXrayRunning() && !isManuallyStopped.Load()
+}
+
+// liftXhttpSessionIDKeys renames the legacy XHTTP session keys
+// (sessionPlacement/sessionKey) to the v26.6.22 #6258 names
+// (sessionIDPlacement/sessionIDKey) inside a streamSettings map. xray-core kept
+// no fallback for the old names, so a config stored before the rename would be
+// silently ignored by the engine. Returns true if it changed anything.
+func liftXhttpSessionIDKeys(stream map[string]any) bool {
+	xhttp, ok := stream["xhttpSettings"].(map[string]any)
+	if !ok {
+		return false
+	}
+	changed := false
+	for legacy, renamed := range map[string]string{
+		"sessionPlacement": "sessionIDPlacement",
+		"sessionKey":       "sessionIDKey",
+	} {
+		v, has := xhttp[legacy]
+		if !has {
+			continue
+		}
+		if _, exists := xhttp[renamed]; !exists {
+			xhttp[renamed] = v
+		}
+		delete(xhttp, legacy)
+		changed = true
+	}
+	return changed
+}
+
+// liftOutboundsXhttpSessionIDKeys applies liftXhttpSessionIDKeys to every
+// outbound's streamSettings in the raw outbounds array. The original bytes are
+// returned untouched when nothing needs lifting, so an unchanged config never
+// looks modified to the hot-reload diff.
+func liftOutboundsXhttpSessionIDKeys(raw json_util.RawMessage) json_util.RawMessage {
+	if len(raw) == 0 {
+		return raw
+	}
+	var outbounds []map[string]any
+	if err := json.Unmarshal(raw, &outbounds); err != nil {
+		return raw
+	}
+	changed := false
+	for _, ob := range outbounds {
+		if stream, ok := ob["streamSettings"].(map[string]any); ok {
+			if liftXhttpSessionIDKeys(stream) {
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return raw
+	}
+	if rewritten, err := json.Marshal(outbounds); err == nil {
+		return rewritten
+	}
+	return raw
 }

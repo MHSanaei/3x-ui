@@ -31,6 +31,9 @@ func NewSubscriber(settingService service.SettingService, emailService *EmailSer
 
 // HandleEvent is the eventbus subscriber callback.
 func (s *Subscriber) HandleEvent(e eventbus.Event) {
+	if on, err := s.settingService.GetSmtpEnable(); err != nil || !on {
+		return
+	}
 	if !s.isEventEnabled(e.Type) {
 		return
 	}
@@ -144,6 +147,19 @@ func (s *Subscriber) formatMessage(e eventbus.Event) (subject, body string) {
 			subject = host + " " + i18n("tgbot.messages.cpuThreshold",
 				"Percent=="+strconv.FormatFloat(data.Percent, 'f', 2, 64),
 				"Threshold=="+fmt.Sprintf("%d", smtpCpu))
+			content := kv(i18n("email.labelStatus"), `<span style="color:orange">`+i18n("email.statusHigh")+`</span>`)
+			body = wrap(subject, content)
+		}
+
+	case eventbus.EventMemoryHigh:
+		if data, ok := e.Data.(*eventbus.SystemMetricData); ok {
+			smtpMemory, err := s.settingService.GetSmtpMemory()
+			if err != nil || smtpMemory <= 0 || data.Percent <= float64(smtpMemory) {
+				return
+			}
+			subject = host + " " + i18n("tgbot.messages.memoryThreshold",
+				"Percent=="+strconv.FormatFloat(data.Percent, 'f', 2, 64),
+				"Threshold=="+fmt.Sprintf("%d", smtpMemory))
 			content := kv(i18n("email.labelStatus"), `<span style="color:orange">`+i18n("email.statusHigh")+`</span>`)
 			body = wrap(subject, content)
 		}

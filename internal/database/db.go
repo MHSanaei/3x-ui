@@ -6,11 +6,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"path"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -88,6 +91,9 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
+		return err
+	}
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
@@ -118,6 +124,41 @@ func dropLegacyForeignKeys() error {
 		return err
 	}
 	return nil
+}
+
+// migrateHostVerifyPeerCertByNameColumn converts hosts.verify_peer_cert_by_name
+// from its original boolean shape to the comma-separated string xray-core's
+// verifyPeerCertByName (vcn) actually expects. The legacy boolean was dead
+// (never emitted into links), so its value carries no meaning and is discarded.
+// Idempotent by construction (no HistoryOfSeeders row — writing one here would
+// flip the fresh-DB detection in runSeeders). Runs right after AutoMigrate,
+// before anything reads or writes Host rows (critical on Postgres, where the
+// column stays boolean-typed until the ALTER below).
+func migrateHostVerifyPeerCertByNameColumn() error {
+	if !db.Migrator().HasColumn(&model.Host{}, "verify_peer_cert_by_name") {
+		return nil
+	}
+	if IsPostgres() {
+		// Only convert a still-boolean column; once it is text this is a no-op,
+		// so a user-set name is never wiped on a later restart.
+		var dataType string
+		if err := db.Raw(
+			`SELECT data_type FROM information_schema.columns WHERE table_name = 'hosts' AND column_name = 'verify_peer_cert_by_name'`,
+		).Scan(&dataType).Error; err != nil {
+			return err
+		}
+		if dataType != "boolean" {
+			return nil
+		}
+		if err := db.Exec(`ALTER TABLE hosts ALTER COLUMN verify_peer_cert_by_name DROP DEFAULT`).Error; err != nil {
+			return err
+		}
+		return db.Exec(`ALTER TABLE hosts ALTER COLUMN verify_peer_cert_by_name TYPE text USING ''`).Error
+	}
+	// SQLite keeps the original numeric-affinity column; blank any legacy
+	// integer/null value so it doesn't read back as "0"/"1". After conversion
+	// every value is text, so re-running touches nothing.
+	return db.Exec(`UPDATE hosts SET verify_peer_cert_by_name = '' WHERE verify_peer_cert_by_name IS NULL OR typeof(verify_peer_cert_by_name) <> 'text'`).Error
 }
 
 // seedHostsFromExternalProxy is a one-time, self-gated migration that creates a
@@ -425,7 +466,102 @@ func runSeeders(isUsersEmpty bool) error {
 	if err := seedHostsFromExternalProxy(); err != nil {
 		return err
 	}
+
+	// Self-gated on the "ResetIpLimitNoFail2ban" row.
+	if err := resetIpLimitsWithoutFail2ban(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// resetIpLimitsWithoutFail2ban zeroes every client's IP limit on hosts where
+// fail2ban can't enforce it (not installed, or the integration disabled). The
+// limit silently does nothing there yet kept logging a repeated warning, so a
+// stale value is just misleading — the panel also disables the field on these
+// hosts. One-time, self-gated on the seeder row.
+func resetIpLimitsWithoutFail2ban() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "ResetIpLimitNoFail2ban") {
+		return nil
+	}
+
+	if fail2banCanEnforce() {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("ResetIpLimitNoFail2ban: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			clients, ok := settings["clients"].([]any)
+			if !ok {
+				continue
+			}
+			mutated := false
+			for i, raw := range clients {
+				obj, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				v, present := obj["limitIp"]
+				if !present {
+					continue
+				}
+				if n, isNum := v.(float64); isNum && n == 0 {
+					continue
+				}
+				obj["limitIp"] = 0
+				clients[i] = obj
+				mutated = true
+			}
+			if !mutated {
+				continue
+			}
+			settings["clients"] = clients
+			newSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				log.Printf("ResetIpLimitNoFail2ban: skip inbound %d (marshal failed): %v", inbound.Id, err)
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Model(&model.ClientRecord{}).Where("limit_ip <> ?", 0).
+			Update("limit_ip", 0).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	})
+}
+
+// fail2banCanEnforce reports whether per-client IP limits can actually be
+// enforced on this host: the integration must be enabled (XUI_ENABLE_FAIL2BAN)
+// and fail2ban-client must be present. Mirrors the service-layer check, kept
+// local to avoid an import cycle.
+func fail2banCanEnforce() bool {
+	if v, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); ok && v != "true" {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		return false
+	}
+	return exec.Command("fail2ban-client", "-h").Run() == nil
 }
 
 // clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
@@ -886,7 +1022,10 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
-		dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=NORMAL&_txlock=immediate"
+		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
+		// sidecars). synchronous defaults to FULL for durability but is tunable.
+		sync := sqliteSynchronous()
+		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -895,14 +1034,21 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
-			return err
+		// Re-assert the DSN pragmas plus scan-friendly ones for large datasets.
+		// cache_size/mmap_size/temp_store create no extra files, so the single-file
+		// guarantee holds; they just cut disk I/O on the 50k-row hot paths.
+		pragmas := []string{
+			"PRAGMA journal_mode=DELETE",
+			"PRAGMA busy_timeout=10000",
+			"PRAGMA synchronous=" + sync,
+			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
+			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
+			"PRAGMA temp_store=MEMORY",
 		}
-		if _, err := sqlDB.Exec("PRAGMA busy_timeout=10000"); err != nil {
-			return err
-		}
-		if _, err := sqlDB.Exec("PRAGMA synchronous=NORMAL"); err != nil {
-			return err
+		for _, p := range pragmas {
+			if _, err := sqlDB.Exec(p); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -937,6 +1083,21 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+// sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.
+// Whitelisted because the value is interpolated directly into a PRAGMA string.
+func sqliteSynchronous() string {
+	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
+	case "OFF":
+		return "OFF"
+	case "NORMAL":
+		return "NORMAL"
+	case "EXTRA":
+		return "EXTRA"
+	default:
+		return "FULL"
+	}
 }
 
 func envInt(key string, def int) int {

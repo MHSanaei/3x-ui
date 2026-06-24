@@ -47,6 +47,12 @@ type SubService struct {
 	// inbound whose NodeID is set. Keeps the per-link host derivation
 	// O(1) instead of O(N) DB hits.
 	nodesByID map[int]*model.Node
+	// statsByEmail maps a client email to its traffic row across ALL inbounds
+	// loaded for the request. client_traffics.email is globally unique, so this
+	// lets statsForClient resolve usage for a client even on an inbound that
+	// doesn't own its row (multi-inbound subscriptions). Filled in
+	// getInboundsBySubId; reset per request in PrepareForRequest.
+	statsByEmail map[string]xray.ClientTraffic
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -78,6 +84,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.usageShown = map[string]bool{}
+	s.statsByEmail = map[string]xray.ClientTraffic{}
 	s.loadNodes()
 	s.loadRemarkSettings()
 }
@@ -335,7 +342,22 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 	if err != nil {
 		return nil, err
 	}
+	s.indexStatsByEmail(inbounds)
 	return inbounds, nil
+}
+
+// indexStatsByEmail records every loaded inbound's client traffic rows keyed by
+// email so statsForClient can resolve a client's usage even on an inbound that
+// doesn't own its (globally unique) client_traffics row. See statsByEmail.
+func (s *SubService) indexStatsByEmail(inbounds []*model.Inbound) {
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	for _, inbound := range inbounds {
+		for _, st := range inbound.ClientStats {
+			s.statsByEmail[st.Email] = st
+		}
+	}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -510,10 +532,10 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	externalProxies, _ := stream["externalProxy"].([]any)
 
 	if len(externalProxies) > 0 {
-		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email)
+		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email, network)
 	}
 
-	obj["ps"] = s.genRemark(inbound, email, "")
+	obj["ps"] = s.genRemark(inbound, email, "", network)
 	return buildVmessLink(obj)
 }
 
@@ -597,13 +619,13 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
@@ -648,13 +670,13 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("trojan://%s@%s", password, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 // encodeUserinfo percent-encodes a userinfo (password/auth) value so it
@@ -716,9 +738,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
 	}
 
-	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
-	if method[0] == '2' {
-		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
+	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
+	var userInfo string
+	if strings.HasPrefix(method, "2022") {
+		userInfo = fmt.Sprintf("%s:%s:%s",
+			url.QueryEscape(method),
+			url.QueryEscape(inboundPassword),
+			url.QueryEscape(clients[clientIndex].Password))
+	} else {
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, clients[clientIndex].Password))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -731,16 +760,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
+				return fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	link := fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(address, inbound.Port))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
@@ -783,6 +812,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			if ech, _ := echValue.(string); ech != "" {
 				params["ech"] = ech
 			}
+		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			params["vcn"] = vcn
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			for i, p := range pins {
@@ -843,7 +875,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep)))
+			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "quic")))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -854,7 +886,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		params["mport"] = hopPorts
 	}
 	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }
 
 // hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
@@ -897,10 +929,13 @@ func (s *SubService) loadNodes() {
 //   - "node" (default, and any unknown value): the node's address for
 //     node-managed inbounds, then a routable Listen — the pre-strategy order.
 //
-// Every chain ends at the subscriber's request host (s.address). A
-// loopback/wildcard bind or a unix-domain-socket listen is a server-side
-// detail and is never advertised; External Proxy still overrides everything
-// upstream of this call.
+// Every chain ends at the admin's configured public host (Sub/Web domain) and
+// then the subscriber's request host (s.address). Preferring the configured
+// host over the request host for this last resort keeps a wildcard local inbound
+// from advertising a bogus client IP that leaked into the request Host header
+// behind NAT/proxy/CDN (#5425). A loopback/wildcard bind or a unix-domain-socket
+// listen is a server-side detail and is never advertised; External Proxy still
+// overrides everything upstream of this call.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	var nodeAddr string
 	if inbound.NodeID != nil && s.nodesByID != nil {
@@ -924,6 +959,9 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 		if c != "" {
 			return c
 		}
+	}
+	if d := s.configuredPublicHost(); d != "" {
+		return d
 	}
 	return s.address
 }
@@ -1091,6 +1129,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 				params["ech"] = ech
 			}
 		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			params["vcn"] = vcn
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
@@ -1121,10 +1162,32 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 				obj["ech"] = ech
 			}
 		}
+		if vcn, ok := verifyPeerCertByNameValue(tlsSettings); ok {
+			obj["vcn"] = vcn
+		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
 		}
 	}
+}
+
+// verifyPeerCertByNameValue extracts tlsSettings.settings.verifyPeerCertByName
+// (the v2rayN `vcn` param) as a trimmed string. Like pinnedPeerCertSha256 it is
+// panel-only and flows into share links so clients verify the server
+// certificate by this name — the replacement for the removed allowInsecure.
+func verifyPeerCertByNameValue(tlsClientSettings any) (string, bool) {
+	raw, ok := searchKey(tlsClientSettings, "verifyPeerCertByName")
+	if !ok {
+		return "", false
+	}
+	s, ok := raw.(string)
+	if !ok {
+		return "", false
+	}
+	if s = strings.TrimSpace(s); s == "" {
+		return "", false
+	}
+	return s, true
 }
 
 // pinnedSha256List extracts tlsSettings.settings.pinnedPeerCertSha256 as a
@@ -1245,6 +1308,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		obj["pcs"] = joinAnyStrings(pins)
 	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		obj["vcn"] = vcn
+	}
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		obj["ech"] = ech
 	}
@@ -1265,6 +1331,9 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	}
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		params["pcs"] = joinAnyStrings(pins)
+	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		params["vcn"] = vcn
 	}
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		params["ech"] = ech
@@ -1348,6 +1417,14 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 			tlsSettings["settings"] = settings
 		}
 		settings["echConfigList"] = ech
+	}
+	if vcn, ok := ep["verifyPeerCertByName"].(string); ok && vcn != "" {
+		settings, _ := tlsSettings["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+			tlsSettings["settings"] = settings
+		}
+		settings["verifyPeerCertByName"] = vcn
 	}
 	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
 		settings, _ := tlsSettings["settings"].(map[string]any)
@@ -1465,14 +1542,15 @@ func joinAnyStrings(items []any) string {
 
 // buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
 // externalProxy entries to []ShareEndpoint and renders them through the unified
-// endpoint path. Kept so genVmessLink's call site is unchanged.
-func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
+// endpoint path. Kept as a thin shim over the unified endpoint builder so
+// genVmessLink keeps calling one helper (now threading transport through).
+func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string, transport string) string {
 	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
 		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email)
+	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email, transport)
 }
 
 // buildLinkWithParams appends ?query and #fragment to a pre-built
@@ -1556,31 +1634,25 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 // genRemark builds the remark for a non-host link (raw default / legacy
-// externalProxy / synthetic JSON-Clash entry). In the subscription body a set
-// remark template takes over; otherwise (and in every display context) the
-// remark is just the config name (inbound remark, then extra).
-func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
-	if s.remarkTemplate != "" && s.subscriptionBody {
-		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra)
+// externalProxy / synthetic JSON-Clash entry). A set remark template drives it
+// in both the body and display contexts (genTemplatedRemark renders the
+// name-only part on displays); with no template it falls back to the inbound
+// remark, extra and email joined by "-".
+func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
+	if s.remarkTemplate != "" {
+		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
-	// Sub info page + panel link/QR displays: just the config name (no template,
-	// so no per-client email/usage leaks into the shown remark).
-	return fallbackRemark(inbound.Remark, extra)
+	return fallbackRemark(inbound.Remark, extra, email)
 }
 
-// fallbackRemark is the minimal remark used only when no template is configured
-// (an operator explicitly cleared it): the inbound remark and the host/extra
-// remark joined by "-", skipping empties. The configurable remark model was
-// removed in favour of the template, whose default already includes the email.
-func fallbackRemark(inboundRemark, extra string) string {
-	switch {
-	case inboundRemark == "":
-		return extra
-	case extra == "":
-		return inboundRemark
-	default:
-		return inboundRemark + "-" + extra
+func fallbackRemark(parts ...string) string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
 	}
+	return strings.Join(out, "-")
 }
 
 // findClientStats returns the inbound's traffic record for email, if present.
@@ -1635,6 +1707,10 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	}
 	extra := map[string]any{}
 
+	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
+		extra["mode"] = mode
+	}
+
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		extra["xPaddingBytes"] = xpb
 	}
@@ -1649,7 +1725,7 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 
 	stringFields := []string{
 		"uplinkHTTPMethod",
-		"sessionPlacement", "sessionKey",
+		"sessionIDPlacement", "sessionIDKey", "sessionIDTable", "sessionIDLength",
 		"seqPlacement", "seqKey",
 		"uplinkDataPlacement", "uplinkDataKey",
 		"scMaxEachPostBytes", "scMinPostsIntervalMs",
@@ -1665,6 +1741,20 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	for _, field := range stringFields {
 		if v, ok := xhttp[field].(string); ok && len(v) > 0 && v != coreDefaults[field] {
 			extra[field] = v
+		}
+	}
+
+	// Legacy inbounds (pre xray-core #6258) stored sessionPlacement/sessionKey.
+	// Lift them onto the renamed keys so links from not-yet-resaved configs
+	// still carry the session settings. Mirrors the frontend migration.
+	for legacy, renamed := range map[string]string{
+		"sessionPlacement": "sessionIDPlacement",
+		"sessionKey":       "sessionIDKey",
+	} {
+		if _, exists := extra[renamed]; !exists {
+			if v, ok := xhttp[legacy].(string); ok && len(v) > 0 {
+				extra[renamed] = v
+			}
 		}
 	}
 
@@ -2247,6 +2337,19 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		datepicker = "gregorian"
 	}
 
+	pageLinks := make([]string, 0, len(subs))
+	pageEmails := make([]string, 0, len(subs))
+	for i, sub := range subs {
+		email := ""
+		if i < len(emails) {
+			email = emails[i]
+		}
+		for _, link := range splitLinkLines(sub) {
+			pageLinks = append(pageLinks, link)
+			pageEmails = append(pageEmails, email)
+		}
+	}
+
 	return PageData{
 		Host:          hostHeader,
 		BasePath:      basePath,
@@ -2268,8 +2371,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubClashUrl:   subClashURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
-		Result:        subs,
-		Emails:        emails,
+		Result:        pageLinks,
+		Emails:        pageEmails,
 	}
 }
 

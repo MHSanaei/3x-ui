@@ -47,6 +47,10 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
   if (!xhttp) return null;
   const extra: Record<string, unknown> = {};
 
+  if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+    extra.mode = xhttp.mode;
+  }
+
   if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
     extra.xPaddingBytes = xhttp.xPaddingBytes;
   }
@@ -60,8 +64,10 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
 
   const stringFields = [
     'uplinkHTTPMethod',
-    'sessionPlacement',
-    'sessionKey',
+    'sessionIDPlacement',
+    'sessionIDKey',
+    'sessionIDTable',
+    'sessionIDLength',
     'seqPlacement',
     'seqKey',
     'uplinkDataPlacement',
@@ -153,6 +159,9 @@ function applyExternalProxyTLSObj(
   if (alpn.length > 0) obj.alpn = alpn;
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) obj.pcs = pins;
+  if (externalProxy.verifyPeerCertByName && externalProxy.verifyPeerCertByName.length > 0) {
+    obj.vcn = externalProxy.verifyPeerCertByName;
+  }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) obj.ech = externalProxy.echConfigList;
 }
 
@@ -250,6 +259,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.settings.fingerprint.length > 0) obj.fp = tlsSettings.settings.fingerprint;
     if (tlsSettings.alpn.length > 0) obj.alpn = tlsSettings.alpn.join(',');
     if (tlsSettings.settings.echConfigList.length > 0) obj.ech = tlsSettings.settings.echConfigList;
+    if (tlsSettings.settings.verifyPeerCertByName.length > 0) {
+      obj.vcn = tlsSettings.settings.verifyPeerCertByName;
+    }
     if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
       obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
     }
@@ -297,6 +309,9 @@ function applyExternalProxyTLSParams(
   if (alpn.length > 0) params.set('alpn', alpn);
   const pins = externalProxyPins(externalProxy.pinnedPeerCertSha256);
   if (pins.length > 0) params.set('pcs', pins);
+  if (externalProxy.verifyPeerCertByName && externalProxy.verifyPeerCertByName.length > 0) {
+    params.set('vcn', externalProxy.verifyPeerCertByName);
+  }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0) params.set('ech', externalProxy.echConfigList);
 }
 
@@ -380,6 +395,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
+      if (tls.settings.verifyPeerCertByName.length > 0) {
+        params.set('vcn', tls.settings.verifyPeerCertByName);
+      }
       if (tls.settings.pinnedPeerCertSha256.length > 0) {
         params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
       }
@@ -472,6 +490,9 @@ function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: 
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.verifyPeerCertByName.length > 0) {
+    params.set('vcn', tls.settings.verifyPeerCertByName);
+  }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
   }
@@ -613,6 +634,19 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   if (isSS2022) passwords.push(settings.password);
   if (isSSMultiUser) passwords.push(clientPassword);
 
+  if (isSS2022) {
+    // SIP022 (2022-blake3-*) forbids base64 userinfo: method and each key are
+    // percent-encoded, joined by literal ':' separators. Built by hand because
+    // `new URL` would re-encode the inner key separator to %3A.
+    const userinfo = [settings.method, ...passwords].map(encodeURIComponent).join(':');
+    let link = `ss://${userinfo}@${formatUrlHost(address)}:${port}`;
+    const query = params.toString();
+    if (query) link += `?${query}`;
+    link += `#${encodeURIComponent(remark)}`;
+    return link;
+  }
+
+  // SIP002 userinfo is base64(method:pw).
   const userinfo = Base64.encode(`${settings.method}:${passwords.join(':')}`, true);
   const url = new URL(`ss://${userinfo}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
@@ -684,6 +718,9 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   if (tls.alpn.length > 0) params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
+  if (tls.settings.verifyPeerCertByName.length > 0) {
+    params.set('vcn', tls.settings.verifyPeerCertByName);
+  }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pinSHA256', tls.settings.pinnedPeerCertSha256.map(hysteriaPinHex).join(','));
   }

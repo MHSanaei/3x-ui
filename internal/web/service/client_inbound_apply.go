@@ -163,6 +163,25 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		return needRestart, txErr
 	}
 
+	// Resolve the node push plan once for the whole batch instead of per email.
+	var nodeRt runtime.Runtime
+	nodePush := false
+	if oldInbound.NodeID != nil {
+		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		if perr != nil {
+			return needRestart, perr
+		}
+		if dirty {
+			markDirty = true
+		}
+		nodeRt, nodePush = rt, push
+		// Large batches collapse into one reconcile push rather than M deletes.
+		if nodePush && len(targets) > nodeBulkPushThreshold {
+			markDirty = true
+			nodePush = false
+		}
+	}
+
 	// Apply runtime deletes after commit — outside the serialized writer so a
 	// slow node call can't stall traffic accounting.
 	for _, t := range targets {
@@ -180,19 +199,10 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 					}
 				}
 			}
-		} else {
-			rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
-			if perr != nil {
-				return needRestart, perr
-			}
-			if dirty {
+		} else if nodePush {
+			if err1 := nodeRt.DeleteUser(context.Background(), oldInbound, t.email); err1 != nil {
+				logger.Warning("Error in deleting client on", nodeRt.Name(), ":", err1)
 				markDirty = true
-			}
-			if push {
-				if err1 := rt.DeleteUser(context.Background(), oldInbound, t.email); err1 != nil {
-					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
-					markDirty = true
-				}
 			}
 		}
 	}
@@ -402,6 +412,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 	} else {
+		// Large batches would be M sequential per-client RPCs; the inbound's saved
+		// settings already hold the final set, so mark dirty and let one reconcile
+		// push converge the node instead.
+		if push && len(clients) > nodeBulkPushThreshold {
+			markDirty = true
+			push = false
+		}
 		for _, client := range clients {
 			if push {
 				if err1 := rt.AddClient(context.Background(), oldInbound, client); err1 != nil {

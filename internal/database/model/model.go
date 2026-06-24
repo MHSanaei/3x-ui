@@ -486,7 +486,7 @@ func HealMtprotoSecret(settings string) (string, bool) {
 // Setting stores key-value configuration settings for the 3x-ui panel.
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Key   string `json:"key" form:"key"`
+	Key   string `json:"key" form:"key" gorm:"index:idx_settings_key"`
 	Value string `json:"value" form:"value"`
 }
 
@@ -545,6 +545,8 @@ type Node struct {
 	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
 	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
 	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
+	ActiveCount   int `json:"activeCount" gorm:"-" example:"23"`
+	DisabledCount int `json:"disabledCount" gorm:"-" example:"3"`
 	DepletedCount int `json:"depletedCount" gorm:"-" example:"1"`
 
 	// ParentGuid + Transitive are set only when a node is surfaced as part of a
@@ -744,7 +746,7 @@ type Host struct {
 	OverrideSniFromAddress bool     `json:"overrideSniFromAddress" form:"overrideSniFromAddress" gorm:"column:override_sni_from_address"`
 	KeepSniBlank           bool     `json:"keepSniBlank" form:"keepSniBlank" gorm:"column:keep_sni_blank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256" form:"pinnedPeerCertSha256" gorm:"serializer:json;column:pinned_peer_cert_sha256"`
-	VerifyPeerCertByName   bool     `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
+	VerifyPeerCertByName   string   `json:"verifyPeerCertByName" form:"verifyPeerCertByName" gorm:"column:verify_peer_cert_by_name"`
 	AllowInsecure          bool     `json:"allowInsecure" form:"allowInsecure" gorm:"column:allow_insecure"`
 	EchConfigList          string   `json:"echConfigList" form:"echConfigList" gorm:"column:ech_config_list"`
 

@@ -65,6 +65,8 @@ export default function IndexPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const [accessLogEnable, setAccessLogEnable] = useState(false);
+  const [isDevBuild, setIsDevBuild] = useState(false);
+  const [devChannelEnable, setDevChannelEnable] = useState(false);
   const [panelUpdateInfo, setPanelUpdateInfo] = useState<PanelUpdateInfo>({
     currentVersion: '',
     latestVersion: '',
@@ -87,8 +89,14 @@ export default function IndexPage() {
   const [loadingTip, setLoadingTip] = useState(t('loading'));
 
   useEffect(() => {
-    HttpUtil.post<{ accessLogEnable?: boolean }>('/panel/api/setting/defaultSettings').then((msg) => {
-      if (msg?.success && msg.obj) setAccessLogEnable(!!msg.obj.accessLogEnable);
+    HttpUtil.post<{ accessLogEnable?: boolean; isDevBuild?: boolean; devChannelEnable?: boolean }>(
+      '/panel/api/setting/defaultSettings',
+    ).then((msg) => {
+      if (msg?.success && msg.obj) {
+        setAccessLogEnable(!!msg.obj.accessLogEnable);
+        setIsDevBuild(!!msg.obj.isDevBuild);
+        setDevChannelEnable(!!msg.obj.devChannelEnable);
+      }
     });
     HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo').then((msg) => {
       if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
@@ -119,11 +127,19 @@ export default function IndexPage() {
   }, [refresh]);
 
   function openPanelVersion() {
-    if (panelUpdateInfo.updateAvailable) {
+    if (panelUpdateInfo.updateAvailable || isDevBuild) {
       setPanelUpdateOpen(true);
     } else {
       window.open('https://github.com/MHSanaei/3x-ui/releases', '_blank', 'noopener,noreferrer');
     }
+  }
+
+  async function handleChannelChange(dev: boolean) {
+    const res = await HttpUtil.post('/panel/api/server/setUpdateChannel', { dev });
+    if (!res?.success) return;
+    setDevChannelEnable(dev);
+    const msg = await HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo');
+    if (msg?.success && msg.obj) setPanelUpdateInfo(msg.obj);
   }
 
   function openTelegram() {
@@ -224,7 +240,9 @@ export default function IndexPage() {
                           {isMobile && displayVersion && (
                             <Tag color={panelUpdateInfo.updateAvailable ? 'orange' : 'green'}>
                               {panelUpdateInfo.updateAvailable
-                                ? `v${panelUpdateInfo.latestVersion}`
+                                ? panelUpdateInfo.channel === 'dev'
+                                  ? panelUpdateInfo.latestVersion
+                                  : `v${panelUpdateInfo.latestVersion}`
                                 : `v${displayVersion}`}
                             </Tag>
                           )}
@@ -446,6 +464,9 @@ export default function IndexPage() {
           <PanelUpdateModal
             open={panelUpdateOpen}
             info={panelUpdateInfo}
+            isDevBuild={isDevBuild}
+            devChannelEnable={devChannelEnable}
+            onChannelChange={handleChannelChange}
             onClose={() => setPanelUpdateOpen(false)}
             onBusy={setBusy}
           />

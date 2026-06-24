@@ -175,6 +175,21 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubRoutingRules = ""
 	}
 
+	SubHideSettings, err := s.settingService.GetSubHideSettings()
+	if err != nil {
+		SubHideSettings = false
+	}
+
+	SubIncyEnableRouting, err := s.settingService.GetSubIncyEnableRouting()
+	if err != nil {
+		SubIncyEnableRouting = false
+	}
+
+	SubIncyRoutingRules, err := s.settingService.GetSubIncyRoutingRules()
+	if err != nil {
+		SubIncyRoutingRules = ""
+	}
+
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
 
@@ -232,7 +247,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubJsonTemplate, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
-		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
+		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings,
+		SubIncyEnableRouting, SubIncyRoutingRules)
 
 	return engine, nil
 }
@@ -306,6 +322,13 @@ func (s *Server) Start() (err error) {
 
 	s.httpServer = &http.Server{
 		Handler: engine,
+		// The subscription server is the most exposed (public) listener; without
+		// these a few slow-header connections exhaust it (Slowloris). Mirrors the
+		// panel server timeouts in internal/web/web.go.
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

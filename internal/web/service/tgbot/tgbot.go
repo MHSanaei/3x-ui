@@ -83,7 +83,65 @@ var (
 	client_Reset         int
 )
 
-var userStates = make(map[int64]string)
+// userStateStore guards the per-chat conversation states. The Telegram command
+// and callback handlers run on a worker-pool goroutine while the message handler
+// runs on the dispatch goroutine, so a bare map would be a concurrent-map-write
+// crash. It also expires abandoned conversations so a user who starts a flow and
+// goes silent doesn't leave an entry forever.
+type userStateStore struct {
+	mu        sync.Mutex
+	states    map[int64]userStateEntry
+	lastPrune time.Time
+}
+
+type userStateEntry struct {
+	state string
+	at    time.Time
+}
+
+var userStateMgr = &userStateStore{states: make(map[int64]userStateEntry)}
+
+func (s *userStateStore) set(chatID int64, state string) {
+	s.mu.Lock()
+	s.states[chatID] = userStateEntry{state: state, at: time.Now()}
+	s.mu.Unlock()
+}
+
+func (s *userStateStore) get(chatID int64) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e, ok := s.states[chatID]
+	return e.state, ok
+}
+
+func (s *userStateStore) clear(chatID int64) {
+	s.mu.Lock()
+	delete(s.states, chatID)
+	s.mu.Unlock()
+}
+
+func (s *userStateStore) reset() {
+	s.mu.Lock()
+	s.states = make(map[int64]userStateEntry)
+	s.mu.Unlock()
+}
+
+// maybePrune drops conversations older than maxAge, at most once per maxAge so a
+// busy bot doesn't sweep the whole map on every message.
+func (s *userStateStore) maybePrune(maxAge time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now()
+	if now.Sub(s.lastPrune) < maxAge {
+		return
+	}
+	s.lastPrune = now
+	for id, e := range s.states {
+		if now.Sub(e.at) > maxAge {
+			delete(s.states, id)
+		}
+	}
+}
 
 // LoginStatus represents the result of a login attempt.
 type LoginStatus byte
@@ -410,6 +468,8 @@ func StopBot() {
 	botHandler = nil
 	isRunning = false
 	tgBotMutex.Unlock()
+
+	userStateMgr.reset()
 
 	if handler != nil {
 		handler.Stop()

@@ -254,6 +254,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/fail2banStatus',
+        summary: 'Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the "IP Limit" field, since enforcement depends on Fail2ban being installed.',
+        response: '{\n  "success": true,\n  "obj": {\n    "enabled": true,\n    "installed": true,\n    "usable": true,\n    "windows": false\n  }\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/cpuHistory/:bucket',
         summary: 'Legacy: aggregated CPU history. Use /history/cpu/:bucket instead — same data with a uniform {t, v} shape.',
         params: [
@@ -396,6 +402,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/setUpdateChannel',
+        summary: 'Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.',
+        params: [
+          { name: 'dev', in: 'body (form)', type: 'boolean', desc: 'true = dev channel, false = stable.' },
+        ],
+        body: 'dev=true',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/updateGeofile',
         summary: 'Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.',
         params: [
@@ -452,6 +467,27 @@ export const sections: readonly Section[] = [
         ],
         body: 'sni=example.com',
         response: '{\n  "success": true,\n  "obj": {\n    "echKeySet": "...",\n    "echServerKeys": [...],\n    "echConfigList": "..."\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/getCertHash',
+        summary: 'Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.',
+        params: [
+          { name: 'certFile', in: 'body (form)', type: 'string', desc: 'Path to a certificate file on the server. Takes precedence over certContent.' },
+          { name: 'certContent', in: 'body (form)', type: 'string', desc: 'Inline PEM (or DER) certificate content, used when certFile is empty.' },
+        ],
+        body: 'certFile=/root/cert.crt',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/getRemoteCertHash',
+        summary: 'Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).',
+        params: [
+          { name: 'server', in: 'body (form)', type: 'string', desc: 'Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com.' },
+        ],
+        body: 'server=cloudflare-dns.com',
+        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
       },
       {
         method: 'GET',
@@ -588,9 +624,28 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/delOrphans',
+        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/export',
+        summary: 'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/import',
+        summary: 'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.',
+        body: '{\n  "data": "[{\\"client\\":{\\"email\\":\\"alice@example.com\\",\\"enable\\":true},\\"inboundIds\\":[7]}]"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use: alice@example.com" }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/bulkAdjust',
-        summary: 'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. Returns the adjusted count and per-email skip reasons.',
-        body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200\n}',
+        summary: 'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). Returns the adjusted count and per-email skip reasons.',
+        body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200,\n  "flow": "xtls-rprx-vision"\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "adjusted": 2,\n    "skipped": [\n      { "email": "carol", "reason": "unlimited expiry" }\n    ]\n  }\n}',
       },
       {

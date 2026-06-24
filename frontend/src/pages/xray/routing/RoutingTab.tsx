@@ -1,9 +1,19 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Space, Table, Tabs } from 'antd';
-import { AimOutlined, ControlOutlined, PlusOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Modal, Space, Table, Tabs, message } from 'antd';
+import {
+  AimOutlined,
+  ControlOutlined,
+  ExportOutlined,
+  ImportOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 
 import { catTabLabel } from '@/pages/settings/catTabLabel';
+import PromptModal from '@/components/feedback/PromptModal';
+import TextModal from '@/components/feedback/TextModal';
 import RoutingBasic from './RoutingBasic';
 import RouteTester from './RouteTester';
 import RuleFormModal from './RuleFormModal';
@@ -133,6 +143,43 @@ export default function RoutingTab({
     }
     return out;
   }, [templateSettings?.routing?.balancers]);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportContent, setExportContent] = useState('');
+
+  function exportRules() {
+    setExportContent(JSON.stringify(rules, null, 2));
+    setExportOpen(true);
+  }
+
+  function importRules(value: string) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      message.error(t('pages.xray.importInvalidJson'));
+      return;
+    }
+    const obj = parsed as { rules?: unknown; routing?: { rules?: unknown } };
+    const list = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(obj?.rules)
+        ? obj.rules
+        : Array.isArray(obj?.routing?.rules)
+          ? obj.routing!.rules
+          : null;
+    if (!list) {
+      message.error(t('pages.xray.importInvalidJson'));
+      return;
+    }
+    mutate((tt) => {
+      if (!tt.routing) tt.routing = { rules: [] };
+      if (!Array.isArray(tt.routing.rules)) tt.routing.rules = [];
+      tt.routing.rules.push(...(list as RuleObject[]));
+    });
+    setImportOpen(false);
+  }
 
   function openAdd() {
     setEditingRule(null);
@@ -284,9 +331,22 @@ export default function RoutingTab({
             label: catTabLabel(<UnorderedListOutlined />, t('pages.xray.Routings'), isMobile),
             children: (
               <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-                  {t('pages.xray.Routings')}
-                </Button>
+                <Space wrap>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+                    {t('pages.xray.Routings')}
+                  </Button>
+                  <Dropdown
+                    trigger={['click']}
+                    menu={{
+                      items: [
+                        { key: 'import', icon: <ImportOutlined />, label: t('pages.xray.importRules'), onClick: () => setImportOpen(true) },
+                        { key: 'export', icon: <ExportOutlined />, label: t('pages.xray.exportRules'), disabled: rules.length === 0, onClick: exportRules },
+                      ],
+                    }}
+                  >
+                    <Button icon={<MoreOutlined />}>{t('more')}</Button>
+                  </Dropdown>
+                </Space>
 
                 {isMobile ? (
                   <RuleCardList
@@ -338,6 +398,23 @@ export default function RoutingTab({
         balancerTags={balancerTagOptions}
         onClose={() => setRuleModalOpen(false)}
         onConfirm={onRuleConfirm}
+      />
+      <PromptModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t('pages.xray.importRules')}
+        okText={t('pages.xray.importRules')}
+        type="textarea"
+        json
+        onConfirm={importRules}
+      />
+      <TextModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title={t('pages.xray.exportRules')}
+        content={exportContent}
+        fileName="routing-rules.json"
+        json
       />
     </>
   );

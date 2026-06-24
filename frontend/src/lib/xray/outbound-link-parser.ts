@@ -24,10 +24,18 @@ type Raw = Record<string, unknown>;
 // match the schema's authoring order so diffs read naturally.
 const XHTTP_STRING_KEYS = [
   'xPaddingBytes', 'xPaddingKey', 'xPaddingHeader', 'xPaddingPlacement',
-  'xPaddingMethod', 'sessionPlacement', 'sessionKey', 'seqPlacement',
-  'seqKey', 'uplinkDataPlacement', 'uplinkDataKey', 'scMaxEachPostBytes',
-  'scMinPostsIntervalMs', 'scStreamUpServerSecs', 'uplinkHTTPMethod',
+  'xPaddingMethod', 'sessionIDPlacement', 'sessionIDKey', 'sessionIDTable',
+  'sessionIDLength', 'seqPlacement', 'seqKey', 'uplinkDataPlacement',
+  'uplinkDataKey', 'scMaxEachPostBytes', 'scMinPostsIntervalMs',
+  'scStreamUpServerSecs', 'uplinkHTTPMethod',
 ] as const;
+// Legacy share links (pre xray-core #6258) carry sessionPlacement/sessionKey.
+// Map them onto the renamed keys so old links still import. Mirrors the
+// schema-level migrateLegacyXhttp.
+const XHTTP_LEGACY_ALIASES: Record<string, string> = {
+  sessionPlacement: 'sessionIDPlacement',
+  sessionKey: 'sessionIDKey',
+};
 const XHTTP_NUMBER_KEYS = [
   'scMaxBufferedPosts', 'serverMaxHeaderBytes', 'uplinkChunkSize',
 ] as const;
@@ -81,11 +89,23 @@ function applyXhttpStringFromParams(xhttp: Raw, params: URLSearchParams): void {
     const v = params.get(k);
     if (v !== null && v !== '') xhttp[k] = asBool(v);
   }
+  // Fill renamed keys from legacy params only when the new key is absent.
+  for (const [legacy, renamed] of Object.entries(XHTTP_LEGACY_ALIASES)) {
+    if (xhttp[renamed] === undefined) {
+      const v = params.get(legacy);
+      if (v !== null && v !== '') xhttp[renamed] = v;
+    }
+  }
 }
 
 function applyXhttpStringFromJson(xhttp: Raw, json: Record<string, unknown>): void {
   for (const k of XHTTP_STRING_KEYS) {
     if (typeof json[k] === 'string') xhttp[k] = json[k];
+  }
+  for (const [legacy, renamed] of Object.entries(XHTTP_LEGACY_ALIASES)) {
+    if (xhttp[renamed] === undefined && typeof json[legacy] === 'string') {
+      xhttp[renamed] = json[legacy];
+    }
   }
   for (const k of XHTTP_NUMBER_KEYS) {
     if (typeof json[k] === 'number') xhttp[k] = json[k];
@@ -213,6 +233,7 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     const alpn = params.get('alpn');
     if (alpn) tls.alpn = alpn.split(',');
     tls.echConfigList = params.get('ech') ?? '';
+    tls.verifyPeerCertByName = params.get('vcn') ?? '';
     tls.pinnedPeerCertSha256 = params.get('pcs') ?? '';
   } else if (stream.security === 'reality') {
     const reality = stream.realitySettings as Raw;
@@ -372,8 +393,15 @@ export function parseShadowsocksLink(link: string): Raw | null {
   const core = queryIndex >= 0 ? linkNoHash.slice(0, queryIndex) : linkNoHash;
   const atIndex = core.indexOf('@');
   if (atIndex >= 0) {
-    try { userInfo = Base64.decode(core.slice('ss://'.length, atIndex)); }
-    catch { userInfo = core.slice('ss://'.length, atIndex); }
+    const rawUserInfo = core.slice('ss://'.length, atIndex);
+    if (rawUserInfo.includes(':')) {
+      // SIP022 (2022-blake3-*) userinfo is percent-encoded, never base64
+      // (a literal ':' can't appear in a base64/base64url string).
+      try { userInfo = decodeURIComponent(rawUserInfo); } catch { userInfo = rawUserInfo; }
+    } else {
+      try { userInfo = Base64.decode(rawUserInfo); }
+      catch { userInfo = rawUserInfo; }
+    }
     const hostPort = core.slice(atIndex + 1);
     const colon = hostPort.lastIndexOf(':');
     if (colon < 0) return null;
@@ -427,7 +455,7 @@ export function parseHysteria2Link(link: string): Raw | null {
       alpn: alpn ? alpn.split(',') : ['h3'],
       fingerprint: params.get('fp') ?? '',
       echConfigList: params.get('ech') ?? '',
-      verifyPeerCertByName: '',
+      verifyPeerCertByName: params.get('vcn') ?? '',
       pinnedPeerCertSha256: params.get('pinSHA256') ?? '',
     },
   };

@@ -51,7 +51,7 @@ exports[`SecuritySettingsSchema fixtures > parses tls-cert-file byte-stably 1`] 
         "buildChain": false,
         "certificateFile": "/etc/ssl/certs/cdn.example.test.crt",
         "keyFile": "/etc/ssl/private/cdn.example.test.key",
-        "ocspStapling": 3600,
+        "ocspStapling": 0,
         "oneTimeLoading": false,
         "usage": "encipherment",
       },
@@ -68,6 +68,7 @@ exports[`SecuritySettingsSchema fixtures > parses tls-cert-file byte-stably 1`] 
       "echConfigList": "",
       "fingerprint": "chrome",
       "pinnedPeerCertSha256": [],
+      "verifyPeerCertByName": "",
     },
   },
 }

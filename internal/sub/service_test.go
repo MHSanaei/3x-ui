@@ -35,7 +35,7 @@ func TestGenRemarkOmitsNodeName(t *testing.T) {
 		nodesByID: map[int]*model.Node{7: {Id: 7, Name: "Berlin", Address: "node7.example.com"}},
 	}
 	ib := &model.Inbound{Remark: "vless-tcp", NodeID: &nodeID}
-	if got := s.genRemark(ib, "", ""); got != "vless-tcp" {
+	if got := s.genRemark(ib, "", "", ""); got != "vless-tcp" {
 		t.Fatalf("remark = %q, want %q (node name must not leak into client-visible remarks)", got, "vless-tcp")
 	}
 }
@@ -369,8 +369,10 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 			t.Fatalf("extra missing %q: %#v", key, extra)
 		}
 	}
-	if _, ok := extra["mode"]; ok {
-		t.Fatalf("mode should stay as a top-level query parameter, got extra %#v", extra)
+	// mode rides inside extra (in addition to the flat param) so clients
+	// that only read the extra JSON keep the xhttp mode (#5446).
+	if extra["mode"] != "packet-up" {
+		t.Fatalf("extra[mode] = %#v, want packet-up", extra["mode"])
 	}
 
 	headers, ok := extra["headers"].(map[string]any)

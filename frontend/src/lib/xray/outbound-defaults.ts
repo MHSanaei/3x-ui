@@ -111,7 +111,6 @@ export function createDefaultWireguardOutboundSettings(
     mtu: 1420,
     secretKey,
     address: [],
-    workers: 2,
     peers: [{
       publicKey: '',
       allowedIPs: ['0.0.0.0/0', '::/0'],

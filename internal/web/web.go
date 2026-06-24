@@ -53,6 +53,12 @@ var distFS embed.FS
 
 var startTime = time.Now()
 
+// cronPanicLogger adapts the package logger to cron's Printf-style logger so a
+// panicking scheduled job is recovered and logged instead of crashing the panel.
+type cronPanicLogger struct{}
+
+func (cronPanicLogger) Printf(format string, args ...any) { logger.Errorf(format, args...) }
+
 // wrapDistFS adapts the embedded `dist/` directory so it can be mounted
 // as the panel's `/assets/` static route. Vite emits its bundled JS/CSS
 // under `dist/assets/`; serving the FS rooted at `dist/assets` makes
@@ -258,8 +264,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		c.JSON(http.StatusOK, gin.H{})
 	})
 
-	// Add a catch-all route to handle undefined paths and return 404
+	// Let unknown panel document routes fall back to the SPA shell, while every
+	// non-SPA miss still returns a hard 404.
 	engine.NoRoute(func(c *gin.Context) {
+		if s.panel.HandleNoRoutePanelSPA(c) {
+			return
+		}
 		c.AbortWithStatus(http.StatusNotFound)
 	})
 
@@ -284,7 +294,8 @@ const (
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
-	cadenceCPUAlarm = "@every 1m"
+	cadenceCPUAlarm    = "@every 1m"
+	cadenceMemoryAlarm = "@every 1m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -379,6 +390,10 @@ func (s *Server) startTask(restartXray bool) {
 	if s.cpuAlarmWanted() {
 		s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 	}
+	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
+	if s.memoryAlarmWanted() {
+		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+	}
 }
 
 // cpuAlarmWanted reports whether any notifier is configured to receive cpu.high
@@ -412,6 +427,36 @@ func (s *Server) cpuAlarmWanted() bool {
 	return false
 }
 
+// memoryAlarmWanted reports whether any notifier is configured to receive memory.high alerts.
+func (s *Server) memoryAlarmWanted() bool {
+	wants := func(events string, threshold int) bool {
+		if threshold <= 0 {
+			return false
+		}
+		for e := range strings.SplitSeq(events, ",") {
+			if strings.TrimSpace(e) == string(eventbus.EventMemoryHigh) {
+				return true
+			}
+		}
+		return false
+	}
+	if on, _ := s.settingService.GetTgbotEnabled(); on {
+		events, _ := s.settingService.GetTgEnabledEvents()
+		mem, _ := s.settingService.GetTgMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetSmtpEnable(); on {
+		events, _ := s.settingService.GetSmtpEnabledEvents()
+		mem, _ := s.settingService.GetSmtpMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	return false
+}
+
 // Start initializes and starts the web server with configured settings, routes, and background jobs.
 func (s *Server) Start() (err error) {
 	return s.start(true, true)
@@ -435,7 +480,19 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 	service.StartTrafficWriter()
 
-	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
+	// SkipIfStillRunning stops a slow job (e.g. the 5s traffic poll on a large
+	// install) from overlapping itself: two concurrent runs of the same job race
+	// the shared xrayAPI — leaking a grpc connection — and the StatsLastValues
+	// map, whose concurrent write is a fatal runtime throw cron.Recover can't
+	// catch. cron.Recover then logs any panic and keeps the scheduler alive.
+	s.cron = cron.New(
+		cron.WithLocation(loc),
+		cron.WithSeconds(),
+		cron.WithChain(
+			cron.SkipIfStillRunning(cron.DiscardLogger),
+			cron.Recover(cron.PrintfLogger(cronPanicLogger{})),
+		),
+	)
 	s.cron.Start()
 
 	// Wire the inbound-runtime manager once so InboundService can route
@@ -564,6 +621,28 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 		s.tgbotService.SendMsgToTgbotAdmins("✅ Test message from 3x-ui")
 		return nil
+	})
+
+	controller.SetReloadTgbotFunc(func() {
+		enabled, err := s.settingService.GetTgbotEnabled()
+		if err != nil || !enabled {
+			if s.tgbotService.IsRunning() {
+				s.tgbotService.Stop()
+			}
+			if s.bus != nil {
+				s.bus.Unsubscribe("tg-notifier")
+			}
+			return
+		}
+		// Start() stops any previous receiver first, so it is safe whether or not the bot is already running.
+		tgBot := s.tgbotService.NewTgbot()
+		if startErr := tgBot.Start(i18nFS); startErr != nil {
+			logger.Warning("reload Telegram bot failed:", startErr)
+			return
+		}
+		if s.bus != nil {
+			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
+		}
 	})
 
 	s.startTask(restartXray)

@@ -160,6 +160,12 @@
             "description": "SMTP server host",
             "type": "string"
           },
+          "smtpMemory": {
+            "description": "Memory threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "smtpPassword": {
             "description": "SMTP password",
             "type": "string"
@@ -221,6 +227,18 @@
           "subEncrypt": {
             "description": "Encrypt subscription responses",
             "type": "boolean"
+          },
+          "subHideSettings": {
+            "description": "Hide server settings in happ subscription (Only for Happ)",
+            "type": "boolean"
+          },
+          "subIncyEnableRouting": {
+            "description": "Enable routing injection for the Incy client",
+            "type": "boolean"
+          },
+          "subIncyRoutingRules": {
+            "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+            "type": "string"
           },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
@@ -335,6 +353,12 @@
             "description": "Telegram bot language",
             "type": "string"
           },
+          "tgMemory": {
+            "description": "Memory usage threshold for alerts (percent)",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgRunTime": {
             "description": "Cron schedule for Telegram notifications",
             "type": "string"
@@ -428,6 +452,7 @@
           "smtpEnabledEvents",
           "smtpEncryptionType",
           "smtpHost",
+          "smtpMemory",
           "smtpPassword",
           "smtpPort",
           "smtpTo",
@@ -443,6 +468,9 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subHideSettings",
+          "subIncyEnableRouting",
+          "subIncyRoutingRules",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -470,6 +498,7 @@
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
+          "tgMemory",
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
@@ -641,6 +670,12 @@
             "description": "SMTP server host",
             "type": "string"
           },
+          "smtpMemory": {
+            "description": "Memory threshold for email notifications",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "smtpPassword": {
             "description": "SMTP password",
             "type": "string"
@@ -702,6 +737,18 @@
           "subEncrypt": {
             "description": "Encrypt subscription responses",
             "type": "boolean"
+          },
+          "subHideSettings": {
+            "description": "Hide server settings in happ subscription (Only for Happ)",
+            "type": "boolean"
+          },
+          "subIncyEnableRouting": {
+            "description": "Enable routing injection for the Incy client",
+            "type": "boolean"
+          },
+          "subIncyRoutingRules": {
+            "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+            "type": "string"
           },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
@@ -816,6 +863,12 @@
             "description": "Telegram bot language",
             "type": "string"
           },
+          "tgMemory": {
+            "description": "Memory usage threshold for alerts (percent)",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgRunTime": {
             "description": "Cron schedule for Telegram notifications",
             "type": "string"
@@ -916,6 +969,7 @@
           "smtpEnabledEvents",
           "smtpEncryptionType",
           "smtpHost",
+          "smtpMemory",
           "smtpPassword",
           "smtpPort",
           "smtpTo",
@@ -931,6 +985,9 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subHideSettings",
+          "subIncyEnableRouting",
+          "subIncyRoutingRules",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -958,6 +1015,7 @@
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
+          "tgMemory",
           "tgRunTime",
           "timeLocation",
           "trafficDiff",
@@ -1474,7 +1532,7 @@
             "type": "integer"
           },
           "verifyPeerCertByName": {
-            "type": "boolean"
+            "type": "string"
           },
           "vlessRoute": {
             "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
@@ -1798,6 +1856,10 @@
       "Node": {
         "description": "Node represents a remote 3x-ui panel registered with the central panel.\nThe central panel polls each node's existing /panel/api/server/status\nendpoint over HTTP using the per-node ApiToken to populate the runtime\nstatus fields below.",
         "properties": {
+          "activeCount": {
+            "example": 23,
+            "type": "integer"
+          },
           "address": {
             "example": "node1.example.com",
             "type": "string"
@@ -1833,6 +1895,10 @@
           },
           "depletedCount": {
             "example": 1,
+            "type": "integer"
+          },
+          "disabledCount": {
+            "example": 3,
             "type": "integer"
           },
           "enable": {
@@ -1965,6 +2031,7 @@
           }
         },
         "required": [
+          "activeCount",
           "address",
           "allowPrivateAddress",
           "apiToken",
@@ -1975,6 +2042,7 @@
           "cpuPct",
           "createdAt",
           "depletedCount",
+          "disabledCount",
           "enable",
           "guid",
           "id",
@@ -3278,6 +3346,45 @@
         }
       }
     },
+    "/panel/api/server/fail2banStatus": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the \"IP Limit\" field, since enforcement depends on Fail2ban being installed.",
+        "operationId": "get_panel_api_server_fail2banStatus",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "enabled": true,
+                    "installed": true,
+                    "usable": true,
+                    "windows": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/cpuHistory/{bucket}": {
       "get": {
         "tags": [
@@ -4143,6 +4250,46 @@
         }
       }
     },
+    "/panel/api/server/setUpdateChannel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.",
+        "operationId": "post_panel_api_server_setUpdateChannel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/updateGeofile": {
       "post": {
         "tags": [
@@ -4401,6 +4548,98 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.",
+        "operationId": "post_panel_api_server_getCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/getRemoteCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).",
+        "operationId": "post_panel_api_server_getRemoteCertHash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "e8e2d3..."
+                  ]
                 }
               }
             }
@@ -5142,12 +5381,152 @@
         }
       }
     },
+    "/panel/api/clients/delOrphans": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
+        "operationId": "post_panel_api_clients_delOrphans",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "deleted": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/export": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
+        "operationId": "get_panel_api_clients_export",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "client": {
+                        "email": "alice@example.com",
+                        "id": "...",
+                        "totalGB": 53687091200,
+                        "expiryTime": 0,
+                        "enable": true,
+                        "subId": "..."
+                      },
+                      "inboundIds": [
+                        7,
+                        9
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/import": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
+        "operationId": "post_panel_api_clients_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "data": "[{\"client\":{\"email\":\"alice@example.com\",\"enable\":true},\"inboundIds\":[7]}]"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "created": 2,
+                    "skipped": [
+                      {
+                        "email": "alice@example.com",
+                        "reason": "email already in use: alice@example.com"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/bulkAdjust": {
       "post": {
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
@@ -5162,7 +5541,8 @@
                   "bob"
                 ],
                 "addDays": 30,
-                "addBytes": 53687091200
+                "addBytes": 53687091200,
+                "flow": "xtls-rprx-vision"
               }
             }
           }
@@ -6423,6 +6803,7 @@
                   "success": true,
                   "obj": [
                     {
+                      "activeCount": 23,
                       "address": "node1.example.com",
                       "allowPrivateAddress": false,
                       "apiToken": "abcdef0123456789",
@@ -6433,6 +6814,7 @@
                       "cpuPct": 23.5,
                       "createdAt": 1700000000,
                       "depletedCount": 1,
+                      "disabledCount": 3,
                       "enable": true,
                       "guid": "",
                       "id": 1,
@@ -7259,7 +7641,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7351,7 +7733,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7446,7 +7828,7 @@
                         ""
                       ],
                       "updatedAt": 0,
-                      "verifyPeerCertByName": false,
+                      "verifyPeerCertByName": "",
                       "vlessRoute": ""
                     }
                   ]
@@ -7586,7 +7968,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }
@@ -7698,7 +8080,7 @@
                       ""
                     ],
                     "updatedAt": 0,
-                    "verifyPeerCertByName": false,
+                    "verifyPeerCertByName": "",
                     "vlessRoute": ""
                   }
                 }

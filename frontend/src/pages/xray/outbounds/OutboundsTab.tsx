@@ -34,9 +34,12 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   ExportOutlined,
+  ImportOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import PromptModal from '@/components/feedback/PromptModal';
+import TextModal from '@/components/feedback/TextModal';
 
 import OutboundFormModal from './OutboundFormModal';
 import { propagateOutboundTagRename } from '../basics/helpers';
@@ -221,6 +224,36 @@ export default function OutboundsTab({
       if (!tt.outbounds || idx >= tt.outbounds.length - 1) return;
       [tt.outbounds[idx + 1], tt.outbounds[idx]] = [tt.outbounds[idx], tt.outbounds[idx + 1]];
     });
+  }
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportContent, setExportContent] = useState('');
+
+  function exportOutbounds() {
+    setExportContent(JSON.stringify(outbounds, null, 2));
+    setExportOpen(true);
+  }
+
+  function importOutbounds(value: string) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      messageApi.error(t('pages.xray.importInvalidJson'));
+      return;
+    }
+    const obj = parsed as { outbounds?: unknown };
+    const list = Array.isArray(parsed) ? parsed : Array.isArray(obj?.outbounds) ? obj.outbounds : null;
+    if (!list) {
+      messageApi.error(t('pages.xray.importInvalidJson'));
+      return;
+    }
+    mutate((tt) => {
+      if (!Array.isArray(tt.outbounds)) tt.outbounds = [];
+      tt.outbounds.push(...(list as never[]));
+    });
+    setImportOpen(false);
   }
 
   // --- Subscription management (minimal inline UI) ---
@@ -420,6 +453,9 @@ export default function OutboundsTab({
                   items: [
                     { key: 'warp', icon: <CloudOutlined />, label: 'WARP', onClick: onShowWarp },
                     { key: 'nord', icon: <ApiOutlined />, label: 'NordVPN', onClick: onShowNord },
+                    { type: 'divider' },
+                    { key: 'import', icon: <ImportOutlined />, label: t('pages.xray.importOutbounds'), onClick: () => setImportOpen(true) },
+                    { key: 'export', icon: <ExportOutlined />, label: t('pages.xray.exportOutbounds'), disabled: outbounds.length === 0, onClick: exportOutbounds },
                   ],
                 }}
               >
@@ -487,6 +523,23 @@ export default function OutboundsTab({
           existingTags={existingTags}
           onClose={() => setModalOpen(false)}
           onConfirm={onConfirm}
+        />
+        <PromptModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          title={t('pages.xray.importOutbounds')}
+          okText={t('pages.xray.importOutbounds')}
+          type="textarea"
+          json
+          onConfirm={importOutbounds}
+        />
+        <TextModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          title={t('pages.xray.exportOutbounds')}
+          content={exportContent}
+          fileName="outbounds.json"
+          json
         />
 
         {/* Subscription outbounds (read-only, merged at runtime) */}

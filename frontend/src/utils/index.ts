@@ -19,6 +19,7 @@ export class Msg<T = unknown> {
 
 export interface HttpOptions extends AxiosRequestConfig {
   silent?: boolean;
+  silentSuccess?: boolean;
 }
 
 export interface HttpModal {
@@ -27,20 +28,24 @@ export interface HttpModal {
 }
 
 export class HttpUtil {
-  static _handleMsg(msg: unknown): void {
+  static _handleMsg(msg: unknown, silentSuccess = false): void {
     if (!(msg instanceof Msg) || msg.msg === '') {
       return;
     }
-    const messageType = msg.success ? 'success' : 'error';
-    getMessage()[messageType](msg.msg);
-    if (
-      msg.success &&
-      msg.obj &&
-      typeof msg.obj === 'object' &&
-      (msg.obj as { nodePending?: unknown }).nodePending === true
-    ) {
-      getMessage().warning(i18next.t('pages.inbounds.toasts.savedNodeOfflineWillSync'));
+    if (msg.success) {
+      if (!silentSuccess) {
+        getMessage().success(msg.msg);
+      }
+      if (
+        msg.obj &&
+        typeof msg.obj === 'object' &&
+        (msg.obj as { nodePending?: unknown }).nodePending === true
+      ) {
+        getMessage().warning(i18next.t('pages.inbounds.toasts.savedNodeOfflineWillSync'));
+      }
+      return;
     }
+    getMessage().error(msg.msg);
   }
 
   static _respToMsg(resp: AxiosResponse | undefined): Msg {
@@ -59,11 +64,11 @@ export class HttpUtil {
   }
 
   static async get<T = unknown>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
-    const { silent, ...axiosOpts } = options;
+    const { silent, silentSuccess, ...axiosOpts } = options;
     try {
       const resp = await axios.get(url, { params, ...axiosOpts });
       const msg = this._respToMsg(resp) as Msg<T>;
-      if (!silent) this._handleMsg(msg);
+      if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
       console.error('GET request failed:', error);
@@ -75,11 +80,11 @@ export class HttpUtil {
   }
 
   static async post<T = unknown>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
-    const { silent, ...axiosOpts } = options;
+    const { silent, silentSuccess, ...axiosOpts } = options;
     try {
       const resp = await axios.post(url, data, axiosOpts);
       const msg = this._respToMsg(resp) as Msg<T>;
-      if (!silent) this._handleMsg(msg);
+      if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
       console.error('POST request failed:', error);
@@ -920,6 +925,8 @@ export type CalendarKind = 'gregorian' | 'jalalian';
 export class IntlUtil {
   static formatDate(date: string | number | Date | null | undefined, calendar: CalendarKind = 'gregorian'): string {
     if (date == null) return '';
+    const d = new Date(date);
+    if (!isFinite(d.getTime())) return '';
     const language = LanguageManager.getLanguage();
     const locale = calendar === 'jalalian' ? 'fa-IR' : language;
 
@@ -934,11 +941,12 @@ export class IntlUtil {
     };
 
     const intl = new Intl.DateTimeFormat(locale, intlOptions);
-    return intl.format(new Date(date));
+    return intl.format(d);
   }
 
   static formatRelativeTime(date: number | null | undefined): string {
     if (date == null) return '';
+    if (!isFinite(date)) return '';
     const language = LanguageManager.getLanguage();
     const now = new Date();
     const diff = date < 0

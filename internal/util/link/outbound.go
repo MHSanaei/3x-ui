@@ -344,7 +344,12 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		hp := core[at+1:]
 		userInfo, err := base64DecodeFlexible(userB64)
 		if err != nil {
-			userInfo = userB64 // not b64, rare
+			// SIP022 (2022-blake3-*) userinfo is percent-encoded, not base64.
+			if dec, uerr := url.QueryUnescape(userB64); uerr == nil {
+				userInfo = dec
+			} else {
+				userInfo = userB64 // not b64, rare
+			}
 		}
 		colon := strings.LastIndex(hp, ":")
 		if colon < 0 {

@@ -106,7 +106,7 @@ export default function ClientQrModal({
         children: (
           <QrPanel
             value={link}
-            remark={`${client?.email || ''} #${idx + 1}`}
+            remark={parts?.remark || `${client?.email || ''} #${idx + 1}`}
             showQr={!isPostQuantumLink(link)}
           />
         ),

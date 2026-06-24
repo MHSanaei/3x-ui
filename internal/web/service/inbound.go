@@ -424,8 +424,10 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 }
 
 // normalizeStreamSettings clears StreamSettings for protocols that don't use it.
-// Only vmess, vless, trojan, shadowsocks, hysteria, and wireguard protocols use
-// streamSettings (wireguard for finalmask UDP masks and sockopt on its listener).
+// Only vmess, vless, trojan, shadowsocks, hysteria, wireguard, and tunnel
+// protocols use streamSettings (wireguard for finalmask UDP masks and sockopt on
+// its listener; tunnel for sockopt, notably sockopt.tproxy for its TProxy/redirect
+// mode).
 func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	protocolsWithStream := map[model.Protocol]bool{
 		model.VMESS:       true,
@@ -434,6 +436,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Shadowsocks: true,
 		model.Hysteria:    true,
 		model.WireGuard:   true,
+		model.Tunnel:      true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -785,6 +788,16 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return false, err
 	}
 
+	// Drop the deleted inbound's tag from any routing rules / loopback outbounds
+	// in xrayTemplateConfig so they don't point at a tag that no longer exists.
+	if loadErr == nil && ib.Tag != "" {
+		if routingChanged, syncErr := (&XraySettingService{}).RemoveInboundTagReferences(ib.Tag); syncErr != nil {
+			logger.Warning("DelInbound: sync routing on inbound delete failed:", syncErr)
+		} else if routingChanged {
+			needRestart = true
+		}
+	}
+
 	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
 	}
@@ -1052,6 +1065,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
 		}
 
+		// Re-gate Vision flow now that the new stream/encryption is known: if this
+		// VLESS inbound just became flow-eligible (e.g. vlessenc was enabled on an
+		// XHTTP inbound), restore Vision for clients whose intended flow is Vision
+		// but was stripped while the inbound was ineligible.
+		if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
+			inbound.Settings = restored
+		}
+
 		oldInbound.Total = inbound.Total
 		oldInbound.Remark = inbound.Remark
 		oldInbound.SubSortIndex = inbound.SubSortIndex
@@ -1157,6 +1178,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	})
 	if txErr != nil {
 		return inbound, false, txErr
+	}
+	// After the rename is committed, point any routing rules / loopback outbounds
+	// in xrayTemplateConfig at the new tag (oldInbound.Tag now holds the resolved
+	// new tag; tag holds the pre-edit one). Done post-commit so a sync failure
+	// can't roll back the inbound edit.
+	if tag != oldInbound.Tag {
+		if routingChanged, syncErr := (&XraySettingService{}).PropagateInboundTagRename(tag, oldInbound.Tag); syncErr != nil {
+			logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
+		} else if routingChanged {
+			needRestart = true
+		}
 	}
 	if markDirty && oldInbound.NodeID != nil {
 		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
