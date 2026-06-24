@@ -205,6 +205,9 @@ func TestPanelSPAFallbackPredicate(t *testing.T) {
 		{name: "csrf descendant excluded", method: http.MethodGet, path: "/admin-random/panel/csrf-token/", accept: "text/html"},
 		{name: "file excluded", method: http.MethodGet, path: "/admin-random/panel/missing.css", accept: "text/html"},
 		{name: "outside panel excluded", method: http.MethodGet, path: "/admin-random/hosts", accept: "text/html"},
+		{name: "dotted email route param served", method: http.MethodGet, path: "/admin-random/panel/clients/user@example.com", accept: "text/html", want: true},
+		{name: "dotted version route param served", method: http.MethodGet, path: "/admin-random/panel/sub/1.2.3", accept: "text/html", want: true},
+		{name: "uppercase asset extension excluded", method: http.MethodGet, path: "/admin-random/panel/app.JS", accept: "text/html"},
 	}
 
 	for _, tc := range cases {

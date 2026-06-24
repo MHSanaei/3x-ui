@@ -108,10 +108,26 @@ func isPanelSPAFallbackRequest(c *gin.Context) bool {
 	if reqPath == panelPath+"/api" || strings.HasPrefix(reqPath, panelPath+"/api/") {
 		return false
 	}
-	if path.Ext(reqPath) != "" {
+	if isStaticAssetPath(reqPath) {
 		return false
 	}
 	return true
+}
+
+var staticAssetExts = map[string]struct{}{
+	".js": {}, ".mjs": {}, ".cjs": {}, ".css": {}, ".map": {}, ".json": {},
+	".png": {}, ".jpg": {}, ".jpeg": {}, ".gif": {}, ".svg": {}, ".ico": {},
+	".webp": {}, ".avif": {}, ".woff": {}, ".woff2": {}, ".ttf": {}, ".eot": {},
+	".otf": {}, ".wasm": {}, ".txt": {}, ".xml": {}, ".webmanifest": {},
+}
+
+func isStaticAssetPath(reqPath string) bool {
+	ext := strings.ToLower(path.Ext(reqPath))
+	if ext == "" {
+		return false
+	}
+	_, ok := staticAssetExts[ext]
+	return ok
 }
 
 func acceptsHTML(accept string) bool {
