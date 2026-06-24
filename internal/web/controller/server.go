@@ -69,6 +69,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/updatePanel", a.updatePanel)
+	g.POST("/setUpdateChannel", a.setUpdateChannel)
 	g.POST("/updateGeofile", a.updateGeofile)
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
@@ -211,6 +212,17 @@ func (a *ServerController) updatePanel(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), err)
 }
 
+// setUpdateChannel toggles whether self-update tracks the rolling dev release.
+func (a *ServerController) setUpdateChannel(c *gin.Context) {
+	dev, err := strconv.ParseBool(c.PostForm("dev"))
+	if err != nil {
+		jsonMsg(c, "invalid data", err)
+		return
+	}
+	err = a.settingService.SetDevChannelEnable(dev)
+	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
+}
+
 // updateGeofile updates the specified geo file for Xray.
 func (a *ServerController) updateGeofile(c *gin.Context) {
 	fileName := c.Param("fileName")
@@ -298,7 +310,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := a.serverService.BackupFilename()
+	filename := a.serverService.BackupFilename(c.Request.Host)
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return

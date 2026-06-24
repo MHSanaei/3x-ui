@@ -206,6 +206,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Hide server settings in happ subscription (Only for Happ)",
         "type": "boolean"
       },
+      "subIncyEnableRouting": {
+        "description": "Enable routing injection for the Incy client",
+        "type": "boolean"
+      },
+      "subIncyRoutingRules": {
+        "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+        "type": "string"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -431,6 +439,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subHideSettings",
+      "subIncyEnableRouting",
+      "subIncyRoutingRules",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -701,6 +711,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Hide server settings in happ subscription (Only for Happ)",
         "type": "boolean"
       },
+      "subIncyEnableRouting": {
+        "description": "Enable routing injection for the Incy client",
+        "type": "boolean"
+      },
+      "subIncyRoutingRules": {
+        "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+        "type": "string"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -933,6 +951,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subHideSettings",
+      "subIncyEnableRouting",
+      "subIncyRoutingRules",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",

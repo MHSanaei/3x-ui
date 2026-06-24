@@ -16,8 +16,10 @@ const PACKET_UP_FIELDS = [
 const STREAM_UP_SERVER_FIELDS = ['scStreamUpServerSecs'] as const;
 
 const PLACEMENT_STRING_FIELDS = [
-  'sessionPlacement',
-  'sessionKey',
+  'sessionIDPlacement',
+  'sessionIDKey',
+  'sessionIDTable',
+  'sessionIDLength',
   'seqPlacement',
   'seqKey',
   'uplinkDataPlacement',

@@ -8,11 +8,11 @@ import {
   Radio,
   Select,
   Space,
-  Switch,
   Tabs,
   message,
 } from 'antd';
 import { FinalMaskForm } from '@/lib/xray/forms/transport';
+import SniffingFields from '@/lib/xray/forms/SniffingFields';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
@@ -25,7 +25,6 @@ import {
   OutboundFormBaseSchema,
   type OutboundFormValues,
 } from '@/schemas/forms/outbound-form';
-import { SNIFFING_OPTION } from '@/schemas/primitives';
 import {
   canEnableReality,
   canEnableStream,
@@ -412,70 +411,12 @@ export default function OutboundFormModal({
                         {() => {
                           const reverseTag = form.getFieldValue(['settings', 'reverseTag']);
                           if (!reverseTag) return null;
-                          const sniff = (form.getFieldValue(['settings', 'reverseSniffing']) ?? {}) as {
-                            enabled?: boolean;
-                          };
                           return (
-                            <>
-                              <Form.Item
-                                label={t('pages.xray.outboundForm.reverseSniffing')}
-                                name={['settings', 'reverseSniffing', 'enabled']}
-                                valuePropName="checked"
-                              >
-                                <Switch />
-                              </Form.Item>
-                              {sniff.enabled && (
-                                <>
-                                  <Form.Item
-                                    wrapperCol={{ md: { span: 14, offset: 8 } }}
-                                    name={['settings', 'reverseSniffing', 'destOverride']}
-                                  >
-                                    <Select
-                                      mode="multiple"
-                                      className="sniffing-options"
-                                      options={Object.entries(SNIFFING_OPTION).map(([k, v]) => ({
-                                        value: v,
-                                        label: k,
-                                      }))}
-                                    />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.sniffingMetadataOnly')}
-                                    name={['settings', 'reverseSniffing', 'metadataOnly']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.sniffingRouteOnly')}
-                                    name={['settings', 'reverseSniffing', 'routeOnly']}
-                                    valuePropName="checked"
-                                  >
-                                    <Switch />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.sniffingIpsExcluded')}
-                                    name={['settings', 'reverseSniffing', 'ipsExcluded']}
-                                  >
-                                    <Select
-                                      mode="tags"
-                                      tokenSeparators={[',']}
-                                      placeholder="IP/CIDR/geoip:*"
-                                    />
-                                  </Form.Item>
-                                  <Form.Item
-                                    label={t('pages.inbounds.sniffingDomainsExcluded')}
-                                    name={['settings', 'reverseSniffing', 'domainsExcluded']}
-                                  >
-                                    <Select
-                                      mode="tags"
-                                      tokenSeparators={[',']}
-                                      placeholder="domain:*"
-                                    />
-                                  </Form.Item>
-                                </>
-                              )}
-                            </>
+                            <SniffingFields
+                              name={['settings', 'reverseSniffing']}
+                              form={form}
+                              enableLabel={t('pages.xray.outboundForm.reverseSniffing')}
+                            />
                           );
                         }}
                       </Form.Item>

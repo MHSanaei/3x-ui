@@ -685,16 +685,18 @@ export default function ClientsPage() {
     }
     const updateMsg = await update(meta.email, payload);
     if (!updateMsg?.success) return updateMsg;
+    const rawEmail = (payload as { email?: unknown }).email;
+    const emailKey = typeof rawEmail === 'string' && rawEmail.trim() ? rawEmail.trim() : meta.email;
     if (Array.isArray(meta.attach) && meta.attach.length > 0) {
-      const r = await attach(meta.email, meta.attach);
+      const r = await attach(emailKey, meta.attach);
       if (!r?.success) return r;
     }
     if (Array.isArray(meta.detach) && meta.detach.length > 0) {
-      const r = await detach(meta.email, meta.detach);
+      const r = await detach(emailKey, meta.detach);
       if (!r?.success) return r;
     }
     // Always replace the client's external links (an empty set clears them).
-    const r = await setExternalLinks(meta.email, meta.externalLinks);
+    const r = await setExternalLinks(emailKey, meta.externalLinks);
     if (!r?.success) return r;
     return updateMsg;
   }, [create, update, attach, detach, setExternalLinks]);
@@ -1418,8 +1420,8 @@ export default function ClientsPage() {
             open={bulkAdjustOpen}
             count={selectedRowKeys.length}
             onOpenChange={setBulkAdjustOpen}
-            onSubmit={async (addDays, addBytes) => {
-              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes);
+            onSubmit={async (addDays, addBytes, flow) => {
+              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes, flow);
               if (msg?.success) {
                 setSelectedRowKeys([]);
                 return msg.obj ?? { adjusted: 0 };

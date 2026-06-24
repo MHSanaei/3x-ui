@@ -34,8 +34,8 @@ func ensureFileExists(path string) error {
 
 // Here Run is an interface method of the Job interface
 func (j *ClearLogsJob) Run() {
-	logFiles := []string{xray.GetIPLimitLogPath(), xray.GetIPLimitBannedLogPath(), xray.GetAccessPersistentLogPath()}
-	logFilesPrev := []string{xray.GetIPLimitBannedPrevLogPath(), xray.GetAccessPersistentPrevLogPath()}
+	logFiles := []string{xray.GetIPLimitLogPath(), xray.GetIPLimitBannedLogPath()}
+	logFilesPrev := []string{xray.GetIPLimitBannedPrevLogPath()}
 
 	// Ensure all log files and their paths exist
 	for _, path := range append(logFiles, logFilesPrev...) {
@@ -74,5 +74,21 @@ func (j *ClearLogsJob) Run() {
 		if err != nil {
 			logger.Warning("Failed to truncate log file:", logFiles[i], "-", err)
 		}
+	}
+
+	wipeAccessLog()
+}
+
+// wipeAccessLog truncates the user-configured Xray access log so it can't grow
+// unbounded. The IP-limit job no longer reads or rotates it, so this daily wipe
+// is the only thing that caps it. A disabled ("none") or unset access log is
+// left alone, and a missing file is fine — there's nothing to wipe.
+func wipeAccessLog() {
+	accessLogPath, err := xray.GetAccessLogPath()
+	if err != nil || accessLogPath == "none" || accessLogPath == "" {
+		return
+	}
+	if err := os.Truncate(accessLogPath, 0); err != nil && !os.IsNotExist(err) {
+		logger.Warning("Failed to truncate access log:", accessLogPath, "-", err)
 	}
 }

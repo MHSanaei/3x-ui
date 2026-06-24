@@ -118,6 +118,7 @@ exports[`inbound transport forms > XhttpForm field structure is stable 1`] = `
   "Uplink HTTP Method",
   "Padding Obfs Mode",
   "Session Placement",
+  "Session ID Table",
   "Sequence Placement",
   "No SSE Header",
   "XMUX",

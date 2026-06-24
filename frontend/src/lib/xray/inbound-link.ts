@@ -64,8 +64,10 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
 
   const stringFields = [
     'uplinkHTTPMethod',
-    'sessionPlacement',
-    'sessionKey',
+    'sessionIDPlacement',
+    'sessionIDKey',
+    'sessionIDTable',
+    'sessionIDLength',
     'seqPlacement',
     'seqKey',
     'uplinkDataPlacement',

@@ -747,7 +747,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			url.QueryEscape(inboundPassword),
 			url.QueryEscape(clients[clientIndex].Password))
 	} else {
-		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, clients[clientIndex].Password))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -1634,31 +1634,25 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 // genRemark builds the remark for a non-host link (raw default / legacy
-// externalProxy / synthetic JSON-Clash entry). In the subscription body a set
-// remark template takes over; otherwise (and in every display context) the
-// remark is just the config name (inbound remark, then extra).
+// externalProxy / synthetic JSON-Clash entry). A set remark template drives it
+// in both the body and display contexts (genTemplatedRemark renders the
+// name-only part on displays); with no template it falls back to the inbound
+// remark, extra and email joined by "-".
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
-	if s.remarkTemplate != "" && s.subscriptionBody {
+	if s.remarkTemplate != "" {
 		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
-	// Sub info page + panel link/QR displays: just the config name (no template,
-	// so no per-client email/usage leaks into the shown remark).
-	return fallbackRemark(inbound.Remark, extra)
+	return fallbackRemark(inbound.Remark, extra, email)
 }
 
-// fallbackRemark is the minimal remark used only when no template is configured
-// (an operator explicitly cleared it): the inbound remark and the host/extra
-// remark joined by "-", skipping empties. The configurable remark model was
-// removed in favour of the template, whose default already includes the email.
-func fallbackRemark(inboundRemark, extra string) string {
-	switch {
-	case inboundRemark == "":
-		return extra
-	case extra == "":
-		return inboundRemark
-	default:
-		return inboundRemark + "-" + extra
+func fallbackRemark(parts ...string) string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
 	}
+	return strings.Join(out, "-")
 }
 
 // findClientStats returns the inbound's traffic record for email, if present.
@@ -1731,7 +1725,7 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 
 	stringFields := []string{
 		"uplinkHTTPMethod",
-		"sessionPlacement", "sessionKey",
+		"sessionIDPlacement", "sessionIDKey", "sessionIDTable", "sessionIDLength",
 		"seqPlacement", "seqKey",
 		"uplinkDataPlacement", "uplinkDataKey",
 		"scMaxEachPostBytes", "scMinPostsIntervalMs",
@@ -1747,6 +1741,20 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 	for _, field := range stringFields {
 		if v, ok := xhttp[field].(string); ok && len(v) > 0 && v != coreDefaults[field] {
 			extra[field] = v
+		}
+	}
+
+	// Legacy inbounds (pre xray-core #6258) stored sessionPlacement/sessionKey.
+	// Lift them onto the renamed keys so links from not-yet-resaved configs
+	// still carry the session settings. Mirrors the frontend migration.
+	for legacy, renamed := range map[string]string{
+		"sessionPlacement": "sessionIDPlacement",
+		"sessionKey":       "sessionIDKey",
+	} {
+		if _, exists := extra[renamed]; !exists {
+			if v, ok := xhttp[legacy].(string); ok && len(v) > 0 {
+				extra[renamed] = v
+			}
 		}
 	}
 
@@ -2329,6 +2337,19 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		datepicker = "gregorian"
 	}
 
+	pageLinks := make([]string, 0, len(subs))
+	pageEmails := make([]string, 0, len(subs))
+	for i, sub := range subs {
+		email := ""
+		if i < len(emails) {
+			email = emails[i]
+		}
+		for _, link := range splitLinkLines(sub) {
+			pageLinks = append(pageLinks, link)
+			pageEmails = append(pageEmails, email)
+		}
+	}
+
 	return PageData{
 		Host:          hostHeader,
 		BasePath:      basePath,
@@ -2350,8 +2371,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubClashUrl:   subClashURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
-		Result:        subs,
-		Emails:        emails,
+		Result:        pageLinks,
+		Emails:        pageEmails,
 	}
 }
 

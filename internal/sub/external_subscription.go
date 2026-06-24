@@ -78,14 +78,20 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, errBadStatus
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, subscriptionMaxBytes))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, subscriptionMaxBytes+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > subscriptionMaxBytes {
+		return nil, errSubscriptionBodyTooLarge
 	}
 	return decodeSubscriptionBody(body), nil
 }
 
-var errBadStatus = &subError{"non-2xx subscription response"}
+var (
+	errBadStatus                = &subError{"non-2xx subscription response"}
+	errSubscriptionBodyTooLarge = &subError{"subscription response body exceeds size limit"}
+)
 
 type subError struct{ msg string }
 

@@ -80,3 +80,31 @@ Authentication: X25519, not Post-Quantum
 		t.Fatalf("encryption = %q, want client", auths[0]["encryption"])
 	}
 }
+
+func TestDeriveVlessEncModes(t *testing.T) {
+	base := []map[string]string{
+		{
+			"id":         "x25519",
+			"label":      "X25519, not Post-Quantum",
+			"decryption": "mlkem768x25519plus.native.600s.server-key",
+			"encryption": "mlkem768x25519plus.native.0rtt.client-key",
+		},
+	}
+
+	derived := deriveVlessEncModes(base)
+	if len(derived) != 2 {
+		t.Fatalf("expected 2 derived blocks, got %d", len(derived))
+	}
+	if derived[0]["id"] != "x25519_xorpub" {
+		t.Errorf("id = %q, want x25519_xorpub", derived[0]["id"])
+	}
+	if derived[0]["decryption"] != "mlkem768x25519plus.xorpub.600s.server-key" {
+		t.Errorf("decryption = %q", derived[0]["decryption"])
+	}
+	if derived[0]["encryption"] != "mlkem768x25519plus.xorpub.0rtt.client-key" {
+		t.Errorf("encryption = %q", derived[0]["encryption"])
+	}
+	if derived[1]["id"] != "x25519_random" {
+		t.Errorf("id = %q, want x25519_random", derived[1]["id"])
+	}
+}

@@ -2,6 +2,8 @@ package controller
 
 import (
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
@@ -55,6 +57,85 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 // mounts the matching page on the client.
 func (a *XUIController) panelSPA(c *gin.Context) {
 	serveDistPage(c, "index.html")
+}
+
+// HandleNoRoutePanelSPA serves the React shell for client-side routes that were
+// not explicitly registered in Gin. It intentionally runs from engine.NoRoute
+// instead of a /panel/*path wildcard so explicit JSON/API routes keep their
+// normal routing semantics.
+func (a *XUIController) HandleNoRoutePanelSPA(c *gin.Context) bool {
+	if !isPanelSPAFallbackRequest(c) {
+		return false
+	}
+
+	if !session.IsLogin(c) {
+		if isAjax(c) {
+			pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+		} else {
+			c.Header("Cache-Control", "no-store")
+			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+		}
+		c.Abort()
+		return true
+	}
+
+	a.panelSPA(c)
+	return true
+}
+
+func isPanelSPAFallbackRequest(c *gin.Context) bool {
+	if c.Request.Method != http.MethodGet {
+		return false
+	}
+	if !acceptsHTML(c.GetHeader("Accept")) {
+		return false
+	}
+
+	basePath := c.GetString("base_path")
+	if basePath == "" {
+		basePath = "/"
+	}
+	panelPath := strings.TrimRight(basePath, "/") + "/panel"
+
+	reqPath := c.Request.URL.Path
+	if reqPath != panelPath && !strings.HasPrefix(reqPath, panelPath+"/") {
+		return false
+	}
+
+	if reqPath == panelPath+"/csrf-token" || strings.HasPrefix(reqPath, panelPath+"/csrf-token/") {
+		return false
+	}
+	if reqPath == panelPath+"/api" || strings.HasPrefix(reqPath, panelPath+"/api/") {
+		return false
+	}
+	if isStaticAssetPath(reqPath) {
+		return false
+	}
+	return true
+}
+
+var staticAssetExts = map[string]struct{}{
+	".js": {}, ".mjs": {}, ".cjs": {}, ".css": {}, ".map": {}, ".json": {},
+	".png": {}, ".jpg": {}, ".jpeg": {}, ".gif": {}, ".svg": {}, ".ico": {},
+	".webp": {}, ".avif": {}, ".woff": {}, ".woff2": {}, ".ttf": {}, ".eot": {},
+	".otf": {}, ".wasm": {}, ".txt": {}, ".xml": {}, ".webmanifest": {},
+}
+
+func isStaticAssetPath(reqPath string) bool {
+	ext := strings.ToLower(path.Ext(reqPath))
+	if ext == "" {
+		return false
+	}
+	_, ok := staticAssetExts[ext]
+	return ok
+}
+
+func acceptsHTML(accept string) bool {
+	if accept == "" {
+		return true
+	}
+	accept = strings.ToLower(accept)
+	return strings.Contains(accept, "text/html") || strings.Contains(accept, "*/*")
 }
 
 // csrfToken returns the session CSRF token to authenticated SPA clients.

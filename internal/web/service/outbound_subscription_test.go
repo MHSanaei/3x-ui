@@ -1,11 +1,37 @@
 package service
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 )
+
+func TestReadBoundedOutboundSubscriptionBody(t *testing.T) {
+	t.Run("accepts body at the limit", func(t *testing.T) {
+		want := bytes.Repeat([]byte("a"), int(maxOutboundSubscriptionBytes))
+		got, err := readBoundedOutboundSubscriptionBody(bytes.NewReader(want))
+		if err != nil {
+			t.Fatalf("readBoundedOutboundSubscriptionBody: %v", err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("body mismatch: got %d bytes, want %d", len(got), len(want))
+		}
+	})
+
+	t.Run("rejects body over the limit", func(t *testing.T) {
+		body := bytes.Repeat([]byte("b"), int(maxOutboundSubscriptionBytes)+1)
+		got, err := readBoundedOutboundSubscriptionBody(bytes.NewReader(body))
+		if !errors.Is(err, errOutboundSubscriptionBodyTooLarge) {
+			t.Fatalf("error = %v, want errOutboundSubscriptionBodyTooLarge", err)
+		}
+		if got != nil {
+			t.Fatalf("oversized body returned %d bytes, want nil", len(got))
+		}
+	})
+}
 
 func TestDefaultPrefixNumber(t *testing.T) {
 	mk := func(id int, prefix string) *model.OutboundSubscription {
