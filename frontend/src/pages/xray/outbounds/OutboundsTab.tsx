@@ -75,6 +75,7 @@ interface OutboundsTabProps {
   testingAll: boolean;
   inboundTags: string[];
   subscriptionOutbounds?: unknown[];
+  subscriptionOutboundTags?: string[];
   isMobile: boolean;
   onResetTraffic: (tag: string) => void;
   onTest: (index: number, mode: string) => void;
@@ -94,6 +95,7 @@ export default function OutboundsTab({
   testingAll,
   inboundTags: _inboundTags,
   subscriptionOutbounds,
+  subscriptionOutboundTags,
   isMobile,
   onResetTraffic,
   onTest,
@@ -139,6 +141,19 @@ export default function OutboundsTab({
   );
 
   const rows = useMemo(() => outbounds.map((o, i) => ({ ...o, key: i })), [outbounds]);
+
+  const dialerProxyTags = useMemo(() => {
+    const tags = new Set<string>();
+    (templateSettings?.outbounds || []).forEach((o, i) => {
+      if (i === editingIndex) return;
+      if (o?.protocol === 'blackhole') return;
+      if (o?.tag) tags.add(o.tag);
+    });
+    for (const tag of subscriptionOutboundTags || []) {
+      if (tag) tags.add(tag);
+    }
+    return [...tags];
+  }, [templateSettings?.outbounds, editingIndex, subscriptionOutboundTags]);
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -521,6 +536,7 @@ export default function OutboundsTab({
           open={modalOpen}
           outbound={editingOutbound}
           existingTags={existingTags}
+          dialerProxyTags={dialerProxyTags}
           onClose={() => setModalOpen(false)}
           onConfirm={onConfirm}
         />

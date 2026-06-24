@@ -221,6 +221,7 @@ export default function XrayPage() {
             testingAll={testingAll}
             inboundTags={inboundTags}
             subscriptionOutbounds={subscriptionOutbounds}
+            subscriptionOutboundTags={subscriptionOutboundTags}
             isMobile={isMobile}
             onResetTraffic={resetOutboundsTraffic}
             onTest={onTestOutbound}

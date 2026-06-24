@@ -83,6 +83,7 @@ interface OutboundFormModalProps {
   open: boolean;
   outbound: Record<string, unknown> | null;
   existingTags: string[];
+  dialerProxyTags?: string[];
   onClose: () => void;
   onConfirm: (outbound: Record<string, unknown>) => void;
 }
@@ -92,6 +93,7 @@ export default function OutboundFormModal({
   open,
   outbound: outboundProp,
   existingTags,
+  dialerProxyTags,
   onClose,
   onConfirm,
 }: OutboundFormModalProps) {
@@ -514,7 +516,7 @@ export default function OutboundFormModal({
                     {security === 'reality' && realityAllowed && <RealityForm />}
 
                     {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
-                      <SockoptForm form={form} outboundTags={existingTags} />
+                      <SockoptForm form={form} outboundTags={dialerProxyTags ?? existingTags} />
                     )}
 
                     <FinalMaskForm
