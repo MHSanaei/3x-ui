@@ -60,13 +60,34 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 		WHERE g.email = client_traffics.email AND g.up + g.down >= client_traffics.total
 	)))`
 
+// depletedClientsCondLocal is depletedClientsCond without the cross-panel
+// client_global_traffics check. The EXISTS branch is a correlated subquery that
+// turns every traffic poll into a full client_traffics scan; on a panel no
+// master pushes to (the common case) client_global_traffics is empty, so the
+// branch can never match and is pure CPU cost (#5392).
+const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
+	OR (expiry_time > 0 AND expiry_time <= ?))`
+
+// depletedCond returns the local-only predicate unless this panel actually
+// holds global-traffic rows, in which case the cross-panel EXISTS check is
+// needed to enforce combined quota. Both variants take the same single
+// expiry_time placeholder, so callers pass identical args either way.
+func depletedCond(tx *gorm.DB) string {
+	var probe int64
+	if err := tx.Model(&model.ClientGlobalTraffic{}).Limit(1).Count(&probe).Error; err == nil && probe > 0 {
+		return depletedClientsCond
+	}
+	return depletedClientsCondLocal
+}
+
 func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int, error) {
 	now := time.Now().Unix() * 1000
 	needRestart := false
+	cond := depletedCond(tx)
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
-		Where(depletedClientsCond+" AND enable = ?", now, true).
+		Where(cond+" AND enable = ?", now, true).
 		Find(&depletedRows).Error
 	if err != nil {
 		return false, 0, nil, err
@@ -142,7 +163,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	}
 
 	result := tx.Model(xray.ClientTraffic{}).
-		Where(depletedClientsCond+" AND enable = ?", now, true).
+		Where(cond+" AND enable = ?", now, true).
 		Update("enable", false)
 	err = result.Error
 	count := result.RowsAffected

@@ -53,6 +53,7 @@ export const AllSettingSchema = z.object({
   smtpEnabledEvents: z.string(),
   smtpEncryptionType: z.string(),
   smtpHost: z.string(),
+  smtpMemory: z.number().int().min(0).max(100),
   smtpPassword: z.string(),
   smtpPort: z.number().int().min(1).max(65535),
   smtpTo: z.string(),
@@ -95,6 +96,7 @@ export const AllSettingSchema = z.object({
   tgCpu: z.number().int().min(0).max(100),
   tgEnabledEvents: z.string(),
   tgLang: z.string(),
+  tgMemory: z.number().int().min(0).max(100),
   tgRunTime: z.string(),
   timeLocation: z.string(),
   trafficDiff: z.number().int().min(0).max(100),
@@ -153,6 +155,7 @@ export const AllSettingViewSchema = z.object({
   smtpEnabledEvents: z.string(),
   smtpEncryptionType: z.string(),
   smtpHost: z.string(),
+  smtpMemory: z.number().int().min(0).max(100),
   smtpPassword: z.string(),
   smtpPort: z.number().int().min(1).max(65535),
   smtpTo: z.string(),
@@ -195,6 +198,7 @@ export const AllSettingViewSchema = z.object({
   tgCpu: z.number().int().min(0).max(100),
   tgEnabledEvents: z.string(),
   tgLang: z.string(),
+  tgMemory: z.number().int().min(0).max(100),
   tgRunTime: z.string(),
   timeLocation: z.string(),
   trafficDiff: z.number().int().min(0).max(100),
@@ -348,7 +352,7 @@ export const HostSchema = z.object({
   sortOrder: z.number().int(),
   tags: z.array(z.string()),
   updatedAt: z.number().int(),
-  verifyPeerCertByName: z.boolean(),
+  verifyPeerCertByName: z.string(),
   vlessRoute: z.string(),
 });
 export type Host = z.infer<typeof HostSchema>;
@@ -421,6 +425,7 @@ export const MsgSchema = z.object({
 export type Msg = z.infer<typeof MsgSchema>;
 
 export const NodeSchema = z.object({
+  activeCount: z.number().int(),
   address: z.string(),
   allowPrivateAddress: z.boolean(),
   apiToken: z.string(),
@@ -431,6 +436,7 @@ export const NodeSchema = z.object({
   cpuPct: z.number(),
   createdAt: z.number().int(),
   depletedCount: z.number().int(),
+  disabledCount: z.number().int(),
   enable: z.boolean(),
   guid: z.string(),
   id: z.number().int(),

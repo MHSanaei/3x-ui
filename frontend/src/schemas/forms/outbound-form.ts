@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PortSchema } from '@/schemas/primitives';
+import { PortSchema, SniffingSchema, type Sniffing } from '@/schemas/primitives';
 import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 import { VmessSecuritySchema } from '@/schemas/protocols/shared/vmess';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
@@ -15,28 +15,6 @@ import {
   WireguardDomainStrategySchema,
 } from '@/schemas/protocols/outbound';
 
-// OutboundFormValues = the shape Form.useForm<T>() carries inside
-// OutboundFormModal. Differences from schemas/api wire schemas:
-//
-//   - vmess vnext / trojan-ss-socks-http servers are FLATTENED into
-//     {address, port, ...auth} at settings root. The adapter handles
-//     nesting on submit.
-//   - wireguard `address` (string[] wire) and `reserved` (number[] wire)
-//     are comma-joined STRINGS in the form. The adapter splits + coerces.
-//   - wireguard `pubKey` is a UI-only field derived from `secretKey`. Not
-//     emitted on the wire — the adapter strips it.
-//   - VLESS `reverseTag` and `reverseSniffing` are flat at settings root;
-//     the adapter wraps them as { reverse: { tag, sniffing } } on the wire.
-//   - blackhole `type` ('' | 'none' | 'http') is flat; the adapter wraps it
-//     as { response: { type } } on the wire (omitted when empty).
-//   - DNS rules carry `qType` and `domain` as comma-joined strings (matches
-//     the legacy DNSRule UI). The adapter normalizes them on submit.
-//
-// All flat-form settings types are documented inline so the adapter has a
-// single source of truth for the shape it converts between.
-
-// VMess outbound: connect target (address+port) + first user (id+security).
-// Wire: { vnext: [{ address, port, users: [{ id, security }] }] }.
 export const VmessOutboundFormSettingsSchema = z.object({
   address: z.string().default(''),
   port: PortSchema.default(443),
@@ -45,20 +23,18 @@ export const VmessOutboundFormSettingsSchema = z.object({
 });
 export type VmessOutboundFormSettings = z.infer<typeof VmessOutboundFormSettingsSchema>;
 
-// Reverse-sniffing is only emitted when reverseTag is non-empty. Defaults
-// match legacy ReverseSniffing constructor.
-export const ReverseSniffingFormSchema = z.object({
-  enabled: z.boolean().default(false),
-  destOverride: z.array(z.string()).default(['http', 'tls', 'quic', 'fakedns']),
-  metadataOnly: z.boolean().default(false),
-  routeOnly: z.boolean().default(false),
-  ipsExcluded: z.array(z.string()).default([]),
-  domainsExcluded: z.array(z.string()).default([]),
-});
-export type ReverseSniffingForm = z.infer<typeof ReverseSniffingFormSchema>;
+// Reverse sniffing (VLESS) and loopback sniffing share the canonical
+// SniffingSchema — the same definition the inbound Sniffing tab uses — so
+// there is one source of truth for an xray SniffingConfig across the panel.
+const DEFAULT_SNIFFING: Sniffing = {
+  enabled: false,
+  destOverride: ['http', 'tls', 'quic', 'fakedns'],
+  metadataOnly: false,
+  routeOnly: false,
+  ipsExcluded: [],
+  domainsExcluded: [],
+};
 
-// VLESS outbound: flat connect target + auth + Vision-specific knobs +
-// reverse-sniffing slice. testpre/testseed live behind canEnableVisionSeed.
 export const VlessOutboundFormSettingsSchema = z.object({
   address: z.string().default(''),
   port: PortSchema.default(443),
@@ -66,14 +42,7 @@ export const VlessOutboundFormSettingsSchema = z.object({
   flow: z.string().default(''),
   encryption: z.string().min(1).default('none'),
   reverseTag: z.string().default(''),
-  reverseSniffing: ReverseSniffingFormSchema.default({
-    enabled: false,
-    destOverride: ['http', 'tls', 'quic', 'fakedns'],
-    metadataOnly: false,
-    routeOnly: false,
-    ipsExcluded: [],
-    domainsExcluded: [],
-  }),
+  reverseSniffing: SniffingSchema.default(DEFAULT_SNIFFING),
   testpre: z.number().int().min(0).default(0),
   testseed: z.array(z.number().int().positive()).default([]),
 });
@@ -134,7 +103,6 @@ export const WireguardOutboundFormSettingsSchema = z.object({
   secretKey: z.string().default(''),
   pubKey: z.string().default(''),
   address: z.string().default(''),
-  workers: z.number().int().min(0).default(2),
   domainStrategy: z.union([WireguardDomainStrategySchema, z.literal('')]).default(''),
   reserved: z.string().default(''),
   peers: z.array(WireguardOutboundFormPeerSchema).default([]),
@@ -205,26 +173,29 @@ export const DnsOutboundFormSettingsSchema = z.object({
 });
 export type DnsOutboundFormSettings = z.infer<typeof DnsOutboundFormSettingsSchema>;
 
+// Loopback reinjects into a named inbound; `sniffing` (same flat shape as
+// VLESS reverse-sniffing) is only emitted when enabled — see the adapter.
 export const LoopbackOutboundFormSettingsSchema = z.object({
   inboundTag: z.string().default(''),
+  sniffing: SniffingSchema.default(DEFAULT_SNIFFING),
 });
 export type LoopbackOutboundFormSettings = z.infer<typeof LoopbackOutboundFormSettingsSchema>;
 
 // Discriminated union on `protocol`. Same tagged-wrapper pattern as the
 // inbound side: each branch is { protocol: literal, settings: <flat> }.
 export const OutboundFormSettingsSchema = z.discriminatedUnion('protocol', [
-  z.object({ protocol: z.literal('vmess'),       settings: VmessOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('vless'),       settings: VlessOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('trojan'),      settings: TrojanOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('vmess'), settings: VmessOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('vless'), settings: VlessOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('trojan'), settings: TrojanOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('socks'),       settings: SocksOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('http'),        settings: HttpOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('wireguard'),   settings: WireguardOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('hysteria'),    settings: HysteriaOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('freedom'),     settings: FreedomOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('blackhole'),   settings: BlackholeOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('dns'),         settings: DnsOutboundFormSettingsSchema }),
-  z.object({ protocol: z.literal('loopback'),    settings: LoopbackOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('socks'), settings: SocksOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('http'), settings: HttpOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('wireguard'), settings: WireguardOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('hysteria'), settings: HysteriaOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('freedom'), settings: FreedomOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('blackhole'), settings: BlackholeOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('dns'), settings: DnsOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('loopback'), settings: LoopbackOutboundFormSettingsSchema }),
 ]);
 export type OutboundFormSettings = z.infer<typeof OutboundFormSettingsSchema>;
 

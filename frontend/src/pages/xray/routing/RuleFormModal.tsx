@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, Modal, Select, Space, Tooltip } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Switch, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { InputAddon } from '@/components/ui';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
@@ -156,14 +156,10 @@ export default function RuleFormModal({
     >
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
         <Form.Item label={t('enable')}>
-          <Select
-            value={form.enabled}
-            onChange={(v) => update('enabled', v)}
+          <Switch
+            checked={form.enabled}
+            onChange={(checked) => update('enabled', checked)}
             disabled={isApiRule(rule ?? {})}
-            options={[
-              { value: true, label: t('enable') },
-              { value: false, label: t('disable') },
-            ]}
           />
         </Form.Item>
 

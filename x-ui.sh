@@ -2166,7 +2166,15 @@ iplimit_main() {
     esac
 }
 
-install_iplimit() {
+setup_fail2ban_iplimit() {
+    # Honor the same toggle the panel uses (isFail2BanEnabled): enabled when the
+    # var is unset or exactly "true"; any other explicit value means the operator
+    # opted out, so do nothing rather than install a fail2ban the panel ignores.
+    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
+        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban setup.${plain}\n"
+        return 0
+    fi
+
     if ! command -v fail2ban-client &> /dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
 
@@ -2216,13 +2224,13 @@ install_iplimit() {
                 ;;
             *)
                 echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-                exit 1
+                return 1
                 ;;
         esac
 
         if ! command -v fail2ban-client &> /dev/null; then
             echo -e "${red}Fail2ban installation failed.${plain}\n"
-            exit 1
+            return 1
         fi
 
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
@@ -2267,6 +2275,14 @@ install_iplimit() {
     fi
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
+    return 0
+}
+
+# install_iplimit is the interactive (menu) entry point: it runs the shared
+# setup and then returns to the menu. The non-interactive installer path uses
+# setup_fail2ban_iplimit directly via `x-ui setup-fail2ban`.
+install_iplimit() {
+    setup_fail2ban_iplimit
     before_show_menu
 }
 
@@ -3262,6 +3278,9 @@ if [[ $# > 0 ]]; then
             ;;
         "banlog")
             check_install 0 && show_banlog 0
+            ;;
+        "setup-fail2ban")
+            setup_fail2ban_iplimit
             ;;
         "update")
             check_install 0 && update 0

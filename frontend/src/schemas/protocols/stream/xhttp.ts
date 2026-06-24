@@ -25,7 +25,34 @@ export const XHttpXmuxSchema = z.object({
 });
 export type XHttpXmux = z.infer<typeof XHttpXmuxSchema>;
 
-export const XHttpStreamSettingsSchema = z.object({
+// Predefined sessionIDTable names xray-core accepts as a shorthand for a
+// charset (splithttp.PredefinedTable, xray-core #6258). A literal ASCII
+// charset string is also accepted.
+export const XHTTP_SESSION_ID_TABLES = [
+  'ALPHABET', 'Alphabet', 'BASE36', 'Base62', 'HEX',
+  'alphabet', 'base36', 'hex', 'number',
+] as const;
+
+// xray-core #6258 renamed sessionPlacement/sessionKey to
+// sessionIDPlacement/sessionIDKey (no fallback kept in core) and added
+// sessionIDTable/sessionIDLength. Lift any legacy keys persisted by an older
+// panel onto the new names so a saved inbound/outbound never silently loses
+// its session setting, then drop the legacy keys so we never emit both.
+function migrateLegacyXhttp(v: unknown): unknown {
+  if (v == null || typeof v !== 'object' || Array.isArray(v)) return v;
+  const o = { ...(v as Record<string, unknown>) };
+  if (o.sessionIDPlacement === undefined && o.sessionPlacement !== undefined) {
+    o.sessionIDPlacement = o.sessionPlacement;
+  }
+  if (o.sessionIDKey === undefined && o.sessionKey !== undefined) {
+    o.sessionIDKey = o.sessionKey;
+  }
+  delete o.sessionPlacement;
+  delete o.sessionKey;
+  return o;
+}
+
+export const XHttpStreamSettingsSchema = z.preprocess(migrateLegacyXhttp, z.object({
   path: z.string().default('/'),
   host: z.string().default(''),
   mode: XHttpModeSchema.default('auto'),
@@ -35,8 +62,13 @@ export const XHttpStreamSettingsSchema = z.object({
   xPaddingHeader: z.string().default(''),
   xPaddingPlacement: z.string().default(''),
   xPaddingMethod: z.string().default(''),
-  sessionPlacement: z.string().default(''),
-  sessionKey: z.string().default(''),
+  sessionIDPlacement: z.string().default(''),
+  sessionIDKey: z.string().default(''),
+  // sessionIDTable: a predefined name (XHTTP_SESSION_ID_TABLES) or a literal
+  // ASCII charset. sessionIDLength: dash-range string (e.g. '8-16'); only
+  // honored when a table is set. xray-core enforces the room-size minimum.
+  sessionIDTable: z.string().default(''),
+  sessionIDLength: z.string().default(''),
   seqPlacement: z.string().default(''),
   seqKey: z.string().default(''),
   uplinkDataPlacement: z.string().default(''),
@@ -65,5 +97,5 @@ export const XHttpStreamSettingsSchema = z.object({
   // Never present on the wire — outbound modal strips it via the
   // form-to-wire adapter.
   enableXmux: z.boolean().default(false),
-});
+}));
 export type XHttpStreamSettings = z.infer<typeof XHttpStreamSettingsSchema>;

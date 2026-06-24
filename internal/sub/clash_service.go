@@ -404,8 +404,10 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 	stringFields := []xhttpStringField{
 		{"xPaddingBytes", "x-padding-bytes", ""},
 		{"uplinkHTTPMethod", "uplink-http-method", ""},
-		{"sessionPlacement", "session-placement", ""},
-		{"sessionKey", "session-key", ""},
+		{"sessionIDPlacement", "session-id-placement", ""},
+		{"sessionIDKey", "session-id-key", ""},
+		{"sessionIDTable", "session-id-table", ""},
+		{"sessionIDLength", "session-id-length", ""},
 		{"seqPlacement", "seq-placement", ""},
 		{"seqKey", "seq-key", ""},
 		{"uplinkDataPlacement", "uplink-data-placement", ""},
@@ -416,6 +418,21 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 
 	for _, f := range stringFields {
 		if v, ok := xhttp[f.src].(string); ok && v != "" && (f.skipValue == "" || v != f.skipValue) {
+			opts[f.dst] = v
+		}
+	}
+
+	// Legacy inbounds (pre xray-core #6258) stored sessionPlacement/sessionKey.
+	// Fall back to them so not-yet-resaved configs still map. Mirrors the
+	// frontend migration.
+	for _, f := range []xhttpStringField{
+		{"sessionPlacement", "session-id-placement", ""},
+		{"sessionKey", "session-id-key", ""},
+	} {
+		if _, exists := opts[f.dst]; exists {
+			continue
+		}
+		if v, ok := xhttp[f.src].(string); ok && v != "" {
 			opts[f.dst] = v
 		}
 	}

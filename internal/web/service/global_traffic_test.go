@@ -64,6 +64,32 @@ func TestAcceptGlobalTraffic_OverwriteAndMultiMaster(t *testing.T) {
 	}
 }
 
+func TestDepletedCond_ProbeGuard(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+
+	// No global rows: the cross-panel EXISTS branch is skipped (#5392), but a
+	// client over its local quota is still disabled.
+	if got := depletedCond(db); got != depletedClientsCondLocal {
+		t.Fatalf("empty globals must use the local-only predicate")
+	}
+	seedClientRow(t, "local-cap", 1, 600, 600, 1000)
+	if _, count, _, err := svc.disableInvalidClients(db); err != nil {
+		t.Fatalf("disableInvalidClients: %v", err)
+	} else if count != 1 {
+		t.Fatalf("local over-quota client must be disabled, disabled %d", count)
+	}
+
+	// Once a master pushes a global row, the full predicate is used so combined
+	// quota is enforced.
+	if err := svc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: "local-cap", Up: 1, Down: 1}}); err != nil {
+		t.Fatalf("AcceptGlobalTraffic: %v", err)
+	}
+	if got := depletedCond(db); got != depletedClientsCond {
+		t.Fatalf("with globals present the cross-panel predicate must be used")
+	}
+}
+
 func TestGlobalUsage_DisablesClient(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}

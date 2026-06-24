@@ -10,6 +10,8 @@ const TITLE_KEYS: Record<string, string> = {
   '/nodes': 'menu.nodes',
   '/settings': 'menu.settings',
   '/xray': 'menu.xray',
+  '/outbound': 'menu.outbounds',
+  '/routing': 'menu.routing',
   '/api-docs': 'menu.apiDocs',
 };
 

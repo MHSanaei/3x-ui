@@ -16,8 +16,10 @@ const PACKET_UP_FIELDS = [
 const STREAM_UP_SERVER_FIELDS = ['scStreamUpServerSecs'] as const;
 
 const PLACEMENT_STRING_FIELDS = [
-  'sessionPlacement',
-  'sessionKey',
+  'sessionIDPlacement',
+  'sessionIDKey',
+  'sessionIDTable',
+  'sessionIDLength',
   'seqPlacement',
   'seqKey',
   'uplinkDataPlacement',
@@ -128,6 +130,20 @@ function dropZeroNumbers(obj: Record<string, unknown>, keys: readonly string[]):
 function normalizeTlsForWire(raw: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...raw };
   if (out.fingerprint === '') delete out.fingerprint;
+
+  // Empty server-side tuning fields mean "use xray-core's default" — never emit them.
+  if (Array.isArray(out.curvePreferences) && out.curvePreferences.length === 0) {
+    delete out.curvePreferences;
+  }
+  if (out.masterKeyLog === '' || out.masterKeyLog == null) delete out.masterKeyLog;
+  if (isRecord(out.echSockopt)) {
+    const echSock = normalizeSockoptForWire(out.echSockopt);
+    if (echSock) {
+      out.echSockopt = echSock;
+    } else {
+      delete out.echSockopt;
+    }
+  }
 
   const settings = out.settings;
   if (isRecord(settings)) {

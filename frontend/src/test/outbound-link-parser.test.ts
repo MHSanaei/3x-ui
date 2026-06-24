@@ -93,6 +93,7 @@ describe('parseVmessLink — XHTTP advanced fields', () => {
       scMaxBufferedPosts: 50,
       tls: 'tls',
     };
+    // legacy sessionKey must alias onto the renamed sessionIDKey (#6258)
     const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
     const out = parseVmessLink(link);
     const xhttp = (out?.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
@@ -101,7 +102,8 @@ describe('parseVmessLink — XHTTP advanced fields', () => {
     expect(xhttp.xPaddingHeader).toBe('X-Pad');
     expect(xhttp.xPaddingPlacement).toBe('header');
     expect(xhttp.xPaddingMethod).toBe('random');
-    expect(xhttp.sessionKey).toBe('X-Session');
+    expect(xhttp.sessionIDKey).toBe('X-Session');
+    expect(xhttp.sessionKey).toBeUndefined();
     expect(xhttp.seqKey).toBe('X-Seq');
     expect(xhttp.noSSEHeader).toBe(true);
     expect(xhttp.scMaxBufferedPosts).toBe(50);
@@ -135,7 +137,8 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
       + '?type=xhttp&security=tls&host=edge.example&path=%2Fsp'
       + '&xPaddingObfsMode=true&xPaddingKey=secret-key&xPaddingHeader=X-Pad'
       + '&xPaddingPlacement=header&xPaddingMethod=random'
-      + '&sessionKey=X-Session&seqKey=X-Seq&noSSEHeader=true'
+      + '&sessionIDKey=X-Session&sessionIDTable=Base62&sessionIDLength=16-32'
+      + '&seqKey=X-Seq&noSSEHeader=true'
       + '&scMaxBufferedPosts=50'
       + '#imported-pad';
     const out = parseVlessLink(link);
@@ -145,7 +148,9 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
     expect(xhttp.xPaddingHeader).toBe('X-Pad');
     expect(xhttp.xPaddingPlacement).toBe('header');
     expect(xhttp.xPaddingMethod).toBe('random');
-    expect(xhttp.sessionKey).toBe('X-Session');
+    expect(xhttp.sessionIDKey).toBe('X-Session');
+    expect(xhttp.sessionIDTable).toBe('Base62');
+    expect(xhttp.sessionIDLength).toBe('16-32');
     expect(xhttp.seqKey).toBe('X-Seq');
     expect(xhttp.noSSEHeader).toBe(true);
     expect(xhttp.scMaxBufferedPosts).toBe(50);

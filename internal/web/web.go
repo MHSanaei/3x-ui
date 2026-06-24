@@ -290,7 +290,8 @@ const (
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
-	cadenceCPUAlarm = "@every 1m"
+	cadenceCPUAlarm    = "@every 1m"
+	cadenceMemoryAlarm = "@every 1m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -385,6 +386,10 @@ func (s *Server) startTask(restartXray bool) {
 	if s.cpuAlarmWanted() {
 		s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 	}
+	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
+	if s.memoryAlarmWanted() {
+		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+	}
 }
 
 // cpuAlarmWanted reports whether any notifier is configured to receive cpu.high
@@ -418,6 +423,36 @@ func (s *Server) cpuAlarmWanted() bool {
 	return false
 }
 
+// memoryAlarmWanted reports whether any notifier is configured to receive memory.high alerts.
+func (s *Server) memoryAlarmWanted() bool {
+	wants := func(events string, threshold int) bool {
+		if threshold <= 0 {
+			return false
+		}
+		for e := range strings.SplitSeq(events, ",") {
+			if strings.TrimSpace(e) == string(eventbus.EventMemoryHigh) {
+				return true
+			}
+		}
+		return false
+	}
+	if on, _ := s.settingService.GetTgbotEnabled(); on {
+		events, _ := s.settingService.GetTgEnabledEvents()
+		mem, _ := s.settingService.GetTgMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetSmtpEnable(); on {
+		events, _ := s.settingService.GetSmtpEnabledEvents()
+		mem, _ := s.settingService.GetSmtpMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	return false
+}
+
 // Start initializes and starts the web server with configured settings, routes, and background jobs.
 func (s *Server) Start() (err error) {
 	return s.start(true, true)
@@ -441,9 +476,19 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 	service.StartTrafficWriter()
 
-	// cron.Recover wraps every job so a panic is logged and the scheduler keeps
-	// running, instead of the panic taking down the whole panel process.
-	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds(), cron.WithChain(cron.Recover(cron.PrintfLogger(cronPanicLogger{}))))
+	// SkipIfStillRunning stops a slow job (e.g. the 5s traffic poll on a large
+	// install) from overlapping itself: two concurrent runs of the same job race
+	// the shared xrayAPI — leaking a grpc connection — and the StatsLastValues
+	// map, whose concurrent write is a fatal runtime throw cron.Recover can't
+	// catch. cron.Recover then logs any panic and keeps the scheduler alive.
+	s.cron = cron.New(
+		cron.WithLocation(loc),
+		cron.WithSeconds(),
+		cron.WithChain(
+			cron.SkipIfStillRunning(cron.DiscardLogger),
+			cron.Recover(cron.PrintfLogger(cronPanicLogger{})),
+		),
+	)
 	s.cron.Start()
 
 	// Wire the inbound-runtime manager once so InboundService can route

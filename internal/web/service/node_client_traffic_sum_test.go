@@ -169,7 +169,7 @@ func TestGhostData_NoPhantomTraffic(t *testing.T) {
 	assertUpDown(t, readTraffic(t, db, email), 1024, 2048, "only incremental traffic beyond baseline counts")
 }
 
-func TestNodeCounterReset_Clamped(t *testing.T) {
+func TestNodeCounterReset_NoReAdd(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
 	svc := &InboundService{}
@@ -180,13 +180,19 @@ func TestNodeCounterReset_Clamped(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 950, Down: 950, Enable: true})
 	assertUpDown(t, readTraffic(t, db, email), 50, 50, "before node reset")
 
-	// Counter resets to 50 (Xray restart). delta=50-950=-900 → clamped → adds 50.
+	// Node reboot drops the counter to 50. delta=50-950=-900 is a counter reset,
+	// not new traffic: add 0 and rebaseline to 50, never re-add the node's full
+	// cumulative counter onto the master total (#5456).
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 50, Down: 50, Enable: true})
 	ct := readTraffic(t, db, email)
 	if ct.Up < 0 || ct.Down < 0 {
 		t.Fatalf("row went negative after node reset: up=%d down=%d", ct.Up, ct.Down)
 	}
-	assertUpDown(t, ct, 100, 100, "after node counter reset (clamped)")
+	assertUpDown(t, ct, 50, 50, "after node counter reset: rebaselined, not re-added")
+
+	// Post-reset accrual resumes from the new baseline: 80-50=30.
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 80, Down: 80, Enable: true})
+	assertUpDown(t, readTraffic(t, db, email), 80, 80, "post-reset delta accrues from rebaselined counter")
 }
 
 func TestCentralReset_NoReAdd(t *testing.T) {
@@ -210,6 +216,43 @@ func TestCentralReset_NoReAdd(t *testing.T) {
 	syncNode(t, svc, 2, "n2-in", xray.ClientTraffic{Email: email, Up: 205, Down: 205, Enable: true})
 
 	assertUpDown(t, readTraffic(t, db, email), 15, 15, "after central reset only increments accrue")
+}
+
+// A real reset (ResetClientTrafficByEmail) must clear the per-node baseline so
+// the node's pre-reset cumulative — including traffic it counted but had not yet
+// synced — cannot leak back onto the master after the reset (#5476, #5390).
+func TestCentralResetClearsNodeBaseline_NoLeak(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	StartTrafficWriter()
+	svc := &InboundService{}
+
+	const email = "reset-revert"
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 100, Down: 100, Enable: true})
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 300, Down: 300, Enable: true})
+	assertUpDown(t, readTraffic(t, db, email), 200, 200, "before reset")
+
+	if err := svc.ResetClientTrafficByEmail(email); err != nil {
+		t.Fatalf("ResetClientTrafficByEmail: %v", err)
+	}
+	assertUpDown(t, readTraffic(t, db, email), 0, 0, "right after reset")
+
+	var baselines int64
+	if err := db.Model(&model.NodeClientTraffic{}).Where("email = ?", email).Count(&baselines).Error; err != nil {
+		t.Fatalf("count baselines: %v", err)
+	}
+	if baselines != 0 {
+		t.Fatalf("reset must clear node baseline rows, found %d", baselines)
+	}
+
+	// Node still reports its pre-reset cumulative (340 > last synced 300: usage it
+	// had not synced before the reset). It must not revert the reset.
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 340, Down: 340, Enable: true})
+	assertUpDown(t, readTraffic(t, db, email), 0, 0, "stale node counter must not revert reset")
+
+	// Genuine post-reset usage accrues from the rebaselined counter: 370-340=30.
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 370, Down: 370, Enable: true})
+	assertUpDown(t, readTraffic(t, db, email), 30, 30, "post-reset usage accrues")
 }
 
 func TestInboundRemoval_KeepsSharedEmailRow(t *testing.T) {

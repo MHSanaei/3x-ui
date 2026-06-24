@@ -101,7 +101,15 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 				}
 				affected += int(res.RowsAffected)
 			}
-			return clearGlobalTraffic(tx, cleanEmails...)
+			if err := clearGlobalTraffic(tx, cleanEmails...); err != nil {
+				return err
+			}
+			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
+				if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+					return err
+				}
+			}
+			return nil
 		})
 	})
 	if err != nil {
@@ -152,6 +160,12 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 
 		if err := clearGlobalTraffic(tx, resetEmails...); err != nil {
 			return err
+		}
+
+		for _, batch := range chunkStrings(resetEmails, sqlInChunk) {
+			if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				return err
+			}
 		}
 
 		inboundWhereText := "id "

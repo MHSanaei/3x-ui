@@ -23,6 +23,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 //go:embed config.json
@@ -63,6 +65,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgCpu":                       "80",
+	"tgMemory":                    "80",
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
@@ -131,6 +134,7 @@ var defaultValueMap = map[string]string{
 	"tgEnabledEvents":   "login.attempt,cpu.high",
 	"smtpEnabledEvents": "login.attempt,cpu.high",
 	"smtpCpu":           "80",
+	"smtpMemory":        "80",
 
 	// Email (SMTP) notifications
 	"smtpEnable":         "false",
@@ -529,6 +533,14 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgMemory() (int, error) {
+	return s.getInt("tgMemory")
+}
+
+func (s *SettingService) SetTgMemory(value int) error {
+	return s.setInt("tgMemory", value)
 }
 
 func (s *SettingService) GetTgLang() (string, error) {
@@ -1017,6 +1029,14 @@ func (s *SettingService) SetSmtpCpu(value int) error {
 	return s.setInt("smtpCpu", value)
 }
 
+func (s *SettingService) GetSmtpMemory() (int, error) {
+	return s.getInt("smtpMemory")
+}
+
+func (s *SettingService) SetSmtpMemory(value int) error {
+	return s.setInt("smtpMemory", value)
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := s.preserveRedactedSecrets(allSetting); err != nil {
 		return err
@@ -1031,17 +1051,37 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	v := reflect.ValueOf(allSetting).Elem()
 	t := reflect.TypeFor[entity.AllSetting]()
 	fields := reflect_util.GetFields(t)
-	errs := make([]error, 0)
-	for _, field := range fields {
-		key := field.Tag.Get("json")
-		fieldV := v.FieldByName(field.Name)
-		value := fmt.Sprint(fieldV.Interface())
-		err := s.saveSetting(key, value)
-		if err != nil {
-			errs = append(errs, err)
+
+	db := database.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		var existing []*model.Setting
+		if err := tx.Find(&existing).Error; err != nil {
+			return err
 		}
-	}
-	return common.Combine(errs...)
+		byKey := make(map[string]*model.Setting, len(existing))
+		for _, st := range existing {
+			byKey[st.Key] = st
+		}
+		for _, field := range fields {
+			key := field.Tag.Get("json")
+			fieldV := v.FieldByName(field.Name)
+			value := fmt.Sprint(fieldV.Interface())
+			if st, ok := byKey[key]; ok {
+				if st.Value == value {
+					continue
+				}
+				st.Value = value
+				if err := tx.Save(st).Error; err != nil {
+					return err
+				}
+				continue
+			}
+			if err := tx.Create(&model.Setting{Key: key, Value: value}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {

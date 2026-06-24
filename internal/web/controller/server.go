@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
@@ -64,6 +63,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getNewmlkem768", a.getNewmlkem768)
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
 	g.GET("/clientIps", a.getClientIps)
+	g.GET("/fail2banStatus", a.getFail2banStatus)
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
@@ -75,6 +75,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/xraylogs/:count", a.getXrayLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
+	g.POST("/getCertHash", a.getCertHash)
+	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -101,6 +103,10 @@ func (a *ServerController) startTask() {
 
 // status returns the current server status information.
 func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.serverService.LastStatus(), nil) }
+
+func (a *ServerController) getFail2banStatus(c *gin.Context) {
+	jsonObj(c, a.serverService.GetFail2banStatus(), nil)
+}
 
 func parseHistoryBucket(c *gin.Context) (int, bool) {
 	bucket, err := strconv.Atoi(c.Param("bucket"))
@@ -292,10 +298,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 		return
 	}
 
-	filename := "x-ui.db"
-	if database.IsPostgres() {
-		filename = "x-ui.dump"
-	}
+	filename := a.serverService.BackupFilename(c.Request.Host)
 	if !filenameRegex.MatchString(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
@@ -393,6 +396,28 @@ func (a *ServerController) getNewEchCert(c *gin.Context) {
 		return
 	}
 	jsonObj(c, cert, nil)
+}
+
+// getCertHash returns the hex SHA-256 of the given certificate (file path or
+// inline content) so the panel can fill the pinned-cert field.
+func (a *ServerController) getCertHash(c *gin.Context) {
+	hashes, err := a.serverService.GetCertHash(c.PostForm("certFile"), c.PostForm("certContent"))
+	if err != nil {
+		jsonMsg(c, "get cert hash", err)
+		return
+	}
+	jsonObj(c, hashes, nil)
+}
+
+// getRemoteCertHash runs `xray tls ping` against the given server and returns
+// its live certificate SHA-256 hash(es) for pinning.
+func (a *ServerController) getRemoteCertHash(c *gin.Context) {
+	hashes, err := a.serverService.GetRemoteCertHash(c.PostForm("server"))
+	if err != nil {
+		jsonMsg(c, "get remote cert hash", err)
+		return
+	}
+	jsonObj(c, hashes, nil)
 }
 
 // getNewVlessEnc generates a new VLESS encryption key.

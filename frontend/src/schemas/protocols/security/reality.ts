@@ -14,6 +14,17 @@ export const RealityClientSettingsSchema = z.object({
 });
 export type RealityClientSettings = z.infer<typeof RealityClientSettingsSchema>;
 
+// REALITY fallback rate-limit (xray-core reality.LimitFallback): throttles the
+// fallback stream after `afterBytes`, then caps it at `bytesPerSec` with an
+// optional `burstBytesPerSec`. Optional so existing inbounds round-trip
+// unchanged — the object is only emitted once a user sets a non-zero value.
+export const RealityLimitFallbackSchema = z.object({
+  afterBytes: z.number().int().min(0).default(0),
+  bytesPerSec: z.number().int().min(0).default(0),
+  burstBytesPerSec: z.number().int().min(0).default(0),
+});
+export type RealityLimitFallback = z.infer<typeof RealityLimitFallbackSchema>;
+
 // xray-core accepts both `target` and `dest` as the REALITY destination —
 // they are aliases (infra/conf/transport_internet.go: REALITYConfig has
 // `json:"target"` and `json:"dest"`). The panel writes `target`, but configs
@@ -52,6 +63,11 @@ export const RealityStreamSettingsSchema = z.preprocess(
     maxTimediff: z.number().int().min(0).default(0),
     shortIds: z.array(z.string()).default([]),
     mldsa65Seed: z.string().default(''),
+    // Server-side TLS master-key log path (xray-core reality.Config). Optional
+    // so existing inbounds round-trip unchanged.
+    masterKeyLog: z.string().optional(),
+    limitFallbackUpload: RealityLimitFallbackSchema.optional(),
+    limitFallbackDownload: RealityLimitFallbackSchema.optional(),
     settings: RealityClientSettingsSchema.default({
       publicKey: '',
       fingerprint: 'chrome',

@@ -506,9 +506,12 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 		if err := clearGlobalTraffic(db, clientEmail); err != nil {
 			return err
 		}
-		return db.Model(xray.ClientTraffic{}).
+		if err := db.Model(xray.ClientTraffic{}).
 			Where("email = ?", clientEmail).
-			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
+			return err
+		}
+		return db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
 	})
 }
 
@@ -600,6 +603,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		return false, err
 	}
 	if err := clearGlobalTraffic(db, clientEmail); err != nil {
+		return false, err
+	}
+	if err := db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 		return false, err
 	}
 

@@ -32,9 +32,6 @@ export default function WireguardFields({ wgPubKey, regenInboundWg }: WireguardF
       >
         <Switch />
       </Form.Item>
-      <Form.Item name={['settings', 'workers']} label='Workers'>
-        <InputNumber min={1} />
-      </Form.Item>
       <Form.Item name={['settings', 'domainStrategy']} label={t('pages.xray.wireguard.domainStrategy')}>
         <Select
           allowClear

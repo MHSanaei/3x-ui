@@ -28,6 +28,7 @@ import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
+import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -201,6 +202,9 @@ export default function ClientFormModal({
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
   const originalAllowedIPs = useRef<string[]>([]);
+  const fail2ban = useFail2banStatusQuery();
+  const limitIpDisabled = !fail2ban.usable;
+  const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -651,17 +655,22 @@ export default function ClientFormModal({
                       {!showWireGuard && (
                         <Col xs={24} md={6}>
                           <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
-                            <Space.Compact style={{ display: 'flex' }}>
-                              <InputNumber value={form.limitIp} min={0} style={{ flex: 1 }}
-                                onChange={(v) => update('limitIp', Number(v) || 0)} />
-                              {isEdit && (
-                                <Tooltip title={t('pages.clients.ipLog')}>
-                                  <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                                    {clientIps.length > 0 ? clientIps.length : ''}
-                                  </Button>
-                                </Tooltip>
-                              )}
-                            </Space.Compact>
+                            <Tooltip title={limitIpNotice || undefined}>
+                              <span style={{ display: 'flex', width: '100%' }}>
+                                <Space.Compact style={{ display: 'flex', flex: 1 }}>
+                                  <InputNumber value={form.limitIp} min={0} disabled={limitIpDisabled}
+                                    style={{ flex: 1, ...(limitIpDisabled ? { pointerEvents: 'none' } : null) }}
+                                    onChange={(v) => update('limitIp', Number(v) || 0)} />
+                                  {isEdit && (
+                                    <Tooltip title={t('pages.clients.ipLog')}>
+                                      <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                                        {clientIps.length > 0 ? clientIps.length : ''}
+                                      </Button>
+                                    </Tooltip>
+                                  )}
+                                </Space.Compact>
+                              </span>
+                            </Tooltip>
                           </Form.Item>
                         </Col>
                       )}
