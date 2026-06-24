@@ -1098,6 +1098,7 @@
       "upToDate": "Up to date",
       "updateConfirmTitle": "Update {count} node(s) to the latest version?",
       "updateConfirmContent": "Each selected node downloads the latest release and restarts onto it. Only enabled, online nodes are updated.",
+      "updateDevChannel": "Update to Dev channel (latest commit)",
       "testConnection": "Test Connection",
       "connectionOk": "Connection OK ({ms} ms)",
       "connectionFailed": "Connection failed",

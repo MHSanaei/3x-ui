@@ -979,6 +979,7 @@
       "upToDate": "Mới nhất",
       "updateConfirmTitle": "Cập nhật {count} node lên phiên bản mới nhất?",
       "updateConfirmContent": "Mỗi node đã chọn sẽ tải bản phát hành mới nhất và khởi động lại. Chỉ các node đang bật và trực tuyến được cập nhật.",
+      "updateDevChannel": "Cập nhật lên kênh phát triển (commit mới nhất)",
       "testConnection": "Kiểm tra kết nối",
       "connectionOk": "Kết nối OK ({ms} ms)",
       "connectionFailed": "Kết nối thất bại",

@@ -979,6 +979,7 @@
       "upToDate": "محدّث",
       "updateConfirmTitle": "تحديث {count} عقدة إلى أحدث إصدار؟",
       "updateConfirmContent": "كل عقدة محددة ستنزّل أحدث إصدار وتعيد التشغيل عليه. يتم تحديث العقد المفعّلة والمتصلة فقط.",
+      "updateDevChannel": "التحديث إلى قناة التطوير (أحدث كومِت)",
       "testConnection": "اختبار الاتصال",
       "connectionOk": "الاتصال شغال ({ms} ms)",
       "connectionFailed": "فشل الاتصال",

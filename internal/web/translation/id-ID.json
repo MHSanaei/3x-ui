@@ -979,6 +979,7 @@
       "upToDate": "Terbaru",
       "updateConfirmTitle": "Perbarui {count} node ke versi terbaru?",
       "updateConfirmContent": "Setiap node terpilih mengunduh rilis terbaru dan memulai ulang. Hanya node aktif dan online yang diperbarui.",
+      "updateDevChannel": "Perbarui ke kanal dev (commit terbaru)",
       "testConnection": "Tes Koneksi",
       "connectionOk": "Koneksi OK ({ms} ms)",
       "connectionFailed": "Koneksi gagal",

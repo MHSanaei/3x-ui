@@ -979,6 +979,7 @@
       "upToDate": "Güncel",
       "updateConfirmTitle": "{count} düğüm en son sürüme güncellensin mi?",
       "updateConfirmContent": "Seçilen her düğüm en son sürümü indirir ve yeniden başlatılır. Yalnızca etkin ve çevrimiçi düğümler güncellenir.",
+      "updateDevChannel": "Dev kanalına güncelle (son commit)",
       "testConnection": "Bağlantıyı Test Et",
       "connectionOk": "Bağlantı tamam ({ms} ms)",
       "connectionFailed": "Bağlantı başarısız",

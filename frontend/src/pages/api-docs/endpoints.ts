@@ -945,8 +945,8 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/nodes/updatePanel',
-        summary: 'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Returns a per-node result list.',
-        body: '{\n  "ids": [1, 2, 3]\n}',
+        summary: 'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set "dev": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.',
+        body: '{\n  "ids": [1, 2, 3],\n  "dev": false\n}',
         response: '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "de-1", "ok": true },\n    { "id": 2, "name": "fr-1", "ok": false, "error": "node is offline" }\n  ]\n}',
       },
       {

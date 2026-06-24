@@ -122,8 +122,19 @@ func getDevUpdateInfo() (*PanelUpdateInfo, error) {
 	}, nil
 }
 
-// StartUpdate starts the official updater outside of the current web request.
+// StartUpdate starts the official updater using this panel's own channel setting.
 func (s *PanelService) StartUpdate() error {
+	return s.startUpdate(devChannelActive())
+}
+
+// StartUpdateChannel runs the updater against an explicitly chosen channel,
+// overriding the local dev-channel setting. Used by the master node updater so
+// a node can be moved to the dev channel from the central panel.
+func (s *PanelService) StartUpdateChannel(dev bool) error {
+	return s.startUpdate(dev)
+}
+
+func (s *PanelService) startUpdate(useDev bool) error {
 	if runtime.GOOS != "linux" {
 		return fmt.Errorf("panel web update is supported only on Linux installations")
 	}
@@ -140,7 +151,7 @@ func (s *PanelService) StartUpdate() error {
 
 	mainFolder, serviceFolder := resolveUpdateFolders()
 	updateTag := ""
-	if devChannelActive() {
+	if useDev {
 		updateTag = devReleaseTag
 	}
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))

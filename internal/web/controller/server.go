@@ -206,9 +206,22 @@ func (a *ServerController) installXray(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
 }
 
-// updatePanel starts a panel self-update to the latest release.
+// updatePanel starts a panel self-update. With no "dev" form value it follows
+// this panel's own channel setting; an explicit "dev" (sent by the master node
+// updater) overrides it for this run.
 func (a *ServerController) updatePanel(c *gin.Context) {
-	err := a.panelService.StartUpdate()
+	devParam := c.PostForm("dev")
+	var err error
+	if devParam == "" {
+		err = a.panelService.StartUpdate()
+	} else {
+		dev, perr := strconv.ParseBool(devParam)
+		if perr != nil {
+			jsonMsg(c, "invalid data", perr)
+			return
+		}
+		err = a.panelService.StartUpdateChannel(dev)
+	}
 	jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), err)
 }
 

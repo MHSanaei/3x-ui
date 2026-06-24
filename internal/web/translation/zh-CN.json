@@ -979,6 +979,7 @@
       "upToDate": "已是最新",
       "updateConfirmTitle": "将 {count} 个节点更新到最新版本？",
       "updateConfirmContent": "每个所选节点会下载最新版本并重启。仅更新已启用且在线的节点。",
+      "updateDevChannel": "更新到开发通道（最新提交）",
       "testConnection": "测试连接",
       "connectionOk": "连接正常 ({ms} ms)",
       "connectionFailed": "连接失败",

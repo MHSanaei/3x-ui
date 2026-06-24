@@ -979,6 +979,7 @@
       "upToDate": "Atualizado",
       "updateConfirmTitle": "Atualizar {count} nó(s) para a versão mais recente?",
       "updateConfirmContent": "Cada nó selecionado baixa a versão mais recente e reinicia nela. Apenas nós ativos e online são atualizados.",
+      "updateDevChannel": "Atualizar para o canal de desenvolvimento (último commit)",
       "testConnection": "Testar conexão",
       "connectionOk": "Conexão OK ({ms} ms)",
       "connectionFailed": "Falha na conexão",
