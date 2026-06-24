@@ -1641,24 +1641,17 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 	if s.remarkTemplate != "" && s.subscriptionBody {
 		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
-	// Sub info page + panel link/QR displays: just the config name (no template,
-	// so no per-client email/usage leaks into the shown remark).
-	return fallbackRemark(inbound.Remark, extra)
+	return fallbackRemark(inbound.Remark, extra, email)
 }
 
-// fallbackRemark is the minimal remark used only when no template is configured
-// (an operator explicitly cleared it): the inbound remark and the host/extra
-// remark joined by "-", skipping empties. The configurable remark model was
-// removed in favour of the template, whose default already includes the email.
-func fallbackRemark(inboundRemark, extra string) string {
-	switch {
-	case inboundRemark == "":
-		return extra
-	case extra == "":
-		return inboundRemark
-	default:
-		return inboundRemark + "-" + extra
+func fallbackRemark(parts ...string) string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
 	}
+	return strings.Join(out, "-")
 }
 
 // findClientStats returns the inbound's traffic record for email, if present.

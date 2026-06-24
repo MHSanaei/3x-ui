@@ -206,12 +206,11 @@ func TestGenRemark_GlobalTemplate(t *testing.T) {
 	}
 }
 
-// With no template, genRemark composes the fallback model and adds no suffix.
-func TestGenRemark_NoTemplate_NoSuffix(t *testing.T) {
+func TestGenRemark_NoTemplate_AppendsEmail(t *testing.T) {
 	s, inbound, _ := hostRemarkService("")
 	got := s.genRemark(inbound, "john@example.com", "Relay", "")
-	if got != "DE-Relay" {
-		t.Fatalf("genRemark = %q, want %q (no suffix)", got, "DE-Relay")
+	if got != "DE-Relay-john@example.com" {
+		t.Fatalf("genRemark = %q, want %q", got, "DE-Relay-john@example.com")
 	}
 }
 
@@ -232,24 +231,17 @@ func TestUsageOnFirstLinkOnly(t *testing.T) {
 	}
 }
 
-// Outside the subscription body (panel link/QR displays, sub info page) the
-// template is bypassed entirely — links show just the config name, with no
-// per-client email or usage info.
 func TestRemarkInDisplayContext(t *testing.T) {
 	s, inbound, client := hostRemarkService("{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
 	s.subscriptionBody = false
-	// A host link in a display shows only the config name — the inbound's remark,
-	// with no per-client email or usage info and the host remark ignored.
-	if got := s.genHostRemark(inbound, client, "CDN", ""); got != "DE" {
-		t.Fatalf("display host link = %q, want config name %q", got, "DE")
+	if got := s.genHostRemark(inbound, client, "CDN", ""); got != "DE-CDN-john@example.com" {
+		t.Fatalf("display host link = %q, want %q", got, "DE-CDN-john@example.com")
 	}
-	// With no host remark, the config name is likewise the inbound's own remark.
-	if got := s.genHostRemark(inbound, client, "", ""); got != "DE" {
-		t.Fatalf("display host link (no host) = %q, want %q", got, "DE")
+	if got := s.genHostRemark(inbound, client, "", ""); got != "DE-john@example.com" {
+		t.Fatalf("display host link (no host) = %q, want %q", got, "DE-john@example.com")
 	}
-	// genRemark (non-host) likewise drops the template in display context.
-	if got := s.genRemark(inbound, client.Email, "", ""); got != "DE" {
-		t.Fatalf("display genRemark = %q, want %q", got, "DE")
+	if got := s.genRemark(inbound, client.Email, "", ""); got != "DE-john@example.com" {
+		t.Fatalf("display genRemark = %q, want %q", got, "DE-john@example.com")
 	}
 }
 

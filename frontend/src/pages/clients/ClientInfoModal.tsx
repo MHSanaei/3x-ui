@@ -357,7 +357,7 @@ export default function ClientInfoModal({
                   const parts = parseLinkParts(link);
                   const fallback = `${t('pages.clients.link')} ${idx + 1}`;
                   const rowTitle = (parts && linkMetaText(parts)) || fallback;
-                  const qrRemark = [parts?.remark, client.email].filter(Boolean).join('-') || rowTitle;
+                  const qrRemark = parts?.remark || rowTitle;
                   const canQr = !isPostQuantumLink(link);
                   return (
                     <div key={idx} className="link-row">
