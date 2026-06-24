@@ -139,6 +139,7 @@ export default function SubPage() {
   );
   const streisandUrl = useMemo(() => `streisand://import/${encodeURIComponent(subUrl)}`, []);
   const happUrl = useMemo(() => `happ://add/${subUrl}`, []);
+  const incyUrl = useMemo(() => `incy://add/${subUrl}`, []);
 
   const pageClass = useMemo(() => {
     const classes = ['subscription-page'];
@@ -200,6 +201,7 @@ export default function SubPage() {
     { key: 'android-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
     { key: 'android-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
     { key: 'android-happ', label: 'Happ', onClick: () => open(`happ://add/${subUrl}`) },
+    { key: 'android-incy', label: 'Incy', onClick: () => open(`incy://add/${subUrl}`) },
   ], [copy, open]);
 
   const iosMenuItems = useMemo(() => [
@@ -209,7 +211,8 @@ export default function SubPage() {
     { key: 'ios-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
     { key: 'ios-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
     { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
-  ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl]);
+    { key: 'ios-incy', label: 'Incy', onClick: () => open(incyUrl) },
+  ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, incyUrl]);
 
   const langMenuItems = useMemo(
     () => (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map((l) => ({

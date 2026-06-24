@@ -524,13 +524,13 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 	return ctx.configName()
 }
 
-// genHostRemark builds one host endpoint's remark for a specific client. The
-// config name is always the inbound's own remark; the host's remark is surfaced
-// only through the {{HOST}} token. In the subscription body the rest of the
-// remark template still applies; displays show just the config name.
+// genHostRemark builds one host endpoint's remark for a specific client. In the
+// subscription body the {{HOST}} token carries the host's remark and the rest of
+// the template still applies; displays show the config name, host and email.
 func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, hostRemark string, transport string) string {
 	if !s.subscriptionBody {
-		return remarkContext{inbound: inbound, hostRemark: hostRemark}.configName()
+		name := remarkContext{inbound: inbound, hostRemark: hostRemark}.configName()
+		return fallbackRemark(name, hostRemark, client.Email)
 	}
 	return s.genTemplatedRemark(inbound, client, hostRemark, transport)
 }

@@ -78,6 +78,8 @@ var defaultValueMap = map[string]string{
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
 	"subHideSettings":             "false",
+	"subIncyEnableRouting":        "false",
+	"subIncyRoutingRules":         "",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -707,6 +709,14 @@ func (s *SettingService) GetSubRoutingRules() (string, error) {
 
 func (s *SettingService) GetSubHideSettings() (bool, error) {
 	return s.getBool("subHideSettings")
+}
+
+func (s *SettingService) GetSubIncyEnableRouting() (bool, error) {
+	return s.getBool("subIncyEnableRouting")
+}
+
+func (s *SettingService) GetSubIncyRoutingRules() (string, error) {
+	return s.getString("subIncyRoutingRules")
 }
 
 func (s *SettingService) GetSubListen() (string, error) {

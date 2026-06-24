@@ -39,6 +39,8 @@ export const AllSettingSchema = z.object({
   subAnnounce: z.string().optional(),
   subEnableRouting: z.boolean().optional(),
   subRoutingRules: z.string().optional(),
+  subIncyEnableRouting: z.boolean().optional(),
+  subIncyRoutingRules: z.string().optional(),
   subListen: z.string().optional(),
   subPort: port.optional(),
   subPath: absolutePath.optional(),

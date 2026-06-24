@@ -35,6 +35,8 @@ export class AllSetting {
   subAnnounce = '';
   subEnableRouting = false;
   subRoutingRules = '';
+  subIncyEnableRouting = false;
+  subIncyRoutingRules = '';
   subListen = '';
   subPort = 2096;
   subPath = '/sub/';
