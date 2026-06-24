@@ -404,7 +404,10 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/setUpdateChannel',
         summary: 'Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.',
-        body: '{\n  "dev": true\n}',
+        params: [
+          { name: 'dev', in: 'body (form)', type: 'boolean', desc: 'true = dev channel, false = stable.' },
+        ],
+        body: 'dev=true',
       },
       {
         method: 'POST',

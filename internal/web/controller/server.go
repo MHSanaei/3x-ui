@@ -214,14 +214,12 @@ func (a *ServerController) updatePanel(c *gin.Context) {
 
 // setUpdateChannel toggles whether self-update tracks the rolling dev release.
 func (a *ServerController) setUpdateChannel(c *gin.Context) {
-	var req struct {
-		Dev bool `json:"dev"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	dev, err := strconv.ParseBool(c.PostForm("dev"))
+	if err != nil {
 		jsonMsg(c, "invalid data", err)
 		return
 	}
-	err := a.settingService.SetDevChannelEnable(req.Dev)
+	err = a.settingService.SetDevChannelEnable(dev)
 	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
 }
 
