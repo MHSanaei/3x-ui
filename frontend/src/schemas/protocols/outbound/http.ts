@@ -21,5 +21,6 @@ export type HttpOutboundServer = z.infer<typeof HttpOutboundServerSchema>;
 
 export const HttpOutboundSettingsSchema = z.object({
   servers: z.array(HttpOutboundServerSchema).min(1),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 export type HttpOutboundSettings = z.infer<typeof HttpOutboundSettingsSchema>;
