@@ -604,7 +604,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
-	status.PanelVersion = config.GetVersion()
+	status.PanelVersion = config.GetReportedVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
 		status.PanelGuid = guid
 	}

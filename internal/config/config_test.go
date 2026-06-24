@@ -5,6 +5,26 @@ import (
 	"testing"
 )
 
+func TestGetReportedVersion(t *testing.T) {
+	orig := buildCommit
+	t.Cleanup(func() { buildCommit = orig })
+
+	buildCommit = ""
+	if got := GetReportedVersion(); got != GetVersion() {
+		t.Fatalf("stable build: GetReportedVersion = %q, want %q", got, GetVersion())
+	}
+
+	buildCommit = "1d1128cf"
+	if got := GetReportedVersion(); got != "dev+1d1128cf" {
+		t.Fatalf("dev build: GetReportedVersion = %q, want %q", got, "dev+1d1128cf")
+	}
+
+	buildCommit = "1d1128cf945c4615efa05cf41ba7fa766e2ee428"
+	if got := GetReportedVersion(); got != "dev+1d1128cf" {
+		t.Fatalf("dev build (full sha): GetReportedVersion = %q, want %q", got, "dev+1d1128cf")
+	}
+}
+
 func TestGetPortOverride(t *testing.T) {
 	tests := []struct {
 		name       string

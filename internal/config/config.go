@@ -68,6 +68,22 @@ func IsDevBuild() bool {
 	return GetBuildCommit() != ""
 }
 
+// GetReportedVersion returns the version a panel advertises to a managing master
+// node: the plain version for stable builds, or "dev+<short commit>" for dev
+// builds. The dev form mirrors the master's getPanelUpdateInfo latestVersion so
+// a node on the current dev commit compares as up to date instead of always
+// showing "update available".
+func GetReportedVersion() string {
+	if !IsDevBuild() {
+		return GetVersion()
+	}
+	commit := GetBuildCommit()
+	if len(commit) > 8 {
+		commit = commit[:8]
+	}
+	return "dev+" + commit
+}
+
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.
 func GetLogLevel() LogLevel {
 	if IsDebug() {
