@@ -155,6 +155,24 @@ update() {
     fi
 }
 
+update_dev() {
+    confirm "This will update x-ui to the latest DEV commit (the rolling 'dev-latest' build, not a stable release). Your data is preserved. Continue?" "y"
+    if [[ $? != 0 ]]; then
+        LOGE "Cancelled"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 0
+    fi
+    # XUI_UPDATE_TAG tells update.sh to install the dev-latest pre-release
+    # instead of the latest stable tag.
+    XUI_UPDATE_TAG="dev-latest" bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
+    if [[ $? == 0 ]]; then
+        LOGI "Dev update is complete, Panel has automatically restarted "
+        before_show_menu
+    fi
+}
+
 update_menu() {
     echo -e "${yellow}Updating Menu${plain}"
     confirm "This function will update the menu to the latest changes." "y"
@@ -3104,6 +3122,7 @@ show_usage() {
 │  ${blue}x-ui log${plain}                   - Check logs                       │
 │  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
 │  ${blue}x-ui update${plain}                - Update                           │
+│  ${blue}x-ui update-dev${plain}            - Update to Dev channel (latest)   │
 │  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
 │  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
 │  ${blue}x-ui legacy${plain}                - Legacy version                   │
@@ -3115,46 +3134,46 @@ show_usage() {
 show_menu() {
     echo -e "
 ╔────────────────────────────────────────────────╗
-│   ${green}3X-UI Panel Management Script${plain}                │
-│   ${green}0.${plain} Exit Script                               │
+│  ${green}3X-UI Panel Management Script${plain}                │
+│  ${green}0.${plain} Exit Script                               │
 │────────────────────────────────────────────────│
-│   ${green}1.${plain} Install                                   │
-│   ${green}2.${plain} Update                                    │
-│   ${green}3.${plain} Update Menu                               │
-│   ${green}4.${plain} Legacy Version                            │
-│   ${green}5.${plain} Uninstall                                 │
+│  ${green}1.${plain} Install                                   │
+│  ${green}2.${plain} Update                                    │
+│  ${green}3.${plain} Update to Dev Channel (latest commit)     │
+│  ${green}4.${plain} Update Menu                               │
+│  ${green}5.${plain} Legacy Version                            │
+│  ${green}6.${plain} Uninstall                                 │
 │────────────────────────────────────────────────│
-│   ${green}6.${plain} Reset Username & Password                 │
-│   ${green}7.${plain} Reset Web Base Path                       │
-│   ${green}8.${plain} Reset Settings                            │
-│   ${green}9.${plain} Change Port                               │
-│  ${green}10.${plain} View Current Settings                     │
+│  ${green}7.${plain} Reset Username & Password                 │
+│  ${green}8.${plain} Reset Web Base Path                       │
+│  ${green}9.${plain} Reset Settings                            │
+│  ${green}10.${plain} Change Port                              │
+│  ${green}11.${plain} View Current Settings                    │
 │────────────────────────────────────────────────│
-│  ${green}11.${plain} Start                                     │
-│  ${green}12.${plain} Stop                                      │
-│  ${green}13.${plain} Restart                                   │
-|  ${green}14.${plain} Restart Xray                              │
-│  ${green}15.${plain} Check Status                              │
-│  ${green}16.${plain} Logs Management                           │
+│  ${green}12.${plain} Start                                    │
+│  ${green}13.${plain} Stop                                     │
+│  ${green}14.${plain} Restart                                  │
+|  ${green}15.${plain} Restart Xray                             │
+│  ${green}16.${plain} Check Status                             │
+│  ${green}17.${plain} Logs Management                          │
 │────────────────────────────────────────────────│
-│  ${green}17.${plain} Enable Autostart                          │
-│  ${green}18.${plain} Disable Autostart                         │
+│  ${green}18.${plain} Enable Autostart                         │
+│  ${green}19.${plain} Disable Autostart                        │
 │────────────────────────────────────────────────│
-│  ${green}19.${plain} SSL Certificate Management                │
-│  ${green}20.${plain} Cloudflare SSL Certificate                │
-│  ${green}21.${plain} IP Limit Management                       │
-│  ${green}22.${plain} Firewall Management                       │
-│  ${green}23.${plain} SSH Port Forwarding Management            │
+│  ${green}20.${plain} SSL Certificate Management               │
+│  ${green}21.${plain} Cloudflare SSL Certificate               │
+│  ${green}22.${plain} IP Limit Management                      │
+│  ${green}23.${plain} Firewall Management                      │
+│  ${green}24.${plain} SSH Port Forwarding Management           │
+│  ${green}25.${plain} PostgreSQL Management                    │
 │────────────────────────────────────────────────│
-│  ${green}24.${plain} Enable BBR                                │
-│  ${green}25.${plain} Update Geo Files                          │
-│  ${green}26.${plain} Speedtest by Ookla                        │
-│────────────────────────────────────────────────│
-│  ${green}27.${plain} PostgreSQL Management                     │
+│  ${green}26.${plain} Enable BBR                               │
+│  ${green}27.${plain} Update Geo Files                         │
+│  ${green}28.${plain} Speedtest by Ookla                       │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-27]: " num
+    echo && read -rp "Please enter your selection [0-28]: " num
 
     case "${num}" in
         0)
@@ -3167,82 +3186,85 @@ show_menu() {
             check_install && update
             ;;
         3)
-            check_install && update_menu
+            check_install && update_dev
             ;;
         4)
-            check_install && legacy_version
+            check_install && update_menu
             ;;
         5)
-            check_install && uninstall
+            check_install && legacy_version
             ;;
         6)
-            check_install && reset_user
+            check_install && uninstall
             ;;
         7)
-            check_install && reset_webbasepath
+            check_install && reset_user
             ;;
         8)
-            check_install && reset_config
+            check_install && reset_webbasepath
             ;;
         9)
-            check_install && set_port
+            check_install && reset_config
             ;;
         10)
-            check_install && check_config
+            check_install && set_port
             ;;
         11)
-            check_install && start
+            check_install && check_config
             ;;
         12)
-            check_install && stop
+            check_install && start
             ;;
         13)
-            check_install && restart
+            check_install && stop
             ;;
         14)
-            check_install && restart_xray
+            check_install && restart
             ;;
         15)
-            check_install && status
+            check_install && restart_xray
             ;;
         16)
-            check_install && show_log
+            check_install && status
             ;;
         17)
-            check_install && enable
+            check_install && show_log
             ;;
         18)
-            check_install && disable
+            check_install && enable
             ;;
         19)
-            ssl_cert_issue_main
+            check_install && disable
             ;;
         20)
-            ssl_cert_issue_CF
+            ssl_cert_issue_main
             ;;
         21)
-            iplimit_main
+            ssl_cert_issue_CF
             ;;
         22)
-            firewall_menu
+            iplimit_main
             ;;
         23)
-            SSH_port_forwarding
+            firewall_menu
             ;;
         24)
-            bbr_menu
+            SSH_port_forwarding
             ;;
         25)
-            update_geo
-            ;;
-        26)
-            run_speedtest
-            ;;
-        27)
             postgresql_menu
             ;;
+        26)
+            bbr_menu
+            ;;
+        27)
+            update_geo
+            ;;
+        28)
+            run_speedtest
+            ;;
         *)
-            LOGE "Please enter the correct number [0-27]"
+            LOGE "Please enter the correct number [0-28]"
             ;;
     esac
 }
@@ -3284,6 +3306,9 @@ if [[ $# > 0 ]]; then
             ;;
         "update")
             check_install 0 && update 0
+            ;;
+        "update-dev")
+            check_install 0 && update_dev 0
             ;;
         "legacy")
             check_install 0 && legacy_version 0
