@@ -96,9 +96,6 @@ func isPanelSPAFallbackRequest(c *gin.Context) bool {
 		basePath = "/"
 	}
 	panelPath := strings.TrimRight(basePath, "/") + "/panel"
-	if panelPath == "" {
-		panelPath = "/panel"
-	}
 
 	reqPath := c.Request.URL.Path
 	if reqPath != panelPath && !strings.HasPrefix(reqPath, panelPath+"/") {
