@@ -93,7 +93,7 @@ func runWebServer() {
 		return
 	}
 
-	sigCh := make(chan os.Signal, 1)
+	sigCh := make(chan os.Signal, 8)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1, os.Interrupt)
 	global.SetRestartHook(func() {
@@ -106,16 +106,16 @@ func runWebServer() {
 	var stopTunnelHealthMonitor context.CancelFunc
 	monitorCfg := tunnelmonitor.ConfigFromEnv()
 	if monitorCfg.Enabled {
+		if monitorCfg.ProxyURL == "" {
+			logger.Warning("Tunnel health monitor enabled without XUI_TUNNEL_HEALTH_PROXY: the probe measures host connectivity, not the xray tunnel, so failures will restart xray without fixing host network issues")
+		}
+
 		monitorCtx, cancel := context.WithCancel(context.Background())
 		stopTunnelHealthMonitor = cancel
 
-		monitor, err := tunnelmonitor.New(monitorCfg, func(ctx context.Context) error {
-			select {
-			case sigCh <- sys.SIGUSR1:
-				return nil
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+		monitor, err := tunnelmonitor.New(monitorCfg, func(_ context.Context) error {
+			logger.Warning("Tunnel health monitor threshold reached, restarting xray-core")
+			return server.RestartXray()
 		})
 		if err != nil {
 			logger.Warning("Tunnel health monitor disabled: ", err)

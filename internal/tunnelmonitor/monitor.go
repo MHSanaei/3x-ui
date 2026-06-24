@@ -184,6 +184,7 @@ func (m *Monitor) Step(ctx context.Context) (bool, error) {
 		}
 
 		if m.recover == nil {
+			m.failures = m.cfg.FailureThreshold
 			return false, errors.New("recovery function is not configured")
 		}
 
