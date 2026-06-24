@@ -1000,7 +1000,8 @@
         "groups": {
           "client": "Client",
           "traffic": "Traffic",
-          "time": "Time & status"
+          "time": "Time & status",
+          "connection": "Connection"
         },
         "descEMAIL": "Client email",
         "descINBOUND": "Inbound's own remark (the config name)",
@@ -1019,11 +1020,18 @@
         "descUP": "Upload traffic",
         "descDOWN": "Download traffic",
         "descSTATUS": "active / expired / disabled / depleted",
+        "descSTATUS_EMOJI": "Status as an emoji (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Days until expiry (hidden if unlimited)",
+        "descTIME_LEFT": "Remaining time (e.g. 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Used traffic as a percentage (hidden if unlimited)",
         "descEXPIRE_DATE": "Expiry date (YYYY-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "Expiry date in the Jalali calendar (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "Expiry as a Unix timestamp (seconds)",
         "descCREATED_UNIX": "Creation time as a Unix timestamp (seconds)",
-        "descRESET_DAYS": "Traffic reset period in days"
+        "descRESET_DAYS": "Traffic reset period in days",
+        "descPROTOCOL": "Inbound protocol (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Transport network (tcp, ws, grpc, …)",
+        "descSECURITY": "Transport security (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Failed to load hosts",

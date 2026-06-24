@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "Khách hàng",
           "traffic": "Lưu lượng",
-          "time": "Thời gian & trạng thái"
+          "time": "Thời gian & trạng thái",
+          "connection": "Kết nối"
         },
         "descEMAIL": "Email khách hàng",
         "descINBOUND": "Ghi chú của chính inbound (tên cấu hình)",
@@ -1840,11 +1841,18 @@
         "descUP": "Lưu lượng tải lên",
         "descDOWN": "Lưu lượng tải xuống",
         "descSTATUS": "active / expired / disabled / depleted",
+        "descSTATUS_EMOJI": "Trạng thái dạng biểu tượng cảm xúc (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Số ngày đến khi hết hạn (ẩn nếu không giới hạn)",
+        "descTIME_LEFT": "Thời gian còn lại (ví dụ 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Lưu lượng đã dùng tính theo phần trăm (ẩn nếu không giới hạn)",
         "descEXPIRE_DATE": "Ngày hết hạn (YYYY-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "Ngày hết hạn theo lịch Jalali (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "Hết hạn dạng dấu thời gian Unix (giây)",
         "descCREATED_UNIX": "Thời điểm tạo dạng dấu thời gian Unix (giây)",
-        "descRESET_DAYS": "Chu kỳ đặt lại lưu lượng tính theo ngày"
+        "descRESET_DAYS": "Chu kỳ đặt lại lưu lượng tính theo ngày",
+        "descPROTOCOL": "Giao thức inbound (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Mạng truyền tải (tcp, ws, grpc, …)",
+        "descSECURITY": "Bảo mật truyền tải (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Không tải được danh sách host",

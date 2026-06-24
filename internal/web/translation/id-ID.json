@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "Klien",
           "traffic": "Trafik",
-          "time": "Waktu & status"
+          "time": "Waktu & status",
+          "connection": "Koneksi"
         },
         "descEMAIL": "Email klien",
         "descINBOUND": "Catatan inbound itu sendiri (nama konfigurasi)",
@@ -1840,11 +1841,18 @@
         "descUP": "Trafik unggah",
         "descDOWN": "Trafik unduh",
         "descSTATUS": "aktif / kedaluwarsa / nonaktif / habis",
+        "descSTATUS_EMOJI": "Status sebagai emoji (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Hari hingga kedaluwarsa (disembunyikan jika tanpa batas)",
+        "descTIME_LEFT": "Waktu tersisa (mis. 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Trafik terpakai dalam persentase (disembunyikan jika tanpa batas)",
         "descEXPIRE_DATE": "Tanggal kedaluwarsa (YYYY-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "Tanggal kedaluwarsa dalam kalender Jalali (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "Kedaluwarsa sebagai timestamp Unix (detik)",
         "descCREATED_UNIX": "Waktu pembuatan sebagai timestamp Unix (detik)",
-        "descRESET_DAYS": "Periode reset trafik dalam hari"
+        "descRESET_DAYS": "Periode reset trafik dalam hari",
+        "descPROTOCOL": "Protokol inbound (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Jaringan transport (tcp, ws, grpc, …)",
+        "descSECURITY": "Keamanan transport (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Gagal memuat host",

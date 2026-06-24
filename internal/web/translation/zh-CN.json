@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "客户端",
           "traffic": "流量",
-          "time": "时间与状态"
+          "time": "时间与状态",
+          "connection": "连接"
         },
         "descEMAIL": "客户端邮箱",
         "descINBOUND": "入站本身的备注（配置名称）",
@@ -1840,11 +1841,18 @@
         "descUP": "上传流量",
         "descDOWN": "下载流量",
         "descSTATUS": "active / expired / disabled / depleted",
+        "descSTATUS_EMOJI": "以表情符号显示状态（✅ ⏳ 🚫）",
         "descDAYS_LEFT": "距到期天数（无限制时隐藏）",
+        "descTIME_LEFT": "剩余时间（例如 12d 4h 30m）",
+        "descUSAGE_PERCENTAGE": "已用流量百分比（无限制时隐藏）",
         "descEXPIRE_DATE": "到期日期（YYYY-MM-DD）",
+        "descJALALI_EXPIRE_DATE": "Jalali（波斯）历的到期日期（YYYY/MM/DD）",
         "descEXPIRE_UNIX": "到期时间的 Unix 时间戳（秒）",
         "descCREATED_UNIX": "创建时间的 Unix 时间戳（秒）",
-        "descRESET_DAYS": "流量重置周期（天）"
+        "descRESET_DAYS": "流量重置周期（天）",
+        "descPROTOCOL": "入站协议（VLESS、VMess、Trojan……）",
+        "descTRANSPORT": "传输网络（tcp、ws、grpc……）",
+        "descSECURITY": "传输安全（TLS、REALITY、NONE）"
       },
       "toasts": {
         "list": "加载主机失败",

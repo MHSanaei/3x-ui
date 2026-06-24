@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "Cliente",
           "traffic": "Tráfico",
-          "time": "Tiempo y estado"
+          "time": "Tiempo y estado",
+          "connection": "Conexión"
         },
         "descEMAIL": "Email del cliente",
         "descINBOUND": "Notas del propio inbound (nombre de la configuración)",
@@ -1840,11 +1841,18 @@
         "descUP": "Tráfico de subida",
         "descDOWN": "Tráfico de bajada",
         "descSTATUS": "activo / expirado / deshabilitado / agotado",
+        "descSTATUS_EMOJI": "Estado como emoji (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Días hasta la expiración (oculto si es ilimitado)",
+        "descTIME_LEFT": "Tiempo restante (p. ej. 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Tráfico usado en porcentaje (oculto si es ilimitado)",
         "descEXPIRE_DATE": "Fecha de expiración (AAAA-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "Fecha de expiración en el calendario Jalali (AAAA/MM/DD)",
         "descEXPIRE_UNIX": "Expiración como marca de tiempo Unix (segundos)",
         "descCREATED_UNIX": "Hora de creación como marca de tiempo Unix (segundos)",
-        "descRESET_DAYS": "Periodo de reinicio de tráfico en días"
+        "descRESET_DAYS": "Periodo de reinicio de tráfico en días",
+        "descPROTOCOL": "Protocolo del inbound (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Red de transporte (tcp, ws, grpc, …)",
+        "descSECURITY": "Seguridad del transporte (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Error al cargar los hosts",

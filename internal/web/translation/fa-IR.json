@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "کاربر",
           "traffic": "ترافیک",
-          "time": "زمان و وضعیت"
+          "time": "زمان و وضعیت",
+          "connection": "اتصال"
         },
         "descEMAIL": "ایمیل کاربر",
         "descINBOUND": "نام خود اینباند (نام کانفیگ)",
@@ -1840,11 +1841,18 @@
         "descUP": "ترافیک آپلود",
         "descDOWN": "ترافیک دانلود",
         "descSTATUS": "فعال / منقضی‌شده / غیرفعال / مصرف‌شده",
+        "descSTATUS_EMOJI": "وضعیت به‌صورت ایموجی (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "روزهای باقی‌مانده تا انقضا (در صورت نامحدود بودن پنهان می‌شود)",
+        "descTIME_LEFT": "زمان باقی‌مانده (مثلاً 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "ترافیک مصرف‌شده به درصد (در صورت نامحدود بودن پنهان می‌شود)",
         "descEXPIRE_DATE": "تاریخ انقضا (YYYY-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "تاریخ انقضا در تقویم جلالی (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "انقضا به‌صورت مهر زمانی Unix (ثانیه)",
         "descCREATED_UNIX": "زمان ایجاد به‌صورت مهر زمانی Unix (ثانیه)",
-        "descRESET_DAYS": "دورهٔ بازنشانی ترافیک به روز"
+        "descRESET_DAYS": "دورهٔ بازنشانی ترافیک به روز",
+        "descPROTOCOL": "پروتکل اینباند (VLESS، VMess، Trojan، …)",
+        "descTRANSPORT": "شبکهٔ انتقال (tcp، ws، grpc، …)",
+        "descSECURITY": "امنیت انتقال (TLS، REALITY، NONE)"
       },
       "toasts": {
         "list": "بارگذاری میزبان‌ها ناموفق",

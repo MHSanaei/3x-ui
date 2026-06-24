@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "客戶端",
           "traffic": "流量",
-          "time": "時間與狀態"
+          "time": "時間與狀態",
+          "connection": "連線"
         },
         "descEMAIL": "客戶端電子郵件",
         "descINBOUND": "入站本身的備註（配置名稱）",
@@ -1840,11 +1841,18 @@
         "descUP": "上傳流量",
         "descDOWN": "下載流量",
         "descSTATUS": "active / expired / disabled / depleted",
+        "descSTATUS_EMOJI": "以表情符號表示的狀態（✅ ⏳ 🚫）",
         "descDAYS_LEFT": "距到期天數（無限制時隱藏）",
+        "descTIME_LEFT": "剩餘時間（例如 12d 4h 30m）",
+        "descUSAGE_PERCENTAGE": "已用流量百分比（無限制時隱藏）",
         "descEXPIRE_DATE": "到期日期（YYYY-MM-DD）",
+        "descJALALI_EXPIRE_DATE": "Jalali 曆的到期日期（YYYY/MM/DD）",
         "descEXPIRE_UNIX": "到期時間（Unix 時間戳記，秒）",
         "descCREATED_UNIX": "建立時間（Unix 時間戳記，秒）",
-        "descRESET_DAYS": "流量重置週期（天）"
+        "descRESET_DAYS": "流量重置週期（天）",
+        "descPROTOCOL": "入站協定（VLESS、VMess、Trojan…）",
+        "descTRANSPORT": "傳輸網路（tcp、ws、grpc…）",
+        "descSECURITY": "傳輸安全（TLS、REALITY、NONE）"
       },
       "toasts": {
         "list": "載入 Host 失敗",

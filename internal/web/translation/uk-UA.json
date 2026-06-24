@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "Клієнт",
           "traffic": "Трафік",
-          "time": "Час і статус"
+          "time": "Час і статус",
+          "connection": "З'єднання"
         },
         "descEMAIL": "Email клієнта",
         "descINBOUND": "Власна примітка вхідного (назва конфігурації)",
@@ -1840,11 +1841,18 @@
         "descUP": "Вихідний трафік",
         "descDOWN": "Вхідний трафік",
         "descSTATUS": "active / expired / disabled / depleted",
+        "descSTATUS_EMOJI": "Статус у вигляді емодзі (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Днів до закінчення (прихований, якщо безлімітний)",
+        "descTIME_LEFT": "Залишок часу (напр. 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Використаний трафік у відсотках (прихований, якщо безлімітний)",
         "descEXPIRE_DATE": "Дата закінчення (YYYY-MM-DD)",
+        "descJALALI_EXPIRE_DATE": "Дата закінчення за календарем Jalali (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "Закінчення як мітка часу Unix (секунди)",
         "descCREATED_UNIX": "Час створення як мітка часу Unix (секунди)",
-        "descRESET_DAYS": "Період скидання трафіку в днях"
+        "descRESET_DAYS": "Період скидання трафіку в днях",
+        "descPROTOCOL": "Протокол вхідного (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Транспортна мережа (tcp, ws, grpc, …)",
+        "descSECURITY": "Безпека транспорту (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Не вдалося завантажити хости",

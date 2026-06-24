@@ -1821,7 +1821,8 @@
         "groups": {
           "client": "Kullanıcı",
           "traffic": "Trafik",
-          "time": "Zaman ve durum"
+          "time": "Zaman ve durum",
+          "connection": "Bağlantı"
         },
         "descEMAIL": "Kullanıcı e-postası",
         "descINBOUND": "Gelen bağlantının kendi açıklaması (yapılandırma adı)",
@@ -1840,11 +1841,18 @@
         "descUP": "Yükleme trafiği",
         "descDOWN": "İndirme trafiği",
         "descSTATUS": "aktif / süresi dolmuş / devre dışı / tükenmiş",
+        "descSTATUS_EMOJI": "Emoji olarak durum (✅ ⏳ 🚫)",
         "descDAYS_LEFT": "Süre dolana kadar kalan gün (sınırsızsa gizlenir)",
+        "descTIME_LEFT": "Kalan süre (örn. 12d 4h 30m)",
+        "descUSAGE_PERCENTAGE": "Kullanılan trafik yüzde olarak (sınırsızsa gizlenir)",
         "descEXPIRE_DATE": "Son kullanma tarihi (YYYY-AA-GG)",
+        "descJALALI_EXPIRE_DATE": "Celali takvimine göre son kullanma tarihi (YYYY/MM/DD)",
         "descEXPIRE_UNIX": "Son kullanma Unix zaman damgası olarak (saniye)",
         "descCREATED_UNIX": "Oluşturulma zamanı Unix zaman damgası olarak (saniye)",
-        "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)"
+        "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)",
+        "descPROTOCOL": "Gelen bağlantı protokolü (VLESS, VMess, Trojan, …)",
+        "descTRANSPORT": "Taşıma ağı (tcp, ws, grpc, …)",
+        "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)"
       },
       "toasts": {
         "list": "Host'lar yüklenemedi",
