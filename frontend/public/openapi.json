@@ -4253,9 +4253,6 @@
             "application/json": {
               "schema": {
                 "type": "object"
-              },
-              "example": {
-                "dev": true
               }
             }
           }
