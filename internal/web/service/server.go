@@ -2064,9 +2064,32 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		return nil, err
 	}
 
+	auths := parseVlessEncAuths(out.String())
+	auths = append(auths, deriveVlessEncModes(auths)...)
+
 	return map[string]any{
-		"auths": parseVlessEncAuths(out.String()),
+		"auths": auths,
 	}, nil
+}
+
+func deriveVlessEncModes(auths []map[string]string) []map[string]string {
+	var extra []map[string]string
+	for _, a := range auths {
+		for _, mode := range []string{"xorpub", "random"} {
+			dec := strings.Replace(a["decryption"], ".native.", "."+mode+".", 1)
+			enc := strings.Replace(a["encryption"], ".native.", "."+mode+".", 1)
+			if dec == a["decryption"] && enc == a["encryption"] {
+				continue
+			}
+			extra = append(extra, map[string]string{
+				"id":         a["id"] + "_" + mode,
+				"label":      a["label"] + " (" + mode + ")",
+				"decryption": dec,
+				"encryption": enc,
+			})
+		}
+	}
+	return extra
 }
 
 func parseVlessEncAuths(output string) []map[string]string {
