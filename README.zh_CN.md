@@ -89,17 +89,15 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 完整文档请参阅 [项目Wiki](https://github.com/MHSanaei/3x-ui/wiki)。
 
-### 无人值守安装与云镜像
+### 无人值守安装
 
-安装程序也可以**非交互式**运行，适用于 cloud-init 和黄金镜像（golden image）。
+安装程序也可以**非交互式**运行，适用于 cloud-init。
 设置 `XUI_NONINTERACTIVE=1`（或在无 TTY 的情况下通过管道传入），它就会全程
 零提示地完成端到端安装，生成随机凭据并写入
 `/etc/x-ui/install-result.env`。请参阅 [`deploy/`](deploy/)：
 
 - [Cloud-init user-data](deploy/cloud-init/) — 在任意云平台上无人值守安装（Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle）
-- [Packer golden image](deploy/packer/) — 构建 AWS EC2 AMI + qcow2（amd64/arm64），首次启动时生成每个实例独有的凭据
-- [Amazon Lightsail](deploy/lightsail/) — 启动脚本 + 可复用的快照构建器
-- [AWS Marketplace 清单](deploy/marketplace/aws/)
+- [Hetzner Cloud 说明](deploy/marketplace/hetzner/) — 在 Hetzner 上基于 cloud-init 的部署
 
 ## 支持的平台
 

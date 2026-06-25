@@ -89,17 +89,15 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/MHSanaei/3x-ui/wiki).
 
-### التثبيت غير التفاعلي وصور السحابة
+### التثبيت غير التفاعلي
 
-يعمل المثبِّت أيضًا **بشكل غير تفاعلي** لـ cloud-init والصور الجاهزة (golden images).
+يعمل المثبِّت أيضًا **بشكل غير تفاعلي** لـ cloud-init.
 عيّن `XUI_NONINTERACTIVE=1` (أو مرّره عبر أنبوب دون TTY) وسيتولى التثبيت من البداية إلى النهاية
 دون أي مطالبات، مُنشئًا بيانات اعتماد عشوائية وكاتبًا إياها في
 `/etc/x-ui/install-result.env`. راجع [`deploy/`](deploy/) لـ:
 
 - [بيانات مستخدم cloud-init](deploy/cloud-init/) — تثبيت غير تفاعلي على أي سحابة (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [صورة Packer الجاهزة](deploy/packer/) — بناء صورة AWS EC2 AMI و qcow2 (amd64/arm64) مع بيانات اعتماد لكل نسخة يتم إنشاؤها عند الإقلاع الأول
-- [Amazon Lightsail](deploy/lightsail/) — سكربت إطلاق وأداة بناء لقطات قابلة لإعادة الاستخدام
-- [قائمة تحقق AWS Marketplace](deploy/marketplace/aws/)
+- [ملاحظات Hetzner Cloud](deploy/marketplace/hetzner/) — نشر يعتمد على cloud-init على Hetzner
 
 ## المنصات المدعومة
 

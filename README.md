@@ -89,17 +89,15 @@ During installation a random username, password, and access path are generated. 
 
 For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
 
-### Unattended install & cloud images
+### Unattended install
 
-The installer also runs **non-interactively** for cloud-init and golden images.
+The installer also runs **non-interactively** for cloud-init.
 Set `XUI_NONINTERACTIVE=1` (or pipe with no TTY) and it installs end-to-end with
 zero prompts, generating random credentials and writing them to
 `/etc/x-ui/install-result.env`. See [`deploy/`](deploy/) for:
 
 - [Cloud-init user-data](deploy/cloud-init/) — unattended install on any cloud (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Packer golden image](deploy/packer/) — build an AWS EC2 AMI + qcow2 (amd64/arm64) with per-instance credentials generated on first boot
-- [Amazon Lightsail](deploy/lightsail/) — launch script + reusable snapshot builder
-- [AWS Marketplace checklist](deploy/marketplace/aws/)
+- [Hetzner Cloud notes](deploy/marketplace/hetzner/) — cloud-init deployment on Hetzner
 
 ## Supported Platforms
 

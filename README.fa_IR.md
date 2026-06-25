@@ -89,17 +89,15 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 برای مستندات کامل، لطفاً به [ویکی پروژه](https://github.com/MHSanaei/3x-ui/wiki) مراجعه کنید.
 
-### نصب بدون نظارت و ایمیج‌های ابری
+### نصب بدون نظارت
 
-نصب‌کننده به‌صورت **غیرتعاملی** نیز برای cloud-init و ایمیج‌های آماده (golden images) اجرا می‌شود.
+نصب‌کننده به‌صورت **غیرتعاملی** نیز برای cloud-init اجرا می‌شود.
 ‏`XUI_NONINTERACTIVE=1` را تنظیم کنید (یا بدون TTY از طریق pipe اجرا کنید) تا نصب به‌صورت سرتاسری و بدون
 هیچ پرسشی انجام شود، اطلاعات ورود تصادفی تولید کرده و آن‌ها را در
 `/etc/x-ui/install-result.env` می‌نویسد. برای موارد زیر به [`deploy/`](deploy/) مراجعه کنید:
 
 - [user-data مربوط به Cloud-init](deploy/cloud-init/) — نصب بدون نظارت روی هر ابری (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [ایمیج آماده‌ی Packer](deploy/packer/) — ساخت یک AMI برای AWS EC2 به‌همراه qcow2 (amd64/arm64) با اطلاعات ورودِ مخصوص هر اینستنس که در نخستین بوت تولید می‌شود
-- [Amazon Lightsail](deploy/lightsail/) — اسکریپت راه‌اندازی به‌همراه سازنده‌ی اسنپ‌شات قابل‌استفاده‌ی مجدد
-- [چک‌لیست AWS Marketplace](deploy/marketplace/aws/)
+- [یادداشت‌های Hetzner Cloud](deploy/marketplace/hetzner/) — استقرار مبتنی بر cloud-init روی Hetzner
 
 ## پلتفرم‌های پشتیبانی‌شده
 

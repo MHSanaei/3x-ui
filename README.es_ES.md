@@ -89,17 +89,15 @@ Durante la instalación se generan un nombre de usuario, una contraseña y una r
 
 Para la documentación completa, visita la [Wiki del proyecto](https://github.com/MHSanaei/3x-ui/wiki).
 
-### Instalación desatendida e imágenes de nube
+### Instalación desatendida
 
-El instalador también se ejecuta de forma **no interactiva** para cloud-init e imágenes doradas (golden images).
+El instalador también se ejecuta de forma **no interactiva** para cloud-init.
 Define `XUI_NONINTERACTIVE=1` (o canalízalo sin TTY) y realizará la instalación de principio a fin sin
 ninguna pregunta, generando credenciales aleatorias y escribiéndolas en
 `/etc/x-ui/install-result.env`. Consulta [`deploy/`](deploy/) para:
 
 - [User-data de cloud-init](deploy/cloud-init/) — instalación desatendida en cualquier nube (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Imagen dorada de Packer](deploy/packer/) — crea una AMI de AWS EC2 + qcow2 (amd64/arm64) con credenciales por instancia generadas en el primer arranque
-- [Amazon Lightsail](deploy/lightsail/) — script de lanzamiento + constructor de snapshots reutilizable
-- [Lista de verificación de AWS Marketplace](deploy/marketplace/aws/)
+- [Notas de Hetzner Cloud](deploy/marketplace/hetzner/) — despliegue basado en cloud-init en Hetzner
 
 ## Plataformas Compatibles
 

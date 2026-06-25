@@ -1,12 +1,8 @@
-# 3x-ui via cloud-init (generic, no golden image)
+# 3x-ui via cloud-init
 
-This is the **secondary** deployment path: a single [`cloud-init.yaml`](cloud-init.yaml)
-user-data file that installs 3x-ui non-interactively on a fresh Ubuntu/Debian
-VM and generates **unique random credentials per instance**. Use it when you do
-not want to build a golden image — it works on any cloud-init platform.
-
-> For AWS Marketplace / reusable images, use the Packer build in
-> [`../packer/`](../packer/) instead.
+A single [`cloud-init.yaml`](cloud-init.yaml) user-data file that installs 3x-ui
+non-interactively on a fresh Ubuntu/Debian VM and generates **unique random
+credentials per instance**. It works on any cloud-init platform.
 
 ## How it works
 
@@ -53,7 +49,6 @@ Edit the `export XUI_*` lines inside the `write_files` block of
   `hcloud server create --image ubuntu-24.04 --user-data-from-file cloud-init.yaml ...`
 - **AWS EC2** — *Advanced details → User data*: paste the file. Or
   `aws ec2 run-instances --user-data file://cloud-init.yaml ...`
-  (For a reusable Marketplace image use the Packer AMI build instead.)
 - **DigitalOcean** — *Create Droplet → Advanced options → Add Initialization
   scripts (user data)*: paste the file. Or `doctl compute droplet create --user-data-file cloud-init.yaml ...`
 - **Vultr** — *Deploy → Additional Features → Cloud-Init User-Data*: paste the file.

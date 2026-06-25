@@ -89,17 +89,15 @@ Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşt
 
 Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHSanaei/3x-ui/wiki) ziyaret edin.
 
-### Etkileşimsiz kurulum ve hazır bulut imajları
+### Etkileşimsiz kurulum
 
-Yükleyici, cloud-init ve hazır (golden) imajlar için **etkileşimsiz** olarak da çalışır.
+Yükleyici, cloud-init için **etkileşimsiz** olarak da çalışır.
 `XUI_NONINTERACTIVE=1` ayarlayın (veya TTY olmadan boru hattına aktarın); kurulum baştan
 sona hiçbir soru sormadan tamamlanır, rastgele kimlik bilgileri oluşturup bunları
 `/etc/x-ui/install-result.env` dosyasına yazar. Şunlar için [`deploy/`](deploy/) klasörüne bakın:
 
 - [Cloud-init user-data](deploy/cloud-init/) — herhangi bir bulutta etkileşimsiz kurulum (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Packer hazır imajı](deploy/packer/) — ilk açılışta her örnek (instance) için kimlik bilgileri oluşturan bir AWS EC2 AMI + qcow2 (amd64/arm64) imajı oluşturun
-- [Amazon Lightsail](deploy/lightsail/) — başlatma betiği + yeniden kullanılabilir anlık görüntü (snapshot) oluşturucu
-- [AWS Marketplace kontrol listesi](deploy/marketplace/aws/)
+- [Hetzner Cloud notları](deploy/marketplace/hetzner/) — Hetzner üzerinde cloud-init tabanlı dağıtım
 
 ## Desteklenen Platformlar
 

@@ -89,17 +89,15 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 Полную документацию смотрите в [вики проекта](https://github.com/MHSanaei/3x-ui/wiki).
 
-### Автоматическая установка и облачные образы
+### Автоматическая установка
 
-Установщик также работает в **неинтерактивном** режиме для cloud-init и готовых образов.
+Установщик также работает в **неинтерактивном** режиме для cloud-init.
 Задайте `XUI_NONINTERACTIVE=1` (или передайте по конвейеру без TTY), и установка пройдёт от начала до конца
 без единого запроса: будут сгенерированы случайные учётные данные и записаны в
 `/etc/x-ui/install-result.env`. Смотрите [`deploy/`](deploy/) для:
 
 - [Cloud-init user-data](deploy/cloud-init/) — автоматическая установка в любом облаке (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Готовый образ Packer](deploy/packer/) — сборка AWS EC2 AMI + qcow2 (amd64/arm64) с учётными данными для каждого экземпляра, генерируемыми при первой загрузке
-- [Amazon Lightsail](deploy/lightsail/) — скрипт запуска + переиспользуемый сборщик снимков
-- [Чек-лист для AWS Marketplace](deploy/marketplace/aws/)
+- [Заметки по Hetzner Cloud](deploy/marketplace/hetzner/) — развёртывание на Hetzner на базе cloud-init
 
 ## Поддерживаемые платформы
 
