@@ -610,9 +610,13 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// Application stats
-	var rtm runtime.MemStats
-	runtime.ReadMemStats(&rtm)
-	status.AppStats.Mem = rtm.Sys
+	if rss := sys.SelfRSS(); rss > 0 {
+		status.AppStats.Mem = rss
+	} else {
+		var rtm runtime.MemStats
+		runtime.ReadMemStats(&rtm)
+		status.AppStats.Mem = rtm.Sys
+	}
 	status.AppStats.Threads = uint32(runtime.NumGoroutine())
 	if p != nil && p.IsRunning() {
 		status.AppStats.Uptime = p.GetUptime()

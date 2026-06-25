@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -393,6 +394,10 @@ func (s *Server) startTask(restartXray bool) {
 	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
 	if s.memoryAlarmWanted() {
 		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+	}
+
+	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
+		s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
 	}
 }
 

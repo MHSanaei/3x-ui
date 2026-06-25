@@ -1,27 +1,59 @@
 package sys
 
 import (
+	"fmt"
 	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
-
-	"github.com/shirou/gopsutil/v4/mem"
 )
 
-// memLimitHeadroomPercent is the share of detected memory used for the soft
-// limit, leaving room for non-heap (stacks, mmap, the xray child) before the OS
-// OOM-kills the process.
-const memLimitHeadroomPercent = 90
+const (
+	memLimitHeadroomPercent = 90
+	defaultGCPercent        = 75
+	defaultReleaseMinutes   = 10
+)
 
-// ApplyMemoryLimit sets a Go soft memory limit (the runtime's GOMEMLIMIT) when
-// one is not already configured, so a long-running panel in a memory-capped
-// container or VPS triggers GC as it approaches the cap instead of growing RSS
-// until the OS OOM-kills it. Precedence: an explicit GOMEMLIMIT env is left to
-// the runtime; otherwise XUI_MEMORY_LIMIT (in MiB) wins; otherwise the limit is
-// derived from the cgroup memory limit, falling back to total system RAM.
-// Returns the limit applied in bytes (0 when none) and a short source label.
-func ApplyMemoryLimit() (int64, string) {
+// ApplyMemoryTuning configures the Go runtime for a lower, steadier footprint and
+// returns one log line per decision. It does NOT derive a soft limit from total
+// system RAM: on a shared or uncontrolled host that gives no benefit (GOGC, not
+// the limit, paces GC while the heap is far below it) and risks GC thrashing, so
+// memory is kept low via GOGC plus the periodic release job instead.
+func ApplyMemoryTuning() []string {
+	lines := []string{applyGCPercent()}
+	if limit, source := applyMemoryLimit(); limit > 0 {
+		lines = append(lines, fmt.Sprintf("Go memory soft limit set to %d MiB (%s)", limit>>20, source))
+	} else {
+		lines = append(lines, "Go memory soft limit not enforced: "+source)
+	}
+	return lines
+}
+
+// applyGCPercent lowers GOGC so the heap high-water mark, and thus RSS, stays
+// smaller. An explicit GOGC env (including GOGC=off) is left to the runtime.
+func applyGCPercent() string {
+	if _, ok := os.LookupEnv("GOGC"); ok {
+		return "GC percent: GOGC env (handled by the Go runtime)"
+	}
+
+	pct := defaultGCPercent
+	if v := strings.TrimSpace(os.Getenv("XUI_GOGC")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			pct = n
+		}
+	}
+
+	if pct <= 0 {
+		return "GC percent left at Go default"
+	}
+	debug.SetGCPercent(pct)
+	return fmt.Sprintf("GC percent set to %d", pct)
+}
+
+// applyMemoryLimit sets the soft limit only from an explicit budget: GOMEMLIMIT
+// env (left to the runtime), XUI_MEMORY_LIMIT in MiB, or a real cgroup limit at
+// 90% to leave headroom for non-heap and the xray child. No budget -> Go default.
+func applyMemoryLimit() (int64, string) {
 	if strings.TrimSpace(os.Getenv("GOMEMLIMIT")) != "" {
 		return 0, "GOMEMLIMIT env (handled by the Go runtime)"
 	}
@@ -34,28 +66,32 @@ func ApplyMemoryLimit() (int64, string) {
 		}
 	}
 
-	total, source := detectAvailableMemory()
-	if total <= 0 {
-		return 0, "undetectable; left at Go default"
+	if v, ok := cgroupMemoryLimit(); ok {
+		limit := v / 100 * memLimitHeadroomPercent
+		debug.SetMemoryLimit(limit)
+		return limit, "cgroup limit"
 	}
-	limit := total / 100 * memLimitHeadroomPercent
-	debug.SetMemoryLimit(limit)
-	return limit, source
+
+	return 0, "no explicit budget; soft limit left at Go default"
 }
 
-func detectAvailableMemory() (int64, string) {
-	if v, ok := cgroupMemoryLimit(); ok {
-		return v, "cgroup limit"
+// MemoryReleaseIntervalMinutes reports how often freed heap memory is returned to
+// the OS via debug.FreeOSMemory. XUI_MEMORY_RELEASE_INTERVAL overrides the
+// default; an explicit 0 disables the periodic release.
+func MemoryReleaseIntervalMinutes() int {
+	v := strings.TrimSpace(os.Getenv("XUI_MEMORY_RELEASE_INTERVAL"))
+	if v == "" {
+		return defaultReleaseMinutes
 	}
-	if vm, err := mem.VirtualMemory(); err == nil && vm.Total > 0 {
-		return int64(vm.Total), "system RAM"
+	if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+		return n
 	}
-	return 0, ""
+	return defaultReleaseMinutes
 }
 
 // cgroupMemoryLimit reads the container memory limit from cgroup v2 then v1.
 // A "max" value or the v1 unlimited sentinel (~8 EiB) means no limit at this
-// level, so it reports not-found and the caller falls back to system RAM. The
+// level, so it reports not-found and the caller falls back to the Go default. The
 // files are absent off Linux, which also yields not-found.
 func cgroupMemoryLimit() (int64, bool) {
 	const unlimited = int64(1) << 62

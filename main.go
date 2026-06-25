@@ -53,10 +53,8 @@ func runWebServer() {
 
 	godotenv.Load()
 
-	if limit, source := sys.ApplyMemoryLimit(); limit > 0 {
-		logger.Infof("Go memory soft limit set to %d MiB (%s)", limit>>20, source)
-	} else {
-		logger.Info("Go memory soft limit not enforced: ", source)
+	for _, line := range sys.ApplyMemoryTuning() {
+		logger.Info(line)
 	}
 
 	if os.Getenv("XUI_PPROF") == "true" {
