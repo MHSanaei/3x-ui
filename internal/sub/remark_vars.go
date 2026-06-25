@@ -441,6 +441,13 @@ func (s *SubService) statsForClient(inbound *model.Inbound, client model.Client)
 	if stats, ok := s.statsByEmail[client.Email]; ok {
 		return stats
 	}
+	// Both in-memory paths key off client_traffics.inbound_id, which goes stale
+	// when an inbound is deleted and recreated, orphaning the row from every
+	// loaded inbound. Fall back to a direct lookup by the globally-unique email
+	// so usage still resolves for clients predating that recreation (#5567).
+	if stats, ok := s.statsByEmailFromDB(client.Email); ok {
+		return stats
+	}
 	return xray.ClientTraffic{
 		Enable:     client.Enable,
 		ExpiryTime: client.ExpiryTime,

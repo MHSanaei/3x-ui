@@ -1665,6 +1665,32 @@ func (s *SubService) findClientStats(inbound *model.Inbound, email string) (xray
 	return xray.ClientTraffic{}, false
 }
 
+// statsByEmailFromDB resolves a client's traffic row straight from the DB by its
+// globally-unique email, caching the hit into statsByEmail for the rest of the
+// request. It's the last-resort lookup behind statsForClient: the preloaded
+// ClientStats and the statsByEmail index are both keyed by
+// client_traffics.inbound_id, which is written once by AddClientStat and never
+// updated. When an inbound is deleted and recreated it gets a new id, so the old
+// row is orphaned from every loaded inbound and both in-memory paths miss —
+// leaving {{TRAFFIC_USED}} stuck at 0 for pre-existing clients even though their
+// usage is intact (#5567). Matching by email recovers it, the same way the
+// sub-info header's AggregateTrafficByEmails already does.
+func (s *SubService) statsByEmailFromDB(email string) (xray.ClientTraffic, bool) {
+	db := database.GetDB()
+	if db == nil {
+		return xray.ClientTraffic{}, false
+	}
+	var row xray.ClientTraffic
+	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).First(&row).Error; err != nil {
+		return xray.ClientTraffic{}, false
+	}
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	s.statsByEmail[email] = row
+	return row, true
+}
+
 func searchKey(data any, key string) (any, bool) {
 	switch val := data.(type) {
 	case map[string]any:
