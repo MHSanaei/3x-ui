@@ -137,10 +137,13 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
         const tss: number[] = [];
         for (const p of msg.obj) {
           const d = new Date(p.t * 1000);
+          const MM = String(d.getMonth() + 1).padStart(2, '0');
+          const DD = String(d.getDate()).padStart(2, '0');
           const hh = String(d.getHours()).padStart(2, '0');
           const mm = String(d.getMinutes()).padStart(2, '0');
           const ss = String(d.getSeconds()).padStart(2, '0');
-          labs.push(bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`);
+          const lab = bucket >= 2880 ? `${MM}-${DD} ${hh}:${mm}` : bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
+          labs.push(lab);
           vals.push(Number(p.v) || 0);
           tss.push(Number(p.t) || 0);
         }
@@ -208,14 +211,13 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
             onChange={setBucket}
             options={[
               { value: 2, label: '2m' },
-              { value: 30, label: '30m' },
               { value: 60, label: '1h' },
-              { value: 120, label: '2h' },
               { value: 180, label: '3h' },
-              { value: 300, label: '5h' },
+              { value: 360, label: '6h' },
               { value: 720, label: '12h' },
               { value: 1440, label: '24h' },
-              { value: 2880, label: '48h' },
+              { value: 2880, label: '2d' },
+              { value: 10080, label: '7d' },
             ]}
           />
         </div>

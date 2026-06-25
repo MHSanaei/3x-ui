@@ -398,6 +398,10 @@ func (s *Server) startTask(restartXray bool) {
 
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
 		s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
+		go func() {
+			time.Sleep(time.Minute)
+			job.NewMemoryReleaseJob().Run()
+		}()
 	}
 }
 
