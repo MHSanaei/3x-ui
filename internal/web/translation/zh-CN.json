@@ -245,6 +245,7 @@
       "geodataEmpty": "尚未配置文件。路由规则中可通过 ext:geosite_custom.dat:category 引用文件。",
       "dontRefresh": "安装中，请勿刷新此页面",
       "logs": "日志",
+      "accessLogs": "访问日志",
       "config": "配置",
       "backup": "备份",
       "backupTitle": "备份和恢复",

@@ -245,6 +245,7 @@
       "geodataEmpty": "Chưa cấu hình tệp nào. Trong quy tắc định tuyến, tham chiếu tệp dạng ext:geosite_custom.dat:category.",
       "dontRefresh": "Đang tiến hành cài đặt, vui lòng không làm mới trang này.",
       "logs": "Nhật ký",
+      "accessLogs": "Nhật ký truy cập",
       "config": "Cấu hình",
       "backup": "Sao lưu",
       "backupTitle": "Sao lưu & Khôi phục",

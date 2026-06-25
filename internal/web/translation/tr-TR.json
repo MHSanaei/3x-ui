@@ -245,6 +245,7 @@
       "geodataEmpty": "Yapılandırılmış dosya yok. Yönlendirme kurallarında dosyalar ext:geosite_custom.dat:category olarak kullanılır.",
       "dontRefresh": "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin",
       "logs": "Günlükler",
+      "accessLogs": "Erişim Günlükleri",
       "config": "Yapılandırma",
       "backup": "Yedek",
       "backupTitle": "Yedekleme ve Geri Yükleme",

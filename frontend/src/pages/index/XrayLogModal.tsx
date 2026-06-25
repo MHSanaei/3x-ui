@@ -117,7 +117,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       onCancel={onClose}
       title={
         <>
-          {t('pages.index.logs')}
+          {t('pages.index.accessLogs')}
           <SyncOutlined spin={loading} className="reload-icon" onClick={refresh} />
         </>
       }

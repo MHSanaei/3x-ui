@@ -245,6 +245,7 @@
       "geodataEmpty": "لا توجد ملفات مهيأة. في قواعد التوجيه يُشار إلى الملفات بالشكل ext:geosite_custom.dat:category.",
       "dontRefresh": "التثبيت شغال، متعملش Refresh للصفحة",
       "logs": "السجلات",
+      "accessLogs": "سجلات الوصول",
       "config": "الإعدادات",
       "backup": "نسخ احتياطي",
       "backupTitle": "نسخ احتياطي واستعادة",

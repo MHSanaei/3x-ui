@@ -245,6 +245,7 @@
       "geodataEmpty": "No hay archivos configurados. En las reglas de enrutamiento se referencian como ext:geosite_custom.dat:category.",
       "dontRefresh": "La instalación está en progreso, por favor no actualices esta página.",
       "logs": "Registros",
+      "accessLogs": "Registros de acceso",
       "config": "Configuración",
       "backup": "Copia de seguridad",
       "backupTitle": "Copia & Restauración",

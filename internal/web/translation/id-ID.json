@@ -245,6 +245,7 @@
       "geodataEmpty": "Belum ada berkas yang dikonfigurasi. Pada aturan routing, rujuk berkas sebagai ext:geosite_custom.dat:category.",
       "dontRefresh": "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini",
       "logs": "Log",
+      "accessLogs": "Log Akses",
       "config": "Konfigurasi",
       "backup": "Cadangan",
       "backupTitle": "Cadangan & Pulihkan",

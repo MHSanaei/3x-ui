@@ -245,6 +245,7 @@
       "geodataEmpty": "ファイルが設定されていません。ルーティングルールでは ext:geosite_custom.dat:category の形式で参照します。",
       "dontRefresh": "インストール中、このページをリロードしないでください",
       "logs": "ログ",
+      "accessLogs": "アクセスログ",
       "config": "設定",
       "backup": "バックアップ",
       "backupTitle": "バックアップと復元",

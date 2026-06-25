@@ -245,6 +245,7 @@
       "geodataEmpty": "No files configured. Reference files in routing rules as ext:geosite_custom.dat:category.",
       "dontRefresh": "Installation is in progress, please do not refresh this page",
       "logs": "Logs",
+      "accessLogs": "Access Logs",
       "config": "Config",
       "backup": "Backup",
       "backupTitle": "Backup & Restore",
