@@ -30,7 +30,7 @@
     "axios": "^1.18.1",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.21",
-    "i18next": "^26.3.1",
+    "i18next": "^26.3.2",
     "otpauth": "^9.5.1",
     "persian-calendar-suite": "^1.5.5",
     "qs": "^6.15.2",
