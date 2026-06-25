@@ -246,6 +246,7 @@
       "dontRefresh": "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini",
       "logs": "Log",
       "accessLogs": "Log Akses",
+      "autoUpdate": "Pembaruan Otomatis",
       "config": "Konfigurasi",
       "backup": "Cadangan",
       "backupTitle": "Cadangan & Pulihkan",

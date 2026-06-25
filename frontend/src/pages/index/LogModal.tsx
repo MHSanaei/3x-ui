@@ -13,12 +13,15 @@ interface LogModalProps {
   onClose: () => void;
 }
 
+const AUTO_UPDATE_INTERVAL = 5000;
+
 export default function LogModal({ open, onClose }: LogModalProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [rows, setRows] = useState('20');
   const [level, setLevel] = useState('info');
   const [syslog, setSyslog] = useState(false);
+  const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const openRef = useRef(open);
@@ -39,6 +42,11 @@ export default function LogModal({ open, onClose }: LogModalProps) {
     }
   }, [rows, level, syslog]);
 
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
   useEffect(() => {
     openRef.current = open;
     if (open) refresh();
@@ -47,6 +55,12 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   useEffect(() => {
     if (openRef.current) refresh();
   }, [rows, level, syslog, refresh]);
+
+  useEffect(() => {
+    if (!open || !autoUpdate) return;
+    const id = setInterval(() => refreshRef.current(), AUTO_UPDATE_INTERVAL);
+    return () => clearInterval(id);
+  }, [open, autoUpdate]);
 
   const parsedLogs = useMemo(() => logs.map(parseLogLine), [logs]);
 
@@ -105,6 +119,9 @@ export default function LogModal({ open, onClose }: LogModalProps) {
         <Form.Item>
           <Checkbox checked={syslog} onChange={(e) => setSyslog(e.target.checked)}>
             SysLog
+          </Checkbox>
+          <Checkbox checked={autoUpdate} onChange={(e) => setAutoUpdate(e.target.checked)}>
+            {t('pages.index.autoUpdate')}
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">

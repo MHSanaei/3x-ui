@@ -246,6 +246,7 @@
       "dontRefresh": "インストール中、このページをリロードしないでください",
       "logs": "ログ",
       "accessLogs": "アクセスログ",
+      "autoUpdate": "自動更新",
       "config": "設定",
       "backup": "バックアップ",
       "backupTitle": "バックアップと復元",

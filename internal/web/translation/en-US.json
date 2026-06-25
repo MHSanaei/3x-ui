@@ -246,6 +246,7 @@
       "dontRefresh": "Installation is in progress, please do not refresh this page",
       "logs": "Logs",
       "accessLogs": "Access Logs",
+      "autoUpdate": "Auto Update",
       "config": "Config",
       "backup": "Backup",
       "backupTitle": "Backup & Restore",

@@ -246,6 +246,7 @@
       "dontRefresh": "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin",
       "logs": "Günlükler",
       "accessLogs": "Erişim Günlükleri",
+      "autoUpdate": "Otomatik Güncelleme",
       "config": "Yapılandırma",
       "backup": "Yedek",
       "backupTitle": "Yedekleme ve Geri Yükleme",

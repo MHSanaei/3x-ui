@@ -246,6 +246,7 @@
       "dontRefresh": "La instalación está en progreso, por favor no actualices esta página.",
       "logs": "Registros",
       "accessLogs": "Registros de acceso",
+      "autoUpdate": "Actualización automática",
       "config": "Configuración",
       "backup": "Copia de seguridad",
       "backupTitle": "Copia & Restauración",

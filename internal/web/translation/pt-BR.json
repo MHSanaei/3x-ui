@@ -246,6 +246,7 @@
       "dontRefresh": "Instalação em andamento, por favor não atualize a página",
       "logs": "Logs",
       "accessLogs": "Logs de acesso",
+      "autoUpdate": "Atualização automática",
       "config": "Configuração",
       "backup": "Backup",
       "backupTitle": "Backup & Restauração",

@@ -246,6 +246,7 @@
       "dontRefresh": "Đang tiến hành cài đặt, vui lòng không làm mới trang này.",
       "logs": "Nhật ký",
       "accessLogs": "Nhật ký truy cập",
+      "autoUpdate": "Tự động cập nhật",
       "config": "Cấu hình",
       "backup": "Sao lưu",
       "backupTitle": "Sao lưu & Khôi phục",

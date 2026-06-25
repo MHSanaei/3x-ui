@@ -246,6 +246,7 @@
       "dontRefresh": "التثبيت شغال، متعملش Refresh للصفحة",
       "logs": "السجلات",
       "accessLogs": "سجلات الوصول",
+      "autoUpdate": "تحديث تلقائي",
       "config": "الإعدادات",
       "backup": "نسخ احتياطي",
       "backupTitle": "نسخ احتياطي واستعادة",
