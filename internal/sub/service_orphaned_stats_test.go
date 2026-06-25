@@ -27,12 +27,12 @@ func TestStatsForClient_OrphanedInboundIdFallback(t *testing.T) {
 
 	db := database.GetDB()
 	if err := db.Create(&xray.ClientTraffic{
-		InboundId:  999,
-		Email:      email,
-		Up:         15 * gb,
-		Down:       5 * gb,
-		Total:      total,
-		Enable:     true,
+		InboundId: 999,
+		Email:     email,
+		Up:        15 * gb,
+		Down:      5 * gb,
+		Total:     total,
+		Enable:    true,
 	}).Error; err != nil {
 		t.Fatalf("seed orphaned traffic: %v", err)
 	}

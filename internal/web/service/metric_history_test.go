@@ -34,7 +34,7 @@ func TestMetricMemoryFootprint(t *testing.T) {
 
 	oldFlat := retained(func() any {
 		m := make(map[string][]MetricSample, metrics)
-		for i := 0; i < metrics; i++ {
+		for i := range metrics {
 			buf := make([]MetricSample, 86400)
 			fill(buf)
 			m[fmt.Sprintf("m%d", i)] = buf
@@ -44,7 +44,7 @@ func TestMetricMemoryFootprint(t *testing.T) {
 
 	newTiered := retained(func() any {
 		h := newMetricHistory()
-		for i := 0; i < metrics; i++ {
+		for i := range metrics {
 			s := newSeries()
 			for _, tb := range s.tiers {
 				buf := make([]MetricSample, tb.capacity)
@@ -83,7 +83,7 @@ func TestTierBufRollupAveragesClosedBuckets(t *testing.T) {
 
 func TestTierBufRespectsCapacity(t *testing.T) {
 	tb := &tierBuf{resolution: 1, capacity: 5}
-	for i := int64(0); i < 20; i++ {
+	for i := range int64(20) {
 		tb.add(i, float64(i))
 	}
 	if len(tb.samples) != 5 {
@@ -133,7 +133,7 @@ func TestAggregateFineRealtime(t *testing.T) {
 func TestAggregateLongSpanUsesCoarseTier(t *testing.T) {
 	h := newMetricHistory()
 	now := time.Now().Unix()
-	for i := int64(0); i < 200; i++ {
+	for i := range int64(200) {
 		ts := now - (200-i)*600
 		h.append("cpu", time.Unix(ts, 0), float64(i))
 	}
@@ -147,7 +147,7 @@ func TestAggregateLongSpanUsesCoarseTier(t *testing.T) {
 func TestSnapshotRestoreRoundTrip(t *testing.T) {
 	h := newMetricHistory()
 	now := time.Now().Unix()
-	for i := int64(0); i < 10; i++ {
+	for i := range int64(10) {
 		h.append("cpu", time.Unix(now-(9-i)*2, 0), float64(i))
 	}
 

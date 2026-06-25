@@ -367,7 +367,7 @@ func TestMonitorNilRecoverStaysBounded(t *testing.T) {
 
 	monitor := newWithClient(cfg, failingClient(), nil)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		recovered, _ := monitor.Step(context.Background())
 		if recovered {
 			t.Fatal("a nil recovery func must never report recovery")
@@ -402,7 +402,7 @@ func TestMonitorFailuresCappedDuringCooldown(t *testing.T) {
 		t.Fatal("expected recovery once the threshold is reached")
 	}
 
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		monitor.Step(context.Background())
 		if monitor.failures > cfg.FailureThreshold {
 			t.Fatalf("failures must never exceed threshold %d during cooldown, got %d", cfg.FailureThreshold, monitor.failures)
