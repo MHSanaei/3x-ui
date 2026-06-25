@@ -27,6 +27,7 @@ import {
 } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import {
+  CheckCircleOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
   DisconnectOutlined,
@@ -42,6 +43,7 @@ import {
   RetweetOutlined,
   SearchOutlined,
   SortAscendingOutlined,
+  StopOutlined,
   TagsOutlined,
   TeamOutlined,
   UploadOutlined,
@@ -204,7 +206,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
     tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, setExternalLinks, bulkAttach, detach, bulkDetach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkEnable, bulkDisable, bulkAddToGroup, bulkRemoveFromGroup, attach, setExternalLinks, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, delOrphans, exportClients, importClients, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     refresh,
@@ -641,6 +643,35 @@ export default function ClientsPage() {
     });
   }
 
+  function onBulkSetEnable(enable: boolean) {
+    const emails = [...selectedRowKeys];
+    if (emails.length === 0) return;
+    modal.confirm({
+      title: t(enable ? 'pages.clients.bulkEnableConfirmTitle' : 'pages.clients.bulkDisableConfirmTitle', { count: emails.length }),
+      content: t(enable ? 'pages.clients.bulkEnableConfirmContent' : 'pages.clients.bulkDisableConfirmContent'),
+      okText: t('confirm'),
+      okType: enable ? 'primary' : 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = enable ? await bulkEnable(emails) : await bulkDisable(emails);
+        setSelectedRowKeys([]);
+        const changed = msg?.obj?.changed ?? 0;
+        const skipped = msg?.obj?.skipped ?? [];
+        const failed = skipped.length;
+        const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
+        const okKey = enable ? 'pages.clients.toasts.bulkEnabled' : 'pages.clients.toasts.bulkDisabled';
+        const mixedKey = enable ? 'pages.clients.toasts.bulkEnabledMixed' : 'pages.clients.toasts.bulkDisabledMixed';
+        if (failed === 0 && msg?.success) {
+          messageApi.success(t(okKey, { count: changed }));
+        } else {
+          messageApi.warning(firstError
+            ? `${t(mixedKey, { ok: changed, failed })} — ${firstError}`
+            : t(mixedKey, { ok: changed, failed }));
+        }
+      },
+    });
+  }
+
   function onBulkDelete() {
     const emails = [...selectedRowKeys];
     if (emails.length === 0) return;
@@ -1012,28 +1043,14 @@ export default function ClientsPage() {
                               {!isMobile && t('pages.clients.addClients')}
                             </Button>
                           ) : (
-                            <>
-                              <Tag
-                                color="blue"
-                                closable
-                                onClose={() => setSelectedRowKeys([])}
-                                style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
-                              >
-                                {t('pages.clients.selectedCount', { count: selectedRowKeys.length })}
-                              </Tag>
-                              <Button icon={<UsergroupAddOutlined />} onClick={() => setBulkAttachOpen(true)}>
-                                {!isMobile && t('pages.clients.attach')}
-                              </Button>
-                              <Button danger icon={<UsergroupDeleteOutlined />} onClick={() => setBulkDetachOpen(true)}>
-                                {!isMobile && t('pages.clients.detach')}
-                              </Button>
-                              <Button icon={<TagsOutlined />} onClick={() => setBulkGroupOpen(true)}>
-                                {!isMobile && t('pages.clients.addToGroup')}
-                              </Button>
-                              <Button danger icon={<UngroupIcon />} onClick={onBulkUngroup}>
-                                {!isMobile && t('pages.clients.ungroup')}
-                              </Button>
-                            </>
+                            <Tag
+                              color="blue"
+                              closable
+                              onClose={() => setSelectedRowKeys([])}
+                              style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
+                            >
+                              {t('pages.clients.selectedCount', { count: selectedRowKeys.length })}
+                            </Tag>
                           )}
                           <Dropdown
                             trigger={['click']}
@@ -1041,6 +1058,46 @@ export default function ClientsPage() {
                             menu={{
                               items: selectedRowKeys.length > 0
                                 ? [
+                                  {
+                                    key: 'attach',
+                                    icon: <UsergroupAddOutlined />,
+                                    label: t('pages.clients.attach'),
+                                    onClick: () => setBulkAttachOpen(true),
+                                  },
+                                  {
+                                    key: 'detach',
+                                    icon: <UsergroupDeleteOutlined />,
+                                    label: t('pages.clients.detach'),
+                                    danger: true,
+                                    onClick: () => setBulkDetachOpen(true),
+                                  },
+                                  {
+                                    key: 'addToGroup',
+                                    icon: <TagsOutlined />,
+                                    label: t('pages.clients.addToGroup'),
+                                    onClick: () => setBulkGroupOpen(true),
+                                  },
+                                  {
+                                    key: 'ungroup',
+                                    icon: <UngroupIcon />,
+                                    label: t('pages.clients.ungroup'),
+                                    danger: true,
+                                    onClick: onBulkUngroup,
+                                  },
+                                  { type: 'divider' as const },
+                                  {
+                                    key: 'enable',
+                                    icon: <CheckCircleOutlined />,
+                                    label: t('pages.clients.enable'),
+                                    onClick: () => onBulkSetEnable(true),
+                                  },
+                                  {
+                                    key: 'disable',
+                                    icon: <StopOutlined />,
+                                    label: t('pages.clients.disable'),
+                                    danger: true,
+                                    onClick: () => onBulkSetEnable(false),
+                                  },
                                   {
                                     key: 'adjust',
                                     icon: <ClockCircleOutlined />,

@@ -14,6 +14,7 @@ import {
   BulkAttachResultSchema,
   BulkCreateResultSchema,
   BulkDeleteResultSchema,
+  BulkSetEnableResultSchema,
   BulkDetachResultSchema,
   DelDepletedResultSchema,
   type ClientHydrate,
@@ -27,6 +28,7 @@ import {
   type BulkAttachResult,
   type BulkCreateResult,
   type BulkDeleteResult,
+  type BulkSetEnableResult,
   type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
@@ -348,6 +350,15 @@ export function useClients() {
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
+  const bulkSetEnableMut = useMutation({
+    mutationFn: async (payload: { emails: string[]; enable: boolean }): Promise<Msg<BulkSetEnableResult>> => {
+      const path = payload.enable ? '/panel/api/clients/bulkEnable' : '/panel/api/clients/bulkDisable';
+      const raw = await HttpUtil.post(path, { emails: payload.emails }, JSON_HEADERS);
+      return parseMsg(raw, BulkSetEnableResultSchema, payload.enable ? 'clients/bulkEnable' : 'clients/bulkDisable');
+    },
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
   const attachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
       HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, { ...JSON_HEADERS, silentSuccess: true }),
@@ -439,6 +450,14 @@ export function useClients() {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow });
   }, [bulkAdjustMut]);
+  const bulkEnable = useCallback((emails: string[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
+    return bulkSetEnableMut.mutateAsync({ emails, enable: true });
+  }, [bulkSetEnableMut]);
+  const bulkDisable = useCallback((emails: string[]) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
+    return bulkSetEnableMut.mutateAsync({ emails, enable: false });
+  }, [bulkSetEnableMut]);
   const bulkAddToGroup = useCallback((emails: string[], group: string) => {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAddToGroupMut.mutateAsync({ emails, group });
@@ -590,6 +609,8 @@ export function useClients() {
     remove,
     bulkDelete,
     bulkAdjust,
+    bulkEnable,
+    bulkDisable,
     bulkAddToGroup,
     bulkRemoveFromGroup,
     attach,

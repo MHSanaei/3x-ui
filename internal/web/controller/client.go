@@ -64,6 +64,8 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/delDepleted", a.delDepleted)
 	g.POST("/bulkAdjust", a.bulkAdjust)
+	g.POST("/bulkEnable", a.bulkEnable)
+	g.POST("/bulkDisable", a.bulkDisable)
 	g.POST("/bulkDel", a.bulkDelete)
 	g.POST("/bulkCreate", a.bulkCreate)
 	g.POST("/bulkAttach", a.bulkAttach)
@@ -327,6 +329,36 @@ func (a *ClientController) bulkDelete(c *gin.Context) {
 		return
 	}
 	result, needRestart, err := a.clientService.BulkDelete(&a.inboundService, req.Emails, req.KeepTraffic)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	notifyClientsChanged()
+}
+
+type bulkEnableRequest struct {
+	Emails []string `json:"emails"`
+}
+
+func (a *ClientController) bulkEnable(c *gin.Context) {
+	a.bulkSetEnable(c, true)
+}
+
+func (a *ClientController) bulkDisable(c *gin.Context) {
+	a.bulkSetEnable(c, false)
+}
+
+func (a *ClientController) bulkSetEnable(c *gin.Context, enable bool) {
+	var req bulkEnableRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	result, needRestart, err := a.clientService.BulkSetEnable(&a.inboundService, req.Emails, enable)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
