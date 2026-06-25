@@ -253,9 +253,20 @@ uninstall() {
         systemctl reset-failed
     fi
 
+    local panel_used_postgres="false"
+    local db_env_file
+    db_env_file="$(xui_env_file_path)"
+    if [[ -r "$db_env_file" ]] && grep -q '^XUI_DB_TYPE=postgres' "$db_env_file"; then
+        panel_used_postgres="true"
+    fi
+
     rm /etc/x-ui/ -rf
     rm ${xui_folder}/ -rf
-    rm -f "$(xui_env_file_path)"
+    rm -f "$db_env_file"
+
+    if [[ "$panel_used_postgres" == "true" ]] && postgresql_installed; then
+        purge_postgresql
+    fi
 
     echo ""
     echo -e "Uninstalled Successfully.\n"
@@ -2725,6 +2736,63 @@ pg_require_installed() {
         LOGE "PostgreSQL is not installed. Use option 1 (Install PostgreSQL) in this menu first."
         return 1
     fi
+}
+
+# Completely removes the PostgreSQL server and ALL of its databases from the system.
+# Gated behind an explicit confirmation because this is system-wide and irreversible:
+# any other application sharing this PostgreSQL instance loses its data too. Mirrors the
+# package names used by pg_install_local() so the right packages are removed per distro.
+purge_postgresql() {
+    echo ""
+    echo -e "${yellow}This panel was using PostgreSQL.${plain}"
+    echo -e "${red}WARNING:${plain} purging removes the PostgreSQL server and ${red}ALL${plain} of its databases on"
+    echo -e "this machine, including any used by other applications. This cannot be undone."
+    confirm "Also purge PostgreSQL and delete all of its data?" "n"
+    if [[ $? != 0 ]]; then
+        LOGI "Left PostgreSQL installed; its data was not removed."
+        return 0
+    fi
+
+    if [[ $release == "alpine" ]]; then
+        rc-service postgresql stop 2> /dev/null
+        rc-update del postgresql 2> /dev/null
+    else
+        systemctl stop "$(pg_systemd_unit)" 2> /dev/null
+        systemctl disable "$(pg_systemd_unit)" 2> /dev/null
+    fi
+
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get -y --purge remove 'postgresql*'
+            apt-get -y autoremove --purge
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf remove -y postgresql postgresql-server postgresql-contrib
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum remove -y postgresql postgresql-server postgresql-contrib
+            else
+                dnf remove -y postgresql postgresql-server postgresql-contrib
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -Rns --noconfirm postgresql
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q remove -y postgresql postgresql-server postgresql-contrib
+            ;;
+        alpine)
+            apk del postgresql postgresql-contrib postgresql-client
+            ;;
+        *)
+            LOGE "Unsupported distro for automatic PostgreSQL purge: ${release}. Remove it manually."
+            return 1
+            ;;
+    esac
+
+    rm -rf /var/lib/postgresql /var/lib/pgsql /var/lib/postgres /etc/postgresql
+    LOGI "PostgreSQL has been purged."
 }
 
 # Installs a local PostgreSQL server and creates a dedicated xui user/database.
