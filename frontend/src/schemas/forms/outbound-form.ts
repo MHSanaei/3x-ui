@@ -80,6 +80,7 @@ export const HttpOutboundFormSettingsSchema = z.object({
   port: PortSchema.default(8080),
   user: z.string().default(''),
   pass: z.string().default(''),
+  headers: z.record(z.string(), z.string()).default({}),
 });
 export type HttpOutboundFormSettings = z.infer<typeof HttpOutboundFormSettingsSchema>;
 

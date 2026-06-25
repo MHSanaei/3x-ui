@@ -20,6 +20,15 @@ var version string
 //go:embed name
 var name string
 
+// buildCommit and buildDate are injected at build time via `-ldflags -X` for
+// CI per-commit (dev channel) builds; see .github/workflows/release.yml. They
+// stay empty for a plain `go build` and for stable tagged releases, which is how
+// IsDevBuild tells a rolling dev build apart from a stable/local one.
+var (
+	buildCommit string
+	buildDate   string
+)
+
 // LogLevel represents the logging level for the application.
 type LogLevel string
 
@@ -32,14 +41,50 @@ const (
 	Error   LogLevel = "error"
 )
 
-// GetVersion returns the version string of the 3x-ui application.
-func GetVersion() string {
+// GetBaseVersion returns the raw embedded release version of the 3x-ui panel
+// (e.g. "3.4.0"). This is the panel's own version, not the Xray version. For the
+// version a panel advertises/displays (which adds a "dev+<sha>" label on dev
+// builds), use GetPanelVersion.
+func GetBaseVersion() string {
 	return strings.TrimSpace(version)
 }
 
 // GetName returns the name of the 3x-ui application.
 func GetName() string {
 	return strings.TrimSpace(name)
+}
+
+// GetBuildCommit returns the short git commit this binary was built from, or an
+// empty string for a plain/local build or a stable tagged release.
+func GetBuildCommit() string {
+	return strings.TrimSpace(buildCommit)
+}
+
+// GetBuildDate returns the UTC build timestamp injected at build time, or empty.
+func GetBuildDate() string {
+	return strings.TrimSpace(buildDate)
+}
+
+// IsDevBuild reports whether this binary is a CI per-commit (dev channel) build,
+// detected by the injected commit. Stable releases and local builds return false.
+func IsDevBuild() bool {
+	return GetBuildCommit() != ""
+}
+
+// GetPanelVersion returns the version a panel advertises to a managing master
+// node and displays in the UI: the plain version for stable builds, or
+// "dev+<short commit>" for dev builds. The dev form mirrors the master's
+// getPanelUpdateInfo latestVersion so a node on the current dev commit compares
+// as up to date instead of always showing "update available".
+func GetPanelVersion() string {
+	if !IsDevBuild() {
+		return GetBaseVersion()
+	}
+	commit := GetBuildCommit()
+	if len(commit) > 8 {
+		commit = commit[:8]
+	}
+	return "dev+" + commit
 }
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.

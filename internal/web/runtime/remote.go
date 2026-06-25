@@ -538,9 +538,14 @@ func (r *Remote) RestartXray(ctx context.Context) error {
 
 // UpdatePanel asks the node to run its own official self-updater (update.sh)
 // and restart onto the latest release. The node returns as soon as the job is
-// launched; the new version surfaces on the next heartbeat.
-func (r *Remote) UpdatePanel(ctx context.Context) error {
-	_, err := r.do(ctx, http.MethodPost, "panel/api/server/updatePanel", nil)
+// launched; the new version surfaces on the next heartbeat. When dev is true the
+// node is moved to the rolling dev channel instead of the latest stable release.
+func (r *Remote) UpdatePanel(ctx context.Context, dev bool) error {
+	var body any
+	if dev {
+		body = url.Values{"dev": {"true"}}
+	}
+	_, err := r.do(ctx, http.MethodPost, "panel/api/server/updatePanel", body)
 	return err
 }
 

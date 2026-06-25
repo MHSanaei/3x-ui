@@ -1065,6 +1065,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
 		}
 
+		// Re-gate Vision flow now that the new stream/encryption is known: if this
+		// VLESS inbound just became flow-eligible (e.g. vlessenc was enabled on an
+		// XHTTP inbound), restore Vision for clients whose intended flow is Vision
+		// but was stripped while the inbound was ineligible.
+		if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
+			inbound.Settings = restored
+		}
+
 		oldInbound.Total = inbound.Total
 		oldInbound.Remark = inbound.Remark
 		oldInbound.SubSortIndex = inbound.SubSortIndex

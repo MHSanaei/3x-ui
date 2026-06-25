@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
+	"github.com/mhsanaei/3x-ui/v3/internal/tunnelmonitor"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web"
@@ -32,7 +34,7 @@ import (
 
 // runWebServer initializes and starts the web server for the 3x-ui panel.
 func runWebServer() {
-	log.Printf("Starting %v %v", config.GetName(), config.GetVersion())
+	log.Printf("Starting %v %v", config.GetName(), config.GetPanelVersion())
 
 	switch config.GetLogLevel() {
 	case config.Debug:
@@ -91,7 +93,7 @@ func runWebServer() {
 		return
 	}
 
-	sigCh := make(chan os.Signal, 1)
+	sigCh := make(chan os.Signal, 8)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1, os.Interrupt)
 	global.SetRestartHook(func() {
@@ -100,6 +102,27 @@ func runWebServer() {
 		default:
 		}
 	})
+
+	var stopTunnelHealthMonitor context.CancelFunc
+	monitorCfg := tunnelmonitor.ConfigFromEnv()
+	if monitorCfg.Enabled {
+		if monitorCfg.ProxyURL == "" {
+			logger.Warning("Tunnel health monitor enabled without XUI_TUNNEL_HEALTH_PROXY: the probe measures host connectivity, not the xray tunnel, so failures will restart xray without fixing host network issues")
+		}
+
+		monitorCtx, cancel := context.WithCancel(context.Background())
+		stopTunnelHealthMonitor = cancel
+
+		monitor, err := tunnelmonitor.New(monitorCfg, func(_ context.Context) error {
+			logger.Warning("Tunnel health monitor threshold reached, restarting xray-core")
+			return server.RestartXray()
+		})
+		if err != nil {
+			logger.Warning("Tunnel health monitor disabled: ", err)
+		} else {
+			go monitor.Run(monitorCtx)
+		}
+	}
 	for {
 		sig := <-sigCh
 
@@ -142,6 +165,10 @@ func runWebServer() {
 			}
 
 		default:
+			if stopTunnelHealthMonitor != nil {
+				stopTunnelHealthMonitor()
+			}
+
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
 			tgbot.StopBot()
 			// ------------------------------------------------------------
@@ -562,7 +589,7 @@ func main() {
 
 	flag.Parse()
 	if showVersion {
-		fmt.Println(config.GetVersion())
+		fmt.Println(config.GetPanelVersion())
 		return
 	}
 

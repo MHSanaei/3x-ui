@@ -232,6 +232,14 @@
             "description": "Hide server settings in happ subscription (Only for Happ)",
             "type": "boolean"
           },
+          "subIncyEnableRouting": {
+            "description": "Enable routing injection for the Incy client",
+            "type": "boolean"
+          },
+          "subIncyRoutingRules": {
+            "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+            "type": "string"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -457,6 +465,8 @@
           "subEnableRouting",
           "subEncrypt",
           "subHideSettings",
+          "subIncyEnableRouting",
+          "subIncyRoutingRules",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -727,6 +737,14 @@
             "description": "Hide server settings in happ subscription (Only for Happ)",
             "type": "boolean"
           },
+          "subIncyEnableRouting": {
+            "description": "Enable routing injection for the Incy client",
+            "type": "boolean"
+          },
+          "subIncyRoutingRules": {
+            "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+            "type": "string"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -959,6 +977,8 @@
           "subEnableRouting",
           "subEncrypt",
           "subHideSettings",
+          "subIncyEnableRouting",
+          "subIncyRoutingRules",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -4220,6 +4240,46 @@
         }
       }
     },
+    "/panel/api/server/setUpdateChannel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.",
+        "operationId": "post_panel_api_server_setUpdateChannel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/updateGeofile": {
       "post": {
         "tags": [
@@ -5456,7 +5516,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
@@ -5471,7 +5531,8 @@
                   "bob"
                 ],
                 "addDays": 30,
-                "addBytes": 53687091200
+                "addBytes": 53687091200,
+                "flow": "xtls-rprx-vision"
               }
             }
           }
@@ -7379,7 +7440,7 @@
         "tags": [
           "Nodes"
         ],
-        "summary": "Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Returns a per-node result list.",
+        "summary": "Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set \"dev\": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.",
         "operationId": "post_panel_api_nodes_updatePanel",
         "requestBody": {
           "required": true,
@@ -7393,7 +7454,8 @@
                   1,
                   2,
                   3
-                ]
+                ],
+                "dev": false
               }
             }
           }

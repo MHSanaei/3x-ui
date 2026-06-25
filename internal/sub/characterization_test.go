@@ -45,8 +45,8 @@ func TestChar_C1_VlessExternalProxy(t *testing.T) {
 	}`
 	s := &SubService{}
 	got := s.genVlessLink(charVlessInbound(stream), "user")
-	want := "vless://11111111-2222-4333-8444-555555555555@cdn1.example.com:8443?alpn=h3%2Ch2&encryption=none&fp=firefox&pcs=UElO&security=tls&sni=sni1.example.com&type=tcp#char-R1\n" +
-		"vless://11111111-2222-4333-8444-555555555555@cdn2.example.com:80?encryption=none&security=none&type=tcp#char-R2"
+	want := "vless://11111111-2222-4333-8444-555555555555@cdn1.example.com:8443?alpn=h3%2Ch2&encryption=none&fp=firefox&pcs=UElO&security=tls&sni=sni1.example.com&type=tcp#char-R1-user\n" +
+		"vless://11111111-2222-4333-8444-555555555555@cdn2.example.com:80?encryption=none&security=none&type=tcp#char-R2-user"
 	if got != want {
 		t.Fatalf("C1 mismatch.\n got: %q\nwant: %q", got, want)
 	}
@@ -106,8 +106,8 @@ func TestChar_C2_VmessExternalProxy(t *testing.T) {
 	}
 	s := &SubService{}
 	got := s.genVmessLink(in, "user")
-	want := "vmess://ewogICJhZGQiOiAidm0xLmV4YW1wbGUuY29tIiwKICAiYWxwbiI6ICJoMiIsCiAgImZwIjogImNocm9tZSIsCiAgImlkIjogIjExMTExMTExLTIyMjItNDMzMy04NDQ0LTU1NTU1NTU1NTU1NSIsCiAgIm5ldCI6ICJ0Y3AiLAogICJwb3J0IjogODQ0MywKICAicHMiOiAiY2hhci1WMSIsCiAgInNjeSI6ICJhdXRvIiwKICAic25pIjogInNuaTEuZXhhbXBsZS5jb20iLAogICJ0bHMiOiAidGxzIiwKICAidHlwZSI6ICJub25lIiwKICAidiI6ICIyIgp9\n" +
-		"vmess://ewogICJhZGQiOiAidm0yLmV4YW1wbGUuY29tIiwKICAiaWQiOiAiMTExMTExMTEtMjIyMi00MzMzLTg0NDQtNTU1NTU1NTU1NTU1IiwKICAibmV0IjogInRjcCIsCiAgInBvcnQiOiA4MCwKICAicHMiOiAiY2hhci1WMiIsCiAgInNjeSI6ICJhdXRvIiwKICAidGxzIjogIm5vbmUiLAogICJ0eXBlIjogIm5vbmUiLAogICJ2IjogIjIiCn0="
+	want := "vmess://ewogICJhZGQiOiAidm0xLmV4YW1wbGUuY29tIiwKICAiYWxwbiI6ICJoMiIsCiAgImZwIjogImNocm9tZSIsCiAgImlkIjogIjExMTExMTExLTIyMjItNDMzMy04NDQ0LTU1NTU1NTU1NTU1NSIsCiAgIm5ldCI6ICJ0Y3AiLAogICJwb3J0IjogODQ0MywKICAicHMiOiAiY2hhci1WMS11c2VyIiwKICAic2N5IjogImF1dG8iLAogICJzbmkiOiAic25pMS5leGFtcGxlLmNvbSIsCiAgInRscyI6ICJ0bHMiLAogICJ0eXBlIjogIm5vbmUiLAogICJ2IjogIjIiCn0=\n" +
+		"vmess://ewogICJhZGQiOiAidm0yLmV4YW1wbGUuY29tIiwKICAiaWQiOiAiMTExMTExMTEtMjIyMi00MzMzLTg0NDQtNTU1NTU1NTU1NTU1IiwKICAibmV0IjogInRjcCIsCiAgInBvcnQiOiA4MCwKICAicHMiOiAiY2hhci1WMi11c2VyIiwKICAic2N5IjogImF1dG8iLAogICJ0bHMiOiAibm9uZSIsCiAgInR5cGUiOiAibm9uZSIsCiAgInYiOiAiMiIKfQ=="
 	if got != want {
 		t.Fatalf("C2 mismatch.\n got: %q\nwant: %q", got, want)
 	}
@@ -143,7 +143,7 @@ func TestChar_C3_TrojanExternalProxy(t *testing.T) {
 	}
 	s := &SubService{}
 	got := s.genTrojanLink(in, "user")
-	want := "trojan://p%40ss%2Fw%2Brd%3D@tj.example.com:8443?fp=chrome&security=tls&sni=tj.sni&type=tcp#char-TJ"
+	want := "trojan://p%40ss%2Fw%2Brd%3D@tj.example.com:8443?fp=chrome&security=tls&sni=tj.sni&type=tcp#char-TJ-user"
 	if got != want {
 		t.Fatalf("C3-Trojan mismatch.\n got: %q\nwant: %q", got, want)
 	}
@@ -168,7 +168,7 @@ func TestChar_C3_ShadowsocksExternalProxy(t *testing.T) {
 	}
 	s := &SubService{}
 	got := s.genShadowsocksLink(in, "user")
-	want := "ss://2022-blake3-aes-256-gcm:inboundpw:clientpw@ss.example.com:8443?fp=chrome&security=tls&sni=ss.sni&type=tcp#char-SS"
+	want := "ss://2022-blake3-aes-256-gcm:inboundpw:clientpw@ss.example.com:8443?fp=chrome&security=tls&sni=ss.sni&type=tcp#char-SS-user"
 	if got != want {
 		t.Fatalf("C3-SS mismatch.\n got: %q\nwant: %q", got, want)
 	}

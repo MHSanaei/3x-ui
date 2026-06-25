@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -25,6 +24,7 @@ type remarkContext struct {
 	inbound    *model.Inbound
 	hostRemark string
 	transport  string
+	security   string
 }
 
 // configName is the display name for a link: always the inbound's own remark.
@@ -71,6 +71,7 @@ var uiTokenMap = map[string]string{
 	"USAGE_PERCENTAGE":   "USAGE_PERCENTAGE",
 	"PROTOCOL":           "PROTOCOL",
 	"TRANSPORT":          "TRANSPORT",
+	"SECURITY":           "SECURITY",
 }
 
 // translateUISingleBrackets converts user-friendly single-brace tokens to the
@@ -226,6 +227,8 @@ func remarkVarValue(token string, ctx remarkContext) string {
 		return ""
 	case "TRANSPORT":
 		return ctx.transport
+	case "SECURITY":
+		return strings.ToUpper(ctx.security)
 	case "TIME_LEFT":
 		return timeLeftLabel(st.ExpiryTime)
 	case "JALALI_EXPIRE_DATE":
@@ -458,50 +461,105 @@ func (s *SubService) lookupClient(inbound *model.Inbound, email string) model.Cl
 	return model.Client{Email: email}
 }
 
-// usageInfoTokens are the per-client status tokens. On every link of a
-// subscription except the client's first, these (and the decoration leading
-// into them) are dropped, so the traffic/expiry info shows once instead of on
-// every server.
-var usageInfoTokens = []string{
-	"TRAFFIC_USED", "TRAFFIC_LEFT", "TRAFFIC_TOTAL",
-	"TRAFFIC_USED_BYTES", "TRAFFIC_LEFT_BYTES", "TRAFFIC_TOTAL_BYTES",
-	"UP", "DOWN", "DAYS_LEFT", "EXPIRE_DATE", "EXPIRE_UNIX", "STATUS",
-	"STATUS_EMOJI", "USAGE_PERCENTAGE", "TIME_LEFT", "JALALI_EXPIRE_DATE",
+var usageInfoTokens = map[string]bool{
+	"TRAFFIC_USED": true, "TRAFFIC_LEFT": true, "TRAFFIC_TOTAL": true,
+	"TRAFFIC_USED_BYTES": true, "TRAFFIC_LEFT_BYTES": true, "TRAFFIC_TOTAL_BYTES": true,
+	"UP": true, "DOWN": true, "DAYS_LEFT": true, "EXPIRE_DATE": true, "EXPIRE_UNIX": true,
+	"STATUS": true, "STATUS_EMOJI": true, "USAGE_PERCENTAGE": true, "TIME_LEFT": true,
+	"JALALI_EXPIRE_DATE": true,
 }
 
-// nameOnlyTemplate returns template with the trailing per-client info part
-// removed: everything from the first usage token (and the decoration — emojis,
-// spaces, separators — leading into it) onward is dropped, leaving the config
-// name. Returns "" when the template is info-only.
-func nameOnlyTemplate(template string) string {
-	idx := -1
-	for _, tok := range usageInfoTokens {
-		if i := strings.Index(template, "{{"+tok+"}}"); i >= 0 && (idx < 0 || i < idx) {
-			idx = i
+var connectionTokens = map[string]bool{
+	"PROTOCOL":  true,
+	"TRANSPORT": true,
+	"SECURITY":  true,
+}
+
+var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
+
+func mergeTokenSets(sets ...map[string]bool) map[string]bool {
+	out := make(map[string]bool)
+	for _, set := range sets {
+		for tok := range set {
+			out[tok] = true
 		}
 	}
-	if idx < 0 {
-		return template
-	}
-	return strings.TrimRightFunc(template[:idx], func(r rune) bool {
-		return r != '}' && !unicode.IsLetter(r) && !unicode.IsDigit(r)
-	})
+	return out
 }
 
-// effectiveTemplate picks which template to expand for one body link: the full
-// template (with the per-client info) for a client's first link, and the
-// name-only template for every link thereafter — so the info shows once. Only
-// called in the subscription-body context (displays bypass the template).
+func filterRemarkTemplate(template string, remove map[string]bool) string {
+	segments := strings.Split(template, "|")
+	kept := make([]string, 0, len(segments))
+	for _, seg := range segments {
+		if out := filterRemarkSegment(seg, remove); out != "" {
+			kept = append(kept, out)
+		}
+	}
+	return strings.Join(kept, "|")
+}
+
+func filterRemarkSegment(seg string, remove map[string]bool) string {
+	locs := remarkVarRe.FindAllStringSubmatchIndex(seg, -1)
+	hasRemove := false
+	for _, loc := range locs {
+		if remove[seg[loc[2]:loc[3]]] {
+			hasRemove = true
+			break
+		}
+	}
+	if !hasRemove {
+		return strings.TrimSpace(seg)
+	}
+	runs := make([]string, 0, 2)
+	runStart, leftRemoved := 0, false
+	for _, loc := range locs {
+		if !remove[seg[loc[2]:loc[3]]] {
+			continue
+		}
+		runs = appendKeptRun(runs, seg[runStart:loc[0]], leftRemoved, true)
+		runStart, leftRemoved = loc[1], true
+	}
+	runs = appendKeptRun(runs, seg[runStart:], leftRemoved, false)
+	return strings.Join(runs, " ")
+}
+
+func appendKeptRun(runs []string, run string, leftRemoved, rightRemoved bool) []string {
+	locs := remarkVarRe.FindAllStringSubmatchIndex(run, -1)
+	if len(locs) == 0 {
+		return runs
+	}
+	start, end := 0, len(run)
+	if leftRemoved {
+		start = locs[0][0]
+	}
+	if rightRemoved {
+		end = locs[len(locs)-1][1]
+	}
+	if frag := strings.TrimSpace(run[start:end]); frag != "" {
+		runs = append(runs, frag)
+	}
+	return runs
+}
+
 func (s *SubService) effectiveTemplate(email string) string {
 	translated := translateUISingleBrackets(s.remarkTemplate)
 	if s.usageShown == nil {
 		s.usageShown = map[string]bool{}
 	}
 	if s.usageShown[email] {
-		return nameOnlyTemplate(translated)
+		return filterRemarkTemplate(translated, usageInfoTokens)
 	}
 	s.usageShown[email] = true
 	return translated
+}
+
+func inboundSecurity(inbound *model.Inbound) string {
+	if inbound == nil {
+		return ""
+	}
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	security, _ := stream["security"].(string)
+	return security
 }
 
 // genTemplatedRemark expands the remark template for one client. hostRemark is
@@ -514,23 +572,27 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 		inbound:    inbound,
 		hostRemark: hostRemark,
 		transport:  transport,
+		security:   inboundSecurity(inbound),
 	}
-	tmpl := s.effectiveTemplate(client.Email)
-	// Fall back to the config name when the template is empty or expands to
-	// nothing (e.g. an all-unlimited template whose only segments dropped out).
+	var tmpl string
+	if s.subscriptionBody {
+		tmpl = s.effectiveTemplate(client.Email)
+	} else {
+		tmpl = filterRemarkTemplate(translateUISingleBrackets(s.remarkTemplate), displayRemoveTokens)
+	}
 	if out := expandRemarkVars(tmpl, ctx); strings.TrimSpace(out) != "" {
 		return out
 	}
 	return ctx.configName()
 }
 
-// genHostRemark builds one host endpoint's remark for a specific client. The
-// config name is always the inbound's own remark; the host's remark is surfaced
-// only through the {{HOST}} token. In the subscription body the rest of the
-// remark template still applies; displays show just the config name.
+// genHostRemark builds one host endpoint's remark for a specific client. With a
+// remark template set it is template-driven (body shows the full template on the
+// first link and the name-only part thereafter; displays render the name-only
+// part). With no template it falls back to inbound, host and email joined by "-".
 func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, hostRemark string, transport string) string {
-	if !s.subscriptionBody {
-		return remarkContext{inbound: inbound, hostRemark: hostRemark}.configName()
+	if s.remarkTemplate != "" {
+		return s.genTemplatedRemark(inbound, client, hostRemark, transport)
 	}
-	return s.genTemplatedRemark(inbound, client, hostRemark, transport)
+	return fallbackRemark(inbound.Remark, hostRemark, client.Email)
 }
