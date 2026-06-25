@@ -147,7 +147,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
               {log.levelText && <span className={`log-level ${log.levelClass}`}>{log.levelText}</span>}
               {(log.body || log.service) && (
                 <>
-                  <span> - </span>
+                  {(log.stamp || log.levelText) && <span> - </span>}
                   {log.service && <b>{log.service}</b>}
                   {log.service && log.body ? ' ' : ''}
                   <span>{log.body}</span>
