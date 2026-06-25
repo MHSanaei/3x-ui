@@ -80,7 +80,7 @@ func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	current := config.GetVersion()
+	current := config.GetBaseVersion()
 	return &PanelUpdateInfo{
 		Channel:         "stable",
 		CurrentVersion:  current,
@@ -114,7 +114,7 @@ func getDevUpdateInfo() (*PanelUpdateInfo, error) {
 	currentCommit := config.GetBuildCommit()
 	return &PanelUpdateInfo{
 		Channel:         "dev",
-		CurrentVersion:  config.GetVersion(),
+		CurrentVersion:  config.GetPanelVersion(),
 		CurrentCommit:   shortCommit(currentCommit),
 		LatestCommit:    shortCommit(latestCommit),
 		LatestVersion:   "dev+" + shortCommit(latestCommit),

@@ -34,7 +34,7 @@ import (
 
 // runWebServer initializes and starts the web server for the 3x-ui panel.
 func runWebServer() {
-	log.Printf("Starting %v %v", config.GetName(), config.GetVersion())
+	log.Printf("Starting %v %v", config.GetName(), config.GetPanelVersion())
 
 	switch config.GetLogLevel() {
 	case config.Debug:
@@ -587,7 +587,7 @@ func main() {
 
 	flag.Parse()
 	if showVersion {
-		fmt.Println(config.GetVersion())
+		fmt.Println(config.GetPanelVersion())
 		return
 	}
 

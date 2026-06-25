@@ -41,8 +41,11 @@ const (
 	Error   LogLevel = "error"
 )
 
-// GetVersion returns the version string of the 3x-ui application.
-func GetVersion() string {
+// GetBaseVersion returns the raw embedded release version of the 3x-ui panel
+// (e.g. "3.4.0"). This is the panel's own version, not the Xray version. For the
+// version a panel advertises/displays (which adds a "dev+<sha>" label on dev
+// builds), use GetPanelVersion.
+func GetBaseVersion() string {
 	return strings.TrimSpace(version)
 }
 
@@ -68,14 +71,14 @@ func IsDevBuild() bool {
 	return GetBuildCommit() != ""
 }
 
-// GetReportedVersion returns the version a panel advertises to a managing master
-// node: the plain version for stable builds, or "dev+<short commit>" for dev
-// builds. The dev form mirrors the master's getPanelUpdateInfo latestVersion so
-// a node on the current dev commit compares as up to date instead of always
-// showing "update available".
-func GetReportedVersion() string {
+// GetPanelVersion returns the version a panel advertises to a managing master
+// node and displays in the UI: the plain version for stable builds, or
+// "dev+<short commit>" for dev builds. The dev form mirrors the master's
+// getPanelUpdateInfo latestVersion so a node on the current dev commit compares
+// as up to date instead of always showing "update available".
+func GetPanelVersion() string {
 	if !IsDevBuild() {
-		return GetVersion()
+		return GetBaseVersion()
 	}
 	commit := GetBuildCommit()
 	if len(commit) > 8 {

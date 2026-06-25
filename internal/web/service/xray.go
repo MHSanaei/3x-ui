@@ -96,7 +96,7 @@ func (s *XrayService) GetXrayVersion() string {
 	if p == nil {
 		return "Unknown"
 	}
-	return p.GetVersion()
+	return p.GetXrayVersion()
 }
 
 // RemoveIndex removes an element at the specified index from a slice.

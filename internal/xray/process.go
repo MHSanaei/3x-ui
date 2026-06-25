@@ -270,8 +270,8 @@ func (p *process) GetResult() string {
 	return lastLine
 }
 
-// GetVersion returns the version string of the Xray process.
-func (p *process) GetVersion() string {
+// GetXrayVersion returns the version string of the Xray process.
+func (p *process) GetXrayVersion() string {
 	return p.version
 }
 

@@ -5,6 +5,7 @@ import { CloudDownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
+import { formatPanelVersion } from '@/lib/panel-version';
 import './PanelUpdateModal.css';
 
 export interface PanelUpdateInfo {
@@ -140,7 +141,7 @@ export default function PanelUpdateModal({
             {isDev ? (
               <Tag color="green">{info.currentCommit || '?'}</Tag>
             ) : (
-              <Tag color="green">v{info.currentVersion || '?'}</Tag>
+              <Tag color="green">{formatPanelVersion(window.X_UI_CUR_VER || info.currentVersion) || '?'}</Tag>
             )}
           </div>
           {info.updateAvailable ? (

@@ -37,6 +37,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
+import { formatPanelVersion } from '@/lib/panel-version';
 import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -104,7 +105,7 @@ export default function IndexPage() {
   }, []);
 
   const displayVersion = useMemo(
-    () => panelUpdateInfo.currentVersion || window.X_UI_CUR_VER || '?',
+    () => window.X_UI_CUR_VER || panelUpdateInfo.currentVersion || '?',
     [panelUpdateInfo.currentVersion],
   );
 
@@ -240,10 +241,8 @@ export default function IndexPage() {
                           {isMobile && displayVersion && (
                             <Tag color={panelUpdateInfo.updateAvailable ? 'orange' : 'green'}>
                               {panelUpdateInfo.updateAvailable
-                                ? panelUpdateInfo.channel === 'dev'
-                                  ? panelUpdateInfo.latestVersion
-                                  : `v${panelUpdateInfo.latestVersion}`
-                                : `v${displayVersion}`}
+                                ? formatPanelVersion(panelUpdateInfo.latestVersion)
+                                : formatPanelVersion(displayVersion)}
                             </Tag>
                           )}
                         </Space>
@@ -272,8 +271,8 @@ export default function IndexPage() {
                           {!isMobile && (
                             <span>
                               {panelUpdateInfo.updateAvailable
-                                ? `${t('update')} ${panelUpdateInfo.latestVersion}`
-                                : `v${displayVersion}`}
+                                ? `${t('update')} ${formatPanelVersion(panelUpdateInfo.latestVersion)}`
+                                : formatPanelVersion(displayVersion)}
                             </span>
                           )}
                         </Space>,

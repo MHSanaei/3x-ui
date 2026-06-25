@@ -33,6 +33,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import './AppSidebar.css';
@@ -84,7 +85,7 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
 
 function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
   if (!version) return null;
-  const label = `v${version}`;
+  const label = formatPanelVersion(version);
   return (
     <a
       href={REPO_URL}
