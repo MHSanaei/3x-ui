@@ -24,7 +24,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-
+	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 )
 
@@ -565,6 +565,24 @@ func (s *SettingService) GetTwoFactorToken() (string, error) {
 
 func (s *SettingService) SetTwoFactorToken(value string) error {
 	return s.setString("twoFactorToken", value)
+}
+
+func (s *SettingService) VerifyTwoFactorCode(code string) error {
+	enabled, err := s.GetTwoFactorEnable()
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+	token, err := s.GetTwoFactorToken()
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(token) == "" || !gotp.NewDefaultTOTP(token).Verify(strings.TrimSpace(code), time.Now().Unix()) {
+		return common.NewError("invalid two factor code")
+	}
+	return nil
 }
 
 func (s *SettingService) GetPort() (int, error) {

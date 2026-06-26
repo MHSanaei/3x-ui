@@ -19,10 +19,16 @@ import (
 
 // updateUserForm represents the form for updating user credentials.
 type updateUserForm struct {
-	OldUsername string `json:"oldUsername" form:"oldUsername"`
-	OldPassword string `json:"oldPassword" form:"oldPassword"`
-	NewUsername string `json:"newUsername" form:"newUsername"`
-	NewPassword string `json:"newPassword" form:"newPassword"`
+	OldUsername   string `json:"oldUsername" form:"oldUsername"`
+	OldPassword   string `json:"oldPassword" form:"oldPassword"`
+	NewUsername   string `json:"newUsername" form:"newUsername"`
+	NewPassword   string `json:"newPassword" form:"newPassword"`
+	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
+}
+
+type updateSettingForm struct {
+	entity.AllSetting
+	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
 }
 
 // SettingController handles settings and user management operations.
@@ -82,23 +88,30 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 
 // updateSetting updates all settings with the provided data.
 func (a *SettingController) updateSetting(c *gin.Context) {
-	allSetting, ok := middleware.BindAndValidate[entity.AllSetting](c)
+	form, ok := middleware.BindAndValidate[updateSettingForm](c)
 	if !ok {
 		return
 	}
+	allSetting := &form.AllSetting
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
 	oldTgEnable, _ := a.settingService.GetTgbotEnabled()
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
 	oldTgAPIServer, _ := a.settingService.GetTgBotAPIServer()
+	if twoFactorErr == nil && oldTwoFactor && !allSetting.TwoFactorEnable {
+		if err := a.settingService.VerifyTwoFactorCode(form.TwoFactorCode); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
+	}
 	err := a.settingService.UpdateAllSetting(allSetting)
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr
 		}
 	}
-	if err == nil && allSetting.PanelOutbound != oldPanelOutbound {
+	if err == nil && form.PanelOutbound != oldPanelOutbound {
 		// The egress bridge lives in the generated config; reconcile the
 		// running core. One SOCKS inbound plus one routing rule — both
 		// hot-appliable, so this normally does not restart Xray.
@@ -134,6 +147,10 @@ func (a *SettingController) updateUser(c *gin.Context) {
 	}
 	if form.NewUsername == "" || form.NewPassword == "" {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New(I18nWeb(c, "pages.settings.toasts.userPassMustBeNotEmpty")))
+		return
+	}
+	if err := a.settingService.VerifyTwoFactorCode(form.TwoFactorCode); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), err)
 		return
 	}
 	err = a.userService.UpdateUser(user.Id, form.NewUsername, form.NewPassword)
