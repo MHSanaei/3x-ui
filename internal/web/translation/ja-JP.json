@@ -117,7 +117,8 @@
     "logout": "ログアウト",
     "link": "リンク管理",
     "donate": "寄付",
-    "hosts": "ホスト"
+    "hosts": "ホスト",
+    "docs": "ドキュメント"
   },
   "pages": {
     "login": {

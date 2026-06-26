@@ -117,7 +117,8 @@
     "logout": "Keluar",
     "link": "Kelola",
     "donate": "Donasi",
-    "hosts": "Host"
+    "hosts": "Host",
+    "docs": "Dokumentasi"
   },
   "pages": {
     "login": {

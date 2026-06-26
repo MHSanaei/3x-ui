@@ -117,7 +117,8 @@
     "logout": "Sair",
     "link": "Gerenciar",
     "donate": "Doar",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Documentação"
   },
   "pages": {
     "login": {

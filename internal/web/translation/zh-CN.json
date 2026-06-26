@@ -117,7 +117,8 @@
     "logout": "退出登录",
     "link": "管理",
     "donate": "捐赠",
-    "hosts": "主机"
+    "hosts": "主机",
+    "docs": "文档"
   },
   "pages": {
     "login": {

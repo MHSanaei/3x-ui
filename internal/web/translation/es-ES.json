@@ -117,7 +117,8 @@
     "logout": "Cerrar Sesión",
     "link": "Gestionar",
     "donate": "Donar",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Documentación"
   },
   "pages": {
     "login": {

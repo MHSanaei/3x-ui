@@ -117,7 +117,8 @@
     "logout": "Çıkış Yap",
     "link": "Yönet",
     "donate": "Bağış Yap",
-    "hosts": "Host'lar"
+    "hosts": "Host'lar",
+    "docs": "Belgeler"
   },
   "pages": {
     "login": {

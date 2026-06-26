@@ -117,7 +117,8 @@
     "logout": "退出登入",
     "link": "管理",
     "donate": "捐贈",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "文件"
   },
   "pages": {
     "login": {

@@ -117,7 +117,8 @@
     "logout": "Đăng xuất",
     "link": "Quản lý",
     "donate": "Quyên góp",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Tài liệu"
   },
   "pages": {
     "login": {
