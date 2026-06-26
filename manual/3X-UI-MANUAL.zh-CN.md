@@ -3299,7 +3299,7 @@ trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
 
 从 3.3.0 版本开始，可以使用自己的 HTML 模板替换标准的订阅落地页。默认情况下，访问订阅地址时返回内置页面，但如果指定了包含自定义模板的目录，面板将渲染该模板并将客户端的实时数据（流量、有效期、链接等）注入其中。
 
-重要提示：面板**不提供**现成的模板。仓库中只包含带有说明文件 `sub_templates/README.md` 的 `sub_templates/` 目录；自定义主题需要自行创建。
+重要提示：面板**不提供**现成的模板 — 自定义主题需要自行创建。创建说明和可用变量列表见 [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md)。
 
 #### 在哪里启用
 

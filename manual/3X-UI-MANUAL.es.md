@@ -3301,7 +3301,7 @@ La página de información se devuelve con encabezados de no-caché (`Cache-Cont
 
 A partir de la versión 3.3.0 es posible reemplazar la página de inicio estándar de la suscripción con una plantilla HTML propia. Por defecto, en la dirección de suscripción se muestra la página integrada, pero si se especifica un directorio con una plantilla personalizada, el panel la renderizará e insertará en ella los datos actualizados del cliente (tráfico, fecha de vencimiento, enlaces, etc.).
 
-Importante: el panel **no incluye** plantillas listas para usar. En el repositorio solo hay un directorio `sub_templates/` con un archivo de instrucciones `sub_templates/README.md`; el tema propio hay que crearlo desde cero.
+Importante: el panel **no incluye** plantillas listas para usar — el tema propio hay que crearlo desde cero. Las instrucciones de creación y la lista de variables disponibles están en [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md).
 
 #### Dónde se activa
 

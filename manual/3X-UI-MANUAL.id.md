@@ -3301,7 +3301,7 @@ Halaman informasi dikirimkan dengan header pelarangan cache (`Cache-Control: no-
 
 Mulai dari 3.3.0, halaman landing langganan standar dapat diganti dengan template HTML kustom Anda sendiri. Secara default, halaman bawaan dikirimkan di alamat langganan, tetapi jika Anda menentukan direktori dengan template Anda sendiri, panel akan me-render-nya dan mengisi data klien terkini ke dalamnya (traffic, masa berlaku, tautan, dll.).
 
-Penting: panel **tidak menyediakan** template siap pakai. Repositori hanya berisi direktori `sub_templates/` dengan file instruksi `sub_templates/README.md`; tema Anda sendiri harus dibuat secara mandiri.
+Penting: panel **tidak menyediakan** template siap pakai — tema Anda sendiri harus dibuat secara mandiri. Petunjuk pembuatan dan daftar variabel yang tersedia ada di [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md).
 
 #### Di mana diaktifkan
 

@@ -3301,7 +3301,7 @@ A página de informações é entregue com cabeçalhos de proibição de cache (
 
 A partir da versão 3.3.0, é possível substituir a página de destino padrão da assinatura por um modelo HTML próprio. Por padrão, o endereço de assinatura entrega a página integrada, mas se um diretório com seu modelo for especificado, o painel irá renderizá-lo e inserir nele os dados atualizados do cliente (tráfego, prazo de validade, links, etc.).
 
-Importante: o painel **não fornece** modelos prontos. O repositório contém apenas o diretório `sub_templates/` com um arquivo de instruções `sub_templates/README.md`; o seu tema deve ser criado do zero.
+Importante: o painel **não fornece** modelos prontos — o seu tema deve ser criado do zero. As instruções de criação e a lista de variáveis disponíveis estão em [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md).
 
 #### Onde é habilitado
 

@@ -3302,7 +3302,7 @@ The info page is returned with no-cache headers (`Cache-Control: no-cache`) so t
 
 Starting from 3.3.0, the default subscription landing page can be replaced with a custom HTML template. By default the subscription URL returns the built-in page, but if a directory containing your own template is specified, the panel will render it and inject the current client data (traffic, expiry, links, etc.) into it.
 
-Important: the panel does **not** ship any ready-made templates. The repository only contains a `sub_templates/` directory with an instructions file `sub_templates/README.md`; you must create your own theme from scratch.
+Important: the panel does **not** ship any ready-made templates — you must create your own theme from scratch. Authoring instructions and the list of available variables are in [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md).
 
 #### Where to enable it
 

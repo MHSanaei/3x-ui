@@ -3301,7 +3301,7 @@ Trang thông tin được trả về với các header cấm cache (`Cache-Contr
 
 Kể từ 3.3.0 có thể thay thế trang landing đăng ký tiêu chuẩn bằng mẫu HTML tùy chỉnh. Theo mặc định, địa chỉ đăng ký trả về trang tích hợp sẵn, nhưng nếu chỉ định thư mục với mẫu của bạn, panel sẽ render nó và điền vào đó dữ liệu hiện tại của client (lưu lượng, thời hạn, liên kết v.v.).
 
-Quan trọng: panel **không cung cấp** sẵn các mẫu. Trong kho lưu trữ chỉ có thư mục `sub_templates/` với file hướng dẫn `sub_templates/README.md`; chủ đề của bạn cần được tạo từ đầu.
+Quan trọng: panel **không cung cấp** sẵn các mẫu — chủ đề của bạn cần được tạo từ đầu. Hướng dẫn tạo và danh sách các biến có sẵn nằm trong [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md).
 
 #### Nơi bật
 

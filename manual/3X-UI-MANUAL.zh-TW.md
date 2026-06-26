@@ -3301,7 +3301,7 @@ trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
 
 從 3.3.0 版起，可以使用自訂 HTML 範本替換標準訂閱登陸頁面。預設情況下，訂閱地址提供的是內建頁面，但若指定包含自訂範本的目錄，面板將渲染該範本並填入用戶端的最新資料（流量、有效期、連結等）。
 
-重要：面板**不提供**現成範本。儲存庫中僅包含 `sub_templates/` 目錄及說明文件 `sub_templates/README.md`；您需要自行建立佈景。
+重要：面板**不提供**現成範本 — 您需要自行建立佈景。建立說明與可用變數清單請見 [`docs/custom-subscription-templates.md`](https://github.com/MHSanaei/3x-ui/blob/main/docs/custom-subscription-templates.md)。
 
 #### 啟用位置
 
