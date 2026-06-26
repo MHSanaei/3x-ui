@@ -484,6 +484,7 @@ func GetApiToken(getApiToken bool) {
 func migrateDb() {
 	inboundService := service.InboundService{}
 
+	logger.InitLogger(logging.INFO)
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		log.Fatal(err)
