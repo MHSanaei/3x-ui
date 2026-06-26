@@ -918,10 +918,9 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 		if err != nil {
 			return err
 		}
-		if resolved == "" {
-			return errors.New("balancer fallback target not found in routing rules")
+		if resolved != "" {
+			target = resolved
 		}
-		target = resolved
 	}
 	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
 		return err

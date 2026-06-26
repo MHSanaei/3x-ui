@@ -201,6 +201,8 @@ export default function XrayPage() {
         messageApi.error(t('pages.xray.balancer.balancerFallbackCycle') + ' (' + names + ')');
         return;
       }
+      const serialized = JSON.stringify(clone, null, 2);
+      setXraySetting(serialized);
       setTemplateSettings(clone);
     }
     saveAll();
