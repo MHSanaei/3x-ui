@@ -171,6 +171,9 @@ func initModels() error {
 	if err := migrateClientEmailLowerIndex(); err != nil {
 		return err
 	}
+	if err := migrateRemarkTemplateDefault(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -384,6 +387,17 @@ func migrateHostVerifyPeerCertByNameColumn() error {
 	}
 
 	return db.Exec(`UPDATE hosts SET verify_peer_cert_by_name = '' WHERE verify_peer_cert_by_name IS NULL OR typeof(verify_peer_cert_by_name) <> 'text'`).Error
+}
+
+// migrateRemarkTemplateDefault moves panels that started on the v3.4.0 default
+// subscription template to the v3.4.1 default that includes the client email.
+// Exact-match only: operator-customized templates are preserved.
+func migrateRemarkTemplateDefault() error {
+	const officialV340Default = "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	const officialV341Default = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	return db.Model(&model.Setting{}).
+		Where("key = ? AND value = ?", "remarkTemplate", officialV340Default).
+		Update("value", officialV341Default).Error
 }
 
 func seedHostsFromExternalProxy() error {
