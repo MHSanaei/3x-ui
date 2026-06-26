@@ -1544,6 +1544,9 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	dbReopened = true
 
 	s.inboundService.MigrateDB()
+	if err = PrepareInboundPortReservations(); err != nil {
+		return common.NewErrorf("Error preparing inbound port reservations: %v", err)
+	}
 
 	xrayStopped = false
 	if err = s.RestartXrayService(); err != nil {
@@ -1771,6 +1774,9 @@ func (s *ServerService) restorePostgresDump(file multipart.File) error {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
 	}
 	s.inboundService.MigrateDB()
+	if errPrep := PrepareInboundPortReservations(); errPrep != nil {
+		return common.NewErrorf("Error preparing inbound port reservations: %v", errPrep)
+	}
 
 	if runErr != nil {
 		return common.NewErrorf("pg_restore failed (database left unchanged): %v: %s", runErr, strings.TrimSpace(stderr.String()))

@@ -107,6 +107,9 @@ func runWebServer() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
+	if err := service.PrepareInboundPortReservations(); err != nil {
+		log.Fatalf("Error preparing inbound port reservations: %v", err)
+	}
 
 	server := web.NewServer()
 	global.SetWebServer(server)
@@ -542,6 +545,9 @@ func migrateDb() {
 	}
 	fmt.Println("Start migrating database...")
 	inboundService.MigrateDB()
+	if err := service.PrepareInboundPortReservations(); err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Migration done!")
 }
 
