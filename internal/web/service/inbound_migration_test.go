@@ -144,9 +144,9 @@ func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
 	db := database.GetDB()
 	legacy := &model.Inbound{
 		UserId:         1,
-		Tag:            "inbound-0.0.0.0:30002",
+		Tag:            "inbound-0.0.0.0:30003",
 		Enable:         true,
-		Port:           30002,
+		Port:           30003,
 		Protocol:       model.VLESS,
 		Settings:       `{"clients":[]}`,
 		StreamSettings: `{"security":"tls","tlsSettings":{"settings":{"domains":[{"domain":"example.com"}]}}}`,
@@ -162,8 +162,56 @@ func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
 	if err := db.First(&got, legacy.Id).Error; err != nil {
 		t.Fatalf("reload inbound: %v", err)
 	}
-	if got.Tag != "inbound-30002" {
-		t.Fatalf("legacy 0.0.0.0: tag not stripped: got %q, want %q", got.Tag, "inbound-30002")
+	if got.Tag != "inbound-30003" {
+		t.Fatalf("legacy 0.0.0.0: tag not stripped: got %q, want %q", got.Tag, "inbound-30003")
+	}
+}
+
+func TestMigrationRequirements_SkipsLegacyZeroAddrTagCollision(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	existing := &model.Inbound{
+		UserId:         1,
+		Tag:            "inbound-30004",
+		Enable:         true,
+		Port:           30004,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	legacy := &model.Inbound{
+		UserId:         1,
+		Tag:            "inbound-0.0.0.0:30004",
+		Enable:         true,
+		Port:           30005,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[]}`,
+		StreamSettings: `{"security":"tls","tlsSettings":{"settings":{"domains":[{"domain":"example.com"}]}}}`,
+	}
+	if err := db.Create(existing).Error; err != nil {
+		t.Fatalf("create existing inbound: %v", err)
+	}
+	if err := db.Create(legacy).Error; err != nil {
+		t.Fatalf("create legacy inbound: %v", err)
+	}
+
+	svc := InboundService{}
+	svc.MigrationRequirements()
+
+	var got model.Inbound
+	if err := db.First(&got, legacy.Id).Error; err != nil {
+		t.Fatalf("reload legacy inbound: %v", err)
+	}
+	if got.Tag != "inbound-0.0.0.0:30004" {
+		t.Fatalf("colliding legacy tag should be left unchanged, got %q", got.Tag)
+	}
+	var count int64
+	if err := db.Model(&model.Inbound{}).Where("tag = ?", "inbound-30004").Count(&count).Error; err != nil {
+		t.Fatalf("count existing tag: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("target tag count = %d, want 1", count)
 	}
 }
 
