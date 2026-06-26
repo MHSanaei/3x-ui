@@ -16,6 +16,7 @@ import (
 	_ "unsafe"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
@@ -31,6 +32,39 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
 )
+
+// initNodeTokenCrypto installs the process-wide node-token codec from config.
+// In "off" mode it is a no-op pass-through (legacy plaintext). In
+// "migration"/"required" it loads the keyring (key file first, env fallback)
+// and fails closed if the policy demands a key that cannot load.
+func initNodeTokenCrypto() error {
+	mode, err := nodetoken.ParseMode(config.GetNodeTokenEncryptionMode())
+	if err != nil {
+		return err
+	}
+	if mode == nodetoken.ModeOff {
+		c, _ := nodetoken.NewCodec(nodetoken.ModeOff, nil)
+		nodetoken.Init(c)
+		return nil
+	}
+	ring, ferr := (nodetoken.FileKeySource{Path: config.GetNodeTokenKeyFile()}).Load()
+	if ferr != nil {
+		var eerr error
+		if ring, eerr = (nodetoken.EnvKeySource{Var: config.GetNodeTokenKeyEnv()}).Load(); eerr != nil {
+			return fmt.Errorf("load node-token key: file: %w; env: %w", ferr, eerr)
+		}
+	}
+	c, err := nodetoken.NewCodec(mode, ring)
+	if err != nil {
+		return err
+	}
+	nodetoken.Init(c)
+	// log.Printf (not logger.Infof): this runs from both runWebServer (logger
+	// ready) and the encrypt-tokens CLI (logger not initialized) — the package
+	// logger is nil in the CLI path and logger.Infof would panic.
+	log.Printf("node-token encryption enabled (mode=%s, active-key=%s)", config.GetNodeTokenEncryptionMode(), c.ActiveKeyID())
+	return nil
+}
 
 // runWebServer initializes and starts the web server for the 3x-ui panel.
 func runWebServer() {
@@ -64,6 +98,10 @@ func runWebServer() {
 				logger.Warning("pprof server stopped: ", err)
 			}
 		}()
+	}
+
+	if err := initNodeTokenCrypto(); err != nil {
+		log.Fatalf("Error initializing node-token encryption: %v", err)
 	}
 
 	err := database.InitDB(config.GetDBPath())
@@ -298,6 +336,27 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 		}
 		logger.Info("Successfully updated Telegram bot chat ID.")
 	}
+}
+
+// encryptNodeTokens re-encrypts all stored node bearer tokens under the active
+// key (one-time after enabling encryption, or after a key rotation). Requires
+// NODE_TOKEN_ENCRYPTION=migration|required and a configured key.
+func encryptNodeTokens() {
+	_ = godotenv.Load()
+	if err := initNodeTokenCrypto(); err != nil {
+		fmt.Println("node-token encryption init failed:", err)
+		os.Exit(1)
+	}
+	if err := database.InitDB(config.GetDBPath()); err != nil {
+		fmt.Println("database initialization failed:", err)
+		os.Exit(1)
+	}
+	changed, skipped, err := (&service.NodeService{}).MigrateNodeTokensToActiveKey()
+	if err != nil {
+		fmt.Println("token migration failed:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("node-token migration complete: %d re-encrypted, %d already current/skipped\n", changed, skipped)
 }
 
 // updateSetting updates various panel settings including port, credentials, base path, listen IP, and two-factor authentication.
@@ -594,6 +653,8 @@ func main() {
 		runWebServer()
 	case "migrate":
 		migrateDb()
+	case "encrypt-tokens":
+		encryptNodeTokens()
 	case "migrate-db":
 		if err := migrateDbCmd.Parse(os.Args[2:]); err != nil {
 			fmt.Println(err)
