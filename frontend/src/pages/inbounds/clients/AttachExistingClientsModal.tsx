@@ -180,7 +180,7 @@ export default function AttachExistingClientsModal({
       </Typography.Paragraph>
 
       {noClients ? (
-        <Alert type="info" showIcon message={t('pages.inbounds.attachExistingNoClients')} />
+        <Alert type="info" showIcon title={t('pages.inbounds.attachExistingNoClients')} />
       ) : (
         <Spin spinning={loading}>
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>

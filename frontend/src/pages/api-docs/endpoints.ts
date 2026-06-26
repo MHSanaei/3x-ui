@@ -490,6 +490,27 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/server/scanRealityTarget',
+        summary: 'Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names.',
+        params: [
+          { name: 'target', in: 'body (form)', type: 'string', desc: 'Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443.' },
+        ],
+        body: 'target=www.cloudflare.com:443',
+        responseSchema: 'RealityScanResult',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/scanRealityTargets',
+        summary: 'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, a built-in seed list is probed.',
+        params: [
+          { name: 'targets', in: 'body (form)', type: 'string', optional: true, desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, a built-in seed list is probed.' },
+        ],
+        body: 'targets=104.16.0.0/24,www.apple.com:443',
+        responseSchema: 'RealityScanResult',
+        responseSchemaArray: true,
+      },
+      {
         method: 'GET',
         path: '/panel/api/server/clientIps',
         summary: 'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',

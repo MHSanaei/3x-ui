@@ -192,7 +192,7 @@ export default function AttachClientsModal({
       </Space>
 
       {targetOptions.length === 0 ? (
-        <Alert type="info" showIcon message={t('pages.inbounds.attachClientsNoTargets')} />
+        <Alert type="info" showIcon title={t('pages.inbounds.attachClientsNoTargets')} />
       ) : (
         <Select
           mode="multiple"
