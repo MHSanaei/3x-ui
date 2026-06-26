@@ -1726,6 +1726,7 @@
         "tagPlaceholder": "benzersiz dengeleyici etiketi",
         "selector": "Seçici",
         "fallback": "Fallback",
+        "cycleTooltip": "Döngü: {path} → ({start} adresine geri dön)",
         "expected": "Beklenen",
         "expectedPlaceholder": "optimal düğüm sayısı",
         "maxRtt": "Maks. RTT",
@@ -1735,7 +1736,12 @@
         "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur.",
         "costMatch": "Etiket deseni",
         "costValue": "Ağırlık",
-        "costRegexp": "Düzenli ifade eşleşmesi"
+        "costRegexp": "Düzenli ifade eşleşmesi",
+        "balancerDeleteInUse": "Bu dengeleyici silinemez — şu dengeleyicilerin yedeği olarak kullanılmaktadır: {names}",
+        "balancerFallbackCycle": "Bu dengeleyiciyi yedek olarak ayarlayamazsınız — döngüsel bağımlılık oluşturur.",
+        "balancerFallbackInfo": "Trafik şu yoldan yönlendirilecektir: Dengeleyici → Loopback → Sunucu → Hedef dengeleyici → Bağlantı çıkışı. Bu, sunucu üzerinden ek bir atlama ekler ve hafif gecikmelere neden olabilir.",
+        "fallbackBalancerHint": "Yedek olarak başka bir dengeleyici seçin",
+        "reservedPrefix": " _bl_ ön eki dahili dengeleyici loopback nesneleri için ayrılmıştır"
       },
       "wireguard": {
         "secretKey": "Gizli Anahtar",

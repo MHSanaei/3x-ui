@@ -10,6 +10,9 @@ function renderModal(onConfirm = vi.fn()) {
       open
       balancer={null}
       outboundTags={['proxy', 'direct']}
+      balancerTags={[]}
+      balancers={[]}
+      templateSettings={null}
       otherTags={['existing']}
       onClose={() => {}}
       onConfirm={onConfirm}

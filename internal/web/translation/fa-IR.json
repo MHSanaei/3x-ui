@@ -1726,6 +1726,7 @@
         "tagPlaceholder": "تگ منحصربه‌فرد بالانسر",
         "selector": "انتخابگر",
         "fallback": "Fallback",
+        "cycleTooltip": "حلقه: {path} → (بازگشت به {start})",
         "expected": "مورد انتظار",
         "expectedPlaceholder": "تعداد نود بهینه",
         "maxRtt": "حداکثر RTT",
@@ -1735,7 +1736,12 @@
         "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد.",
         "costMatch": "الگوی برچسب",
         "costValue": "وزن",
-        "costRegexp": "تطبیق با عبارت باقاعده"
+        "costRegexp": "تطبیق با عبارت باقاعده",
+        "balancerDeleteInUse": "امکان حذف این بالانسر وجود ندارد — به عنوان پشتیبان برای موارد زیر استفاده می‌شود: {names}",
+        "balancerFallbackCycle": "امکان تنظیم این بالانسر به عنوان پشتیبان وجود ندارد — وابستگی دایره‌ای ایجاد می‌کند.",
+        "balancerFallbackInfo": "ترافیک از مسیر زیر مسیریابی می‌شود: بالانسر → Loopback → سرور → بالانسر مقصد → اتصال خروجی. این یک پرش اضافی از طریق سرور اضافه می‌کند که ممکن است تأخیرهای جزئی ایجاد کند.",
+        "fallbackBalancerHint": "یک بالانسر دیگر به عنوان پشتیبان انتخاب کنید",
+        "reservedPrefix": "پیشوند _bl_ برای اشیاء loopback داخلی بالانسر رزرو شده است"
       },
       "wireguard": {
         "secretKey": "کلید شخصی",

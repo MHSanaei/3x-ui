@@ -330,6 +330,10 @@ export default function OutboundFormModal({
       messageApi.error(t('pages.xray.outboundForm.tagRequired'));
       return;
     }
+    if (tagValue.startsWith('_bl_')) {
+      messageApi.error(t('pages.xray.balancer.reservedPrefix'));
+      return;
+    }
     const isDuplicateTag = (existingTags || []).includes(tagValue)
       && !(isEdit && (outboundProp?.tag as string | undefined) === tagValue);
     if (isDuplicateTag) {

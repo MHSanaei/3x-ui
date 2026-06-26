@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
+import { Alert, Button, Form, Input, InputNumber, Modal, Select, Space, Switch, Tag } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { InputAddon } from '@/components/ui';
+import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import {
   BalancerFormSchema,
   type BalancerFormValues,
@@ -12,7 +13,9 @@ import {
   BalancerStrategyTypeSchema,
   type BalancerStrategySettings,
   type BalancerStrategyType,
+  type BalancerObject,
 } from '@/schemas/routing';
+import { isBalancerLoopbackTag } from './balancer-loopback';
 
 export type BalancerFormValue = BalancerFormValues;
 
@@ -20,6 +23,9 @@ interface BalancerFormModalProps {
   open: boolean;
   balancer: BalancerFormValue | null;
   outboundTags: string[];
+  balancerTags: string[];
+  balancers: BalancerObject[];
+  templateSettings: XraySettingsValue | null;
   otherTags: string[];
   onClose: () => void;
   onConfirm: (value: BalancerFormValue) => void;
@@ -62,6 +68,9 @@ export default function BalancerFormModal({
   open,
   balancer,
   outboundTags,
+  balancerTags,
+  balancers,
+  templateSettings,
   otherTags,
   onClose,
   onConfirm,
@@ -125,9 +134,79 @@ export default function BalancerFormModal({
   const baselines = settings?.baselines ?? [];
   const costs = settings?.costs ?? [];
 
-  const fallbackOptions = useMemo(
-    () => ['', ...outboundTags].map((tg) => ({ value: tg, label: tg || `(${t('none')})` })),
-    [outboundTags, t],
+  const currentTag = state.tag.trim();
+
+  const availableBalancerTags = useMemo(() => {
+    return balancerTags.filter((tg) => tg !== currentTag);
+  }, [balancerTags, currentTag]);
+
+  const cycleInfo = useMemo(() => {
+    const rules = (templateSettings?.routing?.rules || []) as Array<{ inboundTag?: string[]; balancerTag?: string }>;
+    const resolveLoopback = (tag: string): string | null => {
+      for (const r of rules) {
+        if (Array.isArray(r.inboundTag) && r.inboundTag.includes(tag) && r.balancerTag) {
+          return r.balancerTag;
+        }
+      }
+      return null;
+    };
+
+    const fallbackOf: Record<string, string> = {};
+    for (const b of balancers) {
+      if (!b.tag || !b.fallbackTag || b.tag === currentTag) continue;
+      const target = isBalancerLoopbackTag(b.fallbackTag)
+        ? resolveLoopback(b.fallbackTag)
+        : b.fallbackTag;
+      if (target) fallbackOf[b.tag] = target;
+    }
+
+    const result: Record<string, string[]> = {};
+    for (const tg of availableBalancerTags) {
+      const visited = new Set<string>();
+      let cursor = tg;
+      const path = [tg];
+      while (cursor && !visited.has(cursor)) {
+        if (cursor === currentTag) {
+          result[tg] = path;
+          break;
+        }
+        visited.add(cursor);
+        cursor = fallbackOf[cursor] || '';
+        if (cursor) path.push(cursor);
+      }
+    }
+    return result;
+  }, [currentTag, balancers, availableBalancerTags, templateSettings?.routing?.rules]);
+
+  const wouldCreateCycle = !!cycleInfo[state.fallbackTag];
+
+  const fallbackOptions = useMemo(() => {
+    const options: Array<{ value: string; label: React.ReactNode; disabled?: boolean; title?: string }> = [
+      { value: '', label: `(${t('none')})` },
+    ];
+    for (const tg of outboundTags) {
+      options.push({ value: tg, label: tg });
+    }
+    for (const tg of availableBalancerTags) {
+      const cycle = cycleInfo[tg];
+      options.push({
+        value: tg,
+        disabled: !!cycle,
+        title: cycle ? t('pages.xray.balancer.cycleTooltip', { path: cycle.join(' → '), start: currentTag }) : undefined,
+        label: (
+          <span>
+            <Tag color="blue" style={{ marginRight: 4 }}>{t('pages.xray.rules.balancer')}</Tag>
+            {tg}
+          </span>
+        ),
+      });
+    }
+    return options;
+  }, [outboundTags, availableBalancerTags, cycleInfo, currentTag, t]);
+
+  const isFallbackBalancer = useMemo(
+    () => balancerTags.includes(state.fallbackTag),
+    [balancerTags, state.fallbackTag],
   );
 
   const title = isEdit
@@ -141,6 +220,7 @@ export default function BalancerFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
+      okButtonProps={{ disabled: !parsed.success || duplicateTag || wouldCreateCycle }}
       mask={{ closable: false }}
       onOk={submit}
       onCancel={onClose}
@@ -189,6 +269,22 @@ export default function BalancerFormModal({
             options={fallbackOptions}
           />
         </Form.Item>
+        {isFallbackBalancer && !wouldCreateCycle && (
+          <Alert
+            type="info"
+            showIcon
+            message={t('pages.xray.balancer.balancerFallbackInfo')}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {wouldCreateCycle && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('pages.xray.balancer.balancerFallbackCycle')}
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
         {state.strategy === 'leastLoad' && (
           <>

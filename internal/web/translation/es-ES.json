@@ -1726,6 +1726,7 @@
         "tagPlaceholder": "etiqueta única de balanceador",
         "selector": "Selector",
         "fallback": "Fallback",
+        "cycleTooltip": "Ciclo: {path} → (volver a {start})",
         "expected": "Esperado",
         "expectedPlaceholder": "número óptimo de nodos",
         "maxRtt": "Máx. RTT",
@@ -1735,7 +1736,12 @@
         "balancerDesc": "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag.",
         "costMatch": "Patrón de etiqueta",
         "costValue": "Peso",
-        "costRegexp": "Coincidencia por expresión regular"
+        "costRegexp": "Coincidencia por expresión regular",
+        "balancerDeleteInUse": "No se puede eliminar este balanceador — se usa como respaldo para: {names}",
+        "balancerFallbackCycle": "No se puede establecer este balanceador como respaldo — crearía una dependencia circular.",
+        "balancerFallbackInfo": "El tráfico se enrutará a través de: Balanceador → Loopback → Servidor → Balanceador destino → Conexión saliente. Esto agrega un salto adicional a través del servidor, lo que puede introducir ligeros retrasos.",
+        "fallbackBalancerHint": "Seleccione otro balanceador como respaldo",
+        "reservedPrefix": "El prefijo _bl_ está reservado para objetos loopback internos del balanceador"
       },
       "wireguard": {
         "secretKey": "Llave secreta",
