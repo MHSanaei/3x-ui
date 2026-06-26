@@ -170,6 +170,14 @@ The panel UI is available in 13 languages:
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
+## Documentation
+
+A comprehensive user manual for the panel — installation, inbounds, protocols, transports, TLS/XTLS/REALITY, clients, subscriptions, Xray routing/outbounds/DNS, nodes, panel settings, the Telegram bot, geo-data and day-to-day operations — is available in [`manual/`](manual/), in all 13 panel-supported languages (Markdown). Per-language **PDF editions** are available from the [manual's releases](https://github.com/yukh975/3X-UI-Manual/releases/latest).
+
+The manual tracks the panel version (currently **3.4.1**) and is refreshed within a day or two of each new release.
+
+Authored by Yuriy Khachaturian ([yukh.net](https://yukh.net)); licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Contributing
 
 Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
