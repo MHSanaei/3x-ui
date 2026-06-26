@@ -73,6 +73,7 @@ func initModels() error {
 		&model.ClientRecord{},
 		&model.ClientInbound{},
 		&model.ClientExternalLink{},
+		&model.Link{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
