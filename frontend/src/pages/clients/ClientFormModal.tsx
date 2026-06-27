@@ -835,7 +835,7 @@ export default function ClientFormModal({
                       {t('pages.clients.linksHint')}
                     </Typography.Paragraph>
 
-                    <Form.Item label={t('menu.links')}>
+                    <Form.Item label={t('pages.clients.externalLinksAndSubscriptions')}>
                       <SelectAllClearButtons
                         options={managedLinkOptions}
                         value={selectedManagedLinkIds}
