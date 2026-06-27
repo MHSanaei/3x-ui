@@ -610,3 +610,32 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 		t.Fatalf("second link must not carry usage: %q", second)
 	}
 }
+
+func TestEmailOnFirstLinkOnly(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	inbound := &model.Inbound{
+		Remark: "DE",
+		ClientStats: []xray.ClientTraffic{{
+			Email:  "alice@x",
+			Enable: true,
+			Total:  100 * gb,
+		}},
+	}
+	client := model.Client{Email: "alice@x"}
+	first := s.genTemplatedRemark(inbound, client, "", "ws")
+	s.usageShown["alice@x"] = true
+	second := s.genTemplatedRemark(inbound, client, "", "ws")
+	if !strings.Contains(first, "alice@x") {
+		t.Fatalf("first link should carry email: %q", first)
+	}
+	if strings.Contains(second, "alice@x") {
+		t.Fatalf("second link must not carry email: %q", second)
+	}
+	if !strings.Contains(second, "DE") {
+		t.Fatalf("second link should still carry the inbound name: %q", second)
+	}
+}
