@@ -1172,12 +1172,18 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}
-		newClients, gcErr := s.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
-			return err
+		if clientManagedInbound(oldInbound.Protocol) {
+			newClients, gcErr := s.GetClients(oldInbound)
+			if gcErr != nil {
+				return gcErr
+			}
+			if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
+				return err
+			}
+		} else if oldInbound.Protocol == model.WireGuard {
+			if err := s.clientService.syncWireGuardInboundPeerBindingsTx(tx, s, oldInbound.Id); err != nil {
+				return err
+			}
 		}
 		// (Re)generate the Xray config whenever routing was or is now enabled, so
 		// the egress SOCKS bridge is added, moved, or dropped to match the new

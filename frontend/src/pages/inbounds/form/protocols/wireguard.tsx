@@ -118,6 +118,18 @@ export default function WireguardFields({ wgPubKey, regenInboundWg, regenWgPeerK
                 <Form.Item name={[field.name, 'comment']} label={t('comment')}>
                   <Input placeholder="e.g. Alice's laptop" />
                 </Form.Item>
+                <Form.Item name={[field.name, 'clientId']} hidden>
+                  <InputNumber />
+                </Form.Item>
+                <Form.Item name={[field.name, 'clientEmail']} hidden>
+                  <Input />
+                </Form.Item>
+                <Form.Item name={[field.name, 'clientSubId']} hidden>
+                  <Input />
+                </Form.Item>
+                <Form.Item name={[field.name, 'clientComment']} hidden>
+                  <Input />
+                </Form.Item>
                 <Form.Item label={t('pages.xray.wireguard.secretKey')}>
                   <Space.Compact block>
                     <Form.Item name={[field.name, 'privateKey']} noStyle>

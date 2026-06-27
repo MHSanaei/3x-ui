@@ -103,12 +103,12 @@ export const sections: readonly Section[] = [
     id: 'inbounds',
     title: 'Inbounds',
     description:
-      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy.',
+      'Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy. WireGuard inbounds are peer-based: clients are attached through /panel/api/clients/* and the panel synchronizes binding metadata onto settings.peers[] as clientId, clientEmail, clientSubId, and comment. These peer metadata fields are panel-owned and ignored by xray-core.',
     endpoints: [
       {
         method: 'GET',
         path: '/panel/api/inbounds/list',
-        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write.',
+        summary: 'List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write. For WireGuard, settings.peers[] may include panel metadata fields clientId, clientEmail, clientSubId, and comment that bind a peer to a normalized client record.',
         responseSchema: 'Inbound',
         responseSchemaArray: true,
       },
@@ -145,7 +145,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/inbounds/add',
-        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
+        summary: 'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy). WireGuard settings use peers[] rather than clients[]; peer clientId/clientEmail/clientSubId/comment metadata is normally managed by the client attach/detach APIs.',
         body:
           '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
         errorResponse:
@@ -169,7 +169,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/inbounds/update/:id',
-        summary: 'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
+        summary: 'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips. Updating a WireGuard inbound preserves the authoritative client_inbounds relation and re-synchronizes settings.peers[] binding metadata instead of treating peers as settings.clients users.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
         ],
@@ -540,7 +540,7 @@ export const sections: readonly Section[] = [
     id: 'clients',
     title: 'Clients',
     description:
-      'Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients.',
+      'Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in client-managed protocols (VMess, VLESS, Trojan, Shadowsocks, Hysteria). WireGuard is peer-managed: attach/detach creates or removes client_inbounds rows and synchronizes the matching peer metadata fields clientId, clientEmail, clientSubId, and comment. Endpoints live under /panel/api/clients.',
     endpoints: [
       {
         method: 'GET',
@@ -609,7 +609,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/:email/attach',
-        summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
+        summary: 'Attach an existing client to one or more additional inbounds. Body is JSON. For WireGuard targets this does not create a settings.clients entry; it links the client to the inbound and annotates the next matching/unbound peer with clientId, clientEmail, clientSubId, and comment.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach.' },
@@ -620,7 +620,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/:email/detach',
-        summary: 'Detach a client from one or more inbounds without deleting the client.',
+        summary: 'Detach a client from one or more inbounds without deleting the client. For WireGuard targets this removes the client_inbounds link and clears that peer’s clientId/clientEmail/clientSubId/clientComment metadata when it belongs to the detached client.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach.' },
@@ -722,7 +722,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/bulkAttach',
-        summary: 'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+        summary: 'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to client-managed targets in a single AddInboundClient call. WireGuard targets use client_inbounds links plus peer binding metadata instead of settings.clients. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
         params: [
           { name: 'emails', in: 'body (json)', type: 'array', desc: 'Emails of existing clients to attach.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Target inbound IDs to attach every client to.' },
@@ -733,7 +733,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/bulkDetach',
-        summary: 'Mirror of bulkAttach: detach many existing clients from many inbounds in one call. For each email, intersects the client\'s current inbounds with the requested set and detaches from those only; (email, inbound) pairs where the client is not currently attached are silently no-ops. Emails not attached to any of the requested inbounds are reported under skipped. Client records are kept even if they become orphaned — use bulkDel for full removal. Returns per-email detached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+        summary: 'Mirror of bulkAttach: detach many existing clients from many inbounds in one call. For each email, intersects the client\'s current inbounds with the requested set and detaches from those only; (email, inbound) pairs where the client is not currently attached are silently no-ops. WireGuard targets clear peer binding metadata for detached clients. Emails not attached to any of the requested inbounds are reported under skipped. Client records are kept even if they become orphaned — use bulkDel for full removal. Returns per-email detached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
         params: [
           { name: 'emails', in: 'body (json)', type: 'array', desc: 'Emails of existing clients to detach.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach the clients from.' },

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -71,6 +70,34 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		inbound, err := inboundSvc.GetInbound(ibId)
 		if err != nil {
 			recordErr("inbound %d: %v", ibId, err)
+			continue
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			attachedCount := 0
+			for _, rec := range records {
+				var exists int64
+				if err := database.GetDB().Model(&model.ClientInbound{}).
+					Where("client_id = ? AND inbound_id = ?", rec.Id, ibId).
+					Count(&exists).Error; err != nil {
+					recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+					continue
+				}
+				if exists > 0 {
+					result.Skipped = append(result.Skipped, rec.Email)
+					continue
+				}
+				if err := ensureClientInboundLink(rec.Id, ibId); err != nil {
+					recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+					continue
+				}
+				result.Attached = append(result.Attached, rec.Email)
+				attachedCount++
+			}
+			if attachedCount > 0 {
+				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+					recordErr("inbound %d: %v", ibId, err)
+				}
+			}
 			continue
 		}
 		existingClients, err := inboundSvc.GetClients(inbound)
@@ -199,6 +226,35 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 			continue
 		}
 		delete(recsByInbound, ibId)
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
+			recordErr("inbound %d: %v", ibId, getErr)
+			for _, rec := range recs {
+				emailFailed[strings.ToLower(rec.Email)] = true
+			}
+			continue
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			failed := false
+			for _, rec := range recs {
+				if err := database.GetDB().
+					Where("client_id = ? AND inbound_id = ?", rec.Id, ibId).
+					Delete(&model.ClientInbound{}).Error; err != nil {
+					recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+					emailFailed[strings.ToLower(rec.Email)] = true
+					failed = true
+				}
+			}
+			if !failed {
+				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+					recordErr("inbound %d: %v", ibId, err)
+					for _, rec := range recs {
+						emailFailed[strings.ToLower(rec.Email)] = true
+					}
+				}
+			}
+			continue
+		}
 		nr, err := s.delInboundClients(inboundSvc, ibId, recs, true)
 		if err != nil {
 			recordErr("inbound %d: %v", ibId, err)

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -40,6 +39,38 @@ func validateClientSubID(subID string) error {
 		return common.NewError("client subId contains an invalid character:", subID)
 	}
 	return nil
+}
+
+func clientManagedInbound(protocol model.Protocol) bool {
+	switch protocol {
+	case model.VMESS, model.VLESS, model.Trojan, model.Shadowsocks, model.Hysteria:
+		return true
+	default:
+		return false
+	}
+}
+
+func ensureClientInboundLink(clientId int, inboundId int) error {
+	return database.GetDB().FirstOrCreate(
+		&model.ClientInbound{},
+		model.ClientInbound{ClientId: clientId, InboundId: inboundId},
+	).Error
+}
+
+func (s *ClientService) ensureClientRecord(client model.Client) (*model.ClientRecord, error) {
+	rec := &model.ClientRecord{}
+	err := database.GetDB().Where("email = ?", client.Email).First(rec).Error
+	if err == nil {
+		return rec, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	rec = client.ToRecord()
+	if err := database.GetDB().Create(rec).Error; err != nil {
+		return nil, err
+	}
+	return rec, nil
 }
 
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
@@ -97,10 +128,15 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	}
 
 	needRestart := false
+	linkOnlyInboundIds := make([]int, 0)
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
 			return needRestart, getErr
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			linkOnlyInboundIds = append(linkOnlyInboundIds, ibId)
+			continue
 		}
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
@@ -118,6 +154,20 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 		if nr {
 			needRestart = true
+		}
+	}
+	if len(linkOnlyInboundIds) > 0 {
+		rec, recErr := s.ensureClientRecord(client)
+		if recErr != nil {
+			return needRestart, recErr
+		}
+		for _, ibId := range linkOnlyInboundIds {
+			if err := ensureClientInboundLink(rec.Id, ibId); err != nil {
+				return needRestart, err
+			}
+			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+				return needRestart, err
+			}
 		}
 	}
 	return needRestart, nil
@@ -366,6 +416,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if existing.Email == "" {
 			continue
 		}
+		if !clientManagedInbound(inbound.Protocol) {
+			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+				return needRestart, err
+			}
+			continue
+		}
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
@@ -430,8 +486,10 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	}
 
 	needRestart := false
+	wireGuardInboundIds := make([]int, 0)
 	for _, ibId := range inboundIds {
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
 				continue
 			}
@@ -443,6 +501,12 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		// credential (UUID/password/auth) drifted from the inbound JSON, or a
 		// duplicate entry with the same email exists.
 		if existing.Email == "" {
+			continue
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			if inbound.Protocol == model.WireGuard {
+				wireGuardInboundIds = append(wireGuardInboundIds, ibId)
+			}
 			continue
 		}
 		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
@@ -462,6 +526,11 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	db := database.GetDB()
 	if err := db.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
 		return needRestart, err
+	}
+	for _, ibId := range wireGuardInboundIds {
+		if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+			return needRestart, err
+		}
 	}
 	if err := db.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
 		return needRestart, err
@@ -513,6 +582,15 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
 			return needRestart, getErr
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			if err := ensureClientInboundLink(existing.Id, ibId); err != nil {
+				return needRestart, err
+			}
+			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+				return needRestart, err
+			}
+			continue
 		}
 		copyClient := *clientWire
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
@@ -652,11 +730,23 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if _, attached := have[ibId]; !attached {
 			continue
 		}
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
 			return needRestart, getErr
 		}
 		// Detach by email — the client's stable identity (see Delete).
 		if existing.Email == "" {
+			continue
+		}
+		if !clientManagedInbound(inbound.Protocol) {
+			if err := database.GetDB().
+				Where("client_id = ? AND inbound_id = ?", id, ibId).
+				Delete(&model.ClientInbound{}).Error; err != nil {
+				return needRestart, err
+			}
+			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+				return needRestart, err
+			}
 			continue
 		}
 		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, true)

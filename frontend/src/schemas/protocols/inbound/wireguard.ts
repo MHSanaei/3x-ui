@@ -30,6 +30,10 @@ export const WireguardInboundPeerSchema = z.object({
   // Rides along in the settings JSON like privateKey does; xray-core ignores
   // unknown peer fields.
   comment: z.string().optional(),
+  clientId: optionalClearedInt(z.number().int().min(1)),
+  clientEmail: z.string().optional(),
+  clientSubId: z.string().optional(),
+  clientComment: z.string().optional(),
 });
 export type WireguardInboundPeer = z.infer<typeof WireguardInboundPeerSchema>;
 
