@@ -111,16 +111,18 @@
   align-items: flex-start;
   min-height: 40px;
   height: auto;
-  padding: 6px 8px;
+  padding: 8px 40px 8px 10px;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-overflow {
-  gap: 6px;
+  column-gap: 10px;
+  row-gap: 8px;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-item {
   max-width: 100%;
   margin: 0;
+  padding-inline: 9px 7px;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-item-content {
