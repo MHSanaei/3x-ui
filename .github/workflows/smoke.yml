@@ -1,7 +1,7 @@
 name: Deploy Smoke Tests
 
-# Container smoke tests for the unattended install path and first-boot
-# credential generation. Runs only when the install/deploy assets change.
+# Container smoke test for the unattended (cloud-init) install path.
+# Runs only when the install/deploy assets change.
 
 on:
   push:
@@ -30,15 +30,3 @@ jobs:
       - uses: actions/checkout@v7
       - name: Non-interactive install smoke test
         run: bash deploy/test/smoke-noninteractive.sh
-
-  first-boot:
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - name: First-boot credential smoke test
-        run: bash deploy/test/smoke-firstboot.sh

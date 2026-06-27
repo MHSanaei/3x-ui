@@ -92,7 +92,7 @@ export default function XrayStatusCard({
       ? [
           <Space className="action" key="xraylogs" onClick={onOpenXrayLogs}>
             <BarsOutlined />
-            {!isMobile && <span>{t('pages.index.logs')}</span>}
+            {!isMobile && <span>{t('pages.index.accessLogs')}</span>}
           </Space>,
         ]
       : []),

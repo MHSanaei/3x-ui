@@ -164,15 +164,15 @@ func hostRemarkService(template string) (*SubService, *model.Inbound, model.Clie
 	return s, inbound, client
 }
 
-// The config name is always the inbound's own remark; the host endpoint's remark
-// never substitutes it (it is reachable only through {{HOST}}).
-func TestGenHostRemark_ConfigNameUsesInbound(t *testing.T) {
-	s, inbound, client := hostRemarkService("") // no template → config name only
-	if got := s.genHostRemark(inbound, client, "Relay", ""); got != "DE" {
-		t.Fatalf("genHostRemark = %q, want %q (inbound remark, host ignored)", got, "DE")
+// With no template configured, genHostRemark falls back to the inbound remark,
+// host and email joined by "-".
+func TestGenHostRemark_NoTemplate_Fallback(t *testing.T) {
+	s, inbound, client := hostRemarkService("")
+	if got := s.genHostRemark(inbound, client, "Relay", ""); got != "DE-Relay-john@example.com" {
+		t.Fatalf("genHostRemark = %q, want %q", got, "DE-Relay-john@example.com")
 	}
-	if got := s.genHostRemark(inbound, client, "", ""); got != "DE" {
-		t.Fatalf("genHostRemark (no host remark) = %q, want %q", got, "DE")
+	if got := s.genHostRemark(inbound, client, "", ""); got != "DE-john@example.com" {
+		t.Fatalf("genHostRemark (no host remark) = %q, want %q", got, "DE-john@example.com")
 	}
 }
 
@@ -206,12 +206,11 @@ func TestGenRemark_GlobalTemplate(t *testing.T) {
 	}
 }
 
-// With no template, genRemark composes the fallback model and adds no suffix.
-func TestGenRemark_NoTemplate_NoSuffix(t *testing.T) {
+func TestGenRemark_NoTemplate_AppendsEmail(t *testing.T) {
 	s, inbound, _ := hostRemarkService("")
 	got := s.genRemark(inbound, "john@example.com", "Relay", "")
-	if got != "DE-Relay" {
-		t.Fatalf("genRemark = %q, want %q (no suffix)", got, "DE-Relay")
+	if got != "DE-Relay-john@example.com" {
+		t.Fatalf("genRemark = %q, want %q", got, "DE-Relay-john@example.com")
 	}
 }
 
@@ -232,40 +231,155 @@ func TestUsageOnFirstLinkOnly(t *testing.T) {
 	}
 }
 
-// Outside the subscription body (panel link/QR displays, sub info page) the
-// template is bypassed entirely — links show just the config name, with no
-// per-client email or usage info.
 func TestRemarkInDisplayContext(t *testing.T) {
-	s, inbound, client := hostRemarkService("{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
+	s, inbound, client := hostRemarkService("{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
 	s.subscriptionBody = false
-	// A host link in a display shows only the config name — the inbound's remark,
-	// with no per-client email or usage info and the host remark ignored.
-	if got := s.genHostRemark(inbound, client, "CDN", ""); got != "DE" {
-		t.Fatalf("display host link = %q, want config name %q", got, "DE")
+	const want = "DE-john@example.com"
+	if got := s.genHostRemark(inbound, client, "CDN", ""); got != want {
+		t.Fatalf("display host link = %q, want %q", got, want)
 	}
-	// With no host remark, the config name is likewise the inbound's own remark.
-	if got := s.genHostRemark(inbound, client, "", ""); got != "DE" {
-		t.Fatalf("display host link (no host) = %q, want %q", got, "DE")
+	if got := s.genHostRemark(inbound, client, "", ""); got != want {
+		t.Fatalf("display host link (no host) = %q, want %q", got, want)
 	}
-	// genRemark (non-host) likewise drops the template in display context.
-	if got := s.genRemark(inbound, client.Email, "", ""); got != "DE" {
-		t.Fatalf("display genRemark = %q, want %q", got, "DE")
+	if got := s.genRemark(inbound, client.Email, "", ""); got != want {
+		t.Fatalf("display genRemark = %q, want %q", got, want)
+	}
+	s2, inbound2, client2 := hostRemarkService("{{INBOUND}}-{{HOST}}|📊{{TRAFFIC_LEFT}}")
+	s2.subscriptionBody = false
+	if got := s2.genHostRemark(inbound2, client2, "CDN", ""); got != "DE-CDN" {
+		t.Fatalf("display host link with HOST token = %q, want %q", got, "DE-CDN")
 	}
 }
 
-// nameOnlyTemplate drops the info part (and its leading decoration), keeping name.
-func TestNameOnlyTemplate(t *testing.T) {
+func TestFilterRemarkTemplate_BodyRepeat(t *testing.T) {
 	cases := map[string]string{
-		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D": "{{INBOUND}}",           // the default → name only
-		"{{EMAIL}} {{INBOUND}} ⏳{{DAYS_LEFT}}":          "{{EMAIL}} {{INBOUND}}", // multi-token name survives the trim
-		"{{INBOUND}} | {{STATUS}}":                      "{{INBOUND}}",
-		"{{INBOUND}}-{{EMAIL}}":                         "{{INBOUND}}-{{EMAIL}}", // no info tokens → unchanged
-		"{{TRAFFIC_LEFT}}":                              "",                      // info only → empty
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{PROTOCOL}}-{{TRANSPORT}}-{{SECURITY}}":              "{{INBOUND}}|{{PROTOCOL}}-{{TRANSPORT}}-{{SECURITY}}",
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D":                                      "{{INBOUND}}",
+		"{{INBOUND}} {{PROTOCOL}}|📊{{TRAFFIC_LEFT}}":                                         "{{INBOUND}} {{PROTOCOL}}",
+		"{{INBOUND}}-{{EMAIL}}":                                                              "{{INBOUND}}-{{EMAIL}}",
+		"{{TRAFFIC_LEFT}}|{{SECURITY}}":                                                      "{{SECURITY}}",
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}} {{PROTOCOL}}":                                         "{{INBOUND}}|{{PROTOCOL}}",
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{EMAIL}}":                                            "{{INBOUND}}|{{EMAIL}}",
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D{{PROTOCOL}}{{TRANSPORT}}{{SECURITY}}": "{{INBOUND}}|{{PROTOCOL}}{{TRANSPORT}}{{SECURITY}}",
+		"{{EMAIL}} {{TRAFFIC_USED}}5h":                                                       "{{EMAIL}}",
+		"{{PROTOCOL}} {{TRAFFIC_LEFT}}GB":                                                    "{{PROTOCOL}}",
+		"{{EMAIL}}-{{TRAFFIC_LEFT}}D-{{HOST}}":                                               "{{EMAIL}} {{HOST}}",
+		"{{EMAIL}} 📊{{TRAFFIC_LEFT}} {{PROTOCOL}}":                                           "{{EMAIL}} {{PROTOCOL}}",
 	}
 	for tmpl, want := range cases {
-		if got := nameOnlyTemplate(tmpl); got != want {
-			t.Errorf("nameOnlyTemplate(%q) = %q, want %q", tmpl, got, want)
+		if got := filterRemarkTemplate(tmpl, usageInfoTokens); got != want {
+			t.Errorf("filterRemarkTemplate(%q, usage) = %q, want %q", tmpl, got, want)
 		}
+	}
+}
+
+func TestFilterRemarkTemplate_Display(t *testing.T) {
+	cases := map[string]string{
+		"{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|{{PROTOCOL}}": "{{INBOUND}}-{{EMAIL}}",
+		"{{INBOUND}} {{PROTOCOL}}":                             "{{INBOUND}}",
+		"{{EMAIL}} {{INBOUND}} ⏳{{DAYS_LEFT}}":                 "{{EMAIL}} {{INBOUND}}",
+		"{{INBOUND}} | {{STATUS}}":                             "{{INBOUND}}",
+		"{{INBOUND}}-{{EMAIL}}":                                "{{INBOUND}}-{{EMAIL}}",
+		"{{TRAFFIC_LEFT}}":                                     "",
+		"{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{HOST}}":               "{{INBOUND}}|{{HOST}}",
+		"{{EMAIL}} ⏳{{DAYS_LEFT}}D {{HOST}}":                   "{{EMAIL}} {{HOST}}",
+		"{{INBOUND}} {{TRAFFIC_LEFT}} {{EMAIL}}":               "{{INBOUND}} {{EMAIL}}",
+	}
+	for tmpl, want := range cases {
+		if got := filterRemarkTemplate(tmpl, displayRemoveTokens); got != want {
+			t.Errorf("filterRemarkTemplate(%q, display) = %q, want %q", tmpl, got, want)
+		}
+	}
+}
+
+func TestConnectionTokensOnEveryBodyLink(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{PROTOCOL}} {{TRANSPORT}} {{SECURITY}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	inbound := &model.Inbound{
+		Remark:         "DE",
+		Protocol:       "vless",
+		StreamSettings: `{"network":"ws","security":"tls"}`,
+		ClientStats:    []xray.ClientTraffic{{Email: "john@x", Enable: true, Total: 100 * gb, Up: 30 * gb}},
+	}
+	client := model.Client{Email: "john@x"}
+	first := s.genTemplatedRemark(inbound, client, "", "ws")
+	second := s.genTemplatedRemark(inbound, client, "", "ws")
+	for _, want := range []string{"VLESS", "ws", "TLS"} {
+		if !strings.Contains(first, want) {
+			t.Fatalf("first body link %q missing %q", first, want)
+		}
+		if !strings.Contains(second, want) {
+			t.Fatalf("repeat body link %q missing connection token %q", second, want)
+		}
+	}
+	if strings.ContainsAny(second, "📊") || strings.Contains(second, "GB") {
+		t.Fatalf("repeat body link must drop the usage block: %q", second)
+	}
+}
+
+func TestConnectionTokensMixedIntoUsageSegment(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D {{PROTOCOL}} {{TRANSPORT}} {{SECURITY}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	inbound := &model.Inbound{
+		Remark:         "DE",
+		Protocol:       "vless",
+		StreamSettings: `{"network":"grpc","security":"reality"}`,
+		ClientStats:    []xray.ClientTraffic{{Email: "john@x", Enable: true, Total: 100 * gb, Up: 30 * gb}},
+	}
+	client := model.Client{Email: "john@x"}
+	_ = s.genTemplatedRemark(inbound, client, "", "grpc")
+	second := s.genTemplatedRemark(inbound, client, "", "grpc")
+	for _, want := range []string{"VLESS", "grpc", "REALITY"} {
+		if !strings.Contains(second, want) {
+			t.Fatalf("repeat body link %q missing connection token %q", second, want)
+		}
+	}
+	if strings.Contains(second, "GB") || strings.ContainsRune(second, '⏳') {
+		t.Fatalf("repeat body link must drop the usage block: %q", second)
+	}
+}
+
+func TestConnectionTokensDisplayContextUnchanged(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{PROTOCOL}}",
+		subscriptionBody: false,
+	}
+	inbound := &model.Inbound{
+		Remark:         "DE",
+		Protocol:       "vless",
+		StreamSettings: `{"network":"ws","security":"tls"}`,
+		ClientStats:    []xray.ClientTraffic{{Email: "john@x", Enable: true, Total: 100 * gb, Up: 30 * gb}},
+	}
+	if got := s.genTemplatedRemark(inbound, model.Client{Email: "john@x"}, "", "ws"); got != "DE" {
+		t.Fatalf("display remark = %q, want DE (connection after usage stripped outside the body)", got)
+	}
+}
+
+func TestIdentityTokensEverywhere(t *testing.T) {
+	const tmpl = "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{EMAIL}}"
+	inbound := &model.Inbound{
+		Remark:         "DE",
+		Protocol:       "vless",
+		StreamSettings: `{"network":"ws","security":"tls"}`,
+		ClientStats:    []xray.ClientTraffic{{Email: "john@x", Enable: true, Total: 100 * gb, Up: 30 * gb}},
+	}
+	client := model.Client{Email: "john@x"}
+
+	body := &SubService{remarkTemplate: tmpl, subscriptionBody: true, usageShown: map[string]bool{}}
+	_ = body.genTemplatedRemark(inbound, client, "", "ws") // first link consumes the usage block
+	if second := body.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(second, "john@x") {
+		t.Fatalf("repeat body link %q must keep the identity token", second)
+	}
+
+	display := &SubService{remarkTemplate: tmpl, subscriptionBody: false}
+	if got := display.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(got, "john@x") {
+		t.Fatalf("display remark %q must keep the identity token", got)
 	}
 }
 
@@ -379,6 +493,7 @@ func TestExpandNewTokensInTemplate(t *testing.T) {
 		stats:     stats,
 		inbound:   inbound,
 		transport: "ws",
+		security:  "reality",
 	}
 
 	cases := []struct{ tmpl, want string }{
@@ -386,12 +501,39 @@ func TestExpandNewTokensInTemplate(t *testing.T) {
 		{"{{USAGE_PERCENTAGE}}", "50.0%"},
 		{"{{PROTOCOL}}", "VLESS"},
 		{"{{TRANSPORT}}", "ws"},
+		{"{{SECURITY}}", "REALITY"},
 		{"{{STATUS_EMOJI}} {{INBOUND}}", "✅ DE"},
 	}
 	for _, c := range cases {
 		if got := expandRemarkVars(c.tmpl, ctx); got != c.want {
 			t.Errorf("expandRemarkVars(%q) = %q, want %q", c.tmpl, got, c.want)
 		}
+	}
+}
+
+func TestInboundSecurity(t *testing.T) {
+	cases := []struct{ stream, want string }{
+		{`{"network":"ws","security":"tls"}`, "tls"},
+		{`{"network":"tcp","security":"reality"}`, "reality"},
+		{`{"network":"tcp","security":"none"}`, "none"},
+		{`{"network":"tcp"}`, ""},
+		{"", ""},
+	}
+	for _, c := range cases {
+		if got := inboundSecurity(&model.Inbound{StreamSettings: c.stream}); got != c.want {
+			t.Errorf("inboundSecurity(%q) = %q, want %q", c.stream, got, c.want)
+		}
+	}
+	if got := inboundSecurity(nil); got != "" {
+		t.Errorf("inboundSecurity(nil) = %q, want empty", got)
+	}
+}
+
+func TestGenTemplatedRemark_SecurityFromStream(t *testing.T) {
+	s := &SubService{remarkTemplate: "{{INBOUND}} {{SECURITY}}", subscriptionBody: true}
+	inbound := &model.Inbound{Remark: "DE", StreamSettings: `{"network":"tcp","security":"reality"}`}
+	if got := s.genTemplatedRemark(inbound, model.Client{Email: "a@x"}, "", "tcp"); got != "DE REALITY" {
+		t.Fatalf("genTemplatedRemark SECURITY = %q, want %q", got, "DE REALITY")
 	}
 }
 
@@ -421,6 +563,7 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 		stats:     stats,
 		inbound:   inbound,
 		transport: "ws",
+		security:  "tls",
 	}
 	cases := []struct{ tmpl, want string }{
 		{"{EMAIL}", "alice@test.com"},
@@ -431,6 +574,7 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 		{"{USAGE_PERCENTAGE}", "50.0%"},
 		{"{PROTOCOL}", "VLESS"},
 		{"{TRANSPORT}", "ws"},
+		{"{SECURITY}", "TLS"},
 	}
 	for _, c := range cases {
 		if got := expandRemarkVars(c.tmpl, ctx); got != c.want {

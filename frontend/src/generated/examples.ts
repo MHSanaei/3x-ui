@@ -52,6 +52,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subEnableRouting": false,
     "subEncrypt": false,
     "subHideSettings": false,
+    "subIncyEnableRouting": false,
+    "subIncyRoutingRules": "",
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
@@ -152,6 +154,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subEnableRouting": false,
     "subEncrypt": false,
     "subHideSettings": false,
+    "subIncyEnableRouting": false,
+    "subIncyRoutingRules": "",
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
@@ -460,6 +464,28 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayError": "",
     "xrayState": "",
     "xrayVersion": "25.10.31"
+  },
+  "RealityScanResult": {
+    "alpn": "h2",
+    "certIssuer": "Google Trust Services",
+    "certSubject": "cloudflare.com",
+    "certValid": true,
+    "curveID": "X25519",
+    "feasible": true,
+    "h2": true,
+    "host": "www.cloudflare.com",
+    "ip": "104.16.124.96",
+    "latencyMs": 180,
+    "notAfter": "2026-08-01T00:00:00Z",
+    "port": 443,
+    "reason": "",
+    "serverNames": [
+      ""
+    ],
+    "target": "www.cloudflare.com:443",
+    "tls13": true,
+    "tlsVersion": "1.3",
+    "x25519": true
   },
   "Setting": {
     "id": 0,

@@ -1,27 +1,20 @@
-# Cloud deployment & golden images
+# Cloud deployment (unattended install)
 
-Tooling to ship the 3x-ui panel as a cloud image or via unattended install,
-with **per-instance credentials generated on first boot** (never `admin/admin`,
-never a shared session secret). Everything here supports **amd64 and arm64**.
+Tooling to ship the 3x-ui panel via unattended install, with **per-instance
+credentials generated on first boot** (never `admin/admin`, never a shared
+session secret). Works on amd64 and arm64.
 
 | Path | What it is | Use when |
 | --- | --- | --- |
 | [`cloud-init/`](cloud-init/) | Generic cloud-init user-data (unattended `install.sh`) | Any cloud, no image build |
-| [`packer/`](packer/) | Packer build → AWS AMI + qcow2/raw | Reusable / Marketplace images |
-| [`lightsail/`](lightsail/) | Launch script + snapshot builder | Amazon Lightsail |
-| [`firstboot/`](firstboot/) | First-boot unit + script that mints per-instance creds | Used by the Packer/Lightsail images |
-| [`marketplace/aws/`](marketplace/aws/) | AWS Marketplace submission checklist | Publishing an EC2 AMI |
 | [`marketplace/hetzner/`](marketplace/hetzner/) | Hetzner Cloud notes | Hetzner deployments |
-| [`test/`](test/) | Container smoke tests | Verifying the install/firstboot paths |
+| [`test/`](test/) | Container smoke test | Verifying the install path |
 
-## Two models
+## How it works
 
-- **Non-interactive install (cloud-init):** `install.sh` runs unattended when
-  `XUI_NONINTERACTIVE=1` or stdin is not a TTY. Each instance installs and
-  configures itself with random credentials. See [`cloud-init/README.md`](cloud-init/README.md).
-- **Golden image (Packer):** the image contains the panel but **no DB and no
-  secrets**; `firstboot` generates unique credentials on first boot. See
-  [`packer/README.md`](packer/README.md).
+`install.sh` runs unattended when `XUI_NONINTERACTIVE=1` or stdin is not a TTY.
+Each instance installs and configures itself with random credentials. See
+[`cloud-init/README.md`](cloud-init/README.md).
 
 ## Unattended install knobs
 

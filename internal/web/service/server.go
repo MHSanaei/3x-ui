@@ -117,7 +117,10 @@ type Status struct {
 
 // Release represents information about a software release from GitHub.
 type Release struct {
-	TagName string `json:"tag_name"` // The tag name of the release
+	TagName         string `json:"tag_name"`         // The tag name of the release
+	Body            string `json:"body"`             // The release notes; the dev channel reads its commit from here
+	TargetCommitish string `json:"target_commitish"` // The branch/commit the tag points at
+	Prerelease      bool   `json:"prerelease"`       // Whether this is a pre-release
 }
 
 // ServerService provides business logic for server monitoring and management.
@@ -163,15 +166,15 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // callers from triggering arbitrary aggregation work and keeps the
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
-	2:    true, // Real-time view
-	30:   true, // 30s intervals
-	60:   true, // 1m intervals
-	120:  true, // 2m intervals
-	180:  true, // 3m intervals
-	300:  true, // 5m intervals
-	720:  true, // 12m intervals
-	1440: true, // 24m intervals
-	2880: true, // 48m intervals
+	2:     true, // 2m
+	30:    true, // 30m
+	60:    true, // 1h
+	180:   true, // 3h
+	360:   true, // 6h
+	720:   true, // 12h
+	1440:  true, // 24h
+	2880:  true, // 2d
+	10080: true, // 7d
 }
 
 // IsAllowedHistoryBucket reports whether a bucket-seconds value is in the
@@ -375,6 +378,53 @@ func getPublicIP(url string) string {
 	return ipString
 }
 
+var publicIPv4Services = []string{
+	"https://api4.ipify.org",
+	"https://ipv4.icanhazip.com",
+	"https://v4.api.ipinfo.io/ip",
+	"https://ipv4.myexternalip.com/raw",
+	"https://4.ident.me",
+	"https://check-host.net/ip",
+}
+
+var publicIPv6Services = []string{
+	"https://api6.ipify.org",
+	"https://ipv6.icanhazip.com",
+	"https://v6.api.ipinfo.io/ip",
+	"https://ipv6.myexternalip.com/raw",
+	"https://6.ident.me",
+}
+
+// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. Guarded
+// by s.mu because the bot's ServerService may call it from sendBackup while a
+// status report runs concurrently.
+func (s *ServerService) resolvePublicIPs() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.cachedIPv4 == "" {
+		for _, ip4Service := range publicIPv4Services {
+			s.cachedIPv4 = getPublicIP(ip4Service)
+			if s.cachedIPv4 != "N/A" {
+				break
+			}
+		}
+	}
+
+	if s.cachedIPv6 == "" && !s.noIPv6 {
+		for _, ip6Service := range publicIPv6Services {
+			s.cachedIPv6 = getPublicIP(ip6Service)
+			if s.cachedIPv6 != "N/A" {
+				break
+			}
+		}
+	}
+
+	if s.cachedIPv6 == "N/A" {
+		s.noIPv6 = true
+	}
+}
+
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	now := time.Now()
 	status := &Status{
@@ -536,45 +586,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	// IP fetching with caching
-	showIp4ServiceLists := []string{
-		"https://api4.ipify.org",
-		"https://ipv4.icanhazip.com",
-		"https://v4.api.ipinfo.io/ip",
-		"https://ipv4.myexternalip.com/raw",
-		"https://4.ident.me",
-		"https://check-host.net/ip",
-	}
-	showIp6ServiceLists := []string{
-		"https://api6.ipify.org",
-		"https://ipv6.icanhazip.com",
-		"https://v6.api.ipinfo.io/ip",
-		"https://ipv6.myexternalip.com/raw",
-		"https://6.ident.me",
-	}
-
-	if s.cachedIPv4 == "" {
-		for _, ip4Service := range showIp4ServiceLists {
-			s.cachedIPv4 = getPublicIP(ip4Service)
-			if s.cachedIPv4 != "N/A" {
-				break
-			}
-		}
-	}
-
-	if s.cachedIPv6 == "" && !s.noIPv6 {
-		for _, ip6Service := range showIp6ServiceLists {
-			s.cachedIPv6 = getPublicIP(ip6Service)
-			if s.cachedIPv6 != "N/A" {
-				break
-			}
-		}
-	}
-
-	if s.cachedIPv6 == "N/A" {
-		s.noIPv6 = true
-	}
-
+	s.resolvePublicIPs()
 	status.PublicIP.IPv4 = s.cachedIPv4
 	status.PublicIP.IPv6 = s.cachedIPv6
 
@@ -592,15 +604,19 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
-	status.PanelVersion = config.GetVersion()
+	status.PanelVersion = config.GetPanelVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
 		status.PanelGuid = guid
 	}
 
 	// Application stats
-	var rtm runtime.MemStats
-	runtime.ReadMemStats(&rtm)
-	status.AppStats.Mem = rtm.Sys
+	if rss := sys.SelfRSS(); rss > 0 {
+		status.AppStats.Mem = rss
+	} else {
+		var rtm runtime.MemStats
+		runtime.ReadMemStats(&rtm)
+		status.AppStats.Mem = rtm.Sys
+	}
 	status.AppStats.Threads = uint32(runtime.NumGoroutine())
 	if p != nil && p.IsRunning() {
 		status.AppStats.Uptime = p.GetUptime()
@@ -1282,11 +1298,12 @@ func (s *ServerService) GetDb() ([]byte, error) {
 
 // BackupFilename returns the filename for a database backup, named after the
 // panel's address so a downloaded or Telegram-sent backup identifies the server
-// it came from. requestHost is the browser's address (the getDb handler passes
-// c.Request.Host, matching the host shown in the panel title); it is preferred
-// when present, otherwise the configured web domain and then the server's public
-// IP are used. The extension is .dump on PostgreSQL and .db on SQLite; the base
-// falls back to "x-ui" when no address is known.
+// it came from. requestHost is the browser's address: the getDb handler passes
+// c.Request.Host so a panel download is named after whatever address the user
+// reached the panel with, no Listen Domain needed. The Telegram bot has no
+// request and passes "", falling back to the configured Listen Domain (webDomain)
+// and then the public IP. The extension is .dump on PostgreSQL and .db on SQLite;
+// the base falls back to "x-ui" when no address is known.
 func (s *ServerService) BackupFilename(requestHost string) string {
 	ext := ".db"
 	if database.IsPostgres() {
@@ -1296,9 +1313,12 @@ func (s *ServerService) BackupFilename(requestHost string) string {
 }
 
 // backupHost picks the address used to name backup files: the browser's request
-// host (port stripped, the same value the panel title shows) when available,
-// otherwise the configured web domain and then the cached public IP (IPv4 before
-// IPv6), reduced to safe filename characters.
+// host (port stripped) when available, otherwise the configured Listen Domain
+// (webDomain) and then the resolved public IP (IPv4 before IPv6), reduced to safe
+// filename characters. The public IP is resolved directly rather than read from
+// LastStatus so callers whose ServerService never runs the status ticker —
+// notably the Telegram bot — still get a real address instead of the "x-ui"
+// fallback.
 func (s *ServerService) backupHost(requestHost string) string {
 	host := extractHostname(strings.TrimSpace(requestHost))
 	if host == "" {
@@ -1307,12 +1327,11 @@ func (s *ServerService) backupHost(requestHost string) string {
 		}
 	}
 	if host == "" {
-		if st := s.LastStatus(); st != nil {
-			if ip := st.PublicIP.IPv4; ip != "" && ip != "N/A" {
-				host = ip
-			} else if ip := st.PublicIP.IPv6; ip != "" && ip != "N/A" {
-				host = ip
-			}
+		s.resolvePublicIPs()
+		if ip := s.cachedIPv4; ip != "" && ip != "N/A" {
+			host = ip
+		} else if ip := s.cachedIPv6; ip != "" && ip != "N/A" {
+			host = ip
 		}
 	}
 	return sanitizeBackupHost(host)
@@ -2049,9 +2068,32 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 		return nil, err
 	}
 
+	auths := parseVlessEncAuths(out.String())
+	auths = append(auths, deriveVlessEncModes(auths)...)
+
 	return map[string]any{
-		"auths": parseVlessEncAuths(out.String()),
+		"auths": auths,
 	}, nil
+}
+
+func deriveVlessEncModes(auths []map[string]string) []map[string]string {
+	var extra []map[string]string
+	for _, a := range auths {
+		for _, mode := range []string{"xorpub", "random"} {
+			dec := strings.Replace(a["decryption"], ".native.", "."+mode+".", 1)
+			enc := strings.Replace(a["encryption"], ".native.", "."+mode+".", 1)
+			if dec == a["decryption"] && enc == a["encryption"] {
+				continue
+			}
+			extra = append(extra, map[string]string{
+				"id":         a["id"] + "_" + mode,
+				"label":      a["label"] + " (" + mode + ")",
+				"decryption": dec,
+				"encryption": enc,
+			})
+		}
+	}
+	return extra
 }
 
 func parseVlessEncAuths(output string) []map[string]string {

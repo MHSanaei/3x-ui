@@ -17,6 +17,7 @@ import {
 } from 'antd';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
+import type { RealityScanResult } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -174,6 +175,8 @@ export default function InboundFormModal({
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm<InboundFormValues>();
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
   const {
     fallbacks,
     fallbackChildOptions,
@@ -241,7 +244,9 @@ export default function InboundFormModal({
     clearRealityKeypair,
     genMldsa65,
     clearMldsa65,
-    randomizeRealityTarget,
+    scanRealityTarget,
+    scanRealityCandidates,
+    applyRealityScanResult,
     randomizeShortIds,
     getNewEchCert,
     clearEchCert,
@@ -250,7 +255,7 @@ export default function InboundFormModal({
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,
-  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null });
+  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null, setScanResult, setScanning });
 
 
   const toggleSockopt = (on: boolean) => {
@@ -279,8 +284,12 @@ export default function InboundFormModal({
   ) => {
     if (block?.id === authId) return true;
     const label = (block?.label || '').toLowerCase().replace(/[-_\s]/g, '');
-    if (authId === 'mlkem768') return label.includes('mlkem768');
-    if (authId === 'x25519') return label.includes('x25519');
+    if (authId === 'mlkem768') return label.includes('mlkem768') && !label.includes('xorpub') && !label.includes('random');
+    if (authId === 'x25519') return label.includes('x25519') && !label.includes('xorpub') && !label.includes('random');
+    if (authId === 'mlkem768_xorpub') return label.includes('mlkem768') && label.includes('xorpub');
+    if (authId === 'mlkem768_random') return label.includes('mlkem768') && label.includes('random');
+    if (authId === 'x25519_xorpub') return label.includes('x25519') && label.includes('xorpub');
+    if (authId === 'x25519_random') return label.includes('x25519') && label.includes('random');
     return false;
   };
 
@@ -313,7 +322,19 @@ export default function InboundFormModal({
     const parts = enc.split('.').filter(Boolean);
     const authKey = parts[parts.length - 1] || '';
     if (!authKey) return t('pages.inbounds.vlessAuthCustom');
-    return authKey.length > 300
+    const mode = parts[1] || 'native';
+    const keyType = authKey.length > 300 ? 'mlkem768' : 'x25519';
+    if (mode === 'xorpub') {
+      return keyType === 'mlkem768'
+        ? t('pages.inbounds.vlessAuthMlkem768Xorpub')
+        : t('pages.inbounds.vlessAuthX25519Xorpub');
+    }
+    if (mode === 'random') {
+      return keyType === 'mlkem768'
+        ? t('pages.inbounds.vlessAuthMlkem768Random')
+        : t('pages.inbounds.vlessAuthX25519Random');
+    }
+    return keyType === 'mlkem768'
       ? t('pages.inbounds.vlessAuthMlkem768')
       : t('pages.inbounds.vlessAuthX25519');
   })();
@@ -325,6 +346,7 @@ export default function InboundFormModal({
       : buildAddModeValues();
     form.resetFields();
     form.setFieldsValue(initial);
+    setScanResult(null);
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
       port: initial.port ?? 0,
@@ -868,7 +890,11 @@ export default function InboundFormModal({
       {security === 'reality' && (
         <RealityForm
           saving={saving}
-          randomizeRealityTarget={randomizeRealityTarget}
+          scanning={scanning}
+          scanResult={scanResult}
+          scanRealityTarget={scanRealityTarget}
+          scanRealityCandidates={scanRealityCandidates}
+          applyRealityScanResult={applyRealityScanResult}
           randomizeShortIds={randomizeShortIds}
           genRealityKeypair={genRealityKeypair}
           clearRealityKeypair={clearRealityKeypair}

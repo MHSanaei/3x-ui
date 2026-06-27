@@ -111,6 +111,13 @@ export const BulkDeleteResultSchema = z.object({
     .optional(),
 });
 
+export const BulkSetEnableResultSchema = z.object({
+  changed: z.number(),
+  skipped: z
+    .array(z.object({ email: z.string(), reason: z.string() }))
+    .optional(),
+});
+
 export const BulkCreateResultSchema = z.object({
   created: z.number(),
   skipped: z
@@ -198,8 +205,9 @@ export const ClientBulkAdjustFormSchema = z
   .object({
     addDays: z.number().int(),
     addGB: z.number(),
+    flow: z.string().optional().default(''),
   })
-  .refine((v) => v.addDays !== 0 || v.addGB !== 0, {
+  .refine((v) => v.addDays !== 0 || v.addGB !== 0 || v.flow !== '', {
     message: 'pages.clients.bulkAdjustNothing',
   });
 
@@ -230,6 +238,7 @@ export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
 export type ClientHydrate = z.infer<typeof ClientHydrateSchema>;
 export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
 export type BulkDeleteResult = z.infer<typeof BulkDeleteResultSchema>;
+export type BulkSetEnableResult = z.infer<typeof BulkSetEnableResultSchema>;
 export type BulkCreateResult = z.infer<typeof BulkCreateResultSchema>;
 export type BulkAttachResult = z.infer<typeof BulkAttachResultSchema>;
 export type BulkDetachResult = z.infer<typeof BulkDetachResultSchema>;

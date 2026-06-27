@@ -1344,19 +1344,27 @@ install_x-ui() {
         fi
     else
         tag_version=$1
-        tag_version_numeric=${tag_version#v}
-        min_version="2.3.5"
+        # The rolling dev channel ships under a fixed, non-semver tag that is
+        # force-moved to the latest main commit on every push. Accept `dev` as a
+        # convenient alias and skip the numeric floor check for it.
+        if [[ "$tag_version" == "dev" || "$tag_version" == "dev-latest" ]]; then
+            tag_version="dev-latest"
+            echo -e "${yellow}Installing the rolling dev build (tag: dev-latest). This is a per-commit pre-release, not a stable version.${plain}"
+        else
+            tag_version_numeric=${tag_version#v}
+            min_version="2.3.5"
 
-        if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
-            echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
-            exit 1
+            if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
+                echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
+                exit 1
+            fi
         fi
 
         url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
-        echo -e "Beginning to install x-ui $1"
+        echo -e "Beginning to install x-ui ${tag_version}"
         curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
+            echo -e "${red}Download x-ui ${tag_version} failed, please check if the version exists ${plain}"
             exit 1
         fi
     fi

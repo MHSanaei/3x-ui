@@ -69,6 +69,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/updatePanel", a.updatePanel)
+	g.POST("/setUpdateChannel", a.setUpdateChannel)
 	g.POST("/updateGeofile", a.updateGeofile)
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
@@ -77,6 +78,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
 	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
+	g.POST("/scanRealityTarget", a.scanRealityTarget)
+	g.POST("/scanRealityTargets", a.scanRealityTargets)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -205,10 +208,34 @@ func (a *ServerController) installXray(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
 }
 
-// updatePanel starts a panel self-update to the latest release.
+// updatePanel starts a panel self-update. With no "dev" form value it follows
+// this panel's own channel setting; an explicit "dev" (sent by the master node
+// updater) overrides it for this run.
 func (a *ServerController) updatePanel(c *gin.Context) {
-	err := a.panelService.StartUpdate()
+	devParam := c.PostForm("dev")
+	var err error
+	if devParam == "" {
+		err = a.panelService.StartUpdate()
+	} else {
+		dev, perr := strconv.ParseBool(devParam)
+		if perr != nil {
+			jsonMsg(c, "invalid data", perr)
+			return
+		}
+		err = a.panelService.StartUpdateChannel(dev)
+	}
 	jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), err)
+}
+
+// setUpdateChannel toggles whether self-update tracks the rolling dev release.
+func (a *ServerController) setUpdateChannel(c *gin.Context) {
+	dev, err := strconv.ParseBool(c.PostForm("dev"))
+	if err != nil {
+		jsonMsg(c, "invalid data", err)
+		return
+	}
+	err = a.settingService.SetDevChannelEnable(dev)
+	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
 }
 
 // updateGeofile updates the specified geo file for Xray.
@@ -418,6 +445,29 @@ func (a *ServerController) getRemoteCertHash(c *gin.Context) {
 		return
 	}
 	jsonObj(c, hashes, nil)
+}
+
+// scanRealityTarget runs a live TLS 1.3 probe against the candidate REALITY
+// target and returns a structured feasibility verdict plus the cert SAN names.
+func (a *ServerController) scanRealityTarget(c *gin.Context) {
+	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
+		return
+	}
+	jsonObj(c, res, nil)
+}
+
+// scanRealityTargets probes a batch of candidate REALITY targets (the supplied
+// comma-separated list, or the built-in seed set when empty) and returns each
+// verdict ranked by feasibility then latency.
+func (a *ServerController) scanRealityTargets(c *gin.Context) {
+	res, err := a.serverService.ScanRealityTargets(c.PostForm("targets"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
+		return
+	}
+	jsonObj(c, res, nil)
 }
 
 // getNewVlessEnc generates a new VLESS encryption key.

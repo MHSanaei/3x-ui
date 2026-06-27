@@ -637,7 +637,7 @@ type NodeUpdateResult struct {
 // UpdatePanels triggers the official self-updater on each given node. Only
 // enabled, online nodes are eligible — an offline node can't be reached, so it
 // is reported as skipped rather than silently dropped.
-func (s *NodeService) UpdatePanels(ids []int) ([]NodeUpdateResult, error) {
+func (s *NodeService) UpdatePanels(ids []int, dev bool) ([]NodeUpdateResult, error) {
 	mgr := runtime.GetManager()
 	if mgr == nil {
 		return nil, fmt.Errorf("runtime manager unavailable")
@@ -662,7 +662,7 @@ func (s *NodeService) UpdatePanels(ids []int) ([]NodeUpdateResult, error) {
 				break
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			updErr := remote.UpdatePanel(ctx)
+			updErr := remote.UpdatePanel(ctx, dev)
 			cancel()
 			if updErr != nil {
 				res.Error = updErr.Error()

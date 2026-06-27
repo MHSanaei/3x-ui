@@ -5,8 +5,8 @@ services:
       dockerfile: ./Dockerfile
     container_name: 3xui_app
     # hostname: yourhostname <- optional
-    # Optional hard memory cap. When set, the panel auto-derives its Go soft
-    # limit (GOMEMLIMIT, ~90%) from this so it GCs before the OOM killer fires.
+    # Optional hard memory cap. When set, the panel derives its Go soft limit
+    # (GOMEMLIMIT, ~90% of this cap) so it GCs before the OOM killer fires.
     # mem_limit: 512m
     # The bundled Fail2ban (XUI_ENABLE_FAIL2BAN below) enforces the IP limit
     # with iptables, which needs NET_ADMIN. Without these caps a ban is logged
@@ -21,8 +21,12 @@ services:
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
-      # Go memory soft limit. If neither is set, the panel auto-detects the
-      # cgroup/host limit and targets ~90%. Pin it explicitly with one of:
+      # Memory tuning. The panel keeps RAM low via GOGC + periodic release; it no
+      # longer sets a soft limit from total host RAM (no benefit, risks GC thrash).
+      # XUI_GOGC: "75"              # lower = less RAM, slightly more CPU; GOGC env overrides
+      # XUI_MEMORY_RELEASE_INTERVAL: "10"  # minutes between FreeOSMemory; 0 disables
+      # Go memory soft limit, only applied from an explicit budget below (or a
+      # real cgroup/mem_limit cap). Pin it with one of:
       # XUI_MEMORY_LIMIT: "400"      # in MiB
       # GOMEMLIMIT: "400MiB"         # Go syntax, takes precedence
       # XUI_PPROF: "true"           # expose pprof on 127.0.0.1:6060 for profiling

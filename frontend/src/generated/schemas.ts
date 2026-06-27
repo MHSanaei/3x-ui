@@ -206,6 +206,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Hide server settings in happ subscription (Only for Happ)",
         "type": "boolean"
       },
+      "subIncyEnableRouting": {
+        "description": "Enable routing injection for the Incy client",
+        "type": "boolean"
+      },
+      "subIncyRoutingRules": {
+        "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+        "type": "string"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -431,6 +439,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subHideSettings",
+      "subIncyEnableRouting",
+      "subIncyRoutingRules",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -701,6 +711,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Hide server settings in happ subscription (Only for Happ)",
         "type": "boolean"
       },
+      "subIncyEnableRouting": {
+        "description": "Enable routing injection for the Incy client",
+        "type": "boolean"
+      },
+      "subIncyRoutingRules": {
+        "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
+        "type": "string"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -933,6 +951,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subHideSettings",
+      "subIncyEnableRouting",
+      "subIncyRoutingRules",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -2110,6 +2130,104 @@ export const SCHEMAS: Record<string, unknown> = {
       "xrayError",
       "xrayState",
       "xrayVersion"
+    ],
+    "type": "object"
+  },
+  "RealityScanResult": {
+    "properties": {
+      "alpn": {
+        "example": "h2",
+        "type": "string"
+      },
+      "certIssuer": {
+        "example": "Google Trust Services",
+        "type": "string"
+      },
+      "certSubject": {
+        "example": "cloudflare.com",
+        "type": "string"
+      },
+      "certValid": {
+        "example": true,
+        "type": "boolean"
+      },
+      "curveID": {
+        "example": "X25519",
+        "type": "string"
+      },
+      "feasible": {
+        "example": true,
+        "type": "boolean"
+      },
+      "h2": {
+        "example": true,
+        "type": "boolean"
+      },
+      "host": {
+        "example": "www.cloudflare.com",
+        "type": "string"
+      },
+      "ip": {
+        "example": "104.16.124.96",
+        "type": "string"
+      },
+      "latencyMs": {
+        "example": 180,
+        "type": "integer"
+      },
+      "notAfter": {
+        "example": "2026-08-01T00:00:00Z",
+        "type": "string"
+      },
+      "port": {
+        "example": 443,
+        "type": "integer"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "serverNames": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "target": {
+        "example": "www.cloudflare.com:443",
+        "type": "string"
+      },
+      "tls13": {
+        "example": true,
+        "type": "boolean"
+      },
+      "tlsVersion": {
+        "example": "1.3",
+        "type": "string"
+      },
+      "x25519": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "alpn",
+      "certIssuer",
+      "certSubject",
+      "certValid",
+      "curveID",
+      "feasible",
+      "h2",
+      "host",
+      "ip",
+      "latencyMs",
+      "notAfter",
+      "port",
+      "reason",
+      "serverNames",
+      "target",
+      "tls13",
+      "tlsVersion",
+      "x25519"
     ],
     "type": "object"
   },

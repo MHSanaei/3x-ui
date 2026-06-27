@@ -1634,31 +1634,25 @@ func cloneStringMap(source map[string]string) map[string]string {
 }
 
 // genRemark builds the remark for a non-host link (raw default / legacy
-// externalProxy / synthetic JSON-Clash entry). In the subscription body a set
-// remark template takes over; otherwise (and in every display context) the
-// remark is just the config name (inbound remark, then extra).
+// externalProxy / synthetic JSON-Clash entry). A set remark template drives it
+// in both the body and display contexts (genTemplatedRemark renders the
+// name-only part on displays); with no template it falls back to the inbound
+// remark, extra and email joined by "-".
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
-	if s.remarkTemplate != "" && s.subscriptionBody {
+	if s.remarkTemplate != "" {
 		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
-	// Sub info page + panel link/QR displays: just the config name (no template,
-	// so no per-client email/usage leaks into the shown remark).
-	return fallbackRemark(inbound.Remark, extra)
+	return fallbackRemark(inbound.Remark, extra, email)
 }
 
-// fallbackRemark is the minimal remark used only when no template is configured
-// (an operator explicitly cleared it): the inbound remark and the host/extra
-// remark joined by "-", skipping empties. The configurable remark model was
-// removed in favour of the template, whose default already includes the email.
-func fallbackRemark(inboundRemark, extra string) string {
-	switch {
-	case inboundRemark == "":
-		return extra
-	case extra == "":
-		return inboundRemark
-	default:
-		return inboundRemark + "-" + extra
+func fallbackRemark(parts ...string) string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
 	}
+	return strings.Join(out, "-")
 }
 
 // findClientStats returns the inbound's traffic record for email, if present.
@@ -1669,6 +1663,32 @@ func (s *SubService) findClientStats(inbound *model.Inbound, email string) (xray
 		}
 	}
 	return xray.ClientTraffic{}, false
+}
+
+// statsByEmailFromDB resolves a client's traffic row straight from the DB by its
+// globally-unique email, caching the hit into statsByEmail for the rest of the
+// request. It's the last-resort lookup behind statsForClient: the preloaded
+// ClientStats and the statsByEmail index are both keyed by
+// client_traffics.inbound_id, which is written once by AddClientStat and never
+// updated. When an inbound is deleted and recreated it gets a new id, so the old
+// row is orphaned from every loaded inbound and both in-memory paths miss —
+// leaving {{TRAFFIC_USED}} stuck at 0 for pre-existing clients even though their
+// usage is intact (#5567). Matching by email recovers it, the same way the
+// sub-info header's AggregateTrafficByEmails already does.
+func (s *SubService) statsByEmailFromDB(email string) (xray.ClientTraffic, bool) {
+	db := database.GetDB()
+	if db == nil {
+		return xray.ClientTraffic{}, false
+	}
+	var row xray.ClientTraffic
+	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).First(&row).Error; err != nil {
+		return xray.ClientTraffic{}, false
+	}
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	s.statsByEmail[email] = row
+	return row, true
 }
 
 func searchKey(data any, key string) (any, bool) {
@@ -2343,6 +2363,19 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		datepicker = "gregorian"
 	}
 
+	pageLinks := make([]string, 0, len(subs))
+	pageEmails := make([]string, 0, len(subs))
+	for i, sub := range subs {
+		email := ""
+		if i < len(emails) {
+			email = emails[i]
+		}
+		for _, link := range splitLinkLines(sub) {
+			pageLinks = append(pageLinks, link)
+			pageEmails = append(pageEmails, email)
+		}
+	}
+
 	return PageData{
 		Host:          hostHeader,
 		BasePath:      basePath,
@@ -2364,8 +2397,8 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubClashUrl:   subClashURL,
 		SubTitle:      subTitle,
 		SubSupportUrl: subSupportUrl,
-		Result:        subs,
-		Emails:        emails,
+		Result:        pageLinks,
+		Emails:        pageEmails,
 	}
 }
 

@@ -3,7 +3,7 @@
 // per client. This file is the single frontend source of truth for the picker
 // UI and the live preview — keep the token list in sync with remark_vars.go.
 
-export type RemarkVarGroup = 'client' | 'traffic' | 'time';
+export type RemarkVarGroup = 'client' | 'traffic' | 'time' | 'connection';
 
 export interface RemarkVar {
   /** Bare token name, e.g. "TRAFFIC_LEFT" (rendered as {{TRAFFIC_LEFT}}). */
@@ -13,7 +13,7 @@ export interface RemarkVar {
   sample: string;
 }
 
-export const REMARK_VAR_GROUPS: RemarkVarGroup[] = ['client', 'traffic', 'time'];
+export const REMARK_VAR_GROUPS: RemarkVarGroup[] = ['client', 'traffic', 'time', 'connection'];
 
 export const REMARK_VARIABLES: RemarkVar[] = [
   // Client identity
@@ -36,11 +36,19 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'DOWN', group: 'traffic', sample: '3.20GB' },
   // Time / status
   { token: 'STATUS', group: 'time', sample: 'active' },
+  { token: 'STATUS_EMOJI', group: 'time', sample: '✅' },
   { token: 'DAYS_LEFT', group: 'time', sample: '12' },
+  { token: 'TIME_LEFT', group: 'time', sample: '12d 4h 30m' },
+  { token: 'USAGE_PERCENTAGE', group: 'time', sample: '52.3%' },
   { token: 'EXPIRE_DATE', group: 'time', sample: '2026-09-01' },
+  { token: 'JALALI_EXPIRE_DATE', group: 'time', sample: '1405/06/10' },
   { token: 'EXPIRE_UNIX', group: 'time', sample: '1788300000' },
   { token: 'CREATED_UNIX', group: 'time', sample: '1700000000' },
   { token: 'RESET_DAYS', group: 'time', sample: '30' },
+  // Connection (inbound config descriptors)
+  { token: 'PROTOCOL', group: 'connection', sample: 'VLESS' },
+  { token: 'TRANSPORT', group: 'connection', sample: 'ws' },
+  { token: 'SECURITY', group: 'connection', sample: 'TLS' },
 ];
 
 const SAMPLE_BY_TOKEN: Record<string, string> = Object.fromEntries(

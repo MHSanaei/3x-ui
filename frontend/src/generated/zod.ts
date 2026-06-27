@@ -70,6 +70,8 @@ export const AllSettingSchema = z.object({
   subEnableRouting: z.boolean(),
   subEncrypt: z.boolean(),
   subHideSettings: z.boolean(),
+  subIncyEnableRouting: z.boolean(),
+  subIncyRoutingRules: z.string(),
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
@@ -172,6 +174,8 @@ export const AllSettingViewSchema = z.object({
   subEnableRouting: z.boolean(),
   subEncrypt: z.boolean(),
   subHideSettings: z.boolean(),
+  subIncyEnableRouting: z.boolean(),
+  subIncyRoutingRules: z.string(),
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
@@ -491,6 +495,28 @@ export const ProbeResultUISchema = z.object({
   xrayVersion: z.string(),
 });
 export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
+
+export const RealityScanResultSchema = z.object({
+  alpn: z.string(),
+  certIssuer: z.string(),
+  certSubject: z.string(),
+  certValid: z.boolean(),
+  curveID: z.string(),
+  feasible: z.boolean(),
+  h2: z.boolean(),
+  host: z.string(),
+  ip: z.string(),
+  latencyMs: z.number().int(),
+  notAfter: z.string(),
+  port: z.number().int(),
+  reason: z.string(),
+  serverNames: z.array(z.string()),
+  target: z.string(),
+  tls13: z.boolean(),
+  tlsVersion: z.string(),
+  x25519: z.boolean(),
+});
+export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const SettingSchema = z.object({
   id: z.number().int(),

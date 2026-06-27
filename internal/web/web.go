@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -264,8 +265,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		c.JSON(http.StatusOK, gin.H{})
 	})
 
-	// Add a catch-all route to handle undefined paths and return 404
+	// Let unknown panel document routes fall back to the SPA shell, while every
+	// non-SPA miss still returns a hard 404.
 	engine.NoRoute(func(c *gin.Context) {
+		if s.panel.HandleNoRoutePanelSPA(c) {
+			return
+		}
 		c.AbortWithStatus(http.StatusNotFound)
 	})
 
@@ -389,6 +394,14 @@ func (s *Server) startTask(restartXray bool) {
 	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
 	if s.memoryAlarmWanted() {
 		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+	}
+
+	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
+		s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
+		go func() {
+			time.Sleep(time.Minute)
+			job.NewMemoryReleaseJob().Run()
+		}()
 	}
 }
 
@@ -617,6 +630,28 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 		s.tgbotService.SendMsgToTgbotAdmins("✅ Test message from 3x-ui")
 		return nil
+	})
+
+	controller.SetReloadTgbotFunc(func() {
+		enabled, err := s.settingService.GetTgbotEnabled()
+		if err != nil || !enabled {
+			if s.tgbotService.IsRunning() {
+				s.tgbotService.Stop()
+			}
+			if s.bus != nil {
+				s.bus.Unsubscribe("tg-notifier")
+			}
+			return
+		}
+		// Start() stops any previous receiver first, so it is safe whether or not the bot is already running.
+		tgBot := s.tgbotService.NewTgbot()
+		if startErr := tgBot.Start(i18nFS); startErr != nil {
+			logger.Warning("reload Telegram bot failed:", startErr)
+			return
+		}
+		if s.bus != nil {
+			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
+		}
 	})
 
 	(&service.InboundService{}).ReconcileWgPeers()

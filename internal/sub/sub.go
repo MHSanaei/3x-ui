@@ -175,6 +175,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubHideSettings = false
 	}
 
+	SubIncyEnableRouting, err := s.settingService.GetSubIncyEnableRouting()
+	if err != nil {
+		SubIncyEnableRouting = false
+	}
+
+	SubIncyRoutingRules, err := s.settingService.GetSubIncyRoutingRules()
+	if err != nil {
+		SubIncyRoutingRules = ""
+	}
+
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
 
@@ -232,7 +242,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
-		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings)
+		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings,
+		SubIncyEnableRouting, SubIncyRoutingRules)
 
 	return engine, nil
 }

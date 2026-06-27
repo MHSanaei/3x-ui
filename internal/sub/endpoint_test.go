@@ -83,8 +83,8 @@ func TestBuildEndpointLinks_ParamForm(t *testing.T) {
 		func(dest string, port int) string { return fmt.Sprintf("vless://uid@%s", joinHostPort(dest, port)) },
 		func(e ShareEndpoint) string { return s.genRemark(in, "user", e.Remark, "") },
 	)
-	want := "vless://uid@a.example.com:8443?fp=chrome&security=tls&sni=a.sni&type=tcp#ib-A\n" +
-		"vless://uid@b.example.com:80?security=none&type=tcp#ib-B"
+	want := "vless://uid@a.example.com:8443?fp=chrome&security=tls&sni=a.sni&type=tcp#ib-A-user\n" +
+		"vless://uid@b.example.com:80?security=none&type=tcp#ib-B-user"
 	if got != want {
 		t.Fatalf("N3 mismatch.\n got: %q\nwant: %q", got, want)
 	}
@@ -105,8 +105,8 @@ func TestBuildEndpointVmessLinks(t *testing.T) {
 		externalProxyToEndpoint(map[string]any{"forceTls": "none", "dest": "b.example.com", "port": float64(80), "remark": "B"}),
 	}
 	got := s.buildEndpointVmessLinks(eps, baseObj, in, "user", "tcp")
-	want := "vmess://ewogICJhZGQiOiAiYS5leGFtcGxlLmNvbSIsCiAgImFscG4iOiAiaDIiLAogICJmcCI6ICJjaHJvbWUiLAogICJpZCI6ICJ1aWQiLAogICJuZXQiOiAidGNwIiwKICAicG9ydCI6IDg0NDMsCiAgInBzIjogImliLUEiLAogICJzY3kiOiAiYXV0byIsCiAgInNuaSI6ICJhLnNuaSIsCiAgInRscyI6ICJ0bHMiLAogICJ0eXBlIjogIm5vbmUiLAogICJ2IjogIjIiCn0=\n" +
-		"vmess://ewogICJhZGQiOiAiYi5leGFtcGxlLmNvbSIsCiAgImlkIjogInVpZCIsCiAgIm5ldCI6ICJ0Y3AiLAogICJwb3J0IjogODAsCiAgInBzIjogImliLUIiLAogICJzY3kiOiAiYXV0byIsCiAgInRscyI6ICJub25lIiwKICAidHlwZSI6ICJub25lIiwKICAidiI6ICIyIgp9"
+	want := "vmess://ewogICJhZGQiOiAiYS5leGFtcGxlLmNvbSIsCiAgImFscG4iOiAiaDIiLAogICJmcCI6ICJjaHJvbWUiLAogICJpZCI6ICJ1aWQiLAogICJuZXQiOiAidGNwIiwKICAicG9ydCI6IDg0NDMsCiAgInBzIjogImliLUEtdXNlciIsCiAgInNjeSI6ICJhdXRvIiwKICAic25pIjogImEuc25pIiwKICAidGxzIjogInRscyIsCiAgInR5cGUiOiAibm9uZSIsCiAgInYiOiAiMiIKfQ==\n" +
+		"vmess://ewogICJhZGQiOiAiYi5leGFtcGxlLmNvbSIsCiAgImlkIjogInVpZCIsCiAgIm5ldCI6ICJ0Y3AiLAogICJwb3J0IjogODAsCiAgInBzIjogImliLUItdXNlciIsCiAgInNjeSI6ICJhdXRvIiwKICAidGxzIjogIm5vbmUiLAogICJ0eXBlIjogIm5vbmUiLAogICJ2IjogIjIiCn0="
 	if got != want {
 		t.Fatalf("N4 mismatch.\n got: %q\nwant: %q", got, want)
 	}

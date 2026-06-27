@@ -318,6 +318,7 @@ func (a *NodeController) probe(c *gin.Context) {
 func (a *NodeController) updatePanel(c *gin.Context) {
 	var req struct {
 		Ids []int `json:"ids"`
+		Dev bool  `json:"dev"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -327,7 +328,7 @@ func (a *NodeController) updatePanel(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("no nodes selected"))
 		return
 	}
-	results, err := a.nodeService.UpdatePanels(req.Ids)
+	results, err := a.nodeService.UpdatePanels(req.Ids, req.Dev)
 	jsonMsgObj(c, I18nWeb(c, "pages.nodes.toasts.updateStarted"), results, err)
 }
 

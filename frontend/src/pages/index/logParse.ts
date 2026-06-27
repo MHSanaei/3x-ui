@@ -41,6 +41,11 @@ const SYSLOG_PREFIX = /^([A-Za-z]{3}\s+\d{1,2})\s+(\d{2}:\d{2}:\d{2})\s+\S+\s+\S
 const GO_LOG_DATE = /^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}\s+/;
 // telego's own line prefix: "[Mon Jan _2 15:04:05 MST 2006] LEVEL rest".
 const TELEGO = /^\[[^\]]+\]\s+([A-Z]+)\s+(.*)$/;
+// App-log format emitted by the in-memory buffer:
+// "2006/01/02 15:04:05 LEVEL - message". Only a line matching this exact shape
+// carries a structured timestamp/level; anything else (e.g. a plain notice such
+// as the Windows "Syslog is not supported" message) is kept whole as the body.
+const APP_LOG = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})\s+(\S+)\s+-\s+([\s\S]*)$/;
 
 // splitLevelDash pulls a leading "LEVEL - " off a message, returning the level
 // and the remainder. Returns null when the message does not start with a level.
@@ -84,16 +89,17 @@ export function parseLogLine(line: string): ParsedLog {
       }
     }
   } else {
-    // App-log format: "2006/01/02 15:04:05 LEVEL - body"
-    const [head, ...rest] = raw.split(' - ');
-    const message = rest.join(' - ');
-    const parts = head.split(' ');
-    if (parts.length >= 3) {
-      [date, time, levelText] = parts;
+    const app = raw.match(APP_LOG);
+    if (app) {
+      // App-log format: "2006/01/02 15:04:05 LEVEL - body"
+      date = app[1];
+      time = app[2];
+      levelText = app[3];
+      body = app[4];
     } else {
-      levelText = head;
+      // Plain message with no timestamp/level — show it verbatim.
+      body = raw;
     }
-    body = message || '';
   }
 
   const li = LEVELS.indexOf(levelText);

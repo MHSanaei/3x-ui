@@ -2,9 +2,9 @@ package controller
 
 import (
 	"bytes"
-	"embed"
 	"encoding/json"
 	htmlpkg "html"
+	"io/fs"
 	"net/http"
 	"strings"
 	"time"
@@ -16,10 +16,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 )
 
-var distFS embed.FS
+var distFS fs.FS
 
-func SetDistFS(fs embed.FS) {
-	distFS = fs
+func SetDistFS(fsys fs.FS) {
+	distFS = fsys
 }
 
 var distPageBuildTime = time.Now()
@@ -30,7 +30,7 @@ var distPageBuildTime = time.Now()
 // produced at frontend build time by scripts/build-openapi.mjs and
 // embedded into the binary via the dist FS.
 func ServeOpenAPISpec(c *gin.Context) {
-	body, err := distFS.ReadFile("dist/openapi.json")
+	body, err := fs.ReadFile(distFS, "dist/openapi.json")
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "msg": "openapi.json not found"})
 		return
@@ -72,7 +72,7 @@ func withServerBasePath(spec []byte, basePath string) ([]byte, error) {
 }
 
 func serveDistPage(c *gin.Context, name string) {
-	body, err := distFS.ReadFile("dist/" + name)
+	body, err := fs.ReadFile(distFS, "dist/"+name)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "missing embedded page: %s", name)
 		return
@@ -112,7 +112,7 @@ func serveDistPage(c *gin.Context, name string) {
 	}
 	script := `<script` + nonceAttr + `>window.X_UI_BASE_PATH="` + escapedBase + `"`
 	if name != "login.html" {
-		escapedVer := jsEscape.Replace(config.GetVersion())
+		escapedVer := jsEscape.Replace(config.GetPanelVersion())
 		script += `;window.X_UI_CUR_VER="` + escapedVer + `"`
 		script += `;window.X_UI_DB_TYPE="` + config.GetDBKind() + `"`
 	}

@@ -286,11 +286,10 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
             onChange={setBucket}
             options={[
               { value: 2, label: '2m' },
-              { value: 30, label: '30m' },
               { value: 60, label: '1h' },
-              { value: 120, label: '2h' },
               { value: 180, label: '3h' },
-              { value: 300, label: '5h' },
+              { value: 360, label: '6h' },
+              { value: 720, label: '12h' },
             ]}
           />
         </div>

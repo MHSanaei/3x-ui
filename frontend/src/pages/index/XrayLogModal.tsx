@@ -44,6 +44,8 @@ function shortTime(value?: string | number): string {
   return `${hh}:${mm}:${ss}`;
 }
 
+const AUTO_UPDATE_INTERVAL = 5000;
+
 export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -53,6 +55,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const [showDirect, setShowDirect] = useState(true);
   const [showBlocked, setShowBlocked] = useState(true);
   const [showProxy, setShowProxy] = useState(true);
+  const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<XrayLogEntry[]>([]);
   const openRef = useRef(open);
@@ -75,6 +78,11 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
     }
   }, [rows, filter, showDirect, showBlocked, showProxy]);
 
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
   useEffect(() => {
     openRef.current = open;
     if (open) refresh();
@@ -83,6 +91,12 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   useEffect(() => {
     if (openRef.current) refresh();
   }, [rows, showDirect, showBlocked, showProxy, refresh]);
+
+  useEffect(() => {
+    if (!open || !autoUpdate) return;
+    const id = setInterval(() => refreshRef.current(), AUTO_UPDATE_INTERVAL);
+    return () => clearInterval(id);
+  }, [open, autoUpdate]);
 
   function fullDate(value?: string | number): string {
     return IntlUtil.formatDate(value, datepicker);
@@ -117,7 +131,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       onCancel={onClose}
       title={
         <>
-          {t('pages.index.logs')}
+          {t('pages.index.accessLogs')}
           <SyncOutlined spin={loading} className="reload-icon" onClick={refresh} />
         </>
       }
@@ -130,11 +144,11 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
             style={{ width: 70 }}
             onChange={setRows}
             options={[
-              { value: '10', label: '10' },
               { value: '20', label: '20' },
               { value: '50', label: '50' },
               { value: '100', label: '100' },
               { value: '500', label: '500' },
+              { value: '1000', label: '1000' },
             ]}
           />
         </Form.Item>
@@ -157,6 +171,9 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           </Checkbox>
           <Checkbox checked={showProxy} onChange={(e) => setShowProxy(e.target.checked)}>
             Proxy
+          </Checkbox>
+          <Checkbox checked={autoUpdate} onChange={(e) => setAutoUpdate(e.target.checked)}>
+            {t('pages.index.autoUpdate')}
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">

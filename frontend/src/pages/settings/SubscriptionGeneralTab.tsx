@@ -1,5 +1,5 @@
 import { Input, InputNumber, Switch, Tabs } from 'antd';
-import { BranchesOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
+import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
@@ -174,6 +174,21 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 placeholder={'GEOSITE,category-ir,DIRECT\nGEOIP,private,DIRECT'}
                 onChange={(e) => updateSetting({ subClashRules: e.target.value })}
               />
+            </SettingListItem>
+          </>
+        ),
+      },
+      {
+        key: '7',
+        label: catTabLabel(<CompassOutlined />, 'Incy', isMobile),
+        children: (
+          <>
+            <SettingListItem paddings="small" title={t('pages.settings.subIncyEnableRouting')} description={t('pages.settings.subIncyEnableRoutingDesc')}>
+              <Switch checked={allSetting.subIncyEnableRouting} onChange={(v) => updateSetting({ subIncyEnableRouting: v })} />
+            </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subIncyRoutingRules')} description={t('pages.settings.subIncyRoutingRulesDesc')}>
+              <Input.TextArea value={allSetting.subIncyRoutingRules} placeholder="incy://routing/onadd/..."
+                onChange={(e) => updateSetting({ subIncyRoutingRules: e.target.value })} />
             </SettingListItem>
           </>
         ),
