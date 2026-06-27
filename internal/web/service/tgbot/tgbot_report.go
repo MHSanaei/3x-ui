@@ -49,7 +49,7 @@ func (t *Tgbot) SendBackupToAdmins() {
 		return
 	}
 	for i, adminId := range adminIds {
-		t.sendBackup(int64(adminId))
+		t.sendBackup(adminId)
 		// Add delay between sends to avoid Telegram rate limits
 		if i < len(adminIds)-1 {
 			time.Sleep(1 * time.Second)
@@ -63,7 +63,7 @@ func (t *Tgbot) sendExhaustedToAdmins() {
 		return
 	}
 	for _, adminId := range adminIds {
-		t.getExhausted(int64(adminId))
+		t.getExhausted(adminId)
 	}
 }
 

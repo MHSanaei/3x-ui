@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/op/go-logging"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )

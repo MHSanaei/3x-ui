@@ -4,15 +4,12 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 // CheckCpuJob monitors CPU usage and publishes events when threshold is exceeded.
-type CheckCpuJob struct {
-	settingService service.SettingService
-}
+type CheckCpuJob struct{}
 
 // NewCheckCpuJob creates a new CPU monitoring job instance.
 func NewCheckCpuJob() *CheckCpuJob {

@@ -1,6 +1,7 @@
 package email
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -115,10 +116,10 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 
 	switch encryptionType {
 	case "tls":
-		conn, err = tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{
+		conn, err = (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
 			ServerName:         host,
 			InsecureSkipVerify: false,
-		})
+		}}).DialContext(context.Background(), "tcp", addr)
 	default:
 		conn, err = dialer.Dial("tcp", addr)
 	}
@@ -188,10 +189,10 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
 	// Dial with explicit timeout
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
-	conn, err := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{
+	conn, err := (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: false,
-	})
+	}}).DialContext(context.Background(), "tcp", addr)
 	if err != nil {
 		return err
 	}
@@ -289,7 +290,7 @@ func buildMessage(from string, to []string, subject, body string) []byte {
 	}
 	var msg strings.Builder
 	for k, v := range headers {
-		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		fmt.Fprintf(&msg, "%s: %s\r\n", k, v)
 	}
 	msg.WriteString("\r\n")
 	msg.WriteString(body)

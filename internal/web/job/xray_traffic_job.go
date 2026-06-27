@@ -178,7 +178,7 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 	defer fasthttp.ReleaseRequest(request)
 	request.Header.SetMethod("POST")
 	request.Header.SetContentType("application/json; charset=UTF-8")
-	request.SetBody([]byte(requestBody))
+	request.SetBody(requestBody)
 	request.SetRequestURI(informURL)
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)

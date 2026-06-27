@@ -42,7 +42,6 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 
 // initRouter sets up the routes for server status, Xray management, and utility endpoints.
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
-
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
@@ -89,7 +88,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 // the cross-service side effects (xrayMetrics sample + websocket broadcast).
 func (a *ServerController) startTask() {
 	c := global.GetWebServer().GetCron()
-	c.AddFunc("@every 2s", func() {
+	_, _ = c.AddFunc("@every 2s", func() {
 		status := a.serverService.RefreshStatus()
 		if status == nil {
 			return
@@ -97,7 +96,7 @@ func (a *ServerController) startTask() {
 		a.xrayMetricsService.Sample(time.Now())
 		websocket.BroadcastStatus(status)
 	})
-	c.AddFunc("@every 1m", func() {
+	_, _ = c.AddFunc("@every 1m", func() {
 		if err := service.PersistSystemMetrics(); err != nil {
 			logger.Warning("persist system metrics failed:", err)
 		}
@@ -327,13 +326,13 @@ func (a *ServerController) getDb(c *gin.Context) {
 
 	filename := a.serverService.BackupFilename(c.Request.Host)
 	if !filenameRegex.MatchString(filename) {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
 	}
 
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Writer.Write(db)
+	_, _ = c.Writer.Write(db)
 }
 
 // getMigration downloads a cross-engine migration file: a .dump on SQLite or a
@@ -345,13 +344,13 @@ func (a *ServerController) getMigration(c *gin.Context) {
 		return
 	}
 	if !filenameRegex.MatchString(filename) {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
 	}
 
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Writer.Write(data)
+	_, _ = c.Writer.Write(data)
 }
 
 // importDB imports a database file and restarts the Xray service.

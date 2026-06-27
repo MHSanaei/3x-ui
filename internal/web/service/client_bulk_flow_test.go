@@ -40,8 +40,10 @@ func flowOf(t *testing.T, svc *ClientService, email string) string {
 	return rec.Flow
 }
 
-const realityStream = `{"network":"tcp","security":"reality"}`
-const wsStream = `{"network":"ws","security":"none"}`
+const (
+	realityStream = `{"network":"tcp","security":"reality"}`
+	wsStream      = `{"network":"ws","security":"none"}`
+)
 
 // TestBulkAdjust_FlowSetAndClear covers the happy path: a vision flow is applied
 // on an eligible VLESS inbound and later cleared with the "none" directive. Both
