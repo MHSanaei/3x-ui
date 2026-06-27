@@ -1296,20 +1296,29 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	return fileContents, nil
 }
 
-// BackupFilename returns the filename for a database backup, named after the
-// panel's address so a downloaded or Telegram-sent backup identifies the server
-// it came from. requestHost is the browser's address: the getDb handler passes
-// c.Request.Host so a panel download is named after whatever address the user
-// reached the panel with, no Listen Domain needed. The Telegram bot has no
-// request and passes "", falling back to the configured Listen Domain (webDomain)
-// and then the public IP. The extension is .dump on PostgreSQL and .db on SQLite;
-// the base falls back to "x-ui" when no address is known.
+// BackupFilename returns the filename for a database backup, prefixed with the
+// current date (YYYY-MM-DD_) so files accumulated in Telegram chat history sort
+// chronologically, and named after the panel's address so a downloaded or
+// Telegram-sent backup identifies the server it came from. requestHost is the
+// browser's address: the getDb handler passes c.Request.Host so a panel download
+// is named after whatever address the user reached the panel with, no Listen
+// Domain needed. The Telegram bot has no request and passes "", falling back to
+// the configured Listen Domain (webDomain) and then the public IP. The extension
+// is .dump on PostgreSQL and .db on SQLite; the base falls back to "x-ui" when
+// no address is known.
 func (s *ServerService) BackupFilename(requestHost string) string {
 	ext := ".db"
 	if database.IsPostgres() {
 		ext = ".dump"
 	}
-	return s.backupHost(requestHost) + ext
+	return backupDatePrefix(time.Now()) + s.backupHost(requestHost) + ext
+}
+
+// backupDatePrefix returns the YYYY-MM-DD_ chronological-sort prefix prepended to
+// backup filenames. The date uses server-local time for consistency with the
+// timestamp printed in the Telegram backup message body.
+func backupDatePrefix(now time.Time) string {
+	return now.Format("2006-01-02") + "_"
 }
 
 // backupHost picks the address used to name backup files: the browser's request
