@@ -1092,9 +1092,8 @@ func InitDB(dbPath string) error {
 // autoCreateTime:milli. The threshold separates modern Unix milliseconds from
 // Unix seconds and makes this safe to run on every startup.
 func normalizeApiTokenCreatedAtSeconds() error {
-	const unixMillisecondsThreshold int64 = 100_000_000_000
 	return db.Model(&model.ApiToken{}).
-		Where("created_at >= ?", unixMillisecondsThreshold).
+		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
 }
 

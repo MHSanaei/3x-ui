@@ -16,11 +16,6 @@ type ApiTokenService struct{}
 
 const apiTokenLength = 48
 
-// API token timestamps predate the model's temporary switch to milliseconds.
-// Keep the API contract in Unix seconds while accepting rows written in either
-// unit during that period.
-const unixMillisecondsThreshold int64 = 100_000_000_000
-
 type ApiTokenView struct {
 	Id        int    `json:"id" example:"2"`
 	Name      string `json:"name" example:"central-panel-a"`
@@ -30,7 +25,7 @@ type ApiTokenView struct {
 }
 
 func apiTokenCreatedAtSeconds(createdAt int64) int64 {
-	if createdAt >= unixMillisecondsThreshold {
+	if createdAt >= model.ApiTokenUnixMillisecondsThreshold {
 		return createdAt / 1000
 	}
 	return createdAt
