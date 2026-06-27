@@ -29,7 +29,7 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	if hoisted, err := EnsureStatsRouting(newXraySettings); err == nil {
 		newXraySettings = hoisted
 	}
-	return s.SettingService.saveSetting("xrayTemplateConfig", newXraySettings)
+	return s.saveSetting("xrayTemplateConfig", newXraySettings)
 }
 
 func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -224,7 +225,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
-		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		_ = json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
 		clients, ok := settings["clients"].([]any)
 		if ok {
 			var newClients []any
@@ -357,7 +358,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
-		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		_ = json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
 		clients, _ := settings["clients"].([]any)
 		if len(clients) == 0 {
 			continue
@@ -762,7 +763,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 			continue
 		}
 		if len(newClients) == 0 {
-			s.DelInbound(inbound.Id)
+			_, _ = s.DelInbound(inbound.Id)
 			continue
 		}
 		settings["clients"] = newClients
@@ -829,7 +830,7 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 
 	// Retrieve inbounds where settings contain the given tgId
 	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
 		return nil, err
 	}
@@ -855,7 +856,7 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
 		var page []*xray.ClientTraffic
 		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			}
 			logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", batch, err)
@@ -1010,7 +1011,7 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	// Search for inbound settings that contain the query
 	err = db.Model(model.Inbound{}).Where("settings LIKE ?", "%\""+query+"\"%").First(inbound).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Warningf("Inbound settings containing query %s not found: %v", query, err)
 			return nil, err
 		}
@@ -1043,7 +1044,7 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	// Retrieve ClientTraffic based on the found email
 	err = db.Model(xray.ClientTraffic{}).Where("email = ?", traffic.Email).First(traffic).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Warningf("ClientTraffic for email %s not found: %v", traffic.Email, err)
 			return nil, err
 		}

@@ -4,6 +4,7 @@ package database
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,7 +44,7 @@ func IsPostgres() bool {
 	if db == nil {
 		return config.GetDBKind() == "postgres"
 	}
-	return db.Dialector.Name() == "postgres"
+	return db.Name() == "postgres"
 }
 
 // Dialect returns the active GORM dialect name, or "" if the DB is not open.
@@ -51,7 +52,7 @@ func Dialect() string {
 	if db == nil {
 		return ""
 	}
-	return db.Dialector.Name()
+	return db.Name()
 }
 
 const (
@@ -363,7 +364,6 @@ func initUser() error {
 	}
 	if empty {
 		hashedPassword, err := crypto.HashPasswordAsBcrypt(defaultPassword)
-
 		if err != nil {
 			log.Printf("Error hashing default password: %v", err)
 			return err
@@ -580,7 +580,7 @@ func fail2banCanEnforce() bool {
 	if runtime.GOOS == "windows" {
 		return false
 	}
-	return exec.Command("fail2ban-client", "-h").Run() == nil
+	return exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run() == nil
 }
 
 // clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
@@ -1038,7 +1038,7 @@ func InitDB(dbPath string) error {
 		}
 	default:
 		dir := path.Dir(dbPath)
-		if err = os.MkdirAll(dir, 0755); err != nil {
+		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
@@ -1065,7 +1065,7 @@ func InitDB(dbPath string) error {
 			"PRAGMA temp_store=MEMORY",
 		}
 		for _, p := range pragmas {
-			if _, err := sqlDB.Exec(p); err != nil {
+			if _, err := sqlDB.ExecContext(context.Background(), p); err != nil {
 				return err
 			}
 		}

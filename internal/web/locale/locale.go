@@ -56,7 +56,7 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 
 // createTemplateData creates a template data map from parameters with optional separator.
 func createTemplateData(params []string, separator ...string) map[string]any {
-	var sep string = "=="
+	sep := "=="
 	if len(separator) > 0 {
 		sep = separator[0]
 	}

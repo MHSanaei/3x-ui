@@ -453,12 +453,12 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 // + ws/grpc/etc. settings) stays the child's.
 func mergeStreamFromMaster(childStream, masterStream string) string {
 	var stream map[string]any
-	json.Unmarshal([]byte(childStream), &stream)
+	_ = json.Unmarshal([]byte(childStream), &stream)
 	if stream == nil {
 		stream = map[string]any{}
 	}
 	var mst map[string]any
-	json.Unmarshal([]byte(masterStream), &mst)
+	_ = json.Unmarshal([]byte(masterStream), &mst)
 	if mst == nil {
 		return childStream
 	}
@@ -511,7 +511,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, _ string) string {
 		return ""
 	}
 	settings := map[string]any{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	secret, _ := settings["secret"].(string)
 	if secret == "" {
 		if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
@@ -617,7 +617,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	// Add encryption parameter for VLESS from inbound settings
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	if encryption, ok := settings["encryption"].(string); ok {
 		params["encryption"] = encryption
 	}
@@ -739,7 +739,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	clients, _ := s.inboundService.GetClients(inbound)
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	inboundPassword := settings["password"].(string)
 	method := settings["method"].(string)
 	clientIndex := findClientIndex(clients, email)
@@ -808,7 +808,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return ""
 	}
 	var stream map[string]any
-	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
@@ -877,7 +877,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	}
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
 	protocol := "hysteria2"
 	if int(version) == 1 {
@@ -1008,7 +1008,7 @@ func findClientIndex(clients []model.Client, email string) int {
 
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
-	json.Unmarshal([]byte(streamSettings), &stream)
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
 	return stream
 }
 
@@ -1316,7 +1316,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "pcs")) {
+		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs") {
 			newObj[key] = value
 		}
 	}
