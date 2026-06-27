@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
 import { BellOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
@@ -88,6 +88,19 @@ function composeTelegramProxy(config: TelegramProxyConfig): string {
   }
   const port = config.port && config.port > 0 ? `:${config.port}` : '';
   return `${config.mode}://${auth}${wrapIPv6Host(host)}${port}`;
+}
+
+function syncTelegramProxyConfig(current: TelegramProxyConfig, raw: string): TelegramProxyConfig {
+  const trimmed = (raw ?? '').trim();
+  const currentValue = composeTelegramProxy(current);
+  const currentRaw = current.raw.trim();
+  if (trimmed === currentValue || (current.mode === 'custom' && trimmed === currentRaw)) {
+    if (current.mode === 'custom') {
+      return { ...current, raw: trimmed };
+    }
+    return current;
+  }
+  return parseTelegramProxy(trimmed);
 }
 
 function parseRunTime(raw: string): RunTime {
@@ -205,7 +218,11 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   const { isMobile } = useMediaQuery();
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
-  const proxyConfig = useMemo(() => parseTelegramProxy(allSetting.tgBotProxy), [allSetting.tgBotProxy]);
+  const [proxyConfig, setProxyConfig] = useState<TelegramProxyConfig>(() => parseTelegramProxy(allSetting.tgBotProxy));
+
+  useEffect(() => {
+    setProxyConfig((current) => syncTelegramProxyConfig(current, allSetting.tgBotProxy));
+  }, [allSetting.tgBotProxy]);
 
   async function handleTestTgBot() {
     setTestLoading(true);
@@ -244,9 +261,13 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
     [],
   );
 
-  function updateProxyConfig(patch: Partial<TelegramProxyConfig>) {
-    const next = { ...proxyConfig, ...patch };
+  function persistProxyConfig(next: TelegramProxyConfig) {
+    setProxyConfig(next);
     updateSetting({ tgBotProxy: composeTelegramProxy(next) });
+  }
+
+  function updateProxyConfig(patch: Partial<TelegramProxyConfig>) {
+    persistProxyConfig({ ...proxyConfig, ...patch });
   }
 
   return (
@@ -277,28 +298,35 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.telegramProxy')} description={t('pages.settings.telegramProxyDesc')}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                 <Select<TelegramProxyMode>
                   style={{ width: '100%' }}
                   value={proxyConfig.mode}
                   options={proxyModeOptions}
                   onChange={(mode) => {
                     if (mode === 'direct') {
+                      setProxyConfig({ mode: 'direct', host: '', port: null, username: '', password: '', raw: '' });
                       updateSetting({ tgBotProxy: '' });
                       return;
                     }
                     if (mode === 'custom') {
-                      updateSetting({ tgBotProxy: proxyConfig.raw || composeTelegramProxy({ ...proxyConfig, mode: 'socks5' }) });
+                      const raw = proxyConfig.raw || composeTelegramProxy(proxyConfig);
+                      setProxyConfig({ ...proxyConfig, mode, raw });
+                      updateSetting({ tgBotProxy: raw });
                       return;
                     }
-                    updateProxyConfig({ mode });
+                    const next = { ...proxyConfig, mode };
+                    setProxyConfig(next);
+                    if (next.host.trim()) {
+                      updateSetting({ tgBotProxy: composeTelegramProxy(next) });
+                    }
                   }}
                 />
                 {proxyConfig.mode === 'custom' ? (
                   <Input
                     value={proxyConfig.raw}
                     placeholder="socks5://user:pass@127.0.0.1:1080"
-                    onChange={(e) => updateSetting({ tgBotProxy: e.target.value })}
+                    onChange={(e) => persistProxyConfig({ ...proxyConfig, mode: 'custom', raw: e.target.value })}
                   />
                 ) : proxyConfig.mode !== 'direct' ? (
                   <>

@@ -583,11 +583,11 @@ func fail2banCanEnforce() bool {
 	return exec.Command("fail2ban-client", "-h").Run() == nil
 }
 
-// clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
-// stale tgBotProxy no longer masks the panelOutbound egress fallback.
+// clearLegacyProxySettings drops only the deprecated panelProxy row. tgBotProxy
+// remains a supported explicit bot setting and must survive startup.
 func clearLegacyProxySettings() error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("key IN ?", []string{"panelProxy", "tgBotProxy"}).
+		if err := tx.Where("key = ?", "panelProxy").
 			Delete(&model.Setting{}).Error; err != nil {
 			return err
 		}
