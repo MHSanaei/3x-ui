@@ -453,11 +453,13 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
 	}
-	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+			return err
+		}
+		return s.MarkNodeDirtyTx(tx, id)
+	}); err != nil {
 		return err
-	}
-	if dErr := s.MarkNodeDirty(id); dErr != nil {
-		logger.Warning("mark node dirty after update failed:", dErr)
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
@@ -736,10 +738,17 @@ func (s *NodeService) warnOnDuplicateGuid(id int, guid string) {
 }
 
 func (s *NodeService) MarkNodeDirty(id int) error {
+	return s.MarkNodeDirtyTx(database.GetDB(), id)
+}
+
+func (s *NodeService) MarkNodeDirtyTx(tx *gorm.DB, id int) error {
 	if id <= 0 {
 		return nil
 	}
-	return database.GetDB().Model(model.Node{}).
+	if tx == nil {
+		return errors.New("nil db transaction")
+	}
+	return tx.Model(model.Node{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
 			"config_dirty":    true,

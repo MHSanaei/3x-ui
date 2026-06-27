@@ -107,7 +107,6 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	}
 
 	needRestart := false
-	markDirty := false
 
 	// Read each client's live state before the DB write (DelClientStat would
 	// erase the enable flag we need to decide on a runtime removal).
@@ -158,7 +157,13 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, inboundId, finalClients)
+		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	}); txErr != nil {
 		return needRestart, txErr
 	}
@@ -167,17 +172,13 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	var nodeRt runtime.Runtime
 	nodePush := false
 	if oldInbound.NodeID != nil {
-		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			return needRestart, perr
-		}
-		if dirty {
-			markDirty = true
 		}
 		nodeRt, nodePush = rt, push
 		// Large batches collapse into one reconcile push rather than M deletes.
 		if nodePush && len(targets) > nodeBulkPushThreshold {
-			markDirty = true
 			nodePush = false
 		}
 	}
@@ -202,16 +203,10 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		} else if nodePush {
 			if err1 := nodeRt.DeleteUser(context.Background(), oldInbound, t.email); err1 != nil {
 				logger.Warning("Error in deleting client on", nodeRt.Name(), ":", err1)
-				markDirty = true
 			}
 		}
 	}
 
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
-		}
-	}
 	return needRestart, nil
 }
 
@@ -343,14 +338,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	oldInbound.Settings = string(newSettings)
 
 	needRestart := false
-	markDirty := false
 
-	rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 	if perr != nil {
 		return false, perr
-	}
-	if dirty {
-		markDirty = true
 	}
 
 	// Persist client stats + inbound atomically, serialized against the traffic
@@ -371,7 +362,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, oldInbound.Id, finalClients)
+		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	}); txErr != nil {
 		return false, txErr
 	}
@@ -416,25 +413,18 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		// settings already hold the final set, so mark dirty and let one reconcile
 		// push converge the node instead.
 		if push && len(clients) > nodeBulkPushThreshold {
-			markDirty = true
 			push = false
 		}
 		for _, client := range clients {
 			if push {
 				if err1 := rt.AddClient(context.Background(), oldInbound, client); err1 != nil {
 					logger.Warning("Error in adding client on", rt.Name(), ":", err1)
-					markDirty = true
 					push = false
 				}
 			}
 		}
 	}
 
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
-		}
-	}
 	return needRestart, nil
 }
 
@@ -570,7 +560,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	oldInbound.Settings = string(newSettings)
 
 	needRestart := false
-	markDirty := false
 
 	// Resolve the push plan before the DB write so a node-state lookup failure
 	// still aborts the whole update without committing anything (it used to roll
@@ -578,14 +567,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	var rt runtime.Runtime
 	var push bool
 	if len(oldEmail) > 0 {
-		var dirty bool
 		var perr error
-		rt, push, dirty, perr = inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr = inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			return false, perr
-		}
-		if dirty {
-			markDirty = true
 		}
 	}
 
@@ -652,7 +637,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, oldInbound.Id, finalClients)
+		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	}); txErr != nil {
 		return false, txErr
 	}
@@ -700,7 +691,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		} else if push {
 			if err1 := rt.UpdateUser(context.Background(), oldInbound, oldEmail, clients[0]); err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
-				markDirty = true
 			}
 		}
 	} else {
@@ -708,11 +698,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		needRestart = true
 	}
 
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
-		}
-	}
 	return needRestart, nil
 }
 
@@ -774,7 +759,6 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	}
 
 	needRestart := false
-	markDirty := false
 
 	// Decide what to delete and the push plan before the serialized DB write —
 	// these are reads, and nodePushPlan failing should abort before committing.
@@ -793,14 +777,11 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	var rt runtime.Runtime
 	var push bool
 	if len(email) > 0 && (oldInbound.NodeID != nil || needApiDel) {
-		r, p, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		r, p, _, perr := inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			return false, perr
 		}
 		rt, push = r, p
-		if dirty {
-			markDirty = true
-		}
 	}
 
 	// Persist the deletion atomically, serialized against the traffic poll to
@@ -825,7 +806,13 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, inboundId, finalClients)
+		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	}); txErr != nil {
 		return false, txErr
 	}
@@ -858,17 +845,11 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 			if push {
 				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
-					markDirty = true
 				}
 			}
 		}
 	}
 
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
-		}
-	}
 	return needRestart, nil
 }
 
