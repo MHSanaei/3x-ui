@@ -11,6 +11,7 @@ import {
 } from '@/lib/xray/stream-wire-normalize';
 import { InboundFormSchema } from '@/schemas/forms/inbound-form';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
+import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 
 describe('validateRealityTarget', () => {
   it('accepts host:port and bare port', () => {
@@ -149,6 +150,21 @@ describe('normalizeXhttpForWire stream-one', () => {
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux).not.toHaveProperty('maxConcurrency');
     expect(xmux.maxConnections).toBe('8');
+  });
+
+  it('defaults xmux maxConnections to 6 (xray-core anti-RKN default) and drops maxConcurrency on the wire', () => {
+    expect(XHttpXmuxSchema.parse({}).maxConnections).toBe(6);
+
+    const out = normalizeXhttpForWire({
+      path: '/app',
+      mode: 'stream-one',
+      enableXmux: true,
+      xmux: XHttpXmuxSchema.parse({}),
+    }, 'outbound');
+
+    const xmux = out.xmux as Record<string, unknown>;
+    expect(xmux.maxConnections).toBe(6);
+    expect(xmux).not.toHaveProperty('maxConcurrency');
   });
 });
 
