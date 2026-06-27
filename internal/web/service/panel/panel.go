@@ -90,12 +90,11 @@ func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 }
 
 // devChannelActive reports whether self-update should track the rolling dev
-// release. It requires both the opt-in setting and a dev build, so a stable
-// binary with the toggle left on never cross-grades to the dev channel.
+// release. It is driven solely by the opt-in setting so the panel can
+// cross-grade a stable build onto the dev channel once the user enables it;
+// nothing updates without an explicit user action, so an unattended stable
+// binary with the toggle off stays on the stable channel.
 func devChannelActive() bool {
-	if !config.IsDevBuild() {
-		return false
-	}
 	enabled, err := (&service.SettingService{}).GetDevChannelEnable()
 	return err == nil && enabled
 }

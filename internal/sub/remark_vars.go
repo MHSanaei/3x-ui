@@ -484,6 +484,15 @@ var connectionTokens = map[string]bool{
 
 var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
 
+// firstLinkOnlyBodyTokens are stripped from every subscription-body link after a
+// client's first one: the usage/info tokens plus the per-client EMAIL/USERNAME
+// identity. A client app needs the email once, so repeating it on every link of
+// the same subscription is noise — show it on the first link only, like traffic.
+var firstLinkOnlyBodyTokens = mergeTokenSets(usageInfoTokens, map[string]bool{
+	"EMAIL":    true,
+	"USERNAME": true,
+})
+
 func mergeTokenSets(sets ...map[string]bool) map[string]bool {
 	out := make(map[string]bool)
 	for _, set := range sets {
@@ -554,7 +563,7 @@ func (s *SubService) effectiveTemplate(email string) string {
 		s.usageShown = map[string]bool{}
 	}
 	if s.usageShown[email] {
-		return filterRemarkTemplate(translated, usageInfoTokens)
+		return filterRemarkTemplate(translated, firstLinkOnlyBodyTokens)
 	}
 	s.usageShown[email] = true
 	return translated

@@ -117,7 +117,8 @@
     "logout": "Đăng xuất",
     "link": "Quản lý",
     "donate": "Quyên góp",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Tài liệu"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Lỗi khi lấy chứng chỉ X25519.",
         "getNewmldsa65Error": "Lỗi khi lấy chứng chỉ mldsa65.",
         "getNewVlessEncError": "Lỗi khi lấy chứng chỉ VlessEnc.",
+        "scanRealityTargetError": "Quét mục tiêu REALITY thất bại.",
+        "scanRealityTargetFeasible": "Mục tiêu khả dụng — đã điền mục tiêu và SNI.",
+        "scanRealityTargetNotFeasible": "Mục tiêu có thể truy cập nhưng không khả dụng cho REALITY.",
         "invalidClientField": "Khách hàng {client}: trường {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} lỗi khác)"
@@ -643,6 +647,20 @@
         "realityTargetRequired": "Mục tiêu REALITY là bắt buộc",
         "realityTargetNeedsPort": "Mục tiêu REALITY phải bao gồm cổng (ví dụ example.com:443)",
         "realityTargetInvalidPort": "Mục tiêu REALITY có cổng không hợp lệ",
+        "scan": "Quét",
+        "findTargets": "Tìm mục tiêu",
+        "scanModalTitle": "Trình quét mục tiêu REALITY",
+        "scanModalDesc": "Xác thực một tên miền, hoặc quét một dải IP / CIDR để khám phá các mục tiêu REALITY mới từ chứng chỉ của chúng. Để trống để quét các ứng viên phổ biến.",
+        "scanDiscoverPlaceholder": "IP, CIDR hoặc tên miền — để trống cho ứng viên phổ biến",
+        "scanStatus": "Trạng thái",
+        "scanFeasible": "Khả dụng",
+        "scanNotFeasible": "Không khả dụng",
+        "scanCurve": "Trao đổi khóa",
+        "scanCert": "Chứng chỉ",
+        "scanCertInvalid": "Không tin cậy",
+        "scanLatency": "Độ trễ",
+        "scanUse": "Dùng",
+        "scanRescan": "Quét lại",
         "spiderX": "SpiderX",
         "getNewCert": "Lấy chứng chỉ mới",
         "mldsa65Seed": "mldsa65 Seed",

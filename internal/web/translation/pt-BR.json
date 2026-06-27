@@ -117,7 +117,8 @@
     "logout": "Sair",
     "link": "Gerenciar",
     "donate": "Doar",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Documentação"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Erro ao obter o certificado X25519.",
         "getNewmldsa65Error": "Erro ao obter o certificado mldsa65.",
         "getNewVlessEncError": "Erro ao obter o certificado VlessEnc.",
+        "scanRealityTargetError": "Falha ao escanear o alvo REALITY.",
+        "scanRealityTargetFeasible": "O alvo é viável — alvo e SNI preenchidos.",
+        "scanRealityTargetNotFeasible": "O alvo é acessível, mas não é viável para REALITY.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} mais)"
@@ -643,6 +647,20 @@
         "realityTargetRequired": "O alvo REALITY é obrigatório",
         "realityTargetNeedsPort": "O alvo REALITY deve incluir uma porta (ex.: example.com:443)",
         "realityTargetInvalidPort": "O alvo REALITY tem uma porta inválida",
+        "scan": "Escanear",
+        "findTargets": "Buscar alvos",
+        "scanModalTitle": "Scanner de alvos REALITY",
+        "scanModalDesc": "Valide um domínio ou escaneie um intervalo IP / CIDR para descobrir novos alvos REALITY a partir dos certificados. Deixe vazio para testar os candidatos comuns.",
+        "scanDiscoverPlaceholder": "IP, CIDR ou domínio — deixe vazio para candidatos comuns",
+        "scanStatus": "Status",
+        "scanFeasible": "Viável",
+        "scanNotFeasible": "Inviável",
+        "scanCurve": "Troca de chaves",
+        "scanCert": "Certificado",
+        "scanCertInvalid": "Não confiável",
+        "scanLatency": "Latência",
+        "scanUse": "Usar",
+        "scanRescan": "Reescanear",
         "spiderX": "SpiderX",
         "getNewCert": "Obter novo certificado",
         "mldsa65Seed": "mldsa65 Seed",

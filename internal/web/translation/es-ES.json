@@ -117,7 +117,8 @@
     "logout": "Cerrar Sesión",
     "link": "Gestionar",
     "donate": "Donar",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "Documentación"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Error al obtener el certificado X25519.",
         "getNewmldsa65Error": "Error al obtener el certificado mldsa65.",
         "getNewVlessEncError": "Error al obtener el certificado VlessEnc.",
+        "scanRealityTargetError": "No se pudo escanear el objetivo REALITY.",
+        "scanRealityTargetFeasible": "El objetivo es apto: se rellenaron el objetivo y el SNI.",
+        "scanRealityTargetNotFeasible": "El objetivo es accesible pero no apto para REALITY.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} más)"
@@ -643,6 +647,20 @@
         "realityTargetRequired": "El destino REALITY es obligatorio",
         "realityTargetNeedsPort": "El destino REALITY debe incluir un puerto (p. ej. example.com:443)",
         "realityTargetInvalidPort": "El destino REALITY tiene un puerto no válido",
+        "scan": "Escanear",
+        "findTargets": "Buscar objetivos",
+        "scanModalTitle": "Escáner de objetivos REALITY",
+        "scanModalDesc": "Valida un dominio o escanea un rango IP / CIDR para descubrir nuevos objetivos REALITY a partir de sus certificados. Deja el campo vacío para probar los candidatos comunes.",
+        "scanDiscoverPlaceholder": "IP, CIDR o dominio — déjalo vacío para candidatos comunes",
+        "scanStatus": "Estado",
+        "scanFeasible": "Apto",
+        "scanNotFeasible": "No apto",
+        "scanCurve": "Intercambio de claves",
+        "scanCert": "Certificado",
+        "scanCertInvalid": "No confiable",
+        "scanLatency": "Latencia",
+        "scanUse": "Usar",
+        "scanRescan": "Reescanear",
         "spiderX": "SpiderX",
         "getNewCert": "Obtener nuevo cert",
         "mldsa65Seed": "mldsa65 Seed",

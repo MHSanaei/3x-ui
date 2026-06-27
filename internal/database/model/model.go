@@ -149,12 +149,16 @@ type HistoryOfSeeders struct {
 	SeederName string `json:"seederName"`
 }
 
+// ApiTokenUnixMillisecondsThreshold separates legacy millisecond timestamps
+// from the seconds-based API token timestamp contract.
+const ApiTokenUnixMillisecondsThreshold int64 = 100_000_000_000
+
 type ApiToken struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
 	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON

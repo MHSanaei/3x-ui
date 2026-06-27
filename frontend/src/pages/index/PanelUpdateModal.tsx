@@ -25,7 +25,6 @@ interface BusyEvent {
 interface PanelUpdateModalProps {
   open: boolean;
   info: PanelUpdateInfo;
-  isDevBuild?: boolean;
   devChannelEnable?: boolean;
   onChannelChange?: (dev: boolean) => void | Promise<void>;
   onClose: () => void;
@@ -35,7 +34,6 @@ interface PanelUpdateModalProps {
 export default function PanelUpdateModal({
   open,
   info,
-  isDevBuild,
   devChannelEnable,
   onChannelChange,
   onClose,
@@ -113,18 +111,16 @@ export default function PanelUpdateModal({
           />
         )}
 
-        {isDevBuild && (
-          <div className="version-list">
-            <div className="version-list-item">
-              <span>{t('pages.index.devChannel')}</span>
-              <Switch
-                checked={!!devChannelEnable}
-                loading={channelBusy}
-                onChange={handleChannel}
-              />
-            </div>
+        <div className="version-list">
+          <div className="version-list-item">
+            <span>{t('pages.index.devChannel')}</span>
+            <Switch
+              checked={!!devChannelEnable}
+              loading={channelBusy}
+              onChange={handleChannel}
+            />
           </div>
-        )}
+        </div>
 
         {devChannelEnable && (
           <Alert
