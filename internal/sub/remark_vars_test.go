@@ -361,7 +361,7 @@ func TestConnectionTokensDisplayContextUnchanged(t *testing.T) {
 	}
 }
 
-func TestIdentityTokensEverywhere(t *testing.T) {
+func TestIdentityTokenBodyVsDisplay(t *testing.T) {
 	const tmpl = "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{EMAIL}}"
 	inbound := &model.Inbound{
 		Remark:         "DE",
@@ -373,8 +373,8 @@ func TestIdentityTokensEverywhere(t *testing.T) {
 
 	body := &SubService{remarkTemplate: tmpl, subscriptionBody: true, usageShown: map[string]bool{}}
 	_ = body.genTemplatedRemark(inbound, client, "", "ws") // first link consumes the usage block
-	if second := body.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(second, "john@x") {
-		t.Fatalf("repeat body link %q must keep the identity token", second)
+	if second := body.genTemplatedRemark(inbound, client, "", "ws"); strings.Contains(second, "john@x") {
+		t.Fatalf("repeat body link %q must drop the identity token", second)
 	}
 
 	display := &SubService{remarkTemplate: tmpl, subscriptionBody: false}
