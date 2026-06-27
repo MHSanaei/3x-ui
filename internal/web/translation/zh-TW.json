@@ -117,7 +117,8 @@
     "logout": "退出登入",
     "link": "管理",
     "donate": "捐贈",
-    "hosts": "Hosts"
+    "hosts": "Hosts",
+    "docs": "文件"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "取得X25519憑證時發生錯誤。",
         "getNewmldsa65Error": "取得mldsa65憑證時發生錯誤。",
         "getNewVlessEncError": "取得VlessEnc憑證時發生錯誤。",
+        "scanRealityTargetError": "掃描 REALITY 目標失敗。",
+        "scanRealityTargetFeasible": "目標可用 — 已填入目標與 SNI。",
+        "scanRealityTargetNotFeasible": "目標可達，但不適用於 REALITY。",
         "invalidClientField": "用戶端 {client}：欄位 {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (另有 {count} 項)"
@@ -622,6 +626,20 @@
         "realityTargetRequired": "REALITY 目標為必填項",
         "realityTargetNeedsPort": "REALITY 目標必須包含連接埠（例如 example.com:443）",
         "realityTargetInvalidPort": "REALITY 目標的連接埠無效",
+        "scan": "掃描",
+        "findTargets": "尋找目標",
+        "scanModalTitle": "REALITY 目標掃描器",
+        "scanModalDesc": "驗證某個網域，或掃描 IP / CIDR 範圍，從憑證中探索新的 REALITY 目標。留空則探測常用候選。",
+        "scanDiscoverPlaceholder": "IP、CIDR 或網域 — 留空使用常用候選",
+        "scanStatus": "狀態",
+        "scanFeasible": "可用",
+        "scanNotFeasible": "不可用",
+        "scanCurve": "金鑰交換",
+        "scanCert": "憑證",
+        "scanCertInvalid": "不受信任",
+        "scanLatency": "延遲",
+        "scanUse": "使用",
+        "scanRescan": "重新掃描",
         "spiderX": "SpiderX",
         "getNewCert": "取得新憑證",
         "mldsa65Seed": "mldsa65 Seed",

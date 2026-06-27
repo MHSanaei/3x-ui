@@ -117,7 +117,8 @@
     "logout": "Вийти",
     "link": "Керувати",
     "donate": "Підтримати",
-    "hosts": "Хости"
+    "hosts": "Хости",
+    "docs": "Документація"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Помилка при отриманні сертифіката X25519.",
         "getNewmldsa65Error": "Помилка при отриманні сертифіката mldsa65.",
         "getNewVlessEncError": "Помилка при отриманні сертифіката VlessEnc.",
+        "scanRealityTargetError": "Не вдалося просканувати ціль REALITY.",
+        "scanRealityTargetFeasible": "Ціль підходить — поля target і SNI заповнено.",
+        "scanRealityTargetNotFeasible": "Ціль доступна, але не підходить для REALITY.",
         "invalidClientField": "Клієнт {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ще)"
@@ -622,6 +626,20 @@
         "realityTargetRequired": "Ціль REALITY обов'язкова",
         "realityTargetNeedsPort": "Ціль REALITY має містити порт (напр., example.com:443)",
         "realityTargetInvalidPort": "Ціль REALITY має недійсний порт",
+        "scan": "Сканувати",
+        "findTargets": "Знайти цілі",
+        "scanModalTitle": "Сканер цілей REALITY",
+        "scanModalDesc": "Перевірте домен або проскануйте діапазон IP / CIDR, щоб виявити нові цілі REALITY за їхніми сертифікатами. Залиште поле порожнім для перевірки звичайних кандидатів.",
+        "scanDiscoverPlaceholder": "IP, CIDR або домен — порожнє для звичайних кандидатів",
+        "scanStatus": "Статус",
+        "scanFeasible": "Підходить",
+        "scanNotFeasible": "Не підходить",
+        "scanCurve": "Обмін ключами",
+        "scanCert": "Сертифікат",
+        "scanCertInvalid": "Ненадійний",
+        "scanLatency": "Затримка",
+        "scanUse": "Обрати",
+        "scanRescan": "Пересканувати",
         "spiderX": "SpiderX",
         "getNewCert": "Отримати новий сертифікат",
         "mldsa65Seed": "mldsa65 Seed",

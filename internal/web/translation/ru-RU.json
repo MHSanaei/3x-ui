@@ -117,7 +117,8 @@
     "logout": "Выход",
     "link": "Управление",
     "donate": "Поддержать",
-    "hosts": "Хосты"
+    "hosts": "Хосты",
+    "docs": "Документация"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Ошибка при получении сертификата X25519.",
         "getNewmldsa65Error": "Ошибка при получении сертификата mldsa65.",
         "getNewVlessEncError": "Ошибка при получении сертификата VlessEnc.",
+        "scanRealityTargetError": "Не удалось просканировать цель REALITY.",
+        "scanRealityTargetFeasible": "Цель подходит — поля target и SNI заполнены.",
+        "scanRealityTargetNotFeasible": "Цель доступна, но не подходит для REALITY.",
         "invalidClientField": "Клиент {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ещё)"
@@ -643,6 +647,20 @@
         "realityTargetRequired": "Цель REALITY обязательна",
         "realityTargetNeedsPort": "Цель REALITY должна содержать порт (например, example.com:443)",
         "realityTargetInvalidPort": "У цели REALITY указан недопустимый порт",
+        "scan": "Сканировать",
+        "findTargets": "Найти цели",
+        "scanModalTitle": "Сканер целей REALITY",
+        "scanModalDesc": "Проверьте домен или просканируйте диапазон IP / CIDR, чтобы обнаружить новые цели REALITY по их сертификатам. Оставьте поле пустым для проверки обычных кандидатов.",
+        "scanDiscoverPlaceholder": "IP, CIDR или домен — пусто для обычных кандидатов",
+        "scanStatus": "Статус",
+        "scanFeasible": "Подходит",
+        "scanNotFeasible": "Не подходит",
+        "scanCurve": "Обмен ключами",
+        "scanCert": "Сертификат",
+        "scanCertInvalid": "Не доверенный",
+        "scanLatency": "Задержка",
+        "scanUse": "Выбрать",
+        "scanRescan": "Пересканировать",
         "spiderX": "SpiderX",
         "getNewCert": "Получить новый сертификат",
         "mldsa65Seed": "mldsa65 Seed",

@@ -117,7 +117,8 @@
     "logout": "تسجيل خروج",
     "link": "إدارة",
     "donate": "تبرع",
-    "hosts": "المضيفات"
+    "hosts": "المضيفات",
+    "docs": "التوثيق"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "حدث خطأ أثناء الحصول على شهادة X25519.",
         "getNewmldsa65Error": "حدث خطاء في الحصول على mldsa65.",
         "getNewVlessEncError": "حدث خطأ أثناء الحصول على VlessEnc.",
+        "scanRealityTargetError": "فشل فحص هدف REALITY.",
+        "scanRealityTargetFeasible": "الهدف مناسب — تم ملء الهدف وSNI.",
+        "scanRealityTargetNotFeasible": "الهدف قابل للوصول لكنه غير مناسب لـ REALITY.",
         "invalidClientField": "العميل {client}: الحقل {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} أخرى)"
@@ -622,6 +626,20 @@
         "realityTargetRequired": "هدف REALITY مطلوب",
         "realityTargetNeedsPort": "يجب أن يتضمّن هدف REALITY منفذًا (مثل example.com:443)",
         "realityTargetInvalidPort": "هدف REALITY يحتوي على منفذ غير صالح",
+        "scan": "فحص",
+        "findTargets": "البحث عن أهداف",
+        "scanModalTitle": "ماسح أهداف REALITY",
+        "scanModalDesc": "تحقق من نطاق، أو افحص نطاق IP / CIDR لاكتشاف أهداف REALITY جديدة من شهاداتها. اترك الحقل فارغًا لفحص المرشحين الشائعين.",
+        "scanDiscoverPlaceholder": "IP أو CIDR أو نطاق — اتركه فارغًا للمرشحين الشائعين",
+        "scanStatus": "الحالة",
+        "scanFeasible": "مناسب",
+        "scanNotFeasible": "غير مناسب",
+        "scanCurve": "تبادل المفاتيح",
+        "scanCert": "الشهادة",
+        "scanCertInvalid": "غير موثوق",
+        "scanLatency": "زمن الاستجابة",
+        "scanUse": "استخدام",
+        "scanRescan": "إعادة الفحص",
         "spiderX": "SpiderX",
         "getNewCert": "احصل على شهادة جديدة",
         "mldsa65Seed": "mldsa65 Seed",

@@ -139,7 +139,7 @@ export default function GroupAddClientsModal({
           </Typography.Text>
         </Space>
         {rows.length === 0 ? (
-          <Alert type="info" showIcon message={t('pages.groups.addToGroupEmpty')} />
+          <Alert type="info" showIcon title={t('pages.groups.addToGroupEmpty')} />
         ) : (
           <Table<ClientRow>
             size="small"

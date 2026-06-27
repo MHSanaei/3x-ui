@@ -17,6 +17,7 @@ import {
 } from 'antd';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
+import type { RealityScanResult } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -174,6 +175,8 @@ export default function InboundFormModal({
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm<InboundFormValues>();
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
   const {
     fallbacks,
     fallbackChildOptions,
@@ -241,7 +244,9 @@ export default function InboundFormModal({
     clearRealityKeypair,
     genMldsa65,
     clearMldsa65,
-    randomizeRealityTarget,
+    scanRealityTarget,
+    scanRealityCandidates,
+    applyRealityScanResult,
     randomizeShortIds,
     getNewEchCert,
     clearEchCert,
@@ -250,7 +255,7 @@ export default function InboundFormModal({
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,
-  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null });
+  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null, setScanResult, setScanning });
 
 
   const toggleSockopt = (on: boolean) => {
@@ -347,6 +352,7 @@ export default function InboundFormModal({
       : buildAddModeValues();
     form.resetFields();
     form.setFieldsValue(initial);
+    setScanResult(null);
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
       port: initial.port ?? 0,
@@ -890,7 +896,11 @@ export default function InboundFormModal({
       {security === 'reality' && (
         <RealityForm
           saving={saving}
-          randomizeRealityTarget={randomizeRealityTarget}
+          scanning={scanning}
+          scanResult={scanResult}
+          scanRealityTarget={scanRealityTarget}
+          scanRealityCandidates={scanRealityCandidates}
+          applyRealityScanResult={applyRealityScanResult}
           randomizeShortIds={randomizeShortIds}
           genRealityKeypair={genRealityKeypair}
           clearRealityKeypair={clearRealityKeypair}

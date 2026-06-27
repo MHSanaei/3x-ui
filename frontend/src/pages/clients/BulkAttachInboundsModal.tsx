@@ -81,7 +81,7 @@ export default function BulkAttachInboundsModal({
           {t('pages.clients.attachToInboundsDesc', { count })}
         </Typography.Paragraph>
         {targetOptions.length === 0 ? (
-          <Alert type="info" showIcon message={t('pages.clients.attachToInboundsNoTargets')} />
+          <Alert type="info" showIcon title={t('pages.clients.attachToInboundsNoTargets')} />
         ) : (
           <>
             <SelectAllClearButtons

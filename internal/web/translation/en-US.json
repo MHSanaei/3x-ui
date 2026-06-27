@@ -117,7 +117,8 @@
     "apiDocs": "API Docs",
     "logout": "Log Out",
     "link": "Manage",
-    "donate": "Donate"
+    "donate": "Donate",
+    "docs": "Documentation"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Error while obtaining the X25519 certificate.",
         "getNewmldsa65Error": "Error while obtaining mldsa65.",
         "getNewVlessEncError": "Error while obtaining VlessEnc.",
+        "scanRealityTargetError": "Failed to scan REALITY target.",
+        "scanRealityTargetFeasible": "Target is feasible — filled target and SNI.",
+        "scanRealityTargetNotFeasible": "Target is reachable but not feasible for REALITY.",
         "invalidClientField": "Client {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} more)"
@@ -634,6 +638,20 @@
         "realityTargetRequired": "REALITY target is required",
         "realityTargetNeedsPort": "REALITY target must include a port (e.g. example.com:443)",
         "realityTargetInvalidPort": "REALITY target has an invalid port",
+        "scan": "Scan",
+        "findTargets": "Find Targets",
+        "scanModalTitle": "REALITY Target Scanner",
+        "scanModalDesc": "Validate a domain, or scan an IP / CIDR range to discover new REALITY targets from their certificates. Leave the box empty to probe common candidates.",
+        "scanDiscoverPlaceholder": "IP, CIDR, or domain — leave empty for common candidates",
+        "scanStatus": "Status",
+        "scanFeasible": "Feasible",
+        "scanNotFeasible": "Not feasible",
+        "scanCurve": "Key Exchange",
+        "scanCert": "Certificate",
+        "scanCertInvalid": "Not trusted",
+        "scanLatency": "Latency",
+        "scanUse": "Use",
+        "scanRescan": "Rescan",
         "spiderX": "SpiderX",
         "getNewCert": "Get New Cert",
         "mldsa65Seed": "mldsa65 Seed",

@@ -78,6 +78,7 @@ func run(root, outDir string) error {
 			StructAllow: setOf(
 				"InboundOption",
 				"ProbeResultUI",
+				"RealityScanResult",
 			),
 		},
 		{

@@ -29,7 +29,9 @@ const (
 )
 
 var (
-	logger     *logging.Logger
+	// Initialized to a usable default so logging never nil-derefs before InitLogger
+	// runs — the "migrate" and "setting" CLI subcommands log without calling it.
+	logger     = logging.MustGetLogger("x-ui")
 	fileRotate *lumberjack.Logger // nil when file backend disabled
 
 	// logBuffer maintains recent log entries in memory for web UI retrieval;

@@ -41,7 +41,7 @@ function UpdateChannelChoice({ onChange }: { onChange: (dev: boolean) => void })
           type="info"
           showIcon
           style={{ marginTop: 8 }}
-          message={t('pages.index.devChannelWarning')}
+          title={t('pages.index.devChannelWarning')}
         />
       )}
     </div>

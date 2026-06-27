@@ -117,7 +117,8 @@
     "logout": "Çıkış Yap",
     "link": "Yönet",
     "donate": "Bağış Yap",
-    "hosts": "Host'lar"
+    "hosts": "Host'lar",
+    "docs": "Belgeler"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "X25519 sertifikası alınırken hata oluştu.",
         "getNewmldsa65Error": "mldsa65 sertifikası alınırken hata oluştu.",
         "getNewVlessEncError": "VlessEnc sertifikası alınırken hata oluştu.",
+        "scanRealityTargetError": "REALITY hedefi taranamadı.",
+        "scanRealityTargetFeasible": "Hedef uygun — hedef ve SNI dolduruldu.",
+        "scanRealityTargetNotFeasible": "Hedefe ulaşılabiliyor ancak REALITY için uygun değil.",
         "invalidClientField": "Kullanıcı {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} tane daha)"
@@ -622,6 +626,20 @@
         "realityTargetRequired": "REALITY hedefi zorunludur",
         "realityTargetNeedsPort": "REALITY hedefi bir port içermelidir (ör. example.com:443)",
         "realityTargetInvalidPort": "REALITY hedefinde geçersiz bir port var",
+        "scan": "Tara",
+        "findTargets": "Hedef bul",
+        "scanModalTitle": "REALITY Hedef Tarayıcı",
+        "scanModalDesc": "Bir alan adını doğrulayın veya sertifikalarından yeni REALITY hedefleri keşfetmek için bir IP / CIDR aralığını tarayın. Yaygın adayları taramak için kutuyu boş bırakın.",
+        "scanDiscoverPlaceholder": "IP, CIDR veya alan adı — yaygın adaylar için boş bırakın",
+        "scanStatus": "Durum",
+        "scanFeasible": "Uygun",
+        "scanNotFeasible": "Uygun değil",
+        "scanCurve": "Anahtar Değişimi",
+        "scanCert": "Sertifika",
+        "scanCertInvalid": "Güvenilmez",
+        "scanLatency": "Gecikme",
+        "scanUse": "Kullan",
+        "scanRescan": "Yeniden tara",
         "spiderX": "SpiderX",
         "getNewCert": "Yeni Sertifika Al",
         "mldsa65Seed": "mldsa65 Seed",

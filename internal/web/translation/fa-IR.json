@@ -117,7 +117,8 @@
     "logout": "خروج",
     "link": "مدیریت",
     "donate": "حمایت مالی",
-    "hosts": "میزبان‌ها"
+    "hosts": "میزبان‌ها",
+    "docs": "مستندات"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "خطا در دریافت گواهی X25519.",
         "getNewmldsa65Error": "خطا در دریافت گواهی mldsa65.",
         "getNewVlessEncError": "خطا در دریافت گواهی VlessEnc.",
+        "scanRealityTargetError": "اسکن هدف REALITY ناموفق بود.",
+        "scanRealityTargetFeasible": "هدف مناسب است — هدف و SNI پر شد.",
+        "scanRealityTargetNotFeasible": "هدف در دسترس است اما برای REALITY مناسب نیست.",
         "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} مورد دیگر)"
@@ -634,6 +638,20 @@
         "realityTargetRequired": "هدف REALITY الزامی است",
         "realityTargetNeedsPort": "هدف REALITY باید شامل پورت باشد (مثلاً example.com:443)",
         "realityTargetInvalidPort": "پورت هدف REALITY نامعتبر است",
+        "scan": "اسکن",
+        "findTargets": "یافتن هدف‌ها",
+        "scanModalTitle": "اسکنر هدف REALITY",
+        "scanModalDesc": "یک دامنه را اعتبارسنجی کنید، یا یک محدوده‌ی IP/CIDR را اسکن کنید تا هدف‌های جدید REALITY از روی گواهی‌هایشان کشف شوند. برای بررسی کاندیدهای پیش‌فرض، کادر را خالی بگذارید.",
+        "scanDiscoverPlaceholder": "آی‌پی، CIDR یا دامنه — برای کاندیدهای پیش‌فرض خالی بگذارید",
+        "scanStatus": "وضعیت",
+        "scanFeasible": "مناسب",
+        "scanNotFeasible": "نامناسب",
+        "scanCurve": "تبادل کلید",
+        "scanCert": "گواهی",
+        "scanCertInvalid": "نامعتبر",
+        "scanLatency": "تأخیر",
+        "scanUse": "استفاده",
+        "scanRescan": "اسکن مجدد",
         "spiderX": "SpiderX",
         "getNewCert": "دریافت گواهی جدید",
         "mldsa65Seed": "mldsa65 Seed",
