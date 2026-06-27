@@ -76,6 +76,27 @@
   line-height: 18px;
 }
 
+.client-form-modal .ant-modal-footer {
+  margin-top: 18px;
+}
+
+.client-form-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.client-form-footer-actions {
+  display: flex;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.client-inbounds-field {
+  margin-bottom: 24px;
+}
+
 .client-inbounds-field .ant-form-item-control-input-content {
   display: flex;
   flex-direction: column;
@@ -90,21 +111,41 @@
   align-items: flex-start;
   min-height: 40px;
   height: auto;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 6px 8px;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-overflow {
-  row-gap: 6px;
+  gap: 6px;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-item {
   max-width: 100%;
+  margin: 0;
 }
 
 .client-inbounds-field .ant-select-multiple .ant-select-selection-item-content {
   white-space: normal;
   line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .client-form-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .client-form-footer > .ant-btn,
+  .client-form-footer-actions {
+    width: 100%;
+  }
+
+  .client-form-footer-actions {
+    margin-inline-start: 0;
+  }
+
+  .client-form-footer-actions .ant-btn {
+    flex: 1;
+  }
 }
 
 .card-toolbar {

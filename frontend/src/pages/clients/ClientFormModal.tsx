@@ -490,14 +490,15 @@ export default function ClientFormModal({
       <Modal
         open={open}
         title={isEdit ? t('pages.clients.editClient') : t('pages.clients.addClient')}
+        className="client-form-modal"
         destroyOnHidden
-        width={720}
+        width="min(920px, calc(100vw - 32px))"
         zIndex={CLIENT_FORM_MODAL_Z_INDEX}
         style={{ top: 20 }}
         styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
         onCancel={close}
         footer={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="client-form-footer">
             {isEdit && resetTraffic && (
               <Popconfirm
                 title={t('pages.inbounds.resetTraffic')}
@@ -512,7 +513,7 @@ export default function ClientFormModal({
                 </Button>
               </Popconfirm>
             )}
-            <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>
+            <div className="client-form-footer-actions">
               <Button onClick={close}>{t('cancel')}</Button>
               <Button type="primary" loading={submitting} onClick={onSubmit}>
                 {isEdit ? t('save') : t('create')}
