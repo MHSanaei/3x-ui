@@ -141,7 +141,6 @@ func (t *Tgbot) OnReceive() {
 					userStateMgr.clear(message.Chat.ID)
 					t.addClient(message.Chat.ID, t.BuildClientDraftMessage())
 				}
-
 			} else {
 				if message.UsersShared != nil {
 					if checkAdmin(message.From.ID) {
@@ -167,7 +166,7 @@ func (t *Tgbot) OnReceive() {
 			return nil
 		}, th.AnyMessage())
 
-		h.Start()
+		_ = h.Start()
 	}()
 }
 
@@ -205,7 +204,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			if isAdmin {
 				t.searchClient(chatId, commandArgs[0])
 			} else {
-				t.getClientUsage(chatId, int64(message.From.ID), commandArgs[0])
+				t.getClientUsage(chatId, message.From.ID, commandArgs[0])
 			}
 		} else {
 			msg += t.I18nBot("tgbot.commands.usage")
@@ -595,12 +594,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 							if traffic.ExpiryTime > 0 {
 								if traffic.ExpiryTime-time.Now().Unix()*1000 < 0 {
-									date = -int64(days * 24 * 60 * 60000)
+									date = -(days * 24 * 60 * 60000)
 								} else {
-									date = traffic.ExpiryTime + int64(days*24*60*60000)
+									date = traffic.ExpiryTime + days*24*60*60000
 								}
 							} else {
-								date = traffic.ExpiryTime - int64(days*24*60*60000)
+								date = traffic.ExpiryTime - days*24*60*60000
 							}
 
 						}
@@ -685,12 +684,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				var date int64
 				if client_ExpiryTime > 0 {
 					if client_ExpiryTime-time.Now().Unix()*1000 < 0 {
-						date = -int64(days * 24 * 60 * 60000)
+						date = -(days * 24 * 60 * 60000)
 					} else {
-						date = client_ExpiryTime + int64(days*24*60*60000)
+						date = client_ExpiryTime + days*24*60*60000
 					}
 				} else {
-					date = client_ExpiryTime - int64(days*24*60*60000)
+					date = client_ExpiryTime - days*24*60*60000
 				}
 				client_ExpiryTime = date
 
@@ -1111,7 +1110,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 			}
-
 		}
 	}
 
@@ -1458,7 +1456,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "get_sorted_traffic_usage_report":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		emails, err := t.inboundService.GetAllEmails()
-
 		if err != nil {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return

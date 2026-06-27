@@ -241,7 +241,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["type"] = "vless"
 		proxy["uuid"] = client.ID
 		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 		streamSecurity, _ := stream["security"].(string)
 		if client.Flow != "" && vlessFlowAllowed(network, streamSecurity, inboundSettings) {
 			proxy["flow"] = client.Flow
@@ -259,7 +259,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["type"] = "ss"
 		proxy["password"] = client.Password
 		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 		method, _ := inboundSettings["method"].(string)
 		if method == "" {
 			return nil
@@ -655,7 +655,7 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 
 func (s *SubClashService) streamData(stream string) map[string]any {
 	var streamSettings map[string]any
-	json.Unmarshal([]byte(stream), &streamSettings)
+	_ = json.Unmarshal([]byte(stream), &streamSettings)
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":

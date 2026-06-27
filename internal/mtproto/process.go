@@ -5,6 +5,7 @@
 package mtproto
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -154,7 +155,7 @@ func (p *Process) Start() error {
 	if p.IsRunning() {
 		return errors.New("mtg is already running")
 	}
-	cmd := exec.Command(GetBinaryPath(), "run", p.configPath)
+	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "run", p.configPath)
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 	p.cmd = cmd

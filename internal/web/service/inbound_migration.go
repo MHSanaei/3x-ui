@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -93,12 +94,12 @@ func (s *InboundService) MigrationRequirements() {
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
 	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan", "shadowsocks", "hysteria"}).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
-		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		_ = json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
 		if raw, exists := settings["clients"]; exists && raw == nil {
 			settings["clients"] = []any{}
 		}
@@ -117,7 +118,7 @@ func (s *InboundService) MigrationRequirements() {
 
 				// Convert string tgId to int64
 				if _, ok := c["tgId"]; ok {
-					var tgId any = c["tgId"]
+					tgId := c["tgId"]
 					if tgIdStr, ok2 := tgId.(string); ok2 {
 						tgIdInt64, err := strconv.ParseInt(strings.ReplaceAll(tgIdStr, " ", ""), 10, 64)
 						if err == nil {
@@ -170,7 +171,7 @@ func (s *InboundService) MigrationRequirements() {
 				var count int64
 				tx.Model(xray.ClientTraffic{}).Where("email = ?", modelClient.Email).Count(&count)
 				if count == 0 {
-					s.AddClientStat(tx, inbounds[inbound_index].Id, &modelClient)
+					_ = s.AddClientStat(tx, inbounds[inbound_index].Id, &modelClient)
 				}
 			}
 		}
@@ -212,7 +213,7 @@ func (s *InboundService) MigrationRequirements() {
 	for _, ep := range externalProxy {
 		var reverses any
 		var stream map[string]any
-		json.Unmarshal([]byte(ep.StreamSettings), &stream)
+		_ = json.Unmarshal([]byte(ep.StreamSettings), &stream)
 		if tlsSettings, ok := stream["tlsSettings"].(map[string]any); ok {
 			if settings, ok := tlsSettings["settings"].(map[string]any); ok {
 				if domains, ok := settings["domains"].([]any); ok {

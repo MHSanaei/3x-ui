@@ -57,9 +57,7 @@ func walkPackages(requests []packageRequest) ([]Schema, []Alias, error) {
 							}
 							overrides := req.Overrides[ts.Name.Name]
 							for _, fld := range strct.Fields.List {
-								for _, f := range buildFields(fld, overrides) {
-									s.Fields = append(s.Fields, f)
-								}
+								s.Fields = append(s.Fields, buildFields(fld, overrides)...)
 							}
 							schemas = append(schemas, s)
 							continue

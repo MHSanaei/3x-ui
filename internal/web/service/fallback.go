@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -46,7 +47,7 @@ func (s *FallbackService) GetParentForChild(childId int) (*model.InboundFallback
 		Where("child_id = ?", childId).
 		Order("sort_order ASC, id ASC").
 		First(&row).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {

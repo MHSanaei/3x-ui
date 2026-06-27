@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"context"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -64,7 +65,7 @@ func fetchSubscriptionLinks(rawURL string) []string {
 }
 
 func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
-	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}

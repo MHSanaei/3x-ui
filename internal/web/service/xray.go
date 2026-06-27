@@ -143,7 +143,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			continue
 		}
 		settings := map[string]any{}
-		json.Unmarshal([]byte(inbound.Settings), &settings)
+		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 
 		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
 		if listErr != nil {
@@ -240,7 +240,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if len(inbound.StreamSettings) > 0 {
 			// Unmarshal stream JSON
 			var stream map[string]any
-			json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+			_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 
 			// Remove the "settings" field under "tlsSettings" and "realitySettings"
 			tlsSettings, ok1 := stream["tlsSettings"].(map[string]any)
@@ -930,7 +930,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 			logger.Info("Xray config changes applied through the core API, no restart needed")
 			return nil
 		}
-		p.Stop()
+		_ = p.Stop()
 	}
 
 	p = xray.NewProcess(xrayConfig)
