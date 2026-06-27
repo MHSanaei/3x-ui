@@ -66,7 +66,8 @@ func CPUPercentRaw() (float64, error) {
 		uintptr(unsafe.Pointer(&userFT)),
 	)
 	if r1 == 0 {
-		if errno, _ := e1.(syscall.Errno); errno != 0 {
+		var errno syscall.Errno
+		if errors.As(e1, &errno) && errno != 0 {
 			return 0, errno
 		}
 		return 0, errors.New("GetSystemTimes failed")

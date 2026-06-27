@@ -242,6 +242,37 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	return result, emails, lastOnline, traffic, nil
 }
 
+// inboundLinks builds the share links for every distinct client of one inbound
+// the same way getSubs does — managed Host endpoints win over the plain link so
+// {{HOST}} and per-host variants render — but across all clients rather than a
+// single subId. Dedups duplicate client JSON entries by email (#5134). Backs the
+// panel's "Export all inbound links" so it matches the client/QR pages.
+func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
+	clients, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		return nil
+	}
+	s.projectThroughFallbackMaster(inbound)
+	hostEps := s.hostEndpoints(inbound, "raw")
+	var out []string
+	seen := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		key := strings.ToLower(client.Email)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		var link string
+		if len(hostEps) > 0 {
+			link = s.linkFromHosts(inbound, client, hostEps)
+		} else {
+			link = s.GetLink(inbound, client.Email)
+		}
+		out = append(out, splitLinkLines(link)...)
+	}
+	return out
+}
+
 // AggregateTrafficByEmails resolves traffic for every email in one
 // query and folds the rows into a single ClientTraffic + lastOnline.
 // xray.ClientTraffic.Email is globally unique, so a multi-inbound
@@ -422,12 +453,12 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 // + ws/grpc/etc. settings) stays the child's.
 func mergeStreamFromMaster(childStream, masterStream string) string {
 	var stream map[string]any
-	json.Unmarshal([]byte(childStream), &stream)
+	_ = json.Unmarshal([]byte(childStream), &stream)
 	if stream == nil {
 		stream = map[string]any{}
 	}
 	var mst map[string]any
-	json.Unmarshal([]byte(masterStream), &mst)
+	_ = json.Unmarshal([]byte(masterStream), &mst)
 	if mst == nil {
 		return childStream
 	}
@@ -480,7 +511,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, _ string) string {
 		return ""
 	}
 	settings := map[string]any{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	secret, _ := settings["secret"].(string)
 	if secret == "" {
 		if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
@@ -586,7 +617,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	// Add encryption parameter for VLESS from inbound settings
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	if encryption, ok := settings["encryption"].(string); ok {
 		params["encryption"] = encryption
 	}
@@ -708,7 +739,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	clients, _ := s.inboundService.GetClients(inbound)
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	inboundPassword := settings["password"].(string)
 	method := settings["method"].(string)
 	clientIndex := findClientIndex(clients, email)
@@ -777,7 +808,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return ""
 	}
 	var stream map[string]any
-	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
@@ -846,7 +877,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	}
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
 	protocol := "hysteria2"
 	if int(version) == 1 {
@@ -977,7 +1008,7 @@ func findClientIndex(clients []model.Client, email string) int {
 
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
-	json.Unmarshal([]byte(streamSettings), &stream)
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
 	return stream
 }
 
@@ -1285,7 +1316,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "pcs")) {
+		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs") {
 			newObj[key] = value
 		}
 	}

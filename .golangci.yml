@@ -1,0 +1,53 @@
+version: "2"
+
+run:
+  build-tags: []
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - noctx
+    - misspell
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - usestdlibvars
+  exclusions:
+    generated: lax
+    presets:
+      - std-error-handling
+    paths:
+      - frontend
+      - internal/web/dist
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - bodyclose
+          - noctx
+      # tools/openapigen relies on go/parser.ParseDir; migrating it to
+      # golang.org/x/tools/go/packages is a generator change, out of scope here.
+      - linters:
+          - staticcheck
+        text: "SA1019: parser.ParseDir"
+      # ST1005 (capitalized error strings) conflicts with intentional
+      # user-facing error copy that tests assert verbatim.
+      - linters:
+          - staticcheck
+        text: "ST1005:"
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/mhsanaei/3x-ui
+  exclusions:
+    paths:
+      - frontend
+      - internal/web/dist
