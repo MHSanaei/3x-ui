@@ -35,7 +35,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
