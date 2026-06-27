@@ -117,7 +117,8 @@
     "logout": "ログアウト",
     "link": "リンク管理",
     "donate": "寄付",
-    "hosts": "ホスト"
+    "hosts": "ホスト",
+    "docs": "ドキュメント"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "X25519証明書の取得中にエラーが発生しました。",
         "getNewmldsa65Error": "mldsa65証明書の取得中にエラーが発生しました。",
         "getNewVlessEncError": "VlessEnc証明書の取得中にエラーが発生しました。",
+        "scanRealityTargetError": "REALITY ターゲットのスキャンに失敗しました。",
+        "scanRealityTargetFeasible": "ターゲットは利用可能です — ターゲットと SNI を入力しました。",
+        "scanRealityTargetNotFeasible": "ターゲットには到達できますが、REALITY には利用できません。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
@@ -643,6 +647,20 @@
         "realityTargetRequired": "REALITY ターゲットは必須です",
         "realityTargetNeedsPort": "REALITY ターゲットにはポートを含める必要があります（例: example.com:443）",
         "realityTargetInvalidPort": "REALITY ターゲットのポートが無効です",
+        "scan": "スキャン",
+        "findTargets": "ターゲットを検索",
+        "scanModalTitle": "REALITY ターゲットスキャナー",
+        "scanModalDesc": "ドメインを検証するか、IP / CIDR 範囲をスキャンして証明書から新しい REALITY ターゲットを発見します。空欄のままにすると一般的な候補を検査します。",
+        "scanDiscoverPlaceholder": "IP、CIDR、またはドメイン — 空欄で一般的な候補",
+        "scanStatus": "ステータス",
+        "scanFeasible": "利用可能",
+        "scanNotFeasible": "利用不可",
+        "scanCurve": "鍵交換",
+        "scanCert": "証明書",
+        "scanCertInvalid": "信頼できません",
+        "scanLatency": "レイテンシ",
+        "scanUse": "使用",
+        "scanRescan": "再スキャン",
         "spiderX": "SpiderX",
         "getNewCert": "新しい証明書を取得",
         "mldsa65Seed": "mldsa65 Seed",

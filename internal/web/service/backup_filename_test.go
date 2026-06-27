@@ -3,6 +3,7 @@ package service
 import (
 	"regexp"
 	"testing"
+	"time"
 )
 
 // getDb (controller) only accepts a Content-Disposition filename matching this
@@ -32,6 +33,35 @@ func TestSanitizeBackupHost(t *testing.T) {
 			}
 			if !backupFilenameRegex.MatchString(got) {
 				t.Errorf("sanitizeBackupHost(%q) = %q, not a valid download filename", tc.in, got)
+			}
+		})
+	}
+}
+
+// dateSuffixRegex narrows backupFilenameRegex to the exact _YYYY-MM-DD_HHMMSS shape.
+var dateSuffixRegex = regexp.MustCompile(`^_\d{4}-\d{2}-\d{2}_\d{6}$`)
+
+func TestBackupDateSuffix(t *testing.T) {
+	cases := []struct {
+		name string
+		now  time.Time
+		want string
+	}{
+		{"utc midnight", time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC), "_2026-06-27_000000"},
+		{"end of year", time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC), "_2025-12-31_235959"},
+		{"single digit month/day padded", time.Date(2026, 1, 5, 9, 4, 0, 0, time.UTC), "_2026-01-05_090400"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := backupDateSuffix(tc.now)
+			if got != tc.want {
+				t.Errorf("backupDateSuffix(%v) = %q, want %q", tc.now, got, tc.want)
+			}
+			if !dateSuffixRegex.MatchString(got) {
+				t.Errorf("backupDateSuffix(%v) = %q, not a valid date suffix", tc.now, got)
+			}
+			if !backupFilenameRegex.MatchString(got) {
+				t.Errorf("backupDateSuffix(%v) = %q, not a valid download filename char", tc.now, got)
 			}
 		})
 	}

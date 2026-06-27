@@ -117,7 +117,8 @@
     "logout": "Keluar",
     "link": "Kelola",
     "donate": "Donasi",
-    "hosts": "Host"
+    "hosts": "Host",
+    "docs": "Dokumentasi"
   },
   "pages": {
     "login": {
@@ -473,6 +474,9 @@
         "getNewX25519CertError": "Terjadi kesalahan saat mendapatkan sertifikat X25519.",
         "getNewmldsa65Error": "Terjadi kesalahan saat mendapatkan sertifikat mldsa65.",
         "getNewVlessEncError": "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc.",
+        "scanRealityTargetError": "Gagal memindai target REALITY.",
+        "scanRealityTargetFeasible": "Target layak — target dan SNI terisi.",
+        "scanRealityTargetNotFeasible": "Target dapat dijangkau tetapi tidak layak untuk REALITY.",
         "invalidClientField": "Klien {client}: kolom {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} lainnya)"
@@ -622,6 +626,20 @@
         "realityTargetRequired": "Target REALITY wajib diisi",
         "realityTargetNeedsPort": "Target REALITY harus menyertakan port (mis. example.com:443)",
         "realityTargetInvalidPort": "Target REALITY memiliki port yang tidak valid",
+        "scan": "Pindai",
+        "findTargets": "Cari Target",
+        "scanModalTitle": "Pemindai Target REALITY",
+        "scanModalDesc": "Validasi domain, atau pindai rentang IP / CIDR untuk menemukan target REALITY baru dari sertifikatnya. Biarkan kosong untuk memeriksa kandidat umum.",
+        "scanDiscoverPlaceholder": "IP, CIDR, atau domain — kosongkan untuk kandidat umum",
+        "scanStatus": "Status",
+        "scanFeasible": "Layak",
+        "scanNotFeasible": "Tidak layak",
+        "scanCurve": "Pertukaran Kunci",
+        "scanCert": "Sertifikat",
+        "scanCertInvalid": "Tidak tepercaya",
+        "scanLatency": "Latensi",
+        "scanUse": "Gunakan",
+        "scanRescan": "Pindai ulang",
         "spiderX": "SpiderX",
         "getNewCert": "Dapatkan sertifikat baru",
         "mldsa65Seed": "mldsa65 Seed",

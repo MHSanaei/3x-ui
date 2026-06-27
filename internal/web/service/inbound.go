@@ -707,6 +707,16 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	// Legacy import: an inbound exported from a build that predated the hosts
+	// table carries its external proxies inline in streamSettings.externalProxy.
+	// The startup migration that converts those to host rows runs once and is
+	// gated off afterwards, so it never sees a freshly imported inbound —
+	// reproduce it here. No-op for inbounds without externalProxy (everything the
+	// current UI builds), so this only fires on such imports.
+	if _, err = database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+
 	// Before the deferred commit, so a node in "selected" sync mode cannot
 	// sweep the new central row in the gap before its tag is allowed.
 	if inbound.NodeID != nil {

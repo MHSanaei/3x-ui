@@ -502,9 +502,8 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 				CipherType: ssCipherType,
 			})
 		} else {
-			account = serial.ToTypedMessage(&shadowsocks_2022.ServerConfig{
-				Key:   password,
-				Email: userEmail,
+			account = serial.ToTypedMessage(&shadowsocks_2022.Account{
+				Key: password,
 			})
 		}
 	case "hysteria":

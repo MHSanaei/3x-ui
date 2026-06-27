@@ -26,14 +26,23 @@ export function collectSelectors(list: BalancerObject[]): string[] {
 }
 
 // syncObservatories keeps the (burst)observatory sections aligned with the
-// balancer strategies that actually require them. Observatories have no
-// runtime reload API in xray-core, so any change here forces a full process
-// restart — that's why random/roundRobin balancers, which work fine without
-// an observer, never CREATE one: a plain balancer add/edit then stays a
-// routing-only change and applies live through the core API. An already
-// existing burstObservatory is still kept in sync for them (alive-only
-// filtering keeps working for setups that had it), it's just never the
-// reason a new one appears.
+// balancer strategies that actually require them. Observatories have no runtime
+// reload API in xray-core, so creating OR removing one forces a full process
+// restart — that's why an observer-less balancer never gets one and stays a
+// live, routing-only change applied through the core API.
+//
+// xray-core binds the Observatory feature to a Random/RoundRobinStrategy only
+// when its fallbackTag is set (issue #5605): with a fallbackTag the strategy
+// calls RequireFeatures(Observatory) and the core aborts startup with "not all
+// dependencies are resolved" if none exists; without a fallbackTag it never even
+// consults an observatory. leastLoad always needs the burst observer, leastPing
+// the regular one.
+//
+// So each observer lives exactly as long as something requires it, and is
+// dropped the moment nothing does — clearing the last fallbackTag (or deleting
+// the last leastLoad) removes the burst observer again. A no-fallback balancer's
+// selector is still probed while the observer exists for another reason, but
+// never keeps it alive on its own.
 export function syncObservatories(t: XraySettingsValue) {
   const balancers = (t.routing?.balancers || []) as BalancerObject[];
 
@@ -45,15 +54,20 @@ export function syncObservatories(t: XraySettingsValue) {
     delete t.observatory;
   }
 
-  const required = balancers.filter((b) => b.strategy?.type === 'leastLoad');
+  const hasFallback = (b: BalancerObject) => (b.fallbackTag ?? '').length > 0;
+  const required = balancers.filter((b) => {
+    const type = b.strategy?.type || 'random';
+    if (type === 'leastLoad') return true;
+    return (type === 'random' || type === 'roundRobin') && hasFallback(b);
+  });
   const optional = balancers.filter((b) => {
     const type = b.strategy?.type || 'random';
-    return type === 'random' || type === 'roundRobin';
+    return (type === 'random' || type === 'roundRobin') && !hasFallback(b);
   });
-  if (required.length > 0 || (optional.length > 0 && t.burstObservatory)) {
+  if (required.length > 0) {
     if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
     (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([...required, ...optional]);
-  } else if (required.length === 0 && optional.length === 0) {
+  } else {
     delete t.burstObservatory;
   }
 }

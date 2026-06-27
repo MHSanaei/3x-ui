@@ -242,6 +242,37 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	return result, emails, lastOnline, traffic, nil
 }
 
+// inboundLinks builds the share links for every distinct client of one inbound
+// the same way getSubs does — managed Host endpoints win over the plain link so
+// {{HOST}} and per-host variants render — but across all clients rather than a
+// single subId. Dedups duplicate client JSON entries by email (#5134). Backs the
+// panel's "Export all inbound links" so it matches the client/QR pages.
+func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
+	clients, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		return nil
+	}
+	s.projectThroughFallbackMaster(inbound)
+	hostEps := s.hostEndpoints(inbound, "raw")
+	var out []string
+	seen := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		key := strings.ToLower(client.Email)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		var link string
+		if len(hostEps) > 0 {
+			link = s.linkFromHosts(inbound, client, hostEps)
+		} else {
+			link = s.GetLink(inbound, client.Email)
+		}
+		out = append(out, splitLinkLines(link)...)
+	}
+	return out
+}
+
 // AggregateTrafficByEmails resolves traffic for every email in one
 // query and folds the rows into a single ClientTraffic + lastOnline.
 // xray.ClientTraffic.Email is globally unique, so a multi-inbound

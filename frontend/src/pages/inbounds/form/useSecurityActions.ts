@@ -4,10 +4,10 @@ import type { FormInstance } from 'antd';
 import type { MessageInstance } from 'antd/es/message/interface';
 
 import { HttpUtil, RandomUtil } from '@/utils';
-import { getRandomRealityTarget } from '@/models/reality-targets';
 import { createTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
+import type { RealityScanResult } from '@/generated/types';
 
 interface UseSecurityActionsArgs {
   form: FormInstance<InboundFormValues>;
@@ -17,13 +17,15 @@ interface UseSecurityActionsArgs {
   // Panel" must read the node's own cert paths for a node-assigned inbound —
   // the central panel's paths don't exist on the node. See issue #4854.
   nodeId: number | null;
+  setScanResult: Dispatch<SetStateAction<RealityScanResult | null>>;
+  setScanning: Dispatch<SetStateAction<boolean>>;
 }
 
 // Server-side TLS / Reality key + certificate generation handlers for the
 // inbound modal's security tab. Each talks to a /panel server endpoint and
 // writes the result back into the form. Lifted out of InboundFormModal so
 // the modal body stays focused on orchestration.
-export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseSecurityActionsArgs) {
+export function useSecurityActions({ form, setSaving, messageApi, nodeId, setScanResult, setScanning }: UseSecurityActionsArgs) {
   const { t } = useTranslation();
 
   const genRealityKeypair = async () => {
@@ -64,13 +66,55 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     form.setFieldValue(['streamSettings', 'realitySettings', 'settings', 'mldsa65Verify'], '');
   };
 
-  const randomizeRealityTarget = () => {
-    const tgt = getRandomRealityTarget() as { target: string; sni: string };
-    form.setFieldValue(['streamSettings', 'realitySettings', 'target'], tgt.target);
-    form.setFieldValue(
-      ['streamSettings', 'realitySettings', 'serverNames'],
-      tgt.sni.split(',').map((s) => s.trim()).filter(Boolean),
+  const applyRealityScanResult = (r: RealityScanResult) => {
+    setScanResult(r);
+    form.setFieldValue(['streamSettings', 'realitySettings', 'target'], r.target);
+    if (r.serverNames?.length) {
+      form.setFieldValue(['streamSettings', 'realitySettings', 'serverNames'], r.serverNames);
+    }
+  };
+
+  const scanRealityTarget = async () => {
+    const target = ((form.getFieldValue(['streamSettings', 'realitySettings', 'target']) as string | undefined) ?? '').trim();
+    if (!target) {
+      messageApi.warning(t('pages.inbounds.form.realityTargetRequired'));
+      return;
+    }
+    setScanning(true);
+    try {
+      const msg = await HttpUtil.post<RealityScanResult>(
+        '/panel/api/server/scanRealityTarget',
+        { target },
+        { silent: true },
+      );
+      if (!msg?.success || !msg.obj) {
+        setScanResult(null);
+        messageApi.error(msg?.msg || t('pages.inbounds.toasts.scanRealityTargetError'));
+        return;
+      }
+      const r = msg.obj;
+      applyRealityScanResult(r);
+      if (r.feasible) {
+        messageApi.success(t('pages.inbounds.toasts.scanRealityTargetFeasible'));
+      } else {
+        messageApi.warning(r.reason || t('pages.inbounds.toasts.scanRealityTargetNotFeasible'));
+      }
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const scanRealityCandidates = async (targets?: string): Promise<RealityScanResult[]> => {
+    const msg = await HttpUtil.post<RealityScanResult[]>(
+      '/panel/api/server/scanRealityTargets',
+      targets ? { targets } : {},
+      { silent: true },
     );
+    if (!msg?.success || !Array.isArray(msg.obj)) {
+      messageApi.error(msg?.msg || t('pages.inbounds.toasts.scanRealityTargetError'));
+      return [];
+    }
+    return msg.obj;
   };
 
   const randomizeShortIds = () => {
@@ -209,6 +253,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
   };
 
   const onSecurityChange = async (next: string) => {
+    setScanResult(null);
     const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, security: next };
     delete cleaned.tlsSettings;
@@ -218,9 +263,8 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     }
     if (next === 'reality') {
       const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;
-      const tgt = getRandomRealityTarget() as { target: string; sni: string };
-      reality.target = tgt.target;
-      reality.serverNames = tgt.sni.split(',').map((s) => s.trim()).filter(Boolean);
+      reality.target = '';
+      reality.serverNames = [];
       reality.shortIds = RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean);
       cleaned.realitySettings = reality;
     }
@@ -244,7 +288,9 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId }: UseS
     clearRealityKeypair,
     genMldsa65,
     clearMldsa65,
-    randomizeRealityTarget,
+    scanRealityTarget,
+    scanRealityCandidates,
+    applyRealityScanResult,
     randomizeShortIds,
     getNewEchCert,
     clearEchCert,

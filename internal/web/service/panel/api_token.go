@@ -24,6 +24,13 @@ type ApiTokenView struct {
 	CreatedAt int64  `json:"createdAt" example:"1736000000"`
 }
 
+func apiTokenCreatedAtSeconds(createdAt int64) int64 {
+	if createdAt >= model.ApiTokenUnixMillisecondsThreshold {
+		return createdAt / 1000
+	}
+	return createdAt
+}
+
 // toView builds the metadata view returned by List. It never carries the
 // token value: only a SHA-256 hash is stored, and the plaintext is shown
 // exactly once at creation time.
@@ -32,7 +39,7 @@ func toView(t *model.ApiToken) *ApiTokenView {
 		Id:        t.Id,
 		Name:      t.Name,
 		Enabled:   t.Enabled,
-		CreatedAt: t.CreatedAt,
+		CreatedAt: apiTokenCreatedAtSeconds(t.CreatedAt),
 	}
 }
 
