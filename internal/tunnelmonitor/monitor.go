@@ -189,7 +189,7 @@ func (m *Monitor) Step(ctx context.Context) (bool, error) {
 		}
 
 		if recErr := m.recover(ctx); recErr != nil {
-			return false, fmt.Errorf("recovery failed after probe error %v: %w", err, recErr)
+			return false, fmt.Errorf("recovery failed after probe error %w: %w", err, recErr)
 		}
 
 		m.lastRecovery = now

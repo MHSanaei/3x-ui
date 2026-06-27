@@ -19,14 +19,14 @@ func writeAccessLogConfig(t *testing.T, accessPath string) {
 	if err != nil {
 		t.Fatalf("marshal xray config: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(binDir, "config.json"), configData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(binDir, "config.json"), configData, 0o644); err != nil {
 		t.Fatalf("write xray config: %v", err)
 	}
 }
 
 func TestWipeAccessLog_TruncatesEnabledLog(t *testing.T) {
 	accessLog := filepath.Join(t.TempDir(), "access.log")
-	if err := os.WriteFile(accessLog, []byte("2026/06/23 12:00:00 from tcp:203.0.113.10:443 accepted\n"), 0644); err != nil {
+	if err := os.WriteFile(accessLog, []byte("2026/06/23 12:00:00 from tcp:203.0.113.10:443 accepted\n"), 0o644); err != nil {
 		t.Fatalf("seed access log: %v", err)
 	}
 	writeAccessLogConfig(t, accessLog)

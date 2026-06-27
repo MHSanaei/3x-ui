@@ -51,7 +51,7 @@ func runWebServer() {
 		log.Fatalf("Unknown log level: %v", config.GetLogLevel())
 	}
 
-	godotenv.Load()
+	_ = godotenv.Load()
 
 	for _, line := range sys.ApplyMemoryTuning() {
 		logger.Info(line)
@@ -171,8 +171,8 @@ func runWebServer() {
 			tgbot.StopBot()
 			// ------------------------------------------------------------
 
-			server.Stop()
-			subServer.Stop()
+			_ = server.Stop()
+			_ = subServer.Stop()
 			log.Println("Shutting down servers.")
 			return
 		}
@@ -350,7 +350,7 @@ func updateSetting(port int, username string, password string, webBasePath strin
 		if err != nil {
 			fmt.Println("Failed to reset two-factor authentication:", err)
 		} else {
-			settingService.SetTwoFactorToken("")
+			_ = settingService.SetTwoFactorToken("")
 			fmt.Println("Two-factor authentication reset successfully")
 		}
 	}

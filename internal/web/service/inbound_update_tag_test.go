@@ -49,7 +49,7 @@ func TestUpdateInbound_RegeneratesAutoTagOnPortChange(t *testing.T) {
 // the returned object) which is what the save would use.
 func TestUpdateInbound_NodeTagKeepsPrefixWhenNodeIdOmitted(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflictNode(t, "n1-in-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, intPtr(1))
+	seedInboundConflictNode(t, "n1-in-443-tcp", "0.0.0.0", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, new(1))
 
 	var existing model.Inbound
 	if err := database.GetDB().Where("tag = ?", "n1-in-443-tcp").First(&existing).Error; err != nil {

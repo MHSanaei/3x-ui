@@ -67,7 +67,7 @@ func MigrateData(srcPath, dstDSN string) error {
 		return errors.New("destination DSN is required")
 	}
 
-	if err := os.MkdirAll(path.Dir(srcPath), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(srcPath), 0o755); err != nil {
 		return err
 	}
 
@@ -144,7 +144,7 @@ func ExportPostgresToSQLite(srcDSN, dstPath string) error {
 	if srcDSN == "" {
 		return errors.New("source DSN is required")
 	}
-	if err := os.MkdirAll(path.Dir(dstPath), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(dstPath), 0o755); err != nil {
 		return err
 	}
 	// Start from an empty file so AutoMigrate creates the canonical schema.

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -50,23 +51,21 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	// Tables in creation order, each followed by its data.
 	type object struct{ name, ddl string }
 	var tables []object
-	rows, err := sqlDB.Query(`SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY rowid`)
+	rows, err := sqlDB.QueryContext(context.Background(), `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY rowid`)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var o object
 		if err := rows.Scan(&o.name, &o.ddl); err != nil {
-			rows.Close()
 			return nil, err
 		}
 		tables = append(tables, o)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
 		return nil, err
 	}
-	rows.Close()
 
 	for _, t := range tables {
 		b.WriteString(t.ddl)
@@ -85,24 +84,22 @@ func DumpSQLiteToBytes(srcPath string) ([]byte, error) {
 	}
 
 	// Indexes, triggers and views after the data is in place.
-	rows2, err := sqlDB.Query(`SELECT sql FROM sqlite_master WHERE type IN ('index','trigger','view') AND sql IS NOT NULL ORDER BY rowid`)
+	rows2, err := sqlDB.QueryContext(context.Background(), `SELECT sql FROM sqlite_master WHERE type IN ('index','trigger','view') AND sql IS NOT NULL ORDER BY rowid`)
 	if err != nil {
 		return nil, err
 	}
+	defer rows2.Close()
 	for rows2.Next() {
 		var ddl string
 		if err := rows2.Scan(&ddl); err != nil {
-			rows2.Close()
 			return nil, err
 		}
 		b.WriteString(ddl)
 		b.WriteString(";\n")
 	}
 	if err := rows2.Err(); err != nil {
-		rows2.Close()
 		return nil, err
 	}
-	rows2.Close()
 
 	b.WriteString("COMMIT;\n")
 
@@ -131,7 +128,7 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 	}
 
 	// mattn/go-sqlite3 executes every statement in a multi-statement string.
-	if _, err := sqlDB.Exec(string(script)); err != nil {
+	if _, err := sqlDB.ExecContext(context.Background(), string(script)); err != nil {
 		sqlDB.Close()
 		os.Remove(dstPath)
 		return fmt.Errorf("restore failed: %w", err)
@@ -141,7 +138,7 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 
 // dumpTableData appends one INSERT statement per row of table to b.
 func dumpTableData(db *sql.DB, table string, b *strings.Builder) error {
-	rows, err := db.Query(`SELECT * FROM "` + table + `"`)
+	rows, err := db.QueryContext(context.Background(), `SELECT * FROM "`+table+`"`)
 	if err != nil {
 		return err
 	}
@@ -213,6 +210,6 @@ func quoteSQLiteText(s string) string {
 
 func sqliteTableExists(db *sql.DB, name string) bool {
 	var found string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, name).Scan(&found)
+	err := db.QueryRowContext(context.Background(), `SELECT name FROM sqlite_master WHERE type='table' AND name=?`, name).Scan(&found)
 	return err == nil
 }
