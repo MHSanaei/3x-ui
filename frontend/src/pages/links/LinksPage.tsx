@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, ConfigProvider, Form, Layout, Modal, Result, Row, Select, Space, Spin, Statistic, Switch, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Col, ConfigProvider, Dropdown, Form, Layout, Modal, Result, Row, Select, Space, Spin, Statistic, Switch, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
   ArrowDownOutlined,
@@ -10,8 +11,10 @@ import {
   DeleteOutlined,
   EditOutlined,
   LinkOutlined,
+  MoreOutlined,
   PlusOutlined,
   TeamOutlined,
+  UsergroupAddOutlined,
 } from '@ant-design/icons';
 
 import { keys } from '@/api/queryKeys';
@@ -73,6 +76,7 @@ export default function LinksPage() {
   const [formLink, setFormLink] = useState<ManagedLinkRecord | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [assignIds, setAssignIds] = useState<number[]>([]);
   const [assignForm] = Form.useForm<{ emails: string[] }>();
   const [assigning, setAssigning] = useState(false);
 
@@ -161,13 +165,15 @@ export default function LinksPage() {
     });
   }, [selectedIds, modal, t, bulkDel, messageApi]);
 
-  const openAssign = useCallback(() => {
-    if (selectedIds.length === 0) return;
+  const openAssign = useCallback((ids: number[]) => {
+    if (ids.length === 0) return;
+    setAssignIds(ids);
     assignForm.setFieldsValue({ emails: [] });
     setAssignOpen(true);
-  }, [selectedIds, assignForm]);
+  }, [assignForm]);
 
   const onAssign = useCallback(async () => {
+    if (assignIds.length === 0) return;
     let values: { emails: string[] };
     try {
       values = await assignForm.validateFields();
@@ -176,7 +182,7 @@ export default function LinksPage() {
     }
     setAssigning(true);
     try {
-      const msg = await assign(selectedIds, values.emails || []);
+      const msg = await assign(assignIds, values.emails || []);
       if (msg?.success) {
         const obj = msg.obj;
         messageApi.success(t('pages.links.toasts.assignResult', {
@@ -184,14 +190,15 @@ export default function LinksPage() {
           skipped: obj?.skipped ?? 0,
         }));
         setAssignOpen(false);
-        setSelectedIds([]);
+        setAssignIds([]);
+        if (assignIds.length > 1) setSelectedIds([]);
       } else if (msg?.msg) {
         messageApi.error(msg.msg);
       }
     } finally {
       setAssigning(false);
     }
-  }, [assignForm, assign, selectedIds, messageApi, t]);
+  }, [assignForm, assign, assignIds, messageApi, t]);
 
   const movable = useMemo(() => {
     const idx = new Map<number, number>();
@@ -203,9 +210,16 @@ export default function LinksPage() {
     {
       title: t('pages.links.fields.actions'),
       key: 'actions',
-      width: 168,
+      width: 204,
       render: (_, link) => {
         const idx = movable.get(link.id) ?? 0;
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'attachExisting',
+            icon: <UsergroupAddOutlined />,
+            label: t('pages.inbounds.attachExistingClients'),
+          },
+        ];
         return (
           <Space size={2}>
             <Tooltip title={t('pages.links.moveUp')}>
@@ -220,6 +234,17 @@ export default function LinksPage() {
             <Tooltip title={t('delete')}>
               <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(link)} />
             </Tooltip>
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: menuItems,
+                onClick: ({ key }) => {
+                  if (key === 'attachExisting') openAssign([link.id]);
+                },
+              }}
+            >
+              <Button size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
+            </Dropdown>
           </Space>
         );
       },
@@ -275,7 +300,7 @@ export default function LinksPage() {
           >
             {t('pages.links.selectedCount', { count: selectedIds.length })}
           </Tag>
-          <Button icon={<TeamOutlined />} onClick={openAssign}>{t('pages.links.assign')}</Button>
+          <Button icon={<TeamOutlined />} onClick={() => openAssign(selectedIds)}>{t('pages.links.assign')}</Button>
           <Button onClick={() => onBulkEnable(true)}>{t('pages.links.bulkEnable')}</Button>
           <Button onClick={() => onBulkEnable(false)}>{t('pages.links.bulkDisable')}</Button>
           <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>{t('pages.links.bulkDelete')}</Button>
@@ -361,12 +386,15 @@ export default function LinksPage() {
 
         <Modal
           open={assignOpen}
-          title={t('pages.links.assignTitle', { count: selectedIds.length })}
+          title={t('pages.links.assignTitle', { count: assignIds.length })}
           okText={t('pages.links.assign')}
           cancelText={t('cancel')}
           confirmLoading={assigning}
           onOk={onAssign}
-          onCancel={() => setAssignOpen(false)}
+          onCancel={() => {
+            setAssignOpen(false);
+            setAssignIds([]);
+          }}
           destroyOnHidden
         >
           <Form form={assignForm} layout="vertical" preserve={false}>
