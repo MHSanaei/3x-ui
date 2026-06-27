@@ -99,19 +99,56 @@ func (m *Manager) RemoteFor(node *model.Node) (*Remote, error) {
 	}
 	m.mu.RLock()
 	if rt, ok := m.remotes[node.Id]; ok {
+		if sameRemoteIdentity(rt.node, node) {
+			m.mu.RUnlock()
+			return rt, nil
+		}
 		m.mu.RUnlock()
-		return rt, nil
+	} else {
+		m.mu.RUnlock()
 	}
-	m.mu.RUnlock()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if rt, ok := m.remotes[node.Id]; ok {
+		if sameRemoteIdentity(rt.node, node) {
+			return rt, nil
+		}
+	} else {
+		rt := NewRemote(cloneRemoteNode(node), m.egressResolver)
+		m.remotes[node.Id] = rt
 		return rt, nil
 	}
-	rt := NewRemote(node, m.egressResolver)
+	rt := NewRemote(cloneRemoteNode(node), m.egressResolver)
 	m.remotes[node.Id] = rt
 	return rt, nil
+}
+
+func cloneRemoteNode(n *model.Node) *model.Node {
+	if n == nil {
+		return nil
+	}
+	clone := *n
+	if n.InboundTags != nil {
+		clone.InboundTags = append([]string(nil), n.InboundTags...)
+	}
+	return &clone
+}
+
+func sameRemoteIdentity(a, b *model.Node) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Id == b.Id &&
+		a.Scheme == b.Scheme &&
+		a.Address == b.Address &&
+		a.Port == b.Port &&
+		a.BasePath == b.BasePath &&
+		a.ApiToken == b.ApiToken &&
+		a.AllowPrivateAddress == b.AllowPrivateAddress &&
+		a.TlsVerifyMode == b.TlsVerifyMode &&
+		a.PinnedCertSha256 == b.PinnedCertSha256 &&
+		a.OutboundTag == b.OutboundTag
 }
 
 func (m *Manager) InvalidateNode(nodeID int) {
