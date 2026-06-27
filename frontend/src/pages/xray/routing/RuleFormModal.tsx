@@ -55,7 +55,7 @@ const initialForm = (): FormState => ({
   balancerTag: '',
 });
 
-const NETWORKS = ['', 'TCP', 'UDP', 'TCP,UDP'];
+const NETWORKS = ['', 'tcp', 'udp', 'tcp,udp'];
 const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 
 function csv(value: string): string[] {
