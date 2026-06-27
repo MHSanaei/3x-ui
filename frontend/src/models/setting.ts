@@ -17,6 +17,7 @@ export class AllSetting {
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
   tgBotToken = '';
+  tgBotProxy = '';
   tgBotAPIServer = '';
   tgBotChatId = '';
   tgRunTime = '@daily';

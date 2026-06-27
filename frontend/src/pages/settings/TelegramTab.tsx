@@ -23,14 +23,71 @@ interface TelegramTabProps {
 type Unit = 's' | 'm' | 'h';
 type Macro = '@hourly' | '@daily' | '@weekly' | '@monthly';
 type Mode = 'every' | Macro | 'custom';
+type TelegramProxyMode = 'direct' | 'socks5' | 'http' | 'https' | 'custom';
 const MACROS: Macro[] = ['@hourly', '@daily', '@weekly', '@monthly'];
 const EVERY_RE = /^@every\s+(\d+)\s*([smh])$/i;
+const TELEGRAM_PROXY_SCHEMES = new Set(['socks5', 'http', 'https']);
 
 interface RunTime {
   mode: Mode;
   num: number;
   unit: Unit;
   custom: string;
+}
+
+interface TelegramProxyConfig {
+  mode: TelegramProxyMode;
+  host: string;
+  port: number | null;
+  username: string;
+  password: string;
+  raw: string;
+}
+
+function parseTelegramProxy(raw: string): TelegramProxyConfig {
+  const value = (raw ?? '').trim();
+  if (!value) {
+    return { mode: 'direct', host: '', port: null, username: '', password: '', raw: '' };
+  }
+  try {
+    const parsed = new URL(value);
+    const scheme = parsed.protocol.replace(/:$/, '');
+    if (!TELEGRAM_PROXY_SCHEMES.has(scheme)) {
+      return { mode: 'custom', host: '', port: null, username: '', password: '', raw: value };
+    }
+    return {
+      mode: scheme as TelegramProxyMode,
+      host: parsed.hostname,
+      port: parsed.port ? Number(parsed.port) || null : null,
+      username: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      raw: value,
+    };
+  } catch {
+    return { mode: 'custom', host: '', port: null, username: '', password: '', raw: value };
+  }
+}
+
+function wrapIPv6Host(host: string): string {
+  if (host.includes(':') && !host.startsWith('[') && !host.endsWith(']')) {
+    return `[${host}]`;
+  }
+  return host;
+}
+
+function composeTelegramProxy(config: TelegramProxyConfig): string {
+  if (config.mode === 'direct') return '';
+  if (config.mode === 'custom') return config.raw.trim();
+  const host = config.host.trim();
+  if (!host) return '';
+  let auth = '';
+  if (config.username || config.password) {
+    auth = encodeURIComponent(config.username);
+    if (config.password) auth += `:${encodeURIComponent(config.password)}`;
+    auth += '@';
+  }
+  const port = config.port && config.port > 0 ? `:${config.port}` : '';
+  return `${config.mode}://${auth}${wrapIPv6Host(host)}${port}`;
 }
 
 function parseRunTime(raw: string): RunTime {
@@ -148,6 +205,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   const { isMobile } = useMediaQuery();
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+  const proxyConfig = useMemo(() => parseTelegramProxy(allSetting.tgBotProxy), [allSetting.tgBotProxy]);
 
   async function handleTestTgBot() {
     setTestLoading(true);
@@ -175,6 +233,22 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
     [],
   );
 
+  const proxyModeOptions = useMemo(
+    () => [
+      { value: 'direct', label: 'Direct' },
+      { value: 'socks5', label: 'SOCKS5' },
+      { value: 'http', label: 'HTTP' },
+      { value: 'https', label: 'HTTPS' },
+      { value: 'custom', label: 'Custom URL' },
+    ],
+    [],
+  );
+
+  function updateProxyConfig(patch: Partial<TelegramProxyConfig>) {
+    const next = { ...proxyConfig, ...patch };
+    updateSetting({ tgBotProxy: composeTelegramProxy(next) });
+  }
+
   return (
     <Tabs defaultActiveKey="1" items={[
       {
@@ -200,6 +274,60 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
 
             <SettingListItem paddings="small" title={t('pages.settings.telegramChatId')} description={t('pages.settings.telegramChatIdDesc')}>
               <Input value={allSetting.tgBotChatId} onChange={(e) => updateSetting({ tgBotChatId: e.target.value })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.telegramProxy')} description={t('pages.settings.telegramProxyDesc')}>
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                <Select<TelegramProxyMode>
+                  style={{ width: '100%' }}
+                  value={proxyConfig.mode}
+                  options={proxyModeOptions}
+                  onChange={(mode) => {
+                    if (mode === 'direct') {
+                      updateSetting({ tgBotProxy: '' });
+                      return;
+                    }
+                    if (mode === 'custom') {
+                      updateSetting({ tgBotProxy: proxyConfig.raw || composeTelegramProxy({ ...proxyConfig, mode: 'socks5' }) });
+                      return;
+                    }
+                    updateProxyConfig({ mode });
+                  }}
+                />
+                {proxyConfig.mode === 'custom' ? (
+                  <Input
+                    value={proxyConfig.raw}
+                    placeholder="socks5://user:pass@127.0.0.1:1080"
+                    onChange={(e) => updateSetting({ tgBotProxy: e.target.value })}
+                  />
+                ) : proxyConfig.mode !== 'direct' ? (
+                  <>
+                    <Input
+                      value={proxyConfig.host}
+                      placeholder="127.0.0.1"
+                      onChange={(e) => updateProxyConfig({ host: e.target.value })}
+                    />
+                    <InputNumber
+                      min={1}
+                      max={65535}
+                      style={{ width: '100%' }}
+                      value={proxyConfig.port ?? undefined}
+                      placeholder="1080"
+                      onChange={(value) => updateProxyConfig({ port: Number(value) || null })}
+                    />
+                    <Input
+                      value={proxyConfig.username}
+                      placeholder="Username (optional)"
+                      onChange={(e) => updateProxyConfig({ username: e.target.value })}
+                    />
+                    <Input.Password
+                      value={proxyConfig.password}
+                      placeholder="Password (optional)"
+                      onChange={(e) => updateProxyConfig({ password: e.target.value })}
+                    />
+                  </>
+                ) : null}
+              </Space>
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.telegramBotLanguage')}>

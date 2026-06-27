@@ -34,6 +34,23 @@ func TestIsSupportedBotProxyScheme(t *testing.T) {
 	}
 }
 
+func TestParseAdminIDs(t *testing.T) {
+	got, err := parseAdminIDs("12345, 67890, , 42")
+	if err != nil {
+		t.Fatalf("parseAdminIDs returned error: %v", err)
+	}
+	want := []int64{12345, 67890, 42}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("parseAdminIDs mismatch: got %v want %v", got, want)
+	}
+}
+
+func TestParseAdminIDsRejectsInvalid(t *testing.T) {
+	if _, err := parseAdminIDs("123, nope"); err == nil {
+		t.Fatal("parseAdminIDs must reject non-numeric chat IDs")
+	}
+}
+
 func recordingDialTarget(t *testing.T, n int) (addr string, got chan []byte) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")

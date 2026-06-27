@@ -273,18 +273,10 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot chat ID:", err)
 		return err
 	}
-
-	parsedAdminIds := make([]int64, 0)
-	// Parse admin IDs from comma-separated string
-	if tgBotID != "" {
-		for adminID := range strings.SplitSeq(tgBotID, ",") {
-			id, err := strconv.ParseInt(adminID, 10, 64)
-			if err != nil {
-				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
-				return err
-			}
-			parsedAdminIds = append(parsedAdminIds, int64(id))
-		}
+	parsedAdminIds, err := parseAdminIDs(tgBotID)
+	if err != nil {
+		logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
+		return err
 	}
 	tgBotMutex.Lock()
 	adminIds = parsedAdminIds
@@ -356,6 +348,22 @@ func isSupportedBotProxyScheme(proxyUrl string) bool {
 	return strings.HasPrefix(proxyUrl, "socks5://") ||
 		strings.HasPrefix(proxyUrl, "http://") ||
 		strings.HasPrefix(proxyUrl, "https://")
+}
+
+func parseAdminIDs(raw string) ([]int64, error) {
+	parsed := make([]int64, 0)
+	for adminID := range strings.SplitSeq(raw, ",") {
+		adminID = strings.TrimSpace(adminID)
+		if adminID == "" {
+			continue
+		}
+		id, err := strconv.ParseInt(adminID, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, id)
+	}
+	return parsed, nil
 }
 
 // createRobustFastHTTPClient creates a fasthttp.Client with proper connection handling
