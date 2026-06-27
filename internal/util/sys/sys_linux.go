@@ -4,6 +4,7 @@ package sys
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -93,7 +94,7 @@ func CPUPercentRaw() (float64, error) {
 
 	rd := bufio.NewReader(f)
 	line, err := rd.ReadString('\n')
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 	// Expect: cpu  user nice system idle iowait irq softirq steal guest guest_nice
