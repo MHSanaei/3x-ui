@@ -666,7 +666,6 @@ export default function ClientFormModal({
                         onChange={(v) => update('inboundIds', v)}
                         options={inboundOptions}
                         placeholder={t('pages.clients.selectInbound')}
-                        maxTagCount="responsive"
                         placement="topLeft"
                         listHeight={220}
                         showSearch={{
