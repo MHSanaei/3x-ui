@@ -2715,6 +2715,43 @@
         }
       }
     },
+    "/panel/api/inbounds/allLinks": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, mtproto) across all inbounds and all of their clients. Links are rendered through the subscription engine, so the configured remark template (name-only display part) is applied per client — the same output the client info/QR pages use. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing. Used by the panel’s \"Export all inbound links\" action.",
+        "operationId": "get_panel_api_inbounds_allLinks",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "vless://uuid@host:443?security=reality&...#Germany-alice",
+                    "vmess://eyJ2IjoyLC..."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/inbounds/get/{id}": {
       "get": {
         "tags": [

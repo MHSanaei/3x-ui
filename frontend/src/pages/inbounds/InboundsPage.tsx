@@ -292,21 +292,10 @@ export default function InboundsPage() {
   }, [subSettings, openText, t]);
 
   const exportAllLinks = useCallback(async () => {
-    const hydrated = await Promise.all(
-      dbInbounds.map((ib) => hydrateInbound(ib.id).then((r) => r ?? ib)),
-    );
-    const out: string[] = [];
-    for (const ib of hydrated) {
-      const projected = checkFallback(ib);
-      out.push(genInboundLinks({
-        inbound: inboundFromDb(projected),
-        remark: projected.remark,
-        hostOverride: hostOverrideFor(ib),
-        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
-      }));
-    }
-    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: out.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
-  }, [dbInbounds, hydrateInbound, checkFallback, hostOverrideFor, subSettings.publicHost, openText, t]);
+    const msg = await HttpUtil.get('/panel/api/inbounds/allLinks');
+    const links = msg?.success && Array.isArray(msg.obj) ? (msg.obj as string[]) : [];
+    openText({ title: t('pages.inbounds.exportAllLinksTitle'), content: links.join('\r\n'), fileName: t('pages.inbounds.exportAllLinksFileName') });
+  }, [openText, t]);
 
   const exportAllSubs = useCallback(async () => {
     const hydrated = await Promise.all(
