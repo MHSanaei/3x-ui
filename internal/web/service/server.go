@@ -1297,8 +1297,9 @@ func (s *ServerService) GetDb() ([]byte, error) {
 }
 
 // BackupFilename returns the filename for a database backup, prefixed with the
-// current date (YYYY-MM-DD_) so files accumulated in Telegram chat history sort
-// chronologically, and named after the panel's address so a downloaded or
+// current date and time (YYYY-MM-DD_HHMMSS_) so files accumulated in Telegram
+// chat history sort chronologically and same-day backups stay distinct, and
+// named after the panel's address so a downloaded or
 // Telegram-sent backup identifies the server it came from. requestHost is the
 // browser's address: the getDb handler passes c.Request.Host so a panel download
 // is named after whatever address the user reached the panel with, no Listen
@@ -1314,11 +1315,11 @@ func (s *ServerService) BackupFilename(requestHost string) string {
 	return backupDatePrefix(time.Now()) + s.backupHost(requestHost) + ext
 }
 
-// backupDatePrefix returns the YYYY-MM-DD_ chronological-sort prefix prepended to
-// backup filenames. The date uses server-local time for consistency with the
+// backupDatePrefix returns the YYYY-MM-DD_HHMMSS_ chronological-sort prefix
+// prepended to backup filenames. Uses server-local time for consistency with the
 // timestamp printed in the Telegram backup message body.
 func backupDatePrefix(now time.Time) string {
-	return now.Format("2006-01-02") + "_"
+	return now.Format("2006-01-02_150405") + "_"
 }
 
 // backupHost picks the address used to name backup files: the browser's request

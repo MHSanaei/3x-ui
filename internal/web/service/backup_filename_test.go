@@ -38,8 +38,8 @@ func TestSanitizeBackupHost(t *testing.T) {
 	}
 }
 
-// datePrefixRegex narrows backupFilenameRegex to the exact YYYY-MM-DD_ shape.
-var datePrefixRegex = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}_$`)
+// datePrefixRegex narrows backupFilenameRegex to the exact YYYY-MM-DD_HHMMSS_ shape.
+var datePrefixRegex = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}_\d{6}_$`)
 
 func TestBackupDatePrefix(t *testing.T) {
 	cases := []struct {
@@ -47,9 +47,9 @@ func TestBackupDatePrefix(t *testing.T) {
 		now  time.Time
 		want string
 	}{
-		{"utc midnight", time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC), "2026-06-27_"},
-		{"end of year", time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC), "2025-12-31_"},
-		{"single digit month/day padded", time.Date(2026, 1, 5, 9, 4, 0, 0, time.UTC), "2026-01-05_"},
+		{"utc midnight", time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC), "2026-06-27_000000_"},
+		{"end of year", time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC), "2025-12-31_235959_"},
+		{"single digit month/day padded", time.Date(2026, 1, 5, 9, 4, 0, 0, time.UTC), "2026-01-05_090400_"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -60,7 +60,6 @@ func TestBackupDatePrefix(t *testing.T) {
 			if !datePrefixRegex.MatchString(got) {
 				t.Errorf("backupDatePrefix(%v) = %q, not a valid date prefix", tc.now, got)
 			}
-			// The prefix must also satisfy the controller's filename safety regex.
 			if !backupFilenameRegex.MatchString(got) {
 				t.Errorf("backupDatePrefix(%v) = %q, not a valid download filename char", tc.now, got)
 			}
