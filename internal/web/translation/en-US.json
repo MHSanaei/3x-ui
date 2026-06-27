@@ -947,6 +947,8 @@
       "assignTitle": "Assign {count} link(s)",
       "assignClients": "Clients",
       "selectClients": "Select clients",
+      "attachExistingTitle": "Attach existing clients to \"{remark}\"",
+      "attachExistingDesc": "Attaches existing clients ({count} available) to this link - entries already on a client are skipped.",
       "selectedCount": "{count} selected",
       "summary": {
         "total": "Total",

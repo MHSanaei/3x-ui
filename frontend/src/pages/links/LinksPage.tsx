@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, ConfigProvider, Dropdown, Form, Layout, Modal, Result, Row, Select, Space, Spin, Statistic, Switch, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Col, ConfigProvider, Dropdown, Layout, Modal, Result, Row, Space, Spin, Statistic, Switch, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import {
@@ -17,28 +16,16 @@ import {
   UsergroupAddOutlined,
 } from '@ant-design/icons';
 
-import { keys } from '@/api/queryKeys';
 import { useLinkMutations } from '@/api/queries/useLinkMutations';
 import { useLinksQuery, type ManagedLinkRecord } from '@/api/queries/useLinksQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/hooks/useTheme';
 import AppSidebar from '@/layouts/AppSidebar';
-import { ClientRecordSchema, type ClientRecord } from '@/schemas/client';
 import type { ManagedLinkFormValues } from '@/schemas/api/link';
-import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import { parseMsg } from '@/utils/zodValidate';
+import AttachExistingClientsModal from './AttachExistingClientsModal';
 import LinkFormModal from './LinkFormModal';
 import '../hosts/HostList.css';
-
-const ClientListSchema = ClientRecordSchema.array();
-
-async function fetchAllClients(): Promise<ClientRecord[]> {
-  const msg = await HttpUtil.get('/panel/api/clients/list', undefined, { silent: true });
-  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch clients');
-  const validated = parseMsg(msg, ClientListSchema, 'clients/list');
-  return Array.isArray(validated.obj) ? validated.obj : [];
-}
 
 function sortLinks(links: ManagedLinkRecord[]): ManagedLinkRecord[] {
   return [...links].sort((a, b) => {
@@ -65,11 +52,6 @@ export default function LinksPage() {
 
   const { links, loading, fetched, fetchError, refetch } = useLinksQuery();
   const { create, update, remove, setEnable, reorder, assign, bulkSetEnable, bulkDel } = useLinkMutations();
-  const clientsQuery = useQuery({
-    queryKey: keys.clients.all(),
-    queryFn: fetchAllClients,
-    staleTime: 5000,
-  });
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -77,17 +59,9 @@ export default function LinksPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignIds, setAssignIds] = useState<number[]>([]);
-  const [assignForm] = Form.useForm<{ emails: string[] }>();
   const [assigning, setAssigning] = useState(false);
 
   const sorted = useMemo(() => sortLinks(links), [links]);
-  const clients = clientsQuery.data ?? [];
-  const clientOptions = useMemo(
-    () => clients
-      .filter((c) => c.email)
-      .map((c) => ({ value: c.email, label: c.email })),
-    [clients],
-  );
 
   const summary = useMemo(() => {
     const total = links.length;
@@ -95,6 +69,11 @@ export default function LinksPage() {
     const subscriptions = links.filter((link) => link.kind === 'subscription').length;
     return { total, enabled, subscriptions };
   }, [links]);
+
+  const assignTargets = useMemo(
+    () => sorted.filter((link) => assignIds.includes(link.id)),
+    [sorted, assignIds],
+  );
 
   const pageClass = useMemo(() => {
     const classes = ['hosts-page'];
@@ -168,37 +147,23 @@ export default function LinksPage() {
   const openAssign = useCallback((ids: number[]) => {
     if (ids.length === 0) return;
     setAssignIds(ids);
-    assignForm.setFieldsValue({ emails: [] });
     setAssignOpen(true);
-  }, [assignForm]);
+  }, []);
 
-  const onAssign = useCallback(async () => {
-    if (assignIds.length === 0) return;
-    let values: { emails: string[] };
-    try {
-      values = await assignForm.validateFields();
-    } catch {
-      return;
-    }
+  const onAssign = useCallback(async (ids: number[], emails: string[]) => {
     setAssigning(true);
     try {
-      const msg = await assign(assignIds, values.emails || []);
+      const msg = await assign(ids, emails);
       if (msg?.success) {
-        const obj = msg.obj;
-        messageApi.success(t('pages.links.toasts.assignResult', {
-          attached: obj?.attached ?? 0,
-          skipped: obj?.skipped ?? 0,
-        }));
         setAssignOpen(false);
         setAssignIds([]);
-        if (assignIds.length > 1) setSelectedIds([]);
-      } else if (msg?.msg) {
-        messageApi.error(msg.msg);
+        if (ids.length > 1) setSelectedIds([]);
       }
+      return msg;
     } finally {
       setAssigning(false);
     }
-  }, [assignForm, assign, assignIds, messageApi, t]);
+  }, [assign]);
 
   const movable = useMemo(() => {
     const idx = new Map<number, number>();
@@ -384,37 +349,16 @@ export default function LinksPage() {
           onOpenChange={setFormOpen}
         />
 
-        <Modal
+        <AttachExistingClientsModal
           open={assignOpen}
-          title={t('pages.links.assignTitle', { count: assignIds.length })}
-          okText={t('pages.links.assign')}
-          cancelText={t('cancel')}
-          confirmLoading={assigning}
-          onOk={onAssign}
-          onCancel={() => {
+          targets={assignTargets}
+          loading={assigning}
+          assign={onAssign}
+          onClose={() => {
             setAssignOpen(false);
             setAssignIds([]);
           }}
-          destroyOnHidden
-        >
-          <Form form={assignForm} layout="vertical" preserve={false}>
-            <Form.Item
-              name="emails"
-              label={t('pages.links.assignClients')}
-              rules={[{ required: true, type: 'array', min: 1 }]}
-            >
-              <Select
-                mode="multiple"
-                options={clientOptions}
-                loading={clientsQuery.isFetching}
-                placeholder={t('pages.links.selectClients')}
-                maxTagCount="responsive"
-                showSearch
-                optionFilterProp="label"
-              />
-            </Form.Item>
-          </Form>
-        </Modal>
+        />
       </Layout>
     </ConfigProvider>
   );

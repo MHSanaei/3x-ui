@@ -1769,6 +1769,8 @@
       "assignTitle": "اختصاص {count} لینک",
       "assignClients": "کلاینت‌ها",
       "selectClients": "کلاینت‌ها را انتخاب کنید",
+      "attachExistingTitle": "الصاق کاربران موجود به «{remark}»",
+      "attachExistingDesc": "کاربران موجود ({count} کاربر در دسترس) را به این لینک الصاق می‌کند. مواردی که از قبل روی کلاینت هستند نادیده گرفته می‌شوند.",
       "selectedCount": "{count} انتخاب‌شده",
       "summary": {
         "total": "کل",
