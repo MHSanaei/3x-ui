@@ -1296,11 +1296,11 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	return fileContents, nil
 }
 
-// BackupFilename returns the filename for a database backup, prefixed with the
-// current date and time (YYYY-MM-DD_HHMMSS_) so files accumulated in Telegram
-// chat history sort chronologically and same-day backups stay distinct, and
-// named after the panel's address so a downloaded or
-// Telegram-sent backup identifies the server it came from. requestHost is the
+// BackupFilename returns the filename for a database backup, named after the
+// panel's address so a downloaded or Telegram-sent backup identifies the server
+// it came from, followed by the current date and time (_YYYY-MM-DD_HHMMSS) so
+// files accumulated in Telegram chat history group by server then sort
+// chronologically and same-day backups stay distinct. requestHost is the
 // browser's address: the getDb handler passes c.Request.Host so a panel download
 // is named after whatever address the user reached the panel with, no Listen
 // Domain needed. The Telegram bot has no request and passes "", falling back to
@@ -1312,14 +1312,14 @@ func (s *ServerService) BackupFilename(requestHost string) string {
 	if database.IsPostgres() {
 		ext = ".dump"
 	}
-	return backupDatePrefix(time.Now()) + s.backupHost(requestHost) + ext
+	return s.backupHost(requestHost) + backupDateSuffix(time.Now()) + ext
 }
 
-// backupDatePrefix returns the YYYY-MM-DD_HHMMSS_ chronological-sort prefix
-// prepended to backup filenames. Uses server-local time for consistency with the
-// timestamp printed in the Telegram backup message body.
-func backupDatePrefix(now time.Time) string {
-	return now.Format("2006-01-02_150405") + "_"
+// backupDateSuffix returns the _YYYY-MM-DD_HHMMSS chronological suffix appended
+// after the host in backup filenames. Uses server-local time for consistency
+// with the timestamp printed in the Telegram backup message body.
+func backupDateSuffix(now time.Time) string {
+	return "_" + now.Format("2006-01-02_150405")
 }
 
 // backupHost picks the address used to name backup files: the browser's request
