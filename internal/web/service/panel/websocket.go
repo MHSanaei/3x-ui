@@ -65,7 +65,7 @@ func (s *WebSocketService) readPump(client *websocket.Client, conn *ws.Conn) {
 	}()
 
 	conn.SetReadLimit(wsClientReadLimit)
-	conn.SetReadDeadline(time.Now().Add(wsPongWait))
+	_ = conn.SetReadDeadline(time.Now().Add(wsPongWait))
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(wsPongWait))
 	})
@@ -94,9 +94,9 @@ func (s *WebSocketService) writePump(client *websocket.Client, conn *ws.Conn) {
 	for {
 		select {
 		case msg, ok := <-client.Send:
-			conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
+			_ = conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
 			if !ok {
-				conn.WriteMessage(ws.CloseMessage, []byte{})
+				_ = conn.WriteMessage(ws.CloseMessage, []byte{})
 				return
 			}
 			if err := conn.WriteMessage(ws.TextMessage, msg); err != nil {
@@ -105,7 +105,7 @@ func (s *WebSocketService) writePump(client *websocket.Client, conn *ws.Conn) {
 			}
 
 		case <-ticker.C:
-			conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
+			_ = conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
 			if err := conn.WriteMessage(ws.PingMessage, nil); err != nil {
 				logger.Debugf("WebSocket ping error for client %s: %v", client.ID, err)
 				return

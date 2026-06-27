@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -233,7 +234,7 @@ func (s *ServerService) isFail2banInstalled() bool {
 		return s.fail2banInstalled
 	}
 
-	err := exec.Command("fail2ban-client", "-h").Run()
+	err := exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run()
 	s.fail2banInstalled = err == nil
 	s.fail2banCheckedAt = time.Now()
 	return s.fail2banInstalled
@@ -351,7 +352,11 @@ func getPublicIP(url string) string {
 		Timeout: 3 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if reqErr != nil {
+		return "N/A"
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "N/A"
 	}
@@ -772,7 +777,11 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 		bufferSize = 8192
 	)
 
-	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Get(XrayURL)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, XrayURL, nil)
+	if reqErr != nil {
+		return nil, reqErr
+	}
+	resp, err := s.settingService.NewProxiedHTTPClient(10 * time.Second).Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +881,11 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
 	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
 	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
-	resp, err := client.Get(url)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if reqErr != nil {
+		return "", reqErr
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -934,7 +947,11 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 // fetchXrayDigestSHA256 downloads the .dgst sidecar XTLS publishes next to each
 // release asset and returns the SHA2-256 hex digest it lists.
 func (s *ServerService) fetchXrayDigestSHA256(client *http.Client, dgstURL string) (string, error) {
-	resp, err := client.Get(dgstURL)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, dgstURL, nil)
+	if reqErr != nil {
+		return "", fmt.Errorf("download xray checksum: %w", reqErr)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("download xray checksum: %w", err)
 	}
@@ -1009,7 +1026,7 @@ func (s *ServerService) UpdateXray(version string) error {
 			return err
 		}
 		defer zipFile.Close()
-		if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fileName), 0o755); err != nil {
 			return err
 		}
 		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
@@ -1031,7 +1048,7 @@ func (s *ServerService) UpdateXray(version string) error {
 		if n > maxXrayBinaryBytes {
 			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
 		}
-		if err := tmpFile.Chmod(0755); err != nil {
+		if err := tmpFile.Chmod(0o755); err != nil {
 			return err
 		}
 		if err := tmpFile.Close(); err != nil {
@@ -1099,7 +1116,7 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use hardcoded command with validated parameters
-		cmd := exec.Command("journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		cmd := exec.CommandContext(context.Background(), "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
@@ -1121,8 +1138,8 @@ func (s *ServerService) GetXrayLogs(
 	showBlocked string,
 	showProxy string,
 	freedoms []string,
-	blackholes []string) []LogEntry {
-
+	blackholes []string,
+) []LogEntry {
 	const (
 		Direct = iota
 		Blocked
@@ -1149,12 +1166,12 @@ func (s *ServerService) GetXrayLogs(
 		line := strings.TrimSpace(scanner.Text())
 
 		if line == "" || strings.Contains(line, "api -> api") {
-			//skipping empty lines and api calls
+			// skipping empty lines and api calls
 			continue
 		}
 
 		if filter != "" && !strings.Contains(line, filter) {
-			//applying filter if it's not empty
+			// applying filter if it's not empty
 			continue
 		}
 
@@ -1580,7 +1597,7 @@ func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	if err != nil {
 		return nil, common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}
-	cmd := exec.Command(bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
+	cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
 	cmd.Env = env
 	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -1642,7 +1659,7 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
 	}
 
-	cmd := exec.Command(bin,
+	cmd := exec.CommandContext(context.Background(), bin,
 		"--clean", "--if-exists", "--no-owner", "--no-privileges",
 		"--single-transaction", "--dbname", dbname, tempPath,
 	)
@@ -1721,7 +1738,7 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 	downloadFile := func(url, destPath string) error {
 		var req *http.Request
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		if err != nil {
 			return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
 		}
@@ -1818,7 +1835,7 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 func (s *ServerService) GetNewX25519Cert() (any, error) {
 	// Run the command
-	cmd := exec.Command(xray.GetBinaryPath(), "x25519")
+	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "x25519")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -1844,7 +1861,7 @@ func (s *ServerService) GetNewX25519Cert() (any, error) {
 
 func (s *ServerService) GetNewmldsa65() (any, error) {
 	// Run the command
-	cmd := exec.Command(xray.GetBinaryPath(), "mldsa65")
+	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "mldsa65")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -2048,7 +2065,7 @@ func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
 
 func (s *ServerService) GetNewEchCert(sni string) (any, error) {
 	// Run the command
-	cmd := exec.Command(xray.GetBinaryPath(), "tls", "ech", "--serverName", sni)
+	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "tls", "ech", "--serverName", sni)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -2071,7 +2088,7 @@ func (s *ServerService) GetNewEchCert(sni string) (any, error) {
 }
 
 func (s *ServerService) GetNewVlessEnc() (any, error) {
-	cmd := exec.Command(xray.GetBinaryPath(), "vlessenc")
+	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "vlessenc")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
@@ -2166,7 +2183,7 @@ func (s *ServerService) GetNewUUID() (map[string]string, error) {
 
 func (s *ServerService) GetNewmlkem768() (any, error) {
 	// Run the command
-	cmd := exec.Command(xray.GetBinaryPath(), "mlkem768")
+	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "mlkem768")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()

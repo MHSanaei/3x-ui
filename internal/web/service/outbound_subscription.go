@@ -281,7 +281,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		return rejectPrivateHost(ctx, req.URL.Hostname())
 	}
 
-	req, err := http.NewRequest("GET", sub.Url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, sub.Url, nil)
 	if err != nil {
 		s.recordError(sub, err)
 		return nil, err
@@ -295,7 +295,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("http %d", resp.StatusCode)
 		s.recordError(sub, err)
 		return nil, err

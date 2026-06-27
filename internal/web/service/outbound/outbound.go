@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -196,7 +197,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult {
 	r := TestEndpointResult{Address: endpoint}
 	start := time.Now()
-	conn, err := net.DialTimeout("tcp", endpoint, timeout)
+	conn, err := (&net.Dialer{Timeout: timeout}).DialContext(context.Background(), "tcp", endpoint)
 	r.Delay = time.Since(start).Milliseconds()
 	if err != nil {
 		r.Error = err.Error()

@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/op/go-logging"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/op/go-logging"
 )
 
 // 3x-ui logger must be initialised once before any code path that can

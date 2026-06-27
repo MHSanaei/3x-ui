@@ -7,8 +7,9 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"golang.org/x/sys/windows"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
 var (
@@ -36,7 +37,7 @@ func ensureKillOnExitJob() (windows.Handle, error) {
 			uint32(unsafe.Sizeof(info)),
 		)
 		if err != nil {
-			windows.CloseHandle(h)
+			_ = windows.CloseHandle(h)
 			killOnExitJobErr = err
 			return
 		}
@@ -59,7 +60,7 @@ func attachChildLifetime(cmd *exec.Cmd) {
 		logger.Warningf("mtproto: OpenProcess for job attach failed: %v", err)
 		return
 	}
-	defer windows.CloseHandle(h)
+	defer func() { _ = windows.CloseHandle(h) }()
 	if err := windows.AssignProcessToJobObject(job, h); err != nil {
 		logger.Warningf("mtproto: AssignProcessToJobObject failed: %v", err)
 	}
