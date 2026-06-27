@@ -2,13 +2,21 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 )
+
+const wireGuardPeerDetachedKey = "clientDetached"
 
 type wireGuardClientBinding struct {
 	id      int
@@ -34,10 +42,25 @@ func jsonInt(v any) (int, bool) {
 	}
 }
 
+func jsonBool(v any) bool {
+	b, ok := v.(bool)
+	return ok && b
+}
+
+func sameJSONValue(existing any, want any) bool {
+	switch w := want.(type) {
+	case int:
+		got, ok := jsonInt(existing)
+		return ok && got == w
+	default:
+		return existing == want
+	}
+}
+
 func setWireGuardPeerClient(peer map[string]any, c wireGuardClientBinding) bool {
 	changed := false
 	set := func(key string, value any) {
-		if peer[key] != value {
+		if !sameJSONValue(peer[key], value) {
 			peer[key] = value
 			changed = true
 		}
@@ -48,6 +71,10 @@ func setWireGuardPeerClient(peer map[string]any, c wireGuardClientBinding) bool 
 
 	set("clientId", c.id)
 	set("clientEmail", c.email)
+	if _, ok := peer[wireGuardPeerDetachedKey]; ok {
+		delete(peer, wireGuardPeerDetachedKey)
+		changed = true
+	}
 	if c.subID != "" {
 		set("clientSubId", c.subID)
 	} else if _, ok := peer["clientSubId"]; ok {
@@ -67,21 +94,99 @@ func setWireGuardPeerClient(peer map[string]any, c wireGuardClientBinding) bool 
 	return changed
 }
 
-func clearWireGuardPeerClient(peer map[string]any) bool {
+func detachWireGuardPeerClient(peer map[string]any) bool {
 	changed := false
-	oldEmail, _ := peer["clientEmail"].(string)
-	comment, _ := peer["comment"].(string)
-	for _, key := range []string{"clientId", "clientEmail", "clientSubId", "clientComment"} {
-		if _, ok := peer[key]; ok {
-			delete(peer, key)
-			changed = true
-		}
-	}
-	if oldEmail != "" && comment == oldEmail {
-		delete(peer, "comment")
+	if !jsonBool(peer[wireGuardPeerDetachedKey]) {
+		peer[wireGuardPeerDetachedKey] = true
 		changed = true
 	}
 	return changed
+}
+
+func wireGuardPeerHasClient(peer map[string]any) bool {
+	if _, ok := jsonInt(peer["clientId"]); ok {
+		return true
+	}
+	email, _ := peer["clientEmail"].(string)
+	return strings.TrimSpace(email) != ""
+}
+
+func nextWireGuardPeerAllowedIP(peers []any) (string, error) {
+	const fallback = "10.0.0.2/32"
+	var maxIP uint32
+	prefix := 32
+	found := false
+
+	for _, rawPeer := range peers {
+		peer, ok := rawPeer.(map[string]any)
+		if !ok {
+			continue
+		}
+		rawAllowed, _ := peer["allowedIPs"].([]any)
+		for _, rawIP := range rawAllowed {
+			text, _ := rawIP.(string)
+			addr, bits := parseWireGuardAllowedIPv4(text)
+			if addr == nil {
+				continue
+			}
+			value := uint32(addr[0])<<24 | uint32(addr[1])<<16 | uint32(addr[2])<<8 | uint32(addr[3])
+			if !found || value > maxIP {
+				maxIP = value
+				prefix = bits
+				found = true
+			}
+		}
+	}
+
+	if !found {
+		return fallback, nil
+	}
+	if maxIP == ^uint32(0) {
+		return "", fmt.Errorf("WireGuard address pool exhausted")
+	}
+	next := maxIP + 1
+	return fmt.Sprintf("%d.%d.%d.%d/%d", byte(next>>24), byte(next>>16), byte(next>>8), byte(next), prefix), nil
+}
+
+func parseWireGuardAllowedIPv4(value string) (net.IP, int) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, 0
+	}
+	addr := value
+	bits := 32
+	if before, after, ok := strings.Cut(value, "/"); ok {
+		addr = strings.TrimSpace(before)
+		n, err := strconv.Atoi(strings.TrimSpace(after))
+		if err != nil || n < 0 || n > 32 {
+			return nil, 0
+		}
+		bits = n
+	}
+	ip := net.ParseIP(addr).To4()
+	if ip == nil {
+		return nil, 0
+	}
+	return ip, bits
+}
+
+func newWireGuardPeerForClient(peers []any, c wireGuardClientBinding) (map[string]any, error) {
+	privateKey, publicKey, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		return nil, err
+	}
+	allowedIP, err := nextWireGuardPeerAllowedIP(peers)
+	if err != nil {
+		return nil, err
+	}
+	peer := map[string]any{
+		"privateKey": privateKey,
+		"publicKey":  publicKey,
+		"allowedIPs": []any{allowedIP},
+		"keepAlive":  0,
+	}
+	setWireGuardPeerClient(peer, c)
+	return peer, nil
 }
 
 func (s *ClientService) syncWireGuardInboundPeerBindings(inboundSvc *InboundService, inboundId int) error {
@@ -133,9 +238,9 @@ func (s *ClientService) syncWireGuardInboundPeerBindingsTx(tx *gorm.DB, inboundS
 	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 		return err
 	}
-	rawPeers, ok := settings["peers"].([]any)
-	if !ok || len(rawPeers) == 0 {
-		return nil
+	rawPeers, _ := settings["peers"].([]any)
+	if rawPeers == nil {
+		rawPeers = []any{}
 	}
 
 	used := make(map[int]struct{}, len(bindings))
@@ -176,14 +281,8 @@ func (s *ClientService) syncWireGuardInboundPeerBindingsTx(tx *gorm.DB, inboundS
 			continue
 		}
 
-		if _, hadID := peer["clientId"]; hadID {
-			if clearWireGuardPeerClient(peer) {
-				changed = true
-			}
-			continue
-		}
-		if _, hadEmail := peer["clientEmail"]; hadEmail {
-			if clearWireGuardPeerClient(peer) {
+		if wireGuardPeerHasClient(peer) {
+			if detachWireGuardPeerClient(peer) {
 				changed = true
 			}
 		}
@@ -195,10 +294,7 @@ func (s *ClientService) syncWireGuardInboundPeerBindingsTx(tx *gorm.DB, inboundS
 		if !ok {
 			continue
 		}
-		if _, ok := jsonInt(peer["clientId"]); ok {
-			continue
-		}
-		if email, _ := peer["clientEmail"].(string); strings.TrimSpace(email) != "" {
+		if wireGuardPeerHasClient(peer) {
 			continue
 		}
 		for next < len(bindings) {
@@ -215,6 +311,19 @@ func (s *ClientService) syncWireGuardInboundPeerBindingsTx(tx *gorm.DB, inboundS
 		}
 	}
 
+	for _, b := range bindings {
+		if _, already := used[b.id]; already {
+			continue
+		}
+		peer, err := newWireGuardPeerForClient(rawPeers, b)
+		if err != nil {
+			return err
+		}
+		rawPeers = append(rawPeers, peer)
+		used[b.id] = struct{}{}
+		changed = true
+	}
+
 	if !changed {
 		return nil
 	}
@@ -225,4 +334,147 @@ func (s *ClientService) syncWireGuardInboundPeerBindingsTx(tx *gorm.DB, inboundS
 		return err
 	}
 	return tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Update("settings", string(newSettings)).Error
+}
+
+func buildRuntimeWireGuardSettings(tx *gorm.DB, inbound *model.Inbound) (string, bool, error) {
+	if inbound == nil || inbound.Protocol != model.WireGuard {
+		return "", false, nil
+	}
+	if tx == nil {
+		tx = database.GetDB()
+	}
+
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		return "", false, err
+	}
+	rawPeers, ok := settings["peers"].([]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	active, err := activeWireGuardClientMap(tx, inbound.Id)
+	if err != nil {
+		return "", false, err
+	}
+
+	finalPeers := make([]any, 0, len(rawPeers))
+	for _, rawPeer := range rawPeers {
+		peer, ok := rawPeer.(map[string]any)
+		if !ok {
+			continue
+		}
+		if jsonBool(peer[wireGuardPeerDetachedKey]) {
+			continue
+		}
+		managed := wireGuardPeerHasClient(peer)
+		if managed {
+			if !wireGuardPeerClientActive(peer, active) {
+				continue
+			}
+		}
+		finalPeers = append(finalPeers, runtimeWireGuardPeer(peer))
+	}
+
+	settings["peers"] = finalPeers
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return "", false, err
+	}
+	return string(modifiedSettings), true, nil
+}
+
+type wireGuardRuntimeClient struct {
+	id     int
+	email  string
+	active bool
+}
+
+func activeWireGuardClientMap(tx *gorm.DB, inboundId int) (map[int]wireGuardRuntimeClient, error) {
+	var records []model.ClientRecord
+	if err := tx.Model(&model.ClientRecord{}).
+		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Where("client_inbounds.inbound_id = ?", inboundId).
+		Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	emails := make([]string, 0, len(records))
+	for _, rec := range records {
+		if strings.TrimSpace(rec.Email) != "" {
+			emails = append(emails, rec.Email)
+		}
+	}
+
+	stats := []xray.ClientTraffic{}
+	if len(emails) > 0 {
+		if err := tx.Model(&xray.ClientTraffic{}).
+			Where("email IN ?", emails).
+			Select("email", "enable", "up", "down", "total", "expiry_time").
+			Find(&stats).Error; err != nil {
+			return nil, err
+		}
+	}
+	statsByEmail := make(map[string]xray.ClientTraffic, len(stats))
+	for _, st := range stats {
+		statsByEmail[strings.ToLower(st.Email)] = st
+	}
+
+	now := time.Now().UnixMilli()
+	active := make(map[int]wireGuardRuntimeClient, len(records))
+	for _, rec := range records {
+		ok := rec.Enable
+		if rec.ExpiryTime > 0 && rec.ExpiryTime < now {
+			ok = false
+		}
+		if rec.TotalGB > 0 {
+			if st, exists := statsByEmail[strings.ToLower(rec.Email)]; exists && st.Up+st.Down >= rec.TotalGB {
+				ok = false
+			}
+		}
+		if st, exists := statsByEmail[strings.ToLower(rec.Email)]; exists {
+			if !st.Enable {
+				ok = false
+			}
+			if st.ExpiryTime > 0 && st.ExpiryTime < now {
+				ok = false
+			}
+			if st.Total > 0 && st.Up+st.Down >= st.Total {
+				ok = false
+			}
+		}
+		active[rec.Id] = wireGuardRuntimeClient{id: rec.Id, email: rec.Email, active: ok}
+	}
+	return active, nil
+}
+
+func wireGuardPeerClientActive(peer map[string]any, active map[int]wireGuardRuntimeClient) bool {
+	if id, ok := jsonInt(peer["clientId"]); ok {
+		client, exists := active[id]
+		return exists && client.active
+	}
+	email, _ := peer["clientEmail"].(string)
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return false
+	}
+	for _, client := range active {
+		if strings.ToLower(client.email) == email {
+			return client.active
+		}
+	}
+	return false
+}
+
+func runtimeWireGuardPeer(peer map[string]any) map[string]any {
+	out := make(map[string]any, len(peer))
+	for key, value := range peer {
+		switch key {
+		case "privateKey", "comment", "clientId", "clientEmail", "clientSubId", "clientComment", wireGuardPeerDetachedKey:
+			continue
+		default:
+			out[key] = value
+		}
+	}
+	return out
 }

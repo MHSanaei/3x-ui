@@ -265,7 +265,11 @@ func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails
 	if err != nil {
 		return err
 	}
-	if err := rt.UpdateInbound(context.Background(), oldSnapshot, ib); err != nil {
+	runtimeInbound, err := s.buildRuntimeInboundForAPI(tx, ib)
+	if err != nil {
+		return err
+	}
+	if err := rt.UpdateInbound(context.Background(), oldSnapshot, runtimeInbound); err != nil {
 		return err
 	}
 	return nil

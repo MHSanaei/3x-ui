@@ -142,99 +142,108 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.Protocol == model.MTProto {
 			continue
 		}
-		settings := map[string]any{}
-		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 
-		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
-		if listErr != nil {
-			return nil, listErr
-		}
+		if inbound.Protocol == model.WireGuard {
+			if runtimeSettings, mutated, wgErr := buildRuntimeWireGuardSettings(nil, inbound); wgErr != nil {
+				return nil, wgErr
+			} else if mutated {
+				inbound.Settings = runtimeSettings
+			}
+		} else {
+			settings := map[string]any{}
+			_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 
-		clientStats := inbound.ClientStats
-		enableMap := make(map[string]bool, len(clientStats))
-		for _, clientTraffic := range clientStats {
-			enableMap[clientTraffic.Email] = clientTraffic.Enable
-		}
+			dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
+			if listErr != nil {
+				return nil, listErr
+			}
 
-		var finalClients []any
-		for i := range dbClients {
-			c := dbClients[i]
-			if enable, exists := enableMap[c.Email]; exists && !enable {
-				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
-				continue
+			clientStats := inbound.ClientStats
+			enableMap := make(map[string]bool, len(clientStats))
+			for _, clientTraffic := range clientStats {
+				enableMap[clientTraffic.Email] = clientTraffic.Enable
 			}
-			if !c.Enable {
-				continue
-			}
-			flow := c.Flow
-			if flow == "xtls-rprx-vision-udp443" {
-				flow = "xtls-rprx-vision"
-			}
-			entry := map[string]any{"email": c.Email}
-			switch inbound.Protocol {
-			case model.VLESS:
-				if c.ID != "" {
-					entry["id"] = c.ID
-				}
-				if flow != "" {
-					entry["flow"] = flow
-				}
-				if c.Reverse != nil {
-					entry["reverse"] = c.Reverse
-				}
-			case model.VMESS:
-				if c.ID != "" {
-					entry["id"] = c.ID
-				}
-				if c.Security != "" {
-					entry["security"] = c.Security
-				}
-			case model.Trojan:
-				if c.Password != "" {
-					entry["password"] = c.Password
-				}
-				if flow != "" {
-					entry["flow"] = flow
-				}
-			case model.Shadowsocks:
-				if c.Password != "" {
-					entry["password"] = c.Password
-				}
-			case model.Hysteria:
-				if c.Auth != "" {
-					entry["auth"] = c.Auth
-				}
-			}
-			finalClients = append(finalClients, entry)
-		}
 
-		_, hadClients := settings["clients"]
-		mutated := hadClients || len(finalClients) > 0
-		if mutated {
-			settings["clients"] = finalClients
-		}
-
-		if inboundCanHostFallbacks(inbound) {
-			fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
-			if fbErr != nil {
-				return nil, fbErr
-			}
-			if len(fallbacks) > 0 {
-				generic := make([]any, 0, len(fallbacks))
-				for _, f := range fallbacks {
-					generic = append(generic, f)
+			var finalClients []any
+			for i := range dbClients {
+				c := dbClients[i]
+				if enable, exists := enableMap[c.Email]; exists && !enable {
+					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+					continue
 				}
-				settings["fallbacks"] = generic
-				mutated = true
+				if !c.Enable {
+					continue
+				}
+				flow := c.Flow
+				if flow == "xtls-rprx-vision-udp443" {
+					flow = "xtls-rprx-vision"
+				}
+				entry := map[string]any{"email": c.Email}
+				switch inbound.Protocol {
+				case model.VLESS:
+					if c.ID != "" {
+						entry["id"] = c.ID
+					}
+					if flow != "" {
+						entry["flow"] = flow
+					}
+					if c.Reverse != nil {
+						entry["reverse"] = c.Reverse
+					}
+				case model.VMESS:
+					if c.ID != "" {
+						entry["id"] = c.ID
+					}
+					if c.Security != "" {
+						entry["security"] = c.Security
+					}
+				case model.Trojan:
+					if c.Password != "" {
+						entry["password"] = c.Password
+					}
+					if flow != "" {
+						entry["flow"] = flow
+					}
+				case model.Shadowsocks:
+					if c.Password != "" {
+						entry["password"] = c.Password
+					}
+				case model.Hysteria:
+					if c.Auth != "" {
+						entry["auth"] = c.Auth
+					}
+				}
+				finalClients = append(finalClients, entry)
 			}
-		}
 
-		if mutated {
-			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-			if err != nil {
-				return nil, err
+			_, hadClients := settings["clients"]
+			mutated := hadClients || len(finalClients) > 0
+			if mutated {
+				settings["clients"] = finalClients
 			}
-			inbound.Settings = string(modifiedSettings)
+
+			if inboundCanHostFallbacks(inbound) {
+				fallbacks, fbErr := s.inboundService.fallbackService.BuildFallbacksJSON(nil, inbound.Id)
+				if fbErr != nil {
+					return nil, fbErr
+				}
+				if len(fallbacks) > 0 {
+					generic := make([]any, 0, len(fallbacks))
+					for _, f := range fallbacks {
+						generic = append(generic, f)
+					}
+					settings["fallbacks"] = generic
+					mutated = true
+				}
+			}
+
+			if mutated {
+				modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+				if err != nil {
+					return nil, err
+				}
+				inbound.Settings = string(modifiedSettings)
+			}
 		}
 
 		if len(inbound.StreamSettings) > 0 {

@@ -128,14 +128,17 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	}
 
 	needRestart := false
-	linkOnlyInboundIds := make([]int, 0)
+	wireGuardInboundIds := make([]int, 0)
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
 			return needRestart, getErr
 		}
 		if !clientManagedInbound(inbound.Protocol) {
-			linkOnlyInboundIds = append(linkOnlyInboundIds, ibId)
+			if inbound.Protocol != model.WireGuard {
+				return needRestart, common.NewError("protocol does not support managed clients:", inbound.Protocol)
+			}
+			wireGuardInboundIds = append(wireGuardInboundIds, ibId)
 			continue
 		}
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
@@ -156,18 +159,19 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			needRestart = true
 		}
 	}
-	if len(linkOnlyInboundIds) > 0 {
+	if len(wireGuardInboundIds) > 0 {
 		rec, recErr := s.ensureClientRecord(client)
 		if recErr != nil {
 			return needRestart, recErr
 		}
-		for _, ibId := range linkOnlyInboundIds {
+		for _, ibId := range wireGuardInboundIds {
 			if err := ensureClientInboundLink(rec.Id, ibId); err != nil {
 				return needRestart, err
 			}
 			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
 				return needRestart, err
 			}
+			needRestart = true
 		}
 	}
 	return needRestart, nil
@@ -399,6 +403,38 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	hasWireGuardTarget := false
+	for _, ibId := range inboundIds {
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr == nil && inbound.Protocol == model.WireGuard {
+			hasWireGuardTarget = true
+			break
+		}
+	}
+	if hasWireGuardTarget {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Updates(map[string]any{
+				"email":       updated.Email,
+				"sub_id":      updated.SubID,
+				"uuid":        updated.ID,
+				"password":    updated.Password,
+				"auth":        updated.Auth,
+				"flow":        updated.Flow,
+				"security":    updated.Security,
+				"limit_ip":    updated.LimitIP,
+				"total_gb":    updated.TotalGB,
+				"expiry_time": updated.ExpiryTime,
+				"enable":      updated.Enable,
+				"tg_id":       updated.TgID,
+				"comment":     updated.Comment,
+				"reset":       updated.Reset,
+				"updated_at":  updated.UpdatedAt,
+			}).Error; err != nil {
+			return false, err
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -417,8 +453,11 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			continue
 		}
 		if !clientManagedInbound(inbound.Protocol) {
-			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
-				return needRestart, err
+			if inbound.Protocol == model.WireGuard {
+				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+					return needRestart, err
+				}
+				needRestart = true
 			}
 			continue
 		}
@@ -531,6 +570,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
 			return needRestart, err
 		}
+		needRestart = true
 	}
 	if err := db.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
 		return needRestart, err
@@ -584,12 +624,16 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 			return needRestart, getErr
 		}
 		if !clientManagedInbound(inbound.Protocol) {
+			if inbound.Protocol != model.WireGuard {
+				return needRestart, common.NewError("protocol does not support managed clients:", inbound.Protocol)
+			}
 			if err := ensureClientInboundLink(existing.Id, ibId); err != nil {
 				return needRestart, err
 			}
 			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
 				return needRestart, err
 			}
+			needRestart = true
 			continue
 		}
 		copyClient := *clientWire
@@ -744,8 +788,11 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 				Delete(&model.ClientInbound{}).Error; err != nil {
 				return needRestart, err
 			}
-			if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
-				return needRestart, err
+			if inbound.Protocol == model.WireGuard {
+				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
+					return needRestart, err
+				}
+				needRestart = true
 			}
 			continue
 		}

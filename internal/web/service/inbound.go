@@ -735,7 +735,15 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
+			runtimeInbound, err1 := s.buildRuntimeInboundForAPI(tx, inbound)
+			if err1 != nil {
+				logger.Debug("Unable to prepare runtime inbound config:", err1)
+				if inbound.NodeID != nil {
+					markDirty = true
+				} else {
+					needRestart = true
+				}
+			} else if err1 := rt.AddInbound(context.Background(), runtimeInbound); err1 == nil {
 				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 			} else {
 				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
@@ -921,7 +929,11 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	// settings/client history and just flips the enable flag.
 	if inbound.NodeID != nil {
 		if push {
-			if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
+			runtimeInbound, buildErr := s.buildRuntimeInboundForAPI(db, inbound)
+			if buildErr != nil {
+				logger.Warning("SetInboundEnable: build runtime config failed:", buildErr)
+				dirty = true
+			} else if err := rt.UpdateInbound(context.Background(), inbound, runtimeInbound); err != nil {
 				logger.Warning("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
 				dirty = true
 			}
@@ -1154,9 +1166,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 					logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
 					markDirty = true
 				}
-			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
-				logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
-				markDirty = true
+			} else {
+				runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
+				if err2 != nil {
+					logger.Warning("Unable to prepare runtime inbound config:", err2)
+					markDirty = true
+				} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, runtimeInbound); err2 != nil {
+					logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
+					markDirty = true
+				}
 			}
 		}
 
@@ -1224,6 +1242,15 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 		return nil, err
+	}
+
+	if inbound.Protocol == model.WireGuard {
+		if runtimeSettings, mutated, err := buildRuntimeWireGuardSettings(tx, inbound); err != nil {
+			return nil, err
+		} else if mutated {
+			runtimeInbound.Settings = runtimeSettings
+		}
+		return &runtimeInbound, nil
 	}
 
 	clients, ok := settings["clients"].([]any)

@@ -73,6 +73,10 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			continue
 		}
 		if !clientManagedInbound(inbound.Protocol) {
+			if inbound.Protocol != model.WireGuard {
+				recordErr("inbound %d: protocol %s does not support managed clients", ibId, inbound.Protocol)
+				continue
+			}
 			attachedCount := 0
 			for _, rec := range records {
 				var exists int64
@@ -96,6 +100,8 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			if attachedCount > 0 {
 				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
 					recordErr("inbound %d: %v", ibId, err)
+				} else {
+					needRestart = true
 				}
 			}
 			continue
@@ -245,12 +251,14 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 					failed = true
 				}
 			}
-			if !failed {
+			if !failed && inbound.Protocol == model.WireGuard {
 				if err := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); err != nil {
 					recordErr("inbound %d: %v", ibId, err)
 					for _, rec := range recs {
 						emailFailed[strings.ToLower(rec.Email)] = true
 					}
+				} else {
+					needRestart = true
 				}
 			}
 			continue
@@ -1238,6 +1246,8 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	byInbound := make(map[int][]model.Client)
 	idxByInbound := make(map[int][]int)
 	inboundOrder := make([]int, 0)
+	wgIdxByInbound := make(map[int][]int)
+	wgInboundOrder := make([]int, 0)
 	failed := make([]bool, len(prep))
 	reason := make([]string, len(prep))
 
@@ -1263,6 +1273,15 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 				ok = false
 				break
 			}
+			if !clientManagedInbound(ib.Protocol) {
+				if ib.Protocol != model.WireGuard {
+					failed[idx] = true
+					reason[idx] = fmt.Sprintf("protocol %s does not support managed clients", ib.Protocol)
+					ok = false
+					break
+				}
+				continue
+			}
 			if e := s.fillProtocolDefaults(&prep[idx].client, ib); e != nil {
 				failed[idx] = true
 				reason[idx] = e.Error()
@@ -1275,6 +1294,13 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		}
 		for _, ibId := range prep[idx].inboundIds {
 			ib, _ := getIb(ibId)
+			if ib.Protocol == model.WireGuard {
+				if _, seen := wgIdxByInbound[ibId]; !seen {
+					wgInboundOrder = append(wgInboundOrder, ibId)
+				}
+				wgIdxByInbound[ibId] = append(wgIdxByInbound[ibId], idx)
+				continue
+			}
 			if _, seen := byInbound[ibId]; !seen {
 				inboundOrder = append(inboundOrder, ibId)
 			}
@@ -1299,6 +1325,42 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 				if reason[idx] == "" {
 					reason[idx] = e.Error()
 				}
+			}
+		}
+	}
+
+	for _, ibId := range wgInboundOrder {
+		changed := false
+		for _, idx := range wgIdxByInbound[ibId] {
+			if failed[idx] {
+				continue
+			}
+			rec, e := s.ensureClientRecord(prep[idx].client)
+			if e == nil {
+				e = ensureClientInboundLink(rec.Id, ibId)
+			}
+			if e != nil {
+				failed[idx] = true
+				if reason[idx] == "" {
+					reason[idx] = e.Error()
+				}
+				continue
+			}
+			changed = true
+		}
+		if changed {
+			if e := s.syncWireGuardInboundPeerBindings(inboundSvc, ibId); e != nil {
+				for _, idx := range wgIdxByInbound[ibId] {
+					if failed[idx] {
+						continue
+					}
+					failed[idx] = true
+					if reason[idx] == "" {
+						reason[idx] = e.Error()
+					}
+				}
+			} else {
+				needRestart = true
 			}
 		}
 	}
@@ -1487,6 +1549,16 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	if err != nil {
 		for _, e := range emails {
 			res.perEmailSkipped[e] = err.Error()
+		}
+		return res
+	}
+	if oldInbound.Protocol == model.WireGuard {
+		if oldInbound.NodeID == nil {
+			res.needRestart = true
+		} else if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+			for _, e := range emails {
+				res.perEmailSkipped[e] = dErr.Error()
+			}
 		}
 		return res
 	}

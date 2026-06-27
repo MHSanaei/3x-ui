@@ -2301,7 +2301,7 @@
     },
     {
       "name": "Inbounds",
-      "description": "Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy. WireGuard inbounds are peer-based: clients are attached through /panel/api/clients/* and the panel synchronizes binding metadata onto settings.peers[] as clientId, clientEmail, clientSubId, and comment. These peer metadata fields are panel-owned and ignored by xray-core."
+      "description": "Manage inbound configurations and their clients. All endpoints live under /panel/api/inbounds and require a logged-in session or Bearer token. Link-generating endpoints honour forwarded headers only when the request comes from a configured trusted proxy. WireGuard inbounds are peer-based: clients are attached through /panel/api/clients/* and the panel synchronizes binding metadata onto settings.peers[] as clientId, clientEmail, clientSubId, clientComment, and clientDetached. These peer metadata fields are panel-owned; runtime Xray config strips them and excludes detached or inactive managed peers."
     },
     {
       "name": "Server",
@@ -2309,7 +2309,7 @@
     },
     {
       "name": "Clients",
-      "description": "Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in client-managed protocols (VMess, VLESS, Trojan, Shadowsocks, Hysteria). WireGuard is peer-managed: attach/detach creates or removes client_inbounds rows and synchronizes the matching peer metadata fields clientId, clientEmail, clientSubId, and comment. Endpoints live under /panel/api/clients."
+      "description": "Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in client-managed protocols (VMess, VLESS, Trojan, Shadowsocks, Hysteria). WireGuard is peer-managed: attach/detach creates or removes client_inbounds rows and synchronizes the matching peer metadata fields clientId, clientEmail, clientSubId, clientComment, and clientDetached. Endpoints live under /panel/api/clients."
     },
     {
       "name": "Nodes",
@@ -2541,7 +2541,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write. For WireGuard, settings.peers[] may include panel metadata fields clientId, clientEmail, clientSubId, and comment that bind a peer to a normalized client record.",
+        "summary": "List every inbound owned by the authenticated user, including each inbound’s clientStats traffic counters. settings, streamSettings, and sniffing are returned as nested JSON objects (no escaped strings); legacy callers that send them back as JSON-encoded strings are still accepted on write. For WireGuard, settings.peers[] may include panel metadata fields clientId, clientEmail, clientSubId, clientComment, and clientDetached; comment remains the peer display note.",
         "operationId": "get_panel_api_inbounds_list",
         "responses": {
           "200": {
@@ -2798,7 +2798,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy). WireGuard settings use peers[] rather than clients[]; peer clientId/clientEmail/clientSubId/comment metadata is normally managed by the client attach/detach APIs.",
+        "summary": "Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy). WireGuard settings use peers[] rather than clients[]; peer clientId/clientEmail/clientSubId/clientComment/clientDetached metadata is normally managed by the client attach/detach APIs.",
         "operationId": "post_panel_api_inbounds_add",
         "requestBody": {
           "required": true,
@@ -5394,7 +5394,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Attach an existing client to one or more additional inbounds. Body is JSON. For WireGuard targets this does not create a settings.clients entry; it links the client to the inbound and annotates the next matching/unbound peer with clientId, clientEmail, clientSubId, and comment.",
+        "summary": "Attach an existing client to one or more additional inbounds. Body is JSON. For WireGuard targets this does not create a settings.clients entry; it links the client to the inbound, reuses the matching peer when present, assigns an unbound peer when available, or creates a new peer with clientId, clientEmail, clientSubId, and clientComment metadata.",
         "operationId": "post_panel_api_clients_email_attach",
         "parameters": [
           {
@@ -5454,7 +5454,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Detach a client from one or more inbounds without deleting the client. For WireGuard targets this removes the client_inbounds link and clears that peer’s clientId/clientEmail/clientSubId/clientComment metadata when it belongs to the detached client.",
+        "summary": "Detach a client from one or more inbounds without deleting the client. For WireGuard targets this removes the client_inbounds link and marks that peer clientDetached=true, preserving key material for later reattach while excluding it from runtime Xray config.",
         "operationId": "post_panel_api_clients_email_detach",
         "parameters": [
           {
@@ -6208,7 +6208,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to client-managed targets in a single AddInboundClient call. WireGuard targets use client_inbounds links plus peer binding metadata instead of settings.clients. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
+        "summary": "Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to client-managed targets in a single AddInboundClient call. WireGuard targets use client_inbounds links plus peer binding metadata instead of settings.clients, reusing or creating peers as needed. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
         "operationId": "post_panel_api_clients_bulkAttach",
         "requestBody": {
           "required": true,
@@ -6271,7 +6271,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Mirror of bulkAttach: detach many existing clients from many inbounds in one call. For each email, intersects the client's current inbounds with the requested set and detaches from those only; (email, inbound) pairs where the client is not currently attached are silently no-ops. WireGuard targets clear peer binding metadata for detached clients. Emails not attached to any of the requested inbounds are reported under skipped. Client records are kept even if they become orphaned — use bulkDel for full removal. Returns per-email detached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
+        "summary": "Mirror of bulkAttach: detach many existing clients from many inbounds in one call. For each email, intersects the client's current inbounds with the requested set and detaches from those only; (email, inbound) pairs where the client is not currently attached are silently no-ops. WireGuard targets mark matching peers clientDetached=true and runtime Xray config excludes them. Emails not attached to any of the requested inbounds are reported under skipped. Client records are kept even if they become orphaned — use bulkDel for full removal. Returns per-email detached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
         "operationId": "post_panel_api_clients_bulkDetach",
         "requestBody": {
           "required": true,

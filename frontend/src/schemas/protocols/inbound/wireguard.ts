@@ -34,6 +34,7 @@ export const WireguardInboundPeerSchema = z.object({
   clientEmail: z.string().optional(),
   clientSubId: z.string().optional(),
   clientComment: z.string().optional(),
+  clientDetached: z.boolean().optional(),
 });
 export type WireguardInboundPeer = z.infer<typeof WireguardInboundPeerSchema>;
 
