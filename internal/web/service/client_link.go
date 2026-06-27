@@ -82,6 +82,17 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if incoming.Reverse != "" {
 			row.Reverse = incoming.Reverse
 		}
+		if incoming.PrivateKey != "" {
+			row.PrivateKey = incoming.PrivateKey
+		}
+		if incoming.PublicKey != "" {
+			row.PublicKey = incoming.PublicKey
+		}
+		if incoming.AllowedIPs != "" {
+			row.AllowedIPs = incoming.AllowedIPs
+		}
+		row.PreSharedKey = incoming.PreSharedKey
+		row.KeepAlive = incoming.KeepAlive
 		row.SubID = incoming.SubID
 		row.LimitIP = incoming.LimitIP
 		row.TotalGB = incoming.TotalGB

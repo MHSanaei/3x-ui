@@ -1126,14 +1126,30 @@ export interface GenWireguardFanoutInput {
   fallbackHostname: string;
 }
 
+// WireGuard is multi-client: each client is one accepted peer. The canonical
+// store is settings.clients; legacy single-config inbounds (pre-migration) are
+// still rendered from settings.peers. Both carry the privateKey/allowedIPs/
+// preSharedKey/keepAlive the link and .conf need, so they project to the same
+// peer shape and reuse genWireguardLink/genWireguardConfig unchanged.
+function wgRenderPeers(settings: WireguardInboundSettings): WireguardInboundPeer[] {
+  const clients = settings.clients ?? [];
+  if (clients.length > 0) {
+    return clients.map((c) => ({ ...c, publicKey: c.publicKey ?? '' }));
+  }
+  return settings.peers;
+}
+
 export function genWireguardLinks(input: GenWireguardFanoutInput): string {
   const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = '-';
-  return inbound.settings.peers
+  const baseSettings = inbound.settings as WireguardInboundSettings;
+  const peers = wgRenderPeers(baseSettings);
+  const settings: WireguardInboundSettings = { ...baseSettings, peers };
+  return peers
     .map((p, i) => genWireguardLink({
-      settings: inbound.settings as WireguardInboundSettings,
+      settings,
       address: addr,
       port: inbound.port,
       remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
@@ -1147,9 +1163,12 @@ export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
   if (inbound.protocol !== 'wireguard') return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const sep = '-';
-  return inbound.settings.peers
+  const baseSettings = inbound.settings as WireguardInboundSettings;
+  const peers = wgRenderPeers(baseSettings);
+  const settings: WireguardInboundSettings = { ...baseSettings, peers };
+  return peers
     .map((p, i) => genWireguardConfig({
-      settings: inbound.settings as WireguardInboundSettings,
+      settings,
       address: addr,
       port: inbound.port,
       remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,

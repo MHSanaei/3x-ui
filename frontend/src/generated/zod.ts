@@ -238,6 +238,7 @@ export const ApiTokenViewSchema = z.object({
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
   comment: z.string(),
   created_at: z.number().int().optional(),
@@ -247,8 +248,12 @@ export const ClientSchema = z.object({
   flow: z.string().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
+  keepAlive: z.number().int().optional(),
   limitIp: z.number().int(),
   password: z.string().optional(),
+  preSharedKey: z.string().optional(),
+  privateKey: z.string().optional(),
+  publicKey: z.string().optional(),
   reset: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
   security: z.string(),
@@ -268,6 +273,7 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),
   createdAt: z.number().int(),
@@ -277,8 +283,12 @@ export const ClientRecordSchema = z.object({
   flow: z.string(),
   group: z.string(),
   id: z.number().int(),
+  keepAlive: z.number().int(),
   limitIp: z.number().int(),
   password: z.string(),
+  preSharedKey: z.string(),
+  privateKey: z.string(),
+  publicKey: z.string(),
   reset: z.number().int(),
   reverse: z.unknown(),
   security: z.string(),

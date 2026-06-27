@@ -49,18 +49,10 @@ exports[`createDefault*InboundSettings factories > vmess 1`] = `
 
 exports[`createDefault*InboundSettings factories > wireguard 1`] = `
 {
+  "clients": [],
   "mtu": 1420,
   "noKernelTun": false,
-  "peers": [
-    {
-      "allowedIPs": [
-        "10.0.0.2/32",
-      ],
-      "keepAlive": 0,
-      "privateKey": "cGVlci1maXh0dXJlLXByaXZhdGUta2V5LWZvci10ZXN0cw==",
-      "publicKey": "RNa/H++60PStnhoiiU/vIuwFimZUBuIkLkbrmEoDz34=",
-    },
-  ],
+  "peers": [],
   "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
 }
 `;

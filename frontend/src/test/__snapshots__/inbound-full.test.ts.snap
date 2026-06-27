@@ -608,6 +608,7 @@ exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`]
   "protocol": "wireguard",
   "remark": "wg-server",
   "settings": {
+    "clients": [],
     "mtu": 1420,
     "noKernelTun": false,
     "peers": [

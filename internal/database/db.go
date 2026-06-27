@@ -192,6 +192,148 @@ func seedHostsFromExternalProxy() error {
 	})
 }
 
+// seedWireguardPeersToClients is a one-time, self-gated migration that converts
+// legacy single-config WireGuard inbounds into the multi-client model: each
+// settings.peers[] entry becomes a managed client in the clients table attached
+// to the inbound, and the inbound settings are rewritten so peers becomes a
+// clients[] array (GetXrayConfig re-projects clients back to peers for xray).
+// Idempotent: gated on the history row and skipped per-inbound once it already
+// has client links.
+func seedWireguardPeersToClients() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "WireguardPeersToClients") {
+		return nil
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", string(model.WireGuard)).Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		usedEmails := map[string]struct{}{}
+		var existingEmails []string
+		if err := tx.Model(&model.ClientRecord{}).Pluck("email", &existingEmails).Error; err != nil {
+			return err
+		}
+		for _, e := range existingEmails {
+			usedEmails[e] = struct{}{}
+		}
+
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("WireguardPeersToClients: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			peers, ok := settings["peers"].([]any)
+			if !ok || len(peers) == 0 {
+				continue
+			}
+
+			var linkCount int64
+			if err := tx.Model(&model.ClientInbound{}).Where("inbound_id = ?", inbound.Id).Count(&linkCount).Error; err != nil {
+				return err
+			}
+			if linkCount > 0 {
+				continue
+			}
+
+			clientObjs := make([]any, 0, len(peers))
+			for i, raw := range peers {
+				obj, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				email := wireguardPeerEmail(inbound.Remark, obj, i, usedEmails)
+				usedEmails[email] = struct{}{}
+				obj["email"] = email
+				if sub, _ := obj["subId"].(string); strings.TrimSpace(sub) == "" {
+					obj["subId"] = random.NumLower(16)
+				}
+				if _, ok := obj["enable"]; !ok {
+					obj["enable"] = true
+				}
+
+				blob, err := json.Marshal(obj)
+				if err != nil {
+					continue
+				}
+				var c model.Client
+				if err := json.Unmarshal(blob, &c); err != nil {
+					log.Printf("WireguardPeersToClients: skip peer in inbound %d: %v", inbound.Id, err)
+					continue
+				}
+				c.Email = email
+
+				incoming := c.ToRecord()
+				var row model.ClientRecord
+				err = tx.Where("email = ?", email).First(&row).Error
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					if err := tx.Create(incoming).Error; err != nil {
+						return err
+					}
+					row = *incoming
+				} else if err != nil {
+					return err
+				} else {
+					model.MergeClientRecord(&row, incoming)
+					if err := tx.Save(&row).Error; err != nil {
+						return err
+					}
+				}
+
+				link := model.ClientInbound{ClientId: row.Id, InboundId: inbound.Id}
+				if err := tx.Where("client_id = ? AND inbound_id = ?", row.Id, inbound.Id).
+					FirstOrCreate(&link).Error; err != nil {
+					return err
+				}
+
+				clientObjs = append(clientObjs, obj)
+			}
+
+			delete(settings, "peers")
+			settings["clients"] = clientObjs
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "WireguardPeersToClients"}).Error
+	})
+}
+
+// wireguardPeerEmail derives a stable, unique client email for a migrated peer
+// from the inbound remark plus the peer's comment (or its 1-based index).
+func wireguardPeerEmail(remark string, peer map[string]any, index int, used map[string]struct{}) string {
+	base := strings.TrimSpace(remark)
+	if base == "" {
+		base = "wg"
+	}
+	suffix := strconv.Itoa(index + 1)
+	if c, ok := peer["comment"].(string); ok && strings.TrimSpace(c) != "" {
+		suffix = strings.TrimSpace(c)
+	}
+	email := strings.ReplaceAll(base+"-"+suffix, " ", "-")
+	candidate := email
+	for n := 2; ; n++ {
+		if _, taken := used[candidate]; !taken {
+			return candidate
+		}
+		candidate = email + "-" + strconv.Itoa(n)
+	}
+}
+
 // CreateHostsFromExternalProxy parses a legacy streamSettings.externalProxy array
 // and inserts one Host row per entry on tx, returning the number of rows created.
 // It is the shared core of both the one-time seedHostsFromExternalProxy startup
@@ -387,7 +529,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -488,6 +630,11 @@ func runSeeders(isUsersEmpty bool) error {
 
 	// Self-gated on the "ResetIpLimitNoFail2ban" row.
 	if err := resetIpLimitsWithoutFail2ban(); err != nil {
+		return err
+	}
+
+	// Self-gated on the "WireguardPeersToClients" row.
+	if err := seedWireguardPeersToClients(); err != nil {
 		return err
 	}
 	return nil
