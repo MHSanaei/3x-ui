@@ -394,6 +394,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ssMethod": "",
     "tag": "in-443-tcp",
     "tlsFlowCapable": true,
+    "wgMtu": 0,
     "wgPublicKey": ""
   },
   "Msg": {

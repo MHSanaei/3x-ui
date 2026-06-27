@@ -1818,6 +1818,10 @@
             "example": true,
             "type": "boolean"
           },
+          "wgMtu": {
+            "description": "WireGuard MTU; only set for wireguard inbounds when mtu > 0.",
+            "type": "integer"
+          },
           "wgPublicKey": {
             "description": "WireGuard server public key; only set for wireguard inbounds.",
             "type": "string"
@@ -2744,6 +2748,7 @@
                       "ssMethod": "",
                       "tag": "in-443-tcp",
                       "tlsFlowCapable": true,
+                      "wgMtu": 0,
                       "wgPublicKey": ""
                     }
                   ]
@@ -3476,7 +3481,7 @@
               "example": {
                 "email": "peer1",
                 "password": "<private-key>",
-                "wgSettings": {
+                "wgPeer": {
                   "publicKey": "<public-key>",
                   "allowedIPs": [
                     "10.0.0.2/32"
@@ -3519,7 +3524,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Update a WireGuard peer on an existing WireGuard inbound. Identifies the peer by email, updates its record and wg_settings, and hot-reloads the inbound in xray.",
+        "summary": "Update a WireGuard peer on an existing WireGuard inbound. The body email is the current peer name; peer contains the updated client record.",
         "operationId": "post_panel_api_inbounds_id_updateWgClient",
         "parameters": [
           {
@@ -3529,15 +3534,6 @@
             "description": "WireGuard inbound ID.",
             "schema": {
               "type": "integer"
-            }
-          },
-          {
-            "name": "email",
-            "in": "query",
-            "required": true,
-            "description": "Current email (name) of the peer to update.",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -3549,13 +3545,16 @@
                 "type": "object"
               },
               "example": {
-                "email": "peer1-renamed",
-                "enable": true,
-                "wgSettings": {
-                  "publicKey": "<public-key>",
-                  "allowedIPs": [
-                    "10.0.0.2/32"
-                  ]
+                "email": "peer1",
+                "peer": {
+                  "email": "peer1-renamed",
+                  "enable": true,
+                  "wgPeer": {
+                    "publicKey": "<public-key>",
+                    "allowedIPs": [
+                      "10.0.0.2/32"
+                    ]
+                  }
                 }
               }
             }
@@ -3592,7 +3591,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Remove a WireGuard peer from an inbound by email. Deletes the client record, removes the peer from settings.peers[], and hot-reloads the inbound in xray.",
+        "summary": "Remove a WireGuard peer from an inbound by email. The email is read from the JSON body.",
         "operationId": "post_panel_api_inbounds_id_delWgClient",
         "parameters": [
           {
@@ -3603,17 +3602,21 @@
             "schema": {
               "type": "integer"
             }
-          },
-          {
-            "name": "email",
-            "in": "query",
-            "required": true,
-            "description": "Email (name) of the peer to delete.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "email": "peer1"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",

@@ -252,28 +252,27 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
         ],
-        body: '{\n  "email": "peer1",\n  "password": "<private-key>",\n  "wgSettings": {\n    "publicKey": "<public-key>",\n    "allowedIPs": ["10.0.0.2/32"],\n    "preSharedKey": "",\n    "keepAlive": 0\n  }\n}',
+        body: '{\n  "email": "peer1",\n  "password": "<private-key>",\n  "wgPeer": {\n    "publicKey": "<public-key>",\n    "allowedIPs": ["10.0.0.2/32"],\n    "preSharedKey": "",\n    "keepAlive": 0\n  }\n}',
         response: '{\n  "success": true\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/inbounds/:id/updateWgClient',
-        summary: 'Update a WireGuard peer on an existing WireGuard inbound. Identifies the peer by email, updates its record and wg_settings, and hot-reloads the inbound in xray.',
+        summary: 'Update a WireGuard peer on an existing WireGuard inbound. The body email is the current peer name; peer contains the updated client record.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
-          { name: 'email', in: 'query', type: 'string', desc: 'Current email (name) of the peer to update.' },
         ],
-        body: '{\n  "email": "peer1-renamed",\n  "enable": true,\n  "wgSettings": {\n    "publicKey": "<public-key>",\n    "allowedIPs": ["10.0.0.2/32"]\n  }\n}',
+        body: '{\n  "email": "peer1",\n  "peer": {\n    "email": "peer1-renamed",\n    "enable": true,\n    "wgPeer": {\n      "publicKey": "<public-key>",\n      "allowedIPs": ["10.0.0.2/32"]\n    }\n  }\n}',
         response: '{\n  "success": true\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/inbounds/:id/delWgClient',
-        summary: 'Remove a WireGuard peer from an inbound by email. Deletes the client record, removes the peer from settings.peers[], and hot-reloads the inbound in xray.',
+        summary: 'Remove a WireGuard peer from an inbound by email. The email is read from the JSON body.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'WireGuard inbound ID.' },
-          { name: 'email', in: 'query', type: 'string', desc: 'Email (name) of the peer to delete.' },
         ],
+        body: '{\n  "email": "peer1"\n}',
         response: '{\n  "success": true\n}',
       },
     ],

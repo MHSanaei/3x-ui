@@ -269,18 +269,18 @@ export interface WireguardInboundSeed {
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
-  const peerKp = seed.peerPrivateKey
-    ? { privateKey: seed.peerPrivateKey, publicKey: Wireguard.generateKeypair(seed.peerPrivateKey).publicKey }
-    : Wireguard.generateKeypair();
+  const peers = seed.peerPrivateKey
+    ? [{
+        privateKey: seed.peerPrivateKey,
+        publicKey: Wireguard.generateKeypair(seed.peerPrivateKey).publicKey,
+        allowedIPs: ['10.0.0.2/32'],
+        keepAlive: 0,
+      }]
+    : [];
   return {
     mtu: seed.mtu ?? 1420,
     secretKey: seed.secretKey ?? Wireguard.generateKeypair().privateKey,
-    peers: [{
-      privateKey: peerKp.privateKey,
-      publicKey: peerKp.publicKey,
-      allowedIPs: ['10.0.0.2/32'],
-      keepAlive: 0,
-    }],
+    peers,
     noKernelTun: seed.noKernelTun ?? false,
   };
 }

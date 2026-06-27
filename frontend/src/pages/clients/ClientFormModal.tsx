@@ -321,6 +321,11 @@ export default function ClientFormModal({
     }
     return ids;
   }, [inbounds]);
+  const existingWgInboundIds = useMemo(
+    () => (isEdit ? (attachedIds || []).filter((id) => wgIds.has(id)) : []),
+    [attachedIds, isEdit, wgIds],
+  );
+  const isExistingWgClient = isEdit && (!!client?.wgPeer || existingWgInboundIds.length > 0);
 
   const ss2022Method = useMemo(() => {
     for (const id of form.inboundIds || []) {
@@ -344,6 +349,19 @@ export default function ClientFormModal({
 
   function updateWgPeer<K extends keyof WgPeerForm>(key: K, value: WgPeerForm[K]) {
     setForm((prev) => ({ ...prev, wgPeer: { ...prev.wgPeer, [key]: value } }));
+  }
+
+  function updateInboundIds(nextIds: number[]) {
+    if (isExistingWgClient) {
+      update('inboundIds', existingWgInboundIds);
+      return;
+    }
+    const selectedWgIds = nextIds.filter((id) => wgIds.has(id));
+    if (selectedWgIds.length > 0) {
+      update('inboundIds', [selectedWgIds[selectedWgIds.length - 1]]);
+      return;
+    }
+    update('inboundIds', nextIds);
   }
 
   const showWireGuard = useMemo(
@@ -492,6 +510,19 @@ export default function ClientFormModal({
   }
 
   async function onSubmit() {
+    const selectedWgIds = (form.inboundIds || []).filter((id) => wgIds.has(id));
+    if (isExistingWgClient) {
+      const same =
+        form.inboundIds.length === existingWgInboundIds.length
+        && form.inboundIds.every((id) => existingWgInboundIds.includes(id));
+      if (!same) {
+        messageApi.error('WireGuard clients cannot be moved to another inbound. Delete and recreate the client instead.');
+        return;
+      }
+    } else if (selectedWgIds.length > 0 && (selectedWgIds.length !== 1 || form.inboundIds.length !== 1)) {
+      messageApi.error('WireGuard clients can be assigned to exactly one WireGuard inbound.');
+      return;
+    }
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
       email: form.email,
@@ -759,20 +790,23 @@ export default function ClientFormModal({
                     )}
 
                     <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
-                      <SelectAllClearButtons
-                        options={inboundOptions}
-                        value={form.inboundIds}
-                        onChange={(v) => update('inboundIds', v)}
-                      />
+                      {!isExistingWgClient && (
+                        <SelectAllClearButtons
+                          options={inboundOptions}
+                          value={form.inboundIds}
+                          onChange={updateInboundIds}
+                        />
+                      )}
                       <Select
                         mode="multiple"
                         value={form.inboundIds}
-                        onChange={(v) => update('inboundIds', v)}
+                        onChange={updateInboundIds}
                         options={inboundOptions}
                         placeholder={t('pages.clients.selectInbound')}
                         maxTagCount="responsive"
                         placement="topLeft"
                         listHeight={220}
+                        disabled={isExistingWgClient}
                         showSearch={{
                           filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
                         }}

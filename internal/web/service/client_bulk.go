@@ -838,7 +838,7 @@ func (s *ClientService) bulkDelWgPeers(
 			continue
 		}
 		var sErr error
-		newSettings, sErr = removePeerFromSettings(newSettings, email)
+		newSettings, sErr = removePeerFromSettings(newSettings, email, wgPeerPublicKey(records[email]))
 		if sErr != nil {
 			res.perEmailSkipped[email] = sErr.Error()
 		}

@@ -747,8 +747,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
-		return inbound, false, err
+	if inbound.Protocol == model.WireGuard {
+		if err = s.clientService.SyncWgInbound(tx, inbound); err != nil {
+			return inbound, false, err
+		}
+	} else {
+		if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
+			return inbound, false, err
+		}
 	}
 
 	// Legacy import: an inbound exported from a build that predated the hosts

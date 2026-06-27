@@ -518,7 +518,7 @@ func (a *InboundController) updateWgClient(c *gin.Context) {
 		return
 	}
 	type updateBody struct {
-		Email string            `json:"email"`
+		Email string             `json:"email"`
 		Peer  model.ClientRecord `json:"peer"`
 	}
 	var b updateBody

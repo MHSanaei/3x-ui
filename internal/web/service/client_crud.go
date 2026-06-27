@@ -545,6 +545,17 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	for _, x := range currentIds {
 		have[x] = struct{}{}
 	}
+	currentWgInboundId := 0
+	for _, ibId := range currentIds {
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
+			return false, getErr
+		}
+		if inbound.Protocol == model.WireGuard {
+			currentWgInboundId = ibId
+			break
+		}
+	}
 
 	clientWire := existing.ToClient()
 	flow, ffErr := s.EffectiveFlow(nil, id)
@@ -565,6 +576,12 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		}
 
 		if inbound.Protocol == model.WireGuard {
+			if existing.WgSettings != "" && currentWgInboundId == 0 {
+				return false, common.NewError("WireGuard clients cannot be reassigned after their WireGuard inbound is removed; delete and recreate the client")
+			}
+			if currentWgInboundId != 0 && currentWgInboundId != ibId {
+				return false, common.NewError("WireGuard clients can be assigned to only one WireGuard inbound")
+			}
 			if existing.WgSettings == "" {
 				return false, common.NewError("client has no WireGuard peer settings; cannot attach to WireGuard inbound")
 			}
@@ -716,8 +733,12 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if _, attached := have[ibId]; !attached {
 			continue
 		}
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
+		inbound, getErr := inboundSvc.GetInbound(ibId)
+		if getErr != nil {
 			return needRestart, getErr
+		}
+		if inbound.Protocol == model.WireGuard {
+			return needRestart, common.NewError("WireGuard clients cannot be detached from their WireGuard inbound; delete the client instead")
 		}
 		// Detach by email — the client's stable identity (see Delete).
 		if existing.Email == "" {

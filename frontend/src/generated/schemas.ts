@@ -1792,6 +1792,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "wgMtu": {
+        "description": "WireGuard MTU; only set for wireguard inbounds when mtu \u003e 0.",
+        "type": "integer"
+      },
       "wgPublicKey": {
         "description": "WireGuard server public key; only set for wireguard inbounds.",
         "type": "string"

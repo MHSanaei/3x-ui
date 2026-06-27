@@ -104,6 +104,7 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 	if err := database.GetDB().Where("email = ?", email).First(&existing).Error; err != nil {
 		return false, common.NewError("peer not found:", email)
 	}
+	oldPublicKey := wgPeerPublicKey(&existing)
 
 	now := time.Now().UnixMilli()
 	existing.Email = rec.Email
@@ -124,7 +125,7 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 			return err
 		}
 		// peer == nil when WgSettings is empty: treat as disabled in peers[].
-		newSettings, sErr := updatePeerInSettings(inbound.Settings, email, peer, existing.Enable && peer != nil)
+		newSettings, sErr := updatePeerInSettings(inbound.Settings, email, oldPublicKey, peer, existing.Enable && peer != nil)
 		if sErr != nil {
 			return sErr
 		}
@@ -167,6 +168,7 @@ func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, e
 	if err := database.GetDB().Where("email = ?", email).First(&rec).Error; err != nil {
 		return false, common.NewError("peer not found:", email)
 	}
+	publicKey := wgPeerPublicKey(&rec)
 
 	needRestart := false
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
@@ -181,7 +183,7 @@ func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, e
 				return err
 			}
 		}
-		newSettings, sErr := removePeerFromSettings(inbound.Settings, email)
+		newSettings, sErr := removePeerFromSettings(inbound.Settings, email, publicKey)
 		if sErr != nil {
 			return sErr
 		}

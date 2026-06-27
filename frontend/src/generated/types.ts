@@ -390,6 +390,7 @@ export interface InboundOption {
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  wgMtu?: number;
   wgPublicKey?: string;
 }
 
