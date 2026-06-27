@@ -13,7 +13,7 @@ import {
   message,
 } from 'antd';
 import { ApiOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
-import { ClipboardManager, HttpUtil, RandomUtil } from '@/utils';
+import { ClipboardManager, HttpUtil, IntlUtil, RandomUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -37,6 +37,12 @@ interface ApiTokenRow {
 interface SecurityTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
+}
+
+const UNIX_MILLISECONDS_THRESHOLD = 100_000_000_000;
+
+function apiTokenCreatedAtMilliseconds(createdAt: number): number {
+  return createdAt < UNIX_MILLISECONDS_THRESHOLD ? createdAt * 1000 : createdAt;
 }
 
 type TfaType = 'set' | 'confirm';
@@ -194,7 +200,7 @@ export default function SecurityTab({ allSetting, updateSetting }: SecurityTabPr
 
   function formatTokenDate(ts: number): string {
     if (!ts) return '';
-    return new Date(ts * 1000).toLocaleString();
+    return IntlUtil.formatDate(apiTokenCreatedAtMilliseconds(ts));
   }
 
   function toggleTwoFactor() {
