@@ -654,7 +654,7 @@ export default function ClientFormModal({
                       </Row>
                     )}
 
-                    <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
+                    <Form.Item className="client-inbounds-field" label={t('pages.clients.attachedInbounds')} required={!isEdit}>
                       <SelectAllClearButtons
                         options={inboundOptions}
                         value={form.inboundIds}

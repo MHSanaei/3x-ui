@@ -76,6 +76,37 @@
   line-height: 18px;
 }
 
+.client-inbounds-field .ant-form-item-control-input-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.client-inbounds-field .ant-form-item-control-input-content > div:first-child {
+  margin-bottom: 0 !important;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selector {
+  align-items: flex-start;
+  min-height: 40px;
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-overflow {
+  row-gap: 6px;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-item {
+  max-width: 100%;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-item-content {
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .card-toolbar {
   display: flex;
   align-items: center;
