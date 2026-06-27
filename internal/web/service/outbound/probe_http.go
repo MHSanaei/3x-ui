@@ -101,7 +101,7 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string) ([]*TestOutboundResult, error) {
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(outboundsJSON), &raw); err != nil {
-		return nil, fmt.Errorf("invalid outbounds JSON: %v", err)
+		return nil, fmt.Errorf("invalid outbounds JSON: %w", err)
 	}
 	if len(raw) > maxBatchItems {
 		return nil, fmt.Errorf("too many outbounds in one request (max %d)", maxBatchItems)
@@ -253,7 +253,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string) (retryPerItem bool, err error) {
 	ports, release, err := reserveLoopbackPorts(len(items))
 	if err != nil {
-		return false, fmt.Errorf("Failed to reserve test ports: %v", err)
+		return false, fmt.Errorf("Failed to reserve test ports: %w", err)
 	}
 	defer release()
 
@@ -261,14 +261,14 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 
 	configPath, err := createTestConfigPath()
 	if err != nil {
-		return false, fmt.Errorf("Failed to create test config path: %v", err)
+		return false, fmt.Errorf("Failed to create test config path: %w", err)
 	}
 	defer os.Remove(configPath)
 
 	proc := newBatchProcess(cfg, configPath)
 	defer func() {
 		if proc.IsRunning() {
-			proc.Stop()
+			_ = proc.Stop()
 		}
 	}()
 
@@ -279,9 +279,9 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 	if err := proc.Start(); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			// Binary missing — per-item retries would all fail the same way.
-			return false, fmt.Errorf("Failed to start test xray instance: %v", err)
+			return false, fmt.Errorf("Failed to start test xray instance: %w", err)
 		}
-		return true, fmt.Errorf("Failed to start test xray instance: %v", err)
+		return true, fmt.Errorf("Failed to start test xray instance: %w", err)
 	}
 
 	if err := waitForPortsReady(proc, ports, batchPortsReadyTimeout); err != nil {
@@ -330,7 +330,7 @@ func waitForPortsReady(proc batchProcess, ports []int, timeout time.Duration) *p
 			if !proc.IsRunning() {
 				return &portsReadyError{msg: "Xray process exited: " + proc.GetResult(), exited: true}
 			}
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 100*time.Millisecond)
+			conn, err := (&net.Dialer{Timeout: 100 * time.Millisecond}).DialContext(context.Background(), "tcp", fmt.Sprintf("127.0.0.1:%d", port))
 			if err == nil {
 				conn.Close()
 				break
@@ -529,7 +529,7 @@ func reserveLoopbackPorts(n int) ([]int, func(), error) {
 	}
 	ports := make([]int, 0, n)
 	for range n {
-		l, err := net.Listen("tcp", "127.0.0.1:0")
+		l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 		if err != nil {
 			release()
 			return nil, nil, err

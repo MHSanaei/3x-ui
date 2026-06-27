@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/op/go-logging"
+
+	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
 func TestWriteFileAtomicModeAndRenameFailure(t *testing.T) {
@@ -203,7 +204,7 @@ func markProcessHelperReady(t *testing.T) {
 	if readyPath == "" {
 		t.Fatal("XRAY_PROCESS_READY is not set")
 	}
-	if err := os.WriteFile(readyPath, []byte("ready"), 0644); err != nil {
+	if err := os.WriteFile(readyPath, []byte("ready"), 0o644); err != nil {
 		t.Fatalf("write helper ready file: %v", err)
 	}
 }

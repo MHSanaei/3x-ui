@@ -24,6 +24,7 @@ import {
   MessageOutlined,
   MoonFilled,
   MoonOutlined,
+  ReadOutlined,
   SafetyOutlined,
   SettingOutlined,
   SunOutlined,
@@ -41,6 +42,7 @@ import './AppSidebar.css';
 
 const SIDEBAR_COLLAPSED_KEY = 'isSidebarCollapsed';
 const DONATE_URL = 'https://donate.sanaei.dev/';
+const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 
@@ -81,6 +83,21 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
       title={ariaLabel}
     >
       <HeartOutlined />
+    </a>
+  );
+}
+
+function DocsButton({ ariaLabel }: { ariaLabel: string }) {
+  return (
+    <a
+      href={DOCS_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="sidebar-docs"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <ReadOutlined />
     </a>
   );
 }
@@ -257,6 +274,7 @@ export default function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="brand-actions">
+              <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <ThemeCycleButton
                 id="theme-cycle"
@@ -309,6 +327,7 @@ export default function AppSidebar() {
             <span className="drawer-brand">3X-UI</span>
           </div>
           <div className="drawer-header-actions">
+            <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
             <ThemeCycleButton
               id="theme-cycle-drawer"

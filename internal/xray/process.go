@@ -2,6 +2,7 @@ package xray
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -74,7 +75,7 @@ func GetAccessLogPath() (string, error) {
 	}
 
 	jsonConfig := map[string]any{}
-	err = json.Unmarshal([]byte(config), &jsonConfig)
+	err = json.Unmarshal(config, &jsonConfig)
 	if err != nil {
 		logger.Warningf("Failed to parse JSON configuration: %s", err)
 		return "", err
@@ -92,7 +93,7 @@ func GetAccessLogPath() (string, error) {
 
 // stopProcess calls Stop on the given Process instance.
 func stopProcess(p *Process) {
-	p.Stop()
+	_ = p.Stop()
 }
 
 // Process wraps an Xray process instance and provides management methods.
@@ -475,7 +476,7 @@ func (p *process) refreshAPIPort() {
 
 // refreshVersion updates the version string by running the Xray binary with -version.
 func (p *process) refreshVersion() {
-	cmd := exec.Command(GetBinaryPath(), "-version")
+	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-version")
 	data, err := cmd.Output()
 	if err != nil {
 		p.version = "Unknown"
@@ -521,7 +522,7 @@ func (p *process) Start() (err error) {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
 
-	cmd := exec.Command(GetBinaryPath(), "-c", configPath)
+	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-c", configPath)
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 

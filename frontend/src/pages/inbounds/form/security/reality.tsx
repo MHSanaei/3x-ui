@@ -1,13 +1,20 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Collapse, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Alert, Button, Collapse, Descriptions, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { validateRealityTarget } from '@/lib/xray/stream-wire-normalize';
+import type { RealityScanResult } from '@/generated/types';
+import RealityTargetScannerModal from './RealityTargetScannerModal';
 
 interface RealityFormProps {
   saving: boolean;
-  randomizeRealityTarget: () => void;
+  scanning: boolean;
+  scanResult: RealityScanResult | null;
+  scanRealityTarget: () => void;
+  scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
+  applyRealityScanResult: (result: RealityScanResult) => void;
   randomizeShortIds: () => void;
   genRealityKeypair: () => void;
   clearRealityKeypair: () => void;
@@ -17,7 +24,11 @@ interface RealityFormProps {
 
 export default function RealityForm({
   saving,
-  randomizeRealityTarget,
+  scanning,
+  scanResult,
+  scanRealityTarget,
+  scanRealityCandidates,
+  applyRealityScanResult,
   randomizeShortIds,
   genRealityKeypair,
   clearRealityKeypair,
@@ -25,6 +36,7 @@ export default function RealityForm({
   clearMldsa65,
 }: RealityFormProps) {
   const { t } = useTranslation();
+  const [scannerOpen, setScannerOpen] = useState(false);
   return (
     <>
       <Form.Item
@@ -49,7 +61,7 @@ export default function RealityForm({
         label={t('pages.inbounds.form.target')}
         tooltip={t('pages.inbounds.form.realityTargetHint')}
       >
-        <Space.Compact block>
+        <Space.Compact block style={{ display: 'flex' }}>
           <Form.Item
             name={['streamSettings', 'realitySettings', 'target']}
             noStyle
@@ -62,21 +74,48 @@ export default function RealityForm({
               },
             ]}
           >
-            <Input style={{ width: 'calc(100% - 32px)' }} placeholder="example.com:443" />
+            <Input style={{ flex: 1 }} placeholder="example.com:443" />
           </Form.Item>
-          <Button icon={<ReloadOutlined />} onClick={randomizeRealityTarget} />
+          <Button icon={<RadarChartOutlined />} loading={scanning} onClick={scanRealityTarget}>
+            {t('pages.inbounds.form.scan')}
+          </Button>
+          <Button icon={<SearchOutlined />} onClick={() => setScannerOpen(true)}>
+            {t('pages.inbounds.form.findTargets')}
+          </Button>
         </Space.Compact>
       </Form.Item>
-      <Form.Item label="SNI">
-        <Space.Compact block style={{ display: 'flex' }}>
-          <Form.Item
-            name={['streamSettings', 'realitySettings', 'serverNames']}
-            noStyle
-          >
-            <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
-          </Form.Item>
-          <Button icon={<ReloadOutlined />} onClick={randomizeRealityTarget} />
-        </Space.Compact>
+      {scanResult && (
+        <Form.Item label=" " colon={false}>
+          <Alert
+            type={scanResult.feasible ? 'success' : 'warning'}
+            showIcon
+            title={
+              scanResult.feasible
+                ? t('pages.inbounds.form.scanFeasible')
+                : scanResult.reason || t('pages.inbounds.form.scanNotFeasible')
+            }
+            description={
+              <Descriptions size="small" column={1}>
+                <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
+                <Descriptions.Item label="ALPN">{scanResult.alpn || '—'}</Descriptions.Item>
+                <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
+                  {scanResult.curveID || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('pages.inbounds.form.scanCert')}>
+                  {scanResult.certValid
+                    ? `${scanResult.certSubject} (${scanResult.certIssuer})`
+                    : t('pages.inbounds.form.scanCertInvalid')}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('pages.inbounds.form.scanLatency')}>
+                  {scanResult.latencyMs > 0 ? `${scanResult.latencyMs} ms` : '—'}
+                </Descriptions.Item>
+              </Descriptions>
+            }
+          />
+        </Form.Item>
+      )}
+      <Form.Item label="SNI" name={['streamSettings', 'realitySettings', 'serverNames']}>
+        <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
       </Form.Item>
       <Form.Item
         name={['streamSettings', 'realitySettings', 'maxTimediff']}
@@ -200,6 +239,12 @@ export default function RealityForm({
             ),
           },
         ]}
+      />
+      <RealityTargetScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        scanRealityCandidates={scanRealityCandidates}
+        onPick={applyRealityScanResult}
       />
     </>
   );

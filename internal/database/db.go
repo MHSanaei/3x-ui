@@ -4,6 +4,7 @@ package database
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,7 +44,7 @@ func IsPostgres() bool {
 	if db == nil {
 		return config.GetDBKind() == "postgres"
 	}
-	return db.Dialector.Name() == "postgres"
+	return db.Name() == "postgres"
 }
 
 // Dialect returns the active GORM dialect name, or "" if the DB is not open.
@@ -51,7 +52,7 @@ func Dialect() string {
 	if db == nil {
 		return ""
 	}
-	return db.Dialector.Name()
+	return db.Name()
 }
 
 const (
@@ -93,6 +94,9 @@ func initModels() error {
 		}
 	}
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
+		return err
+	}
+	if err := normalizeApiTokenCreatedAtSeconds(); err != nil {
 		return err
 	}
 	if err := dropLegacyForeignKeys(); err != nil {
@@ -181,30 +185,46 @@ func seedHostsFromExternalProxy() error {
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		for _, inbound := range inbounds {
-			if strings.TrimSpace(inbound.StreamSettings) == "" {
-				continue
-			}
-			var stream map[string]any
-			if err := json.Unmarshal([]byte(inbound.StreamSettings), &stream); err != nil {
-				log.Printf("HostsFromExternalProxy: skip inbound %d (invalid stream json): %v", inbound.Id, err)
-				continue
-			}
-			eps, ok := stream["externalProxy"].([]any)
-			if !ok || len(eps) == 0 {
-				continue
-			}
-			for i, raw := range eps {
-				ep, ok := raw.(map[string]any)
-				if !ok {
-					continue
-				}
-				if err := tx.Create(externalProxyEntryToHost(inbound.Id, i, ep)).Error; err != nil {
-					return err
-				}
+			if _, err := CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
+				return err
 			}
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "HostsFromExternalProxy"}).Error
 	})
+}
+
+// CreateHostsFromExternalProxy parses a legacy streamSettings.externalProxy array
+// and inserts one Host row per entry on tx, returning the number of rows created.
+// It is the shared core of both the one-time seedHostsFromExternalProxy startup
+// migration and the inbound-import path: an inbound exported from a build that
+// predated the hosts table carries its external proxies inline in
+// streamSettings.externalProxy, and the startup migration is gated off after its
+// first run, so a freshly imported inbound must be converted here instead. Blank
+// or malformed streamSettings, or one without externalProxy entries, is a no-op.
+func CreateHostsFromExternalProxy(tx *gorm.DB, inboundId int, streamSettings string) (int, error) {
+	if strings.TrimSpace(streamSettings) == "" {
+		return 0, nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return 0, nil
+	}
+	eps, ok := stream["externalProxy"].([]any)
+	if !ok || len(eps) == 0 {
+		return 0, nil
+	}
+	created := 0
+	for i, raw := range eps {
+		ep, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if err := tx.Create(externalProxyEntryToHost(inboundId, i, ep)).Error; err != nil {
+			return created, err
+		}
+		created++
+	}
+	return created, nil
 }
 
 // externalProxyEntryToHost maps one legacy externalProxy entry onto a Host.
@@ -345,7 +365,6 @@ func initUser() error {
 	}
 	if empty {
 		hashedPassword, err := crypto.HashPasswordAsBcrypt(defaultPassword)
-
 		if err != nil {
 			log.Printf("Error hashing default password: %v", err)
 			return err
@@ -562,7 +581,7 @@ func fail2banCanEnforce() bool {
 	if runtime.GOOS == "windows" {
 		return false
 	}
-	return exec.Command("fail2ban-client", "-h").Run() == nil
+	return exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run() == nil
 }
 
 // clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
@@ -1020,7 +1039,7 @@ func InitDB(dbPath string) error {
 		}
 	default:
 		dir := path.Dir(dbPath)
-		if err = os.MkdirAll(dir, 0755); err != nil {
+		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
@@ -1047,7 +1066,7 @@ func InitDB(dbPath string) error {
 			"PRAGMA temp_store=MEMORY",
 		}
 		for _, p := range pragmas {
-			if _, err := sqlDB.Exec(p); err != nil {
+			if _, err := sqlDB.ExecContext(context.Background(), p); err != nil {
 				return err
 			}
 		}
@@ -1084,6 +1103,15 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+// normalizeApiTokenCreatedAtSeconds repairs rows written while ApiToken used
+// autoCreateTime:milli. The threshold separates modern Unix milliseconds from
+// Unix seconds and makes this safe to run on every startup.
+func normalizeApiTokenCreatedAtSeconds() error {
+	return db.Model(&model.ApiToken{}).
+		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
+		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
 }
 
 // sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.

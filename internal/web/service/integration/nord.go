@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +22,11 @@ var nordHTTPClient = &http.Client{Timeout: 15 * time.Second}
 const maxResponseSize = 10 << 20
 
 func (s *NordService) GetCountries() (string, error) {
-	resp, err := nordHTTPClient.Get("https://api.nordvpn.com/v1/countries")
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.nordvpn.com/v1/countries", nil)
+	if reqErr != nil {
+		return "", reqErr
+	}
+	resp, err := nordHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +49,11 @@ func (s *NordService) GetServers(countryId string) (string, error) {
 		}
 	}
 	url := fmt.Sprintf("https://api.nordvpn.com/v2/servers?limit=0&filters[servers_technologies][id]=35&filters[country_id]=%s", countryId)
-	resp, err := nordHTTPClient.Get(url)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if reqErr != nil {
+		return "", reqErr
+	}
+	resp, err := nordHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -89,7 +98,7 @@ func (s *NordService) SetKey(privateKey string) (string, error) {
 		"token":       "",
 	}
 	data, _ := json.Marshal(nordData)
-	err := s.SettingService.SetNord(string(data))
+	err := s.SetNord(string(data))
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +107,7 @@ func (s *NordService) SetKey(privateKey string) (string, error) {
 
 func (s *NordService) GetCredentials(token string) (string, error) {
 	url := "https://api.nordvpn.com/v1/users/services/credentials"
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -134,7 +143,7 @@ func (s *NordService) GetCredentials(token string) (string, error) {
 		"token":       token,
 	}
 	data, _ := json.Marshal(nordData)
-	err = s.SettingService.SetNord(string(data))
+	err = s.SetNord(string(data))
 	if err != nil {
 		return "", err
 	}
@@ -143,9 +152,9 @@ func (s *NordService) GetCredentials(token string) (string, error) {
 }
 
 func (s *NordService) GetNordData() (string, error) {
-	return s.SettingService.GetNord()
+	return s.GetNord()
 }
 
 func (s *NordService) DelNordData() error {
-	return s.SettingService.SetNord("")
+	return s.SetNord("")
 }

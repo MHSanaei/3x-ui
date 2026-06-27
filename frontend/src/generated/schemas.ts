@@ -2120,6 +2120,104 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "RealityScanResult": {
+    "properties": {
+      "alpn": {
+        "example": "h2",
+        "type": "string"
+      },
+      "certIssuer": {
+        "example": "Google Trust Services",
+        "type": "string"
+      },
+      "certSubject": {
+        "example": "cloudflare.com",
+        "type": "string"
+      },
+      "certValid": {
+        "example": true,
+        "type": "boolean"
+      },
+      "curveID": {
+        "example": "X25519",
+        "type": "string"
+      },
+      "feasible": {
+        "example": true,
+        "type": "boolean"
+      },
+      "h2": {
+        "example": true,
+        "type": "boolean"
+      },
+      "host": {
+        "example": "www.cloudflare.com",
+        "type": "string"
+      },
+      "ip": {
+        "example": "104.16.124.96",
+        "type": "string"
+      },
+      "latencyMs": {
+        "example": 180,
+        "type": "integer"
+      },
+      "notAfter": {
+        "example": "2026-08-01T00:00:00Z",
+        "type": "string"
+      },
+      "port": {
+        "example": 443,
+        "type": "integer"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "serverNames": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "target": {
+        "example": "www.cloudflare.com:443",
+        "type": "string"
+      },
+      "tls13": {
+        "example": true,
+        "type": "boolean"
+      },
+      "tlsVersion": {
+        "example": "1.3",
+        "type": "string"
+      },
+      "x25519": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "alpn",
+      "certIssuer",
+      "certSubject",
+      "certValid",
+      "curveID",
+      "feasible",
+      "h2",
+      "host",
+      "ip",
+      "latencyMs",
+      "notAfter",
+      "port",
+      "reason",
+      "serverNames",
+      "target",
+      "tls13",
+      "tlsVersion",
+      "x25519"
+    ],
+    "type": "object"
+  },
   "Setting": {
     "description": "Setting stores key-value configuration settings for the 3x-ui panel.",
     "properties": {

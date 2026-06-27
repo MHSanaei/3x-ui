@@ -15,7 +15,7 @@ func TestSeq_LengthAndAlphabet(t *testing.T) {
 			isDigit := r >= '0' && r <= '9'
 			isLower := r >= 'a' && r <= 'z'
 			isUpper := r >= 'A' && r <= 'Z'
-			if !(isDigit || isLower || isUpper) {
+			if !isDigit && !isLower && !isUpper {
 				t.Fatalf("Seq(%d) byte %d = %q is not alphanumeric", n, i, r)
 			}
 		}

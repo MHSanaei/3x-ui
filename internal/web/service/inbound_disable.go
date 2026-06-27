@@ -27,7 +27,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		if err != nil {
 			return false, 0, err
 		}
-		s.xrayApi.Init(p.GetAPIPort())
+		_ = s.xrayApi.Init(p.GetAPIPort())
 		for _, tag := range tags {
 			err1 := s.xrayApi.DelInbound(tag)
 			if err1 == nil {
@@ -141,7 +141,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	}
 
 	if p != nil && len(localTargets) > 0 {
-		s.xrayApi.Init(p.GetAPIPort())
+		_ = s.xrayApi.Init(p.GetAPIPort())
 		for _, t := range localTargets {
 			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
 			if err1 == nil {
@@ -231,7 +231,7 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 		if _, hit := emails[email]; !hit {
 			continue
 		}
-		if cur, _ := entry["enable"].(bool); cur == false {
+		if cur, _ := entry["enable"].(bool); !cur {
 			continue
 		}
 		entry["enable"] = false
