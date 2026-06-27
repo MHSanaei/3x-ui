@@ -154,7 +154,7 @@ type ApiToken struct {
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
 	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON

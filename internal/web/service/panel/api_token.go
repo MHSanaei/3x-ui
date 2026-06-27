@@ -16,12 +16,24 @@ type ApiTokenService struct{}
 
 const apiTokenLength = 48
 
+// API token timestamps predate the model's temporary switch to milliseconds.
+// Keep the API contract in Unix seconds while accepting rows written in either
+// unit during that period.
+const unixMillisecondsThreshold int64 = 100_000_000_000
+
 type ApiTokenView struct {
 	Id        int    `json:"id" example:"2"`
 	Name      string `json:"name" example:"central-panel-a"`
 	Token     string `json:"token,omitempty" example:"new-token-string"`
 	Enabled   bool   `json:"enabled" example:"true"`
 	CreatedAt int64  `json:"createdAt" example:"1736000000"`
+}
+
+func apiTokenCreatedAtSeconds(createdAt int64) int64 {
+	if createdAt >= unixMillisecondsThreshold {
+		return createdAt / 1000
+	}
+	return createdAt
 }
 
 // toView builds the metadata view returned by List. It never carries the
@@ -32,7 +44,7 @@ func toView(t *model.ApiToken) *ApiTokenView {
 		Id:        t.Id,
 		Name:      t.Name,
 		Enabled:   t.Enabled,
-		CreatedAt: t.CreatedAt,
+		CreatedAt: apiTokenCreatedAtSeconds(t.CreatedAt),
 	}
 }
 

@@ -94,6 +94,9 @@ func initModels() error {
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}
+	if err := normalizeApiTokenCreatedAtSeconds(); err != nil {
+		return err
+	}
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
@@ -1083,6 +1086,16 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	return runSeeders(isUsersEmpty)
+}
+
+// normalizeApiTokenCreatedAtSeconds repairs rows written while ApiToken used
+// autoCreateTime:milli. The threshold separates modern Unix milliseconds from
+// Unix seconds and makes this safe to run on every startup.
+func normalizeApiTokenCreatedAtSeconds() error {
+	const unixMillisecondsThreshold int64 = 100_000_000_000
+	return db.Model(&model.ApiToken{}).
+		Where("created_at >= ?", unixMillisecondsThreshold).
+		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
 }
 
 // sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.
