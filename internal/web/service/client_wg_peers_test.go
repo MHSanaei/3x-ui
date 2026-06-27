@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 func TestRemovePeerFromSettingsMatchesPublicKeyWithoutComment(t *testing.T) {
@@ -64,5 +66,39 @@ func TestWgPeerToRecordFallbackEmailUsesInboundID(t *testing.T) {
 	rec := wgPeerToRecord(map[string]any{"publicKey": "pk"}, 42, 2)
 	if rec.Email != "wg-42-peer-3" {
 		t.Fatalf("fallback email = %q, want wg-42-peer-3", rec.Email)
+	}
+}
+
+func TestBuildPeerMapWritesXrayUserEmail(t *testing.T) {
+	rec := (&model.Client{
+		Email:    "alice",
+		Password: "private",
+		WgPeer: &model.WgPeerSettings{
+			PublicKey:  "public",
+			AllowedIPs: []string{"10.0.0.2/32"},
+			KeepAlive:  25,
+		},
+	}).ToRecord()
+
+	peer, err := buildPeerMap(rec)
+	if err != nil {
+		t.Fatalf("buildPeerMap: %v", err)
+	}
+	if peer["email"] != "alice" {
+		t.Fatalf("peer email = %v, want alice", peer["email"])
+	}
+	if peer["comment"] != "alice" {
+		t.Fatalf("peer comment = %v, want alice", peer["comment"])
+	}
+}
+
+func TestWgPeerToRecordPrefersEmailOverComment(t *testing.T) {
+	rec := wgPeerToRecord(map[string]any{
+		"email":     "xray-email",
+		"comment":   "legacy-comment",
+		"publicKey": "pk",
+	}, 42, 0)
+	if rec.Email != "xray-email" {
+		t.Fatalf("email = %q, want xray-email", rec.Email)
 	}
 }

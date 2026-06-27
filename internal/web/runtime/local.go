@@ -101,6 +101,13 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 	if !client.Enable {
 		return nil
 	}
+	if ib.Protocol == model.WireGuard {
+		user, err := wireGuardUserMap(client)
+		if err != nil {
+			return err
+		}
+		return l.AddUser(ctx, ib, user)
+	}
 	user := map[string]any{
 		"email":    client.Email,
 		"id":       client.ID,
@@ -134,6 +141,13 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 	if !payload.Enable {
 		return nil
 	}
+	if ib.Protocol == model.WireGuard {
+		user, err := wireGuardUserMap(payload)
+		if err != nil {
+			return err
+		}
+		return l.AddUser(ctx, ib, user)
+	}
 	user := map[string]any{
 		"email":    payload.Email,
 		"id":       payload.ID,
@@ -143,6 +157,19 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 		"password": payload.Password,
 	}
 	return l.AddUser(ctx, ib, user)
+}
+
+func wireGuardUserMap(client model.Client) (map[string]any, error) {
+	if client.WgPeer == nil {
+		return nil, errors.New("wireguard peer settings are required")
+	}
+	return map[string]any{
+		"email":        client.Email,
+		"publicKey":    client.WgPeer.PublicKey,
+		"preSharedKey": client.WgPeer.PreSharedKey,
+		"allowedIPs":   client.WgPeer.AllowedIPs,
+		"keepAlive":    client.WgPeer.KeepAlive,
+	}, nil
 }
 
 func (l *Local) RestartXray(_ context.Context) error {

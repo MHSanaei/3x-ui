@@ -33,6 +33,7 @@ func buildPeerMap(rec *model.ClientRecord) (map[string]any, error) {
 		peer["keepAlive"] = wg.KeepAlive
 	}
 	if rec.Email != "" {
+		peer["email"] = rec.Email
 		peer["comment"] = rec.Email
 	}
 	return peer, nil
@@ -54,7 +55,7 @@ func wgPeerMatches(peer map[string]any, email string, publicKey string) bool {
 		pk, _ := peer["publicKey"].(string)
 		return pk == publicKey
 	}
-	return email != "" && peer["comment"] == email
+	return email != "" && (peer["email"] == email || peer["comment"] == email)
 }
 
 // addPeerToSettings appends one peer to settings.peers[] without a DB query.
@@ -160,7 +161,10 @@ func wgPeerToRecord(peer map[string]any, inboundId int, idx int) *model.ClientRe
 		keepAlive = int(ka)
 	}
 
-	email, _ := peer["comment"].(string)
+	email, _ := peer["email"].(string)
+	if email == "" {
+		email, _ = peer["comment"].(string)
+	}
 	if email == "" {
 		email = fmt.Sprintf("wg-%d-peer-%d", inboundId, idx+1)
 	}

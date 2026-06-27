@@ -83,6 +83,63 @@ func getOptionalUserString(user map[string]any, key string) (string, error) {
 	return strValue, nil
 }
 
+func getOptionalUserStringSlice(user map[string]any, key string) ([]string, error) {
+	value, ok := user[key]
+	if !ok || value == nil {
+		return nil, nil
+	}
+	switch v := value.(type) {
+	case []string:
+		return v, nil
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid item type for user field %q: %T", key, item)
+			}
+			out = append(out, s)
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("invalid type for user field %q: %T", key, value)
+	}
+}
+
+func getOptionalUserUint32(user map[string]any, key string) (uint32, error) {
+	value, ok := user[key]
+	if !ok || value == nil {
+		return 0, nil
+	}
+	const maxUint32 = uint64(^uint32(0))
+	switch v := value.(type) {
+	case int:
+		if v < 0 || uint64(v) > maxUint32 {
+			return 0, fmt.Errorf("invalid value for user field %q: %v", key, value)
+		}
+		return uint32(v), nil
+	case int64:
+		if v < 0 || uint64(v) > maxUint32 {
+			return 0, fmt.Errorf("invalid value for user field %q: %v", key, value)
+		}
+		return uint32(v), nil
+	case uint32:
+		return v, nil
+	case uint:
+		if uint64(v) > maxUint32 {
+			return 0, fmt.Errorf("invalid value for user field %q: %v", key, value)
+		}
+		return uint32(v), nil
+	case float64:
+		if v < 0 || v > float64(maxUint32) || v != math.Trunc(v) {
+			return 0, fmt.Errorf("invalid value for user field %q: %v", key, value)
+		}
+		return uint32(v), nil
+	default:
+		return 0, fmt.Errorf("invalid type for user field %q: %T", key, value)
+	}
+}
+
 // Init connects to the Xray API server and initializes handler and stats service clients.
 func (x *XrayAPI) Init(apiPort int) error {
 	if apiPort <= 0 || apiPort > math.MaxUint16 {
@@ -515,8 +572,39 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		account = serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
 		})
+	case "wireguard":
+		publicKey, err := getRequiredUserString(user, "publicKey")
+		if err != nil {
+			return err
+		}
+		preSharedKey, err := getOptionalUserString(user, "preSharedKey")
+		if err != nil {
+			return err
+		}
+		allowedIPs, err := getOptionalUserStringSlice(user, "allowedIPs")
+		if err != nil {
+			return err
+		}
+		keepAlive, err := getOptionalUserUint32(user, "keepAlive")
+		if err != nil {
+			return err
+		}
+		peer, err := (&conf.WireGuardPeerConfig{
+			PublicKey:    publicKey,
+			PreSharedKey: preSharedKey,
+			AllowedIPs:   allowedIPs,
+			KeepAlive:    keepAlive,
+		}).Build()
+		if err != nil {
+			return err
+		}
+		account = serial.ToTypedMessage(peer)
 	default:
 		return nil
+	}
+	level, err := getOptionalUserUint32(user, "level")
+	if err != nil {
+		return err
 	}
 
 	if x.HandlerServiceClient == nil {
@@ -531,6 +619,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
 			User: &protocol.User{
 				Email:   userEmail,
+				Level:   level,
 				Account: account,
 			},
 		}),

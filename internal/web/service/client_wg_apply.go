@@ -77,8 +77,8 @@ func (s *ClientService) AddWgClient(inboundSvc *InboundService, inboundId int, r
 		logger.Warning("nodePushPlan failed after WG peer add:", perr)
 		needRestart = true
 	} else if push {
-		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
-			logger.Warning("WG inbound update on runtime failed:", err)
+		if err := applyWgRuntimeAdd(context.Background(), rt, inbound, rec); err != nil {
+			logger.Warning("WG peer add on runtime failed:", err)
 			needRestart = true
 		}
 	} else {
@@ -141,8 +141,8 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 		logger.Warning("nodePushPlan failed after WG peer update:", perr)
 		needRestart = true
 	} else if push {
-		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
-			logger.Warning("WG inbound update on runtime failed:", err)
+		if err := applyWgRuntimeUpdate(context.Background(), rt, inbound, email, &existing); err != nil {
+			logger.Warning("WG peer update on runtime failed:", err)
 			needRestart = true
 		}
 	} else {
@@ -199,12 +199,48 @@ func (s *ClientService) DelWgClient(inboundSvc *InboundService, inboundId int, e
 		logger.Warning("nodePushPlan failed after WG peer del:", perr)
 		needRestart = true
 	} else if push {
-		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
-			logger.Warning("WG inbound update on runtime failed:", err)
+		if err := applyWgRuntimeDelete(context.Background(), rt, inbound, email); err != nil {
+			logger.Warning("WG peer del on runtime failed:", err)
 			needRestart = true
 		}
 	} else {
 		needRestart = true
 	}
 	return needRestart, nil
+}
+
+type wgRuntime interface {
+	AddClient(context.Context, *model.Inbound, model.Client) error
+	UpdateUser(context.Context, *model.Inbound, string, model.Client) error
+	DeleteUser(context.Context, *model.Inbound, string) error
+	UpdateInbound(context.Context, *model.Inbound, *model.Inbound) error
+}
+
+func applyWgRuntimeAdd(ctx context.Context, rt wgRuntime, inbound *model.Inbound, rec *model.ClientRecord) error {
+	client := rec.ToClient()
+	if err := rt.AddClient(ctx, inbound, *client); err == nil {
+		return nil
+	} else {
+		logger.Warning("WG dynamic AddUser failed, falling back to inbound update:", err)
+	}
+	return rt.UpdateInbound(ctx, inbound, inbound)
+}
+
+func applyWgRuntimeUpdate(ctx context.Context, rt wgRuntime, inbound *model.Inbound, oldEmail string, rec *model.ClientRecord) error {
+	client := rec.ToClient()
+	if err := rt.UpdateUser(ctx, inbound, oldEmail, *client); err == nil {
+		return nil
+	} else {
+		logger.Warning("WG dynamic UpdateUser failed, falling back to inbound update:", err)
+	}
+	return rt.UpdateInbound(ctx, inbound, inbound)
+}
+
+func applyWgRuntimeDelete(ctx context.Context, rt wgRuntime, inbound *model.Inbound, email string) error {
+	if err := rt.DeleteUser(ctx, inbound, email); err == nil {
+		return nil
+	} else {
+		logger.Warning("WG dynamic RemoveUser failed, falling back to inbound update:", err)
+	}
+	return rt.UpdateInbound(ctx, inbound, inbound)
 }
