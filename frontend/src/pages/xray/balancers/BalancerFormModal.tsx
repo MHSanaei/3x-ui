@@ -68,10 +68,14 @@ export default function BalancerFormModal({
 }: BalancerFormModalProps) {
   const { t } = useTranslation();
   const [state, setState] = useState<FormState>(() => initialState(balancer));
+  const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const isEdit = balancer != null;
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
     setState((prev) => ({ ...prev, [key]: value }));
+  };
 
   const parsed = useMemo(
     () => BalancerFormSchema.safeParse(state),
@@ -89,8 +93,17 @@ export default function BalancerFormModal({
     return map;
   }, [parsed, t]);
 
+  const showTagIssue = submitAttempted || !!touched.tag;
+  const showSelectorIssue = submitAttempted || !!touched.selector;
+  const tagError = showTagIssue ? issues.tag : '';
+  const selectorError = showSelectorIssue ? issues.selector : '';
+  const showDuplicate = showTagIssue && duplicateTag;
+
   function submit() {
-    if (!parsed.success || duplicateTag) return;
+    if (!parsed.success || duplicateTag) {
+      setSubmitAttempted(true);
+      return;
+    }
     const values = { ...parsed.data };
     if (values.strategy !== 'leastLoad') delete values.settings;
     onConfirm(values);
@@ -128,7 +141,6 @@ export default function BalancerFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
-      okButtonProps={{ disabled: !parsed.success || duplicateTag }}
       mask={{ closable: false }}
       onOk={submit}
       onCancel={onClose}
@@ -137,8 +149,8 @@ export default function BalancerFormModal({
         <Form.Item
           label={t('pages.xray.balancer.tag')}
           required
-          validateStatus={issues.tag ? 'error' : duplicateTag ? 'warning' : ''}
-          help={issues.tag || (duplicateTag ? t('pages.xray.balancer.tagDuplicate') : '')}
+          validateStatus={tagError ? 'error' : showDuplicate ? 'warning' : ''}
+          help={tagError || (showDuplicate ? t('pages.xray.balancer.tagDuplicate') : '')}
           hasFeedback
         >
           <Input
@@ -157,8 +169,8 @@ export default function BalancerFormModal({
         <Form.Item
           label={t('pages.xray.balancer.selector')}
           required
-          validateStatus={issues.selector ? 'error' : ''}
-          help={issues.selector || ''}
+          validateStatus={selectorError ? 'error' : ''}
+          help={selectorError || ''}
           hasFeedback
         >
           <Select
