@@ -107,11 +107,19 @@ func (s *ClientService) UpdateWgClient(inboundSvc *InboundService, inboundId int
 	oldPublicKey := wgPeerPublicKey(&existing)
 
 	now := time.Now().UnixMilli()
-	existing.Email = rec.Email
-	existing.Password = rec.Password
-	existing.WgSettings = rec.WgSettings
+	if rec.Email != "" {
+		existing.Email = rec.Email
+	}
+	if rec.Password != "" {
+		existing.Password = rec.Password
+	}
+	if rec.WgSettings != "" {
+		existing.WgSettings = rec.WgSettings
+	}
 	existing.Enable = rec.Enable
-	existing.Comment = rec.Comment
+	if rec.Comment != "" {
+		existing.Comment = rec.Comment
+	}
 	existing.UpdatedAt = now
 
 	peer, err := buildPeerMap(&existing)

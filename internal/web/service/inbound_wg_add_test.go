@@ -257,6 +257,61 @@ func TestWireGuardReconcilePreservesClientComment(t *testing.T) {
 	}
 }
 
+func TestUpdateWireGuardClientPartialPayloadPreservesStoredFields(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	created, _, err := inboundSvc.AddInbound(&model.Inbound{
+		Remark:   "wg-partial",
+		Enable:   false,
+		Port:     32131,
+		Protocol: model.WireGuard,
+		Settings: `{"secretKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","peers":[]}`,
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+
+	rec := (&model.Client{
+		Email:    "partial-wg",
+		Password: "peer-private",
+		Enable:   true,
+		Comment:  "keep comment",
+		WgPeer:   &model.WgPeerSettings{PublicKey: "peer-public", AllowedIPs: []string{"10.0.0.2/32"}},
+	}).ToRecord()
+	if _, err := clientSvc.AddWgClient(inboundSvc, created.Id, rec); err != nil {
+		t.Fatalf("AddWgClient: %v", err)
+	}
+
+	partial := &model.ClientRecord{
+		Email:  "partial-renamed",
+		Enable: true,
+	}
+	if _, err := clientSvc.UpdateWgClient(inboundSvc, created.Id, rec.Email, partial); err != nil {
+		t.Fatalf("UpdateWgClient partial: %v", err)
+	}
+
+	var got model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "partial-renamed").First(&got).Error; err != nil {
+		t.Fatalf("load renamed WG client: %v", err)
+	}
+	if got.Password != "peer-private" {
+		t.Fatalf("password = %q, want peer-private", got.Password)
+	}
+	if got.WgSettings == "" || !strings.Contains(got.WgSettings, "peer-public") {
+		t.Fatalf("wg_settings = %q, want preserved peer-public", got.WgSettings)
+	}
+	if got.Comment != "keep comment" {
+		t.Fatalf("comment = %q, want keep comment", got.Comment)
+	}
+}
+
 func TestUpdateWireGuardInboundIgnoresStaleIncomingPeers(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)

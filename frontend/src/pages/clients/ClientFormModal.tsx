@@ -400,9 +400,8 @@ export default function ClientFormModal({
     if (form.wgPeer.preSharedKey) lines.push(`PresharedKey = ${form.wgPeer.preSharedKey}`);
     if (form.wgPeer.keepAlive > 0) lines.push(`PersistentKeepalive = ${form.wgPeer.keepAlive}`);
     return lines.join('\n');
-  }, [showWireGuard, wgInbound, form.wgPeer, form.comment]);
+  }, [showWireGuard, wgInbound, form.wgPeer, form.email, form.comment]);
 
-  // When a WG inbound is selected in add mode, suggest the next available IP.
   useEffect(() => {
     if (isEdit || !showWireGuard || firstWgInboundId === null || !getNextWgAllowedIp) return;
     const nextIp = getNextWgAllowedIp(firstWgInboundId);

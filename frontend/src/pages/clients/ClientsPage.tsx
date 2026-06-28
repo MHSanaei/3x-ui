@@ -92,14 +92,33 @@ function splitAllowedIp(value: string): { host: string; suffix: string } {
   };
 }
 
-function nextWgIpFromSeed(used: Set<string>, seed: string, suffix = '/32'): string {
-  const host = splitAllowedIp(seed).host;
+function ipToNumber(host: string): number | null {
   const octets = host.split('.').map((part) => Number(part));
   if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return null;
+  }
+  return (((octets[0] << 24) >>> 0) + (octets[1] << 16) + (octets[2] << 8) + octets[3]) >>> 0;
+}
+
+function numberToIp(value: number): string {
+  return [
+    (value >>> 24) & 255,
+    (value >>> 16) & 255,
+    (value >>> 8) & 255,
+    value & 255,
+  ].join('.');
+}
+
+function nextWgIpFromSeed(used: Set<string>, seed: string, suffix = '/32'): string {
+  const host = splitAllowedIp(seed).host;
+  const base = ipToNumber(host) ?? ipToNumber(DEFAULT_WG_ALLOWED_IP.split('/')[0]);
+  if (base === null) {
     return DEFAULT_WG_ALLOWED_IP;
   }
-  for (let i = 2; i <= 254; i++) {
-    const candidate = `${octets[0]}.${octets[1]}.${octets[2]}.${i}`;
+  for (let offset = 0; offset < 0xffffffff; offset++) {
+    const candidate = numberToIp((base + offset) >>> 0);
+    const lastOctet = candidate.split('.').pop();
+    if (lastOctet === '0' || lastOctet === '255') continue;
     if (!used.has(candidate)) return `${candidate}${suffix}`;
   }
   return `${host}${suffix}`;
