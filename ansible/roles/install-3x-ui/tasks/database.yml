@@ -1,0 +1,92 @@
+---
+# roles/3x_ui/tasks/database.yml
+
+- name: Configure SQLite Database
+  when: xui_db_type == 'sqlite'
+  tags:
+    - 3x_ui
+    - database
+    - setup
+    - sqlite
+  block:
+    - name: Ensure x-ui configuration directory exists for SQLite
+      ansible.builtin.file:
+        path: /etc/x-ui
+        state: directory
+        mode: '0755'
+
+    - name: Ensure /etc/default/x-ui is absent (forces fallback to SQLite)
+      ansible.builtin.file:
+        path: "{{ '/etc/default/x-ui' if ansible_os_family == 'Debian' else '/etc/sysconfig/x-ui' }}"
+        state: absent
+
+- name: Configure PostgreSQL Database
+  tags:
+    - 3x_ui
+    - database
+    - setup
+    - postgres
+  when: xui_db_type == 'postgres'
+  block:
+    - name: Install PostgreSQL client tools (for in-panel backup/restore)
+      ansible.builtin.package:
+        name: "{{ postgresql_client_package }}"
+        state: present
+
+    - name: Provision local PostgreSQL server
+      when: xui_pg_install_local | bool
+      block:
+        - name: Install PostgreSQL server packages
+          ansible.builtin.package:
+            name: "{{ postgresql_server_packages }}"
+            state: present
+
+        - name: Initialize PostgreSQL database cluster (RedHat/Rocky family)
+          ansible.builtin.command: postgresql-setup --initdb
+          args:
+            creates: /var/lib/pgsql/data/PG_VERSION
+          when: ansible_os_family == 'RedHat'
+
+        - name: Ensure PostgreSQL service is enabled and started
+          ansible.builtin.systemd:
+            name: postgresql
+            state: started
+            enabled: true
+
+        - name: Wait for PostgreSQL to accept connections
+          ansible.builtin.wait_for:
+            port: 5432
+            host: 127.0.0.1
+            delay: 2
+            timeout: 30
+
+        - name: Install Python psycopg2 library (Required for Ansible PostgreSQL modules)
+          ansible.builtin.package:
+            name: "{{ python_psycopg2_package }}"
+            state: present
+
+        - name: Ensure 3x-ui database user exists
+          community.postgresql.postgresql_user:
+            name: "{{ xui_pg_user }}"
+            password: "{{ xui_pg_password }}"
+            role_attr_flags: NOSUPERUSER,NOCREATEDB
+            state: present
+          become: true
+          become_user: postgres
+
+        - name: Ensure 3x-ui database exists and is owned by the user
+          community.postgresql.postgresql_db:
+            name: "{{ xui_pg_database }}"
+            owner: "{{ xui_pg_user }}"
+            state: present
+          become: true
+          become_user: postgres
+
+    - name: Configure 3x-ui to use PostgreSQL (Environment File)
+      ansible.builtin.template:
+        src: x-ui-db.env.j2
+        dest: "{{ '/etc/default/x-ui' if ansible_os_family == 'Debian' else '/etc/sysconfig/x-ui' }}"
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Restart 3x-ui

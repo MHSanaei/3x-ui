@@ -1,0 +1,8 @@
+- name: 3x-ui Installation Role
+  hosts: all
+  gather_facts: true
+  become: true
+  roles:
+    - install-3x-ui
+  tags:
+    - 3x_ui

@@ -1,0 +1,115 @@
+---
+# roles/3x_ui/tasks/configure.yml
+
+- name: Determine cross-platform system environment config path
+  ansible.builtin.set_fact:
+    xui_env_file_path: >-
+      {% if ansible_facts['os_family'] == 'Debian' %}
+      /etc/default/x-ui
+      {% elif ansible_facts['os_family'] == 'Archlinux' or ansible_facts['os_family'] == 'Alpine' %}
+      /etc/conf.d/x-ui
+      {% else %}
+      /etc/sysconfig/x-ui
+      {% endif %}
+  tags:
+    - 3x_ui
+    - configure
+    - setup
+
+- name: Enforce presence of 3x-ui configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /etc/x-ui
+    - "{{ xui_env_file_path | dirname }}"
+  tags:
+    - 3x_ui
+    - configure
+    - setup
+
+- name: Deploy the 3x-ui system database configuration environment template
+  ansible.builtin.template:
+    src: x-ui-panel.env.j2
+    dest: "{{ xui_env_file_path }}"
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart 3x-ui
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Retrieve current 3x-ui runtime settings state
+  ansible.builtin.command: "{{ xui_folder | default('/usr/local/x-ui') }}/x-ui setting -show true"
+  register: current_xui_settings
+  changed_when: false
+  failed_when: false
+  no_log: true
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Sync panel administrative state via CLI if values differ
+  ansible.builtin.command: >
+    {{ xui_folder | default('/usr/local/x-ui') }}/x-ui setting \
+    -username "{{ xui_username }}" \
+    -password "{{ xui_password }}" \
+    -port "{{ xui_port }}" \
+    -webBasePath "{{ xui_web_base_path }}"
+  when: >
+    ( 'username: ' + xui_username ) not in current_xui_settings.stdout or
+    ( 'password: ' + xui_password ) not in current_xui_settings.stdout or
+    ( 'port: ' + xui_port | string ) not in current_xui_settings.stdout or
+    ( 'webBasePath: /' + xui_web_base_path | regex_replace('^/', '') ) not in current_xui_settings.stdout
+  notify: Restart 3x-ui
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Configure panel Listen IP binding interface
+  ansible.builtin.command: >
+    {{ xui_folder | default('/usr/local/x-ui') }}/x-ui setting -listenIP "{{ xui_listen_ip }}"
+  when: "('listenIP: ' + xui_listen_ip) not in current_xui_settings.stdout"
+  notify: Restart 3x-ui
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Execute 3x-ui database schema migrations
+  ansible.builtin.command: "{{ xui_folder | default('/usr/local/x-ui') }}/x-ui migrate"
+  register: migration_result
+  changed_when: "'migration successful' in migration_result.stdout or 'migrated' in migration_result.stdout"
+  tags:
+    - 3x_ui
+    - configure
+    - database
+
+- name: Fetch panel API token for automation metadata synchronization
+  ansible.builtin.command: "{{ xui_folder | default('/usr/local/x-ui') }}/x-ui setting -getApiToken true"
+  register: api_token_output
+  changed_when: false
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Parse API token fact from output
+  ansible.builtin.set_fact:
+    xui_api_token: "{{ api_token_output.stdout | regex_search('apiToken: (\\S+)', '\\1') | first | default('UNKNOWN') }}"
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Deploy the machine-parseable installation summary receipt template
+  ansible.builtin.template:
+    src: install-result.env.j2
+    dest: /etc/x-ui/install-result.env
+    owner: root
+    group: root
+    mode: '0600'
+  tags:
+    - 3x_ui
+    - configure

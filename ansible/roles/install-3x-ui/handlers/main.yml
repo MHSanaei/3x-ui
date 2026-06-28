@@ -1,0 +1,11 @@
+---
+# handlers file for install-3x-ui
+
+- name: Restart 3x-ui
+  ansible.builtin.service:
+    name: x-ui
+    state: restarted
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true

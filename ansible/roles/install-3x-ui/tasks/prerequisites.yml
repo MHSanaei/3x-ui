@@ -1,0 +1,149 @@
+---
+# roles/3x_ui/tasks/prerequisites.yml
+
+- name: Verify operating system support
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat', 'Archlinux', 'Suse', 'Alpine']
+    fail_msg: "Deployment aborted: {{ ansible_distribution }} ({{ ansible_os_family }}) is not supported."
+    success_msg: "OS verified: {{ ansible_distribution }} is supported."
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - check_os
+
+- name: Load OS-specific package variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "main.yml"
+      paths:
+        - "../vars"
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - os_vars
+
+- name: Install prerequisites on Debian/Ubuntu
+  ansible.builtin.apt:
+    name:
+      - cron
+      - curl
+      - tar
+      - tzdata
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-deb
+
+- name: Install prerequisites on modern RedHat/CentOS/Fedora/Rocky (DNF)
+  ansible.builtin.dnf:
+    name:
+      - cronie
+      - curl
+      - tar
+      - tzdata
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version | int >= 8 or ansible_distribution == 'Fedora'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-rhe
+
+- name: Install prerequisites on Legacy RHEL / CentOS 7 (YUM)
+  ansible.builtin.package:
+    name:
+      - cronie
+      - curl
+      - tar
+      - tzdata
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version | int <= 7
+    - ansible_distribution != 'Fedora'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-leg-rhe
+
+- name: Install prerequisites on Arch Linux / Manjaro
+  community.general.pacman:
+    name:
+      - cronie
+      - curl
+      - tar
+      - tzdata
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+  when: ansible_os_family == 'Archlinux'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-arch
+
+- name: Install prerequisites on SUSE Linux
+  community.general.zypper:
+    name:
+      - cron
+      - curl
+      - tar
+      - timezone
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+  when: ansible_os_family == 'Suse'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-suse
+
+- name: Install prerequisites on Alpine Linux
+  community.general.apk:
+    name:
+      - dcron
+      - curl
+      - tar
+      - tzdata
+      - socat
+      - ca-certificates
+      - openssl
+    state: present
+    update_cache: true
+  when: ansible_os_family == 'Alpine'
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+    - install-pre-alpine
