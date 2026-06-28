@@ -43,6 +43,8 @@ import TextModal from '@/components/feedback/TextModal';
 
 import OutboundFormModal from './OutboundFormModal';
 import { propagateOutboundTagRename } from '../basics/helpers';
+import { planOutboundDeletion, applyOutboundDeletion } from '../reference-cleanup';
+import DeletionImpactList from '../DeletionImpactList';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
 
@@ -208,16 +210,16 @@ export default function OutboundsTab({
   }
 
   function confirmDelete(idx: number) {
+    const impact = templateSettings
+      ? planOutboundDeletion(templateSettings, idx)
+      : { rules: [], balancers: [], observatory: false, burst: false };
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Outbounds')} #${idx + 1}?`,
+      content: <DeletionImpactList impact={impact} />,
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
-      onOk: () => {
-        mutate((tt) => {
-          tt.outbounds?.splice(idx, 1);
-        });
-      },
+      onOk: () => mutate((tt) => applyOutboundDeletion(tt, idx)),
     });
   }
   function setFirst(idx: number) {
