@@ -5571,7 +5571,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Replace a client's external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.",
+        "summary": "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
         "operationId": "post_panel_api_clients_email_externalLinks",
         "parameters": [
           {
@@ -5589,7 +5589,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Full replacement list. External link rows use kind=\"link\" with a share link value. External subscription rows use kind=\"subscription\" with an http(s) subscription URL. Each row supports { kind, value, remark, enable }; omit enable to default true. Disabled rows are kept but omitted from generated subscriptions."
+                  }
+                },
+                "required": [
+                  "externalLinks"
+                ]
               },
               "example": {
                 "externalLinks": [
