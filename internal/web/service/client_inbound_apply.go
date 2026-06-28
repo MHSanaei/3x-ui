@@ -295,6 +295,16 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		return false, err
 	}
 
+	if oldInbound.Protocol == model.WireGuard {
+		existing, gcErr := inboundSvc.GetClients(oldInbound)
+		if gcErr != nil {
+			return false, gcErr
+		}
+		if dErr := defaultWireguardClients(existing, clients, interfaceClients); dErr != nil {
+			return false, dErr
+		}
+	}
+
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
 			return false, common.NewError("client email is required")
@@ -311,6 +321,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		case "hysteria":
 			if client.Auth == "" {
 				return false, common.NewError("empty client ID")
+			}
+		case "wireguard":
+			if client.PublicKey == "" {
+				return false, common.NewError("wireguard client requires a key")
 			}
 		default:
 			if client.ID == "" {
@@ -329,7 +343,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		applyShadowsocksClientMethod(interfaceClients, oldSettings)
 	}
 
-	oldClients := oldSettings["clients"].([]any)
+	oldClients, _ := oldSettings["clients"].([]any)
 	oldClients = compactOrphans(database.GetDB(), oldClients)
 	oldClients = append(oldClients, interfaceClients...)
 
@@ -395,13 +409,17 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 					cipher = oldSettings["method"].(string)
 				}
 				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"auth":     client.Auth,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
+					"email":        client.Email,
+					"id":           client.ID,
+					"auth":         client.Auth,
+					"security":     client.Security,
+					"flow":         client.Flow,
+					"password":     client.Password,
+					"cipher":       cipher,
+					"publicKey":    client.PublicKey,
+					"allowedIPs":   client.AllowedIPs,
+					"preSharedKey": client.PreSharedKey,
+					"keepAlive":    keepAliveStr(client.KeepAlive),
 				})
 				if err1 == nil {
 					logger.Debug("Client added on", rt.Name(), ":", client.Email)
@@ -472,6 +490,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		newClientId = clients[0].Email
 	case "hysteria":
 		newClientId = clients[0].Auth
+	case "wireguard":
+		newClientId = clients[0].Email
 	default:
 		newClientId = clients[0].ID
 	}
@@ -505,12 +525,34 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 
+	// WireGuard keys are never rotated by an edit: when the incoming payload omits
+	// them (a metadata-only change), carry the stored credentials forward so the
+	// settings JSON and the running peer keep the client's identity.
+	if oldInbound.Protocol == model.WireGuard && clientIndex >= 0 && clientIndex < len(oldClients) {
+		old := oldClients[clientIndex]
+		if clients[0].PrivateKey == "" {
+			clients[0].PrivateKey = old.PrivateKey
+		}
+		if clients[0].PublicKey == "" {
+			clients[0].PublicKey = old.PublicKey
+		}
+		if len(clients[0].AllowedIPs) == 0 {
+			clients[0].AllowedIPs = old.AllowedIPs
+		}
+		if clients[0].PreSharedKey == "" {
+			clients[0].PreSharedKey = old.PreSharedKey
+		}
+		if clients[0].KeepAlive == 0 {
+			clients[0].KeepAlive = old.KeepAlive
+		}
+	}
+
 	var oldSettings map[string]any
 	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 	if err != nil {
 		return false, err
 	}
-	settingsClients := oldSettings["clients"].([]any)
+	settingsClients, _ := oldSettings["clients"].([]any)
 	var preservedCreated any
 	var preservedSubID string
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
@@ -534,6 +576,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					newMap["subId"] = preservedSubID
 				} else {
 					newMap["subId"] = random.NumLower(16)
+				}
+			}
+			if oldInbound.Protocol == model.WireGuard {
+				newMap["privateKey"] = clients[0].PrivateKey
+				newMap["publicKey"] = clients[0].PublicKey
+				newMap["allowedIPs"] = clients[0].AllowedIPs
+				if clients[0].PreSharedKey != "" {
+					newMap["preSharedKey"] = clients[0].PreSharedKey
+				}
+				if clients[0].KeepAlive > 0 {
+					newMap["keepAlive"] = clients[0].KeepAlive
 				}
 			}
 			interfaceClients[0] = newMap
@@ -681,13 +734,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 						cipher = oldSettings["method"].(string)
 					}
 					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":    clients[0].Email,
-						"id":       clients[0].ID,
-						"security": clients[0].Security,
-						"flow":     clients[0].Flow,
-						"auth":     clients[0].Auth,
-						"password": clients[0].Password,
-						"cipher":   cipher,
+						"email":        clients[0].Email,
+						"id":           clients[0].ID,
+						"security":     clients[0].Security,
+						"flow":         clients[0].Flow,
+						"auth":         clients[0].Auth,
+						"password":     clients[0].Password,
+						"cipher":       cipher,
+						"publicKey":    clients[0].PublicKey,
+						"allowedIPs":   clients[0].AllowedIPs,
+						"preSharedKey": clients[0].PreSharedKey,
+						"keepAlive":    keepAliveStr(clients[0].KeepAlive),
 					})
 					if err1 == nil {
 						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)

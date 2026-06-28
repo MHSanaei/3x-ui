@@ -142,10 +142,11 @@ describe('createDefault*InboundSettings factories', () => {
   it('wireguard', () => {
     const s = createDefaultWireguardInboundSettings({
       secretKey: 'QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=',
-      peerPrivateKey: 'cGVlci1maXh0dXJlLXByaXZhdGUta2V5LWZvci10ZXN0cw==',
     });
     expect(s).toMatchSnapshot();
     expect(WireguardInboundSettingsSchema.parse(s)).toEqual(s);
+    expect(s.peers).toEqual([]);
+    expect(s.clients).toEqual([]);
   });
 });
 

@@ -207,6 +207,7 @@ exports[`InboundSettingsSchema fixtures > parses wireguard-basic byte-stably 1`]
 {
   "protocol": "wireguard",
   "settings": {
+    "clients": [],
     "mtu": 1420,
     "noKernelTun": false,
     "peers": [

@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -367,7 +368,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -501,8 +502,50 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genHysteriaLink(inbound, email)
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
+	case "wireguard":
+		return s.genWireguardLink(inbound, email)
 	}
 	return ""
+}
+
+// genWireguardLink builds a per-client wireguard:// share link mirroring the
+// frontend genWireguardLink: the client's private key is the userinfo, the
+// server public key (derived from the inbound secretKey) and the client's
+// tunnel address ride in the query. Returns "" when the client has no key.
+func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.WireGuard {
+		return ""
+	}
+	settings := map[string]any{}
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	secretKey, _ := settings["secretKey"].(string)
+
+	clients, _ := s.inboundService.GetClients(inbound)
+	var client *model.Client
+	for i := range clients {
+		if clients[i].Email == email {
+			client = &clients[i]
+			break
+		}
+	}
+	if client == nil || client.PrivateKey == "" {
+		return ""
+	}
+
+	link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
+	params := make(map[string]string)
+	if secretKey != "" {
+		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
+			params["publickey"] = pub
+		}
+	}
+	if len(client.AllowedIPs) > 0 && client.AllowedIPs[0] != "" {
+		params["address"] = client.AllowedIPs[0]
+	}
+	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 {
+		params["mtu"] = strconv.Itoa(int(mtu))
+	}
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 
 // genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:

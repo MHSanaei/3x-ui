@@ -32,6 +32,11 @@ export const ClientRecordSchema = z.object({
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
+  privateKey: z.string().optional(),
+  publicKey: z.string().optional(),
+  allowedIPs: z.string().optional(),
+  preSharedKey: z.string().optional(),
+  keepAlive: z.number().optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
 }).loose();

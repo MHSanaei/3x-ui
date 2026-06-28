@@ -278,12 +278,6 @@ export default function InboundFormModal({
     form.setFieldValue(['settings', 'secretKey'], kp.privateKey);
   };
 
-  const regenWgPeerKeypair = (peerName: number) => {
-    const kp = Wireguard.generateKeypair();
-    form.setFieldValue(['settings', 'peers', peerName, 'privateKey'], kp.privateKey);
-    form.setFieldValue(['settings', 'peers', peerName, 'publicKey'], kp.publicKey);
-  };
-
   const matchesVlessAuth = (
     block: { id?: string; label?: string } | undefined | null,
     authId: string,
@@ -695,7 +689,7 @@ export default function InboundFormModal({
 
   const protocolTab = (
     <>
-      {protocol === Protocols.WIREGUARD && <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} regenWgPeerKeypair={regenWgPeerKeypair} />}
+      {protocol === Protocols.WIREGUARD && <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} />}
 
       {protocol === Protocols.TUN && <TunFields />}
 

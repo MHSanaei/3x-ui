@@ -34,7 +34,7 @@ esac
 MTG_VER="2.2.8"
 mkdir -p build/bin
 cd build/bin
-curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.6.22/Xray-linux-${ARCH}.zip"
+curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.6.27/Xray-linux-${ARCH}.zip"
 unzip "Xray-linux-${ARCH}.zip"
 rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"

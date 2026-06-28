@@ -17,7 +17,7 @@ export type XHttpMode = z.infer<typeof XHttpModeSchema>;
 // are strings because they accept dash-range values like '16-32'.
 export const XHttpXmuxSchema = z.object({
   maxConcurrency: z.string().default('16-32'),
-  maxConnections: z.union([z.string(), z.number()]).default(0),
+  maxConnections: z.union([z.string(), z.number()]).default(6),
   cMaxReuseTimes: z.union([z.string(), z.number()]).default(0),
   hMaxRequestTimes: z.string().default('600-900'),
   hMaxReusableSecs: z.string().default('1800-3000'),

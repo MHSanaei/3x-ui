@@ -33,10 +33,36 @@ export const WireguardInboundPeerSchema = z.object({
 });
 export type WireguardInboundPeer = z.infer<typeof WireguardInboundPeerSchema>;
 
+// A WireGuard inbound client (multi-client model). Each client is one peer the
+// server accepts: the panel stores its keypair so it can render a full .conf/QR,
+// and allowedIPs is the client's unique tunnel address (allocated server-side
+// when left blank). Keys are optional on the wire — the backend generates them
+// when absent.
+export const WireguardClientSchema = z.object({
+  privateKey: z.string().optional(),
+  publicKey: z.string().optional(),
+  preSharedKey: z.string().optional(),
+  allowedIPs: z.array(z.string()).default([]),
+  keepAlive: optionalClearedInt(z.number().int().min(0)),
+  email: z.string().min(1),
+  limitIp: z.number().int().min(0).default(0),
+  totalGB: z.number().int().min(0).default(0),
+  expiryTime: z.number().int().default(0),
+  enable: z.boolean().default(true),
+  tgId: z.union([z.number(), z.string()]).transform((v) => Number(v) || 0).default(0),
+  subId: z.string().default(''),
+  comment: z.string().default(''),
+  reset: z.number().int().min(0).default(0),
+  created_at: z.number().int().optional(),
+  updated_at: z.number().int().optional(),
+});
+export type WireguardClient = z.infer<typeof WireguardClientSchema>;
+
 export const WireguardInboundSettingsSchema = z.object({
   mtu: optionalClearedInt(z.number().int().min(1)),
   secretKey: z.string().min(1),
   peers: z.array(WireguardInboundPeerSchema).default([]),
+  clients: z.array(WireguardClientSchema).default([]),
   noKernelTun: z.boolean().default(false),
   domainStrategy: WireguardDomainStrategySchema.optional(),
 });

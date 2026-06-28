@@ -157,6 +157,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 
 		var finalClients []any
+		var wgPeers []any
 		for i := range dbClients {
 			c := dbClients[i]
 			if enable, exists := enableMap[c.Email]; exists && !enable {
@@ -204,14 +205,40 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
+			case model.WireGuard:
+				peer := map[string]any{"email": c.Email, "level": 0}
+				if c.PublicKey != "" {
+					peer["publicKey"] = c.PublicKey
+				}
+				if len(c.AllowedIPs) > 0 {
+					peer["allowedIPs"] = c.AllowedIPs
+				}
+				if c.PreSharedKey != "" {
+					peer["preSharedKey"] = c.PreSharedKey
+				}
+				if c.KeepAlive > 0 {
+					peer["keepAlive"] = c.KeepAlive
+				}
+				wgPeers = append(wgPeers, peer)
+				continue
 			}
 			finalClients = append(finalClients, entry)
 		}
 
-		_, hadClients := settings["clients"]
-		mutated := hadClients || len(finalClients) > 0
-		if mutated {
-			settings["clients"] = finalClients
+		var mutated bool
+		if inbound.Protocol == model.WireGuard {
+			delete(settings, "clients")
+			if wgPeers == nil {
+				wgPeers = []any{}
+			}
+			settings["peers"] = wgPeers
+			mutated = true
+		} else {
+			_, hadClients := settings["clients"]
+			mutated = hadClients || len(finalClients) > 0
+			if mutated {
+				settings["clients"] = finalClients
+			}
 		}
 
 		if inboundCanHostFallbacks(inbound) {

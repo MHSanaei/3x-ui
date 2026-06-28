@@ -222,6 +222,7 @@ export interface ApiTokenView {
 }
 
 export interface Client {
+  allowedIPs?: string[];
   auth?: string;
   comment: string;
   created_at?: number;
@@ -231,8 +232,12 @@ export interface Client {
   flow?: string;
   group?: string;
   id?: string;
+  keepAlive?: number;
   limitIp: number;
   password?: string;
+  preSharedKey?: string;
+  privateKey?: string;
+  publicKey?: string;
   reset: number;
   reverse?: ClientReverse | null;
   security: string;
@@ -250,6 +255,7 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  allowedIPs: string;
   auth: string;
   comment: string;
   createdAt: number;
@@ -259,8 +265,12 @@ export interface ClientRecord {
   flow: string;
   group: string;
   id: number;
+  keepAlive: number;
   limitIp: number;
   password: string;
+  preSharedKey: string;
+  privateKey: string;
+  publicKey: string;
   reset: number;
   reverse: unknown;
   security: string;

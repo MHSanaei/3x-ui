@@ -16,7 +16,7 @@ import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
 ]);
 
 interface ClientBulkAddModalProps {
