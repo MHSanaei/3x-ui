@@ -1,0 +1,27 @@
+---
+- name: Install 3x-ui
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    xui_install_script_url: https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh
+
+  tasks:
+    - name: Install runtime prerequisites
+      ansible.builtin.package:
+        name:
+          - curl
+          - ca-certificates
+        state: present
+
+    - name: Download the installer
+      ansible.builtin.get_url:
+        url: "{{ xui_install_script_url }}"
+        dest: /tmp/3x-ui-install.sh
+        mode: "0755"
+
+    - name: Run the installer non-interactively
+      ansible.builtin.command: /bin/bash /tmp/3x-ui-install.sh
+      environment:
+        XUI_NONINTERACTIVE: "1"
