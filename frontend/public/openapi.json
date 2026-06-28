@@ -5596,12 +5596,14 @@
                   {
                     "kind": "link",
                     "value": "vless://uuid@host:443?...#srv",
-                    "remark": "DE"
+                    "remark": "DE",
+                    "enable": true
                   },
                   {
                     "kind": "subscription",
                     "value": "https://provider.example/sub/abc",
-                    "remark": "Provider"
+                    "remark": "Provider",
+                    "enable": false
                   }
                 ]
               }

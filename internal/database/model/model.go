@@ -710,6 +710,7 @@ type ClientExternalLink struct {
 	Kind      string `json:"kind" gorm:"column:kind"`
 	Value     string `json:"value" gorm:"column:value"`
 	Remark    string `json:"remark" gorm:"column:remark"`
+	Enable    *bool  `json:"enable" gorm:"column:enable;default:true"`
 	SortIndex int    `json:"sortIndex" gorm:"column:sort_index"`
 	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }

@@ -634,9 +634,9 @@ export const sections: readonly Section[] = [
         summary: 'Replace a client\'s external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
-          { name: 'externalLinks', in: 'body (json)', type: 'object[]', desc: 'Rows of { kind: "link" | "subscription", value, remark }. kind=link must be a share link; kind=subscription must be an http(s) URL.' },
+          { name: 'externalLinks', in: 'body (json)', type: 'object[]', desc: 'Rows of { kind: "link" | "subscription", value, remark, enable }. kind=link must be a share link; kind=subscription must be an http(s) URL. enable defaults to true; disabled rows are kept but omitted from generated subscriptions.' },
         ],
-        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE" },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider" }\n  ]\n}',
+        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false }\n  ]\n}',
         response: '{\n  "success": true\n}',
       },
       {

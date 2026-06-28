@@ -76,6 +76,114 @@
   line-height: 18px;
 }
 
+.client-form-modal .ant-modal-footer {
+  margin-top: 18px;
+}
+
+.client-form-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.client-form-footer-actions {
+  display: flex;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.client-inbounds-field {
+  margin-bottom: 24px;
+}
+
+.client-inbounds-field .ant-form-item-control-input-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.client-inbounds-field .ant-form-item-control-input-content > div:first-child {
+  margin-bottom: 0 !important;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selector {
+  align-items: flex-start;
+  min-height: 40px;
+  height: auto;
+  padding: 8px 40px 8px 10px;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-overflow {
+  column-gap: 10px;
+  row-gap: 8px;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-item {
+  max-width: 100%;
+  margin: 0;
+  padding-inline: 9px 7px;
+}
+
+.client-inbounds-field .ant-select-multiple .ant-select-selection-item-content {
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.external-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.external-link-row .ant-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.external-link-enable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 78px;
+  color: var(--ant-color-text-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .client-form-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .client-form-footer > .ant-btn,
+  .client-form-footer-actions {
+    width: 100%;
+  }
+
+  .client-form-footer-actions {
+    margin-inline-start: 0;
+  }
+
+  .client-form-footer-actions .ant-btn {
+    flex: 1;
+  }
+
+  .external-link-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .external-link-enable {
+    width: 100%;
+  }
+
+  .external-link-row .ant-input {
+    flex-basis: calc(100% - 44px);
+  }
+}
+
 .card-toolbar {
   display: flex;
   align-items: center;

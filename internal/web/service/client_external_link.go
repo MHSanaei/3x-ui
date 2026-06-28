@@ -17,6 +17,7 @@ type ExternalLinkInput struct {
 	Kind   string `json:"kind"`
 	Value  string `json:"value"`
 	Remark string `json:"remark"`
+	Enable *bool  `json:"enable"`
 }
 
 func (s *ClientService) GetExternalLinksForRecord(id int) ([]model.ClientExternalLink, error) {
@@ -55,10 +56,15 @@ func normalizeExternalLinks(inputs []ExternalLinkInput) ([]model.ClientExternalL
 		default:
 			return nil, common.NewError("unknown external link kind: " + kind)
 		}
+		enable := true
+		if in.Enable != nil {
+			enable = *in.Enable
+		}
 		out = append(out, model.ClientExternalLink{
 			Kind:      kind,
 			Value:     value,
 			Remark:    strings.TrimSpace(in.Remark),
+			Enable:    &enable,
 			SortIndex: len(out),
 		})
 	}
