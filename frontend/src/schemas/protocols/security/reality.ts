@@ -55,12 +55,12 @@ export const RealityStreamSettingsSchema = z.preprocess(
   z.object({
     show: z.boolean().default(false),
     xver: z.number().int().min(0).default(0),
-    target: z.string().default(''),
-    serverNames: z.array(z.string()).default([]),
+    target: z.string().default('www.samsung.com:443'),
+    serverNames: z.array(z.string()).default(['www.samsung.com']),
     privateKey: z.string().default(''),
     minClientVer: z.string().default(''),
     maxClientVer: z.string().default(''),
-    maxTimediff: z.number().int().min(0).default(0),
+    maxTimediff: z.number().int().min(0).default(60000),
     shortIds: z.array(z.string()).default([]),
     mldsa65Seed: z.string().default(''),
     // Server-side TLS master-key log path (xray-core reality.Config). Optional

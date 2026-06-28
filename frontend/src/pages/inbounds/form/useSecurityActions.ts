@@ -263,8 +263,8 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId, setSca
     }
     if (next === 'reality') {
       const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;
-      reality.target = '';
-      reality.serverNames = [];
+      reality.target = 'www.samsung.com:443';
+      reality.serverNames = ['www.samsung.com'];
       reality.shortIds = RandomUtil.randomShortIds().split(',').map((s) => s.trim()).filter(Boolean);
       cleaned.realitySettings = reality;
     }

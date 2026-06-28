@@ -21,6 +21,7 @@ export const InboundDbFieldsSchema = z.object({
   up: z.number().int().min(0).default(0),
   down: z.number().int().min(0).default(0),
   total: z.number().int().min(0).default(0),
+  speedLimit: z.number().int().min(0).default(0),
   trafficReset: TrafficResetSchema.default('never'),
   lastTrafficResetTime: z.number().int().default(0),
   nodeId: z.number().int().nullable().optional(),

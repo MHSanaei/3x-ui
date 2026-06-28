@@ -107,6 +107,7 @@ interface FormState {
   delayedDays: number;
   reset: number;
   limitIp: number;
+  speedLimit: number;
   tgId: number;
   group: string;
   comment: string;
@@ -131,6 +132,7 @@ function emptyForm(): FormState {
     delayedDays: 0,
     reset: 0,
     limitIp: 0,
+    speedLimit: 0,
     tgId: 0,
     group: '',
     comment: '',
@@ -231,6 +233,7 @@ export default function ClientFormModal({
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
+        speedLimit: client.speedLimit || 0,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -417,6 +420,7 @@ export default function ClientFormModal({
       delayedDays: form.delayedDays,
       reset: form.reset,
       limitIp: form.limitIp,
+      speedLimit: form.speedLimit,
       tgId: form.tgId,
       group: form.group,
       comment: form.comment,
@@ -443,6 +447,7 @@ export default function ClientFormModal({
       expiryTime,
       reset: Number(form.reset) || 0,
       limitIp: Number(form.limitIp) || 0,
+      speedLimit: Number(form.speedLimit) || 0,
       tgId: Number(form.tgId) || 0,
       group: form.group,
       comment: form.comment,
@@ -546,13 +551,19 @@ export default function ClientFormModal({
                           </Space.Compact>
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={6}>
+                      <Col xs={24} md={4}>
                         <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
                           <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
                             onChange={(v) => update('totalGB', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={6}>
+                      <Col xs={24} md={4}>
+                        <Form.Item label={t('pages.clients.speedLimit')} tooltip={t('pages.clients.speedLimitDesc')}>
+                          <InputNumber value={form.speedLimit} min={0} step={1} style={{ width: '100%' }}
+                            onChange={(v) => update('speedLimit', Number(v) || 0)} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={4}>
                         <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
                           <Tooltip title={limitIpNotice || undefined}>
                             <span style={{ display: 'flex', width: '100%' }}>

@@ -782,6 +782,8 @@
       "addClients": "Añadir clientes",
       "limitIp": "Límite de IP",
       "limitIpDesc": "Máximo de IP simultáneas. 0 = ilimitado.",
+      "speedLimit": "Límite de velocidad (Mbps)",
+      "speedLimitDesc": "Límite de ancho de banda por cliente en Mbps. 0 = ilimitado.",
       "limitIpFail2banMissing": "Fail2ban no está instalado, por lo que no se puede aplicar el límite de IP. Instala Fail2ban desde el menú bash de x-ui para habilitar esta opción.",
       "limitIpFail2banWindows": "Fail2ban no está disponible en Windows, por lo que no se puede aplicar el límite de IP.",
       "limitIpDisabled": "La función de límite de IP está deshabilitada en este servidor.",

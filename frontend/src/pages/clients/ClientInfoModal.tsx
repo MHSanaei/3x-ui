@@ -284,6 +284,10 @@ export default function ClientInfoModal({
                   <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
                 </tr>
                 <tr>
+                  <td>{t('pages.clients.speedLimit')}</td>
+                  <td>{!client.speedLimit ? <Tag>∞</Tag> : <Tag>{client.speedLimit} Mbps</Tag>}</td>
+                </tr>
+                <tr>
                   <td>{t('pages.inbounds.IPLimitlog')}</td>
                   <td>
                     <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>

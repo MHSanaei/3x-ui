@@ -41,6 +41,7 @@ function emptyForm(): FormState {
     group: '',
     comment: '',
     flow: '',
+    speedLimit: 0,
     limitIp: 0,
     totalGB: 0,
     expiryTime: 0,
@@ -174,6 +175,7 @@ export default function ClientBulkAddModal({
           expiryTime: form.expiryTime,
           reset: Number(form.reset) || 0,
           limitIp: Number(form.limitIp) || 0,
+          speedLimit: Number(form.speedLimit) || 0,
           group: form.group,
           comment: form.comment,
           enable: true,
@@ -326,6 +328,10 @@ export default function ClientBulkAddModal({
 
           <Form.Item label={t('pages.clients.totalGB')}>
             <InputNumber value={form.totalGB} min={0} step={1} onChange={(v) => update('totalGB', Number(v) || 0)} />
+          </Form.Item>
+
+          <Form.Item label={t('pages.clients.speedLimit')} tooltip={t('pages.clients.speedLimitDesc')}>
+            <InputNumber value={form.speedLimit} min={0} step={1} onChange={(v) => update('speedLimit', Number(v) || 0)} />
           </Form.Item>
 
           <Form.Item label={t('pages.clients.delayedStart')}>

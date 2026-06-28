@@ -782,6 +782,8 @@
       "addClients": "Thêm khách hàng",
       "limitIp": "Giới hạn IP",
       "limitIpDesc": "Số IP đồng thời tối đa. 0 = không giới hạn.",
+      "speedLimit": "Giới hạn tốc độ (Mbps)",
+      "speedLimitDesc": "Giới hạn băng thông mỗi client (Mbps). 0 = không giới hạn.",
       "limitIpFail2banMissing": "Fail2ban chưa được cài đặt nên không thể áp dụng giới hạn IP. Hãy cài đặt Fail2ban từ menu bash x-ui để bật tùy chọn này.",
       "limitIpFail2banWindows": "Fail2ban không khả dụng trên Windows nên không thể áp dụng giới hạn IP.",
       "limitIpDisabled": "Tính năng giới hạn IP đã bị tắt trên máy chủ này.",

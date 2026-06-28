@@ -782,6 +782,8 @@
       "addClients": "Kullanıcı Ekle",
       "limitIp": "IP Limiti",
       "limitIpDesc": "Eş zamanlı en fazla IP sayısı. 0 = sınırsız.",
+      "speedLimit": "Hız Sınırı (Mbps)",
+      "speedLimitDesc": "İstemci başına bant genişliği sınırı (Mbps). 0 = sınırsız.",
       "limitIpFail2banMissing": "Fail2ban yüklü değil, bu nedenle IP sınırı uygulanamaz. Bu seçeneği etkinleştirmek için x-ui bash menüsünden Fail2ban'ı yükleyin.",
       "limitIpFail2banWindows": "Fail2ban Windows'ta kullanılamadığından IP sınırı uygulanamaz.",
       "limitIpDisabled": "IP sınırı özelliği bu sunucuda devre dışı.",

@@ -25,16 +25,21 @@ const (
 )
 
 var defaultRealityScanCandidates = []string{
-	"www.cloudflare.com:443",
-	"www.microsoft.com:443",
-	"www.amazon.com:443",
-	"aws.amazon.com:443",
 	"www.samsung.com:443",
+	"www.microsoft.com:443",
 	"www.nvidia.com:443",
 	"www.amd.com:443",
 	"www.intel.com:443",
 	"www.sony.com:443",
 	"dl.google.com:443",
+	"www.amazon.com:443",
+	"aws.amazon.com:443",
+	"www.cloudflare.com:443",
+	"www.mozilla.org:443",
+	"www.yahoo.com:443",
+	"www.fujitsu.com:443",
+	"www.ibm.com:443",
+	"support.lenovo.com:443",
 }
 
 type RealityScanResult struct {

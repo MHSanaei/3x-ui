@@ -24,6 +24,8 @@ import {
 } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
+import { applyInboundPreset, INBOUND_PRESETS, type InboundPresetKey } from '@/lib/xray/inbound-presets';
+import { lintInboundConfig } from '@/lib/xray/inbound-lint';
 import {
   canEnableReality,
   canEnableSniffing,
@@ -149,11 +151,11 @@ function buildAddModeValues(): InboundFormValues {
     settings,
     streamSettings: {
       network: 'tcp',
-      security: 'none',
+      security: 'reality',
       tcpSettings: TcpStreamSettingsSchema.parse({ header: { type: 'none' } }),
     },
     sniffing: SniffingSchema.parse({}),
-    port: RandomUtil.randomInteger(10000, 60000),
+    port: 443,
     listen: '',
     tag: '',
     enable: true,
@@ -466,6 +468,23 @@ export default function InboundFormModal({
         }
       }
     }
+  };
+
+  const onPresetChange = (preset: InboundPresetKey) => {
+    if (preset === 'iran-udp-fast' && mode === 'edit' && protocol !== Protocols.HYSTERIA) {
+      messageApi.warning('This preset requires a Hysteria inbound. Create a new Hysteria inbound to apply it safely.');
+      return;
+    }
+    if ((preset === 'iran-tcp-resilient' || preset === 'iran-http-like') && mode === 'edit' && protocol !== Protocols.VLESS) {
+      messageApi.warning('This preset is intended for VLESS inbounds. Create a new VLESS inbound to apply it safely.');
+      return;
+    }
+    if (mode === 'add') {
+      const nextProtocol = preset === 'iran-udp-fast' ? Protocols.HYSTERIA : Protocols.VLESS;
+      form.setFieldValue('protocol', nextProtocol);
+      form.setFieldValue('settings', createDefaultInboundSettings(nextProtocol) ?? undefined);
+    }
+    applyInboundPreset(form, preset);
   };
 
   const submit = async () => {
@@ -783,6 +802,21 @@ export default function InboundFormModal({
 
   const streamTab = (
     <>
+      <Form.Item
+        label="Preset bundle"
+        tooltip="Applies a complete transport/security bundle without hiding the underlying fields."
+      >
+        <Select
+          placeholder="Choose a hardening preset"
+          options={INBOUND_PRESETS.map((preset) => ({
+            value: preset.key,
+            label: preset.label,
+            title: preset.description,
+          }))}
+          onChange={onPresetChange}
+        />
+      </Form.Item>
+
       {hasSelectableTransport && (
         <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
           <Select
@@ -1004,6 +1038,28 @@ export default function InboundFormModal({
 
   const sniffingTab = <SniffingTab />;
 
+  const lintPanel = (
+    <Form.Item shouldUpdate noStyle>
+      {({ getFieldsValue }) => {
+        const issues = lintInboundConfig(getFieldsValue(true) as Partial<InboundFormValues>);
+        if (issues.length === 0) return null;
+        return (
+          <Alert
+            className="mt-12"
+            type={issues.some((issue) => issue.level === 'error') ? 'error' : 'warning'}
+            showIcon
+            title="Configuration warnings"
+            description={(
+              <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                {issues.map((issue) => <li key={issue.key}>{issue.message}</li>)}
+              </ul>
+            )}
+          />
+        );
+      }}
+    </Form.Item>
+  );
+
   return (
     <>
       {messageContextHolder}
@@ -1027,6 +1083,7 @@ export default function InboundFormModal({
           labelWrap
           onValuesChange={onValuesChange}
         >
+          {lintPanel}
           <Tabs items={[
             // forceRender on every tab so all Form.Items register at modal
             // open, not lazily on first visit. Without it, AntD's items API

@@ -782,6 +782,8 @@
       "addClients": "افزودن کلاینت‌ها",
       "limitIp": "محدودیت IP",
       "limitIpDesc": "حداکثر تعداد IP همزمان. ۰ = نامحدود",
+      "speedLimit": "محدودیت سرعت (Mbps)",
+      "speedLimitDesc": "محدودیت پهنای باند کلاینت برحسب Mbps. ۰ = نامحدود",
       "limitIpFail2banMissing": "Fail2ban نصب نشده است، بنابراین محدودیت IP اعمال نمی‌شود. برای فعال‌سازی این گزینه، Fail2ban را از منوی بش x-ui نصب کنید.",
       "limitIpFail2banWindows": "Fail2ban روی ویندوز در دسترس نیست، بنابراین محدودیت IP قابل اعمال نیست.",
       "limitIpDisabled": "قابلیت محدودیت IP روی این سرور غیرفعال است.",

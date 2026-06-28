@@ -117,7 +117,7 @@ exports[`createDefaultVlessClient > produces a Zod-valid client 1`] = `
   "email": "fixture@example.test",
   "enable": true,
   "expiryTime": 0,
-  "flow": "",
+  "flow": "xtls-rprx-vision",
   "id": "11111111-2222-4333-8444-555555555555",
   "limitIp": 0,
   "reset": 0,

@@ -4,7 +4,7 @@ export const SniffingDestSchema = z.enum(['http', 'tls', 'quic', 'fakedns']);
 export type SniffingDest = z.infer<typeof SniffingDestSchema>;
 
 export const SniffingSchema = z.object({
-  enabled: z.boolean().default(false),
+  enabled: z.boolean().default(true),
   destOverride: z
     .array(SniffingDestSchema)
     .default(['http', 'tls', 'quic', 'fakedns']),

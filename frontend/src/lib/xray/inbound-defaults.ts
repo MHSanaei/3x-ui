@@ -67,7 +67,7 @@ export interface VlessClientSeed extends ClientBaseSeed {
 export function createDefaultVlessClient(seed: VlessClientSeed = {}): VlessClient {
   return {
     id: seed.id ?? RandomUtil.randomUUID(),
-    flow: seed.flow ?? '',
+    flow: seed.flow ?? 'xtls-rprx-vision',
     ...clientBase(seed),
   };
 }

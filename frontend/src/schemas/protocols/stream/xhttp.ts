@@ -57,7 +57,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(migrateLegacyXhttp, z.obje
   host: z.string().default(''),
   mode: XHttpModeSchema.default('auto'),
   xPaddingBytes: z.string().default('100-1000'),
-  xPaddingObfsMode: z.boolean().default(false),
+  xPaddingObfsMode: z.boolean().default(true),
   xPaddingKey: z.string().default(''),
   xPaddingHeader: z.string().default(''),
   xPaddingPlacement: z.string().default(''),
@@ -77,7 +77,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(migrateLegacyXhttp, z.obje
   // baking the literal values into every config and share link gives DPI a
   // stable fingerprint (#5141 — TSPU keys on scMinPostsIntervalMs=30).
   scMaxEachPostBytes: z.string().default(''),
-  noSSEHeader: z.boolean().default(false),
+  noSSEHeader: z.boolean().default(true),
   scMaxBufferedPosts: z.number().int().min(0).default(30),
   scStreamUpServerSecs: z.string().default('20-80'),
   serverMaxHeaderBytes: z.number().int().min(0).default(0),

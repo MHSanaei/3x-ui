@@ -205,6 +205,14 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			}
+			effectiveSpeedLimit := c.SpeedLimit
+			if effectiveSpeedLimit <= 0 && inbound.SpeedLimit > 0 {
+				effectiveSpeedLimit = inbound.SpeedLimit
+			}
+			if effectiveSpeedLimit > 0 {
+				entry["downlinkMbps"] = effectiveSpeedLimit
+				entry["uplinkMbps"] = effectiveSpeedLimit
+			}
 			finalClients = append(finalClients, entry)
 		}
 

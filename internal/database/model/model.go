@@ -53,6 +53,7 @@ type Inbound struct {
 	SubSortIndex         int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty,gte=1" example:"1"`                                                                     // 1-based sort order of this inbound's links in subscription output only (lower first; ties by id)
 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
+	SpeedLimit           int                  `json:"speedLimit" form:"speedLimit" gorm:"column:speed_limit;default:0"`                                                                                             // Per-inbound speed limit in Mbps (0 = unlimited, applied to clients without their own limit)
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
@@ -608,6 +609,7 @@ type Client struct {
 	Group      string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment    string         `json:"comment" form:"comment"`       // Client comment
 	Reset      int            `json:"reset" form:"reset"`           // Reset period in days
+	SpeedLimit int            `json:"speedLimit" form:"speedLimit"` // Per-client speed limit in Mbps (0 = unlimited)
 	CreatedAt  int64          `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64          `json:"updated_at,omitempty"`         // Last update timestamp
 }
@@ -625,6 +627,7 @@ type ClientRecord struct {
 	LimitIP    int    `json:"limitIp" gorm:"column:limit_ip"`
 	TotalGB    int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	SpeedLimit int    `json:"speedLimit" gorm:"column:speed_limit;default:0"`
 	Enable     bool   `json:"enable" gorm:"default:true"`
 	TgID       int64  `json:"tgId" gorm:"column:tg_id"`
 	Group      string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
@@ -792,6 +795,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		LimitIP:    c.LimitIP,
 		TotalGB:    c.TotalGB,
 		ExpiryTime: c.ExpiryTime,
+		SpeedLimit: c.SpeedLimit,
 		Enable:     c.Enable,
 		TgID:       c.TgID,
 		Group:      c.Group,
@@ -820,6 +824,7 @@ func (r *ClientRecord) ToClient() *Client {
 		LimitIP:    r.LimitIP,
 		TotalGB:    r.TotalGB,
 		ExpiryTime: r.ExpiryTime,
+		SpeedLimit: r.SpeedLimit,
 		Enable:     r.Enable,
 		TgID:       r.TgID,
 		Group:      r.Group,

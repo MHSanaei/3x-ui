@@ -782,6 +782,8 @@
       "addClients": "新增客戶端",
       "limitIp": "IP 限制",
       "limitIpDesc": "最大同時連線 IP 數。0 = 不限制。",
+      "speedLimit": "速度限制 (Mbps)",
+      "speedLimitDesc": "每個用戶端的頻寬上限 (Mbps)。0 = 不限制。",
       "limitIpFail2banMissing": "未安裝 Fail2ban，無法實施 IP 限制。請從 x-ui 命令列選單安裝 Fail2ban 以啟用此選項。",
       "limitIpFail2banWindows": "Windows 上不支援 Fail2ban，無法實施 IP 限制。",
       "limitIpDisabled": "此伺服器已停用 IP 限制功能。",
