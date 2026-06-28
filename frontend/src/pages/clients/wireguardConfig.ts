@@ -1,4 +1,5 @@
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { preferPublicHost } from '@/lib/xray/inbound-link';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 export function isWireguardClient(client: ClientRecord | null | undefined): boolean {
@@ -19,9 +20,11 @@ export function buildWireguardClientConfig(
   client: ClientRecord,
   inbound: InboundOption | undefined,
   host = window.location.hostname,
+  publicHost = '',
 ): string {
+  const endpointHost = preferPublicHost(host, publicHost);
   const address = client.allowedIPs || '10.0.0.2/32';
-  const endpoint = `${host}:${inbound?.port || ''}`;
+  const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email, client.comment].filter(Boolean).join(' - ');
   const lines = [

@@ -428,6 +428,8 @@ export const InboundOptionSchema = z.object({
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
+  wgMtu: z.number().int().optional(),
+  wgPublicKey: z.string().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 

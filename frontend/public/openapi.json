@@ -1854,6 +1854,12 @@
           "tlsFlowCapable": {
             "example": true,
             "type": "boolean"
+          },
+          "wgMtu": {
+            "type": "integer"
+          },
+          "wgPublicKey": {
+            "type": "string"
           }
         },
         "required": [
@@ -2751,7 +2757,9 @@
                       "remark": "VLESS-443",
                       "ssMethod": "",
                       "tag": "in-443-tcp",
-                      "tlsFlowCapable": true
+                      "tlsFlowCapable": true,
+                      "wgMtu": 0,
+                      "wgPublicKey": ""
                     }
                   ]
                 }

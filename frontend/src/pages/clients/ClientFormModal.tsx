@@ -81,6 +81,7 @@ interface ClientFormModalProps {
   mode: Mode;
   client: ClientRecord | null;
   inbounds: InboundOption[];
+  publicHost?: string;
   attachedExternalLinks?: ExternalLink[];
   attachedIds?: number[];
   tgBotEnable?: boolean;
@@ -173,6 +174,7 @@ export default function ClientFormModal({
   mode,
   client,
   inbounds,
+  publicHost = '',
   attachedExternalLinks = [],
   attachedIds = [],
   tgBotEnable = false,
@@ -363,8 +365,8 @@ export default function ClientFormModal({
       allowedIPs: form.wgAllowedIPs || '10.0.0.2/32',
       preSharedKey: form.wgPreSharedKey,
       inboundIds: form.inboundIds,
-    } as ClientRecord, wgInbound);
-  }, [showWireguard, form.email, form.comment, form.wgPrivateKey, form.wgPublicKey, form.wgAllowedIPs, form.wgPreSharedKey, form.inboundIds, wgInbound]);
+    } as ClientRecord, wgInbound, window.location.hostname, publicHost);
+  }, [showWireguard, form.email, form.comment, form.wgPrivateKey, form.wgPublicKey, form.wgAllowedIPs, form.wgPreSharedKey, form.inboundIds, wgInbound, publicHost]);
 
   function regenerateWireguardKeys() {
     const kp = Wireguard.generateKeypair();
@@ -886,7 +888,7 @@ export default function ClientFormModal({
               },
               ...(showWireguard ? [{
                 key: 'wg-config',
-                label: 'WireGuard config',
+                label: t('pages.clients.wireguardConfig'),
                 children: (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>

@@ -36,6 +36,7 @@ interface SubSettings {
   subJsonEnable: boolean;
   subClashURI: string;
   subClashEnable: boolean;
+  publicHost?: string;
 }
 
 interface ClientInfoModalProps {
@@ -59,6 +60,7 @@ const DEFAULT_SUB: SubSettings = {
   subJsonEnable: false,
   subClashURI: '',
   subClashEnable: false,
+  publicHost: '',
 };
 
 export default function ClientInfoModal({
@@ -136,8 +138,8 @@ export default function ClientInfoModal({
   const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
   const wgConfigText = useMemo(() => {
     if (!client || !isWireguardClient(client)) return '';
-    return buildWireguardClientConfig(client, wgInbound);
-  }, [client, wgInbound]);
+    return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, wgInbound, subSettings?.publicHost]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -358,9 +360,9 @@ export default function ClientInfoModal({
 
             {wgConfigText && client && (
               <>
-                <Divider>WireGuard config</Divider>
+                <Divider>{t('pages.clients.wireguardConfig')}</Divider>
                 <div className="link-row" style={{ alignItems: 'flex-start' }}>
-                  <Tag color="gold" className="link-row-tag" style={{ marginTop: 2 }}>CONF</Tag>
+                  <Tag color="gold" className="link-row-tag" style={{ marginTop: 2 }}>{t('pages.clients.conf')}</Tag>
                   <span className="link-row-title link-row-title--wrap">{wgConfigText}</span>
                   <div className="link-row-actions" style={{ marginTop: 2 }}>
                     <Tooltip title={t('copy')}>

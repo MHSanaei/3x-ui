@@ -13,6 +13,7 @@ interface SubSettings {
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  publicHost?: string;
 }
 
 interface ClientQrModalProps {
@@ -28,7 +29,7 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false };
+const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false, publicHost: '' };
 
 export default function ClientQrModal({
   open,
@@ -55,8 +56,8 @@ export default function ClientQrModal({
   const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
   const wgConfigText = useMemo(() => {
     if (!client || !isWireguardClient(client)) return '';
-    return buildWireguardClientConfig(client, wgInbound);
-  }, [client, wgInbound]);
+    return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, wgInbound, subSettings?.publicHost]);
 
   const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
 
@@ -89,7 +90,7 @@ export default function ClientQrModal({
     if (wgConfigText) {
       out.push({
         key: 'wg-config',
-        label: 'WireGuard config',
+        label: t('pages.clients.wireguardConfig'),
         children: (
           <QrPanel
             value={wgConfigText}

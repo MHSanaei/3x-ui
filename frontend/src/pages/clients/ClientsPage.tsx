@@ -1438,6 +1438,7 @@ export default function ClientsPage() {
             attachedIds={editingAttachedIds}
             attachedExternalLinks={editingExternalLinks}
             inbounds={inbounds}
+            publicHost={subSettings.publicHost}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
             save={onSave}

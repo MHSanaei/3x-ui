@@ -71,7 +71,6 @@ export function useInboundColumns({
         depleted: [],
         expiring: [],
         online: [],
-        comments: new Map(),
       };
     };
 
