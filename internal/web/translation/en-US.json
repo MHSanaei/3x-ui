@@ -110,6 +110,7 @@
     "groups": "Groups",
     "nodes": "Nodes",
     "hosts": "Hosts",
+    "links": "Links",
     "settings": "Panel Settings",
     "xray": "Xray Configs",
     "routing": "Routing",
@@ -718,6 +719,7 @@
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
       "tabLinks": "Links",
+      "externalLinksAndSubscriptions": "External Links and Subscriptions",
       "linksHint": "Add third-party share links and remote subscription URLs to include in this client's subscription.",
       "addExternalLink": "Add External Link",
       "addExternalSubscription": "Add External Subscription",
@@ -960,6 +962,48 @@
       "removeFromGroupTitle": "Remove clients from group \"{name}\"",
       "removeFromGroupDesc": "Select members to remove from this group. Clients themselves are kept (use \"Delete clients in group\" to remove them entirely).",
       "removeFromGroupResult": "Removed {count} client(s) from {name}."
+    },
+    "links": {
+      "addLink": "Add Link",
+      "editLink": "Edit Link",
+      "assign": "Assign",
+      "assignTitle": "Assign {count} link(s)",
+      "assignClients": "Clients",
+      "selectClients": "Select clients",
+      "attachExistingTitle": "Attach existing clients to \"{remark}\"",
+      "attachExistingDesc": "Attaches existing clients ({count} available) to this link - entries already on a client are skipped.",
+      "selectedCount": "{count} selected",
+      "summary": {
+        "total": "Total",
+        "enabled": "Enabled",
+        "subscriptions": "Subscriptions"
+      },
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "bulkEnable": "Enable",
+      "bulkDisable": "Disable",
+      "bulkDelete": "Delete",
+      "bulkDeleteConfirm": "Delete {count} selected link(s)?",
+      "deleteConfirmTitle": "Delete link \"{name}\"?",
+      "kind": {
+        "link": "External link",
+        "subscription": "External subscription"
+      },
+      "fields": {
+        "actions": "Actions",
+        "enable": "Enable",
+        "remark": "Remark",
+        "kind": "Type",
+        "value": "Value"
+      },
+      "toasts": {
+        "list": "Failed to load links",
+        "add": "Link added",
+        "update": "Link updated",
+        "delete": "Link deleted",
+        "assign": "Links assigned",
+        "assignResult": "{attached} attached, {skipped} skipped"
+      }
     },
     "hosts": {
       "addHost": "Add Host",
