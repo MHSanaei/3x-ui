@@ -46,6 +46,7 @@ interface ExternalLinkRow {
   key: number;
   kind: 'link' | 'subscription';
   value: string;
+  enable: boolean;
 }
 
 interface ApiMsg<T = unknown> {
@@ -146,6 +147,7 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
     key: (externalLinkRowSeq += 1),
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
+    enable: l.enable !== false,
   }));
 }
 
@@ -194,14 +196,21 @@ export default function ClientFormModal({
   function addExternalLinkRow(kind: 'link' | 'subscription') {
     setForm((prev) => ({
       ...prev,
-      externalLinks: [...prev.externalLinks, { key: (externalLinkRowSeq += 1), kind, value: '' }],
+      externalLinks: [...prev.externalLinks, { key: (externalLinkRowSeq += 1), kind, value: '', enable: true }],
     }));
   }
 
-  function updateExternalLinkRow(key: number, value: string) {
+  function updateExternalLinkRowValue(key: number, value: string) {
     setForm((prev) => ({
       ...prev,
       externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, value } : r)),
+    }));
+  }
+
+  function updateExternalLinkRowEnable(key: number, enable: boolean) {
+    setForm((prev) => ({
+      ...prev,
+      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, enable } : r)),
     }));
   }
 
@@ -454,7 +463,7 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = form.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
+      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '', enable: r.enable }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -755,10 +764,14 @@ export default function ClientFormModal({
                       {linkRows.length === 0 ? (
                         <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
                       ) : linkRows.map((row) => (
-                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <div key={row.key} className="external-link-row">
+                          <div className="external-link-enable">
+                            <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
+                            <span>{t('enable')}</span>
+                          </div>
                           <Input
                             value={row.value}
-                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
+                            onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
                             placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
                           />
                           <Tooltip title={t('delete')}>
@@ -775,10 +788,14 @@ export default function ClientFormModal({
                       {subscriptionRows.length === 0 ? (
                         <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
                       ) : subscriptionRows.map((row) => (
-                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <div key={row.key} className="external-link-row">
+                          <div className="external-link-enable">
+                            <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
+                            <span>{t('enable')}</span>
+                          </div>
                           <Input
                             value={row.value}
-                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
+                            onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
                             placeholder="https://provider.example/sub/…"
                           />
                           <Tooltip title={t('delete')}>

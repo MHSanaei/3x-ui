@@ -77,6 +77,7 @@ export const ExternalLinkSchema = z.object({
   kind: z.enum(['link', 'subscription']).default('link'),
   value: z.string(),
   remark: z.string().optional().default(''),
+  enable: z.preprocess((v) => (v == null ? true : v), z.boolean()).default(true),
 }).loose();
 
 export const ExternalLinkListSchema = z.array(ExternalLinkSchema).nullable().transform((v) => v ?? []);
