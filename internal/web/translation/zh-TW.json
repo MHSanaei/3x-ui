@@ -1216,6 +1216,8 @@
         "host": "LDAP host",
         "port": "LDAP 連接埠",
         "useTls": "使用 TLS (LDAPS)",
+        "skipTlsVerify": "略過 TLS 憑證驗證",
+        "skipTlsVerifyDesc": "不安全 — 停用伺服器憑證驗證。僅用於內部/不受信任的 CA。",
         "bindDn": "Bind DN",
         "passwordConfigured": "已設定;留空以保留目前密碼。",
         "passwordUnconfigured": "未設定。",

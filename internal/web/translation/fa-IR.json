@@ -1218,6 +1218,8 @@
         "host": "میزبان LDAP",
         "port": "پورت LDAP",
         "useTls": "استفاده از TLS (LDAPS)",
+        "skipTlsVerify": "رد کردن تأیید گواهی TLS",
+        "skipTlsVerifyDesc": "ناامن — اعتبارسنجی گواهی سرور را غیرفعال می‌کند. فقط برای CAهای داخلی/غیرمعتبر استفاده کنید.",
         "bindDn": "Bind DN",
         "passwordConfigured": "تنظیم‌شده؛ برای حفظ رمز فعلی خالی بگذارید.",
         "passwordUnconfigured": "تنظیم نشده.",

@@ -1216,6 +1216,8 @@
         "host": "LDAP host",
         "port": "Port LDAP",
         "useTls": "Gunakan TLS (LDAPS)",
+        "skipTlsVerify": "Lewati verifikasi sertifikat TLS",
+        "skipTlsVerifyDesc": "Tidak aman — menonaktifkan validasi sertifikat server. Gunakan hanya dengan CA internal/tidak terpercaya.",
         "bindDn": "Bind DN",
         "passwordConfigured": "Terkonfigurasi; biarkan kosong untuk mempertahankan kata sandi saat ini.",
         "passwordUnconfigured": "Tidak terkonfigurasi.",
