@@ -68,6 +68,7 @@ export class AllSetting {
   ldapHost = '';
   ldapPort = 389;
   ldapUseTLS = false;
+  ldapInsecureSkipVerify = false;
   ldapBindDN = '';
   ldapPassword = '';
   ldapBaseDN = '';
