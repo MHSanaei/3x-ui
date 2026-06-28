@@ -1005,8 +1005,31 @@ func normalizeClientJSONFields(obj map[string]any) {
 			delete(obj, key)
 		}
 	}
+	normalizeFloat := func(key string) {
+		raw, exists := obj[key]
+		if !exists {
+			return
+		}
+		s, ok := raw.(string)
+		if !ok {
+			return
+		}
+		trimmed := strings.ReplaceAll(strings.TrimSpace(s), " ", "")
+		if trimmed == "" {
+			delete(obj, key)
+			return
+		}
+		if n, err := strconv.ParseFloat(trimmed, 64); err == nil {
+			obj[key] = n
+		} else {
+			delete(obj, key)
+		}
+	}
 	for _, k := range []string{"tgId", "limitIp", "totalGB", "expiryTime", "reset", "created_at", "updated_at"} {
 		normalizeInt(k)
+	}
+	for _, k := range []string{"uploadSpeedLimit", "downloadSpeedLimit"} {
+		normalizeFloat(k)
 	}
 }
 

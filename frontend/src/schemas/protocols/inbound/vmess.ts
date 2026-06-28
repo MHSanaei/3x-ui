@@ -8,6 +8,8 @@ export const VmessClientSchema = z.object({
   alterId: z.number().int().min(0).default(0),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),
+  uploadSpeedLimit: z.number().min(0).default(0),
+  downloadSpeedLimit: z.number().min(0).default(0),
   totalGB: z.number().int().min(0).default(0),
   expiryTime: z.number().int().default(0),
   enable: z.boolean().default(true),

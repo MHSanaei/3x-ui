@@ -102,6 +102,8 @@ interface FormState {
   security: string;
   reverseTag: string;
   totalGB: number;
+  uploadSpeedLimit: number;
+  downloadSpeedLimit: number;
   expiryDate: Dayjs | null;
   delayedStart: boolean;
   delayedDays: number;
@@ -130,6 +132,8 @@ function emptyForm(): FormState {
     security: 'auto',
     reverseTag: '',
     totalGB: 0,
+    uploadSpeedLimit: 0,
+    downloadSpeedLimit: 0,
     expiryDate: null,
     delayedStart: false,
     delayedDays: 0,
@@ -237,6 +241,8 @@ export default function ClientFormModal({
         security: client.security || 'auto',
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
+        uploadSpeedLimit: Number(client.uploadSpeedLimit) || 0,
+        downloadSpeedLimit: Number(client.downloadSpeedLimit) || 0,
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
         tgId: Number(client.tgId) || 0,
@@ -446,6 +452,8 @@ export default function ClientFormModal({
       security: form.security,
       reverseTag: form.reverseTag,
       totalGB: form.totalGB,
+      uploadSpeedLimit: form.uploadSpeedLimit,
+      downloadSpeedLimit: form.downloadSpeedLimit,
       delayedStart: form.delayedStart,
       delayedDays: form.delayedDays,
       reset: form.reset,
@@ -473,6 +481,8 @@ export default function ClientFormModal({
       flow: showFlow ? (form.flow || '') : '',
       security: showSecurity ? (form.security || 'auto') : 'auto',
       totalGB: gbToBytes(form.totalGB),
+      uploadSpeedLimit: Number(form.uploadSpeedLimit) || 0,
+      downloadSpeedLimit: Number(form.downloadSpeedLimit) || 0,
       expiryTime,
       reset: Number(form.reset) || 0,
       limitIp: Number(form.limitIp) || 0,
@@ -611,6 +621,21 @@ export default function ClientFormModal({
                               </Space.Compact>
                             </span>
                           </Tooltip>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col xs={24} md={12}>
+                        <Form.Item label="Upload speed limit (Mbps)">
+                          <InputNumber value={form.uploadSpeedLimit} min={0} step={0.1} style={{ width: '100%' }}
+                            onChange={(v) => update('uploadSpeedLimit', Number(v) || 0)} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item label="Download speed limit (Mbps)">
+                          <InputNumber value={form.downloadSpeedLimit} min={0} step={0.1} style={{ width: '100%' }}
+                            onChange={(v) => update('downloadSpeedLimit', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
                     </Row>

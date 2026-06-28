@@ -7,6 +7,8 @@ export const HysteriaClientSchema = z.object({
   auth: z.string().min(1),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),
+  uploadSpeedLimit: z.number().min(0).default(0),
+  downloadSpeedLimit: z.number().min(0).default(0),
   totalGB: z.number().int().min(0).default(0),
   expiryTime: z.number().int().default(0),
   enable: z.boolean().default(true),

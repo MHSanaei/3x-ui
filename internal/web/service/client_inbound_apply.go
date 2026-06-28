@@ -401,6 +401,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 					needRestart = true
 					continue
 				}
+				applyClientTCLimit(client)
 				if !client.Enable {
 					continue
 				}
@@ -714,6 +715,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	// serialized writer so a slow node call can't stall traffic accounting.
 	if len(oldEmail) > 0 {
 		if oldInbound.NodeID == nil {
+			if !strings.EqualFold(oldEmail, clients[0].Email) {
+				removeClientTCLimit(oldEmail)
+			}
+			applyClientTCLimit(clients[0])
 			if !push {
 				needRestart = true
 			} else {
@@ -893,6 +898,9 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	// inbound's runtime even when the same email survives in another inbound.
 	if len(email) > 0 {
 		if oldInbound.NodeID == nil {
+			if !emailShared {
+				removeClientTCLimit(email)
+			}
 			// Local inbound: a disabled client isn't in the running Xray, so only
 			// a live one (needApiDel) needs an API removal.
 			if needApiDel {
