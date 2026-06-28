@@ -283,7 +283,7 @@ export default function ClientInfoModal({
                     )}
                     {wgConfigText && (
                       <tr>
-                        <td>Config</td>
+                        <td>{t('pages.clients.wg.config')}</td>
                         <td>
                           <Tooltip title={t('copy')}>
                             <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(wgConfigText)} />

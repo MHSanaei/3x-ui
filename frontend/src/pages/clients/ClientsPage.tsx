@@ -82,6 +82,28 @@ import './ClientsPage.css';
 
 const FILTER_STATE_KEY = 'clientsFilterState';
 const DISABLED_PAGE_SIZE = 200;
+const DEFAULT_WG_ALLOWED_IP = '10.0.0.2/32';
+
+function splitAllowedIp(value: string): { host: string; suffix: string } {
+  const [host, prefix] = value.split('/');
+  return {
+    host,
+    suffix: prefix ? `/${prefix}` : '/32',
+  };
+}
+
+function nextWgIpFromSeed(used: Set<string>, seed: string, suffix = '/32'): string {
+  const host = splitAllowedIp(seed).host;
+  const octets = host.split('.').map((part) => Number(part));
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return DEFAULT_WG_ALLOWED_IP;
+  }
+  for (let i = 2; i <= 254; i++) {
+    const candidate = `${octets[0]}.${octets[1]}.${octets[2]}.${i}`;
+    if (!used.has(candidate)) return `${candidate}${suffix}`;
+  }
+  return `${host}${suffix}`;
+}
 
 function UngroupIcon() {
   return (
@@ -333,37 +355,38 @@ export default function ClientsPage() {
 
   const getNextWgAllowedIp = useCallback((inboundId: number, excludeEmail?: string): string => {
     const used = new Set<string>();
+    let seed = DEFAULT_WG_ALLOWED_IP;
     for (const c of clients) {
       if (excludeEmail && c.email === excludeEmail) continue;
       if (!(c.inboundIds || []).includes(inboundId)) continue;
       for (const ip of c.wgPeer?.allowedIPs || []) {
-        used.add(ip.split('/')[0]);
+        const { host } = splitAllowedIp(ip);
+        if (host) {
+          used.add(host);
+          if (seed === DEFAULT_WG_ALLOWED_IP) seed = ip;
+        }
       }
     }
-    for (let i = 2; i <= 254; i++) {
-      const ip = `10.0.0.${i}`;
-      if (!used.has(ip)) return `${ip}/32`;
-    }
-    return '10.0.0.2/32';
+    return nextWgIpFromSeed(used, seed);
   }, [clients]);
 
   const resolveWgIp = useCallback((inboundId: number, candidateIp: string, excludeEmail?: string): string => {
-    const host = candidateIp.split('/')[0];
-    const suffix = candidateIp.includes('/') ? `/${candidateIp.split('/')[1]}` : '/32';
+    const { host, suffix } = splitAllowedIp(candidateIp);
     const used = new Set<string>();
+    let seed = candidateIp || DEFAULT_WG_ALLOWED_IP;
     for (const c of clients) {
       if (excludeEmail && c.email === excludeEmail) continue;
       if (!(c.inboundIds || []).includes(inboundId)) continue;
       for (const ip of c.wgPeer?.allowedIPs || []) {
-        used.add(ip.split('/')[0]);
+        const existing = splitAllowedIp(ip).host;
+        if (existing) {
+          used.add(existing);
+          if (!candidateIp && seed === DEFAULT_WG_ALLOWED_IP) seed = ip;
+        }
       }
     }
     if (!used.has(host)) return candidateIp;
-    for (let i = 2; i <= 254; i++) {
-      const candidate = `10.0.0.${i}`;
-      if (!used.has(candidate)) return `${candidate}${suffix}`;
-    }
-    return candidateIp;
+    return nextWgIpFromSeed(used, seed, suffix);
   }, [clients]);
 
   const protocolOptions = useMemo(() => {

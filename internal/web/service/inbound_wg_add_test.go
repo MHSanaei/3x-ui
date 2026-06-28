@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -164,5 +165,149 @@ func TestOrphanWireGuardClientCannotAttachToWireGuardInbound(t *testing.T) {
 	_, err = (&ClientService{}).Attach(inboundSvc, rec.Id, []int{created.Id})
 	if err == nil || !strings.Contains(err.Error(), "cannot be reassigned") {
 		t.Fatalf("Attach error = %v, want orphan-WG guard", err)
+	}
+}
+
+func TestWireGuardReconcileKeepsDisabledPeerAttached(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	created, _, err := inboundSvc.AddInbound(&model.Inbound{
+		Remark:   "wg-disabled",
+		Enable:   false,
+		Port:     32128,
+		Protocol: model.WireGuard,
+		Settings: `{"secretKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","peers":[]}`,
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+
+	rec := (&model.Client{
+		Email:    "disabled-wg",
+		Password: "peer-private",
+		Enable:   true,
+		WgPeer:   &model.WgPeerSettings{PublicKey: "peer-public", AllowedIPs: []string{"10.0.0.2/32"}},
+	}).ToRecord()
+	if _, err := clientSvc.AddWgClient(inboundSvc, created.Id, rec); err != nil {
+		t.Fatalf("AddWgClient: %v", err)
+	}
+	disabled := *rec
+	disabled.Enable = false
+	if _, err := clientSvc.UpdateWgClient(inboundSvc, created.Id, rec.Email, &disabled); err != nil {
+		t.Fatalf("UpdateWgClient disable: %v", err)
+	}
+
+	inboundSvc.ReconcileWgPeers()
+
+	var link model.ClientInbound
+	if err := database.GetDB().
+		Where("client_id = ? AND inbound_id = ?", rec.Id, created.Id).
+		First(&link).Error; err != nil {
+		t.Fatalf("disabled WG link was removed: %v", err)
+	}
+}
+
+func TestWireGuardReconcilePreservesClientComment(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	created, _, err := inboundSvc.AddInbound(&model.Inbound{
+		Remark:   "wg-comment",
+		Enable:   false,
+		Port:     32129,
+		Protocol: model.WireGuard,
+		Settings: `{"secretKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","peers":[]}`,
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+
+	rec := (&model.Client{
+		Email:    "comment-wg",
+		Password: "peer-private",
+		Enable:   true,
+		Comment:  "keep me",
+		WgPeer:   &model.WgPeerSettings{PublicKey: "peer-public", AllowedIPs: []string{"10.0.0.2/32"}},
+	}).ToRecord()
+	if _, err := clientSvc.AddWgClient(inboundSvc, created.Id, rec); err != nil {
+		t.Fatalf("AddWgClient: %v", err)
+	}
+
+	inboundSvc.ReconcileWgPeers()
+
+	var got model.ClientRecord
+	if err := database.GetDB().Where("email = ?", rec.Email).First(&got).Error; err != nil {
+		t.Fatalf("load WG client: %v", err)
+	}
+	if got.Comment != "keep me" {
+		t.Fatalf("comment = %q, want keep me", got.Comment)
+	}
+}
+
+func TestUpdateWireGuardInboundIgnoresStaleIncomingPeers(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	created, _, err := inboundSvc.AddInbound(&model.Inbound{
+		Remark:   "wg-stale",
+		Enable:   false,
+		Port:     32130,
+		Protocol: model.WireGuard,
+		Settings: `{"secretKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","peers":[{"email":"old","publicKey":"old-public","allowedIPs":["10.0.0.2/32"]}]}`,
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	rec := (&model.Client{
+		Email:    "new",
+		Password: "new-private",
+		Enable:   true,
+		WgPeer:   &model.WgPeerSettings{PublicKey: "new-public", AllowedIPs: []string{"10.0.0.3/32"}},
+	}).ToRecord()
+	if _, err := clientSvc.AddWgClient(inboundSvc, created.Id, rec); err != nil {
+		t.Fatalf("AddWgClient: %v", err)
+	}
+
+	stale := *created
+	stale.Remark = "wg-stale-edited"
+	stale.Settings = `{"secretKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","peers":[{"email":"old","publicKey":"old-public","allowedIPs":["10.0.0.2/32"]}]}`
+	updated, _, err := inboundSvc.UpdateInbound(&stale)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+
+	var parsed struct {
+		Peers []map[string]any `json:"peers"`
+	}
+	if err := json.Unmarshal([]byte(updated.Settings), &parsed); err != nil {
+		t.Fatalf("settings JSON: %v", err)
+	}
+	foundNew := false
+	for _, peer := range parsed.Peers {
+		if peer["email"] == "new" && peer["publicKey"] == "new-public" {
+			foundNew = true
+		}
+	}
+	if !foundNew {
+		t.Fatalf("updated settings did not rebuild peers from clients: %s", updated.Settings)
 	}
 }

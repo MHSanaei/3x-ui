@@ -311,11 +311,11 @@ export function useInbounds() {
       const settings = coerceInboundJsonField(dbInbound.settings) as {
         method?: string;
         clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
-        peers?: Array<{ comment?: string }>;
+        peers?: Array<{ email?: string; comment?: string }>;
       };
       if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
       if (protocol === Protocols.WIREGUARD) {
-        const peers = (settings.peers || []).map((p) => ({ email: p.comment || '', enable: true as boolean }));
+        const peers = (settings.peers || []).map((p) => ({ email: p.email || p.comment || '', enable: true as boolean }));
         counts[dbInbound.id] = rollupClients(dbInbound, { clients: peers });
       } else {
         counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
@@ -337,11 +337,11 @@ export function useInbounds() {
         const settings = coerceInboundJsonField(dbInbound.settings) as {
           method?: string;
           clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
-          peers?: Array<{ comment?: string }>;
+          peers?: Array<{ email?: string; comment?: string }>;
         };
         if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
         if (row.protocol === Protocols.WIREGUARD) {
-          const peers = (settings.peers || []).map((p) => ({ email: p.comment || '', enable: true as boolean }));
+          const peers = (settings.peers || []).map((p) => ({ email: p.email || p.comment || '', enable: true as boolean }));
           counts[row.id] = rollupClients(dbInbound, { clients: peers });
         } else {
           counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });

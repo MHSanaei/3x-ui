@@ -694,7 +694,9 @@
         "noKernelTun": "TUN غیرکرنل",
         "keepAlive": "Keep alive",
         "peerNumber": "Peer {n}",
-        "peerNumberConfig": "پیکربندی Peer {n}"
+        "peerNumberConfig": "پیکربندی Peer {n}",
+        "peerCount": "{count} peer(s)",
+        "managePeersOnClientsTab": "Manage peers on the Clients page"
       },
       "stream": {
         "general": {
@@ -910,6 +912,19 @@
         "delOrphans": "{count} کلاینت بدون اینباند حذف شد",
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
+      },
+      "wg": {
+        "privateKey": "Private Key",
+        "publicKey": "Public Key",
+        "preSharedKey": "Pre-Shared Key",
+        "allowedIPs": "Allowed IPs",
+        "keepAlive": "Keep Alive (sec)",
+        "regenerateKeypair": "Regenerate keypair",
+        "generatePsk": "Generate PSK",
+        "addAllowedIP": "Add IP",
+        "config": "Config",
+        "cannotMoveInbound": "WireGuard clients cannot be moved to another inbound. Delete and recreate the client instead.",
+        "exactlyOneInbound": "WireGuard clients can be assigned to exactly one WireGuard inbound."
       }
     },
     "groups": {

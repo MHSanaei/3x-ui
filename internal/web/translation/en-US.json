@@ -899,7 +899,10 @@
         "keepAlive": "Keep Alive (sec)",
         "regenerateKeypair": "Regenerate keypair",
         "generatePsk": "Generate PSK",
-        "addAllowedIP": "Add IP"
+        "addAllowedIP": "Add IP",
+        "config": "Config",
+        "cannotMoveInbound": "WireGuard clients cannot be moved to another inbound. Delete and recreate the client instead.",
+        "exactlyOneInbound": "WireGuard clients can be assigned to exactly one WireGuard inbound."
       },
       "reverseTagPlaceholder": "Optional reverse tag",
       "telegramId": "Telegram user ID",

@@ -87,8 +87,31 @@ func TestBuildPeerMapWritesXrayUserEmail(t *testing.T) {
 	if peer["email"] != "alice" {
 		t.Fatalf("peer email = %v, want alice", peer["email"])
 	}
-	if peer["comment"] != "alice" {
-		t.Fatalf("peer comment = %v, want alice", peer["comment"])
+	if _, ok := peer["comment"]; ok {
+		t.Fatalf("peer comment should not mirror email: %#v", peer["comment"])
+	}
+}
+
+func TestBuildPeerMapWritesClientComment(t *testing.T) {
+	rec := (&model.Client{
+		Email:    "alice",
+		Password: "private",
+		Comment:  "phone",
+		WgPeer: &model.WgPeerSettings{
+			PublicKey:  "public",
+			AllowedIPs: []string{"10.0.0.2/32"},
+		},
+	}).ToRecord()
+
+	peer, err := buildPeerMap(rec)
+	if err != nil {
+		t.Fatalf("buildPeerMap: %v", err)
+	}
+	if peer["email"] != "alice" {
+		t.Fatalf("peer email = %v, want alice", peer["email"])
+	}
+	if peer["comment"] != "phone" {
+		t.Fatalf("peer comment = %v, want phone", peer["comment"])
 	}
 }
 

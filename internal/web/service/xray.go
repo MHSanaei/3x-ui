@@ -156,6 +156,36 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			enableMap[clientTraffic.Email] = clientTraffic.Enable
 		}
 
+		if inbound.Protocol == model.WireGuard {
+			peers := make([]any, 0, len(dbClients))
+			for i := range dbClients {
+				c := dbClients[i]
+				if enable, exists := enableMap[c.Email]; exists && !enable {
+					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+					continue
+				}
+				if !c.Enable || c.WgPeer == nil {
+					continue
+				}
+				peer, peerErr := buildPeerMap(c.ToRecord())
+				if peerErr != nil {
+					return nil, peerErr
+				}
+				if peer != nil {
+					peers = append(peers, peer)
+				}
+			}
+			settings["peers"] = peers
+			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				return nil, err
+			}
+			inbound.Settings = string(modifiedSettings)
+			inboundConfig := inbound.GenXrayInboundConfig()
+			xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
+			continue
+		}
+
 		var finalClients []any
 		for i := range dbClients {
 			c := dbClients[i]

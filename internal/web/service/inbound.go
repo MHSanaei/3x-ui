@@ -1144,24 +1144,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
-		// WireGuard peers are managed via the clients table, not the inbound form.
-		// If the incoming settings don't carry peers (frontend omits them), restore
-		// them from the existing inbound so nothing is accidentally erased.
 		if inbound.Protocol == model.WireGuard {
-			var newSM map[string]any
-			if jsonErr := json.Unmarshal([]byte(inbound.Settings), &newSM); jsonErr == nil {
-				if _, hasPeers := newSM["peers"]; !hasPeers {
-					var oldSM map[string]any
-					if jsonErr2 := json.Unmarshal([]byte(oldInbound.Settings), &oldSM); jsonErr2 == nil {
-						if peers, ok := oldSM["peers"]; ok {
-							newSM["peers"] = peers
-							if bs, marshalErr := json.MarshalIndent(newSM, "", "  "); marshalErr == nil {
-								inbound.Settings = string(bs)
-							}
-						}
-					}
-				}
+			rebuilt, rebuildErr := s.clientService.BuildWgSettingsFromClients(tx, oldInbound, inbound.Settings)
+			if rebuildErr != nil {
+				return rebuildErr
 			}
+			inbound.Settings = rebuilt
 		}
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
@@ -1242,13 +1230,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}
-		// WireGuard peers live in the clients table — sync from settings.peers[]
-		// rather than from settings.clients[] (which WG inbounds don't have).
-		if oldInbound.Protocol == model.WireGuard {
-			if syncErr := s.clientService.SyncWgInbound(tx, oldInbound); syncErr != nil {
-				logger.Warning("SyncWgInbound in UpdateInbound failed:", syncErr)
-			}
-		} else {
+		if oldInbound.Protocol != model.WireGuard {
 			newClients, gcErr := s.GetClients(oldInbound)
 			if gcErr != nil {
 				return gcErr
@@ -1296,6 +1278,14 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 		return nil, err
+	}
+	if inbound.Protocol == model.WireGuard {
+		rebuilt, err := s.clientService.BuildWgSettingsFromClients(tx, inbound, inbound.Settings)
+		if err != nil {
+			return nil, err
+		}
+		runtimeInbound.Settings = rebuilt
+		return &runtimeInbound, nil
 	}
 
 	clients, ok := settings["clients"].([]any)

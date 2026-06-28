@@ -149,6 +149,32 @@ func TestClientRecordUnmarshalJSONAcceptsBothShapes(t *testing.T) {
 	}
 }
 
+func TestMergeClientRecordMergesWireGuardSettings(t *testing.T) {
+	existing := &ClientRecord{
+		Email:     "alice",
+		UpdatedAt: 10,
+	}
+	incoming := &ClientRecord{
+		Email:      "alice",
+		WgSettings: `{"publicKey":"pk","allowedIPs":["10.0.0.2/32"]}`,
+		UpdatedAt:  20,
+	}
+
+	conflicts := MergeClientRecord(existing, incoming)
+	if existing.WgSettings != incoming.WgSettings {
+		t.Fatalf("WgSettings = %q, want %q", existing.WgSettings, incoming.WgSettings)
+	}
+	found := false
+	for _, c := range conflicts {
+		if c.Field == "wgPeer" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected wgPeer conflict entry, got %#v", conflicts)
+	}
+}
+
 func TestInboundClientIpsMarshalJSONNestsArray(t *testing.T) {
 	row := InboundClientIps{Id: 1, ClientEmail: "alice@example.com", Ips: `[{"ip":"1.2.3.4","timestamp":1700000000}]`}
 	out, err := json.Marshal(row)

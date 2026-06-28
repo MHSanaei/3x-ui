@@ -175,7 +175,7 @@ export default function ClientQrModal({
     if (wgConfig) {
       out.push({
         key: 'wg',
-        label: 'WireGuard Config',
+        label: t('pages.clients.wg.config'),
         children: <WgConfigPanel config={wgConfig} email={client?.email || 'peer'} />,
       });
     }

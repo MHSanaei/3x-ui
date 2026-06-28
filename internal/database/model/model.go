@@ -985,6 +985,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.Reverse = incoming.Reverse
 		}
 	}
+	if existing.WgSettings != incoming.WgSettings && incoming.WgSettings != "" {
+		if incomingNewer || existing.WgSettings == "" {
+			existing.WgSettings = incoming.WgSettings
+			keepSecret("wgPeer")
+		}
+	}
 	if existing.Comment != incoming.Comment && incoming.Comment != "" {
 		if incomingNewer || existing.Comment == "" {
 			keep("comment", existing.Comment, incoming.Comment, incoming.Comment)

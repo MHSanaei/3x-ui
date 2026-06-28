@@ -896,7 +896,10 @@
         "keepAlive": "Keep Alive (сек)",
         "regenerateKeypair": "Сгенерировать ключевую пару",
         "generatePsk": "Сгенерировать PSK",
-        "addAllowedIP": "Добавить IP"
+        "addAllowedIP": "Добавить IP",
+        "config": "Конфиг",
+        "cannotMoveInbound": "WireGuard-клиентов нельзя перенести в другой входящий. Удалите и создайте клиента заново.",
+        "exactlyOneInbound": "WireGuard-клиент может быть привязан ровно к одному WireGuard входящему."
       },
       "reverseTagPlaceholder": "Необязательный Reverse tag",
       "telegramId": "ID пользователя Telegram",

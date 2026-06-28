@@ -2,10 +2,13 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -34,7 +37,9 @@ func buildPeerMap(rec *model.ClientRecord) (map[string]any, error) {
 	}
 	if rec.Email != "" {
 		peer["email"] = rec.Email
-		peer["comment"] = rec.Email
+	}
+	if rec.Comment != "" {
+		peer["comment"] = rec.Comment
 	}
 	return peer, nil
 }
@@ -162,11 +167,15 @@ func wgPeerToRecord(peer map[string]any, inboundId int, idx int) *model.ClientRe
 	}
 
 	email, _ := peer["email"].(string)
+	comment, _ := peer["comment"].(string)
 	if email == "" {
-		email, _ = peer["comment"].(string)
+		email = comment
 	}
 	if email == "" {
 		email = fmt.Sprintf("wg-%d-peer-%d", inboundId, idx+1)
+	}
+	if comment == email {
+		comment = ""
 	}
 
 	wg := model.WgPeerSettings{
@@ -181,14 +190,18 @@ func wgPeerToRecord(peer map[string]any, inboundId int, idx int) *model.ClientRe
 		Email:      email,
 		Password:   privKey,
 		Enable:     true,
+		Comment:    comment,
 		WgSettings: string(wgJSON),
 	}
 }
 
-// SyncWgInbound builds Client list from settings.peers[] and calls SyncInbound
-// so that the clients table and client_inbounds junction stay in sync with the
-// inbound's peers array. Used during migration and after inbound save.
+// SyncWgInbound imports WireGuard peers from settings.peers[] into the clients
+// table and ensures links exist. It intentionally does not delete existing links:
+// disabled WG clients are absent from peers[] but must stay attached.
 func (s *ClientService) SyncWgInbound(tx *gorm.DB, inbound *model.Inbound) error {
+	if tx == nil {
+		tx = database.GetDB()
+	}
 	peers, err := wgPeersFromSettings(inbound.Settings)
 	if err != nil {
 		return err
@@ -196,16 +209,79 @@ func (s *ClientService) SyncWgInbound(tx *gorm.DB, inbound *model.Inbound) error
 
 	// Deduplicate by email: if two peers have the same comment, keep first.
 	seen := make(map[string]struct{}, len(peers))
-	clients := make([]model.Client, 0, len(peers))
 	for i, peer := range peers {
 		rec := wgPeerToRecord(peer, inbound.Id, i)
 		if _, dup := seen[rec.Email]; dup {
 			continue
 		}
 		seen[rec.Email] = struct{}{}
-		c := rec.ToClient()
-		clients = append(clients, *c)
+
+		var existing model.ClientRecord
+		err := tx.Where("email = ?", rec.Email).First(&existing).Error
+		if err == nil {
+			before := existing
+			if rec.Password != "" {
+				existing.Password = rec.Password
+			}
+			if rec.WgSettings != "" {
+				existing.WgSettings = rec.WgSettings
+			}
+			if rec.Comment != "" {
+				existing.Comment = rec.Comment
+			}
+			if before != existing {
+				if err := tx.Save(&existing).Error; err != nil {
+					return err
+				}
+			}
+			rec.Id = existing.Id
+		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := tx.Create(rec).Error; err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+
+		link := model.ClientInbound{ClientId: rec.Id, InboundId: inbound.Id}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&link).Error; err != nil {
+			return err
+		}
 	}
 
-	return s.SyncInbound(tx, inbound.Id, clients)
+	return nil
+}
+
+func (s *ClientService) BuildWgSettingsFromClients(tx *gorm.DB, inbound *model.Inbound, settingsJSON string) (string, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(settingsJSON), &settings); err != nil {
+		return settingsJSON, err
+	}
+	clients, err := s.ListForInbound(tx, inbound.Id)
+	if err != nil {
+		return settingsJSON, err
+	}
+	peers := make([]any, 0, len(clients))
+	for i := range clients {
+		if !clients[i].Enable || clients[i].WgPeer == nil {
+			continue
+		}
+		rec := clients[i].ToRecord()
+		peer, err := buildPeerMap(rec)
+		if err != nil {
+			return settingsJSON, err
+		}
+		if peer != nil {
+			peers = append(peers, peer)
+		}
+	}
+	settings["peers"] = peers
+	updated, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return settingsJSON, err
+	}
+	return string(updated), nil
 }

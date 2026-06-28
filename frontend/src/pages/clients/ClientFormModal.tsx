@@ -516,11 +516,11 @@ export default function ClientFormModal({
         form.inboundIds.length === existingWgInboundIds.length
         && form.inboundIds.every((id) => existingWgInboundIds.includes(id));
       if (!same) {
-        messageApi.error('WireGuard clients cannot be moved to another inbound. Delete and recreate the client instead.');
+        messageApi.error(t('pages.clients.wg.cannotMoveInbound'));
         return;
       }
     } else if (selectedWgIds.length > 0 && (selectedWgIds.length !== 1 || form.inboundIds.length !== 1)) {
-      messageApi.error('WireGuard clients can be assigned to exactly one WireGuard inbound.');
+      messageApi.error(t('pages.clients.wg.exactlyOneInbound'));
       return;
     }
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
@@ -946,7 +946,7 @@ export default function ClientFormModal({
               },
               ...(showWireGuard ? [{
                 key: 'wgconf',
-                label: 'Config',
+                label: t('pages.clients.wg.config'),
                 children: (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>

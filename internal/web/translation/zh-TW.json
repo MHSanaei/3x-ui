@@ -694,7 +694,9 @@
         "noKernelTun": "非核心 TUN",
         "keepAlive": "Keep alive",
         "peerNumber": "Peer {n}",
-        "peerNumberConfig": "Peer {n} 設定"
+        "peerNumberConfig": "Peer {n} 設定",
+        "peerCount": "{count} peer(s)",
+        "managePeersOnClientsTab": "Manage peers on the Clients page"
       },
       "stream": {
         "general": {
@@ -910,6 +912,19 @@
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
+      },
+      "wg": {
+        "privateKey": "Private Key",
+        "publicKey": "Public Key",
+        "preSharedKey": "Pre-Shared Key",
+        "allowedIPs": "Allowed IPs",
+        "keepAlive": "Keep Alive (sec)",
+        "regenerateKeypair": "Regenerate keypair",
+        "generatePsk": "Generate PSK",
+        "addAllowedIP": "Add IP",
+        "config": "Config",
+        "cannotMoveInbound": "WireGuard clients cannot be moved to another inbound. Delete and recreate the client instead.",
+        "exactlyOneInbound": "WireGuard clients can be assigned to exactly one WireGuard inbound."
       }
     },
     "groups": {
