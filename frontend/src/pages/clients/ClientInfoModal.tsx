@@ -138,7 +138,7 @@ export default function ClientInfoModal({
   const showSubscription = !!(subSettings?.enable && client?.subId);
   const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
   const wgConfigText = useMemo(() => {
-    if (!client || !isWireguardClient(client)) return '';
+    if (!client || !wgInbound || !isWireguardClient(client)) return '';
     return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
   }, [client, wgInbound, subSettings?.publicHost]);
 
@@ -494,7 +494,7 @@ export default function ClientInfoModal({
               <>
                 <Divider>{t('pages.clients.wireguardConfig')}</Divider>
                 <ConfigBlock
-                  label={t('pages.clients.conf')}
+                  label={t('pages.clients.config')}
                   text={wgConfigText}
                   fileName={`${client.email}.conf`}
                   qrRemark={client.email || 'peer'}

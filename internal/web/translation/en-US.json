@@ -719,7 +719,7 @@
       "tabCredentials": "Credentials",
       "tabLinks": "Links",
       "wireguardConfig": "WireGuard config",
-      "conf": "CONF",
+      "config": "Config",
       "linksHint": "Add third-party share links and remote subscription URLs to include in this client's subscription.",
       "addExternalLink": "Add External Link",
       "addExternalSubscription": "Add External Subscription",

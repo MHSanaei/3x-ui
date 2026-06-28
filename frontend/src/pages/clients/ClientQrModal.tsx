@@ -55,7 +55,7 @@ export default function ClientQrModal({
 
   const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
   const wgConfigText = useMemo(() => {
-    if (!client || !isWireguardClient(client)) return '';
+    if (!client || !wgInbound || !isWireguardClient(client)) return '';
     return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
   }, [client, wgInbound, subSettings?.publicHost]);
 
