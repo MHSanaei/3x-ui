@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 // External subscription fetching: a "subscription" external link is a remote
@@ -36,7 +39,7 @@ var subscriptionCache = struct {
 // subscription URL, using a short-lived cache. On any failure it returns the
 // last cached value (if present) or nil — never an error, so the rest of the
 // client's subscription still renders.
-func fetchSubscriptionLinks(rawURL string) []string {
+func fetchSubscriptionLinks(rowID int, rawURL string) []string {
 	rawURL = strings.TrimSpace(rawURL)
 	if rawURL == "" {
 		return nil
@@ -51,6 +54,7 @@ func fetchSubscriptionLinks(rawURL string) []string {
 
 	links, err := doFetchSubscriptionLinks(rawURL)
 	if err != nil {
+		updateExternalSubscriptionFetchState(rowID, time.Now(), err)
 		// Serve stale on error rather than dropping the client's configs.
 		if ok {
 			return cached.links
@@ -58,10 +62,29 @@ func fetchSubscriptionLinks(rawURL string) []string {
 		return nil
 	}
 
+	fetchedAt := time.Now()
+	updateExternalSubscriptionFetchState(rowID, fetchedAt, nil)
 	subscriptionCache.Lock()
-	subscriptionCache.m[rawURL] = subscriptionCacheEntry{links: links, fetchedAt: time.Now()}
+	subscriptionCache.m[rawURL] = subscriptionCacheEntry{links: links, fetchedAt: fetchedAt}
 	subscriptionCache.Unlock()
 	return links
+}
+
+func updateExternalSubscriptionFetchState(rowID int, at time.Time, fetchErr error) {
+	if rowID <= 0 {
+		return
+	}
+	lastFetchError := ""
+	if fetchErr != nil {
+		lastFetchError = fetchErr.Error()
+	}
+	_ = database.GetDB().
+		Model(&model.ClientExternalLink{}).
+		Where("id = ?", rowID).
+		Updates(map[string]any{
+			"last_fetch_at":    at.UnixMilli(),
+			"last_fetch_error": lastFetchError,
+		}).Error
 }
 
 func doFetchSubscriptionLinks(rawURL string) ([]string, error) {

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -313,6 +314,9 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	}
 	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://disabled", Remark: "disabled", Enable: externalLinkEnabled(false), SortIndex: 3}).Error; err != nil {
 		t.Fatalf("seed disabled link: %v", err)
+	}
+	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://expired", Remark: "expired", ExpiryTime: time.Now().Add(-time.Hour).UnixMilli(), SortIndex: 4}).Error; err != nil {
+		t.Fatalf("seed expired link: %v", err)
 	}
 
 	out, err = s.getClientExternalLinksBySubId("sub-ok")

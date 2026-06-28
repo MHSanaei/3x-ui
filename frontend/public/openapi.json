@@ -5596,7 +5596,7 @@
                     "items": {
                       "type": "object"
                     },
-                    "description": "Full replacement list. External link rows use kind=\"link\" with a share link value. External subscription rows use kind=\"subscription\" with an http(s) subscription URL. Each row supports { kind, value, remark, enable }; omit enable to default true. Disabled rows are kept but omitted from generated subscriptions."
+                    "description": "Full replacement list. Each row supports { id, kind, value, remark, enable, expiryTime, namePrefix }. Omit enable to default true; expiryTime=0 means never expire. lastFetchAt and lastFetchError are read-only status fields returned by GET."
                   }
                 },
                 "required": [
@@ -5609,13 +5609,16 @@
                     "kind": "link",
                     "value": "vless://uuid@host:443?...#srv",
                     "remark": "DE",
-                    "enable": true
+                    "enable": true,
+                    "expiryTime": 0
                   },
                   {
                     "kind": "subscription",
                     "value": "https://provider.example/sub/abc",
                     "remark": "Provider",
-                    "enable": false
+                    "enable": false,
+                    "expiryTime": 1767225600000,
+                    "namePrefix": "[zjh] "
                   }
                 ]
               }
