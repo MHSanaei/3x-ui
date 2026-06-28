@@ -545,6 +545,15 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 {
 		params["mtu"] = strconv.Itoa(int(mtu))
 	}
+	if dns, ok := settings["dns"].(string); ok && dns != "" {
+		params["dns"] = dns
+	}
+	if client.PreSharedKey != "" {
+		params["presharedkey"] = client.PreSharedKey
+	}
+	if client.KeepAlive > 0 {
+		params["keepalive"] = strconv.Itoa(client.KeepAlive)
+	}
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 

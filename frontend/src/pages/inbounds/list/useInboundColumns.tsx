@@ -7,6 +7,7 @@ import { SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
 import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import { coerceInboundJsonField } from '@/models/dbinbound';
 
 import { RowActionsCell } from './RowActions';
 import { InboundSpeedTag, isActiveSpeed } from './InboundSpeedTag';
@@ -51,6 +52,28 @@ export function useInboundColumns({
   const { datepicker } = useDatepicker();
 
   return useMemo(() => {
+    const fallbackClientCount = (record: DBInboundRecord): ClientCountEntry | null => {
+      const settings = coerceInboundJsonField(record.settings) as {
+        clients?: { email?: string; enable?: boolean }[];
+      };
+      const clients = Array.isArray(settings.clients) ? settings.clients : [];
+      if (clients.length === 0) return null;
+      const active = clients
+        .filter((client) => client.email && client.enable !== false)
+        .map((client) => client.email!);
+      const deactive = clients
+        .filter((client) => client.email && client.enable === false)
+        .map((client) => client.email!);
+      return {
+        clients: clients.length,
+        active,
+        deactive,
+        depleted: [],
+        expiring: [],
+        online: [],
+      };
+    };
+
     const cols: TableColumnType<DBInboundRecord>[] = [
       {
         title: 'ID',
@@ -174,14 +197,14 @@ export function useInboundColumns({
         align: 'left',
         width: 200,
         render: (_, record) => {
-          const cc = clientCount[record.id];
+          const cc = clientCount[record.id] || fallbackClientCount(record);
           if (!cc) return null;
           return (
             <>
               <Tag className="client-count-tag" style={{ margin: 0, marginRight: 4, padding: '0 2px' }}>
                 <TeamOutlined /> {cc.clients}
               </Tag>
-              {cc.active.length > 0 && (
+              {cc.active.length > 0 ? (
                 <Popover
                   title={t('subscription.active')}
                   content={(
@@ -192,6 +215,8 @@ export function useInboundColumns({
                 >
                   <Tag color="green" className="client-count-tag" style={{ margin: 0, marginRight: 4, padding: '0 2px' }}>{cc.active.length}</Tag>
                 </Popover>
+              ) : (
+                <Tag color="green" className="client-count-tag" style={{ margin: 0, marginRight: 4, padding: '0 2px' }}>0</Tag>
               )}
               {cc.deactive.length > 0 && (
                 <Popover
