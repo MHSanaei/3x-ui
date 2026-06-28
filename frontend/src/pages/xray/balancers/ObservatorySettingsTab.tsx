@@ -5,8 +5,10 @@ import { Alert, Empty, Input, InputNumber, Segmented, Select, Space, Switch, Tag
 import { SettingListItem } from '@/components/ui';
 import {
   BurstObservatorySchema,
+  ObservatoryHttpMethodSchema,
   ObservatorySchema,
   type BurstObservatoryObject,
+  type ObservatoryHttpMethod,
   type ObservatoryObject,
   type PingConfigObject,
 } from '@/schemas/observatory';
@@ -17,8 +19,6 @@ interface ObservatorySettingsTabProps {
   mutate: (mutator: (next: XraySettingsValue) => void) => void;
   isMobile: boolean;
 }
-
-const HTTP_METHODS = ['HEAD', 'GET'] as const;
 
 const OBSERVATORY_DEFAULTS = ObservatorySchema.parse({});
 const BURST_DEFAULTS = BurstObservatorySchema.parse({});
@@ -208,10 +208,10 @@ export default function ObservatorySettingsTab({
         title={t('pages.xray.observatory.httpMethod')}
         description={t('pages.xray.observatory.httpMethodDesc')}
       >
-        <Select
+        <Select<ObservatoryHttpMethod>
           value={burst.pingConfig.httpMethod}
           onChange={(v) => patchPingConfig({ httpMethod: v })}
-          options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
+          options={ObservatoryHttpMethodSchema.options.map((m) => ({ value: m, label: m }))}
           style={{ width: '100%' }}
         />
       </SettingListItem>
