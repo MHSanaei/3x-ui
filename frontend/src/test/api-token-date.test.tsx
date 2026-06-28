@@ -26,7 +26,7 @@ describe('API token creation date', () => {
       ],
     });
 
-    render(<SecurityTab allSetting={{} as AllSetting} updateSetting={vi.fn()} />);
+    render(<SecurityTab allSetting={{} as AllSetting} updateSetting={vi.fn()} saveSetting={vi.fn()} />);
     fireEvent.click(screen.getByRole('tab', { name: /API Token/ }));
 
     expect(await screen.findByText('seconds-token')).toBeTruthy();
