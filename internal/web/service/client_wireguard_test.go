@@ -98,6 +98,38 @@ func TestDefaultWireguardClientsPreservesProvided(t *testing.T) {
 	}
 }
 
+func TestWireguardAllocationBase(t *testing.T) {
+	tests := []struct {
+		name     string
+		used     []string
+		fallback string
+		want     string
+	}{
+		{name: "no peers uses fallback", used: nil, fallback: "10.0.0.0/24", want: "10.0.0.0/24"},
+		{name: "derives subnet from existing peer", used: []string{"172.16.0.2/32"}, fallback: "10.0.0.0/24", want: "172.16.0.0/24"},
+		{name: "skips catch-all and ipv6", used: []string{"0.0.0.0/0", "::/0", "fd00::2/128", "192.168.5.7/32"}, fallback: "10.0.0.0/24", want: "192.168.5.0/24"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := wireguardAllocationBase(tt.used, tt.fallback); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefaultWireguardClientsHonorsExistingSubnet(t *testing.T) {
+	existing := []model.Client{{Email: "old@wg", AllowedIPs: []string{"172.16.0.2/32"}}}
+	clients := []model.Client{{Email: "new@wg"}}
+	ifaces := []any{map[string]any{"email": "new@wg"}}
+	if err := defaultWireguardClients(existing, clients, ifaces); err != nil {
+		t.Fatalf("defaultWireguardClients: %v", err)
+	}
+	if got := clients[0].AllowedIPs[0]; got != "172.16.0.3/32" {
+		t.Fatalf("new client address = %q, want 172.16.0.3/32 in existing subnet", got)
+	}
+}
+
 func TestDefaultWireguardClientsAllocatesDistinctIPs(t *testing.T) {
 	clients := []model.Client{{Email: "x@wg"}, {Email: "y@wg"}}
 	ifaces := []any{map[string]any{"email": "x@wg"}, map[string]any{"email": "y@wg"}}

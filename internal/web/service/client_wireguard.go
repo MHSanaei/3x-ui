@@ -33,6 +33,19 @@ func wireguardHostAddr(s string) netip.Addr {
 	return netip.Addr{}
 }
 
+func wireguardAllocationBase(used []string, fallback string) string {
+	for _, u := range used {
+		a := wireguardHostAddr(u)
+		if !a.IsValid() || !a.Is4() || a.IsUnspecified() {
+			continue
+		}
+		if p, err := a.Prefix(24); err == nil {
+			return p.String()
+		}
+	}
+	return fallback
+}
+
 // allocateWireguardAddress returns the first free /32 host address in base that
 // is not already present in used. The server holds the first host (.1), so
 // allocation starts at the second host (.2).
@@ -71,6 +84,7 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 	for i := range existing {
 		used = append(used, existing[i].AllowedIPs...)
 	}
+	base := wireguardAllocationBase(used, defaultWireguardBase)
 	for i := range clients {
 		c := &clients[i]
 		if c.PrivateKey == "" && c.PublicKey == "" {
@@ -88,7 +102,7 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, defaultWireguardBase)
+			addr, err := allocateWireguardAddress(used, base)
 			if err != nil {
 				return err
 			}
