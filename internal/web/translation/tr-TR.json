@@ -968,6 +968,8 @@
       "namePlaceholder": "ör. de-frankfurt-1",
       "addressPlaceholder": "panel.example.com veya 1.2.3.4",
       "remark": "Açıklama",
+      "speedLimit": "Hız Sınırı (Mbps)",
+      "speedLimitDesc": "Bu inbound'taki tüm istemciler için varsayılan bant genişliği sınırı. 0 = sınırsız. Bireysel istemci sınırları önceliklidir.",
       "scheme": "Şema",
       "address": "Adres",
       "port": "Port",

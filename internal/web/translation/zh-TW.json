@@ -968,6 +968,8 @@
       "namePlaceholder": "例如：de-frankfurt-1",
       "addressPlaceholder": "panel.example.com 或 1.2.3.4",
       "remark": "備註",
+      "speedLimit": "速度限制 (Mbps)",
+      "speedLimitDesc": "此入站所有用戶端的預設頻寬上限。0 = 不限制。個別用戶端限制優先。",
       "scheme": "協議",
       "address": "位址",
       "port": "連接埠",

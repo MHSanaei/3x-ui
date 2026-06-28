@@ -968,6 +968,8 @@
       "namePlaceholder": "vd: de-frankfurt-1",
       "addressPlaceholder": "panel.example.com hoặc 1.2.3.4",
       "remark": "Chú thích",
+      "speedLimit": "Giới hạn tốc độ (Mbps)",
+      "speedLimitDesc": "Giới hạn băng thông mặc định cho tất cả client trong inbound này. 0 = không giới hạn. Giới hạn riêng của từng đường ưu tiên.",
       "scheme": "Giao thức",
       "address": "Địa chỉ",
       "port": "Cổng",

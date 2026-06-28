@@ -968,6 +968,8 @@
       "namePlaceholder": "例: de-frankfurt-1",
       "addressPlaceholder": "panel.example.com または 1.2.3.4",
       "remark": "備考",
+      "speedLimit": "速度制限 (Mbps)",
+      "speedLimitDesc": "このインバウンド内の全クライアントへのデフォルト帯域幅制限。0 = 無制限。個々のクライアント制限が優先されます。",
       "scheme": "スキーム",
       "address": "アドレス",
       "port": "ポート",

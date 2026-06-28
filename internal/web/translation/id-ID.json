@@ -968,6 +968,8 @@
       "namePlaceholder": "mis. de-frankfurt-1",
       "addressPlaceholder": "panel.example.com atau 1.2.3.4",
       "remark": "Catatan",
+      "speedLimit": "Batas Kecepatan (Mbps)",
+      "speedLimitDesc": "Batas bandwidth default untuk semua klien di inbound ini. 0 = tidak terbatas. Batas klien individual lebih diutamakan.",
       "scheme": "Skema",
       "address": "Alamat",
       "port": "Port",

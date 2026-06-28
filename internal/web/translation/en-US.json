@@ -984,7 +984,9 @@
         "clash": "Clash (mihomo)"
       },
       "fields": {
-        "remark": "Remark",
+      "remark": "Remark",
+      "speedLimit": "Speed Limit (Mbps)",
+      "speedLimitDesc": "Default bandwidth cap for all clients in this inbound. 0 = unlimited. Individual client limits take priority.",
         "serverDescription": "Description",
         "inbound": "Inbound",
         "address": "Address",

@@ -968,6 +968,8 @@
       "namePlaceholder": "مثلاً de-frankfurt-1",
       "addressPlaceholder": "panel.example.com یا 1.2.3.4",
       "remark": "توضیحات",
+      "speedLimit": "محدودیت سرعت (Mbps)",
+      "speedLimitDesc": "حد پهنای باند پیش‌فرض برای تمام کلاینت‌ها در این اینباند. ۰ = نامحدود. محدودیت‌های خصوصی کلاینت‌ها اولویت دارند.",
       "scheme": "پروتکل",
       "address": "آدرس",
       "port": "پورت",

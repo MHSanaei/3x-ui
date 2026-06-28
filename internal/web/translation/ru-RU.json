@@ -968,6 +968,8 @@
       "namePlaceholder": "напр. de-frankfurt-1",
       "addressPlaceholder": "panel.example.com или 1.2.3.4",
       "remark": "Примечание",
+      "speedLimit": "Ограничение скорости (Mbps)",
+      "speedLimitDesc": "Ограничение пропускной способности по умолчанию для всех клиентов в этом inbound. 0 = без ограничений. Индивидуальные ограничения клиентов имеют приоритет.",
       "scheme": "Схема",
       "address": "Адрес",
       "port": "Порт",

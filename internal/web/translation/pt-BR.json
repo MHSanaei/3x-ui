@@ -968,6 +968,8 @@
       "namePlaceholder": "ex.: de-frankfurt-1",
       "addressPlaceholder": "panel.example.com ou 1.2.3.4",
       "remark": "Observação",
+      "speedLimit": "Limite de Velocidade (Mbps)",
+      "speedLimitDesc": "Limite de banda larga padrão para todos os clientes neste inbound. 0 = ilimitado. Limites individuais de clientes têm prioridade.",
       "scheme": "Esquema",
       "address": "Endereço",
       "port": "Porta",

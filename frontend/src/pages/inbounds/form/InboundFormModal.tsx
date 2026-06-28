@@ -561,6 +561,14 @@ export default function InboundFormModal({
         <Input />
       </Form.Item>
 
+      <Form.Item
+        name="speedLimit"
+        label={t('pages.inbounds.speedLimit')}
+        tooltip={t('pages.inbounds.speedLimitDesc')}
+      >
+        <InputNumber min={0} step={1} style={{ width: '100%' }} placeholder="0 = unlimited" />
+      </Form.Item>
+
       {selectableNodes.length > 0 && isNodeEligible && (
         <Form.Item name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
