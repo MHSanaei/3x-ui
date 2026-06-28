@@ -573,7 +573,7 @@ export const sections: readonly Section[] = [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [{ "kind": "link", "value": "vless://...", "remark": "DE" }]\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "kind": "link", "value": "vless://...", "remark": "DE", "enable": true },\n      { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false }\n    ]\n  }\n}',
       },
       {
         method: 'POST',
@@ -631,10 +631,12 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/:email/externalLinks',
-        summary: 'Replace a client\'s external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.',
+        summary: 'Replace a client\'s external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
-          { name: 'externalLinks', in: 'body (json)', type: 'object[]', desc: 'Rows of { kind: "link" | "subscription", value, remark, enable }. kind=link must be a share link; kind=subscription must be an http(s) URL. enable defaults to true; disabled rows are kept but omitted from generated subscriptions.' },
+          { name: 'externalLinks', in: 'body', type: 'object[]', desc: 'Full replacement list. External link rows use kind="link" with a share link value. External subscription rows use kind="subscription" with an http(s) subscription URL. Each row supports { kind, value, remark, enable }; omit enable to default true. Disabled rows are kept but omitted from generated subscriptions.' },
+          { name: 'kind="link"', in: 'externalLinks[]', type: 'object', desc: 'External link row. value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://. enable=false keeps the row saved but excludes it from the client subscription.' },
+          { name: 'kind="subscription"', in: 'externalLinks[]', type: 'object', desc: 'External subscription row. value must be an http(s) subscription URL. enable=false keeps the URL saved but prevents fetching/merging it into the client subscription.' },
         ],
         body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false }\n  ]\n}',
         response: '{\n  "success": true\n}',
