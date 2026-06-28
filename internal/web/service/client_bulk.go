@@ -598,25 +598,19 @@ func (s *ClientService) bulkAdjustInboundClients(
 		res.needRestart = true
 	}
 
-	markDirty := false
 	if oldInbound.NodeID != nil {
-		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			for email := range foundEmails {
 				res.perEmailSkipped[email] = perr.Error()
 				delete(foundEmails, email)
 			}
 		} else {
-			if dirty {
-				markDirty = true
-			}
 			if flowChanged {
-				markDirty = true
 				push = false
 			}
 			// Large batches collapse into one reconcile push rather than M updates.
 			if push && len(foundEmails) > nodeBulkPushThreshold {
-				markDirty = true
 				push = false
 			}
 			if push {
@@ -632,7 +626,6 @@ func (s *ClientService) bulkAdjustInboundClients(
 					updated.UpdatedAt = nowMs
 					if err1 := rt.UpdateUser(context.Background(), oldInbound, email, updated); err1 != nil {
 						logger.Warning("Error in updating client on", rt.Name(), ":", err1)
-						markDirty = true
 					}
 				}
 			}
@@ -649,17 +642,19 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, inboundId, finalClients)
+		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	})
 	if txErr != nil {
 		for email := range foundEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
 				res.perEmailSkipped[email] = txErr.Error()
 			}
-		}
-	} else if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
 		}
 	}
 
@@ -973,7 +968,6 @@ func (s *ClientService) bulkDelInboundClients(
 		}
 	}
 
-	markDirty := false
 	if oldInbound.NodeID == nil {
 		rt, rterr := inboundSvc.runtimeFor(oldInbound)
 		if rterr != nil {
@@ -995,26 +989,21 @@ func (s *ClientService) bulkDelInboundClients(
 			}
 		}
 	} else {
-		rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			for email := range foundEmails {
 				res.perEmailSkipped[email] = perr.Error()
 				delete(foundEmails, email)
 			}
 		} else {
-			if dirty {
-				markDirty = true
-			}
 			// Large batches collapse into one reconcile push rather than M deletes.
 			if push && len(foundEmails) > nodeBulkPushThreshold {
-				markDirty = true
 				push = false
 			}
 			if push {
 				for email := range foundEmails {
 					if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 						logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
-						markDirty = true
 					}
 				}
 			}
@@ -1031,17 +1020,19 @@ func (s *ClientService) bulkDelInboundClients(
 		if err != nil {
 			return err
 		}
-		return s.SyncInbound(tx, inboundId, finalClients)
+		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	})
 	if txErr != nil {
 		for email := range foundEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
 				res.perEmailSkipped[email] = txErr.Error()
 			}
-		}
-	} else if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
 		}
 	}
 
@@ -1512,16 +1503,14 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	}
 	oldInbound.Settings = string(newSettings)
 
-	rt, push, dirty, perr := inboundSvc.nodePushPlan(oldInbound)
+	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 	if perr != nil {
 		for _, ch := range changed {
 			res.perEmailSkipped[ch.email] = perr.Error()
 		}
 		return res
 	}
-	markDirty := dirty
 	if oldInbound.NodeID != nil && push && len(changed) > nodeBulkPushThreshold {
-		markDirty = true
 		push = false
 	}
 
@@ -1533,7 +1522,13 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 		if gcErr != nil {
 			return gcErr
 		}
-		return s.SyncInbound(tx, inboundId, finalClients)
+		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+			return err
+		}
+		if oldInbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
+		}
+		return nil
 	})
 	if txErr != nil {
 		for _, ch := range changed {
@@ -1576,14 +1571,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 			updated.UpdatedAt = nowMs
 			if err1 := rt.UpdateUser(context.Background(), oldInbound, ch.email, updated); err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
-				markDirty = true
 			}
-		}
-	}
-
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
 		}
 	}
 

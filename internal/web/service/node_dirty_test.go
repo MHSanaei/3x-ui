@@ -1,7 +1,10 @@
 package service
 
 import (
+	"errors"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -142,6 +145,43 @@ func TestNodeDirty_ClearIsCASOnDirtyAt(t *testing.T) {
 	}
 	if _, _, stillDirty, _, _ := nodeSvc.NodeSyncState(node.Id); stillDirty {
 		t.Fatal("matching-token clear must clear the dirty flag")
+	}
+}
+
+func TestMarkNodeDirtyTxRollsBackWithTransaction(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	node := &model.Node{Name: "n3", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	nodeSvc := NodeService{}
+	rollbackErr := errors.New("force rollback")
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := nodeSvc.MarkNodeDirtyTx(tx, node.Id); err != nil {
+			return err
+		}
+		return rollbackErr
+	}); !errors.Is(err, rollbackErr) {
+		t.Fatalf("rollback tx: got %v want %v", err, rollbackErr)
+	}
+	if _, _, dirty, _, err := nodeSvc.NodeSyncState(node.Id); err != nil {
+		t.Fatalf("NodeSyncState after rollback: %v", err)
+	} else if dirty {
+		t.Fatal("dirty flag escaped a rolled-back transaction")
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		return nodeSvc.MarkNodeDirtyTx(tx, node.Id)
+	}); err != nil {
+		t.Fatalf("commit tx: %v", err)
+	}
+	if _, _, dirty, _, err := nodeSvc.NodeSyncState(node.Id); err != nil {
+		t.Fatalf("NodeSyncState after commit: %v", err)
+	} else if !dirty {
+		t.Fatal("dirty flag should commit with its transaction")
 	}
 }
 

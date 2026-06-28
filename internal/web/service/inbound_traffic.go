@@ -544,18 +544,12 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		}
 		for _, client := range clients {
 			if client.Email == clientEmail && client.Enable {
-				rt, push, dirty, perr := s.nodePushPlan(inbound)
+				rt, push, _, perr := s.nodePushPlan(inbound)
 				if perr != nil {
 					return false, perr
 				}
 				if !push {
-					if inbound.NodeID != nil {
-						if dirty {
-							if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-								logger.Warning("mark node dirty failed:", dErr)
-							}
-						}
-					} else {
+					if inbound.NodeID == nil {
 						needRestart = true
 					}
 					break
@@ -582,9 +576,6 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 					logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
 				} else if inbound.NodeID != nil {
 					logger.Warning("Error in enabling client on", rt.Name(), ":", err1)
-					if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-						logger.Warning("mark node dirty failed:", dErr)
-					}
 				} else {
 					logger.Debug("Error in enabling client on", rt.Name(), ":", err1)
 					needRestart = true
@@ -599,24 +590,35 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	traffic.Enable = true
 
 	db := database.GetDB()
-	err = db.Save(traffic).Error
+	now := time.Now().UnixMilli()
+	inbound, err := s.GetInbound(id)
 	if err != nil {
 		return false, err
 	}
-	if err := clearGlobalTraffic(db, clientEmail); err != nil {
-		return false, err
-	}
-	if err := db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(traffic).Error; err != nil {
+			return err
+		}
+		if err := clearGlobalTraffic(tx, clientEmail); err != nil {
+			return err
+		}
+		if err := tx.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(model.Inbound{}).
+			Where("id = ?", id).
+			Update("last_traffic_reset_time", now).Error; err != nil {
+			return err
+		}
+		if inbound != nil && inbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
+		}
+		return nil
+	}); err != nil {
 		return false, err
 	}
 
-	now := time.Now().UnixMilli()
-	_ = db.Model(model.Inbound{}).
-		Where("id = ?", id).
-		Update("last_traffic_reset_time", now).Error
-
-	inbound, err := s.GetInbound(id)
-	if err == nil && inbound != nil && inbound.NodeID != nil {
+	if inbound != nil && inbound.NodeID != nil {
 		if rt, rterr := s.runtimeFor(inbound); rterr == nil {
 			if e := rt.ResetClientTraffic(context.Background(), inbound, clientEmail); e != nil {
 				logger.Warning("ResetClientTraffic: remote propagation to", rt.Name(), "failed:", e)
