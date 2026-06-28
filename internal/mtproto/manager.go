@@ -2,6 +2,7 @@ package mtproto
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -181,7 +182,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			cur.tag = inst.Tag
 			return nil
 		}
-		cur.proc.Stop()
+		_ = cur.proc.Stop()
 		delete(m.procs, inst.Id)
 	}
 	metricsPort, err := FreeLocalPort()
@@ -211,7 +212,7 @@ func (m *Manager) Remove(id int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if cur, ok := m.procs[id]; ok {
-		cur.proc.Stop()
+		_ = cur.proc.Stop()
 		delete(m.procs, id)
 		_ = os.Remove(configPathForID(id))
 		logger.Infof("mtproto: stopped mtg for inbound %d", id)
@@ -231,7 +232,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 	}
 	for id, cur := range m.procs {
 		if _, ok := want[id]; !ok {
-			cur.proc.Stop()
+			_ = cur.proc.Stop()
 			delete(m.procs, id)
 			_ = os.Remove(configPathForID(id))
 		}
@@ -323,7 +324,7 @@ func (m *Manager) CollectTraffic() []Traffic {
 // for mtg's metrics endpoint and to allocate the per-inbound SOCKS egress
 // bridge port persisted into mtproto inbound settings.
 func FreeLocalPort() (int, error) {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
+	l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
 	}
@@ -383,7 +384,11 @@ func writeConfig(path string, inst Instance, metricsPort int) error {
 // Best-effort: an unreachable endpoint or unrecognised format yields ok=false.
 func scrapeTraffic(port int) (up int64, down int64, ok bool) {
 	client := http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/metrics", port))
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/metrics", port), nil)
+	if reqErr != nil {
+		return 0, 0, false
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, 0, false
 	}
@@ -418,7 +423,7 @@ func scrapeTraffic(port int) (up int64, down int64, ok bool) {
 
 func parseMetricLine(line string) (name string, labels map[string]string, value float64, err error) {
 	labels = map[string]string{}
-	rest := line
+	var rest string
 	if brace := strings.IndexByte(line, '{'); brace >= 0 {
 		name = line[:brace]
 		end := strings.IndexByte(line, '}')

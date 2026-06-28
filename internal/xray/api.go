@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
 	routerService "github.com/xtls/xray-core/app/router/command"
@@ -32,6 +33,7 @@ import (
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vmess"
+	wireguard "github.com/xtls/xray-core/proxy/wireguard"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -408,40 +410,62 @@ func ensureXrayAssetLocation() {
 	}
 }
 
-// AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
-func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
-	userEmail, err := getRequiredUserString(user, "email")
-	if err != nil {
-		return err
+// collectStringSlice normalizes a JSON-decoded value into a slice of non-empty
+// strings, accepting both []string (typed maps) and []any (json.Unmarshal output).
+func collectStringSlice(value any) []string {
+	switch v := value.(type) {
+	case []string:
+		out := make([]string, 0, len(v))
+		for _, s := range v {
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, e := range v {
+			if s, ok := e.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
 	}
+}
 
-	var account *serial.TypedMessage
-	switch Protocol {
+// buildUserAccount constructs the typed xray account for a user of the given
+// protocol. It returns (nil, nil) for protocols that cannot be altered live so
+// callers skip the AlterInbound call. WireGuard keys must be converted to the
+// hex form xray's wireguard proxy expects (its ParseKey uses hex.DecodeString),
+// unlike the file-config path which accepts base64 and converts internally.
+func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMessage, error) {
+	switch protocolName {
 	case "vmess":
 		userID, err := getRequiredUserString(user, "id")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		account = serial.ToTypedMessage(&vmess.Account{
+		return serial.ToTypedMessage(&vmess.Account{
 			Id: userID,
-		})
+		}), nil
 	case "vless":
 		userID, err := getRequiredUserString(user, "id")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		userFlow, err := getOptionalUserString(user, "flow")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		vlessAccount := &vless.Account{
 			Id:   userID,
 			Flow: userFlow,
 		}
-		// Add testseed if provided
 		if testseedVal, ok := user["testseed"]; ok {
 			if testseedArr, ok := testseedVal.([]any); ok && len(testseedArr) >= 4 {
 				testseed := make([]uint32, len(testseedArr))
@@ -455,7 +479,6 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 				vlessAccount.Testseed = testseedArr
 			}
 		}
-		// Add testpre if provided (for outbound, but can be in user for compatibility)
 		if testpreVal, ok := user["testpre"]; ok {
 			if testpre, ok := testpreVal.(float64); ok && testpre > 0 {
 				vlessAccount.Testpre = uint32(testpre)
@@ -463,25 +486,25 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 				vlessAccount.Testpre = testpre
 			}
 		}
-		account = serial.ToTypedMessage(vlessAccount)
+		return serial.ToTypedMessage(vlessAccount), nil
 	case "trojan":
 		password, err := getRequiredUserString(user, "password")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		account = serial.ToTypedMessage(&trojan.Account{
+		return serial.ToTypedMessage(&trojan.Account{
 			Password: password,
-		})
+		}), nil
 	case "shadowsocks":
 		cipher, err := getOptionalUserString(user, "cipher")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		password, err := getRequiredUserString(user, "password")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var ssCipherType shadowsocks.CipherType
@@ -497,26 +520,75 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		}
 
 		if ssCipherType != shadowsocks.CipherType_NONE {
-			account = serial.ToTypedMessage(&shadowsocks.Account{
+			return serial.ToTypedMessage(&shadowsocks.Account{
 				Password:   password,
 				CipherType: ssCipherType,
-			})
-		} else {
-			account = serial.ToTypedMessage(&shadowsocks_2022.ServerConfig{
-				Key:   password,
-				Email: userEmail,
-			})
+			}), nil
 		}
+		return serial.ToTypedMessage(&shadowsocks_2022.Account{
+			Key: password,
+		}), nil
 	case "hysteria":
 		auth, err := getRequiredUserString(user, "auth")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		account = serial.ToTypedMessage(&hysteriaAccount.Account{
+		return serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
-		})
+		}), nil
+	case "wireguard":
+		pubB64, err := getRequiredUserString(user, "publicKey")
+		if err != nil {
+			return nil, err
+		}
+		pubHex, err := wgutil.KeyToHex(pubB64)
+		if err != nil {
+			return nil, fmt.Errorf("wireguard publicKey: %w", err)
+		}
+
+		pskB64, err := getOptionalUserString(user, "preSharedKey")
+		if err != nil {
+			return nil, err
+		}
+		pskHex, err := wgutil.KeyToHex(pskB64)
+		if err != nil {
+			return nil, fmt.Errorf("wireguard preSharedKey: %w", err)
+		}
+
+		allowed := collectStringSlice(user["allowedIPs"])
+		if len(allowed) == 0 {
+			return nil, common.NewError("wireguard: allowedIPs required")
+		}
+
+		keepAlive, err := getOptionalUserString(user, "keepAlive")
+		if err != nil {
+			return nil, err
+		}
+
+		return serial.ToTypedMessage(&wireguard.PeerConfig{
+			PublicKey:    pubHex,
+			PreSharedKey: pskHex,
+			AllowedIps:   allowed,
+			KeepAlive:    keepAlive,
+		}), nil
 	default:
+		return nil, nil
+	}
+}
+
+// AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
+func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
+	userEmail, err := getRequiredUserString(user, "email")
+	if err != nil {
+		return err
+	}
+
+	account, err := buildUserAccount(Protocol, user)
+	if err != nil {
+		return err
+	}
+	if account == nil {
 		return nil
 	}
 

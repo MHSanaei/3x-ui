@@ -214,6 +214,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "token": "new-token-string"
   },
   "Client": {
+    "allowedIPs": [
+      ""
+    ],
     "auth": "",
     "comment": "",
     "created_at": 0,
@@ -223,8 +226,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "flow": "",
     "group": "",
     "id": "",
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
     "security": "",
@@ -240,6 +247,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "inboundId": 0
   },
   "ClientRecord": {
+    "allowedIPs": "",
     "auth": "",
     "comment": "",
     "createdAt": 0,
@@ -249,8 +257,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "flow": "",
     "group": "",
     "id": 0,
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
     "security": "",

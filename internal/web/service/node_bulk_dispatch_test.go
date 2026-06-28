@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
@@ -33,10 +34,12 @@ func (f *fakeNodeRuntime) UpdateUser(context.Context, *model.Inbound, string, mo
 	f.updateUser.Add(1)
 	return nil
 }
+
 func (f *fakeNodeRuntime) DeleteUser(context.Context, *model.Inbound, string) error {
 	f.deleteUser.Add(1)
 	return nil
 }
+
 func (f *fakeNodeRuntime) AddClient(context.Context, *model.Inbound, model.Client) error {
 	f.addClient.Add(1)
 	return nil

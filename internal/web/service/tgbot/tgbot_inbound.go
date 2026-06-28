@@ -31,7 +31,7 @@ func (t *Tgbot) getInboundUsages() string {
 
 		clients, listErr := t.clientService.ListForInbound(nil, inbound.Id)
 		if listErr == nil {
-			info.WriteString(fmt.Sprintf("👥 Clients: %d\r\n", len(clients)))
+			fmt.Fprintf(&info, "👥 Clients: %d\r\n", len(clients))
 		}
 
 		if inbound.ExpiryTime == 0 {
@@ -126,11 +126,9 @@ func (t *Tgbot) getInboundClientsFor(inboundID int, action string) (*telego.Inli
 			for _, client := range clients {
 				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery(action+" "+client.Email)))
 			}
-
 		} else {
 			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
 		}
-
 	}
 	cols := 0
 	if len(buttons) < 6 {
@@ -252,11 +250,9 @@ func (t *Tgbot) getInboundClients(id int) (*telego.InlineKeyboardMarkup, error) 
 			for _, client := range clients {
 				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery("client_get_usage "+client.Email)))
 			}
-
 		} else {
 			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
 		}
-
 	}
 	cols := 0
 	if len(buttons) < 6 {

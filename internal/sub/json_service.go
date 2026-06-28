@@ -29,7 +29,7 @@ type SubJsonService struct {
 func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
-	json.Unmarshal([]byte(defaultJson), &configJson)
+	_ = json.Unmarshal([]byte(defaultJson), &configJson)
 	if outboundSlices, ok := configJson["outbounds"].([]any); ok {
 		for _, defaultOutbound := range outboundSlices {
 			jsonBytes, _ := json.Marshal(defaultOutbound)
@@ -41,7 +41,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		var newRules []any
 		routing, _ := configJson["routing"].(map[string]any)
 		defaultRules, _ := routing["rules"].([]any)
-		json.Unmarshal([]byte(rules), &newRules)
+		_ = json.Unmarshal([]byte(rules), &newRules)
 		defaultRules = append(newRules, defaultRules...)
 		routing["rules"] = defaultRules
 		configJson["routing"] = routing
@@ -234,7 +234,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 func (s *SubJsonService) streamData(stream string) map[string]any {
 	var streamSettings map[string]any
-	json.Unmarshal([]byte(stream), &streamSettings)
+	_ = json.Unmarshal([]byte(stream), &streamSettings)
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":
@@ -392,7 +392,7 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 
 	// Add encryption for VLESS outbound from inbound settings
 	var inboundSettings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 	encryption, _ := inboundSettings["encryption"].(string)
 
 	settings := map[string]any{
@@ -423,7 +423,7 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 
 	if inbound.Protocol == model.Shadowsocks {
 		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 		method, _ := inboundSettings["method"].(string)
 		serverData[0].Method = method
 
@@ -474,7 +474,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	}
 
 	var settings, stream map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
 	outbound.Settings = map[string]any{
 		"version": int(version),
@@ -482,7 +482,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		"port":    inbound.Port,
 	}
 
-	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	hyStream := stream["hysteriaSettings"].(map[string]any)
 	outHyStream := map[string]any{
 		"version": int(version),

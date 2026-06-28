@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -102,12 +103,16 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 		return nil
 	}
 	user := map[string]any{
-		"email":    client.Email,
-		"id":       client.ID,
-		"security": client.Security,
-		"flow":     client.Flow,
-		"auth":     client.Auth,
-		"password": client.Password,
+		"email":        client.Email,
+		"id":           client.ID,
+		"security":     client.Security,
+		"flow":         client.Flow,
+		"auth":         client.Auth,
+		"password":     client.Password,
+		"publicKey":    client.PublicKey,
+		"allowedIPs":   client.AllowedIPs,
+		"preSharedKey": client.PreSharedKey,
+		"keepAlive":    wgKeepAlive(client.KeepAlive),
 	}
 	return l.AddUser(ctx, ib, user)
 }
@@ -135,14 +140,25 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 		return nil
 	}
 	user := map[string]any{
-		"email":    payload.Email,
-		"id":       payload.ID,
-		"security": payload.Security,
-		"flow":     payload.Flow,
-		"auth":     payload.Auth,
-		"password": payload.Password,
+		"email":        payload.Email,
+		"id":           payload.ID,
+		"security":     payload.Security,
+		"flow":         payload.Flow,
+		"auth":         payload.Auth,
+		"password":     payload.Password,
+		"publicKey":    payload.PublicKey,
+		"allowedIPs":   payload.AllowedIPs,
+		"preSharedKey": payload.PreSharedKey,
+		"keepAlive":    wgKeepAlive(payload.KeepAlive),
 	}
 	return l.AddUser(ctx, ib, user)
+}
+
+func wgKeepAlive(seconds int) string {
+	if seconds <= 0 {
+		return ""
+	}
+	return strconv.Itoa(seconds)
 }
 
 func (l *Local) RestartXray(_ context.Context) error {

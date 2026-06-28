@@ -168,9 +168,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// Cap request bodies on state-changing requests so a stolen session/API
 	// token or a buggy client can't force large allocations or long DB
 	// transactions via bulk create/attach/import endpoints. GET/HEAD/OPTIONS
-	// carry no body and are left untouched. importDB restores a full SQLite
-	// backup that legitimately exceeds the cap, so it's exempt. Follow-up: make
-	// the limit a setting.
+	// carry no body and are left untouched. Database restore legitimately accepts
+	// large backups and streams them to disk, so only its exact route suffix is
+	// exempt. Follow-up: make the limit a setting.
 	const maxRequestBodyBytes = 10 << 20 // 10 MiB
 	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB"))
 
@@ -309,10 +309,10 @@ func (s *Server) startTask(restartXray bool) {
 		}
 	}
 	// Check whether xray is running every second
-	s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
+	_, _ = s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
 
 	// Check if xray needs to be restarted every 30 seconds
-	s.cron.AddFunc(cadenceXrayRestart, func() {
+	_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
 		if s.xrayService.IsNeedRestartAndSetFalse() {
 			err := s.xrayService.RestartXray(false)
 			if err != nil {
@@ -323,37 +323,37 @@ func (s *Server) startTask(restartXray bool) {
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+		_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
 	mtJob := job.NewMtprotoJob()
-	s.cron.AddJob(cadenceMtproto, mtJob)
+	_, _ = s.cron.AddJob(cadenceMtproto, mtJob)
 	go mtJob.Run()
 
 	// check client ips from log file every 10 sec
-	s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
+	_, _ = s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
 
-	s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
+	_, _ = s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
 
-	s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
+	_, _ = s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
-	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
+	_, _ = s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
 	// check client ips from log file every day
-	s.cron.AddJob("@daily", job.NewClearLogsJob())
-	s.cron.AddJob("@hourly", job.NewWarpIpJob())
+	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
+	_, _ = s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour
-	s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
+	_, _ = s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
 	// Run once a day, midnight
-	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
+	_, _ = s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
 	// Run once a week, midnight between Sat/Sun
-	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
+	_, _ = s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
 	// Run once a month, midnight, first of month
-	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+	_, _ = s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
 
 	// LDAP sync scheduling
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {
@@ -363,7 +363,7 @@ func (s *Server) startTask(restartXray bool) {
 		}
 		j := job.NewLdapSyncJob()
 		// job has zero-value services with method receivers that read settings on demand
-		s.cron.AddJob(runtime, j)
+		_, _ = s.cron.AddJob(runtime, j)
 	}
 
 	// Telegram-bot–dependent jobs: periodic stats report + callback-hash cleanup.
@@ -383,21 +383,21 @@ func (s *Server) startTask(restartXray bool) {
 		}
 
 		// check for Telegram bot callback query hash storage reset
-		s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
+		_, _ = s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 	}
 
 	// CPU monitor publishes cpu.high events; register it whenever any notifier
 	// (Telegram or Email) wants them, independent of the Telegram bot being on.
 	if s.cpuAlarmWanted() {
-		s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
+		_, _ = s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
 	}
 	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
 	if s.memoryAlarmWanted() {
-		s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
+		_, _ = s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
 	}
 
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
-		s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
+		_, _ = s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
 		go func() {
 			time.Sleep(time.Minute)
 			job.NewMemoryReleaseJob().Run()
@@ -479,7 +479,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// This is an anonymous function, no function name
 	defer func() {
 		if err != nil {
-			s.Stop()
+			_ = s.Stop()
 		}
 	}()
 
@@ -553,7 +553,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
-	listener, err := net.Listen("tcp", listenAddr)
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
 	if err != nil {
 		return err
 	}
@@ -593,7 +593,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 
 	go func() {
-		s.httpServer.Serve(listener)
+		_ = s.httpServer.Serve(listener)
 	}()
 
 	// Create event bus before startTask so jobs can use it
@@ -660,7 +660,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		isTgbotenabled, err := s.settingService.GetTgbotEnabled()
 		if (err == nil) && (isTgbotenabled) {
 			tgBot := s.tgbotService.NewTgbot()
-			tgBot.Start(i18nFS)
+			_ = tgBot.Start(i18nFS)
 			// Subscribe Telegram notifications for event bus
 			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
 		}
@@ -681,7 +681,7 @@ func (s *Server) StopPanelOnly() error {
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
 	if stopXray {
-		s.xrayService.StopXray()
+		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 	}
 	if s.cron != nil {

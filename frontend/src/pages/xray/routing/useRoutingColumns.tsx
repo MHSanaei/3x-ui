@@ -133,7 +133,7 @@ export function useRoutingColumns({
         key: 'network',
         render: (_v, record) => (
           <div className="criterion-flow">
-            {record.network && <CriterionRow label="L4" value={record.network} title={`L4: ${record.network}`} />}
+            {record.network && <CriterionRow label="L4" value={record.network.toUpperCase()} title={`L4: ${record.network.toUpperCase()}`} />}
             {record.protocol && <CriterionRow label="Protocol" value={record.protocol} title={`Protocol: ${record.protocol}`} />}
             {record.attrs && <CriterionRow label="Attrs" value={record.attrs} title={`Attrs: ${record.attrs}`} />}
             {!record.network && !record.protocol && !record.attrs && <span className="criterion-empty">—</span>}

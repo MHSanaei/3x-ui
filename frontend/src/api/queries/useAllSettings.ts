@@ -7,6 +7,8 @@ import { AllSetting } from '@/models/setting';
 import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
 
+type SettingSavePayload = Partial<AllSetting> & Record<string, unknown>;
+
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
   const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch settings');
@@ -42,19 +44,21 @@ export function useAllSettings() {
   }, []);
 
   const saveMut = useMutation({
-    mutationFn: async (next: AllSetting): Promise<Msg<unknown>> => {
-      const body = AllSettingSchema.partial().safeParse(next);
+    mutationFn: async (next: SettingSavePayload): Promise<Msg<unknown>> => {
+      const payload = { ...next };
+      const body = AllSettingSchema.partial().safeParse(payload);
       if (!body.success) {
         console.warn('[zod] setting/update body failed validation', body.error.issues);
       }
-      return HttpUtil.post('/panel/api/setting/update', body.success ? body.data : next);
+      return HttpUtil.post('/panel/api/setting/update', body.success ? { ...payload, ...body.data } : payload);
     },
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.settings.all() });
     },
   });
 
-  const saveAll = useCallback(() => saveMut.mutateAsync(draft), [saveMut, draft]);
+  const saveAll = useCallback(() => saveMut.mutateAsync({ ...draft }), [saveMut, draft]);
+  const savePayload = useCallback((payload: SettingSavePayload) => saveMut.mutateAsync(payload), [saveMut]);
   const saveDisabled = useMemo(() => server.equals(draft), [server, draft]);
 
   return {
@@ -65,5 +69,6 @@ export function useAllSettings() {
     setSpinning: setExtraSpinning,
     saveDisabled,
     saveAll,
+    savePayload,
   };
 }

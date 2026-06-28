@@ -143,7 +143,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			continue
 		}
 		settings := map[string]any{}
-		json.Unmarshal([]byte(inbound.Settings), &settings)
+		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 
 		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
 		if listErr != nil {
@@ -157,6 +157,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 
 		var finalClients []any
+		var wgPeers []any
 		for i := range dbClients {
 			c := dbClients[i]
 			if enable, exists := enableMap[c.Email]; exists && !enable {
@@ -204,14 +205,40 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
+			case model.WireGuard:
+				peer := map[string]any{"email": c.Email, "level": 0}
+				if c.PublicKey != "" {
+					peer["publicKey"] = c.PublicKey
+				}
+				if len(c.AllowedIPs) > 0 {
+					peer["allowedIPs"] = c.AllowedIPs
+				}
+				if c.PreSharedKey != "" {
+					peer["preSharedKey"] = c.PreSharedKey
+				}
+				if c.KeepAlive > 0 {
+					peer["keepAlive"] = c.KeepAlive
+				}
+				wgPeers = append(wgPeers, peer)
+				continue
 			}
 			finalClients = append(finalClients, entry)
 		}
 
-		_, hadClients := settings["clients"]
-		mutated := hadClients || len(finalClients) > 0
-		if mutated {
-			settings["clients"] = finalClients
+		var mutated bool
+		if inbound.Protocol == model.WireGuard {
+			delete(settings, "clients")
+			if wgPeers == nil {
+				wgPeers = []any{}
+			}
+			settings["peers"] = wgPeers
+			mutated = true
+		} else {
+			_, hadClients := settings["clients"]
+			mutated = hadClients || len(finalClients) > 0
+			if mutated {
+				settings["clients"] = finalClients
+			}
 		}
 
 		if inboundCanHostFallbacks(inbound) {
@@ -240,7 +267,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if len(inbound.StreamSettings) > 0 {
 			// Unmarshal stream JSON
 			var stream map[string]any
-			json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+			_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 
 			// Remove the "settings" field under "tlsSettings" and "realitySettings"
 			tlsSettings, ok1 := stream["tlsSettings"].(map[string]any)
@@ -930,7 +957,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 			logger.Info("Xray config changes applied through the core API, no restart needed")
 			return nil
 		}
-		p.Stop()
+		_ = p.Stop()
 	}
 
 	p = xray.NewProcess(xrayConfig)

@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/xlzd/gotp"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -98,5 +100,24 @@ func TestSanitizePublicHTTPURLBlocksPrivateAddressUnlessAllowed(t *testing.T) {
 	}
 	if got, err := SanitizePublicHTTPURL("http://127.0.0.1:8080/hook", true); err != nil || got != "http://127.0.0.1:8080/hook" {
 		t.Fatalf("allowPrivate result = %q, %v", got, err)
+	}
+}
+
+func TestVerifyTwoFactorCode(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	if err := s.saveSetting("twoFactorEnable", "true"); err != nil {
+		t.Fatal(err)
+	}
+	const token = "JBSWY3DPEHPK3PXP"
+	if err := s.saveSetting("twoFactorToken", token); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.VerifyTwoFactorCode(gotp.NewDefaultTOTP(token).Now()); err != nil {
+		t.Fatalf("valid code rejected: %v", err)
+	}
+	if err := s.VerifyTwoFactorCode("000000"); err == nil {
+		t.Fatal("invalid code accepted")
 	}
 }

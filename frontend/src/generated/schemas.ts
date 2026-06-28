@@ -1066,6 +1066,12 @@ export const SCHEMAS: Record<string, unknown> = {
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
+      "allowedIPs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "auth": {
         "description": "Auth password (Hysteria)",
         "type": "string"
@@ -1102,12 +1108,24 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Unique client identifier",
         "type": "string"
       },
+      "keepAlive": {
+        "type": "integer"
+      },
       "limitIp": {
         "description": "IP limit for this client",
         "type": "integer"
       },
       "password": {
         "description": "Client password",
+        "type": "string"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
         "type": "string"
       },
       "reset": {
@@ -1183,6 +1201,9 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "ClientRecord": {
     "properties": {
+      "allowedIPs": {
+        "type": "string"
+      },
       "auth": {
         "type": "string"
       },
@@ -1210,10 +1231,22 @@ export const SCHEMAS: Record<string, unknown> = {
       "id": {
         "type": "integer"
       },
+      "keepAlive": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
       "password": {
+        "type": "string"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
         "type": "string"
       },
       "reset": {
@@ -1240,6 +1273,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "allowedIPs",
       "auth",
       "comment",
       "createdAt",
@@ -1249,8 +1283,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "flow",
       "group",
       "id",
+      "keepAlive",
       "limitIp",
       "password",
+      "preSharedKey",
+      "privateKey",
+      "publicKey",
       "reset",
       "reverse",
       "security",

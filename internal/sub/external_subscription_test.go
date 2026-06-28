@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +15,7 @@ func TestDoFetchSubscriptionLinks_RejectsOversizedBody(t *testing.T) {
 	defer srv.Close()
 
 	links, err := doFetchSubscriptionLinks(srv.URL)
-	if err != errSubscriptionBodyTooLarge {
+	if !errors.Is(err, errSubscriptionBodyTooLarge) {
 		t.Fatalf("err = %v, want errSubscriptionBodyTooLarge", err)
 	}
 	if links != nil {

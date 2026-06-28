@@ -34,10 +34,14 @@ func TestResetClientExpiryTimeByEmail_MultiInbound(t *testing.T) {
 		return string(b)
 	}
 
-	first := &model.Inbound{Tag: "vless-a", Enable: true, Port: 50001, Protocol: model.VLESS,
-		StreamSettings: `{"network":"tcp","security":"reality"}`, Settings: clientJSON(oldExpiry)}
-	second := &model.Inbound{Tag: "vless-b", Enable: true, Port: 50002, Protocol: model.VLESS,
-		StreamSettings: `{"network":"ws","security":"tls"}`, Settings: clientJSON(oldExpiry)}
+	first := &model.Inbound{
+		Tag: "vless-a", Enable: true, Port: 50001, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"reality"}`, Settings: clientJSON(oldExpiry),
+	}
+	second := &model.Inbound{
+		Tag: "vless-b", Enable: true, Port: 50002, Protocol: model.VLESS,
+		StreamSettings: `{"network":"ws","security":"tls"}`, Settings: clientJSON(oldExpiry),
+	}
 	for _, ib := range []*model.Inbound{first, second} {
 		if err := db.Create(ib).Error; err != nil {
 			t.Fatalf("create inbound %s: %v", ib.Tag, err)

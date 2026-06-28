@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -242,6 +243,37 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	return result, emails, lastOnline, traffic, nil
 }
 
+// inboundLinks builds the share links for every distinct client of one inbound
+// the same way getSubs does — managed Host endpoints win over the plain link so
+// {{HOST}} and per-host variants render — but across all clients rather than a
+// single subId. Dedups duplicate client JSON entries by email (#5134). Backs the
+// panel's "Export all inbound links" so it matches the client/QR pages.
+func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
+	clients, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		return nil
+	}
+	s.projectThroughFallbackMaster(inbound)
+	hostEps := s.hostEndpoints(inbound, "raw")
+	var out []string
+	seen := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		key := strings.ToLower(client.Email)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		var link string
+		if len(hostEps) > 0 {
+			link = s.linkFromHosts(inbound, client, hostEps)
+		} else {
+			link = s.GetLink(inbound, client.Email)
+		}
+		out = append(out, splitLinkLines(link)...)
+	}
+	return out
+}
+
 // AggregateTrafficByEmails resolves traffic for every email in one
 // query and folds the rows into a single ClientTraffic + lastOnline.
 // xray.ClientTraffic.Email is globally unique, so a multi-inbound
@@ -336,7 +368,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -422,12 +454,12 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 // + ws/grpc/etc. settings) stays the child's.
 func mergeStreamFromMaster(childStream, masterStream string) string {
 	var stream map[string]any
-	json.Unmarshal([]byte(childStream), &stream)
+	_ = json.Unmarshal([]byte(childStream), &stream)
 	if stream == nil {
 		stream = map[string]any{}
 	}
 	var mst map[string]any
-	json.Unmarshal([]byte(masterStream), &mst)
+	_ = json.Unmarshal([]byte(masterStream), &mst)
 	if mst == nil {
 		return childStream
 	}
@@ -470,8 +502,50 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genHysteriaLink(inbound, email)
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
+	case "wireguard":
+		return s.genWireguardLink(inbound, email)
 	}
 	return ""
+}
+
+// genWireguardLink builds a per-client wireguard:// share link mirroring the
+// frontend genWireguardLink: the client's private key is the userinfo, the
+// server public key (derived from the inbound secretKey) and the client's
+// tunnel address ride in the query. Returns "" when the client has no key.
+func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.WireGuard {
+		return ""
+	}
+	settings := map[string]any{}
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	secretKey, _ := settings["secretKey"].(string)
+
+	clients, _ := s.inboundService.GetClients(inbound)
+	var client *model.Client
+	for i := range clients {
+		if clients[i].Email == email {
+			client = &clients[i]
+			break
+		}
+	}
+	if client == nil || client.PrivateKey == "" {
+		return ""
+	}
+
+	link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
+	params := make(map[string]string)
+	if secretKey != "" {
+		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
+			params["publickey"] = pub
+		}
+	}
+	if len(client.AllowedIPs) > 0 && client.AllowedIPs[0] != "" {
+		params["address"] = client.AllowedIPs[0]
+	}
+	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 {
+		params["mtu"] = strconv.Itoa(int(mtu))
+	}
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 
 // genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
@@ -480,7 +554,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, _ string) string {
 		return ""
 	}
 	settings := map[string]any{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	secret, _ := settings["secret"].(string)
 	if secret == "" {
 		if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
@@ -586,7 +660,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	// Add encryption parameter for VLESS from inbound settings
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	if encryption, ok := settings["encryption"].(string); ok {
 		params["encryption"] = encryption
 	}
@@ -708,7 +782,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	clients, _ := s.inboundService.GetClients(inbound)
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	inboundPassword := settings["password"].(string)
 	method := settings["method"].(string)
 	clientIndex := findClientIndex(clients, email)
@@ -777,7 +851,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		return ""
 	}
 	var stream map[string]any
-	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
@@ -846,7 +920,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	}
 
 	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
 	protocol := "hysteria2"
 	if int(version) == 1 {
@@ -977,7 +1051,7 @@ func findClientIndex(clients []model.Client, email string) int {
 
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
-	json.Unmarshal([]byte(streamSettings), &stream)
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
 	return stream
 }
 
@@ -1285,7 +1359,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "pcs")) {
+		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs") {
 			newObj[key] = value
 		}
 	}

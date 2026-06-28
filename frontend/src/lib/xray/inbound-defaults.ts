@@ -263,24 +263,20 @@ export interface WireguardInboundSeed {
   mtu?: number;
   secretKey?: string;
   noKernelTun?: boolean;
-  peerPrivateKey?: string;
 }
 
+// WireGuard is multi-client now: a new inbound holds only the server identity
+// (secretKey/mtu) and starts with no clients. Clients (peers) are added later
+// through the client modal, which generates each one's keypair and a unique
+// tunnel address. peers stays empty for backward-compatible parsing.
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
-  const peerKp = seed.peerPrivateKey
-    ? { privateKey: seed.peerPrivateKey, publicKey: Wireguard.generateKeypair(seed.peerPrivateKey).publicKey }
-    : Wireguard.generateKeypair();
   return {
     mtu: seed.mtu ?? 1420,
     secretKey: seed.secretKey ?? Wireguard.generateKeypair().privateKey,
-    peers: [{
-      privateKey: peerKp.privateKey,
-      publicKey: peerKp.publicKey,
-      allowedIPs: ['10.0.0.2/32'],
-      keepAlive: 0,
-    }],
+    peers: [],
+    clients: [],
     noKernelTun: seed.noKernelTun ?? false,
   };
 }

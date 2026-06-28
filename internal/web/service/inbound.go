@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -153,7 +154,7 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.enrichClientStats(db, inbounds)
@@ -196,7 +197,7 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.annotateFallbackParents(db, inbounds)
@@ -319,7 +320,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	out := make([]InboundOption, 0, len(rows))
@@ -343,7 +344,7 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.enrichClientStats(db, inbounds)
@@ -354,7 +355,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return inbounds, nil
@@ -362,7 +363,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
 	settings := map[string][]model.Client{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	if settings == nil {
 		return nil, fmt.Errorf("setting is null")
 	}
@@ -658,12 +659,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			tx.Rollback()
 			return
 		}
-		tx.Commit()
 		if markDirty && inbound.NodeID != nil {
-			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
+			if dErr := (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID); dErr != nil {
+				err = dErr
+				tx.Rollback()
+				return
 			}
 		}
+		tx.Commit()
 	}()
 
 	// Omit the ClientStats has-many association: GORM's cascade would INSERT
@@ -702,6 +705,16 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 
 	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
+		return inbound, false, err
+	}
+
+	// Legacy import: an inbound exported from a build that predated the hosts
+	// table carries its external proxies inline in streamSettings.externalProxy.
+	// The startup migration that converts those to host rows runs once and is
+	// gated off afterwards, so it never sees a freshly imported inbound —
+	// reproduce it here. No-op for inbounds without externalProxy (everything the
+	// current UI builds), so this only fires on such imports.
+	if _, err = database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 
@@ -798,17 +811,20 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 	}
 
-	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
-		return needRestart, err
-	}
-	// Hosts have no hard FK; drop the inbound's hosts alongside it.
-	if err := db.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
-		return needRestart, err
-	}
-	if markDirty && ib.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
+			return err
 		}
+		// Hosts have no hard FK; drop the inbound's hosts alongside it.
+		if err := tx.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
+			return err
+		}
+		if markDirty && ib.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
+		}
+		return nil
+	}); err != nil {
+		return needRestart, err
 	}
 	if !database.IsPostgres() {
 		var count int64
@@ -891,14 +907,22 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
-	if err := db.Model(model.Inbound{}).Where("id = ?", id).
-		Update("enable", enable).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
+			Update("enable", enable).Error; err != nil {
+			return err
+		}
+		if inbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
+		}
+		return nil
+	}); err != nil {
 		return false, err
 	}
 	inbound.Enable = enable
 
 	needRestart := false
-	rt, push, dirty, perr := s.nodePushPlan(inbound)
+	rt, push, _, perr := s.nodePushPlan(inbound)
 	if perr != nil {
 		return false, perr
 	}
@@ -912,12 +936,6 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		if push {
 			if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
 				logger.Warning("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
-				dirty = true
-			}
-		}
-		if dirty {
-			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
 			}
 		}
 		return false, nil
@@ -980,7 +998,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldTagWasAuto := isAutoGeneratedTag(tag, oldInbound.Port, oldInbound.NodeID, oldBits)
 
 	needRestart := false
-	markDirty := false
 
 	// Persist the client-stat sync, settings munging, runtime push and inbound
 	// save as one transaction routed through the serial traffic writer, so it
@@ -1106,12 +1123,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Tag = resolvedTag
 		inbound.Tag = oldInbound.Tag
 
-		rt, push, dirty, perr := s.nodePushPlan(oldInbound)
+		rt, push, _, perr := s.nodePushPlan(oldInbound)
 		if perr != nil {
 			return perr
-		}
-		if dirty {
-			markDirty = true
 		}
 		if oldInbound.NodeID == nil {
 			if !push {
@@ -1141,11 +1155,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			if !inbound.Enable {
 				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
 					logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
-					markDirty = true
 				}
 			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
 				logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
-				markDirty = true
 			}
 		}
 
@@ -1168,6 +1180,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 			return err
 		}
+		if oldInbound.NodeID != nil {
+			if err := (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID); err != nil {
+				return err
+			}
+		}
 		// (Re)generate the Xray config whenever routing was or is now enabled, so
 		// the egress SOCKS bridge is added, moved, or dropped to match the new
 		// settings.
@@ -1188,11 +1205,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
 		} else if routingChanged {
 			needRestart = true
-		}
-	}
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
 		}
 	}
 	return inbound, needRestart, nil
@@ -1338,7 +1350,7 @@ func (s *InboundService) GetInboundTags() (string, error) {
 	db := database.GetDB()
 	var inboundTags []string
 	err := db.Model(model.Inbound{}).Select("tag").Find(&inboundTags).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", err
 	}
 	tags, _ := json.Marshal(inboundTags)
@@ -1349,7 +1361,7 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 	db := database.GetDB()
 	var inbounds []model.Inbound
 	err := db.Model(model.Inbound{}).Select("settings").Where("protocol = ?", "vless").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "[]", err
 	}
 
@@ -1394,7 +1406,7 @@ func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) 
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return inbounds, nil

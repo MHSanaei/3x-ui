@@ -95,6 +95,7 @@ func TestListenIsInternalOnly(t *testing.T) {
 }
 
 func TestResolveInboundAddress(t *testing.T) {
+	initSubDB(t)
 	const reqHost = "sub.example.com"
 
 	// A routable bind Listen (a real IP or hostname the operator set as the
