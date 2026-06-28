@@ -129,6 +129,11 @@
   white-space: nowrap;
 }
 
+.link-row-title--wrap {
+  word-break: break-all;
+  white-space: normal;
+}
+
 .link-row-actions {
   display: flex;
   gap: 4px;

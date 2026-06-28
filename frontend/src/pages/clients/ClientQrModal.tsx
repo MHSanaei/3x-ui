@@ -5,7 +5,8 @@ import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
-import type { ClientRecord } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
 
 interface SubSettings {
   enable: boolean;
@@ -17,6 +18,7 @@ interface SubSettings {
 interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
+  inboundsById: Record<number, InboundOption>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -31,6 +33,7 @@ const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', su
 export default function ClientQrModal({
   open,
   client,
+  inboundsById,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -49,7 +52,13 @@ export default function ClientQrModal({
     return subSettings.subJsonURI + client.subId;
   }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
 
-  const hasAnything = !!subLink || !!subJsonLink || links.length > 0;
+  const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
+  const wgConfigText = useMemo(() => {
+    if (!client || !isWireguardClient(client)) return '';
+    return buildWireguardClientConfig(client, wgInbound);
+  }, [client, wgInbound]);
+
+  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
 
   useEffect(() => {
     if (!open || !client?.subId) {
@@ -77,6 +86,19 @@ export default function ClientQrModal({
 
   const items = useMemo(() => {
     const out: { key: string; label: React.ReactNode; children: React.ReactNode }[] = [];
+    if (wgConfigText) {
+      out.push({
+        key: 'wg-config',
+        label: 'WireGuard config',
+        children: (
+          <QrPanel
+            value={wgConfigText}
+            remark={client?.email || 'peer'}
+            downloadName={`${client?.email || 'peer'}.conf`}
+          />
+        ),
+      });
+    }
     if (subLink) {
       out.push({
         key: 'sub',
@@ -94,6 +116,7 @@ export default function ClientQrModal({
     links.forEach((link, idx) => {
       const parts = parseLinkParts(link);
       const meta = parts ? linkMetaText(parts) : '';
+      const isWireguardLink = link.startsWith('wireguard://') || link.startsWith('wg://');
       const label: React.ReactNode = parts ? (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <LinkTags parts={parts} />
@@ -107,13 +130,13 @@ export default function ClientQrModal({
           <QrPanel
             value={link}
             remark={parts?.remark || `${client?.email || ''} #${idx + 1}`}
-            showQr={!isPostQuantumLink(link)}
+            showQr={!isWireguardLink && !isPostQuantumLink(link)}
           />
         ),
       });
     });
     return out;
-  }, [subLink, subJsonLink, links, client?.email, t]);
+  }, [subLink, subJsonLink, wgConfigText, links, client?.email, t]);
 
   useEffect(() => {
     if (!open) {

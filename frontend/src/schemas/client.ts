@@ -49,6 +49,8 @@ export const InboundOptionSchema = z.object({
   port: z.number().optional(),
   tlsFlowCapable: z.boolean().optional(),
   ssMethod: z.string().optional(),
+  wgPublicKey: z.string().optional(),
+  wgMtu: z.number().optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
 }).loose();

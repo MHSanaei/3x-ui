@@ -19,10 +19,10 @@ import {
   Typography,
   message,
 } from 'antd';
-import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -30,6 +30,7 @@ import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
+import { buildWireguardClientConfig } from './wireguardConfig';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
@@ -344,6 +345,26 @@ export default function ClientFormModal({
     () => (form.inboundIds || []).some((id) => wireguardIds.has(id)),
     [form.inboundIds, wireguardIds],
   );
+
+  const wgInbound = useMemo(
+    () => (form.inboundIds || [])
+      .map((id) => (inbounds || []).find((row) => row.id === id))
+      .find((row) => row?.protocol === 'wireguard'),
+    [form.inboundIds, inbounds],
+  );
+
+  const wgConfigText = useMemo(() => {
+    if (!showWireguard) return '';
+    return buildWireguardClientConfig({
+      email: form.email,
+      comment: form.comment,
+      privateKey: form.wgPrivateKey,
+      publicKey: form.wgPublicKey,
+      allowedIPs: form.wgAllowedIPs || '10.0.0.2/32',
+      preSharedKey: form.wgPreSharedKey,
+      inboundIds: form.inboundIds,
+    } as ClientRecord, wgInbound);
+  }, [showWireguard, form.email, form.comment, form.wgPrivateKey, form.wgPublicKey, form.wgAllowedIPs, form.wgPreSharedKey, form.inboundIds, wgInbound]);
 
   function regenerateWireguardKeys() {
     const kp = Wireguard.generateKeypair();
@@ -863,6 +884,35 @@ export default function ClientFormModal({
                   </>
                 ),
               },
+              ...(showWireguard ? [{
+                key: 'wg-config',
+                label: 'WireGuard config',
+                children: (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>
+                      <Tooltip title={t('copy')}>
+                        <Button size="small" icon={<CopyOutlined />} onClick={() => ClipboardManager.copyText(wgConfigText)} />
+                      </Tooltip>
+                      <Tooltip title={t('download')}>
+                        <Button size="small" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${form.email || 'peer'}.conf`)} />
+                      </Tooltip>
+                    </div>
+                    <pre style={{
+                      background: 'var(--ant-color-fill-quaternary, #f5f5f5)',
+                      borderRadius: 6,
+                      padding: '10px 14px',
+                      margin: 0,
+                      maxHeight: 320,
+                      overflow: 'auto',
+                      fontSize: 12,
+                      whiteSpace: 'pre-wrap',
+                      userSelect: 'all',
+                    }}>
+                      {wgConfigText}
+                    </pre>
+                  </div>
+                ),
+              }] : []),
             ]}
           />
         </Form>

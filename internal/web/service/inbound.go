@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -298,6 +299,8 @@ type InboundOption struct {
 	Port           int    `json:"port" example:"443"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	WgPublicKey    string `json:"wgPublicKey,omitempty"`
+	WgMtu          int    `json:"wgMtu,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -325,6 +328,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
+		wgPublicKey, wgMtu := inboundWireguardHints(r.Protocol, r.Settings)
 		out = append(out, InboundOption{
 			Id:             r.Id,
 			Remark:         r.Remark,
@@ -333,10 +337,37 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Port:           r.Port,
 			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
+			WgPublicKey:    wgPublicKey,
+			WgMtu:          wgMtu,
 			NodeId:         r.NodeId,
 		})
 	}
 	return out, nil
+}
+
+func inboundWireguardHints(protocol string, settings string) (string, int) {
+	if protocol != string(model.WireGuard) || strings.TrimSpace(settings) == "" {
+		return "", 0
+	}
+	var parsed struct {
+		PublicKey string `json:"publicKey"`
+		PubKey    string `json:"pubKey"`
+		SecretKey string `json:"secretKey"`
+		MTU       int    `json:"mtu"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return "", 0
+	}
+	publicKey := parsed.PublicKey
+	if publicKey == "" {
+		publicKey = parsed.PubKey
+	}
+	if publicKey == "" && parsed.SecretKey != "" {
+		if derived, err := wgutil.PublicKeyFromPrivate(parsed.SecretKey); err == nil {
+			publicKey = derived
+		}
+	}
+	return publicKey, parsed.MTU
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.

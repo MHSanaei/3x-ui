@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
-import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -11,6 +11,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
+import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
 import './ClientInfoModal.css';
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -132,6 +133,11 @@ export default function ClientInfoModal({
   }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
 
   const showSubscription = !!(subSettings?.enable && client?.subId);
+  const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
+  const wgConfigText = useMemo(() => {
+    if (!client || !isWireguardClient(client)) return '';
+    return buildWireguardClientConfig(client, wgInbound);
+  }, [client, wgInbound]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -350,6 +356,34 @@ export default function ClientInfoModal({
               </tbody>
             </table>
 
+            {wgConfigText && client && (
+              <>
+                <Divider>WireGuard config</Divider>
+                <div className="link-row" style={{ alignItems: 'flex-start' }}>
+                  <Tag color="gold" className="link-row-tag" style={{ marginTop: 2 }}>CONF</Tag>
+                  <span className="link-row-title link-row-title--wrap">{wgConfigText}</span>
+                  <div className="link-row-actions" style={{ marginTop: 2 }}>
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(wgConfigText)} />
+                    </Tooltip>
+                    <Tooltip title={t('download')}>
+                      <Button size="small" icon={<DownloadOutlined />} onClick={() => FileManager.downloadTextFile(wgConfigText, `${client.email}.conf`)} />
+                    </Tooltip>
+                    <Popover
+                      trigger="click"
+                      placement="left"
+                      destroyOnHidden
+                      content={<QrPanel value={wgConfigText} remark={client.email || 'peer'} size={220} />}
+                    >
+                      <Tooltip title={t('pages.clients.qrCode')}>
+                        <Button size="small" icon={<QrcodeOutlined />} />
+                      </Tooltip>
+                    </Popover>
+                  </div>
+                </div>
+              </>
+            )}
+
             {links.length > 0 && (
               <>
                 <Divider>{t('pages.inbounds.copyLink')}</Divider>
@@ -358,14 +392,17 @@ export default function ClientInfoModal({
                   const fallback = `${t('pages.clients.link')} ${idx + 1}`;
                   const rowTitle = (parts && linkMetaText(parts)) || fallback;
                   const qrRemark = parts?.remark || rowTitle;
-                  const canQr = !isPostQuantumLink(link);
+                  const isWireguardLink = link.startsWith('wireguard://') || link.startsWith('wg://');
+                  const canQr = !isWireguardLink && !isPostQuantumLink(link);
                   return (
-                    <div key={idx} className="link-row">
+                    <div key={idx} className="link-row" style={isWireguardLink ? { alignItems: 'flex-start' } : undefined}>
                       {parts
                         ? <LinkTags parts={parts} />
                         : <Tag className="link-row-tag">LINK</Tag>}
-                      <span className="link-row-title" title={rowTitle}>{rowTitle}</span>
-                      <div className="link-row-actions">
+                      <span className={`link-row-title${isWireguardLink ? ' link-row-title--wrap' : ''}`} title={isWireguardLink ? link : rowTitle}>
+                        {isWireguardLink ? link : rowTitle}
+                      </span>
+                      <div className="link-row-actions" style={isWireguardLink ? { marginTop: 2 } : undefined}>
                         <Tooltip title={t('copy')}>
                           <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
                         </Tooltip>
