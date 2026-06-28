@@ -1220,6 +1220,8 @@
         "host": "LDAP host",
         "port": "Cổng LDAP",
         "useTls": "Dùng TLS (LDAPS)",
+        "skipTlsVerify": "Bỏ qua xác minh chứng chỉ TLS",
+        "skipTlsVerifyDesc": "Không an toàn — tắt xác thực chứng chỉ máy chủ. Chỉ dùng với CA nội bộ/không đáng tin.",
         "bindDn": "Bind DN",
         "passwordConfigured": "Đã cấu hình; để trống để giữ mật khẩu hiện tại.",
         "passwordUnconfigured": "Chưa cấu hình.",

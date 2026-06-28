@@ -69,6 +69,7 @@ export const AllSettingSchema = z.object({
   ldapHost: z.string().optional(),
   ldapPort: port.optional(),
   ldapUseTLS: z.boolean().optional(),
+  ldapInsecureSkipVerify: z.boolean().optional(),
   ldapBindDN: z.string().optional(),
   ldapPassword: z.string().optional(),
   ldapBaseDN: z.string().optional(),

@@ -1220,6 +1220,8 @@
         "host": "مضيف LDAP",
         "port": "منفذ LDAP",
         "useTls": "استخدام TLS (LDAPS)",
+        "skipTlsVerify": "تخطي التحقق من شهادة TLS",
+        "skipTlsVerifyDesc": "غير آمن — يعطل التحقق من شهادة الخادم. استخدم فقط مع CA الداخلية/غير الموثوقة.",
         "bindDn": "Bind DN",
         "passwordConfigured": "مهيأة؛ اترك فارغاً للاحتفاظ بكلمة المرور الحالية.",
         "passwordUnconfigured": "غير مهيأة.",

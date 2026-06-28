@@ -1220,6 +1220,8 @@
         "host": "LDAP host",
         "port": "LDAP port",
         "useTls": "TLS kullan (LDAPS)",
+        "skipTlsVerify": "TLS sertifika doğrulamasını atla",
+        "skipTlsVerifyDesc": "Güvenli değil — sunucu sertifika doğrulamasını devre dışı bırakır. Yalnızca dahili/güvenilmeyen CA'larla kullanın.",
         "bindDn": "Bind DN",
         "passwordConfigured": "Yapılandırıldı; mevcut parolayı korumak için boş bırakın.",
         "passwordUnconfigured": "Yapılandırılmadı.",

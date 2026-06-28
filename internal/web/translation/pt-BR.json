@@ -1220,6 +1220,8 @@
         "host": "Host LDAP",
         "port": "Porta LDAP",
         "useTls": "Usar TLS (LDAPS)",
+        "skipTlsVerify": "Pular verificação de certificado TLS",
+        "skipTlsVerifyDesc": "Inseguro — desativa a validação do certificado do servidor. Use apenas com CAs internos/não confiáveis.",
         "bindDn": "Bind DN",
         "passwordConfigured": "Configurada; deixe em branco para manter a senha atual.",
         "passwordUnconfigured": "Não configurada.",

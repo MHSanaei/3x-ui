@@ -1220,6 +1220,8 @@
         "host": "LDAP host",
         "port": "LDAP ポート",
         "useTls": "TLS (LDAPS) を使用",
+        "skipTlsVerify": "TLS 証明書の検証をスキップ",
+        "skipTlsVerifyDesc": "安全ではありません — サーバー証明書の検証を無効化します。内部/信頼できない CA でのみ使用してください。",
         "bindDn": "Bind DN",
         "passwordConfigured": "設定済み;現在のパスワードを保持するには空のままにします。",
         "passwordUnconfigured": "未設定。",

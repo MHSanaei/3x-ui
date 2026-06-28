@@ -312,6 +312,17 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <SettingListItem paddings="small" title={t('pages.settings.ldap.useTls')}>
               <Switch checked={allSetting.ldapUseTLS} onChange={(v) => updateSetting({ ldapUseTLS: v })} />
             </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.ldap.skipTlsVerify')}
+              description={t('pages.settings.ldap.skipTlsVerifyDesc')}
+            >
+              <Switch
+                checked={allSetting.ldapInsecureSkipVerify}
+                disabled={!allSetting.ldapUseTLS}
+                onChange={(v) => updateSetting({ ldapInsecureSkipVerify: v })}
+              />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.bindDn')}>
               <Input value={allSetting.ldapBindDN} onChange={(e) => updateSetting({ ldapBindDN: e.target.value })} />
             </SettingListItem>

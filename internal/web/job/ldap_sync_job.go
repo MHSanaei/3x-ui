@@ -69,17 +69,18 @@ func (j *LdapSyncJob) Run() {
 
 	// --- LDAP fetch ---
 	cfg := ldaputil.Config{
-		Host:       mustGetString(j.settingService.GetLdapHost),
-		Port:       mustGetInt(j.settingService.GetLdapPort),
-		UseTLS:     mustGetBool(j.settingService.GetLdapUseTLS),
-		BindDN:     mustGetString(j.settingService.GetLdapBindDN),
-		Password:   mustGetString(j.settingService.GetLdapPassword),
-		BaseDN:     mustGetString(j.settingService.GetLdapBaseDN),
-		UserFilter: mustGetString(j.settingService.GetLdapUserFilter),
-		UserAttr:   mustGetString(j.settingService.GetLdapUserAttr),
-		FlagField:  mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
-		TruthyVals: splitCsv(mustGetString(j.settingService.GetLdapTruthyValues)),
-		Invert:     mustGetBool(j.settingService.GetLdapInvertFlag),
+		Host:               mustGetString(j.settingService.GetLdapHost),
+		Port:               mustGetInt(j.settingService.GetLdapPort),
+		UseTLS:             mustGetBool(j.settingService.GetLdapUseTLS),
+		InsecureSkipVerify: mustGetBool(j.settingService.GetLdapInsecureSkipVerify),
+		BindDN:             mustGetString(j.settingService.GetLdapBindDN),
+		Password:           mustGetString(j.settingService.GetLdapPassword),
+		BaseDN:             mustGetString(j.settingService.GetLdapBaseDN),
+		UserFilter:         mustGetString(j.settingService.GetLdapUserFilter),
+		UserAttr:           mustGetString(j.settingService.GetLdapUserAttr),
+		FlagField:          mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
+		TruthyVals:         splitCsv(mustGetString(j.settingService.GetLdapTruthyValues)),
+		Invert:             mustGetBool(j.settingService.GetLdapInvertFlag),
 	}
 
 	flags, err := ldaputil.FetchVlessFlags(cfg)
