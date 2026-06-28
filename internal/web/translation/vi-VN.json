@@ -1695,6 +1695,12 @@
         "deleteAlsoObservatory": "Đây là balancer cuối cùng dùng Observatory, nên nó cũng sẽ bị xóa.",
         "deleteAlsoBurst": "Đây là balancer cuối cùng dùng Burst Observatory, nên nó cũng sẽ bị xóa."
       },
+      "refCleanup": {
+        "header": "Xóa mục này cũng cập nhật định tuyến của bạn:",
+        "ruleRemoved": "Quy tắc {label} — đã xóa (không còn đích đến)",
+        "ruleModified": "Quy tắc {label} — giữ lại (giờ dùng {keeps})",
+        "balancerRemoved": "Balancer {tag} — đã xóa (không còn mục tiêu)"
+      },
       "balancer": {
         "addBalancer": "Thêm cân bằng",
         "editBalancer": "Chỉnh sửa cân bằng",

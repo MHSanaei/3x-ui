@@ -6,7 +6,9 @@ import type { ColumnsType } from 'antd/es/table';
 
 import BalancerFormModal from './BalancerFormModal';
 import type { BalancerFormValue } from './BalancerFormModal';
-import { syncObservatories, observersRemovedByDeletingBalancer } from './balancer-helpers';
+import { syncObservatories } from './balancer-helpers';
+import { planBalancerDeletion, applyBalancerDeletion } from '../reference-cleanup';
+import DeletionImpactList from '../DeletionImpactList';
 import ObservatorySettingsTab from './ObservatorySettingsTab';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HttpUtil } from '@/utils';
@@ -185,24 +187,16 @@ export default function BalancersTab({
   }
 
   function confirmDelete(idx: number) {
-    const removed = templateSettings
-      ? observersRemovedByDeletingBalancer(templateSettings, idx)
-      : { observatory: false, burst: false };
-    const warnings: string[] = [];
-    if (removed.observatory) warnings.push(t('pages.xray.observatory.deleteAlsoObservatory'));
-    if (removed.burst) warnings.push(t('pages.xray.observatory.deleteAlsoBurst'));
+    const impact = templateSettings
+      ? planBalancerDeletion(templateSettings, idx)
+      : { rules: [], balancers: [], observatory: false, burst: false };
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Balancers')} #${idx + 1}?`,
-      content: warnings.length ? warnings.join(' ') : undefined,
+      content: <DeletionImpactList impact={impact} />,
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
-      onOk: () => mutate((tt) => {
-        if (tt.routing?.balancers) {
-          tt.routing.balancers.splice(idx, 1);
-          syncObservatories(tt);
-        }
-      }),
+      onOk: () => mutate((tt) => applyBalancerDeletion(tt, idx)),
     });
   }
 

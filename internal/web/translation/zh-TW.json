@@ -1695,6 +1695,12 @@
         "deleteAlsoObservatory": "這是最後一個使用 Observatory 的負載平衡器，因此它也會一併被移除。",
         "deleteAlsoBurst": "這是最後一個使用 Burst Observatory 的負載平衡器，因此它也會一併被移除。"
       },
+      "refCleanup": {
+        "header": "刪除此項也會更新你的路由：",
+        "ruleRemoved": "規則 {label} — 已移除（沒有剩餘出口）",
+        "ruleModified": "規則 {label} — 已保留（現使用 {keeps}）",
+        "balancerRemoved": "負載平衡器 {tag} — 已移除（沒有剩餘目標）"
+      },
       "balancer": {
         "addBalancer": "新增負載均衡",
         "editBalancer": "編輯負載均衡",

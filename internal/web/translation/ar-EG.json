@@ -1695,6 +1695,12 @@
         "deleteAlsoObservatory": "هذا آخر موازن يستخدم Observatory، لذلك ستتم إزالته أيضًا.",
         "deleteAlsoBurst": "هذا آخر موازن يستخدم Burst Observatory، لذلك ستتم إزالته أيضًا."
       },
+      "refCleanup": {
+        "header": "حذف هذا سيُحدِّث التوجيه أيضًا:",
+        "ruleRemoved": "القاعدة {label} — أُزيلت (لا توجد وجهة متبقية)",
+        "ruleModified": "القاعدة {label} — مُحتفَظ بها (تستخدم الآن {keeps})",
+        "balancerRemoved": "الموازن {tag} — أُزيل (لا توجد أهداف متبقية)"
+      },
       "balancer": {
         "addBalancer": "أضف موازن تحميل",
         "editBalancer": "عدل موازن التحميل",

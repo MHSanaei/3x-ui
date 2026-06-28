@@ -1695,6 +1695,12 @@
         "deleteAlsoObservatory": "Bu, Observatory kullanan son dengeleyici, bu yüzden o da kaldırılacak.",
         "deleteAlsoBurst": "Bu, Burst Observatory kullanan son dengeleyici, bu yüzden o da kaldırılacak."
       },
+      "refCleanup": {
+        "header": "Bunu silmek yönlendirmenizi de günceller:",
+        "ruleRemoved": "Kural {label} — kaldırıldı (hedef kalmadı)",
+        "ruleModified": "Kural {label} — korundu (artık {keeps} kullanıyor)",
+        "balancerRemoved": "Dengeleyici {tag} — kaldırıldı (hedef kalmadı)"
+      },
       "balancer": {
         "addBalancer": "Dengeleyici Ekle",
         "editBalancer": "Dengeleyiciyi Düzenle",
