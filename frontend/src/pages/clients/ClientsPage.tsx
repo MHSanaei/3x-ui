@@ -121,7 +121,7 @@ function nextWgIpFromSeed(used: Set<string>, seed: string, suffix = '/32'): stri
     if (lastOctet === '0' || lastOctet === '255') continue;
     if (!used.has(candidate)) return `${candidate}${suffix}`;
   }
-  return `${host}${suffix}`;
+  return '';
 }
 
 function UngroupIcon() {
