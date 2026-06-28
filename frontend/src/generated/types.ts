@@ -22,6 +22,7 @@ export interface AllSetting {
   ldapFlagField: string;
   ldapHost: string;
   ldapInboundTags: string;
+  ldapInsecureSkipVerify: boolean;
   ldapInvertFlag: boolean;
   ldapPassword: string;
   ldapPort: number;
@@ -125,6 +126,7 @@ export interface AllSettingView {
   ldapFlagField: string;
   ldapHost: string;
   ldapInboundTags: string;
+  ldapInsecureSkipVerify: boolean;
   ldapInvertFlag: boolean;
   ldapPassword: string;
   ldapPort: number;

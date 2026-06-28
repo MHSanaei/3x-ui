@@ -58,6 +58,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapInboundTags": {
         "type": "string"
       },
+      "ldapInsecureSkipVerify": {
+        "type": "boolean"
+      },
       "ldapInvertFlag": {
         "type": "boolean"
       },
@@ -403,6 +406,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapFlagField",
       "ldapHost",
       "ldapInboundTags",
+      "ldapInsecureSkipVerify",
       "ldapInvertFlag",
       "ldapPassword",
       "ldapPort",
@@ -562,6 +566,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "ldapInboundTags": {
         "type": "string"
+      },
+      "ldapInsecureSkipVerify": {
+        "type": "boolean"
       },
       "ldapInvertFlag": {
         "type": "boolean"
@@ -915,6 +922,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapFlagField",
       "ldapHost",
       "ldapInboundTags",
+      "ldapInsecureSkipVerify",
       "ldapInvertFlag",
       "ldapPassword",
       "ldapPort",
