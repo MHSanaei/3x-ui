@@ -59,6 +59,7 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		host, _ := s.settingService.GetLdapHost()
 		port, _ := s.settingService.GetLdapPort()
 		useTLS, _ := s.settingService.GetLdapUseTLS()
+		skipVerify, _ := s.settingService.GetLdapInsecureSkipVerify()
 		bindDN, _ := s.settingService.GetLdapBindDN()
 		ldapPass, _ := s.settingService.GetLdapPassword()
 		baseDN, _ := s.settingService.GetLdapBaseDN()
@@ -66,14 +67,15 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		userAttr, _ := s.settingService.GetLdapUserAttr()
 
 		cfg := ldaputil.Config{
-			Host:       host,
-			Port:       port,
-			UseTLS:     useTLS,
-			BindDN:     bindDN,
-			Password:   ldapPass,
-			BaseDN:     baseDN,
-			UserFilter: userFilter,
-			UserAttr:   userAttr,
+			Host:               host,
+			Port:               port,
+			UseTLS:             useTLS,
+			InsecureSkipVerify: skipVerify,
+			BindDN:             bindDN,
+			Password:           ldapPass,
+			BaseDN:             baseDN,
+			UserFilter:         userFilter,
+			UserAttr:           userAttr,
 		}
 		ok, err := ldaputil.AuthenticateUser(cfg, username, password)
 		if err != nil || !ok {
