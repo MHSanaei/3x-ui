@@ -573,7 +573,7 @@ export const sections: readonly Section[] = [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "kind": "link", "value": "vless://...", "remark": "DE", "enable": true },\n      { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false }\n    ]\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
       },
       {
         method: 'POST',
@@ -634,11 +634,11 @@ export const sections: readonly Section[] = [
         summary: 'Replace a client\'s external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
-          { name: 'externalLinks', in: 'body', type: 'object[]', desc: 'Full replacement list. External link rows use kind="link" with a share link value. External subscription rows use kind="subscription" with an http(s) subscription URL. Each row supports { kind, value, remark, enable }; omit enable to default true. Disabled rows are kept but omitted from generated subscriptions.' },
-          { name: 'kind="link"', in: 'externalLinks[]', type: 'object', desc: 'External link row. value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://. enable=false keeps the row saved but excludes it from the client subscription.' },
-          { name: 'kind="subscription"', in: 'externalLinks[]', type: 'object', desc: 'External subscription row. value must be an http(s) subscription URL. enable=false keeps the URL saved but prevents fetching/merging it into the client subscription.' },
+          { name: 'externalLinks', in: 'body', type: 'object[]', desc: 'Full replacement list. Each row supports { id, kind, value, remark, enable, expiryTime, namePrefix }. Omit enable to default true; expiryTime=0 means never expire. lastFetchAt and lastFetchError are read-only status fields returned by GET.' },
+          { name: 'kind="link"', in: 'externalLinks[]', type: 'object', desc: 'External link row. value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://. remark overrides the exported node name. enable=false or expired expiryTime keeps the row saved but excludes it from the client subscription.' },
+          { name: 'kind="subscription"', in: 'externalLinks[]', type: 'object', desc: 'External subscription row. value must be an http(s) subscription URL. namePrefix is prepended to fetched node names, e.g. "[zjh] 香港01". lastFetchAt/lastFetchError show the latest fetch status. enable=false or expired expiryTime keeps the URL saved but prevents fetching/merging it into the client subscription.' },
         ],
-        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false }\n  ]\n}',
+        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true, "expiryTime": 0 },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] " }\n  ]\n}',
         response: '{\n  "success": true\n}',
       },
       {

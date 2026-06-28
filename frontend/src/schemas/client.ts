@@ -74,10 +74,15 @@ export const ClientPageResponseSchema = z.object({
 // A per-client external link surfaced in the client's subscription:
 // kind=link is a single share link, kind=subscription is a remote sub URL.
 export const ExternalLinkSchema = z.object({
+  id: z.number().int().optional().default(0),
   kind: z.enum(['link', 'subscription']).default('link'),
   value: z.string(),
   remark: z.string().optional().default(''),
   enable: z.preprocess((v) => (v == null ? true : v), z.boolean()).default(true),
+  expiryTime: z.number().int().optional().default(0),
+  namePrefix: z.string().optional().default(''),
+  lastFetchAt: z.number().int().optional().default(0),
+  lastFetchError: z.string().optional().default(''),
 }).loose();
 
 export const ExternalLinkListSchema = z.array(ExternalLinkSchema).nullable().transform((v) => v ?? []);

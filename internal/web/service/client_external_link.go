@@ -14,10 +14,13 @@ import (
 
 // ExternalLinkInput is one row from the client form's Links tab.
 type ExternalLinkInput struct {
-	Kind   string `json:"kind"`
-	Value  string `json:"value"`
-	Remark string `json:"remark"`
-	Enable *bool  `json:"enable"`
+	Id         int    `json:"id"`
+	Kind       string `json:"kind"`
+	Value      string `json:"value"`
+	Remark     string `json:"remark"`
+	Enable     *bool  `json:"enable"`
+	ExpiryTime int64  `json:"expiryTime"`
+	NamePrefix string `json:"namePrefix"`
 }
 
 func (s *ClientService) GetExternalLinksForRecord(id int) ([]model.ClientExternalLink, error) {
@@ -61,11 +64,14 @@ func normalizeExternalLinks(inputs []ExternalLinkInput) ([]model.ClientExternalL
 			enable = *in.Enable
 		}
 		out = append(out, model.ClientExternalLink{
-			Kind:      kind,
-			Value:     value,
-			Remark:    strings.TrimSpace(in.Remark),
-			Enable:    &enable,
-			SortIndex: len(out),
+			Id:         in.Id,
+			Kind:       kind,
+			Value:      value,
+			Remark:     strings.TrimSpace(in.Remark),
+			Enable:     &enable,
+			ExpiryTime: in.ExpiryTime,
+			NamePrefix: in.NamePrefix,
+			SortIndex:  len(out),
 		})
 	}
 	return out, nil
@@ -84,10 +90,31 @@ func (s *ClientService) SetExternalLinksForRecord(id int, inputs []ExternalLinkI
 	}
 	db := database.GetDB()
 	return db.Transaction(func(tx *gorm.DB) error {
+		var existing []model.ClientExternalLink
+		if err := tx.Where("client_id = ?", id).Find(&existing).Error; err != nil {
+			return err
+		}
+		byId := make(map[int]model.ClientExternalLink, len(existing))
+		byKindValue := make(map[string]model.ClientExternalLink, len(existing))
+		for _, row := range existing {
+			byId[row.Id] = row
+			key := row.Kind + "\x00" + row.Value
+			if _, ok := byKindValue[key]; !ok {
+				byKindValue[key] = row
+			}
+		}
 		if err := tx.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
 			return err
 		}
 		for i := range rows {
+			if old, ok := byId[rows[i].Id]; ok && old.Kind == rows[i].Kind && old.Value == rows[i].Value {
+				rows[i].LastFetchAt = old.LastFetchAt
+				rows[i].LastFetchError = old.LastFetchError
+			} else if old, ok := byKindValue[rows[i].Kind+"\x00"+rows[i].Value]; ok {
+				rows[i].LastFetchAt = old.LastFetchAt
+				rows[i].LastFetchError = old.LastFetchError
+			}
+			rows[i].Id = 0
 			rows[i].ClientId = id
 			if err := tx.Create(&rows[i]).Error; err != nil {
 				return err

@@ -43,10 +43,16 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 
 // One editable row in the Links tab. `key` is a stable client-side id for React.
 interface ExternalLinkRow {
+  id: number;
   key: number;
   kind: 'link' | 'subscription';
   value: string;
+  remark: string;
   enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+  lastFetchAt: number;
+  lastFetchError: string;
 }
 
 interface ApiMsg<T = unknown> {
@@ -144,10 +150,16 @@ function emptyForm(): FormState {
 let externalLinkRowSeq = 0;
 function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[] {
   return (links || []).map((l) => ({
+    id: Number(l.id) || 0,
     key: (externalLinkRowSeq += 1),
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
+    remark: l.remark || '',
     enable: l.enable !== false,
+    expiryTime: Number(l.expiryTime) || 0,
+    namePrefix: l.namePrefix || '',
+    lastFetchAt: Number(l.lastFetchAt) || 0,
+    lastFetchError: l.lastFetchError || '',
   }));
 }
 
@@ -196,22 +208,34 @@ export default function ClientFormModal({
   function addExternalLinkRow(kind: 'link' | 'subscription') {
     setForm((prev) => ({
       ...prev,
-      externalLinks: [...prev.externalLinks, { key: (externalLinkRowSeq += 1), kind, value: '', enable: true }],
+      externalLinks: [...prev.externalLinks, {
+        id: 0,
+        key: (externalLinkRowSeq += 1),
+        kind,
+        value: '',
+        remark: '',
+        enable: true,
+        expiryTime: 0,
+        namePrefix: '',
+        lastFetchAt: 0,
+        lastFetchError: '',
+      }],
+    }));
+  }
+
+  function updateExternalLinkRowPatch(key: number, patch: Partial<ExternalLinkRow>) {
+    setForm((prev) => ({
+      ...prev,
+      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, ...patch } : r)),
     }));
   }
 
   function updateExternalLinkRowValue(key: number, value: string) {
-    setForm((prev) => ({
-      ...prev,
-      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, value } : r)),
-    }));
+    updateExternalLinkRowPatch(key, { value });
   }
 
   function updateExternalLinkRowEnable(key: number, enable: boolean) {
-    setForm((prev) => ({
-      ...prev,
-      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, enable } : r)),
-    }));
+    updateExternalLinkRowPatch(key, { enable });
   }
 
   function removeExternalLinkRow(key: number) {
@@ -463,7 +487,15 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = form.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '', enable: r.enable }))
+      .map((r) => ({
+        id: r.id || undefined,
+        kind: r.kind,
+        value: r.value.trim(),
+        remark: r.remark.trim(),
+        enable: r.enable,
+        expiryTime: Number(r.expiryTime) || 0,
+        namePrefix: r.namePrefix.trim(),
+      }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -764,19 +796,33 @@ export default function ClientFormModal({
                       {linkRows.length === 0 ? (
                         <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
                       ) : linkRows.map((row) => (
-                        <div key={row.key} className="external-link-row">
-                          <div className="external-link-enable">
-                            <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
-                            <span>{t('enable')}</span>
+                        <div key={row.key} className="external-link-card">
+                          <div className="external-link-row">
+                            <div className="external-link-enable">
+                              <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
+                              <span>{t('enable')}</span>
+                            </div>
+                            <Input
+                              value={row.value}
+                              onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
+                              placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                            />
+                            <Tooltip title={t('delete')}>
+                              <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
+                            </Tooltip>
                           </div>
-                          <Input
-                            value={row.value}
-                            onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
-                            placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                          />
-                          <Tooltip title={t('delete')}>
-                            <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
-                          </Tooltip>
+                          <div className="external-link-details two-cols">
+                            <Input
+                              value={row.remark}
+                              onChange={(e) => updateExternalLinkRowPatch(row.key, { remark: e.target.value })}
+                              placeholder={t('remark')}
+                            />
+                            <DateTimePicker
+                              value={row.expiryTime > 0 ? dayjs(row.expiryTime) : null}
+                              onChange={(v) => updateExternalLinkRowPatch(row.key, { expiryTime: v ? v.valueOf() : 0 })}
+                              placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -788,19 +834,45 @@ export default function ClientFormModal({
                       {subscriptionRows.length === 0 ? (
                         <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
                       ) : subscriptionRows.map((row) => (
-                        <div key={row.key} className="external-link-row">
-                          <div className="external-link-enable">
-                            <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
-                            <span>{t('enable')}</span>
+                        <div key={row.key} className="external-link-card">
+                          <div className="external-link-row">
+                            <div className="external-link-enable">
+                              <Switch size="small" checked={row.enable} onChange={(v) => updateExternalLinkRowEnable(row.key, v)} />
+                              <span>{t('enable')}</span>
+                            </div>
+                            <Input
+                              value={row.value}
+                              onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
+                              placeholder="https://provider.example/sub/…"
+                            />
+                            <Tooltip title={t('delete')}>
+                              <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
+                            </Tooltip>
                           </div>
-                          <Input
-                            value={row.value}
-                            onChange={(e) => updateExternalLinkRowValue(row.key, e.target.value)}
-                            placeholder="https://provider.example/sub/…"
-                          />
-                          <Tooltip title={t('delete')}>
-                            <Button danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
-                          </Tooltip>
+                          <div className="external-link-details three-cols">
+                            <Input
+                              value={row.remark}
+                              onChange={(e) => updateExternalLinkRowPatch(row.key, { remark: e.target.value })}
+                              placeholder={t('remark')}
+                            />
+                            <Input
+                              value={row.namePrefix}
+                              onChange={(e) => updateExternalLinkRowPatch(row.key, { namePrefix: e.target.value })}
+                              placeholder={t('pages.clients.namePrefix')}
+                            />
+                            <DateTimePicker
+                              value={row.expiryTime > 0 ? dayjs(row.expiryTime) : null}
+                              onChange={(v) => updateExternalLinkRowPatch(row.key, { expiryTime: v ? v.valueOf() : 0 })}
+                              placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                            />
+                          </div>
+                          <Typography.Text type={row.lastFetchError ? 'danger' : 'secondary'} className="external-link-fetch-status">
+                            {row.lastFetchError
+                              ? `${t('pages.clients.lastFetchError')}: ${row.lastFetchError}`
+                              : row.lastFetchAt > 0
+                                ? `${t('pages.clients.lastFetchAt')}: ${dayjs(row.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
+                                : t('pages.clients.neverFetched')}
+                          </Typography.Text>
                         </div>
                       ))}
                     </div>
