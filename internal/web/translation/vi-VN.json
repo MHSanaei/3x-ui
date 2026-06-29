@@ -15,6 +15,8 @@
   "copied": "Đã sao chép",
   "more": "thêm",
   "download": "Tải xuống",
+  "regenerate": "Tạo lại",
+  "jsonEditor": "Trình chỉnh sửa JSON",
   "downloadImage": "Tải hình ảnh",
   "sort": "Sắp xếp",
   "remark": "Ghi chú",
@@ -1721,7 +1723,10 @@
         "tolerance": "Dung sai",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động."
+        "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động.",
+        "costMatch": "Mẫu thẻ",
+        "costValue": "Trọng số",
+        "costRegexp": "Khớp biểu thức chính quy"
       },
       "wireguard": {
         "secretKey": "Khoá bí mật",

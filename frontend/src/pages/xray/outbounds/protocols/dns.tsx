@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Select } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
+import { activateOnKey } from '@/utils/a11y';
 import { DNSRuleActions } from '@/schemas/primitives';
 
 export default function DnsFields() {
@@ -35,6 +36,7 @@ export default function DnsFields() {
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
+                aria-label={t('add')}
                 onClick={() => add({ action: 'direct', qType: '', domain: '', rCode: 0 })}
               />
             </Form.Item>
@@ -45,7 +47,11 @@ export default function DnsFields() {
                     <span>{t('pages.xray.outboundForm.ruleN', { n: index + 1 })}</span>
                     <DeleteOutlined
                       className="danger-icon"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t('remove')}
                       onClick={() => remove(field.name)}
+                      onKeyDown={activateOnKey(() => remove(field.name))}
                     />
                   </div>
                 </Form.Item>

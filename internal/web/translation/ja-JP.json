@@ -15,6 +15,8 @@
   "copied": "コピー済み",
   "more": "もっと",
   "download": "ダウンロード",
+  "regenerate": "再生成",
+  "jsonEditor": "JSON エディター",
   "downloadImage": "画像をダウンロード",
   "sort": "並べ替え",
   "remark": "備考",
@@ -1721,7 +1723,10 @@
         "tolerance": "許容範囲",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。"
+        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。",
+        "costMatch": "タグパターン",
+        "costValue": "重み",
+        "costRegexp": "正規表現で一致"
       },
       "wireguard": {
         "secretKey": "シークレットキー",

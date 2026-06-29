@@ -124,6 +124,7 @@ export default function TlsForm({
           <>
             <Form.Item label={t('certificate')}>
               <Button
+                aria-label={t('add')}
                 type="primary"
                 size="small"
                 onClick={() => add({

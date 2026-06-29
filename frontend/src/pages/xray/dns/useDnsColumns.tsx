@@ -95,6 +95,7 @@ export function useFakednsColumns({
         render: (_v, record, index) => (
           <Input
             value={record.ipPool}
+            aria-label={t('pages.xray.fakedns.ipPool')}
             size="small"
             onChange={(e) => updateFakednsField(index, 'ipPool', e.target.value)}
           />
@@ -109,6 +110,7 @@ export function useFakednsColumns({
         render: (_v, record, index) => (
           <InputNumber
             value={record.poolSize}
+            aria-label={t('pages.xray.fakedns.poolSize')}
             min={1}
             size="small"
             onChange={(v) => updateFakednsField(index, 'poolSize', Number(v) || 0)}

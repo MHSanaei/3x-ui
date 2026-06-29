@@ -15,6 +15,8 @@
   "copied": "Tersalin",
   "more": "lainnya",
   "download": "Unduh",
+  "regenerate": "Buat Ulang",
+  "jsonEditor": "Editor JSON",
   "downloadImage": "Unduh Gambar",
   "sort": "Urutkan",
   "remark": "Catatan",
@@ -1721,7 +1723,10 @@
         "tolerance": "Toleransi",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi."
+        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
+        "costMatch": "Pola tag",
+        "costValue": "Bobot",
+        "costRegexp": "Pencocokan ekspresi reguler"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",

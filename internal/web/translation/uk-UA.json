@@ -15,6 +15,8 @@
   "copied": "Скопійовано",
   "more": "більше",
   "download": "Завантажити",
+  "regenerate": "Згенерувати заново",
+  "jsonEditor": "Редактор JSON",
   "downloadImage": "Завантажити зображення",
   "sort": "Сортування",
   "remark": "Примітка",
@@ -1721,7 +1723,10 @@
         "tolerance": "Допуск",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Неможливо використовувати balancerTag і outboundTag одночасно. Якщо використовувати одночасно, працюватиме лише outboundTag."
+        "balancerDesc": "Неможливо використовувати balancerTag і outboundTag одночасно. Якщо використовувати одночасно, працюватиме лише outboundTag.",
+        "costMatch": "Шаблон тегу",
+        "costValue": "Вага",
+        "costRegexp": "Збіг за регулярним виразом"
       },
       "wireguard": {
         "secretKey": "Приватний ключ",

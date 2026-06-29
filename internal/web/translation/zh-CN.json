@@ -15,6 +15,8 @@
   "copied": "已复制",
   "more": "更多",
   "download": "下载",
+  "regenerate": "重新生成",
+  "jsonEditor": "JSON 编辑器",
   "downloadImage": "下载图片",
   "sort": "排序",
   "remark": "备注",
@@ -1721,7 +1723,10 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "无法同时使用 balancerTag 和 outboundTag。如果同时使用，则只有 outboundTag 会生效。"
+        "balancerDesc": "无法同时使用 balancerTag 和 outboundTag。如果同时使用，则只有 outboundTag 会生效。",
+        "costMatch": "标签匹配模式",
+        "costValue": "权重",
+        "costRegexp": "正则表达式匹配"
       },
       "wireguard": {
         "secretKey": "密钥",
