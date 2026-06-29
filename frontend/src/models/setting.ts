@@ -31,9 +31,9 @@ export class AllSetting {
   subJsonEnable = false;
   subJsonAutoDetect = false;
   subJsonAlwaysArray = false;
-  subJsonUserAgentRegex = '(?i)^streisand([ /]|$)';
+  subJsonUserAgentRegex = '';
   subAutoDetect = false;
-  subClashUserAgentRegex = '(?i)(clash|mihomo|stash)';
+  subClashUserAgentRegex = '';
   subTitle = '';
   subSupportUrl = '';
   subProfileUrl = '';

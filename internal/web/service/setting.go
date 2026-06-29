@@ -82,9 +82,9 @@ var defaultValueMap = map[string]string{
 	"subJsonEnable":               "false",
 	"subJsonAutoDetect":           "false",
 	"subJsonAlwaysArray":          "false",
-	"subJsonUserAgentRegex":       DefaultSubJsonUserAgentRegex,
+	"subJsonUserAgentRegex":       "",
 	"subAutoDetect":               "false",
-	"subClashUserAgentRegex":      DefaultSubClashUserAgentRegex,
+	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
 	"subProfileUrl":               "",
@@ -1181,13 +1181,14 @@ func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
 
 func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, error) {
 	pattern = strings.TrimSpace(pattern)
-	if pattern == "" {
-		pattern = defaultPattern
+	effectivePattern := pattern
+	if effectivePattern == "" {
+		effectivePattern = defaultPattern
 	}
-	if len(pattern) > maxRegexLength {
+	if len(effectivePattern) > maxRegexLength {
 		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
 	}
-	if _, err := regexp.Compile(pattern); err != nil {
+	if _, err := regexp.Compile(effectivePattern); err != nil {
 		return "", common.NewError(name+" User-Agent regex is invalid:", err)
 	}
 	return pattern, nil

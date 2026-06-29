@@ -53,11 +53,11 @@ func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 	if clashEnabled || jsonEnabled || jsonAlwaysArray {
 		t.Fatalf("missing subscription flags must default off: clashAuto=%v jsonAuto=%v jsonAlwaysArray=%v", clashEnabled, jsonEnabled, jsonAlwaysArray)
 	}
-	if clashRegex != DefaultSubClashUserAgentRegex {
-		t.Fatalf("missing Clash regex = %q, want %q", clashRegex, DefaultSubClashUserAgentRegex)
+	if clashRegex != "" {
+		t.Fatalf("missing Clash regex = %q, want empty inherited value", clashRegex)
 	}
-	if jsonRegex != DefaultSubJsonUserAgentRegex {
-		t.Fatalf("missing JSON regex = %q, want %q", jsonRegex, DefaultSubJsonUserAgentRegex)
+	if jsonRegex != "" {
+		t.Fatalf("missing JSON regex = %q, want empty inherited value", jsonRegex)
 	}
 
 	var count int64
@@ -66,6 +66,31 @@ func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("default lookup unexpectedly persisted %d setting rows", count)
+	}
+}
+
+func TestUpdateAllSettingPreservesEmptyUserAgentRegexes(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	settings, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings.SubJsonUserAgentRegex = "   "
+	settings.SubClashUserAgentRegex = ""
+
+	if err := s.UpdateAllSetting(settings); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, key := range []string{"subJsonUserAgentRegex", "subClashUserAgentRegex"} {
+		var stored model.Setting
+		if err := database.GetDB().Where("key = ?", key).First(&stored).Error; err != nil {
+			t.Fatal(err)
+		}
+		if stored.Value != "" {
+			t.Fatalf("%s stored value = %q, want empty inherited value", key, stored.Value)
+		}
 	}
 }
 
@@ -86,11 +111,11 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if settings.SubJsonAlwaysArray {
 		t.Fatal("subJsonAlwaysArray default = true, want false")
 	}
-	if settings.SubJsonUserAgentRegex != DefaultSubJsonUserAgentRegex {
-		t.Fatalf("subJsonUserAgentRegex = %q, want default %q", settings.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
+	if settings.SubJsonUserAgentRegex != "" {
+		t.Fatalf("subJsonUserAgentRegex = %q, want empty inherited value", settings.SubJsonUserAgentRegex)
 	}
-	if settings.SubClashUserAgentRegex != DefaultSubClashUserAgentRegex {
-		t.Fatalf("subClashUserAgentRegex = %q, want default %q", settings.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+	if settings.SubClashUserAgentRegex != "" {
+		t.Fatalf("subClashUserAgentRegex = %q, want empty inherited value", settings.SubClashUserAgentRegex)
 	}
 	settings.SubAutoDetect = true
 	settings.SubClashUserAgentRegex = `(?i)^custom-clash/`
