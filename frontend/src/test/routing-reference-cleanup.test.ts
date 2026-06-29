@@ -115,6 +115,19 @@ describe('outbound deletion', () => {
     expect(tt.routing!.balancers).toHaveLength(2);
   });
 
+  it('does not throw on null entries in rules/balancers/outbounds (unvalidated config)', () => {
+    const tt = tpl({
+      outbounds: [{ tag: 'proxy-us' }, null],
+      routing: {
+        rules: [null, { type: 'field', inboundTag: ['in'], outboundTag: 'proxy-us' }],
+        balancers: [null, { tag: 'pool', selector: ['keep'] }],
+      },
+    });
+    expect(() => planOutboundDeletion(tt, 0)).not.toThrow();
+    expect(() => applyOutboundDeletion(tt, 0)).not.toThrow();
+    expect(tt.routing!.balancers).toEqual([{ tag: 'pool', selector: ['keep'] }]);
+  });
+
   it('drops a rule that loses BOTH destinations in one cascade', () => {
     const tt = tpl({
       outbounds: [{ tag: 'proxy-us' }],

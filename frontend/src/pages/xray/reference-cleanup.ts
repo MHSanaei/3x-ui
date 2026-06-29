@@ -68,9 +68,9 @@ function balancersEmptiedBy(tt: XraySettingsValue, removedOutbounds: Set<string>
   if (removedOutbounds.size === 0) return [];
   const emptied: string[] = [];
   for (const b of balancerList(tt)) {
-    const tag = typeof b.tag === 'string' ? b.tag : '';
+    const tag = typeof b?.tag === 'string' ? b.tag : '';
     if (tag === '') continue;
-    const selector = Array.isArray(b.selector) ? b.selector : [];
+    const selector = Array.isArray(b?.selector) ? b.selector : [];
     if (selector.length === 0) continue;
     if (selector.every((s) => removedOutbounds.has(s))) emptied.push(tag);
   }
@@ -88,8 +88,8 @@ function classifyRule(
   removedOutbounds: Set<string>,
   removedBalancers: Set<string>,
 ): { losesOut: boolean; losesBal: boolean; keeps: string } | null {
-  const out = typeof rule.outboundTag === 'string' ? rule.outboundTag : '';
-  const bal = typeof rule.balancerTag === 'string' ? rule.balancerTag : '';
+  const out = typeof rule?.outboundTag === 'string' ? rule.outboundTag : '';
+  const bal = typeof rule?.balancerTag === 'string' ? rule.balancerTag : '';
   const losesOut = out !== '' && removedOutbounds.has(out);
   const losesBal = bal !== '' && removedBalancers.has(bal);
   if (!losesOut && !losesBal) return null;
@@ -139,6 +139,7 @@ function applyCleanup(
   if (tt.routing && Array.isArray(tt.routing.balancers)) {
     const survivors: BalancerObject[] = [];
     for (const balancer of tt.routing.balancers) {
+      if (!balancer) continue;
       if (removedBalancers.has(balancer.tag)) continue;
       if (removedOutbounds.size > 0 && Array.isArray(balancer.selector)) {
         balancer.selector = balancer.selector.filter((s) => !removedOutbounds.has(s));
@@ -157,7 +158,7 @@ function applyCleanup(
     );
     for (const outbound of tt.outbounds) {
       const sockopt = (outbound as { streamSettings?: { sockopt?: { dialerProxy?: string } } })
-        .streamSettings?.sockopt;
+        ?.streamSettings?.sockopt;
       if (sockopt && typeof sockopt.dialerProxy === 'string' && removedOutbounds.has(sockopt.dialerProxy)) {
         delete sockopt.dialerProxy;
       }
