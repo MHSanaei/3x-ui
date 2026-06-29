@@ -1416,7 +1416,7 @@ export default function ClientsPage() {
                                           ],
                                         }}
                                       >
-                                        <Button type="text" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
+                                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
                                       </Dropdown>
                                     </div>
                                   </div>

@@ -468,23 +468,21 @@ export default function NodeList({
                 </div>
               ) : (
                 <div key={record.id} className="node-card">
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- mouse click-to-expand mirrors the keyboard-accessible chevron disclosure button */}
                   <div
                     className="card-head"
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={expandedIds.has(record.id)}
-                    aria-label={record.name}
                     onClick={(e) => {
                       if (!(e.target as HTMLElement).closest('.card-actions')) toggleExpanded(record.id);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        toggleExpanded(record.id);
-                      }
-                    }}
                   >
-                    <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} aria-hidden="true" />
+                    <RightOutlined
+                      className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedIds.has(record.id)}
+                      aria-label={record.name}
+                      onKeyDown={activateOnKey(() => toggleExpanded(record.id))}
+                    />
                     <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
                     <div className="card-actions">
@@ -532,7 +530,7 @@ export default function NodeList({
                           ],
                         }}
                       >
-                        <Button type="text" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
+                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
                       </Dropdown>
                     </div>
                   </div>

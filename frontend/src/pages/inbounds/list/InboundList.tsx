@@ -247,7 +247,7 @@ export default function InboundList({
                           onClick: ({ key }) => onRowAction({ key: key as RowAction, dbInbound: record }),
                         }}
                       >
-                        <Button type="text" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
+                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
                       </Dropdown>
                     </div>
                   </div>
