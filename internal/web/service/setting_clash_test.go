@@ -1,6 +1,69 @@
 package service
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+)
+
+func TestValidateRegex(t *testing.T) {
+	for _, pattern := range []string{"", `(?i)^streisand([ /]|$)`, `(?m)^general-purpose$`} {
+		if err := ValidateRegex(pattern); err != nil {
+			t.Errorf("ValidateRegex(%q) returned %v", pattern, err)
+		}
+	}
+	for _, pattern := range []string{"[", strings.Repeat("a", 2049)} {
+		if err := ValidateRegex(pattern); err == nil {
+			t.Errorf("ValidateRegex(%q) accepted an invalid pattern", pattern)
+		}
+	}
+}
+
+func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
+	setupSettingTestDB(t)
+	keys := []string{"subAutoDetect", "subClashUserAgentRegex", "subJsonAutoDetect", "subJsonUserAgentRegex"}
+	if err := database.GetDB().Where("key IN ?", keys).Delete(&model.Setting{}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	s := &SettingService{}
+	clashEnabled, err := s.GetSubAutoDetect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonEnabled, err := s.GetSubJsonAutoDetect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	clashRegex, err := s.GetSubClashUserAgentRegex()
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonRegex, err := s.GetSubJsonUserAgentRegex()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if clashEnabled || jsonEnabled {
+		t.Fatalf("missing auto-detect settings must default off: clash=%v json=%v", clashEnabled, jsonEnabled)
+	}
+	if clashRegex != DefaultSubClashUserAgentRegex {
+		t.Fatalf("missing Clash regex = %q, want %q", clashRegex, DefaultSubClashUserAgentRegex)
+	}
+	if jsonRegex != DefaultSubJsonUserAgentRegex {
+		t.Fatalf("missing JSON regex = %q, want %q", jsonRegex, DefaultSubJsonUserAgentRegex)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Setting{}).Where("key IN ?", keys).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("default lookup unexpectedly persisted %d setting rows", count)
+	}
+}
 
 func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	setupSettingTestDB(t)

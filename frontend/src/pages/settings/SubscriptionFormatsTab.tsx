@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Input,
@@ -6,6 +6,7 @@ import {
   Select,
   Switch,
   Tabs,
+  Typography,
 } from 'antd';
 import {
   PartitionOutlined,
@@ -16,6 +17,7 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { HttpUtil } from '@/utils';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
@@ -24,6 +26,47 @@ import './SubscriptionFormatsTab.css';
 interface SubscriptionFormatsTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
+}
+
+interface GoRegexInputProps {
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}
+
+function GoRegexInput({ value, placeholder, onChange }: GoRegexInputProps) {
+  const [error, setError] = useState('');
+  const validationSequence = useRef(0);
+
+  async function validate() {
+    const sequence = ++validationSequence.current;
+    const result = await HttpUtil.post(
+      '/panel/api/setting/validateRegex',
+      { regex: value },
+      { silent: true },
+    );
+    if (sequence === validationSequence.current) {
+      setError(result.success ? '' : result.msg || 'Invalid Go RE2 regular expression');
+    }
+  }
+
+  return (
+    <div style={{ width: '100%' }}>
+      <Input
+        value={value}
+        placeholder={placeholder}
+        maxLength={2048}
+        status={error ? 'error' : undefined}
+        onChange={(event) => {
+          validationSequence.current += 1;
+          setError('');
+          onChange(event.target.value);
+        }}
+        onBlur={() => void validate()}
+      />
+      {error && <Typography.Text type="danger">{error}</Typography.Text>}
+    </div>
+  );
 }
 
 const DEFAULT_MUX = {
@@ -174,10 +217,10 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                   title={t('pages.settings.subJsonUserAgentRegex')}
                   description={t('pages.settings.subJsonUserAgentRegexDesc')}
                 >
-                  <Input
+                  <GoRegexInput
                     value={allSetting.subJsonUserAgentRegex}
                     placeholder="(?i)^streisand([ /]|$)"
-                    onChange={(e) => updateSetting({ subJsonUserAgentRegex: e.target.value })}
+                    onChange={(value) => updateSetting({ subJsonUserAgentRegex: value })}
                   />
                 </SettingListItem>
               </>
@@ -207,10 +250,10 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                   title={t('pages.settings.subClashUserAgentRegex')}
                   description={t('pages.settings.subClashUserAgentRegexDesc')}
                 >
-                  <Input
+                  <GoRegexInput
                     value={allSetting.subClashUserAgentRegex}
                     placeholder="(?i)(clash|mihomo|stash)"
-                    onChange={(e) => updateSetting({ subClashUserAgentRegex: e.target.value })}
+                    onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
                   />
                 </SettingListItem>
               </>

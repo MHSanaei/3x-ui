@@ -36,6 +36,7 @@ var xrayTemplateConfig string
 const (
 	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
 	DefaultSubJsonUserAgentRegex  = `(?i)^streisand([ /]|$)`
+	maxRegexLength                = 2048
 )
 
 var defaultValueMap = map[string]string{
@@ -1178,13 +1179,23 @@ func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, er
 	if pattern == "" {
 		pattern = defaultPattern
 	}
-	if len(pattern) > 2048 {
-		return "", common.NewError(name + " User-Agent regex must not exceed 2048 characters")
+	if len(pattern) > maxRegexLength {
+		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
 	}
 	if _, err := regexp.Compile(pattern); err != nil {
 		return "", common.NewError(name+" User-Agent regex is invalid:", err)
 	}
 	return pattern, nil
+}
+
+func ValidateRegex(pattern string) error {
+	if len(pattern) > maxRegexLength {
+		return common.NewErrorf("Regular expression must not exceed %d characters", maxRegexLength)
+	}
+	if _, err := regexp.Compile(pattern); err != nil {
+		return common.NewError("Regular expression is invalid:", err)
+	}
+	return nil
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {

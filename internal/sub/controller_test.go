@@ -149,6 +149,21 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("Clash wins when both format regexes match", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "Hybrid/1.0")
+		resp := httptest.NewRecorder()
+
+		newRouter(true, `(?i)^hybrid/`, true, `(?i)^hybrid/`).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/yaml; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want Clash YAML", got)
+		}
+	})
+
 	t.Run("disabled setting preserves raw base64", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
 		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
@@ -217,6 +232,23 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		}
 		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") || !strings.Contains(body, `"outbounds"`) {
 			t.Fatalf("auto-detected body is not an Xray JSON configuration array:\n%s", body)
+		}
+	})
+
+	t.Run("explicit JSON endpoint returns JSON content type", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
+		resp := httptest.NewRecorder()
+
+		newRouter(false, "", false, "").ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want JSON", got)
+		}
+		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") {
+			t.Fatalf("explicit JSON body is not an array: %s", body)
 		}
 	})
 }
