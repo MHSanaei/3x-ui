@@ -52,6 +52,28 @@ export function useInboundColumns({
   const { datepicker } = useDatepicker();
 
   return useMemo(() => {
+    const compareText = (a: string | undefined | null, b: string | undefined | null) => (
+      (a || '').localeCompare(b || '', undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+    const nodeName = (record: DBInboundRecord) => {
+      if (record.nodeId == null) return t('pages.inbounds.localPanel');
+      return nodesById.get(record.nodeId)?.name || `node #${record.nodeId}`;
+    };
+
+    const clientTotal = (record: DBInboundRecord) => (
+      (clientCount[record.id] || fallbackClientCount(record))?.clients ?? 0
+    );
+
+    const speedTotal = (record: DBInboundRecord) => {
+      const speed = inboundSpeed[record.id];
+      return speed ? speed.up + speed.down : 0;
+    };
+
+    const expirySortValue = (record: DBInboundRecord) => (
+      record.expiryTime > 0 ? record.expiryTime : Number.MAX_SAFE_INTEGER
+    );
+
     const fallbackClientCount = (record: DBInboundRecord): ClientCountEntry | null => {
       const settings = coerceInboundJsonField(record.settings) as {
         clients?: { email?: string; enable?: boolean }[];
@@ -81,6 +103,7 @@ export function useInboundColumns({
         key: 'id',
         align: 'right',
         width: 60,
+        sorter: (a, b) => a.id - b.id,
       },
       {
         title: t('pages.inbounds.operate'),
@@ -117,6 +140,7 @@ export function useInboundColumns({
         key: 'remark',
         align: 'center',
         width: 90,
+        sorter: (a, b) => compareText(a.remark, b.remark),
       });
     }
 
@@ -126,6 +150,7 @@ export function useInboundColumns({
         key: 'node',
         align: 'center',
         width: 130,
+        sorter: (a, b) => compareText(nodeName(a), nodeName(b)),
         render: (_, record) => {
           if (record.nodeId == null) {
             return <Tag color="default">{t('pages.inbounds.localPanel')}</Tag>;
@@ -152,6 +177,7 @@ export function useInboundColumns({
         key: 'subSortIndex',
         align: 'right',
         width: 90,
+        sorter: (a, b) => (a.subSortIndex ?? 1) - (b.subSortIndex ?? 1),
       });
     }
 
@@ -162,12 +188,14 @@ export function useInboundColumns({
         key: 'port',
         align: 'center',
         width: 80,
+        sorter: (a, b) => a.port - b.port,
       },
       {
         title: t('pages.inbounds.protocol'),
         key: 'protocol',
         align: 'left',
         width: 190,
+        sorter: (a, b) => compareText(a.protocol, b.protocol),
         render: (_, record) => {
           const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
           if (record.isWireguard || record.isHysteria) {
@@ -196,6 +224,7 @@ export function useInboundColumns({
         key: 'clients',
         align: 'left',
         width: 200,
+        sorter: (a, b) => clientTotal(a) - clientTotal(b),
         render: (_, record) => {
           const cc = clientCount[record.id] || fallbackClientCount(record);
           if (!cc) return null;
@@ -263,6 +292,7 @@ export function useInboundColumns({
         key: 'traffic',
         align: 'center',
         width: 140,
+        sorter: (a, b) => (a.up + a.down) - (b.up + b.down),
         render: (_, record) => (
           <Popover
             content={(
@@ -295,6 +325,7 @@ export function useInboundColumns({
         key: 'speed',
         align: 'center',
         width: 110,
+        sorter: (a, b) => speedTotal(a) - speedTotal(b),
         render: (_, record) => {
           const speed = inboundSpeed[record.id];
           if (!isActiveSpeed(speed)) {
@@ -308,6 +339,7 @@ export function useInboundColumns({
         key: 'expiryTime',
         align: 'center',
         width: 100,
+        sorter: (a, b) => expirySortValue(a) - expirySortValue(b),
         render: (_, record) => {
           if (record.expiryTime > 0) {
             return (
