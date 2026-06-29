@@ -4,6 +4,7 @@ import { Button, Checkbox, Form, Modal, Select, Space } from 'antd';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, FileManager, PromiseUtil } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { parseLogLine } from './logParse';
 import './LogModal.css';
@@ -71,7 +72,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   const titleNode = (
     <>
       {t('pages.index.logs')}
-      <SyncOutlined spin={loading} className="reload-icon" onClick={refresh} />
+      <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
     </>
   );
 
@@ -125,7 +126,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} />
+          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
         </Form.Item>
       </Form>
 
