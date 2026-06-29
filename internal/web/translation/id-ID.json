@@ -717,7 +717,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "sniffingDestOverride": "Penggantian tujuan"
     },
     "clients": {
       "tabBasics": "Dasar",

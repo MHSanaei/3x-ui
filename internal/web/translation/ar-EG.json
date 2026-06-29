@@ -717,7 +717,8 @@
           "requestHeader": "رأس الطلب",
           "responseHeader": "رأس الرد"
         }
-      }
+      },
+      "sniffingDestOverride": "تجاوز الوجهة"
     },
     "clients": {
       "tabBasics": "أساسي",

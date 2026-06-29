@@ -717,7 +717,8 @@
           "requestHeader": "سربرگ درخواست",
           "responseHeader": "سربرگ پاسخ"
         }
-      }
+      },
+      "sniffingDestOverride": "بازنویسی مقصد"
     },
     "clients": {
       "tabBasics": "پایه",

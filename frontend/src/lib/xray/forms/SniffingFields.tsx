@@ -34,7 +34,12 @@ export default function SniffingFields({ name, form, enableLabel }: SniffingFiel
       {enabled && (
         <>
           <Form.Item name={[...name, 'destOverride']} wrapperCol={{ md: { span: 14, offset: 8 } }}>
-            <Select mode="multiple" className="sniffing-options" options={DEST_OPTIONS} />
+            <Select
+              mode="multiple"
+              className="sniffing-options"
+              aria-label={t('pages.inbounds.sniffingDestOverride')}
+              options={DEST_OPTIONS}
+            />
           </Form.Item>
           <Form.Item
             label={t('pages.inbounds.sniffingMetadataOnly')}

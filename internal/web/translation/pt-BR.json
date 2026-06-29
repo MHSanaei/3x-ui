@@ -717,7 +717,8 @@
           "requestHeader": "Cabeçalho da Requisição",
           "responseHeader": "Cabeçalho da Resposta"
         }
-      }
+      },
+      "sniffingDestOverride": "Substituição de destino"
     },
     "clients": {
       "tabBasics": "Básico",

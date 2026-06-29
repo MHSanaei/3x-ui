@@ -717,7 +717,8 @@
           "requestHeader": "Header yêu cầu",
           "responseHeader": "Header phản hồi"
         }
-      }
+      },
+      "sniffingDestOverride": "Ghi đè đích"
     },
     "clients": {
       "tabBasics": "Cơ bản",

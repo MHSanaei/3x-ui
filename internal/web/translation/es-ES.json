@@ -717,7 +717,8 @@
           "requestHeader": "Encabezado de solicitud",
           "responseHeader": "Encabezado de respuesta"
         }
-      }
+      },
+      "sniffingDestOverride": "Anulación de destino"
     },
     "clients": {
       "tabBasics": "Básico",

@@ -717,7 +717,8 @@
           "requestHeader": "Заголовок запроса",
           "responseHeader": "Заголовок ответа"
         }
-      }
+      },
+      "sniffingDestOverride": "Переопределение назначения"
     },
     "clients": {
       "tabBasics": "Основные",

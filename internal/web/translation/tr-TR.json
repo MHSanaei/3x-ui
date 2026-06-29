@@ -717,7 +717,8 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
-      }
+      },
+      "sniffingDestOverride": "Hedef geçersiz kılma"
     },
     "clients": {
       "tabBasics": "Temel",

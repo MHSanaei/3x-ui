@@ -717,7 +717,8 @@
           "requestHeader": "リクエストヘッダー",
           "responseHeader": "レスポンスヘッダー"
         }
-      }
+      },
+      "sniffingDestOverride": "宛先のオーバーライド"
     },
     "clients": {
       "tabBasics": "基本",

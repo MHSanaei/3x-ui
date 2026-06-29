@@ -717,7 +717,8 @@
           "requestHeader": "请求头",
           "responseHeader": "响应头"
         }
-      }
+      },
+      "sniffingDestOverride": "目标覆盖"
     },
     "clients": {
       "tabBasics": "基本",

@@ -717,7 +717,8 @@
           "requestHeader": "Request Header",
           "responseHeader": "Response Header"
         }
-      }
+      },
+      "sniffingDestOverride": "Destination override"
     },
     "clients": {
       "tabBasics": "Basics",
