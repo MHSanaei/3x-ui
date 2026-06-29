@@ -780,12 +780,19 @@ func (s *NodeService) NodeSyncState(id int) (enabled bool, status string, dirty 
 	return row.Enable, row.Status, row.ConfigDirty, row.ConfigDirtyAt, nil
 }
 
+// IsNodePending reports whether a save targeting this node was deferred because
+// the node is unreachable right now — offline or disabled — so the edit only
+// reaches it on the next reconcile. It deliberately ignores config_dirty: that
+// flag is set on EVERY node-backed edit as the reconcile self-heal marker,
+// including edits pushed live to an online node, so keying the user-facing
+// "saved, node offline, will sync" toast off it fired the warning on every save
+// to a perfectly healthy online node.
 func (s *NodeService) IsNodePending(id int) bool {
-	enabled, status, dirty, _, err := s.NodeSyncState(id)
+	enabled, status, _, _, err := s.NodeSyncState(id)
 	if err != nil {
 		return false
 	}
-	return !enabled || status != "online" || dirty
+	return !enabled || status != "online"
 }
 
 func nodeMetricKey(id int, metric string) string {
