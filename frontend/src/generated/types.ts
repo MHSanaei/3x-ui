@@ -48,8 +48,8 @@ export interface AllSetting {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
-  subAutoDetect: boolean;
   subCertFile: string;
+    subClashAutoDetect: boolean;
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
@@ -157,8 +157,8 @@ export interface AllSettingView {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
-  subAutoDetect: boolean;
   subCertFile: string;
+    subClashAutoDetect: boolean;
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;

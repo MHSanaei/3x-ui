@@ -56,18 +56,18 @@ type SUBController struct {
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
 
-	subPath         string
-	subJsonPath     string
-	subClashPath    string
-	subAutoDetect   bool
-	clashUserAgent  *regexp.Regexp
-	jsonAutoDetect  bool
-	jsonUserAgent   *regexp.Regexp
-	jsonAlwaysArray bool
-	jsonEnabled     bool
-	clashEnabled    bool
-	subEncrypt      bool
-	updateInterval  string
+	subPath            string
+	subJsonPath        string
+	subClashPath       string
+	subClashAutoDetect bool
+	clashUserAgent     *regexp.Regexp
+	jsonAutoDetect     bool
+	jsonUserAgent      *regexp.Regexp
+	jsonAlwaysArray    bool
+	jsonEnabled        bool
+	clashEnabled       bool
+	subEncrypt         bool
+	updateInterval     string
 
 	subService      *SubService
 	subJsonService  *SubJsonService
@@ -84,7 +84,7 @@ func NewSUBController(
 	subPath string,
 	jsonPath string,
 	clashPath string,
-	autoDetect bool,
+	clashAutoDetect bool,
 	clashUserAgentRegex string,
 	jsonAutoDetect bool,
 	jsonUserAgentRegex string,
@@ -122,18 +122,18 @@ func NewSUBController(
 		subIncyEnableRouting: subIncyEnableRouting,
 		subIncyRoutingRules:  subIncyRoutingRules,
 
-		subPath:         subPath,
-		subJsonPath:     jsonPath,
-		subClashPath:    clashPath,
-		subAutoDetect:   autoDetect,
-		clashUserAgent:  compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
-		jsonAutoDetect:  jsonAutoDetect,
-		jsonUserAgent:   compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
-		jsonAlwaysArray: jsonAlwaysArray,
-		jsonEnabled:     jsonEnabled,
-		clashEnabled:    clashEnabled,
-		subEncrypt:      encrypt,
-		updateInterval:  update,
+		subPath:            subPath,
+		subJsonPath:        jsonPath,
+		subClashPath:       clashPath,
+		subClashAutoDetect: clashAutoDetect,
+		clashUserAgent:     compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
+		jsonAutoDetect:     jsonAutoDetect,
+		jsonUserAgent:      compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
+		jsonAlwaysArray:    jsonAlwaysArray,
+		jsonEnabled:        jsonEnabled,
+		clashEnabled:       clashEnabled,
+		subEncrypt:         encrypt,
+		updateInterval:     update,
 
 		subService:      sub,
 		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
@@ -174,7 +174,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
 	if wantsHTML {
 		logSubscriptionRoute(userAgent, "html")
-	} else if shouldAutoServeClash(a.subAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+	} else if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
 		logSubscriptionRoute(userAgent, "clash")
 		a.subClashs(c)
 		return
@@ -252,6 +252,8 @@ func shouldAutoServeJson(autoDetect, jsonEnabled, wantsHTML bool, userAgent stri
 }
 
 func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	// NewSUBController normally guarantees a compiled regex. Keep this guard so
+	// direct callers and partially initialized controllers fail closed.
 	if !autoDetect || !formatEnabled || wantsHTML || userAgentRegex == nil {
 		return false
 	}
@@ -285,7 +287,7 @@ func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp 
 	if err == nil {
 		return compiled
 	}
-	logger.Warning("Invalid "+name+" User-Agent regex; using the default pattern:", err)
+	logger.Warningf("Invalid %s User-Agent regex %q; falling back to default %q: %v", name, pattern, defaultPattern, err)
 	return regexp.MustCompile(defaultPattern)
 }
 

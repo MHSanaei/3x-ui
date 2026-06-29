@@ -89,9 +89,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
-	subAutoDetect, err := s.settingService.GetSubAutoDetect()
+	subClashAutoDetect, err := s.settingService.GetSubClashAutoDetect()
 	if err != nil {
-		subAutoDetect = false
+		subClashAutoDetect = false
 	}
 
 	subJsonAutoDetect, err := s.settingService.GetSubJsonAutoDetect()
@@ -265,7 +265,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, ClashPath, subAutoDetect, subClashUserAgentRegex, subJsonAutoDetect, subJsonUserAgentRegex, subJsonAlwaysArray, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
+		g, LinksPath, JsonPath, ClashPath, subClashAutoDetect, subClashUserAgentRegex, subJsonAutoDetect, subJsonUserAgentRegex, subJsonAlwaysArray, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings,
 		SubIncyEnableRouting, SubIncyRoutingRules)

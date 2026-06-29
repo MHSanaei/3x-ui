@@ -165,14 +165,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription announce",
         "type": "string"
       },
-      "subAutoDetect": {
-        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
-        "type": "boolean"
-      },
       "subCertFile": {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
+        "subClashAutoDetect": {
+            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+            "type": "boolean"
+        },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -452,8 +452,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
-      "subAutoDetect",
       "subCertFile",
+        "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
@@ -699,14 +699,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription announce",
         "type": "string"
       },
-      "subAutoDetect": {
-        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
-        "type": "boolean"
-      },
       "subCertFile": {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
+        "subClashAutoDetect": {
+            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+            "type": "boolean"
+        },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -993,8 +993,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
-      "subAutoDetect",
       "subCertFile",
+        "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",

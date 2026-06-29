@@ -32,7 +32,7 @@ export class AllSetting {
   subJsonAutoDetect = false;
   subJsonAlwaysArray = false;
   subJsonUserAgentRegex = '';
-  subAutoDetect = false;
+  subClashAutoDetect = false;
   subClashUserAgentRegex = '';
   subTitle = '';
   subSupportUrl = '';

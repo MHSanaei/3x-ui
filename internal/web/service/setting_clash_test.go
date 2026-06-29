@@ -23,13 +23,13 @@ func TestValidateRegex(t *testing.T) {
 
 func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 	setupSettingTestDB(t)
-	keys := []string{"subAutoDetect", "subClashUserAgentRegex", "subJsonAutoDetect", "subJsonAlwaysArray", "subJsonUserAgentRegex"}
+	keys := []string{"subClashAutoDetect", "subClashUserAgentRegex", "subJsonAutoDetect", "subJsonAlwaysArray", "subJsonUserAgentRegex"}
 	if err := database.GetDB().Where("key IN ?", keys).Delete(&model.Setting{}).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	s := &SettingService{}
-	clashEnabled, err := s.GetSubAutoDetect()
+	clashEnabled, err := s.GetSubClashAutoDetect()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,8 +102,8 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.SubAutoDetect {
-		t.Fatal("subAutoDetect default = true, want false")
+	if settings.SubClashAutoDetect {
+		t.Fatal("subClashAutoDetect default = true, want false")
 	}
 	if settings.SubJsonAutoDetect {
 		t.Fatal("subJsonAutoDetect default = true, want false")
@@ -117,7 +117,7 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if settings.SubClashUserAgentRegex != "" {
 		t.Fatalf("subClashUserAgentRegex = %q, want empty inherited value", settings.SubClashUserAgentRegex)
 	}
-	settings.SubAutoDetect = true
+	settings.SubClashAutoDetect = true
 	settings.SubClashUserAgentRegex = `(?i)^custom-clash/`
 	settings.SubJsonAutoDetect = true
 	settings.SubJsonAlwaysArray = true
@@ -142,8 +142,8 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if !got.SubClashEnable {
 		t.Fatal("subClashEnable = false, want true")
 	}
-	if !got.SubAutoDetect {
-		t.Fatal("subAutoDetect = false, want true")
+	if !got.SubClashAutoDetect {
+		t.Fatal("subClashAutoDetect = false, want true")
 	}
 	if !got.SubJsonAutoDetect {
 		t.Fatal("subJsonAutoDetect = false, want true")

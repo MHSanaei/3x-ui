@@ -83,7 +83,7 @@ var defaultValueMap = map[string]string{
 	"subJsonAutoDetect":           "false",
 	"subJsonAlwaysArray":          "false",
 	"subJsonUserAgentRegex":       "",
-	"subAutoDetect":               "false",
+	"subClashAutoDetect":          "false",
 	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
@@ -729,8 +729,8 @@ func (s *SettingService) GetSubJsonUserAgentRegex() (string, error) {
 	return s.getString("subJsonUserAgentRegex")
 }
 
-func (s *SettingService) GetSubAutoDetect() (bool, error) {
-	return s.getBool("subAutoDetect")
+func (s *SettingService) GetSubClashAutoDetect() (bool, error) {
+	return s.getBool("subClashAutoDetect")
 }
 
 func (s *SettingService) GetSubClashUserAgentRegex() (string, error) {
