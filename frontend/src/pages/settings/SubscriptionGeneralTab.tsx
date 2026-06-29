@@ -1,5 +1,5 @@
 import { Input, InputNumber, Switch, Tabs } from 'antd';
-import { BranchesOutlined, CodeOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
+import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
@@ -32,9 +32,6 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subAutoDetect')} description={t('pages.settings.subAutoDetectDesc')}>
-              <Switch checked={allSetting.subAutoDetect} onChange={(v) => updateSetting({ subAutoDetect: v })} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>
               <Input value={allSetting.subListen} onChange={(e) => updateSetting({ subListen: e.target.value })} />
@@ -163,59 +160,10 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
         ),
       },
       {
-        key: 'json',
-        label: catTabLabel(<CodeOutlined />, 'JSON', isMobile),
-        children: (
-          <>
-            <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
-              <Input
-                value={allSetting.subJsonPath}
-                placeholder="/json/"
-                onChange={(e) => updateSetting({ subJsonPath: sanitizePath(e.target.value) })}
-                onBlur={() => updateSetting({ subJsonPath: normalizePath(allSetting.subJsonPath) })}
-              />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
-              <Input
-                value={allSetting.subJsonURI}
-                placeholder="(http|https)://domain[:port]/path/"
-                onChange={(e) => updateSetting({ subJsonURI: e.target.value })}
-              />
-            </SettingListItem>
-          </>
-        ),
-      },
-      {
         key: '6',
         label: catTabLabel(<NodeIndexOutlined />, 'Clash / Mihomo', isMobile),
         children: (
           <>
-            <SettingListItem
-              paddings="small"
-              title={t('pages.settings.subClashUserAgentRegex')}
-              description={t('pages.settings.subClashUserAgentRegexDesc')}
-            >
-              <Input
-                value={allSetting.subClashUserAgentRegex}
-                placeholder="(?i)(clash|mihomo|stash)"
-                onChange={(e) => updateSetting({ subClashUserAgentRegex: e.target.value })}
-              />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
-              <Input
-                value={allSetting.subClashPath}
-                placeholder="/clash/"
-                onChange={(e) => updateSetting({ subClashPath: sanitizePath(e.target.value) })}
-                onBlur={() => updateSetting({ subClashPath: normalizePath(allSetting.subClashPath) })}
-              />
-            </SettingListItem>
-            <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
-              <Input
-                value={allSetting.subClashURI}
-                placeholder="(http|https)://domain[:port]/path/"
-                onChange={(e) => updateSetting({ subClashURI: e.target.value })}
-              />
-            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableRouting')} description={t('pages.settings.subClashEnableRoutingDesc')}>
               <Switch checked={allSetting.subClashEnableRouting} onChange={(v) => updateSetting({ subClashEnableRouting: v })} />
             </SettingListItem>

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Input,
   InputNumber,
   Select,
   Switch,
@@ -10,11 +11,13 @@ import {
   PartitionOutlined,
   RocketOutlined,
   SendOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
+import { sanitizePath, normalizePath } from './uriPath';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
 import './SubscriptionFormatsTab.css';
 
@@ -140,7 +143,67 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
   }
 
   return (
-    <Tabs defaultActiveKey="2" items={[
+    <Tabs defaultActiveKey="1" items={[
+      {
+        key: '1',
+        label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
+        children: (
+          <>
+            {allSetting.subJsonEnable && (
+              <>
+                <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
+                  <Input
+                    value={allSetting.subJsonPath}
+                    placeholder="/json/"
+                    onChange={(e) => updateSetting({ subJsonPath: sanitizePath(e.target.value) })}
+                    onBlur={() => updateSetting({ subJsonPath: normalizePath(allSetting.subJsonPath) })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
+                  <Input
+                    value={allSetting.subJsonURI}
+                    placeholder="(http|https)://domain[:port]/path/"
+                    onChange={(e) => updateSetting({ subJsonURI: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            )}
+            {allSetting.subClashEnable && (
+              <>
+                <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
+                  <Input
+                    value={allSetting.subClashPath}
+                    placeholder="/clash/"
+                    onChange={(e) => updateSetting({ subClashPath: sanitizePath(e.target.value) })}
+                    onBlur={() => updateSetting({ subClashPath: normalizePath(allSetting.subClashPath) })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subURI')}</>} description={t('pages.settings.subURIDesc')}>
+                  <Input
+                    value={allSetting.subClashURI}
+                    placeholder="(http|https)://domain[:port]/path/"
+                    onChange={(e) => updateSetting({ subClashURI: e.target.value })}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subAutoDetect')} description={t('pages.settings.subAutoDetectDesc')}>
+                  <Switch checked={allSetting.subAutoDetect} onChange={(v) => updateSetting({ subAutoDetect: v })} />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subClashUserAgentRegex')}
+                  description={t('pages.settings.subClashUserAgentRegexDesc')}
+                >
+                  <Input
+                    value={allSetting.subClashUserAgentRegex}
+                    placeholder="(?i)(clash|mihomo|stash)"
+                    onChange={(e) => updateSetting({ subClashUserAgentRegex: e.target.value })}
+                  />
+                </SettingListItem>
+              </>
+            )}
+          </>
+        ),
+      },
       {
         key: '2',
         label: catTabLabel(<RocketOutlined />, t('pages.settings.subFormats.finalMask'), isMobile),
