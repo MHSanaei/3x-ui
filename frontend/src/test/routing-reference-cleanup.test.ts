@@ -100,6 +100,21 @@ describe('outbound deletion', () => {
     expect(dialerProxyOf(tt, 'chain')).toBeUndefined();
   });
 
+  it('never cascade-removes a tagless balancer (an empty tag must not match others)', () => {
+    const tt = tpl({
+      outbounds: [{ tag: 'proxy-us' }],
+      routing: {
+        rules: [],
+        balancers: [
+          { tag: '', selector: ['proxy-us'] },
+          { tag: '', selector: ['keep-me'] },
+        ],
+      },
+    });
+    applyOutboundDeletion(tt, 0);
+    expect(tt.routing!.balancers).toHaveLength(2);
+  });
+
   it('drops a rule that loses BOTH destinations in one cascade', () => {
     const tt = tpl({
       outbounds: [{ tag: 'proxy-us' }],

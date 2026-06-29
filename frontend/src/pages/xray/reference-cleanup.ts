@@ -68,11 +68,34 @@ function balancersEmptiedBy(tt: XraySettingsValue, removedOutbounds: Set<string>
   if (removedOutbounds.size === 0) return [];
   const emptied: string[] = [];
   for (const b of balancerList(tt)) {
+    const tag = typeof b.tag === 'string' ? b.tag : '';
+    if (tag === '') continue;
     const selector = Array.isArray(b.selector) ? b.selector : [];
     if (selector.length === 0) continue;
-    if (selector.every((s) => removedOutbounds.has(s))) emptied.push(b.tag);
+    if (selector.every((s) => removedOutbounds.has(s))) emptied.push(tag);
   }
   return emptied;
+}
+
+/**
+ * Single source of truth for how a deletion affects one rule, shared by the
+ * preview (`ruleImpacts`) and the mutation (`applyCleanup`) so the two can never
+ * disagree. Returns null when the rule is untouched; otherwise `keeps` names the
+ * surviving destination, or is '' when none remains and the rule must be dropped.
+ */
+function classifyRule(
+  rule: RuleObject,
+  removedOutbounds: Set<string>,
+  removedBalancers: Set<string>,
+): { losesOut: boolean; losesBal: boolean; keeps: string } | null {
+  const out = typeof rule.outboundTag === 'string' ? rule.outboundTag : '';
+  const bal = typeof rule.balancerTag === 'string' ? rule.balancerTag : '';
+  const losesOut = out !== '' && removedOutbounds.has(out);
+  const losesBal = bal !== '' && removedBalancers.has(bal);
+  if (!losesOut && !losesBal) return null;
+  const keptOut = out !== '' && !losesOut ? out : '';
+  const keptBal = bal !== '' && !losesBal ? bal : '';
+  return { losesOut, losesBal, keeps: keptOut || keptBal };
 }
 
 function ruleImpacts(
@@ -82,17 +105,11 @@ function ruleImpacts(
 ): RuleImpact[] {
   const impacts: RuleImpact[] = [];
   ruleList(tt).forEach((rule, index) => {
-    const out = typeof rule.outboundTag === 'string' ? rule.outboundTag : '';
-    const bal = typeof rule.balancerTag === 'string' ? rule.balancerTag : '';
-    const losesOut = out !== '' && removedOutbounds.has(out);
-    const losesBal = bal !== '' && removedBalancers.has(bal);
-    if (!losesOut && !losesBal) return;
-    const keptOut = out !== '' && !losesOut ? out : '';
-    const keptBal = bal !== '' && !losesBal ? bal : '';
-    const keeps = keptOut || keptBal;
+    const verdict = classifyRule(rule, removedOutbounds, removedBalancers);
+    if (!verdict) return;
     impacts.push(
-      keeps
-        ? { index, label: ruleLabel(rule, index), fate: 'modified', keeps }
+      verdict.keeps
+        ? { index, label: ruleLabel(rule, index), fate: 'modified', keeps: verdict.keeps }
         : { index, label: ruleLabel(rule, index), fate: 'removed' },
     );
   });
@@ -107,19 +124,14 @@ function applyCleanup(
   if (tt.routing && Array.isArray(tt.routing.rules)) {
     const next: RuleObject[] = [];
     for (const rule of tt.routing.rules) {
-      const out = typeof rule.outboundTag === 'string' ? rule.outboundTag : '';
-      const bal = typeof rule.balancerTag === 'string' ? rule.balancerTag : '';
-      const losesOut = out !== '' && removedOutbounds.has(out);
-      const losesBal = bal !== '' && removedBalancers.has(bal);
-      if (!losesOut && !losesBal) {
+      const verdict = classifyRule(rule, removedOutbounds, removedBalancers);
+      if (!verdict) {
         next.push(rule);
         continue;
       }
-      if (losesOut) delete rule.outboundTag;
-      if (losesBal) delete rule.balancerTag;
-      const hasOut = typeof rule.outboundTag === 'string' && rule.outboundTag !== '';
-      const hasBal = typeof rule.balancerTag === 'string' && rule.balancerTag !== '';
-      if (hasOut || hasBal) next.push(rule);
+      if (verdict.losesOut) delete rule.outboundTag;
+      if (verdict.losesBal) delete rule.balancerTag;
+      if (verdict.keeps) next.push(rule);
     }
     tt.routing.rules = next;
   }
