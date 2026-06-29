@@ -1709,6 +1709,12 @@
         "deleteAlsoObservatory": "Este é o último balanceador que usa o Observatório, então ele também será removido.",
         "deleteAlsoBurst": "Este é o último balanceador que usa o Observatório Burst, então ele também será removido."
       },
+      "refCleanup": {
+        "header": "Excluir isto também atualiza o seu roteamento:",
+        "ruleRemoved": "Regra {label} — removida (sem destino restante)",
+        "ruleModified": "Regra {label} — mantida (agora usa {keeps})",
+        "balancerRemoved": "Balanceador {tag} — removido (sem destinos restantes)"
+      },
       "balancer": {
         "addBalancer": "Adicionar Balanceador",
         "editBalancer": "Editar Balanceador",

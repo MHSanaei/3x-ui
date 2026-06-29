@@ -1709,6 +1709,12 @@
         "deleteAlsoObservatory": "Ini balancer terakhir yang memakai Observatory, jadi itu juga akan dihapus.",
         "deleteAlsoBurst": "Ini balancer terakhir yang memakai Burst Observatory, jadi itu juga akan dihapus."
       },
+      "refCleanup": {
+        "header": "Menghapus ini juga memperbarui perutean Anda:",
+        "ruleRemoved": "Aturan {label} — dihapus (tidak ada tujuan tersisa)",
+        "ruleModified": "Aturan {label} — dipertahankan (kini memakai {keeps})",
+        "balancerRemoved": "Balancer {tag} — dihapus (tidak ada target tersisa)"
+      },
       "balancer": {
         "addBalancer": "Tambahkan Penyeimbang",
         "editBalancer": "Sunting Penyeimbang",

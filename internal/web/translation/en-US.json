@@ -1825,6 +1825,12 @@
         "deleteAlsoObservatory": "This is the last balancer using the Observatory, so it will be removed too.",
         "deleteAlsoBurst": "This is the last balancer using the Burst Observatory, so it will be removed too."
       },
+      "refCleanup": {
+        "header": "Deleting this also updates your routing:",
+        "ruleRemoved": "Rule {label} — removed (no destination left)",
+        "ruleModified": "Rule {label} — kept (now uses {keeps})",
+        "balancerRemoved": "Balancer {tag} — removed (no targets left)"
+      },
       "balancer": {
         "addBalancer": "Add Balancer",
         "editBalancer": "Edit Balancer",

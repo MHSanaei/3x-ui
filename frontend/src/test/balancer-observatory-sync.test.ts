@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { observersRemovedByDeletingBalancer, syncObservatories } from '@/pages/xray/balancers/balancer-helpers';
+import { syncObservatories } from '@/pages/xray/balancers/balancer-helpers';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 
 function tpl(routing: Record<string, unknown>, extra: Record<string, unknown> = {}): XraySettingsValue {
@@ -136,44 +136,5 @@ describe('syncObservatories', () => {
     expect(new Set((t.burstObservatory as { subjectSelector: string[] }).subjectSelector)).toEqual(
       new Set(['prefixC', 'prefixB']),
     );
-  });
-});
-
-describe('observersRemovedByDeletingBalancer', () => {
-  it('reports the burst observer as removed when deleting the last leastLoad balancer', () => {
-    const t = tpl({ balancers: [{ tag: 'b1', selector: ['a'], strategy: { type: 'leastLoad' } }] });
-    syncObservatories(t);
-    expect(observersRemovedByDeletingBalancer(t, 0)).toEqual({ observatory: false, burst: true });
-  });
-
-  it('keeps the burst observer when another balancer still needs it (overlap)', () => {
-    const t = tpl({
-      balancers: [
-        { tag: 'a', selector: ['prefixA', 'prefixB'], strategy: { type: 'leastLoad' } },
-        { tag: 'b', selector: ['prefixC', 'prefixB'], strategy: { type: 'leastLoad' } },
-      ],
-    });
-    syncObservatories(t);
-    expect(observersRemovedByDeletingBalancer(t, 0)).toEqual({ observatory: false, burst: false });
-  });
-
-  it('reports the regular observer as removed when deleting the last leastPing balancer', () => {
-    const t = tpl({ balancers: [{ tag: 'b1', selector: ['a'], strategy: { type: 'leastPing' } }] });
-    syncObservatories(t);
-    expect(observersRemovedByDeletingBalancer(t, 0)).toEqual({ observatory: true, burst: false });
-  });
-
-  it('reports nothing removed when the balancer never had an observer', () => {
-    const t = tpl({ balancers: [{ tag: 'b1', selector: ['a'] }] });
-    syncObservatories(t);
-    expect(observersRemovedByDeletingBalancer(t, 0)).toEqual({ observatory: false, burst: false });
-  });
-
-  it('does not mutate the template it inspects', () => {
-    const t = tpl({ balancers: [{ tag: 'b1', selector: ['a'], strategy: { type: 'leastLoad' } }] });
-    syncObservatories(t);
-    const before = JSON.stringify(t);
-    observersRemovedByDeletingBalancer(t, 0);
-    expect(JSON.stringify(t)).toBe(before);
   });
 });

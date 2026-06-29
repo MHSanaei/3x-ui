@@ -1709,6 +1709,12 @@
         "deleteAlsoObservatory": "این آخرین بالانسری است که از Observatory استفاده می‌کند، بنابراین آن هم حذف خواهد شد.",
         "deleteAlsoBurst": "این آخرین بالانسری است که از Burst Observatory استفاده می‌کند، بنابراین آن هم حذف خواهد شد."
       },
+      "refCleanup": {
+        "header": "حذف این مورد مسیریابی شما را هم به‌روز می‌کند:",
+        "ruleRemoved": "قاعده {label} — حذف شد (مقصدی باقی نماند)",
+        "ruleModified": "قاعده {label} — حفظ شد (اکنون از {keeps} استفاده می‌کند)",
+        "balancerRemoved": "بالانسر {tag} — حذف شد (هدفی باقی نماند)"
+      },
       "balancer": {
         "addBalancer": "افزودن بالانسر",
         "editBalancer": "ویرایش بالانسر",

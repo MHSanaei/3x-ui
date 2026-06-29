@@ -1709,6 +1709,12 @@
         "deleteAlsoObservatory": "これは Observatory を使用する最後のバランサーのため、こちらも削除されます。",
         "deleteAlsoBurst": "これは Burst Observatory を使用する最後のバランサーのため、こちらも削除されます。"
       },
+      "refCleanup": {
+        "header": "これを削除するとルーティングも更新されます:",
+        "ruleRemoved": "ルール {label} — 削除（送信先が残っていません）",
+        "ruleModified": "ルール {label} — 保持（現在は {keeps} を使用）",
+        "balancerRemoved": "バランサー {tag} — 削除（対象が残っていません）"
+      },
       "balancer": {
         "addBalancer": "負荷分散追加",
         "editBalancer": "負荷分散編集",
