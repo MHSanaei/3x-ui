@@ -220,7 +220,7 @@ export default function ClientInfoModal({
                   <td>
                     <Tag className="info-large-tag">{client.subId || '-'}</Tag>
                     {client.subId && (
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.subId!)} />
+                      <Button size="small" type="text" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(client.subId!)} />
                     )}
                   </td>
                 </tr>
@@ -229,7 +229,7 @@ export default function ClientInfoModal({
                     <td>{t('pages.clients.uuid')}</td>
                     <td>
                       <Tag className="info-large-tag">{client.uuid}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.uuid!)} />
+                      <Button size="small" type="text" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(client.uuid!)} />
                     </td>
                   </tr>
                 )}
@@ -238,7 +238,7 @@ export default function ClientInfoModal({
                     <td>{t('password')}</td>
                     <td>
                       <Tag className="info-large-tag">{client.password}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.password!)} />
+                      <Button size="small" type="text" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(client.password!)} />
                     </td>
                   </tr>
                 )}
@@ -247,7 +247,7 @@ export default function ClientInfoModal({
                     <td>{t('pages.clients.auth')}</td>
                     <td>
                       <Tag className="info-large-tag">{client.auth}</Tag>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyValue(client.auth!)} />
+                      <Button size="small" type="text" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(client.auth!)} />
                     </td>
                   </tr>
                 )}
@@ -295,7 +295,7 @@ export default function ClientInfoModal({
                 <tr>
                   <td>{t('pages.inbounds.IPLimitlog')}</td>
                   <td>
-                    <Button size="small" icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                    <Button size="small" icon={<EyeOutlined />} aria-label={t('pages.clients.ipLog')} loading={ipsLoading} onClick={openIpsModal}>
                       {clientIps.length > 0 ? clientIps.length : ''}
                     </Button>
                   </td>
@@ -375,7 +375,7 @@ export default function ClientInfoModal({
                   </a>
                   <div className="link-row-actions">
                     <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subLink)} />
+                      <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subLink)} />
                     </Tooltip>
                     <Popover
                       trigger="click"
@@ -384,7 +384,7 @@ export default function ClientInfoModal({
                       content={<QrPanel value={subLink} remark={`${client.email} — ${t('subscription.title')}`} size={220} />}
                     >
                       <Tooltip title={t('pages.clients.qrCode')}>
-                        <Button size="small" icon={<QrcodeOutlined />} />
+                        <Button size="small" icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} />
                       </Tooltip>
                     </Popover>
                   </div>
@@ -403,7 +403,7 @@ export default function ClientInfoModal({
                     </a>
                     <div className="link-row-actions">
                       <Tooltip title={t('copy')}>
-                        <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subJsonLink)} />
+                        <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subJsonLink)} />
                       </Tooltip>
                       <Popover
                         trigger="click"
@@ -412,7 +412,7 @@ export default function ClientInfoModal({
                         content={<QrPanel value={subJsonLink} remark={`${client.email} — JSON`} size={220} />}
                       >
                         <Tooltip title={t('pages.clients.qrCode')}>
-                          <Button size="small" icon={<QrcodeOutlined />} />
+                          <Button size="small" icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} />
                         </Tooltip>
                       </Popover>
                     </div>
@@ -434,7 +434,7 @@ export default function ClientInfoModal({
                     </a>
                     <div className="link-row-actions">
                       <Tooltip title={t('copy')}>
-                        <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(subClashLink)} />
+                        <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subClashLink)} />
                       </Tooltip>
                       <Popover
                         trigger="click"
@@ -443,7 +443,7 @@ export default function ClientInfoModal({
                         content={<QrPanel value={subClashLink} remark={`${client.email} — Clash / Mihomo`} size={220} />}
                       >
                         <Tooltip title={t('pages.clients.qrCode')}>
-                          <Button size="small" icon={<QrcodeOutlined />} />
+                          <Button size="small" icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} />
                         </Tooltip>
                       </Popover>
                     </div>
@@ -469,7 +469,7 @@ export default function ClientInfoModal({
                       <span className="link-row-title" title={rowTitle}>{rowTitle}</span>
                       <div className="link-row-actions">
                         <Tooltip title={t('copy')}>
-                          <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
+                          <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(link)} />
                         </Tooltip>
                         {canQr && (
                           <Popover
@@ -479,7 +479,7 @@ export default function ClientInfoModal({
                             content={<QrPanel value={link} remark={qrRemark} size={220} />}
                           >
                             <Tooltip title={t('pages.clients.qrCode')}>
-                              <Button size="small" icon={<QrcodeOutlined />} />
+                              <Button size="small" icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} />
                             </Tooltip>
                           </Popover>
                         )}
