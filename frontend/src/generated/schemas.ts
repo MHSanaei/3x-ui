@@ -165,6 +165,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription announce",
         "type": "string"
       },
+      "subAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subCertFile": {
         "description": "SSL certificate file for subscription server",
         "type": "string"
@@ -187,6 +191,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashURI": {
         "description": "Clash/Mihomo subscription server URI",
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
         "type": "string"
       },
       "subDomain": {
@@ -432,12 +440,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subAutoDetect",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -674,6 +684,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Subscription announce",
         "type": "string"
       },
+      "subAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subCertFile": {
         "description": "SSL certificate file for subscription server",
         "type": "string"
@@ -696,6 +710,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashURI": {
         "description": "Clash/Mihomo subscription server URI",
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
         "type": "string"
       },
       "subDomain": {
@@ -948,12 +966,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subAutoDetect",
       "subCertFile",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",

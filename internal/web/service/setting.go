@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +32,8 @@ import (
 
 //go:embed config.json
 var xrayTemplateConfig string
+
+const DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
 
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
@@ -73,6 +76,8 @@ var defaultValueMap = map[string]string{
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
+	"subAutoDetect":               "false",
+	"subClashUserAgentRegex":      DefaultSubClashUserAgentRegex,
 	"subTitle":                    "",
 	"subSupportUrl":               "",
 	"subProfileUrl":               "",
@@ -705,6 +710,14 @@ func (s *SettingService) GetSubJsonEnable() (bool, error) {
 	return s.getBool("subJsonEnable")
 }
 
+func (s *SettingService) GetSubAutoDetect() (bool, error) {
+	return s.getBool("subAutoDetect")
+}
+
+func (s *SettingService) GetSubClashUserAgentRegex() (string, error) {
+	return s.getString("subClashUserAgentRegex")
+}
+
 func (s *SettingService) GetSubTitle() (string, error) {
 	return s.getString("subTitle")
 }
@@ -1090,6 +1103,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := validateSettingsURLs(allSetting); err != nil {
 		return err
 	}
+	if err := validateSubClashUserAgentRegex(allSetting); err != nil {
+		return err
+	}
 	if err := allSetting.CheckValid(); err != nil {
 		return err
 	}
@@ -1128,6 +1144,29 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		}
 		return nil
 	})
+}
+
+func validateSubClashUserAgentRegex(allSetting *entity.AllSetting) error {
+	pattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	allSetting.SubClashUserAgentRegex = pattern
+	return nil
+}
+
+func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, error) {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		pattern = defaultPattern
+	}
+	if len(pattern) > 2048 {
+		return "", common.NewError(name + " User-Agent regex must not exceed 2048 characters")
+	}
+	if _, err := regexp.Compile(pattern); err != nil {
+		return "", common.NewError(name+" User-Agent regex is invalid:", err)
+	}
+	return pattern, nil
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {

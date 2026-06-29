@@ -71,6 +71,8 @@ type AllSetting struct {
 	// Subscription server settings
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`                                     // Enable subscription server
 	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`                             // Enable JSON subscription endpoint
+	SubAutoDetect               bool   `json:"subAutoDetect" form:"subAutoDetect"`                             // Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses
+	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`           // Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL
 	SubTitle                    string `json:"subTitle" form:"subTitle"`                                       // Subscription title
 	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`                             // Subscription support URL
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`                             // Subscription profile URL

@@ -33,6 +33,9 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.subAutoDetect')} description={t('pages.settings.subAutoDetectDesc')}>
+              <Switch checked={allSetting.subAutoDetect} onChange={(v) => updateSetting({ subAutoDetect: v })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>
               <Input value={allSetting.subListen} onChange={(e) => updateSetting({ subListen: e.target.value })} />
             </SettingListItem>
@@ -187,6 +190,17 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
         label: catTabLabel(<NodeIndexOutlined />, 'Clash / Mihomo', isMobile),
         children: (
           <>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.subClashUserAgentRegex')}
+              description={t('pages.settings.subClashUserAgentRegexDesc')}
+            >
+              <Input
+                value={allSetting.subClashUserAgentRegex}
+                placeholder="(?i)(clash|mihomo|stash)"
+                onChange={(e) => updateSetting({ subClashUserAgentRegex: e.target.value })}
+              />
+            </SettingListItem>
             <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
               <Input
                 value={allSetting.subClashPath}

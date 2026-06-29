@@ -10,10 +10,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -57,6 +59,8 @@ type SUBController struct {
 	subPath        string
 	subJsonPath    string
 	subClashPath   string
+	subAutoDetect  bool
+	clashUserAgent *regexp.Regexp
 	jsonEnabled    bool
 	clashEnabled   bool
 	subEncrypt     bool
@@ -77,6 +81,8 @@ func NewSUBController(
 	subPath string,
 	jsonPath string,
 	clashPath string,
+	autoDetect bool,
+	clashUserAgentRegex string,
 	jsonEnabled bool,
 	clashEnabled bool,
 	encrypt bool,
@@ -113,6 +119,8 @@ func NewSUBController(
 		subPath:        subPath,
 		subJsonPath:    jsonPath,
 		subClashPath:   clashPath,
+		subAutoDetect:  autoDetect,
+		clashUserAgent: compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
 		jsonEnabled:    jsonEnabled,
 		clashEnabled:   clashEnabled,
 		subEncrypt:     encrypt,
@@ -149,13 +157,24 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
-	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subReq := a.subService.ForRequest(host)
 	// The remark template's per-client info is for the content a client app
 	// imports — the raw subscription body. A browser viewing the HTML info page
 	// gets clean, name-only remarks (usage is shown in the page summary).
 	accept := c.GetHeader("Accept")
+	userAgent := c.GetHeader("User-Agent")
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+	if wantsHTML {
+		logSubscriptionRoute(userAgent, "html")
+	} else if shouldAutoServeClash(a.subAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+		logSubscriptionRoute(userAgent, "clash")
+		a.subClashs(c)
+		return
+	} else {
+		logSubscriptionRoute(userAgent, "raw")
+	}
+
+	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
+	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = !wantsHTML
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
@@ -205,6 +224,52 @@ func (a *SUBController) subs(c *gin.Context) {
 			c.String(200, result.String())
 		}
 	}
+}
+
+// shouldAutoServeClash reports whether the standard subscription endpoint
+// should return Clash/Mihomo YAML for this request. Browser HTML always wins,
+// and disabling either auto-detection or Clash subscriptions preserves the
+// existing raw/base64 behavior.
+func shouldAutoServeClash(autoDetect, clashEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	return shouldAutoServeFormat(autoDetect, clashEnabled, wantsHTML, userAgent, userAgentRegex)
+}
+
+func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	if !autoDetect || !formatEnabled || wantsHTML || userAgentRegex == nil {
+		return false
+	}
+	return userAgentRegex.MatchString(userAgent)
+}
+
+func logSubscriptionRoute(userAgent, branch string) {
+	logger.Debugf("Subscription request routed: branch=%s user_agent=%q", branch, sanitizeUserAgentForLog(userAgent))
+}
+
+func sanitizeUserAgentForLog(userAgent string) string {
+	clean := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, userAgent)
+	runes := []rune(clean)
+	if len(runes) > 512 {
+		return string(runes[:512])
+	}
+	return clean
+}
+
+func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		pattern = defaultPattern
+	}
+	compiled, err := regexp.Compile(pattern)
+	if err == nil {
+		return compiled
+	}
+	logger.Warning("Invalid "+name+" User-Agent regex; using the default pattern:", err)
+	return regexp.MustCompile(defaultPattern)
 }
 
 // serveSubPage renders internal/web/dist/subpage.html for the current subscription

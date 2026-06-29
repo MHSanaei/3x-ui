@@ -89,6 +89,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
+	subAutoDetect, err := s.settingService.GetSubAutoDetect()
+	if err != nil {
+		subAutoDetect = false
+	}
+
+	subClashUserAgentRegex, err := s.settingService.GetSubClashUserAgentRegex()
+	if err != nil {
+		subClashUserAgentRegex = service.DefaultSubClashUserAgentRegex
+	}
+
 	// Set base_path based on LinksPath for template rendering
 	// Ensure LinksPath ends with "/" for proper asset URL generation
 	basePath := LinksPath
@@ -240,7 +250,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
+		g, LinksPath, JsonPath, ClashPath, subAutoDetect, subClashUserAgentRegex, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
 		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings,
 		SubIncyEnableRouting, SubIncyRoutingRules)
