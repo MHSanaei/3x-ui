@@ -15,6 +15,7 @@
   "copied": "已复制",
   "more": "更多",
   "download": "下载",
+  "sort": "排序",
   "remark": "备注",
   "enable": "启用",
   "protocol": "协议",
@@ -118,7 +119,8 @@
     "link": "管理",
     "donate": "捐赠",
     "hosts": "主机",
-    "docs": "文档"
+    "docs": "文档",
+    "openMenu": "打开菜单"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "城市",
         "allCities": "所有城市",
         "privateKey": "私钥",
-        "load": "负载"
+        "load": "负载",
+        "moveToTop": "移到顶部"
       },
       "outboundSub": {
         "manage": "订阅",

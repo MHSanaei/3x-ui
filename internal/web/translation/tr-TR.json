@@ -15,6 +15,7 @@
   "copied": "Kopyalandı",
   "more": "Diğer",
   "download": "İndir",
+  "sort": "Sırala",
   "remark": "Açıklama",
   "enable": "Etkin",
   "protocol": "Protokol",
@@ -118,7 +119,8 @@
     "link": "Yönet",
     "donate": "Bağış Yap",
     "hosts": "Host'lar",
-    "docs": "Belgeler"
+    "docs": "Belgeler",
+    "openMenu": "Menüyü aç"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "Şehir",
         "allCities": "Tüm Şehirler",
         "privateKey": "Özel Anahtar",
-        "load": "Yükle"
+        "load": "Yükle",
+        "moveToTop": "En üste taşı"
       },
       "outboundSub": {
         "manage": "Abonelikler",

@@ -15,6 +15,7 @@
   "copied": "Tersalin",
   "more": "lainnya",
   "download": "Unduh",
+  "sort": "Urutkan",
   "remark": "Catatan",
   "enable": "Aktifkan",
   "protocol": "Protokol",
@@ -118,7 +119,8 @@
     "link": "Kelola",
     "donate": "Donasi",
     "hosts": "Host",
-    "docs": "Dokumentasi"
+    "docs": "Dokumentasi",
+    "openMenu": "Buka menu"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "Kota",
         "allCities": "Semua Kota",
         "privateKey": "Kunci Privat",
-        "load": "Beban"
+        "load": "Beban",
+        "moveToTop": "Pindahkan ke atas"
       },
       "outboundSub": {
         "manage": "Langganan",

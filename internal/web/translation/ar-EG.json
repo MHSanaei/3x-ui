@@ -15,6 +15,7 @@
   "copied": "اتنسخ",
   "more": "المزيد",
   "download": "تحميل",
+  "sort": "ترتيب",
   "remark": "ملاحظة",
   "enable": "مفعل",
   "protocol": "بروتوكول",
@@ -118,7 +119,8 @@
     "link": "إدارة",
     "donate": "تبرع",
     "hosts": "المضيفات",
-    "docs": "التوثيق"
+    "docs": "التوثيق",
+    "openMenu": "فتح القائمة"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "المدينة",
         "allCities": "كل المدن",
         "privateKey": "المفتاح الخاص",
-        "load": "الحمل"
+        "load": "الحمل",
+        "moveToTop": "نقل إلى الأعلى"
       },
       "outboundSub": {
         "manage": "الاشتراكات",

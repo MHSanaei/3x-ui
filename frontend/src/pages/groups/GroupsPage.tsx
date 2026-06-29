@@ -404,10 +404,10 @@ export default function GroupsPage() {
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
+            <Button aria-label={t('more')} size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
           </Dropdown>
           <Tooltip title={t('pages.groups.rename')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
+            <Button aria-label={t('pages.groups.rename')} size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
           </Tooltip>
         </Space>
       ),
@@ -522,7 +522,7 @@ export default function GroupsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                          <Button aria-label={t('pages.groups.addGroup')} type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                             {!isMobile && t('pages.groups.addGroup')}
                           </Button>
                         </div>

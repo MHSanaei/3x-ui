@@ -38,6 +38,7 @@ import {
 
 import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
+import { activateOnKey } from '@/utils/a11y';
 import { useTheme } from '@/hooks/useTheme';
 import { useStatusQuery } from '@/api/queries/useStatusQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -211,15 +212,15 @@ export default function IndexPage() {
                       title={t('menu.link')}
                       hoverable
                       actions={[
-                        <Space className="action" key="logs" onClick={() => setLogsOpen(true)}>
+                        <Space className="action" key="logs" role="button" tabIndex={0} aria-label={t('pages.index.logs')} onClick={() => setLogsOpen(true)} onKeyDown={activateOnKey(() => setLogsOpen(true))}>
                           <BarsOutlined />
                           {!isMobile && <span>{t('pages.index.logs')}</span>}
                         </Space>,
-                        <Space className="action" key="config" onClick={openConfig}>
+                        <Space className="action" key="config" role="button" tabIndex={0} aria-label={t('pages.index.config')} onClick={openConfig} onKeyDown={activateOnKey(openConfig)}>
                           <ControlOutlined />
                           {!isMobile && <span>{t('pages.index.config')}</span>}
                         </Space>,
-                        <Space className="action" key="backup" onClick={() => setBackupOpen(true)}>
+                        <Space className="action" key="backup" role="button" tabIndex={0} aria-label={t('pages.index.backupTitle')} onClick={() => setBackupOpen(true)} onKeyDown={activateOnKey(() => setBackupOpen(true))}>
                           <CloudServerOutlined />
                           {!isMobile && <span>{t('pages.index.backupTitle')}</span>}
                         </Space>,
@@ -243,7 +244,7 @@ export default function IndexPage() {
                       }
                       hoverable
                       actions={[
-                        <Space className="action" key="tg" onClick={openTelegram}>
+                        <Space className="action" key="tg" role="button" tabIndex={0} aria-label="@XrayUI" onClick={openTelegram} onKeyDown={activateOnKey(openTelegram)}>
                           <svg
                             viewBox="0 0 24 24"
                             width="14"
@@ -259,7 +260,11 @@ export default function IndexPage() {
                         <Space
                           key="panel-version"
                           className={`action ${panelUpdateInfo.updateAvailable ? 'action-update' : ''}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('pages.index.updatePanel')}
                           onClick={openPanelVersion}
+                          onKeyDown={activateOnKey(openPanelVersion)}
                         >
                           <CloudDownloadOutlined />
                           {!isMobile && (
@@ -282,7 +287,11 @@ export default function IndexPage() {
                         <Space
                           className="action"
                           key="sys-history"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('pages.index.systemHistoryTitle')}
                           onClick={() => setSysHistoryOpen(true)}
+                          onKeyDown={activateOnKey(() => setSysHistoryOpen(true))}
                         >
                           <AreaChartOutlined />
                           {!isMobile && <span>{t('pages.index.systemHistoryTitle')}</span>}
@@ -290,7 +299,11 @@ export default function IndexPage() {
                         <Space
                           className="action"
                           key="xray-metrics"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('pages.index.xrayMetricsTitle')}
                           onClick={() => setXrayMetricsOpen(true)}
+                          onKeyDown={activateOnKey(() => setXrayMetricsOpen(true))}
                         >
                           <AreaChartOutlined />
                           {!isMobile && <span>{t('pages.index.xrayMetricsTitle')}</span>}
@@ -397,12 +410,20 @@ export default function IndexPage() {
                           {showIp ? (
                             <EyeOutlined
                               className="ip-toggle-icon"
+                              role="button"
+                              tabIndex={0}
+                              aria-label={t('pages.index.toggleIpVisibility')}
                               onClick={() => setShowIp(false)}
+                              onKeyDown={activateOnKey(() => setShowIp(false))}
                             />
                           ) : (
                             <EyeInvisibleOutlined
                               className="ip-toggle-icon"
+                              role="button"
+                              tabIndex={0}
+                              aria-label={t('pages.index.toggleIpVisibility')}
                               onClick={() => setShowIp(true)}
+                              onKeyDown={activateOnKey(() => setShowIp(true))}
                             />
                           )}
                         </Tooltip>

@@ -15,6 +15,7 @@
   "copied": "Copied",
   "more": "more",
   "download": "Download",
+  "sort": "Sort",
   "remark": "Remark",
   "enable": "Enabled",
   "protocol": "Protocol",
@@ -118,7 +119,8 @@
     "logout": "Log Out",
     "link": "Manage",
     "donate": "Donate",
-    "docs": "Documentation"
+    "docs": "Documentation",
+    "openMenu": "Open menu"
   },
   "pages": {
     "login": {
@@ -1734,7 +1736,8 @@
         "city": "City",
         "allCities": "All Cities",
         "privateKey": "Private Key",
-        "load": "Load"
+        "load": "Load",
+        "moveToTop": "Move to top"
       },
       "outboundSub": {
         "manage": "Subscriptions",

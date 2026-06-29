@@ -370,7 +370,7 @@ export default function AppSidebar() {
         <button
           className="drawer-handle"
           type="button"
-          aria-label={t('menu.dashboard')}
+          aria-label={t('menu.openMenu')}
           onClick={() => setDrawerOpen(true)}
         >
           <MenuOutlined />

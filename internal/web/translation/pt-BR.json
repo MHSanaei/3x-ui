@@ -15,6 +15,7 @@
   "copied": "Copiado",
   "more": "mais",
   "download": "Baixar",
+  "sort": "Ordenar",
   "remark": "Observação",
   "enable": "Ativado",
   "protocol": "Protocolo",
@@ -118,7 +119,8 @@
     "link": "Gerenciar",
     "donate": "Doar",
     "hosts": "Hosts",
-    "docs": "Documentação"
+    "docs": "Documentação",
+    "openMenu": "Abrir menu"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "Cidade",
         "allCities": "Todas as Cidades",
         "privateKey": "Chave Privada",
-        "load": "Carga"
+        "load": "Carga",
+        "moveToTop": "Mover para o topo"
       },
       "outboundSub": {
         "manage": "Assinaturas",

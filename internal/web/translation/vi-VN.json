@@ -15,6 +15,7 @@
   "copied": "Đã sao chép",
   "more": "thêm",
   "download": "Tải xuống",
+  "sort": "Sắp xếp",
   "remark": "Ghi chú",
   "enable": "Kích hoạt",
   "protocol": "Giao thức",
@@ -118,7 +119,8 @@
     "link": "Quản lý",
     "donate": "Quyên góp",
     "hosts": "Hosts",
-    "docs": "Tài liệu"
+    "docs": "Tài liệu",
+    "openMenu": "Mở menu"
   },
   "pages": {
     "login": {
@@ -1618,7 +1620,8 @@
         "city": "Thành phố",
         "allCities": "Tất cả thành phố",
         "privateKey": "Khóa riêng",
-        "load": "Tải"
+        "load": "Tải",
+        "moveToTop": "Chuyển lên đầu"
       },
       "outboundSub": {
         "manage": "Đăng ký",

@@ -37,7 +37,7 @@ export function useDnsServerColumns({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button aria-label={t('more')} shape="circle" size="small" icon={<MoreOutlined />} />
             </Dropdown>
           </Space>
         ),
@@ -72,6 +72,7 @@ export function useFakednsColumns({
   deleteFakedns: (idx: number) => void;
   updateFakednsField: (idx: number, field: 'ipPool' | 'poolSize', value: string | number) => void;
 }): ColumnsType<FakednsTableRow> {
+  const { t } = useTranslation();
   return useMemo(
     () => [
       {
@@ -82,7 +83,7 @@ export function useFakednsColumns({
         render: (_v, _record, index) => (
           <Space size={6}>
             <span className="row-index">{index + 1}</span>
-            <Button shape="circle" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFakedns(index)} />
+            <Button aria-label={t('delete')} shape="circle" size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFakedns(index)} />
           </Space>
         ),
       },
@@ -115,6 +116,6 @@ export function useFakednsColumns({
         ),
       },
     ],
-    [deleteFakedns, updateFakednsField],
+    [t, deleteFakedns, updateFakednsField],
   );
 }
