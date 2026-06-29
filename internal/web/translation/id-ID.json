@@ -1901,7 +1901,7 @@
         "nodeGuids": "Pilih node yang teresolusi dari host ini. Hanya penetapan visual.",
         "serverDescription": "Catatan opsional yang ditampilkan di bawah catatan.",
         "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Port/rentang yang dirutekan melalui VLESS, mis. 53,443,1000-2000. Biarkan kosong jika tidak ada.",
+        "vlessRoute": "Satu nilai rute VLESS (0-65535) yang disisipkan ke UUID, mis. 443. Biarkan kosong jika tidak ada.",
         "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "Perbarui host",
         "delete": "Hapus host",
         "badTag": "Tag tidak valid",
-        "badVlessRoute": "Gunakan port/rentang seperti 53,443,1000-2000"
+        "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
       }
     }
   },

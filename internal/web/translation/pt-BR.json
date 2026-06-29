@@ -1901,7 +1901,7 @@
         "nodeGuids": "Escolha os nós que foram resolvidos a partir deste host. Apenas atribuição visual.",
         "serverDescription": "Nota opcional exibida abaixo da observação.",
         "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Portas/intervalos roteados via VLESS, ex.: 53,443,1000-2000. Deixe em branco para nenhum.",
+        "vlessRoute": "Um único valor de rota VLESS (0-65535) embutido no UUID, ex.: 443. Deixe em branco para nenhum.",
         "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "Atualizar host",
         "delete": "Excluir host",
         "badTag": "Tag inválida",
-        "badVlessRoute": "Use portas/intervalos como 53,443,1000-2000"
+        "badVlessRoute": "Insira um único número entre 0 e 65535"
       }
     }
   },

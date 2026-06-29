@@ -77,7 +77,7 @@ func (s *SubService) buildEndpointLinks(
 	eps []ShareEndpoint,
 	params map[string]string,
 	baseSecurity string,
-	makeLink func(dest string, port int) string,
+	makeLink func(e ShareEndpoint) string,
 	makeRemark func(e ShareEndpoint) string,
 ) string {
 	links := make([]string, 0, len(eps))
@@ -92,7 +92,7 @@ func (s *SubService) buildEndpointLinks(
 		applyEndpointHostPath(e, nextParams)
 		applyEndpointAllowInsecure(e, nextParams, securityToApply)
 		links = append(links, buildLinkWithParamsAndSecurity(
-			makeLink(e.Address, e.Port),
+			makeLink(e),
 			nextParams,
 			makeRemark(e),
 			securityToApply,

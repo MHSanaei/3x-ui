@@ -1901,7 +1901,7 @@
         "nodeGuids": "Bu host'tan çözümlenen düğümleri seçin. Yalnızca görsel atama.",
         "serverDescription": "Açıklamanın altında gösterilen isteğe bağlı not.",
         "allowInsecure": "TLS sertifika doğrulamasını atla (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "VLESS üzerinden yönlendirilen portlar/aralıklar, örn. 53,443,1000-2000. Hiçbiri için boş bırakın.",
+        "vlessRoute": "UUID'ye gömülen tek bir VLESS rota değeri (0-65535), örn. 443. Hiçbiri için boş bırakın.",
         "remark": "Bu host için düz bir etiket. Yalnızca gelen bağlantının kendi açıklaması yoksa yapılandırma adı olarak gösterilir."
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "Host'u güncelle",
         "delete": "Host'u sil",
         "badTag": "Geçersiz etiket",
-        "badVlessRoute": "53,443,1000-2000 gibi portlar/aralıklar kullanın"
+        "badVlessRoute": "0 ile 65535 arasında tek bir sayı girin"
       }
     }
   },

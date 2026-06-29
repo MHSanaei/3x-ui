@@ -260,7 +260,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, save, 
                             <Input />
                           </Form.Item>
                           <Form.Item name="vlessRoute" label={t('pages.hosts.fields.vlessRoute')} tooltip={t('pages.hosts.hints.vlessRoute')}>
-                            <Input placeholder="53,443,1000-2000" />
+                            <Input placeholder="443" />
                           </Form.Item>
                           <Form.Item name="excludeFromSubTypes" label={t('pages.hosts.fields.excludeFromSubTypes')}>
                             <Select

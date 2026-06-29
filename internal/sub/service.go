@@ -698,8 +698,8 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			externalProxies,
 			params,
 			security,
-			func(dest string, port int) string {
-				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
+			func(ep map[string]any, dest string, port int) string {
+				return fmt.Sprintf("vless://%s@%s", applyVlessRoute(uuid, hostVlessRoute(ep)), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.endpointRemark(inbound, email, ep, streamNetwork)
@@ -749,7 +749,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			externalProxies,
 			params,
 			security,
-			func(dest string, port int) string {
+			func(_ map[string]any, dest string, port int) string {
 				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
@@ -842,7 +842,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			externalProxies,
 			proxyParams,
 			security,
-			func(dest string, port int) string {
+			func(_ map[string]any, dest string, port int) string {
 				return fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
@@ -1697,7 +1697,7 @@ func (s *SubService) buildExternalProxyURLLinks(
 	externalProxies []any,
 	params map[string]string,
 	baseSecurity string,
-	makeLink func(dest string, port int) string,
+	makeLink func(ep map[string]any, dest string, port int) string,
 	makeRemark func(ep map[string]any) string,
 ) string {
 	eps := make([]ShareEndpoint, 0, len(externalProxies))
@@ -1705,7 +1705,9 @@ func (s *SubService) buildExternalProxyURLLinks(
 		ep, _ := externalProxy.(map[string]any)
 		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return s.buildEndpointLinks(eps, params, baseSecurity, makeLink, func(e ShareEndpoint) string {
+	return s.buildEndpointLinks(eps, params, baseSecurity, func(e ShareEndpoint) string {
+		return makeLink(e.ep, e.Address, e.Port)
+	}, func(e ShareEndpoint) string {
 		return makeRemark(e.ep)
 	})
 }

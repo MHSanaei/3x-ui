@@ -1901,7 +1901,7 @@
         "nodeGuids": "Elige los nodos que se resolvieron desde este host. Solo asignación visual.",
         "serverDescription": "Nota opcional que se muestra bajo las notas.",
         "allowInsecure": "Omitir la verificación del certificado TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Puertos/rangos enrutados a través de VLESS, p. ej. 53,443,1000-2000. Déjalo en blanco para ninguno.",
+        "vlessRoute": "Un único valor de ruta VLESS (0-65535) incrustado en el UUID, p. ej. 443. Déjalo en blanco para ninguno.",
         "remark": "Una etiqueta simple para este host. Se muestra como nombre de la configuración solo cuando el inbound no tiene notas propias."
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "Actualizar host",
         "delete": "Eliminar host",
         "badTag": "Etiqueta no válida",
-        "badVlessRoute": "Usa puertos/rangos como 53,443,1000-2000"
+        "badVlessRoute": "Introduce un único número entre 0 y 65535"
       }
     }
   },

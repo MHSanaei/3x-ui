@@ -772,9 +772,9 @@ type Host struct {
 	// merged into this host's JSON-subscription stream. Empty = no override.
 	FinalMask string `json:"finalMask" form:"finalMask" gorm:"type:text;column:final_mask"`
 
-	// VlessRoute is a free-form port/range routing spec (e.g. "53,443,1000-2000");
-	// stored verbatim, format-validated on the frontend.
-	VlessRoute string `json:"vlessRoute" form:"vlessRoute" gorm:"column:vless_route"`
+	// Single VLESS route value (0-65535) baked into the subscription UUID's 3rd
+	// group (bytes 6-7), which xray reads via net.PortFromBytes(id[6:8]). Empty = none.
+	VlessRoute string `json:"vlessRoute" form:"vlessRoute" gorm:"column:vless_route" example:"443"`
 
 	ExcludeFromSubTypes []string `json:"excludeFromSubTypes" form:"excludeFromSubTypes" gorm:"serializer:json;column:exclude_from_sub_types"`
 

@@ -1032,7 +1032,7 @@
         "nodeGuids": "Pick nodes which resolved from this host. Only visual assignment.",
         "serverDescription": "Optional note shown under the remark.",
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Ports/ranges routed via VLESS, e.g. 53,443,1000-2000. Leave blank for none.",
+        "vlessRoute": "Single VLESS route value (0-65535) baked into the UUID, e.g. 443. Leave blank for none.",
         "remark": "A plain label for this host. Shown as the config name only when the inbound has no remark of its own."
       },
       "remarkVars": {
@@ -1082,7 +1082,7 @@
         "update": "Update host",
         "delete": "Delete host",
         "badTag": "Invalid tag",
-        "badVlessRoute": "Use ports/ranges like 53,443,1000-2000"
+        "badVlessRoute": "Enter a single number between 0 and 65535"
       }
     },
     "nodes": {

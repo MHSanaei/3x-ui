@@ -1901,7 +1901,7 @@
         "nodeGuids": "選擇由此 Host 解析而來的節點。僅為視覺上的指派。",
         "serverDescription": "顯示於備註下方的選填註記。",
         "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
-        "vlessRoute": "透過 VLESS 路由的連接埠／範圍，例如 53,443,1000-2000。留空表示無。",
+        "vlessRoute": "嵌入 UUID 的單一 VLESS 路由值（0-65535），例如 443。留空表示無。",
         "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "更新 Host",
         "delete": "刪除 Host",
         "badTag": "無效的標籤",
-        "badVlessRoute": "請使用連接埠／範圍，例如 53,443,1000-2000"
+        "badVlessRoute": "請輸入 0 到 65535 之間的單一數字"
       }
     }
   },

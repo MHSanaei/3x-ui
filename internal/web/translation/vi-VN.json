@@ -1901,7 +1901,7 @@
         "nodeGuids": "Chọn các nút được phân giải từ host này. Chỉ là gán trực quan.",
         "serverDescription": "Ghi chú tùy chọn hiển thị bên dưới ghi chú.",
         "allowInsecure": "Bỏ qua xác minh chứng chỉ TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Cổng/dải cổng định tuyến qua VLESS, ví dụ 53,443,1000-2000. Để trống nếu không dùng.",
+        "vlessRoute": "Một giá trị định tuyến VLESS (0-65535) được nhúng vào UUID, ví dụ 443. Để trống nếu không dùng.",
         "remark": "Nhãn đơn giản cho host này. Chỉ hiển thị làm tên cấu hình khi inbound không có ghi chú riêng."
       },
       "remarkVars": {
@@ -1951,7 +1951,7 @@
         "update": "Cập nhật host",
         "delete": "Xóa host",
         "badTag": "Tag không hợp lệ",
-        "badVlessRoute": "Dùng cổng/dải cổng như 53,443,1000-2000"
+        "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
       }
     }
   },
