@@ -378,7 +378,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		}
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
-		c.String(200, jsonSub)
+		c.Data(200, "application/json; charset=utf-8", []byte(jsonSub))
 	}
 }
 
