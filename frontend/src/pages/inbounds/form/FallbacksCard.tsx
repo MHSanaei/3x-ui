@@ -97,7 +97,7 @@ export default function FallbacksCard({
             <Row gutter={[8, 8]}>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="SNI"
+                  prefix="SNI"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.name}
                   onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })}
@@ -105,7 +105,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="ALPN"
+                  prefix="ALPN"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.alpn}
                   onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })}
@@ -113,7 +113,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="Path"
+                  prefix="Path"
                   placeholder="/"
                   value={record.path}
                   onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })}
@@ -121,7 +121,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="Dest"
+                  prefix="Dest"
                   placeholder={t('pages.inbounds.fallbacks.destPlaceholder') || 'auto'}
                   value={record.dest}
                   onChange={(e) => updateFallback(record.rowKey, { dest: e.target.value })}
@@ -129,7 +129,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <InputNumber
-                  addonBefore="xver"
+                  prefix="xver"
                   min={0}
                   max={2}
                   style={{ width: '100%' }}

@@ -444,7 +444,7 @@ function FragmentRangeList({
             >
               <Input
                 placeholder={placeholder}
-                addonAfter={fields.length > minItems
+                suffix={fields.length > minItems
                   ? (
                     <DeleteOutlined
                       className="danger-icon"
@@ -854,7 +854,7 @@ function GeckoPacketSizeInput({
   return (
     <Space.Compact block>
       <InputNumber
-        addonBefore="Min"
+        prefix="Min"
         min={GECKO_MIN_PACKET_SIZE}
         max={GECKO_MAX_PACKET_SIZE}
         precision={0}
@@ -864,7 +864,7 @@ function GeckoPacketSizeInput({
         style={{ width: '50%' }}
       />
       <InputNumber
-        addonBefore="Max"
+        prefix="Max"
         min={GECKO_MIN_PACKET_SIZE}
         max={GECKO_MAX_PACKET_SIZE}
         precision={0}

@@ -34,6 +34,7 @@ import {
   DatabaseOutlined,
   ForkOutlined,
   CopyOutlined,
+  TelegramFilled,
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, TimeFormatter, ClipboardManager, FileManager } from '@/utils';
@@ -245,16 +246,7 @@ export default function IndexPage() {
                       hoverable
                       actions={[
                         <Space className="action" key="tg" role="button" tabIndex={0} aria-label="@XrayUI" onClick={openTelegram} onKeyDown={activateOnKey(openTelegram)}>
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            className="tg-icon"
-                            aria-hidden="true"
-                          >
-                            <path d="M21.93 4.34a1.5 1.5 0 0 0-2.05-1.6L2.97 9.6c-.92.36-.91 1.66.02 1.99l4.32 1.53 1.7 5.23a1 1 0 0 0 1.68.36l2.43-2.43 4.36 3.21a1.5 1.5 0 0 0 2.36-.91l3.09-13.86a1.5 1.5 0 0 0 0-.38ZM9.97 14.66l-.55 3.36-1.36-4.2 9.8-7.05-7.89 7.89Z" />
-                          </svg>
+                          <TelegramFilled className="tg-icon" aria-hidden="true" />
                           {!isMobile && <span>@XrayUI</span>}
                         </Space>,
                         <Space
