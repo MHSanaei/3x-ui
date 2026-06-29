@@ -1,14 +1,16 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Card,
   Input,
   InputNumber,
   Select,
   Switch,
   Tabs,
-  Typography,
 } from 'antd';
 import {
+  FileTextOutlined,
+  NodeIndexOutlined,
   PartitionOutlined,
   RocketOutlined,
   SendOutlined,
@@ -16,8 +18,8 @@ import {
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { GoRegexInput } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { HttpUtil } from '@/utils';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
@@ -26,47 +28,6 @@ import './SubscriptionFormatsTab.css';
 interface SubscriptionFormatsTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
-}
-
-interface GoRegexInputProps {
-  value: string;
-  placeholder: string;
-  onChange: (value: string) => void;
-}
-
-function GoRegexInput({ value, placeholder, onChange }: GoRegexInputProps) {
-  const [error, setError] = useState('');
-  const validationSequence = useRef(0);
-
-  async function validate() {
-    const sequence = ++validationSequence.current;
-    const result = await HttpUtil.post(
-      '/panel/api/setting/validateRegex',
-      { regex: value },
-      { silent: true },
-    );
-    if (sequence === validationSequence.current) {
-      setError(result.success ? '' : result.msg || 'Invalid Go RE2 regular expression');
-    }
-  }
-
-  return (
-    <div style={{ width: '100%' }}>
-      <Input
-        value={value}
-        placeholder={placeholder}
-        maxLength={2048}
-        status={error ? 'error' : undefined}
-        onChange={(event) => {
-          validationSequence.current += 1;
-          setError('');
-          onChange(event.target.value);
-        }}
-        onBlur={() => void validate()}
-      />
-      {error && <Typography.Text type="danger">{error}</Typography.Text>}
-    </div>
-  );
 }
 
 const DEFAULT_MUX = {
@@ -191,9 +152,18 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
-          <>
+          <div className="subscription-format-sections">
             {allSetting.subJsonEnable && (
-              <>
+              <Card
+                size="small"
+                className="subscription-format-card"
+                title={(
+                  <span className="subscription-format-card-title">
+                    <FileTextOutlined />
+                    {t('pages.settings.subJsonEnableTitle')}
+                  </span>
+                )}
+              >
                 <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
                   <Input
                     value={allSetting.subJsonPath}
@@ -230,10 +200,19 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(value) => updateSetting({ subJsonUserAgentRegex: value })}
                   />
                 </SettingListItem>
-              </>
+              </Card>
             )}
             {allSetting.subClashEnable && (
-              <>
+              <Card
+                size="small"
+                className="subscription-format-card"
+                title={(
+                  <span className="subscription-format-card-title">
+                    <NodeIndexOutlined />
+                    {t('pages.settings.subClashEnableTitle')}
+                  </span>
+                )}
+              >
                 <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
                   <Input
                     value={allSetting.subClashPath}
@@ -263,9 +242,9 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
                   />
                 </SettingListItem>
-              </>
+              </Card>
             )}
-          </>
+          </div>
         ),
       },
       {
