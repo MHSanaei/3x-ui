@@ -1828,6 +1828,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "tlsFlowCapable": {
         "example": true,
         "type": "boolean"
+      },
+      "wgDns": {
+        "type": "string"
+      },
+      "wgMtu": {
+        "type": "integer"
+      },
+      "wgPublicKey": {
+        "type": "string"
       }
     },
     "required": [

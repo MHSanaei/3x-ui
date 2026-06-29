@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
 import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 
-import { HttpUtil, IntlUtil, SizeFormatter, ColorUtils } from '@/utils';
+import { HttpUtil, IntlUtil, SizeFormatter, ColorUtils, Wireguard } from '@/utils';
 import { Protocols } from '@/schemas/primitives';
 import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -207,6 +207,11 @@ export default function InboundInfoModal({
     const remained = clientStats.total - clientStats.up - clientStats.down;
     return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
   }, [clientStats, clientSettings]);
+
+  const wgPubKey = useMemo(() => {
+    if (!dbInbound?.isWireguard || !inbound?.settings?.secretKey) return '';
+    return Wireguard.generateKeypair(inbound.settings.secretKey as string).publicKey;
+  }, [dbInbound?.isWireguard, inbound?.settings?.secretKey]);
 
   const formatLastOnline = useCallback(
     (email: string) => {
@@ -791,7 +796,7 @@ export default function InboundInfoModal({
             </div>
             <div className="info-row">
               <dt>{t('pages.xray.wireguard.publicKey')}</dt>
-              <dd><Tag className="value-tag">{inbound.settings.pubKey as string}</Tag></dd>
+              <dd><Tag className="value-tag">{wgPubKey}</Tag></dd>
             </div>
             <div className="info-row">
               <dt>{t('pages.inbounds.info.mtu')}</dt>

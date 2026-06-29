@@ -1,0 +1,40 @@
+.config-block {
+  margin-bottom: 10px;
+}
+
+.config-block .ant-collapse-header {
+  align-items: center !important;
+  padding: 8px 12px !important;
+}
+
+.config-block .ant-collapse-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-block .ant-collapse-extra {
+  display: flex;
+  align-items: center;
+}
+
+.config-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-block .ant-collapse-content-box {
+  padding: 8px !important;
+}
+
+.config-block-text {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 6px 8px;
+  background: var(--ant-color-fill-tertiary);
+  border-radius: 4px;
+  user-select: all;
+}

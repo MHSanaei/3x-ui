@@ -11,6 +11,8 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
+import ConfigBlock from '@/components/clients/ConfigBlock';
+import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
 import './ClientInfoModal.css';
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -35,6 +37,7 @@ interface SubSettings {
   subJsonEnable: boolean;
   subClashURI: string;
   subClashEnable: boolean;
+  publicHost?: string;
 }
 
 interface ClientInfoModalProps {
@@ -58,6 +61,7 @@ const DEFAULT_SUB: SubSettings = {
   subJsonEnable: false,
   subClashURI: '',
   subClashEnable: false,
+  publicHost: '',
 };
 
 export default function ClientInfoModal({
@@ -132,6 +136,11 @@ export default function ClientInfoModal({
   }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
 
   const showSubscription = !!(subSettings?.enable && client?.subId);
+  const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
+  const wgConfigText = useMemo(() => {
+    if (!client || !wgInbound || !isWireguardClient(client)) return '';
+    return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, wgInbound, subSettings?.publicHost]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -350,44 +359,6 @@ export default function ClientInfoModal({
               </tbody>
             </table>
 
-            {links.length > 0 && (
-              <>
-                <Divider>{t('pages.inbounds.copyLink')}</Divider>
-                {links.map((link, idx) => {
-                  const parts = parseLinkParts(link);
-                  const fallback = `${t('pages.clients.link')} ${idx + 1}`;
-                  const rowTitle = (parts && linkMetaText(parts)) || fallback;
-                  const qrRemark = parts?.remark || rowTitle;
-                  const canQr = !isPostQuantumLink(link);
-                  return (
-                    <div key={idx} className="link-row">
-                      {parts
-                        ? <LinkTags parts={parts} />
-                        : <Tag className="link-row-tag">LINK</Tag>}
-                      <span className="link-row-title" title={rowTitle}>{rowTitle}</span>
-                      <div className="link-row-actions">
-                        <Tooltip title={t('copy')}>
-                          <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
-                        </Tooltip>
-                        {canQr && (
-                          <Popover
-                            trigger="click"
-                            placement="left"
-                            destroyOnHidden
-                            content={<QrPanel value={link} remark={qrRemark} size={220} />}
-                          >
-                            <Tooltip title={t('pages.clients.qrCode')}>
-                              <Button size="small" icon={<QrcodeOutlined />} />
-                            </Tooltip>
-                          </Popover>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-
             {showSubscription && subLink && (
               <>
                 <Divider>{t('subscription.title')}</Divider>
@@ -478,6 +449,56 @@ export default function ClientInfoModal({
                     </div>
                   </div>
                 )}
+              </>
+            )}
+
+            {links.length > 0 && (
+              <>
+                <Divider>{t('pages.inbounds.copyLink')}</Divider>
+                {links.map((link, idx) => {
+                  const parts = parseLinkParts(link);
+                  const fallback = `${t('pages.clients.link')} ${idx + 1}`;
+                  const rowTitle = (parts && linkMetaText(parts)) || fallback;
+                  const qrRemark = parts?.remark || rowTitle;
+                  const canQr = !isPostQuantumLink(link);
+                  return (
+                    <div key={idx} className="link-row">
+                      {parts
+                        ? <LinkTags parts={parts} />
+                        : <Tag className="link-row-tag">LINK</Tag>}
+                      <span className="link-row-title" title={rowTitle}>{rowTitle}</span>
+                      <div className="link-row-actions">
+                        <Tooltip title={t('copy')}>
+                          <Button size="small" icon={<CopyOutlined />} onClick={() => copyValue(link)} />
+                        </Tooltip>
+                        {canQr && (
+                          <Popover
+                            trigger="click"
+                            placement="left"
+                            destroyOnHidden
+                            content={<QrPanel value={link} remark={qrRemark} size={220} />}
+                          >
+                            <Tooltip title={t('pages.clients.qrCode')}>
+                              <Button size="small" icon={<QrcodeOutlined />} />
+                            </Tooltip>
+                          </Popover>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {wgConfigText && client && (
+              <>
+                <Divider>{t('pages.clients.wireguardConfig')}</Divider>
+                <ConfigBlock
+                  label={t('pages.clients.config')}
+                  text={wgConfigText}
+                  fileName={`${client.email}.conf`}
+                  qrRemark={client.email || 'peer'}
+                />
               </>
             )}
           </>

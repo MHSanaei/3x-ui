@@ -25,6 +25,9 @@ export default function WireguardFields({ wgPubKey, regenInboundWg }: WireguardF
       <Form.Item name={['settings', 'mtu']} label="MTU">
         <InputNumber />
       </Form.Item>
+      <Form.Item name={['settings', 'dns']} label={t('pages.inbounds.info.dns')}>
+        <Input placeholder="1.1.1.1, 1.0.0.1" />
+      </Form.Item>
       <Form.Item
         name={['settings', 'noKernelTun']}
         label={t('pages.inbounds.info.noKernelTun')}

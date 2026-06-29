@@ -61,6 +61,7 @@ export type WireguardClient = z.infer<typeof WireguardClientSchema>;
 export const WireguardInboundSettingsSchema = z.object({
   mtu: optionalClearedInt(z.number().int().min(1)),
   secretKey: z.string().min(1),
+  dns: z.string().optional(),
   peers: z.array(WireguardInboundPeerSchema).default([]),
   clients: z.array(WireguardClientSchema).default([]),
   noKernelTun: z.boolean().default(false),

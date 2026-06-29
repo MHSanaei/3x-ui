@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Modal, Spin } from 'antd';
+import { Collapse, Modal, Spin, Tag } from 'antd';
 import { HttpUtil } from '@/utils';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
-import type { ClientRecord } from '@/hooks/useClients';
+import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
 
 interface SubSettings {
   enable: boolean;
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
+  publicHost?: string;
 }
 
 interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
+  inboundsById: Record<number, InboundOption>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -26,11 +29,12 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false };
+const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false, publicHost: '' };
 
 export default function ClientQrModal({
   open,
   client,
+  inboundsById,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -49,7 +53,13 @@ export default function ClientQrModal({
     return subSettings.subJsonURI + client.subId;
   }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
 
-  const hasAnything = !!subLink || !!subJsonLink || links.length > 0;
+  const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
+  const wgConfigText = useMemo(() => {
+    if (!client || !wgInbound || !isWireguardClient(client)) return '';
+    return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, wgInbound, subSettings?.publicHost]);
+
+  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
 
   useEffect(() => {
     if (!open || !client?.subId) {
@@ -112,8 +122,21 @@ export default function ClientQrModal({
         ),
       });
     });
+    if (wgConfigText) {
+      out.push({
+        key: 'wg-config',
+        label: <Tag color="cyan" style={{ margin: 0 }}>{t('pages.clients.wireguardConfig')}</Tag>,
+        children: (
+          <QrPanel
+            value={wgConfigText}
+            remark={client?.email || 'peer'}
+            downloadName={`${client?.email || 'peer'}.conf`}
+          />
+        ),
+      });
+    }
     return out;
-  }, [subLink, subJsonLink, links, client?.email, t]);
+  }, [subLink, subJsonLink, wgConfigText, links, client?.email, t]);
 
   useEffect(() => {
     if (!open) {

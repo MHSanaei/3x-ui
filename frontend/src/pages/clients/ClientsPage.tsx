@@ -1459,6 +1459,7 @@ export default function ClientsPage() {
           <ClientQrModal
             open={qrOpen}
             client={qrClient}
+            inboundsById={inboundsById}
             subSettings={subSettings}
             onOpenChange={setQrOpen}
           />

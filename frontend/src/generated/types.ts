@@ -401,6 +401,9 @@ export interface InboundOption {
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  wgDns?: string;
+  wgMtu?: number;
+  wgPublicKey?: string;
 }
 
 export interface Msg {
