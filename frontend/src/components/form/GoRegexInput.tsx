@@ -5,6 +5,7 @@ import { HttpUtil } from '@/utils';
 
 interface GoRegexInputProps {
   value: string;
+  ariaLabel?: string;
   placeholder?: string;
   maxLength?: number;
   onChange: (value: string) => void;
@@ -22,6 +23,7 @@ export async function validateGoRegex(value: string): Promise<string> {
 
 export default function GoRegexInput({
   value,
+  ariaLabel,
   placeholder,
   maxLength = 2048,
   onChange,
@@ -44,6 +46,7 @@ export default function GoRegexInput({
     <div style={{ width: '100%' }}>
       <Input
         value={value}
+        aria-label={ariaLabel}
         placeholder={placeholder}
         maxLength={maxLength}
         status={displayError ? 'error' : undefined}

@@ -1861,6 +1861,7 @@
         "tolerance": "Tolerance",
         "baselines": "Baselines",
         "costs": "Costs",
+        "invalidGoRegex": "Invalid Go RE2 regular expression",
         "balancerDesc": "It is not possible to use balancerTag and outboundTag at the same time. If used at the same time, only outboundTag will work.",
         "costMatch": "Tag pattern",
         "costValue": "Weight",

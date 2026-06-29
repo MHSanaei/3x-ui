@@ -1,14 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 
 import BalancerFormModal from '@/pages/xray/balancers/BalancerFormModal';
+import { HttpUtil } from '@/utils';
+import type { BalancerFormValue } from '@/pages/xray/balancers/BalancerFormModal';
 import { renderWithProviders } from './test-utils';
 
-function renderModal(onConfirm = vi.fn()) {
+function renderModal(onConfirm = vi.fn(), balancer: BalancerFormValue | null = null) {
   renderWithProviders(
     <BalancerFormModal
       open
-      balancer={null}
+      balancer={balancer}
       outboundTags={['proxy', 'direct']}
       otherTags={['existing']}
       onClose={() => {}}
@@ -53,6 +55,34 @@ describe('BalancerFormModal', () => {
     expect(erroredItemCount()).toBe(2);
     expect(explainText()).toContain('Tag is required');
     expect(explainText()).toContain('Pick at least one outbound');
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit when a least-load cost regex fails backend validation', async () => {
+    vi.mocked(HttpUtil.post).mockResolvedValueOnce({
+      success: false,
+      msg: 'error parsing regexp: missing closing ]',
+      obj: null,
+    });
+    const onConfirm = vi.fn();
+    renderModal(onConfirm, {
+      tag: 'load-balancer',
+      strategy: 'leastLoad',
+      selector: ['proxy'],
+      fallbackTag: '',
+      settings: {
+        costs: [{ regexp: true, match: '[', value: 1 }],
+      },
+    });
+
+    fireEvent.click(createButton());
+
+    await waitFor(() => expect(screen.getByText(/missing closing/)).toBeTruthy());
+    expect(HttpUtil.post).toHaveBeenCalledWith(
+      '/panel/api/setting/validateRegex',
+      { regex: '[' },
+      { silent: true },
+    );
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });

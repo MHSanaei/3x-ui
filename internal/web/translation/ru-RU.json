@@ -1742,6 +1742,7 @@
         "tolerance": "Допуск",
         "baselines": "Baselines",
         "costs": "Costs",
+        "invalidGoRegex": "Недопустимое регулярное выражение Go RE2",
         "balancerDesc": "Невозможно одновременно использовать balancerTag и outboundTag. При одновременном использовании будет работать только outboundTag.",
         "costMatch": "Шаблон тега",
         "costValue": "Вес",

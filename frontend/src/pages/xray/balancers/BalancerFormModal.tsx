@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
+import { GoRegexInput, validateGoRegex } from '@/components/form';
 import { InputAddon } from '@/components/ui';
 import {
   BalancerFormSchema,
@@ -70,6 +71,8 @@ export default function BalancerFormModal({
   const [state, setState] = useState<FormState>(() => initialState(balancer));
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [costErrors, setCostErrors] = useState<Record<number, string>>({});
+  const [validatingCosts, setValidatingCosts] = useState(false);
   const isEdit = balancer != null;
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -99,8 +102,25 @@ export default function BalancerFormModal({
   const selectorError = showSelectorIssue ? issues.selector : '';
   const showDuplicate = showTagIssue && duplicateTag;
 
-  function submit() {
+  async function submit() {
     if (!parsed.success || duplicateTag) {
+      setSubmitAttempted(true);
+      return;
+    }
+    const nextErrors: Record<number, string> = {};
+    if (state.strategy === 'leastLoad') {
+      setValidatingCosts(true);
+      const validationResults = await Promise.all(costs.map(async (cost, idx) => ({
+        idx,
+        error: cost.regexp ? await validateGoRegex(cost.match) : '',
+      })));
+      setValidatingCosts(false);
+      for (const result of validationResults) {
+        if (result.error) nextErrors[result.idx] = result.error;
+      }
+    }
+    setCostErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       setSubmitAttempted(true);
       return;
     }
@@ -141,6 +161,7 @@ export default function BalancerFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
+      confirmLoading={validatingCosts}
       mask={{ closable: false }}
       onOk={submit}
       onCancel={onClose}
@@ -258,12 +279,32 @@ export default function BalancerFormModal({
                     unCheckedChildren="lit"
                     onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)))}
                   />
-                  <Input
-                    value={c.match}
-                    aria-label={t('pages.xray.balancer.costMatch')}
-                    placeholder="tag pattern"
-                    onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
-                  />
+                  {c.regexp ? (
+                    <GoRegexInput
+                      value={c.match}
+                      ariaLabel={t('pages.xray.balancer.costMatch')}
+                      placeholder="tag pattern"
+                      externalError={costErrors[idx]}
+                      onChange={(value) => {
+                        if (costErrors[idx]) {
+                          setCostErrors((prev) => {
+                            if (!(idx in prev)) return prev;
+                            const next = { ...prev };
+                            delete next[idx];
+                            return next;
+                          });
+                        }
+                        updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: value } : x)));
+                      }}
+                    />
+                  ) : (
+                    <Input
+                      value={c.match}
+                      aria-label={t('pages.xray.balancer.costMatch')}
+                      placeholder="tag pattern"
+                      onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
+                    />
+                  )}
                   <InputNumber
                     value={c.value}
                     aria-label={t('pages.xray.balancer.costValue')}

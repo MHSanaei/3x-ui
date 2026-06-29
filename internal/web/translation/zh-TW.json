@@ -1742,6 +1742,7 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
+        "invalidGoRegex": "無效的 Go RE2 正則表達式",
         "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。",
         "costMatch": "標籤比對模式",
         "costValue": "權重",

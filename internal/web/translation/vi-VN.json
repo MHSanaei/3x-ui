@@ -1742,6 +1742,7 @@
         "tolerance": "Dung sai",
         "baselines": "Baselines",
         "costs": "Costs",
+        "invalidGoRegex": "Biểu thức chính quy Go RE2 không hợp lệ",
         "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động.",
         "costMatch": "Mẫu thẻ",
         "costValue": "Trọng số",
