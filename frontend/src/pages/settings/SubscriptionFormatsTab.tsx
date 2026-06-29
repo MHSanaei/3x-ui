@@ -166,6 +166,20 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(e) => updateSetting({ subJsonURI: e.target.value })}
                   />
                 </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subJsonAutoDetect')} description={t('pages.settings.subJsonAutoDetectDesc')}>
+                  <Switch checked={allSetting.subJsonAutoDetect} onChange={(v) => updateSetting({ subJsonAutoDetect: v })} />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subJsonUserAgentRegex')}
+                  description={t('pages.settings.subJsonUserAgentRegexDesc')}
+                >
+                  <Input
+                    value={allSetting.subJsonUserAgentRegex}
+                    placeholder="(?i)^streisand([ /]|$)"
+                    onChange={(e) => updateSetting({ subJsonUserAgentRegex: e.target.value })}
+                  />
+                </SettingListItem>
               </>
             )}
             {allSetting.subClashEnable && (

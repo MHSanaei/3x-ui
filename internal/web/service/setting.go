@@ -33,7 +33,10 @@ import (
 //go:embed config.json
 var xrayTemplateConfig string
 
-const DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
+const (
+	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
+	DefaultSubJsonUserAgentRegex  = `(?i)^streisand([ /]|$)`
+)
 
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
@@ -76,6 +79,8 @@ var defaultValueMap = map[string]string{
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
+	"subJsonAutoDetect":           "false",
+	"subJsonUserAgentRegex":       DefaultSubJsonUserAgentRegex,
 	"subAutoDetect":               "false",
 	"subClashUserAgentRegex":      DefaultSubClashUserAgentRegex,
 	"subTitle":                    "",
@@ -710,6 +715,14 @@ func (s *SettingService) GetSubJsonEnable() (bool, error) {
 	return s.getBool("subJsonEnable")
 }
 
+func (s *SettingService) GetSubJsonAutoDetect() (bool, error) {
+	return s.getBool("subJsonAutoDetect")
+}
+
+func (s *SettingService) GetSubJsonUserAgentRegex() (string, error) {
+	return s.getString("subJsonUserAgentRegex")
+}
+
 func (s *SettingService) GetSubAutoDetect() (bool, error) {
 	return s.getBool("subAutoDetect")
 }
@@ -1103,7 +1116,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := validateSettingsURLs(allSetting); err != nil {
 		return err
 	}
-	if err := validateSubClashUserAgentRegex(allSetting); err != nil {
+	if err := validateSubUserAgentRegexes(allSetting); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -1146,12 +1159,17 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	})
 }
 
-func validateSubClashUserAgentRegex(allSetting *entity.AllSetting) error {
-	pattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
+	jsonPattern, err := validateSubUserAgentRegex("Xray JSON", allSetting.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
 	if err != nil {
 		return err
 	}
-	allSetting.SubClashUserAgentRegex = pattern
+	clashPattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	allSetting.SubJsonUserAgentRegex = jsonPattern
+	allSetting.SubClashUserAgentRegex = clashPattern
 	return nil
 }
 

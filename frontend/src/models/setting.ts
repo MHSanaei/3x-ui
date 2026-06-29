@@ -29,6 +29,8 @@ export class AllSetting {
   xrayTemplateConfig = '';
   subEnable = true;
   subJsonEnable = false;
+  subJsonAutoDetect = false;
+  subJsonUserAgentRegex = '(?i)^streisand([ /]|$)';
   subAutoDetect = false;
   subClashUserAgentRegex = '(?i)(clash|mihomo|stash)';
   subTitle = '';

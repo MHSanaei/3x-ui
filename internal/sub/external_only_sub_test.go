@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -36,6 +37,13 @@ func TestJsonAndClashServeExternalLinkOnlySub(t *testing.T) {
 	}
 	if !strings.Contains(jsonOut, "DE-Provider") {
 		t.Fatalf("GetJson missing external remark: %s", jsonOut)
+	}
+	var configs []map[string]any
+	if err := json.Unmarshal([]byte(jsonOut), &configs); err != nil {
+		t.Fatalf("GetJson must return an array for a single profile: %v; body=%s", err, jsonOut)
+	}
+	if len(configs) != 1 {
+		t.Fatalf("GetJson profile count = %d, want 1", len(configs))
 	}
 
 	clashOut, _, err := NewSubClashService(false, "", base).GetClash("ext-only", "sub.example.com")

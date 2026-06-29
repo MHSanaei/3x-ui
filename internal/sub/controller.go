@@ -61,6 +61,8 @@ type SUBController struct {
 	subClashPath   string
 	subAutoDetect  bool
 	clashUserAgent *regexp.Regexp
+	jsonAutoDetect bool
+	jsonUserAgent  *regexp.Regexp
 	jsonEnabled    bool
 	clashEnabled   bool
 	subEncrypt     bool
@@ -83,6 +85,8 @@ func NewSUBController(
 	clashPath string,
 	autoDetect bool,
 	clashUserAgentRegex string,
+	jsonAutoDetect bool,
+	jsonUserAgentRegex string,
 	jsonEnabled bool,
 	clashEnabled bool,
 	encrypt bool,
@@ -121,6 +125,8 @@ func NewSUBController(
 		subClashPath:   clashPath,
 		subAutoDetect:  autoDetect,
 		clashUserAgent: compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
+		jsonAutoDetect: jsonAutoDetect,
+		jsonUserAgent:  compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
 		jsonEnabled:    jsonEnabled,
 		clashEnabled:   clashEnabled,
 		subEncrypt:     encrypt,
@@ -168,6 +174,10 @@ func (a *SUBController) subs(c *gin.Context) {
 	} else if shouldAutoServeClash(a.subAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
 		logSubscriptionRoute(userAgent, "clash")
 		a.subClashs(c)
+		return
+	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+		logSubscriptionRoute(userAgent, "json")
+		a.subJsons(c)
 		return
 	} else {
 		logSubscriptionRoute(userAgent, "raw")
@@ -232,6 +242,10 @@ func (a *SUBController) subs(c *gin.Context) {
 // existing raw/base64 behavior.
 func shouldAutoServeClash(autoDetect, clashEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
 	return shouldAutoServeFormat(autoDetect, clashEnabled, wantsHTML, userAgent, userAgentRegex)
+}
+
+func shouldAutoServeJson(autoDetect, jsonEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	return shouldAutoServeFormat(autoDetect, jsonEnabled, wantsHTML, userAgent, userAgentRegex)
 }
 
 func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {

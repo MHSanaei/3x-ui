@@ -124,13 +124,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 
-	// Combile outbounds
-	var finalJson []byte
-	if len(configArray) == 1 {
-		finalJson, _ = json.MarshalIndent(configArray[0], "", "  ")
-	} else {
-		finalJson, _ = json.MarshalIndent(configArray, "", "  ")
-	}
+	finalJson, _ := json.MarshalIndent(configArray, "", "  ")
 
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil

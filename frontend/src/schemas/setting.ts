@@ -33,6 +33,8 @@ export const AllSettingSchema = z.object({
   xrayTemplateConfig: z.string().optional(),
   subEnable: z.boolean().optional(),
   subJsonEnable: z.boolean().optional(),
+  subJsonAutoDetect: z.boolean().optional(),
+  subJsonUserAgentRegex: z.string().max(2048).optional(),
   subAutoDetect: z.boolean().optional(),
   subClashUserAgentRegex: z.string().max(2048).optional(),
   subTitle: z.string().optional(),
