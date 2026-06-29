@@ -5571,7 +5571,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Replace a client's external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.",
+        "summary": "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
         "operationId": "post_panel_api_clients_email_externalLinks",
         "parameters": [
           {
@@ -5589,19 +5589,36 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Full replacement list. Each row supports { id, kind, value, remark, enable, expiryTime, namePrefix }. Omit enable to default true; expiryTime=0 means never expire. lastFetchAt and lastFetchError are read-only status fields returned by GET."
+                  }
+                },
+                "required": [
+                  "externalLinks"
+                ]
               },
               "example": {
                 "externalLinks": [
                   {
                     "kind": "link",
                     "value": "vless://uuid@host:443?...#srv",
-                    "remark": "DE"
+                    "remark": "DE",
+                    "enable": true,
+                    "expiryTime": 0
                   },
                   {
                     "kind": "subscription",
                     "value": "https://provider.example/sub/abc",
-                    "remark": "Provider"
+                    "remark": "Provider",
+                    "enable": false,
+                    "expiryTime": 1767225600000,
+                    "namePrefix": "[zjh] "
                   }
                 ]
               }

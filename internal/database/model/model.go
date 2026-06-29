@@ -705,13 +705,18 @@ func (ClientInbound) TableName() string { return "client_inbounds" }
 //   - "subscription": a remote subscription URL. The panel fetches it (cached),
 //     decodes its links, and merges them into the client's subscription.
 type ClientExternalLink struct {
-	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	ClientId  int    `json:"clientId" gorm:"index;column:client_id"`
-	Kind      string `json:"kind" gorm:"column:kind"`
-	Value     string `json:"value" gorm:"column:value"`
-	Remark    string `json:"remark" gorm:"column:remark"`
-	SortIndex int    `json:"sortIndex" gorm:"column:sort_index"`
-	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	Id             int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	ClientId       int    `json:"clientId" gorm:"index;column:client_id"`
+	Kind           string `json:"kind" gorm:"column:kind"`
+	Value          string `json:"value" gorm:"column:value"`
+	Remark         string `json:"remark" gorm:"column:remark"`
+	Enable         *bool  `json:"enable" gorm:"column:enable;default:true"`
+	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	NamePrefix     string `json:"namePrefix" gorm:"column:name_prefix"`
+	LastFetchAt    int64  `json:"lastFetchAt" gorm:"column:last_fetch_at"`
+	LastFetchError string `json:"lastFetchError" gorm:"column:last_fetch_error"`
+	SortIndex      int    `json:"sortIndex" gorm:"column:sort_index"`
+	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }
 
 func (ClientExternalLink) TableName() string { return "client_external_links" }
