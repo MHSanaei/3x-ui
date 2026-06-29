@@ -1149,7 +1149,9 @@
         "custom": "سفارشی (crontab)",
         "seconds": "ثانیه",
         "minutes": "دقیقه",
-        "hours": "ساعت"
+        "hours": "ساعت",
+        "interval": "بازه زمانی",
+        "unit": "واحد"
       },
       "tgNotifyBackup": "پشتیبان‌گیری از دیتابیس",
       "tgNotifyBackupDesc": "فایل پشتیبان‌دیتابیس را به‌همراه گزارش ارسال می‌کند",

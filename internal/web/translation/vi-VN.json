@@ -1147,7 +1147,9 @@
         "custom": "Tùy chỉnh (crontab)",
         "seconds": "Giây",
         "minutes": "Phút",
-        "hours": "Giờ"
+        "hours": "Giờ",
+        "interval": "Khoảng thời gian",
+        "unit": "Đơn vị"
       },
       "tgNotifyBackup": "Sao lưu Cơ sở dữ liệu",
       "tgNotifyBackupDesc": "Bao gồm tệp sao lưu cơ sở dữ liệu với thông báo báo cáo.",

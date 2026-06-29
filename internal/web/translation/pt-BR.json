@@ -1147,7 +1147,9 @@
         "custom": "Personalizado (crontab)",
         "seconds": "Segundos",
         "minutes": "Minutos",
-        "hours": "Horas"
+        "hours": "Horas",
+        "interval": "Intervalo",
+        "unit": "Unidade"
       },
       "tgNotifyBackup": "Backup do Banco de Dados",
       "tgNotifyBackupDesc": "Enviar arquivo de backup do banco de dados junto com o relatório.",

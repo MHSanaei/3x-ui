@@ -1147,7 +1147,9 @@
         "custom": "Personalizado (crontab)",
         "seconds": "Segundos",
         "minutes": "Minutos",
-        "hours": "Horas"
+        "hours": "Horas",
+        "interval": "Intervalo",
+        "unit": "Unidad"
       },
       "tgNotifyBackup": "Respaldo de Base de Datos",
       "tgNotifyBackupDesc": "Incluir archivo de respaldo de base de datos con notificación de informe.",

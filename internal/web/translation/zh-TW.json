@@ -1147,7 +1147,9 @@
         "custom": "自訂 (crontab)",
         "seconds": "秒",
         "minutes": "分鐘",
-        "hours": "小時"
+        "hours": "小時",
+        "interval": "間隔",
+        "unit": "單位"
       },
       "tgNotifyBackup": "資料庫備份",
       "tgNotifyBackupDesc": "傳送帶有報告的資料庫備份檔案",

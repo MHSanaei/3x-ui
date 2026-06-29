@@ -1265,7 +1265,9 @@
         "custom": "Custom (crontab)",
         "seconds": "Seconds",
         "minutes": "Minutes",
-        "hours": "Hours"
+        "hours": "Hours",
+        "interval": "Interval",
+        "unit": "Unit"
       },
       "tgNotifyBackup": "Database Backup",
       "tgNotifyBackupDesc": "Send a database backup file with a report.",

@@ -1147,7 +1147,9 @@
         "custom": "Kustom (crontab)",
         "seconds": "Detik",
         "minutes": "Menit",
-        "hours": "Jam"
+        "hours": "Jam",
+        "interval": "Interval",
+        "unit": "Satuan"
       },
       "tgNotifyBackup": "Cadangan Database",
       "tgNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",

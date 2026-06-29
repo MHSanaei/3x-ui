@@ -1147,7 +1147,9 @@
         "custom": "カスタム (crontab)",
         "seconds": "秒",
         "minutes": "分",
-        "hours": "時間"
+        "hours": "時間",
+        "interval": "間隔",
+        "unit": "単位"
       },
       "tgNotifyBackup": "データベースバックアップ",
       "tgNotifyBackupDesc": "レポート付きのデータベースバックアップファイルを送信",

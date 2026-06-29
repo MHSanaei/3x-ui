@@ -1147,7 +1147,9 @@
         "custom": "自定义 (crontab)",
         "seconds": "秒",
         "minutes": "分钟",
-        "hours": "小时"
+        "hours": "小时",
+        "interval": "间隔",
+        "unit": "单位"
       },
       "tgNotifyBackup": "数据库备份",
       "tgNotifyBackupDesc": "发送带有报告的数据库备份文件",

@@ -1147,7 +1147,9 @@
         "custom": "Özel (crontab)",
         "seconds": "Saniye",
         "minutes": "Dakika",
-        "hours": "Saat"
+        "hours": "Saat",
+        "interval": "Aralık",
+        "unit": "Birim"
       },
       "tgNotifyBackup": "Veritabanı Yedeği",
       "tgNotifyBackupDesc": "Bir rapor ile birlikte veritabanı yedek dosyasını gönderir.",
