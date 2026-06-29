@@ -209,6 +209,13 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(e) => updateSetting({ subJsonURI: e.target.value })}
                   />
                 </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subJsonAlwaysArray')}
+                  description={t('pages.settings.subJsonAlwaysArrayDesc')}
+                >
+                  <Switch checked={allSetting.subJsonAlwaysArray} onChange={(value) => updateSetting({ subJsonAlwaysArray: value })} />
+                </SettingListItem>
                 <SettingListItem paddings="small" title={t('pages.settings.subJsonAutoDetect')} description={t('pages.settings.subJsonAutoDetectDesc')}>
                   <Switch checked={allSetting.subJsonAutoDetect} onChange={(v) => updateSetting({ subJsonAutoDetect: v })} />
                 </SettingListItem>

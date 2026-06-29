@@ -23,7 +23,7 @@ func TestValidateRegex(t *testing.T) {
 
 func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 	setupSettingTestDB(t)
-	keys := []string{"subAutoDetect", "subClashUserAgentRegex", "subJsonAutoDetect", "subJsonUserAgentRegex"}
+	keys := []string{"subAutoDetect", "subClashUserAgentRegex", "subJsonAutoDetect", "subJsonAlwaysArray", "subJsonUserAgentRegex"}
 	if err := database.GetDB().Where("key IN ?", keys).Delete(&model.Setting{}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -37,6 +37,10 @@ func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	jsonAlwaysArray, err := s.GetSubJsonAlwaysArray()
+	if err != nil {
+		t.Fatal(err)
+	}
 	clashRegex, err := s.GetSubClashUserAgentRegex()
 	if err != nil {
 		t.Fatal(err)
@@ -46,8 +50,8 @@ func TestSubscriptionAutoDetectDefaultsWithoutStoredRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if clashEnabled || jsonEnabled {
-		t.Fatalf("missing auto-detect settings must default off: clash=%v json=%v", clashEnabled, jsonEnabled)
+	if clashEnabled || jsonEnabled || jsonAlwaysArray {
+		t.Fatalf("missing subscription flags must default off: clashAuto=%v jsonAuto=%v jsonAlwaysArray=%v", clashEnabled, jsonEnabled, jsonAlwaysArray)
 	}
 	if clashRegex != DefaultSubClashUserAgentRegex {
 		t.Fatalf("missing Clash regex = %q, want %q", clashRegex, DefaultSubClashUserAgentRegex)
@@ -79,6 +83,9 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if settings.SubJsonAutoDetect {
 		t.Fatal("subJsonAutoDetect default = true, want false")
 	}
+	if settings.SubJsonAlwaysArray {
+		t.Fatal("subJsonAlwaysArray default = true, want false")
+	}
 	if settings.SubJsonUserAgentRegex != DefaultSubJsonUserAgentRegex {
 		t.Fatalf("subJsonUserAgentRegex = %q, want default %q", settings.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
 	}
@@ -88,6 +95,7 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	settings.SubAutoDetect = true
 	settings.SubClashUserAgentRegex = `(?i)^custom-clash/`
 	settings.SubJsonAutoDetect = true
+	settings.SubJsonAlwaysArray = true
 	settings.SubJsonUserAgentRegex = `(?i)^custom-json/`
 	settings.SubJsonEnable = true
 	settings.SubJsonPath = "/json-custom/"
@@ -114,6 +122,9 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	}
 	if !got.SubJsonAutoDetect {
 		t.Fatal("subJsonAutoDetect = false, want true")
+	}
+	if !got.SubJsonAlwaysArray {
+		t.Fatal("subJsonAlwaysArray = false, want true")
 	}
 	if !got.SubJsonEnable {
 		t.Fatal("subJsonEnable = false, want true")

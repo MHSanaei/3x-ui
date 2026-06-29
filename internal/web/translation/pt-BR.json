@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Assinatura Clash / Mihomo",
       "subJsonAutoDetect": "Detectar clientes Xray JSON automaticamente",
       "subJsonAutoDetectDesc": "Quando ativado, clientes compatíveis reconhecidos que solicitarem a URL de assinatura padrão receberão automaticamente uma matriz de configurações Xray JSON. Os outros clientes manterão a resposta bruta/Base64. Requer a assinatura JSON ativada e a reinicialização do painel.",
+      "subJsonAlwaysArray": "Sempre retornar uma matriz JSON",
+      "subJsonAlwaysArrayDesc": "Retorna o endpoint JSON explícito como matriz mesmo com apenas um perfil, conforme o padrão XTLS. Respostas JSON detectadas automaticamente sempre usam matrizes. Desative para preservar a resposta legada de objeto único.",
       "subJsonUserAgentRegex": "Expressão User-Agent do Xray JSON",
       "subJsonUserAgentRegexDesc": "Expressão regular Go RE2 para reconhecer clientes de assinatura Xray JSON. O padrão conservador corresponde apenas ao Streisand; adicione explicitamente outros clientes verificados. v2rayNG, v2rayN e v2rayA permanecem na assinatura bruta por padrão. Deixe em branco para restaurar o padrão. Reinicie o painel após alterá-la.",
       "subAutoDetect": "Detectar clientes Clash/Mihomo automaticamente",

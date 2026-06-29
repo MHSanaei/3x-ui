@@ -225,6 +225,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "description": "Always return JSON subscriptions as an array, including single-profile responses",
+        "type": "boolean"
+      },
       "subJsonAutoDetect": {
         "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
         "type": "boolean"
@@ -463,6 +467,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
@@ -754,6 +759,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "description": "Always return JSON subscriptions as an array, including single-profile responses",
+        "type": "boolean"
+      },
       "subJsonAutoDetect": {
         "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
         "type": "boolean"
@@ -999,6 +1008,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",

@@ -1292,6 +1292,8 @@
       "subClashEnableTitle": "Clash / Mihomo subscription",
       "subJsonAutoDetect": "Auto-detect Xray JSON clients",
       "subJsonAutoDetectDesc": "When enabled, recognized compatible clients requesting the standard subscription URL receive an Xray JSON configuration array automatically. Other clients keep the raw/base64 response. Requires JSON subscription to be enabled and a panel restart to apply.",
+      "subJsonAlwaysArray": "Always return a JSON array",
+      "subJsonAlwaysArrayDesc": "Return the explicit JSON subscription endpoint as an array even when it contains one profile, as required by the XTLS subscription standard. Auto-detected JSON responses always use arrays. Leave disabled to preserve the legacy single-object response.",
       "subJsonUserAgentRegex": "Xray JSON User-Agent regex",
       "subJsonUserAgentRegexDesc": "Go RE2 regular expression used to recognize Xray JSON subscription clients. The conservative default matches only Streisand; add other verified clients explicitly. v2rayNG, v2rayN, and v2rayA remain on raw subscriptions by default. Leave empty to restore the default pattern. Restart the panel after changes.",
       "subAutoDetect": "Auto-detect Clash/Mihomo clients",

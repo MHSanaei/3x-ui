@@ -56,17 +56,18 @@ type SUBController struct {
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
 
-	subPath        string
-	subJsonPath    string
-	subClashPath   string
-	subAutoDetect  bool
-	clashUserAgent *regexp.Regexp
-	jsonAutoDetect bool
-	jsonUserAgent  *regexp.Regexp
-	jsonEnabled    bool
-	clashEnabled   bool
-	subEncrypt     bool
-	updateInterval string
+	subPath         string
+	subJsonPath     string
+	subClashPath    string
+	subAutoDetect   bool
+	clashUserAgent  *regexp.Regexp
+	jsonAutoDetect  bool
+	jsonUserAgent   *regexp.Regexp
+	jsonAlwaysArray bool
+	jsonEnabled     bool
+	clashEnabled    bool
+	subEncrypt      bool
+	updateInterval  string
 
 	subService      *SubService
 	subJsonService  *SubJsonService
@@ -87,6 +88,7 @@ func NewSUBController(
 	clashUserAgentRegex string,
 	jsonAutoDetect bool,
 	jsonUserAgentRegex string,
+	jsonAlwaysArray bool,
 	jsonEnabled bool,
 	clashEnabled bool,
 	encrypt bool,
@@ -120,17 +122,18 @@ func NewSUBController(
 		subIncyEnableRouting: subIncyEnableRouting,
 		subIncyRoutingRules:  subIncyRoutingRules,
 
-		subPath:        subPath,
-		subJsonPath:    jsonPath,
-		subClashPath:   clashPath,
-		subAutoDetect:  autoDetect,
-		clashUserAgent: compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
-		jsonAutoDetect: jsonAutoDetect,
-		jsonUserAgent:  compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
-		jsonEnabled:    jsonEnabled,
-		clashEnabled:   clashEnabled,
-		subEncrypt:     encrypt,
-		updateInterval: update,
+		subPath:         subPath,
+		subJsonPath:     jsonPath,
+		subClashPath:    clashPath,
+		subAutoDetect:   autoDetect,
+		clashUserAgent:  compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
+		jsonAutoDetect:  jsonAutoDetect,
+		jsonUserAgent:   compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
+		jsonAlwaysArray: jsonAlwaysArray,
+		jsonEnabled:     jsonEnabled,
+		clashEnabled:    clashEnabled,
+		subEncrypt:      encrypt,
+		updateInterval:  update,
 
 		subService:      sub,
 		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
@@ -177,7 +180,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		return
 	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
 		logSubscriptionRoute(userAgent, "json")
-		a.subJsons(c)
+		a.serveJson(c, true)
 		return
 	} else {
 		logSubscriptionRoute(userAgent, "raw")
@@ -445,9 +448,13 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
+	a.serveJson(c, a.jsonAlwaysArray)
+}
+
+func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
 	if err != nil || len(jsonSub) == 0 {
 		writeSubError(c, err)
 	} else {

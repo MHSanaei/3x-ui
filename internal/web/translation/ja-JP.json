@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Clash / Mihomo サブスクリプション",
       "subJsonAutoDetect": "Xray JSON クライアントを自動検出",
       "subJsonAutoDetectDesc": "有効にすると、標準サブスクリプション URL を要求する既知の互換クライアントへ Xray JSON 設定配列を自動的に返します。その他のクライアントには従来の raw/Base64 応答を返します。JSON サブスクリプションを有効にし、適用のためにパネルを再起動する必要があります。",
+      "subJsonAlwaysArray": "常に JSON 配列を返す",
+      "subJsonAlwaysArrayDesc": "プロファイルが 1 件でも、明示的な JSON サブスクリプションを XTLS 標準に従う配列として返します。自動検出された JSON 応答は常に配列です。無効時は従来の単一オブジェクト応答を維持します。",
       "subJsonUserAgentRegex": "Xray JSON User-Agent 正規表現",
       "subJsonUserAgentRegexDesc": "Xray JSON サブスクリプションクライアントを識別する Go RE2 正規表現です。保守的な既定値は Streisand のみに一致します。その他の検証済みクライアントは明示的に追加してください。v2rayNG、v2rayN、v2rayA は既定で raw サブスクリプションを使用します。空欄にすると既定のパターンへ戻ります。変更後にパネルを再起動してください。",
       "subAutoDetect": "Clash/Mihomo クライアントを自動検出",

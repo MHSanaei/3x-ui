@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Clash / Mihomo Aboneliği",
       "subJsonAutoDetect": "Xray JSON istemcilerini otomatik algıla",
       "subJsonAutoDetectDesc": "Etkinleştirildiğinde, standart abonelik URL'sini isteyen tanınmış uyumlu istemciler otomatik olarak bir Xray JSON yapılandırma dizisi alır. Diğer istemciler ham/Base64 yanıtını almaya devam eder. JSON aboneliğinin etkinleştirilmesi ve panelin yeniden başlatılması gerekir.",
+      "subJsonAlwaysArray": "Her zaman JSON dizisi döndür",
+      "subJsonAlwaysArrayDesc": "Açık JSON abonelik uç noktasını tek profil olsa bile XTLS standardına uygun bir dizi olarak döndürür. Otomatik algılanan JSON yanıtları her zaman dizi kullanır. Eski tek nesne yanıtını korumak için devre dışı bırakın.",
       "subJsonUserAgentRegex": "Xray JSON User-Agent düzenli ifadesi",
       "subJsonUserAgentRegexDesc": "Xray JSON abonelik istemcilerini tanımak için Go RE2 düzenli ifadesi. Muhafazakâr varsayılan desen yalnızca Streisand ile eşleşir; doğrulanmış diğer istemcileri açıkça ekleyin. v2rayNG, v2rayN ve v2rayA varsayılan olarak ham aboneliği almaya devam eder. Varsayılan deseni geri yüklemek için boş bırakın. Değişiklikten sonra paneli yeniden başlatın.",
       "subAutoDetect": "Clash/Mihomo istemcilerini otomatik algıla",

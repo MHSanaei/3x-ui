@@ -30,6 +30,7 @@ export class AllSetting {
   subEnable = true;
   subJsonEnable = false;
   subJsonAutoDetect = false;
+  subJsonAlwaysArray = false;
   subJsonUserAgentRegex = '(?i)^streisand([ /]|$)';
   subAutoDetect = false;
   subClashUserAgentRegex = '(?i)(clash|mihomo|stash)';

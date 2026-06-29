@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Clash / Mihomo 订阅",
       "subJsonAutoDetect": "自动识别 Xray JSON 客户端",
       "subJsonAutoDetectDesc": "启用后，使用标准订阅 URL 的已识别兼容客户端将自动获得 Xray JSON 配置数组。其他客户端继续获得原始/Base64 响应。需要启用 JSON 订阅并重启面板才能生效。",
+      "subJsonAlwaysArray": "始终返回 JSON 数组",
+      "subJsonAlwaysArrayDesc": "即使只有一个配置，也将显式 JSON 订阅端点返回为数组，以符合 XTLS 订阅标准。自动识别的 JSON 响应始终使用数组。禁用时保留旧版单对象响应。",
       "subJsonUserAgentRegex": "Xray JSON User-Agent 正则表达式",
       "subJsonUserAgentRegexDesc": "用于识别 Xray JSON 订阅客户端的 Go RE2 正则表达式。保守的默认规则仅匹配 Streisand；请显式添加其他已验证客户端。v2rayNG、v2rayN 和 v2rayA 默认继续使用原始订阅。留空可恢复默认规则。更改后请重启面板。",
       "subAutoDetect": "自动识别 Clash/Mihomo 客户端",

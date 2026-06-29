@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Suscripción Clash / Mihomo",
       "subJsonAutoDetect": "Detectar automáticamente clientes Xray JSON",
       "subJsonAutoDetectDesc": "Al activarlo, los clientes compatibles reconocidos que soliciten la URL de suscripción estándar recibirán automáticamente una matriz de configuraciones Xray JSON. Los demás clientes conservarán la respuesta sin procesar/Base64. Requiere activar la suscripción JSON y reiniciar el panel.",
+      "subJsonAlwaysArray": "Devolver siempre una matriz JSON",
+      "subJsonAlwaysArrayDesc": "Devuelve el endpoint JSON explícito como una matriz incluso con un solo perfil, según el estándar XTLS. Las respuestas JSON detectadas automáticamente siempre usan matrices. Desactívalo para conservar la respuesta heredada de un solo objeto.",
       "subJsonUserAgentRegex": "Expresión User-Agent de Xray JSON",
       "subJsonUserAgentRegexDesc": "Expresión regular Go RE2 para reconocer clientes de suscripción Xray JSON. El patrón conservador predeterminado solo coincide con Streisand; añade explícitamente otros clientes verificados. v2rayNG, v2rayN y v2rayA conservan la suscripción sin procesar de forma predeterminada. Déjala vacía para restaurar el patrón predeterminado. Reinicia el panel después de cambiarla.",
       "subAutoDetect": "Detectar automáticamente clientes Clash/Mihomo",

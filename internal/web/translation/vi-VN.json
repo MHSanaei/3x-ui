@@ -1174,6 +1174,8 @@
       "subClashEnableTitle": "Đăng ký Clash / Mihomo",
       "subJsonAutoDetect": "Tự động nhận diện ứng dụng Xray JSON",
       "subJsonAutoDetectDesc": "Khi bật, các ứng dụng tương thích được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận một mảng cấu hình Xray JSON. Các ứng dụng khác tiếp tục nhận phản hồi thô/Base64. Cần bật đăng ký JSON và khởi động lại bảng điều khiển.",
+      "subJsonAlwaysArray": "Luôn trả về mảng JSON",
+      "subJsonAlwaysArrayDesc": "Trả endpoint đăng ký JSON tường minh dưới dạng mảng ngay cả khi chỉ có một hồ sơ, theo tiêu chuẩn XTLS. Phản hồi JSON được tự động nhận diện luôn dùng mảng. Tắt để giữ phản hồi một đối tượng kiểu cũ.",
       "subJsonUserAgentRegex": "Biểu thức User-Agent Xray JSON",
       "subJsonUserAgentRegexDesc": "Biểu thức chính quy Go RE2 để nhận diện ứng dụng đăng ký Xray JSON. Mẫu mặc định thận trọng chỉ khớp Streisand; hãy thêm rõ ràng các ứng dụng khác đã được xác minh. v2rayNG, v2rayN và v2rayA mặc định tiếp tục nhận đăng ký thô. Để trống để khôi phục mẫu mặc định. Khởi động lại bảng điều khiển sau khi thay đổi.",
       "subAutoDetect": "Tự động nhận diện ứng dụng Clash/Mihomo",

@@ -119,12 +119,12 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 	seedSubInbound(t, "s1", "auto", 4480, 1, `{"network":"tcp","security":"none"}`)
 	gin.SetMode(gin.TestMode)
 
-	newRouter := func(autoDetect bool, clashUserAgentRegex string, jsonAutoDetect bool, jsonUserAgentRegex string) *gin.Engine {
+	newRouter := func(autoDetect bool, clashUserAgentRegex string, jsonAutoDetect bool, jsonUserAgentRegex string, jsonAlwaysArray bool) *gin.Engine {
 		router := gin.New()
 		NewSUBController(
 			router.Group("/"),
 			"/sub/", "/json/", "/clash/",
-			autoDetect, clashUserAgentRegex, jsonAutoDetect, jsonUserAgentRegex, true, true, true,
+			autoDetect, clashUserAgentRegex, jsonAutoDetect, jsonUserAgentRegex, jsonAlwaysArray, true, true, true,
 			"", "12", "", "", "", false, "",
 			"", "", "", "", false, "", false, false, "",
 		)
@@ -136,7 +136,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, "", false, "").ServeHTTP(resp, req)
+		newRouter(true, "", false, "", false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -154,7 +154,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Hybrid/1.0")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, `(?i)^hybrid/`, true, `(?i)^hybrid/`).ServeHTTP(resp, req)
+		newRouter(true, `(?i)^hybrid/`, true, `(?i)^hybrid/`, false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -169,7 +169,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", false, "").ServeHTTP(resp, req)
+		newRouter(false, "", false, "", false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -188,7 +188,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Mihomo/1.19")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, `(?i)^custom-client/`, false, "").ServeHTTP(resp, req)
+		newRouter(true, `(?i)^custom-client/`, false, "", false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -203,7 +203,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "v2rayNG/1.10.0")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, "", true, "").ServeHTTP(resp, req)
+		newRouter(true, "", true, "", false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -222,7 +222,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Streisand/1.6.32")
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", true, "").ServeHTTP(resp, req)
+		newRouter(false, "", true, "", false).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -235,11 +235,28 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		}
 	})
 
-	t.Run("explicit JSON endpoint returns JSON content type", func(t *testing.T) {
+	t.Run("explicit JSON endpoint preserves legacy single object by default", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", false, "").ServeHTTP(resp, req)
+		newRouter(false, "", false, "", false).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want JSON", got)
+		}
+		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "{") {
+			t.Fatalf("legacy explicit JSON body is not an object: %s", body)
+		}
+	})
+
+	t.Run("explicit JSON endpoint can follow XTLS array standard", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
+		resp := httptest.NewRecorder()
+
+		newRouter(false, "", false, "", true).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -248,7 +265,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 			t.Fatalf("Content-Type = %q, want JSON", got)
 		}
 		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") {
-			t.Fatalf("explicit JSON body is not an array: %s", body)
+			t.Fatalf("standards-compliant explicit JSON body is not an array: %s", body)
 		}
 	})
 }
