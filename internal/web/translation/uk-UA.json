@@ -15,6 +15,10 @@
   "copied": "Скопійовано",
   "more": "більше",
   "download": "Завантажити",
+  "regenerate": "Згенерувати заново",
+  "jsonEditor": "Редактор JSON",
+  "downloadImage": "Завантажити зображення",
+  "sort": "Сортування",
   "remark": "Примітка",
   "enable": "Увімкнути",
   "protocol": "Протокол",
@@ -118,7 +122,8 @@
     "link": "Керувати",
     "donate": "Підтримати",
     "hosts": "Хости",
-    "docs": "Документація"
+    "docs": "Документація",
+    "openMenu": "Відкрити меню"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Заголовок запиту",
           "responseHeader": "Заголовок відповіді"
         }
-      }
+      },
+      "sniffingDestOverride": "Перевизначення призначення"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -1142,7 +1148,9 @@
         "custom": "Власний (crontab)",
         "seconds": "Секунди",
         "minutes": "Хвилини",
-        "hours": "Години"
+        "hours": "Години",
+        "interval": "Інтервал",
+        "unit": "Одиниця"
       },
       "tgNotifyBackup": "Резервне копіювання бази даних",
       "tgNotifyBackupDesc": "Надіслати файл резервної копії бази даних зі звітом.",
@@ -1618,7 +1626,8 @@
         "city": "Місто",
         "allCities": "Усі міста",
         "privateKey": "Приватний ключ",
-        "load": "Навантаження"
+        "load": "Навантаження",
+        "moveToTop": "Перемістити вгору"
       },
       "outboundSub": {
         "manage": "Підписки",
@@ -1717,7 +1726,10 @@
         "tolerance": "Допуск",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Неможливо використовувати balancerTag і outboundTag одночасно. Якщо використовувати одночасно, працюватиме лише outboundTag."
+        "balancerDesc": "Неможливо використовувати balancerTag і outboundTag одночасно. Якщо використовувати одночасно, працюватиме лише outboundTag.",
+        "costMatch": "Шаблон тегу",
+        "costValue": "Вага",
+        "costRegexp": "Збіг за регулярним виразом"
       },
       "wireguard": {
         "secretKey": "Приватний ключ",

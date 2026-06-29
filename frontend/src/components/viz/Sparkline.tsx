@@ -181,8 +181,18 @@ export default function Sparkline({
   const minColor = extrema?.minColor ?? DEFAULT_MIN_COLOR;
   const maxColor = extrema?.maxColor ?? DEFAULT_MAX_COLOR;
 
+  const ariaSummary = useMemo(() => {
+    if (points.length === 0) return name1 ?? '';
+    const last = points[points.length - 1];
+    const parts: string[] = [];
+    parts.push(name1 ? `${name1}: ${yFormatter(last.value)}` : yFormatter(last.value));
+    if (hasSeries2 && name2) parts.push(`${name2}: ${yFormatter(last.value2)}`);
+    if (hasSeries3 && name3) parts.push(`${name3}: ${yFormatter(last.value3)}`);
+    return parts.join(', ');
+  }, [points, name1, name2, name3, hasSeries2, hasSeries3, yFormatter]);
+
   return (
-    <div className="sparkline-container">
+    <div className="sparkline-container" role={ariaSummary ? 'img' : undefined} aria-label={ariaSummary || undefined}>
       {extremaPoints && (
         <div className="sparkline-extrema" aria-hidden="true">
           <span className="extrema-item" style={{ color: maxColor }}>

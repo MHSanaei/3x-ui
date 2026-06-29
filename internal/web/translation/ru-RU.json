@@ -15,6 +15,10 @@
   "copied": "Скопировано",
   "more": "ещё",
   "download": "Скачать",
+  "regenerate": "Сгенерировать заново",
+  "jsonEditor": "Редактор JSON",
+  "downloadImage": "Скачать изображение",
+  "sort": "Сортировка",
   "remark": "Примечание",
   "enable": "Включить",
   "protocol": "Протокол",
@@ -118,7 +122,8 @@
     "link": "Управление",
     "donate": "Поддержать",
     "hosts": "Хосты",
-    "docs": "Документация"
+    "docs": "Документация",
+    "openMenu": "Открыть меню"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Заголовок запроса",
           "responseHeader": "Заголовок ответа"
         }
-      }
+      },
+      "sniffingDestOverride": "Переопределение назначения"
     },
     "clients": {
       "tabBasics": "Основные",
@@ -1142,7 +1148,9 @@
         "custom": "Произвольный (crontab)",
         "seconds": "Секунды",
         "minutes": "Минуты",
-        "hours": "Часы"
+        "hours": "Часы",
+        "interval": "Интервал",
+        "unit": "Единица"
       },
       "tgNotifyBackup": "Резервное копирование базы данных",
       "tgNotifyBackupDesc": "Отправлять уведомление с файлом резервной копии базы данных",
@@ -1618,7 +1626,8 @@
         "city": "Город",
         "allCities": "Все города",
         "privateKey": "Приватный ключ",
-        "load": "Нагрузка"
+        "load": "Нагрузка",
+        "moveToTop": "Переместить наверх"
       },
       "outboundSub": {
         "manage": "Подписки",
@@ -1717,7 +1726,10 @@
         "tolerance": "Допуск",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Невозможно одновременно использовать balancerTag и outboundTag. При одновременном использовании будет работать только outboundTag."
+        "balancerDesc": "Невозможно одновременно использовать balancerTag и outboundTag. При одновременном использовании будет работать только outboundTag.",
+        "costMatch": "Шаблон тега",
+        "costValue": "Вес",
+        "costRegexp": "Совпадение по регулярному выражению"
       },
       "wireguard": {
         "secretKey": "Секретный ключ",

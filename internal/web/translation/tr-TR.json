@@ -15,6 +15,10 @@
   "copied": "Kopyalandı",
   "more": "Diğer",
   "download": "İndir",
+  "regenerate": "Yeniden Oluştur",
+  "jsonEditor": "JSON Düzenleyici",
+  "downloadImage": "Resmi İndir",
+  "sort": "Sırala",
   "remark": "Açıklama",
   "enable": "Etkin",
   "protocol": "Protokol",
@@ -118,7 +122,8 @@
     "link": "Yönet",
     "donate": "Bağış Yap",
     "hosts": "Host'lar",
-    "docs": "Belgeler"
+    "docs": "Belgeler",
+    "openMenu": "Menüyü aç"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
-      }
+      },
+      "sniffingDestOverride": "Hedef geçersiz kılma"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -1142,7 +1148,9 @@
         "custom": "Özel (crontab)",
         "seconds": "Saniye",
         "minutes": "Dakika",
-        "hours": "Saat"
+        "hours": "Saat",
+        "interval": "Aralık",
+        "unit": "Birim"
       },
       "tgNotifyBackup": "Veritabanı Yedeği",
       "tgNotifyBackupDesc": "Bir rapor ile birlikte veritabanı yedek dosyasını gönderir.",
@@ -1618,7 +1626,8 @@
         "city": "Şehir",
         "allCities": "Tüm Şehirler",
         "privateKey": "Özel Anahtar",
-        "load": "Yükle"
+        "load": "Yükle",
+        "moveToTop": "En üste taşı"
       },
       "outboundSub": {
         "manage": "Abonelikler",
@@ -1717,7 +1726,10 @@
         "tolerance": "Tolerans",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur."
+        "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur.",
+        "costMatch": "Etiket deseni",
+        "costValue": "Ağırlık",
+        "costRegexp": "Düzenli ifade eşleşmesi"
       },
       "wireguard": {
         "secretKey": "Gizli Anahtar",

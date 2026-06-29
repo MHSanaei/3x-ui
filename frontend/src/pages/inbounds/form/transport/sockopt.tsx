@@ -83,7 +83,7 @@ export default function SockoptForm({
         return (
           <>
             <Form.Item label="Sockopt">
-              <Switch checked={on} onChange={toggleSockopt} />
+              <Switch checked={on} onChange={toggleSockopt} aria-label="Sockopt" />
             </Form.Item>
             {on && (
               <>

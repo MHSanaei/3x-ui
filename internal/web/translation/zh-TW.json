@@ -15,6 +15,10 @@
   "copied": "已複製",
   "more": "更多",
   "download": "下載",
+  "regenerate": "重新產生",
+  "jsonEditor": "JSON 編輯器",
+  "downloadImage": "下載圖片",
+  "sort": "排序",
   "remark": "備註",
   "enable": "啟用",
   "protocol": "協議",
@@ -118,7 +122,8 @@
     "link": "管理",
     "donate": "捐贈",
     "hosts": "Hosts",
-    "docs": "文件"
+    "docs": "文件",
+    "openMenu": "開啟選單"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "請求頭",
           "responseHeader": "響應頭"
         }
-      }
+      },
+      "sniffingDestOverride": "目標覆寫"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1142,7 +1148,9 @@
         "custom": "自訂 (crontab)",
         "seconds": "秒",
         "minutes": "分鐘",
-        "hours": "小時"
+        "hours": "小時",
+        "interval": "間隔",
+        "unit": "單位"
       },
       "tgNotifyBackup": "資料庫備份",
       "tgNotifyBackupDesc": "傳送帶有報告的資料庫備份檔案",
@@ -1618,7 +1626,8 @@
         "city": "城市",
         "allCities": "所有城市",
         "privateKey": "私密金鑰",
-        "load": "負載"
+        "load": "負載",
+        "moveToTop": "移到頂部"
       },
       "outboundSub": {
         "manage": "訂閱",
@@ -1717,7 +1726,10 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。"
+        "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。",
+        "costMatch": "標籤比對模式",
+        "costValue": "權重",
+        "costRegexp": "正規表示式比對"
       },
       "wireguard": {
         "secretKey": "金鑰",

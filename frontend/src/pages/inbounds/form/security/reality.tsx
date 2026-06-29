@@ -143,7 +143,7 @@ export default function RealityForm({
           >
             <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
           </Form.Item>
-          <Button icon={<ReloadOutlined />} onClick={randomizeShortIds} />
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={randomizeShortIds} />
         </Space.Compact>
       </Form.Item>
       <Form.Item

@@ -217,7 +217,7 @@ export default function BalancersTab({
           <span className="row-index">{index + 1}</span>
           <div className={!isMobile ? 'action-buttons' : ''}>
             {!isMobile && (
-              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+              <Button aria-label={t('edit')} shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
             )}
             <Dropdown
               trigger={['click']}
@@ -249,7 +249,7 @@ export default function BalancersTab({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button aria-label={t('more')} shape="circle" size="small" icon={<MoreOutlined />} />
             </Dropdown>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function BalancersTab({
               {t('pages.xray.Balancers')}
             </Button>
             <Tooltip title={t('pages.xray.balancerLiveRefresh')}>
-              <Button icon={<SyncOutlined spin={liveLoading} />} onClick={refreshLive} />
+              <Button aria-label={t('pages.xray.balancerLiveRefresh')} icon={<SyncOutlined spin={liveLoading} />} onClick={refreshLive} />
             </Tooltip>
           </Space>
 

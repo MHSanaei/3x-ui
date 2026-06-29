@@ -15,6 +15,10 @@
   "copied": "کپی شد",
   "more": "بیشتر",
   "download": "دانلود",
+  "regenerate": "تولید مجدد",
+  "jsonEditor": "ویرایشگر JSON",
+  "downloadImage": "دانلود تصویر",
+  "sort": "مرتب‌سازی",
   "remark": "نام",
   "enable": "فعال",
   "protocol": "پروتکل",
@@ -118,7 +122,8 @@
     "link": "مدیریت",
     "donate": "حمایت مالی",
     "hosts": "میزبان‌ها",
-    "docs": "مستندات"
+    "docs": "مستندات",
+    "openMenu": "باز کردن منو"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "سربرگ درخواست",
           "responseHeader": "سربرگ پاسخ"
         }
-      }
+      },
+      "sniffingDestOverride": "بازنویسی مقصد"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -1144,7 +1150,9 @@
         "custom": "سفارشی (crontab)",
         "seconds": "ثانیه",
         "minutes": "دقیقه",
-        "hours": "ساعت"
+        "hours": "ساعت",
+        "interval": "بازه زمانی",
+        "unit": "واحد"
       },
       "tgNotifyBackup": "پشتیبان‌گیری از دیتابیس",
       "tgNotifyBackupDesc": "فایل پشتیبان‌دیتابیس را به‌همراه گزارش ارسال می‌کند",
@@ -1618,7 +1626,8 @@
         "city": "شهر",
         "allCities": "همه شهرها",
         "privateKey": "کلید خصوصی",
-        "load": "فشار سرور"
+        "load": "فشار سرور",
+        "moveToTop": "انتقال به بالا"
       },
       "outboundSub": {
         "manage": "سابسکریپشن‌ها",
@@ -1717,7 +1726,10 @@
         "tolerance": "تحمل",
         "baselines": "خطوط پایه",
         "costs": "هزینه‌ها",
-        "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد."
+        "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد.",
+        "costMatch": "الگوی برچسب",
+        "costValue": "وزن",
+        "costRegexp": "تطبیق با عبارت باقاعده"
       },
       "wireguard": {
         "secretKey": "کلید شخصی",

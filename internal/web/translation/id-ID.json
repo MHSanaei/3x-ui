@@ -15,6 +15,10 @@
   "copied": "Tersalin",
   "more": "lainnya",
   "download": "Unduh",
+  "regenerate": "Buat Ulang",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Unduh Gambar",
+  "sort": "Urutkan",
   "remark": "Catatan",
   "enable": "Aktifkan",
   "protocol": "Protokol",
@@ -118,7 +122,8 @@
     "link": "Kelola",
     "donate": "Donasi",
     "hosts": "Host",
-    "docs": "Dokumentasi"
+    "docs": "Dokumentasi",
+    "openMenu": "Buka menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "sniffingDestOverride": "Penggantian tujuan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1142,7 +1148,9 @@
         "custom": "Kustom (crontab)",
         "seconds": "Detik",
         "minutes": "Menit",
-        "hours": "Jam"
+        "hours": "Jam",
+        "interval": "Interval",
+        "unit": "Satuan"
       },
       "tgNotifyBackup": "Cadangan Database",
       "tgNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",
@@ -1618,7 +1626,8 @@
         "city": "Kota",
         "allCities": "Semua Kota",
         "privateKey": "Kunci Privat",
-        "load": "Beban"
+        "load": "Beban",
+        "moveToTop": "Pindahkan ke atas"
       },
       "outboundSub": {
         "manage": "Langganan",
@@ -1717,7 +1726,10 @@
         "tolerance": "Toleransi",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi."
+        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
+        "costMatch": "Pola tag",
+        "costValue": "Bobot",
+        "costRegexp": "Pencocokan ekspresi reguler"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",

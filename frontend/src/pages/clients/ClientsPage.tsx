@@ -50,6 +50,7 @@ import {
   UsergroupAddOutlined,
   UsergroupDeleteOutlined,
 } from '@ant-design/icons';
+import { activateOnKey } from '@/utils/a11y';
 
 import { useTheme } from '@/hooks/useTheme';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -752,19 +753,19 @@ export default function ClientsPage() {
       render: (_v, record) => (
         <Space size={4}>
           <Tooltip title={t('pages.clients.qrCode')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<QrcodeOutlined />} onClick={() => onShowQr(record)} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} onClick={() => onShowQr(record)} />
           </Tooltip>
           <Tooltip title={t('pages.clients.clientInfo')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<InfoCircleOutlined />} onClick={() => onShowInfo(record)} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<InfoCircleOutlined />} aria-label={t('pages.clients.clientInfo')} onClick={() => onShowInfo(record)} />
           </Tooltip>
           <Tooltip title={t('pages.inbounds.resetTraffic')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<RetweetOutlined />} onClick={() => onResetTraffic(record)} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<RetweetOutlined />} aria-label={t('pages.inbounds.resetTraffic')} onClick={() => onResetTraffic(record)} />
           </Tooltip>
           <Tooltip title={t('edit')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => onEdit(record)} />
+            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onEdit(record)} />
           </Tooltip>
           <Tooltip title={t('delete')}>
-            <Button size="small" type="text" danger style={{ fontSize: 16 }} icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+            <Button size="small" type="text" danger style={{ fontSize: 16 }} icon={<DeleteOutlined />} aria-label={t('delete')} onClick={() => onDelete(record)} />
           </Tooltip>
         </Space>
       ),
@@ -1039,7 +1040,7 @@ export default function ClientsPage() {
                       title={
                         <div className="card-toolbar">
                           {selectedRowKeys.length === 0 ? (
-                            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd} aria-label={t('pages.clients.addClients')}>
                               {!isMobile && t('pages.clients.addClients')}
                             </Button>
                           ) : (
@@ -1154,7 +1155,7 @@ export default function ClientsPage() {
                                 ],
                             }}
                           >
-                            <Button icon={<MoreOutlined />}>
+                            <Button icon={<MoreOutlined />} aria-label={t('more')}>
                               {!isMobile && t('more')}
                             </Button>
                           </Dropdown>
@@ -1164,6 +1165,7 @@ export default function ClientsPage() {
                               icon={<DeleteOutlined />}
                               onClick={onBulkDelete}
                               style={{ marginInlineStart: 'auto' }}
+                              aria-label={t('delete')}
                             >
                               {!isMobile && t('delete')}
                             </Button>
@@ -1180,6 +1182,7 @@ export default function ClientsPage() {
                           prefix={<SearchOutlined />}
                           size={isMobile ? 'small' : 'middle'}
                           style={{ maxWidth: 320 }}
+                          aria-label={t('search')}
                         />
                         <Badge count={activeCount} size="small" offset={[-4, 4]}>
                           <Button
@@ -1187,12 +1190,14 @@ export default function ClientsPage() {
                             size={isMobile ? 'small' : 'middle'}
                             onClick={() => setFilterDrawerOpen(true)}
                             type={activeCount > 0 ? 'primary' : 'default'}
+                            aria-label={t('filter')}
                           >
                             {!isMobile && t('filter')}
                           </Button>
                         </Badge>
                         <Select
                           value={sortValueFor(sortColumn, sortOrder)}
+                          aria-label={t('sort')}
                           size={isMobile ? 'small' : 'middle'}
                           suffixIcon={<SortAscendingOutlined />}
                           style={{ minWidth: isMobile ? 130 : 200 }}
@@ -1365,9 +1370,16 @@ export default function ClientsPage() {
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
-                                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                                    <div className="card-actions">
                                       <Tooltip title={t('pages.clients.clientInfo')}>
-                                        <InfoCircleOutlined className="row-action-trigger" onClick={() => onShowInfo(row)} />
+                                        <InfoCircleOutlined
+                                          className="row-action-trigger"
+                                          role="button"
+                                          tabIndex={0}
+                                          aria-label={t('pages.clients.clientInfo')}
+                                          onClick={() => onShowInfo(row)}
+                                          onKeyDown={activateOnKey(() => onShowInfo(row))}
+                                        />
                                       </Tooltip>
                                       <Switch
                                         checked={!!row.enable}
@@ -1404,7 +1416,7 @@ export default function ClientsPage() {
                                           ],
                                         }}
                                       >
-                                        <MoreOutlined className="row-action-trigger" />
+                                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
                                       </Dropdown>
                                     </div>
                                   </div>

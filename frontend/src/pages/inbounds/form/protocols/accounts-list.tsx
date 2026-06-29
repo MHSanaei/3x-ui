@@ -33,7 +33,7 @@ export default function AccountsList() {
                   <Form.Item name={[field.name, 'pass']} noStyle>
                     <Input placeholder={t('password')} />
                   </Form.Item>
-                  <Button onClick={() => remove(field.name)}>
+                  <Button aria-label={t('remove')} onClick={() => remove(field.name)}>
                     <MinusOutlined />
                   </Button>
                 </Space.Compact>

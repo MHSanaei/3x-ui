@@ -15,6 +15,10 @@
   "copied": "اتنسخ",
   "more": "المزيد",
   "download": "تحميل",
+  "regenerate": "إعادة التوليد",
+  "jsonEditor": "محرر JSON",
+  "downloadImage": "تنزيل الصورة",
+  "sort": "ترتيب",
   "remark": "ملاحظة",
   "enable": "مفعل",
   "protocol": "بروتوكول",
@@ -118,7 +122,8 @@
     "link": "إدارة",
     "donate": "تبرع",
     "hosts": "المضيفات",
-    "docs": "التوثيق"
+    "docs": "التوثيق",
+    "openMenu": "فتح القائمة"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "رأس الطلب",
           "responseHeader": "رأس الرد"
         }
-      }
+      },
+      "sniffingDestOverride": "تجاوز الوجهة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -1142,7 +1148,9 @@
         "custom": "مخصص (crontab)",
         "seconds": "ثوانٍ",
         "minutes": "دقائق",
-        "hours": "ساعات"
+        "hours": "ساعات",
+        "interval": "الفاصل الزمني",
+        "unit": "الوحدة"
       },
       "tgNotifyBackup": "نسخة احتياطية لقاعدة البيانات",
       "tgNotifyBackupDesc": "ابعت ملف النسخة الاحتياطية لقاعدة البيانات مع التقرير.",
@@ -1618,7 +1626,8 @@
         "city": "المدينة",
         "allCities": "كل المدن",
         "privateKey": "المفتاح الخاص",
-        "load": "الحمل"
+        "load": "الحمل",
+        "moveToTop": "نقل إلى الأعلى"
       },
       "outboundSub": {
         "manage": "الاشتراكات",
@@ -1717,7 +1726,10 @@
         "tolerance": "التحمل",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "ماينفعش تستخدم balancerTag و outboundTag مع بعض. لو اتستخدموا مع بعض، outboundTag هو اللي هيشتغل."
+        "balancerDesc": "ماينفعش تستخدم balancerTag و outboundTag مع بعض. لو اتستخدموا مع بعض، outboundTag هو اللي هيشتغل.",
+        "costMatch": "نمط الوسم",
+        "costValue": "الوزن",
+        "costRegexp": "مطابقة تعبير نمطي"
       },
       "wireguard": {
         "secretKey": "المفتاح السري",

@@ -15,6 +15,10 @@
   "copied": "Copiado",
   "more": "mais",
   "download": "Baixar",
+  "regenerate": "Regenerar",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Baixar imagem",
+  "sort": "Ordenar",
   "remark": "Observação",
   "enable": "Ativado",
   "protocol": "Protocolo",
@@ -118,7 +122,8 @@
     "link": "Gerenciar",
     "donate": "Doar",
     "hosts": "Hosts",
-    "docs": "Documentação"
+    "docs": "Documentação",
+    "openMenu": "Abrir menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Cabeçalho da Requisição",
           "responseHeader": "Cabeçalho da Resposta"
         }
-      }
+      },
+      "sniffingDestOverride": "Substituição de destino"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1142,7 +1148,9 @@
         "custom": "Personalizado (crontab)",
         "seconds": "Segundos",
         "minutes": "Minutos",
-        "hours": "Horas"
+        "hours": "Horas",
+        "interval": "Intervalo",
+        "unit": "Unidade"
       },
       "tgNotifyBackup": "Backup do Banco de Dados",
       "tgNotifyBackupDesc": "Enviar arquivo de backup do banco de dados junto com o relatório.",
@@ -1618,7 +1626,8 @@
         "city": "Cidade",
         "allCities": "Todas as Cidades",
         "privateKey": "Chave Privada",
-        "load": "Carga"
+        "load": "Carga",
+        "moveToTop": "Mover para o topo"
       },
       "outboundSub": {
         "manage": "Assinaturas",
@@ -1717,7 +1726,10 @@
         "tolerance": "Tolerância",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Não é possível usar balancerTag e outboundTag ao mesmo tempo. Se usados simultaneamente, apenas outboundTag funcionará."
+        "balancerDesc": "Não é possível usar balancerTag e outboundTag ao mesmo tempo. Se usados simultaneamente, apenas outboundTag funcionará.",
+        "costMatch": "Padrão de tag",
+        "costValue": "Peso",
+        "costRegexp": "Correspondência por expressão regular"
       },
       "wireguard": {
         "secretKey": "Chave Secreta",

@@ -15,6 +15,10 @@
   "copied": "コピー済み",
   "more": "もっと",
   "download": "ダウンロード",
+  "regenerate": "再生成",
+  "jsonEditor": "JSON エディター",
+  "downloadImage": "画像をダウンロード",
+  "sort": "並べ替え",
   "remark": "備考",
   "enable": "有効化",
   "protocol": "プロトコル",
@@ -118,7 +122,8 @@
     "link": "リンク管理",
     "donate": "寄付",
     "hosts": "ホスト",
-    "docs": "ドキュメント"
+    "docs": "ドキュメント",
+    "openMenu": "メニューを開く"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "リクエストヘッダー",
           "responseHeader": "レスポンスヘッダー"
         }
-      }
+      },
+      "sniffingDestOverride": "宛先のオーバーライド"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1142,7 +1148,9 @@
         "custom": "カスタム (crontab)",
         "seconds": "秒",
         "minutes": "分",
-        "hours": "時間"
+        "hours": "時間",
+        "interval": "間隔",
+        "unit": "単位"
       },
       "tgNotifyBackup": "データベースバックアップ",
       "tgNotifyBackupDesc": "レポート付きのデータベースバックアップファイルを送信",
@@ -1618,7 +1626,8 @@
         "city": "都市",
         "allCities": "すべての都市",
         "privateKey": "秘密鍵",
-        "load": "負荷"
+        "load": "負荷",
+        "moveToTop": "先頭に移動"
       },
       "outboundSub": {
         "manage": "サブスクリプション",
@@ -1717,7 +1726,10 @@
         "tolerance": "許容範囲",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。"
+        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。",
+        "costMatch": "タグパターン",
+        "costValue": "重み",
+        "costRegexp": "正規表現で一致"
       },
       "wireguard": {
         "secretKey": "シークレットキー",

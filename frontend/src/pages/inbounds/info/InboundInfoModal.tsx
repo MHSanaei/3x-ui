@@ -4,6 +4,7 @@ import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
 import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import { HttpUtil, IntlUtil, SizeFormatter, ColorUtils, Wireguard } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { Protocols } from '@/schemas/primitives';
 import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -336,9 +337,9 @@ export default function InboundInfoModal({
                   )}
                 </div>
                 <div className="ip-log-actions">
-                  <SyncOutlined spin={refreshing} onClick={() => loadClientIps()} />
+                  <SyncOutlined spin={refreshing} role="button" tabIndex={0} aria-label={t('refresh')} onClick={() => loadClientIps()} onKeyDown={activateOnKey(() => loadClientIps())} />
                   <Tooltip title={t('pages.inbounds.IPLimitlogclear')}>
-                    <DeleteOutlined onClick={() => clearClientIps()} />
+                    <DeleteOutlined role="button" tabIndex={0} aria-label={t('pages.inbounds.IPLimitlogclear')} onClick={() => clearClientIps()} onKeyDown={activateOnKey(() => clearClientIps())} />
                   </Tooltip>
                 </div>
               </td>
@@ -394,7 +395,7 @@ export default function InboundInfoModal({
           <div className="tg-row">
             <Tag color="blue">{clientSettings.tgId}</Tag>
             <Tooltip title={t('copy')}>
-              <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(clientSettings.tgId, t)} />
+              <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(clientSettings.tgId, t)} />
             </Tooltip>
           </div>
         </>
@@ -408,7 +409,7 @@ export default function InboundInfoModal({
               <div className="link-panel-header">
                 <Tag color="green">{link.remark || `Link ${idx + 1}`}</Tag>
                 <Tooltip title={t('copy')}>
-                  <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(link.link, t)} />
+                  <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(link.link, t)} />
                 </Tooltip>
               </div>
               <code className="link-panel-text">{link.link}</code>
@@ -424,7 +425,7 @@ export default function InboundInfoModal({
             <div className="link-panel-header">
               <Tag color="green">{t('subscription.title')}</Tag>
               <Tooltip title={t('copy')}>
-                <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(subLink, t)} />
+                <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(subLink, t)} />
               </Tooltip>
             </div>
             <a href={subLink} target="_blank" rel="noopener noreferrer" className="link-panel-anchor">{subLink}</a>
@@ -434,7 +435,7 @@ export default function InboundInfoModal({
               <div className="link-panel-header">
                 <Tag color="green">JSON</Tag>
                 <Tooltip title={t('copy')}>
-                  <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(subJsonLink, t)} />
+                  <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(subJsonLink, t)} />
                 </Tooltip>
               </div>
               <a href={subJsonLink} target="_blank" rel="noopener noreferrer" className="link-panel-anchor">{subJsonLink}</a>
@@ -512,7 +513,7 @@ export default function InboundInfoModal({
                 <dd className="value-block">
                   <code className="value-code">{encryptionLabel}</code>
                   <Tooltip title={t('copy')}>
-                    <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(encryptionLabel, t)} />
+                    <Button size="small" className="value-copy" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(encryptionLabel, t)} />
                   </Tooltip>
                 </dd>
               </div>
@@ -637,7 +638,7 @@ export default function InboundInfoModal({
             <dd className="value-block">
               <code className="value-code">{inbound.settings.secret as string}</code>
               <Tooltip title={t('copy')}>
-                <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(inbound.settings.secret as string, t)} />
+                <Button size="small" className="value-copy" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(inbound.settings.secret as string, t)} />
               </Tooltip>
             </dd>
           </div>
@@ -688,7 +689,7 @@ export default function InboundInfoModal({
               <dd className="value-block">
                 <code className="value-code">{links[0].link}</code>
                 <Tooltip title={t('copy')}>
-                  <Button size="small" className="value-copy" icon={<CopyOutlined />} onClick={() => copyText(links[0].link, t)} />
+                  <Button size="small" className="value-copy" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(links[0].link, t)} />
                 </Tooltip>
               </dd>
             </div>
@@ -730,7 +731,7 @@ export default function InboundInfoModal({
                     <span className="account-sep">:</span>
                     <Tag className="value-tag">{account.pass}</Tag>
                     <Tooltip title={t('copy')}>
-                      <Button size="small" type="text" icon={<CopyOutlined />} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
+                      <Button size="small" type="text" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
                     </Tooltip>
                     <Space size={4} wrap className="share-buttons">
                       <Tooltip title={`socks5://${account.user}:${account.pass}@${dbInbound.address}:${dbInbound.port}`}>
@@ -779,7 +780,7 @@ export default function InboundInfoModal({
                 <span className="account-sep">:</span>
                 <Tag className="value-tag">{account.pass}</Tag>
                 <Tooltip title={t('copy')}>
-                  <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
+                  <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(`${account.user}:${account.pass}`, t)} />
                 </Tooltip>
               </dd>
             </div>
@@ -845,10 +846,10 @@ export default function InboundInfoModal({
                   <div className="link-panel-header">
                     <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
                     <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardConfigs[idx], t)} />
+                      <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(wireguardConfigs[idx], t)} />
                     </Tooltip>
                     <Tooltip title={t('download')}>
-                      <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)} />
+                      <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={() => downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)} />
                     </Tooltip>
                   </div>
                   <code className="link-panel-text">{wireguardConfigs[idx]}</code>
@@ -859,7 +860,7 @@ export default function InboundInfoModal({
                   <div className="link-panel-header">
                     <Tag color="green">Peer {idx + 1} link</Tag>
                     <Tooltip title={t('copy')}>
-                      <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(wireguardLinks[idx], t)} />
+                      <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(wireguardLinks[idx], t)} />
                     </Tooltip>
                   </div>
                   <code className="link-panel-text">{wireguardLinks[idx]}</code>
@@ -878,7 +879,7 @@ export default function InboundInfoModal({
               <div className="link-panel-header">
                 <Tag color="green">{link.remark || `Link ${idx + 1}`}</Tag>
                 <Tooltip title={t('copy')}>
-                  <Button size="small" icon={<CopyOutlined />} onClick={() => copyText(link.link, t)} />
+                  <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(link.link, t)} />
                 </Tooltip>
               </div>
               <code className="link-panel-text">{link.link}</code>

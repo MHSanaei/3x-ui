@@ -15,6 +15,10 @@
   "copied": "Copiado",
   "more": "más",
   "download": "Descargar",
+  "regenerate": "Regenerar",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Descargar imagen",
+  "sort": "Ordenar",
   "remark": "Notas",
   "enable": "Habilitar",
   "protocol": "Protocolo",
@@ -118,7 +122,8 @@
     "link": "Gestionar",
     "donate": "Donar",
     "hosts": "Hosts",
-    "docs": "Documentación"
+    "docs": "Documentación",
+    "openMenu": "Abrir menú"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Encabezado de solicitud",
           "responseHeader": "Encabezado de respuesta"
         }
-      }
+      },
+      "sniffingDestOverride": "Anulación de destino"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1142,7 +1148,9 @@
         "custom": "Personalizado (crontab)",
         "seconds": "Segundos",
         "minutes": "Minutos",
-        "hours": "Horas"
+        "hours": "Horas",
+        "interval": "Intervalo",
+        "unit": "Unidad"
       },
       "tgNotifyBackup": "Respaldo de Base de Datos",
       "tgNotifyBackupDesc": "Incluir archivo de respaldo de base de datos con notificación de informe.",
@@ -1618,7 +1626,8 @@
         "city": "Ciudad",
         "allCities": "Todas las ciudades",
         "privateKey": "Clave privada",
-        "load": "Carga"
+        "load": "Carga",
+        "moveToTop": "Mover al principio"
       },
       "outboundSub": {
         "manage": "Suscripciones",
@@ -1717,7 +1726,10 @@
         "tolerance": "Tolerancia",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag."
+        "balancerDesc": "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag.",
+        "costMatch": "Patrón de etiqueta",
+        "costValue": "Peso",
+        "costRegexp": "Coincidencia por expresión regular"
       },
       "wireguard": {
         "secretKey": "Llave secreta",
