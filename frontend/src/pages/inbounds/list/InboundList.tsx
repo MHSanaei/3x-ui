@@ -223,7 +223,7 @@ export default function InboundList({
                     />
                     <span className="card-id">#{record.id}</span>
                     <span className="tag-name">{record.remark}</span>
-                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="card-actions">
                       <Tooltip title={t('pages.inbounds.inboundInfo')}>
                         <InfoCircleOutlined
                           className="row-action-trigger"

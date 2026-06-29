@@ -468,11 +468,26 @@ export default function NodeList({
                 </div>
               ) : (
                 <div key={record.id} className="node-card">
-                  <div className="card-head" onClick={() => toggleExpanded(record.id)}>
-                    <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} />
+                  <div
+                    className="card-head"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={expandedIds.has(record.id)}
+                    aria-label={record.name}
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest('.card-actions')) toggleExpanded(record.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        toggleExpanded(record.id);
+                      }
+                    }}
+                  >
+                    <RightOutlined className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`} aria-hidden="true" />
                     <StatusDot status={record.status} xrayState={record.xrayState} />
                     <span className="node-name">{record.name}</span>
-                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="card-actions">
                       <Tooltip title={t('info')}>
                         <InfoCircleOutlined
                           className="row-action-trigger"

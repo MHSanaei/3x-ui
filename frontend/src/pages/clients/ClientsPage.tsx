@@ -1370,7 +1370,7 @@ export default function ClientsPage() {
                                     <span className="tag-name">{row.email}</span>
                                     {bucket === 'depleted' && <Tag color="red" className="status-tag">{t('depleted')}</Tag>}
                                     {bucket === 'expiring' && <Tag color="orange" className="status-tag">{t('depletingSoon')}</Tag>}
-                                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                                    <div className="card-actions">
                                       <Tooltip title={t('pages.clients.clientInfo')}>
                                         <InfoCircleOutlined
                                           className="row-action-trigger"
