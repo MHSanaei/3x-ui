@@ -70,3 +70,23 @@ func TestFetchXrayDigestSHA256_HTTPError(t *testing.T) {
 		t.Fatal("expected an error on HTTP 404")
 	}
 }
+
+func TestIsEligibleXrayReleaseTag(t *testing.T) {
+	for _, tc := range []struct {
+		tag  string
+		want bool
+	}{
+		{tag: "v26.4.25", want: false},
+		{tag: "v26.6.26", want: false},
+		{tag: "v26.6.27", want: true},
+		{tag: "v26.6.28", want: true},
+		{tag: "v26.7.0", want: true},
+		{tag: "v27.0.0", want: true},
+		{tag: "main", want: false},
+		{tag: "v26.6", want: false},
+	} {
+		if got := isEligibleXrayReleaseTag(tc.tag); got != tc.want {
+			t.Fatalf("isEligibleXrayReleaseTag(%q) = %v, want %v", tc.tag, got, tc.want)
+		}
+	}
+}

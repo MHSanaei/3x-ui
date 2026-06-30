@@ -769,7 +769,38 @@ const (
 	// maxXrayDigestBytes caps the .dgst checksum sidecar read; it is a few
 	// hundred bytes in practice.
 	maxXrayDigestBytes = 64 << 10
+	minEligibleXrayTag = "v26.6.27"
 )
+
+func isEligibleXrayReleaseTag(tag string) bool {
+	tagVersion := strings.TrimPrefix(tag, "v")
+	tagParts := strings.Split(tagVersion, ".")
+	if len(tagParts) != 3 {
+		return false
+	}
+
+	minVersion := strings.TrimPrefix(minEligibleXrayTag, "v")
+	minParts := strings.Split(minVersion, ".")
+	if len(minParts) != 3 {
+		return false
+	}
+
+	for i := range 3 {
+		got, err1 := strconv.Atoi(tagParts[i])
+		want, err2 := strconv.Atoi(minParts[i])
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		if got > want {
+			return true
+		}
+		if got < want {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
 	const (
@@ -812,20 +843,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 
 	var versions []string
 	for _, release := range releases {
-		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		tagParts := strings.Split(tagVersion, ".")
-		if len(tagParts) != 3 {
-			continue
-		}
-
-		major, err1 := strconv.Atoi(tagParts[0])
-		minor, err2 := strconv.Atoi(tagParts[1])
-		patch, err3 := strconv.Atoi(tagParts[2])
-		if err1 != nil || err2 != nil || err3 != nil {
-			continue
-		}
-
-		if major > 26 || (major == 26 && minor > 6) || (major == 26 && minor == 6 && patch >= 27) {
+		if isEligibleXrayReleaseTag(release.TagName) {
 			versions = append(versions, release.TagName)
 		}
 	}
