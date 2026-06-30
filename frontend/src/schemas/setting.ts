@@ -36,7 +36,7 @@ export const AllSettingSchema = z.object({
   subJsonAutoDetect: z.boolean().optional(),
   subJsonAlwaysArray: z.boolean().optional(),
   subJsonUserAgentRegex: z.string().max(2048).optional(),
-    subClashAutoDetect: z.boolean().optional(),
+  subClashAutoDetect: z.boolean().optional(),
   subClashUserAgentRegex: z.string().max(2048).optional(),
   subTitle: z.string().optional(),
   subSupportUrl: z.string().optional(),

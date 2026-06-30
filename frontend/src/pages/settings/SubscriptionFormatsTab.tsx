@@ -228,10 +228,15 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(e) => updateSetting({ subClashURI: e.target.value })}
                   />
                 </SettingListItem>
-                  <SettingListItem paddings="small" title={t('pages.settings.subClashAutoDetect')}
-                                   description={t('pages.settings.subClashAutoDetectDesc')}>
-                      <Switch checked={allSetting.subClashAutoDetect}
-                              onChange={(v) => updateSetting({subClashAutoDetect: v})}/>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subClashAutoDetect')}
+                  description={t('pages.settings.subClashAutoDetectDesc')}
+                >
+                  <Switch
+                    checked={allSetting.subClashAutoDetect}
+                    onChange={(v) => updateSetting({ subClashAutoDetect: v })}
+                  />
                 </SettingListItem>
                 <SettingListItem
                   paddings="small"
