@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Space, Switch, Table, Tag, Tooltip } from 'antd';
+import { Button, Card, Popover, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ArrowDownOutlined,
