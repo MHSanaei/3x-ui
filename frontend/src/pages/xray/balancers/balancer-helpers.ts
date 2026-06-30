@@ -26,6 +26,16 @@ export function collectSelectors(list: BalancerObject[]): string[] {
   return [...out];
 }
 
+export function balancerRequiresBurstObservatory(b: BalancerObject): boolean {
+  const type = b.strategy?.type || 'random';
+  return type === 'leastLoad' || ((type === 'random' || type === 'roundRobin') && (b.fallbackTag ?? '').length > 0);
+}
+
+export function settingsRequireBurstObservatory(t: XraySettingsValue | null): boolean {
+  const balancers = (t?.routing?.balancers || []) as BalancerObject[];
+  return balancers.some(balancerRequiresBurstObservatory);
+}
+
 // syncObservatories keeps the (burst)observatory sections aligned with the
 // balancer strategies that actually require them. Observatories have no runtime
 // reload API in xray-core, so creating OR removing one forces a full process
@@ -50,12 +60,7 @@ export function syncObservatories(t: XraySettingsValue) {
   const balancers = (t.routing?.balancers || []) as BalancerObject[];
 
   const leastPings = balancers.filter((b) => b.strategy?.type === 'leastPing');
-  const hasFallback = (b: BalancerObject) => (b.fallbackTag ?? '').length > 0;
-  const required = balancers.filter((b) => {
-    const type = b.strategy?.type || 'random';
-    if (type === 'leastLoad') return true;
-    return (type === 'random' || type === 'roundRobin') && hasFallback(b);
-  });
+  const required = balancers.filter(balancerRequiresBurstObservatory);
   if (required.length > 0) {
     delete t.observatory;
     if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
