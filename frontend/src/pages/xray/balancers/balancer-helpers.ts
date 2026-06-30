@@ -36,8 +36,10 @@ export function collectSelectors(list: BalancerObject[]): string[] {
 // when its fallbackTag is set (issue #5605): with a fallbackTag the strategy
 // calls RequireFeatures(Observatory) and the core aborts startup with "not all
 // dependencies are resolved" if none exists; without a fallbackTag it never even
-// consults an observatory. leastLoad always needs the burst observer, leastPing
-// the regular one.
+// consults an observatory. leastLoad needs the burst observer, while leastPing
+// can use any extension.Observatory result with Alive/Delay. When a burst
+// observer is required, keep all observer-backed balancers on burstObservatory
+// to avoid xray-core resolving the earlier regular observatory feature instead.
 //
 // So each observer lives exactly as long as something requires it, and is
 // dropped the moment nothing does — clearing the last fallbackTag (or deleting
@@ -48,13 +50,6 @@ export function syncObservatories(t: XraySettingsValue) {
   const balancers = (t.routing?.balancers || []) as BalancerObject[];
 
   const leastPings = balancers.filter((b) => b.strategy?.type === 'leastPing');
-  if (leastPings.length > 0) {
-    if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
-    (t.observatory as { subjectSelector: string[] }).subjectSelector = collectSelectors(leastPings);
-  } else {
-    delete t.observatory;
-  }
-
   const hasFallback = (b: BalancerObject) => (b.fallbackTag ?? '').length > 0;
   const required = balancers.filter((b) => {
     const type = b.strategy?.type || 'random';
@@ -65,10 +60,22 @@ export function syncObservatories(t: XraySettingsValue) {
     const type = b.strategy?.type || 'random';
     return (type === 'random' || type === 'roundRobin') && !hasFallback(b);
   });
+
   if (required.length > 0) {
+    delete t.observatory;
     if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
-    (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([...required, ...optional]);
+    (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([
+      ...required,
+      ...leastPings,
+      ...optional,
+    ]);
   } else {
     delete t.burstObservatory;
+    if (leastPings.length > 0) {
+      if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
+      (t.observatory as { subjectSelector: string[] }).subjectSelector = collectSelectors(leastPings);
+    } else {
+      delete t.observatory;
+    }
   }
 }

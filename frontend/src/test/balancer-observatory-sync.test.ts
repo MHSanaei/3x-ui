@@ -86,11 +86,46 @@ describe('syncObservatories', () => {
     expect((t.burstObservatory as { subjectSelector: string[] }).subjectSelector).toEqual(['a']);
   });
 
-  it('creates observatory for leastPing (required by the strategy)', () => {
+  it('creates observatory for leastPing when no burst observer is required', () => {
     const t = tpl({ balancers: [{ tag: 'b1', selector: ['a'], strategy: { type: 'leastPing' } }] });
     syncObservatories(t);
     expect(t.observatory).toBeDefined();
     expect((t.observatory as { subjectSelector: string[] }).subjectSelector).toEqual(['a']);
+  });
+
+  it('uses only burstObservatory when leastPing is mixed with leastLoad', () => {
+    const t = tpl(
+      {
+        balancers: [
+          { tag: 'lp', selector: ['least-ping-out'], strategy: { type: 'leastPing' } },
+          { tag: 'll', selector: ['least-load-out'], strategy: { type: 'leastLoad' } },
+        ],
+      },
+      { observatory: { subjectSelector: ['stale-least-ping-out'] } },
+    );
+    syncObservatories(t);
+    expect(t.observatory).toBeUndefined();
+    expect(new Set((t.burstObservatory as { subjectSelector: string[] }).subjectSelector)).toEqual(
+      new Set(['least-load-out', 'least-ping-out']),
+    );
+  });
+
+  it('uses only burstObservatory when leastPing is mixed with fallback balancers', () => {
+    const t = tpl(
+      {
+        balancers: [
+          { tag: 'lp', selector: ['least-ping-out'], strategy: { type: 'leastPing' } },
+          { tag: 'rf', selector: ['random-fallback-out'], fallbackTag: 'direct' },
+          { tag: 'rr', selector: ['round-robin-fallback-out'], fallbackTag: 'direct', strategy: { type: 'roundRobin' } },
+        ],
+      },
+      { observatory: { subjectSelector: ['stale-least-ping-out'] } },
+    );
+    syncObservatories(t);
+    expect(t.observatory).toBeUndefined();
+    expect(new Set((t.burstObservatory as { subjectSelector: string[] }).subjectSelector)).toEqual(
+      new Set(['random-fallback-out', 'round-robin-fallback-out', 'least-ping-out']),
+    );
   });
 
   it('keeps an existing burstObservatory in sync for random balancers (legacy setups)', () => {
