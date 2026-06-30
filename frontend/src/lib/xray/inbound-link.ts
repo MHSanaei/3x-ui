@@ -960,20 +960,49 @@ function isShareableHost(host: string): boolean {
   return true;
 }
 
-function shareableListen(inbound: Inbound): string {
-  const listen = inbound.listen.trim();
-  return listen.length > 0 && !isUnixSocketListen(listen) && isShareableHost(listen)
-    ? normalizeShareHost(listen)
+function shareableListenFrom(listen: string): string {
+  const trimmed = listen.trim();
+  return trimmed.length > 0 && !isUnixSocketListen(trimmed) && isShareableHost(trimmed)
+    ? normalizeShareHost(trimmed)
     : '';
 }
 
 type ShareAddrStrategy = 'node' | 'listen' | 'custom';
 
-function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
-  const strategy = inbound.shareAddrStrategy;
-  return strategy === 'listen' || strategy === 'custom'
-    ? strategy
-    : 'node';
+function normalizeShareAddrStrategy(strategy: string | undefined): ShareAddrStrategy {
+  return strategy === 'listen' || strategy === 'custom' ? strategy : 'node';
+}
+
+// ShareHostFields is the subset of an inbound resolveShareHost needs, so callers
+// holding only a lightweight projection (e.g. the clients page InboundOption)
+// can pick the same host as the full-inbound share/QR path.
+export interface ShareHostFields {
+  listen: string;
+  shareAddr?: string;
+  shareAddrStrategy?: string;
+}
+
+// resolveShareHost picks the host that goes into share/QR links, the browser-side
+// analog of the backend resolveInboundAddress. hostOverride is the hosting node's
+// address (empty for this panel's own inbounds); fallbackHostname is the
+// already-resolved panel/public host used as the last resort.
+export function resolveShareHost(
+  fields: ShareHostFields,
+  hostOverride: string,
+  fallbackHostname: string,
+): string {
+  const nodeAddr = normalizeShareHost(hostOverride);
+  const listenAddr = shareableListenFrom(fields.listen);
+  const customAddr = normalizeShareHost(fields.shareAddr ?? '');
+  const fallbackAddr = normalizeShareHost(fallbackHostname);
+  switch (normalizeShareAddrStrategy(fields.shareAddrStrategy)) {
+    case 'listen':
+      return listenAddr || nodeAddr || fallbackAddr;
+    case 'custom':
+      return customAddr || nodeAddr || listenAddr || fallbackAddr;
+    default:
+      return nodeAddr || listenAddr || fallbackAddr;
+  }
 }
 
 // Orchestrators.
@@ -982,18 +1011,11 @@ function shareAddrStrategy(inbound: Inbound): ShareAddrStrategy {
 // node-managed inbounds; other strategies let a row prefer its listen address
 // or a custom endpoint.
 export function resolveAddr(inbound: Inbound, hostOverride: string, fallbackHostname: string): string {
-  const nodeAddr = normalizeShareHost(hostOverride);
-  const listenAddr = shareableListen(inbound);
-  const customAddr = normalizeShareHost(inbound.shareAddr ?? '');
-  const fallbackAddr = normalizeShareHost(fallbackHostname);
-  switch (shareAddrStrategy(inbound)) {
-    case 'listen':
-      return listenAddr || nodeAddr || fallbackAddr;
-    case 'custom':
-      return customAddr || nodeAddr || listenAddr || fallbackAddr;
-    default:
-      return nodeAddr || listenAddr || fallbackAddr;
-  }
+  return resolveShareHost(
+    { listen: inbound.listen, shareAddr: inbound.shareAddr, shareAddrStrategy: inbound.shareAddrStrategy },
+    hostOverride,
+    fallbackHostname,
+  );
 }
 
 // A loopback browser host means the panel was reached through a tunnel (e.g.
