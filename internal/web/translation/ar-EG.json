@@ -1865,7 +1865,7 @@
       "fields": {
         "remark": "ملاحظة",
         "serverDescription": "الوصف",
-        "inbound": "الوارد",
+        "inbound": "الواردات",
         "address": "العنوان",
         "port": "المنفذ",
         "endpoint": "النهاية",
@@ -1892,7 +1892,8 @@
         "tags": "وسوم",
         "nodeGuids": "النودز",
         "excludeFromSubTypes": "استبعاد من الصيغ",
-        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم"
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
+        "inheritAddress": "يرث العنوان"
       },
       "hints": {
         "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",

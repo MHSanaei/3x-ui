@@ -261,9 +261,10 @@ func (s *AllSetting) CheckValid() error {
 	return nil
 }
 
-type BulkAddHostReq struct {
+type HostGroup struct {
+	GroupId    string   `json:"groupId"`
 	InboundIds []int    `json:"inboundIds" validate:"required,min=1"`
-	Hosts      []string `json:"hosts" validate:"required,min=1,dive,required"`
+	Hosts      []string `json:"hosts" validate:"omitempty"`
 
 	SortOrder              int      `json:"sortOrder"`
 	Remark                 string   `json:"remark" validate:"required,max=256"`

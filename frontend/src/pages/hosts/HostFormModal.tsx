@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 
 import type { HostRecord } from '@/api/queries/useHostsQuery';
-import type { HostFormValues, BulkAddHostValues } from '@/schemas/api/host';
+import type { BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
@@ -21,12 +21,8 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
 
-type FormShape = Omit<HostFormValues, 'isDisabled' | 'inboundId' | 'address'> & {
+type FormShape = Omit<BulkAddHostValues, 'isDisabled'> & {
   enable: boolean;
-  inboundId?: number;
-  address?: string;
-  inboundIds?: number[];
-  hosts?: string[];
 };
 
 interface HostFormModalProps {
@@ -35,7 +31,7 @@ interface HostFormModalProps {
   host: HostRecord | null;
   inboundOptions: InboundOption[];
   existingHosts: HostRecord[];
-  save: (payload: Partial<HostFormValues> | BulkAddHostValues) => Promise<{ success?: boolean; msg?: string } | undefined>;
+  save: (payload: BulkAddHostValues) => Promise<{ success?: boolean; msg?: string } | undefined>;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -43,23 +39,21 @@ const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 function defaultsFor(host: HostRecord | null): FormShape {
   return {
-    inboundId: host?.inboundId,
-    inboundIds: host?.inboundId ? [host.inboundId] : [],
-    hosts: host?.address ? [host.port ? `${host.address}:${host.port}` : host.address] : [],
+    inboundIds: host?.inboundIds ?? [],
+    hosts: (host?.hosts || []).filter((h) => h && h.trim() !== ''),
     sortOrder: host?.sortOrder ?? 0,
     remark: host?.remark ?? '',
     serverDescription: host?.serverDescription ?? '',
     enable: host ? !host.isDisabled : true,
     isHidden: host?.isHidden ?? false,
     tags: host?.tags ?? [],
-    address: host?.address ?? '',
     port: host?.port ?? 0,
-    security: (host?.security as HostFormValues['security']) ?? 'same',
+    security: (host?.security as BulkAddHostValues['security']) ?? 'same',
     sni: host?.sni ?? '',
     hostHeader: host?.hostHeader ?? '',
     path: host?.path ?? '',
-    alpn: (host?.alpn as HostFormValues['alpn']) ?? [],
-    fingerprint: host?.fingerprint as HostFormValues['fingerprint'],
+    alpn: (host?.alpn as BulkAddHostValues['alpn']) ?? [],
+    fingerprint: host?.fingerprint as BulkAddHostValues['fingerprint'],
     overrideSniFromAddress: host?.overrideSniFromAddress ?? false,
     keepSniBlank: host?.keepSniBlank ?? false,
     pinnedPeerCertSha256: host?.pinnedPeerCertSha256 ?? [],
@@ -70,9 +64,9 @@ function defaultsFor(host: HostRecord | null): FormShape {
     sockoptParams: asString(host?.sockoptParams),
     finalMask: host?.finalMask ?? '',
     vlessRoute: host?.vlessRoute ?? '',
-    excludeFromSubTypes: (host?.excludeFromSubTypes as HostFormValues['excludeFromSubTypes']) ?? [],
+    excludeFromSubTypes: (host?.excludeFromSubTypes as BulkAddHostValues['excludeFromSubTypes']) ?? [],
     nodeGuids: host?.nodeGuids ?? [],
-    mihomoIpVersion: host?.mihomoIpVersion as HostFormValues['mihomoIpVersion'],
+    mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
   };
@@ -82,17 +76,17 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [form] = Form.useForm<FormShape>();
+  const [loading, setLoading] = useState(false);
 
-  // Drive conditional field visibility off the selected security, like the
-  // legacy externalProxy form: same/none inherit fully and hide every TLS/cert
-  // field; reality shows only the reality-relevant subset (its keys are
-  // inherited from the inbound); tls shows the full TLS override set.
   const security = (Form.useWatch('security', form) ?? 'same') as string;
   const showTls = security === 'tls' || security === 'reality';
   const showTlsExtras = security === 'tls';
 
   useEffect(() => {
-    if (open) form.setFieldsValue(defaultsFor(host));
+    if (open) {
+      form.setFieldsValue(defaultsFor(host));
+      setLoading(false);
+    }
   }, [open, host, form]);
 
   const { nodes } = useNodesQuery();
@@ -118,45 +112,45 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
   const hostOptions = useMemo(() => {
     const addresses = new Set<string>();
     for (const h of existingHosts || []) {
-      if (h.address) {
-        const entry = h.port ? `${h.address}:${h.port}` : h.address;
-        addresses.add(entry);
+      if (h.hosts) {
+        for (const addr of h.hosts) {
+          if (addr && addr.trim() !== '') {
+            addresses.add(addr);
+          }
+        }
       }
     }
     return Array.from(addresses).map((addr) => ({ value: addr, label: addr }));
   }, [existingHosts]);
 
   const onOk = async () => {
+    if (loading) return;
     let values: FormShape;
     try {
       values = await form.validateFields();
     } catch {
       return;
     }
-    const { enable, inboundId, address, inboundIds, hosts, ...rest } = values;
+    const { enable, ...rest } = values;
     const isDisabled = !enable;
-    let payload: Partial<HostFormValues> | BulkAddHostValues;
-    if (mode === 'add') {
-      payload = {
-        ...rest,
-        isDisabled,
-        inboundIds: inboundIds || [],
-        hosts: hosts || [],
-      } as BulkAddHostValues;
-    } else {
-      payload = {
-        ...rest,
-        isDisabled,
-        inboundId: inboundId || 0,
-        address: address || '',
-      } as Partial<HostFormValues>;
-    }
-    const res = await save(payload);
-    if (res?.success) {
-      message.success(t(mode === 'add' ? 'pages.hosts.toasts.add' : 'pages.hosts.toasts.update'));
-      onOpenChange(false);
-    } else if (res?.msg) {
-      message.error(res.msg);
+    const payload: BulkAddHostValues = {
+      ...rest,
+      hosts: (rest.hosts || []).filter((h) => h && h.trim() !== ''),
+      isDisabled,
+    };
+    setLoading(true);
+    try {
+      const res = await save(payload);
+      if (res?.success) {
+        message.success(t(mode === 'add' ? 'pages.hosts.toasts.add' : 'pages.hosts.toasts.update'));
+        onOpenChange(false);
+      } else if (res?.msg) {
+        message.error(res.msg);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -166,6 +160,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
       title={t(mode === 'add' ? 'pages.hosts.addHost' : 'pages.hosts.editHost')}
       onOk={onOk}
       onCancel={() => onOpenChange(false)}
+      confirmLoading={loading}
       okText={t('save')}
       cancelText={t('cancel')}
       destroyOnHidden
@@ -196,41 +191,23 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
                   <Form.Item name="serverDescription" label={t('pages.hosts.fields.serverDescription')} tooltip={t('pages.hosts.hints.serverDescription')}>
                     <Input maxLength={64} />
                   </Form.Item>
-                  {mode === 'add' ? (
-                    <Form.Item name="inboundIds" label={t('pages.hosts.fields.inbound')} rules={[{ required: true, type: 'array' }]}>
-                      <Select
-                        mode="multiple"
-                        options={inboundSelectOptions}
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder={t('pages.hosts.selectInbound')}
-                      />
-                    </Form.Item>
-                  ) : (
-                    <Form.Item name="inboundId" label={t('pages.hosts.fields.inbound')} rules={[{ required: true }]}>
-                      <Select
-                        options={inboundSelectOptions}
-                        showSearch
-                        optionFilterProp="label"
-                        disabled
-                        placeholder={t('pages.hosts.selectInbound')}
-                      />
-                    </Form.Item>
-                  )}
-                  {mode === 'add' ? (
-                    <Form.Item name="hosts" label={t('pages.hosts.fields.address')} tooltip={t('pages.hosts.hints.address')} rules={[{ required: true, type: 'array' }]}>
-                      <Select
-                        mode="tags"
-                        options={hostOptions}
-                        tokenSeparators={[',', ';', ' ']}
-                        placeholder="cdn.example.com, cdn2.example.com:443"
-                      />
-                    </Form.Item>
-                  ) : (
-                    <Form.Item name="address" label={t('pages.hosts.fields.address')} tooltip={t('pages.hosts.hints.address')} rules={[{ required: true }]}>
-                      <Input placeholder="cdn.example.com" />
-                    </Form.Item>
-                  )}
+                  <Form.Item name="inboundIds" label={t('pages.hosts.fields.inbound')} rules={[{ required: true, type: 'array' }]}>
+                    <Select
+                      mode="multiple"
+                      options={inboundSelectOptions}
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder={t('pages.hosts.selectInbound')}
+                    />
+                  </Form.Item>
+                  <Form.Item name="hosts" label={t('pages.hosts.fields.address')} tooltip={t('pages.hosts.hints.address')} rules={[{ type: 'array' }]}>
+                    <Select
+                      mode="tags"
+                      options={hostOptions}
+                      tokenSeparators={[',', ';', ' ']}
+                      placeholder="cdn.example.com, cdn2.example.com:443"
+                    />
+                  </Form.Item>
                   <Form.Item name="port" label={t('pages.hosts.fields.port')} tooltip={t('pages.hosts.hints.port')}>
                     <InputNumber min={0} max={65535} />
                   </Form.Item>

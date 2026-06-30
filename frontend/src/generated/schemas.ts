@@ -1063,164 +1063,6 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
-  "BulkAddHostReq": {
-    "properties": {
-      "allowInsecure": {
-        "type": "boolean"
-      },
-      "alpn": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "echConfigList": {
-        "type": "string"
-      },
-      "excludeFromSubTypes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "finalMask": {
-        "type": "string"
-      },
-      "fingerprint": {
-        "type": "string"
-      },
-      "hostHeader": {
-        "type": "string"
-      },
-      "hosts": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "inboundIds": {
-        "items": {
-          "type": "integer"
-        },
-        "type": "array"
-      },
-      "isDisabled": {
-        "type": "boolean"
-      },
-      "isHidden": {
-        "type": "boolean"
-      },
-      "keepSniBlank": {
-        "type": "boolean"
-      },
-      "mihomoIpVersion": {
-        "type": "string"
-      },
-      "mihomoX25519": {
-        "type": "boolean"
-      },
-      "muxParams": {
-        "type": "string"
-      },
-      "nodeGuids": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "overrideSniFromAddress": {
-        "type": "boolean"
-      },
-      "path": {
-        "type": "string"
-      },
-      "pinnedPeerCertSha256": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "port": {
-        "maximum": 65535,
-        "minimum": 0,
-        "type": "integer"
-      },
-      "remark": {
-        "maxLength": 256,
-        "type": "string"
-      },
-      "security": {
-        "enum": [
-          "same",
-          "tls",
-          "none",
-          "reality"
-        ],
-        "type": "string"
-      },
-      "serverDescription": {
-        "maxLength": 64,
-        "type": "string"
-      },
-      "shuffleHost": {
-        "type": "boolean"
-      },
-      "sni": {
-        "type": "string"
-      },
-      "sockoptParams": {
-        "type": "string"
-      },
-      "sortOrder": {
-        "type": "integer"
-      },
-      "tags": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "verifyPeerCertByName": {
-        "type": "string"
-      },
-      "vlessRoute": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "allowInsecure",
-      "alpn",
-      "echConfigList",
-      "excludeFromSubTypes",
-      "finalMask",
-      "fingerprint",
-      "hostHeader",
-      "hosts",
-      "inboundIds",
-      "isDisabled",
-      "isHidden",
-      "keepSniBlank",
-      "mihomoIpVersion",
-      "mihomoX25519",
-      "muxParams",
-      "nodeGuids",
-      "overrideSniFromAddress",
-      "path",
-      "pinnedPeerCertSha256",
-      "port",
-      "remark",
-      "security",
-      "serverDescription",
-      "shuffleHost",
-      "sni",
-      "sockoptParams",
-      "sortOrder",
-      "tags",
-      "verifyPeerCertByName",
-      "vlessRoute"
-    ],
-    "type": "object"
-  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -1603,6 +1445,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "fingerprint": {
         "type": "string"
       },
+      "groupId": {
+        "type": "string"
+      },
       "hostHeader": {
         "type": "string"
       },
@@ -1717,6 +1562,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "excludeFromSubTypes",
       "finalMask",
       "fingerprint",
+      "groupId",
       "hostHeader",
       "id",
       "inboundId",

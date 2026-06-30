@@ -637,7 +637,44 @@ func runSeeders(isUsersEmpty bool) error {
 	if err := seedWireguardPeersToClients(); err != nil {
 		return err
 	}
+
+	if err := seedHostGroupIds(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// seedHostGroupIds assigns a unique group ID to any existing host overrides that do not have one.
+func seedHostGroupIds() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "HostGroupIds") {
+		return nil
+	}
+
+	var hosts []*model.Host
+	if err := db.Where("group_id = '' OR group_id IS NULL").Find(&hosts).Error; err != nil {
+		return err
+	}
+
+	if len(hosts) > 0 {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			for _, h := range hosts {
+				h.GroupId = random.NumLower(16)
+				if err := tx.Model(h).Update("group_id", h.GroupId).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return db.Create(&model.HistoryOfSeeders{SeederName: "HostGroupIds"}).Error
 }
 
 // resetIpLimitsWithoutFail2ban zeroes every client's IP limit on hosts where

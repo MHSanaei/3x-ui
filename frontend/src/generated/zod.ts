@@ -239,40 +239,6 @@ export const ApiTokenViewSchema = z.object({
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
-export const BulkAddHostReqSchema = z.object({
-  allowInsecure: z.boolean(),
-  alpn: z.array(z.string()),
-  echConfigList: z.string(),
-  excludeFromSubTypes: z.array(z.string()),
-  finalMask: z.string(),
-  fingerprint: z.string(),
-  hostHeader: z.string(),
-  hosts: z.array(z.string()),
-  inboundIds: z.array(z.number().int()),
-  isDisabled: z.boolean(),
-  isHidden: z.boolean(),
-  keepSniBlank: z.boolean(),
-  mihomoIpVersion: z.string(),
-  mihomoX25519: z.boolean(),
-  muxParams: z.string(),
-  nodeGuids: z.array(z.string()),
-  overrideSniFromAddress: z.boolean(),
-  path: z.string(),
-  pinnedPeerCertSha256: z.array(z.string()),
-  port: z.number().int().min(0).max(65535),
-  remark: z.string().max(256),
-  security: z.enum(['same', 'tls', 'none', 'reality']),
-  serverDescription: z.string().max(64),
-  shuffleHost: z.boolean(),
-  sni: z.string(),
-  sockoptParams: z.string(),
-  sortOrder: z.number().int(),
-  tags: z.array(z.string()),
-  verifyPeerCertByName: z.string(),
-  vlessRoute: z.string(),
-});
-export type BulkAddHostReq = z.infer<typeof BulkAddHostReqSchema>;
-
 export const ClientSchema = z.object({
   allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
@@ -378,6 +344,7 @@ export const HostSchema = z.object({
   excludeFromSubTypes: z.array(z.string()),
   finalMask: z.string(),
   fingerprint: z.string(),
+  groupId: z.string(),
   hostHeader: z.string(),
   id: z.number().int(),
   inboundId: z.number().int(),

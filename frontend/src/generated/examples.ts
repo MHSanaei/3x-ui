@@ -213,52 +213,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "name": "central-panel-a",
     "token": "new-token-string"
   },
-  "BulkAddHostReq": {
-    "allowInsecure": false,
-    "alpn": [
-      ""
-    ],
-    "echConfigList": "",
-    "excludeFromSubTypes": [
-      ""
-    ],
-    "finalMask": "",
-    "fingerprint": "",
-    "hostHeader": "",
-    "hosts": [
-      ""
-    ],
-    "inboundIds": [
-      0
-    ],
-    "isDisabled": false,
-    "isHidden": false,
-    "keepSniBlank": false,
-    "mihomoIpVersion": "",
-    "mihomoX25519": false,
-    "muxParams": "",
-    "nodeGuids": [
-      ""
-    ],
-    "overrideSniFromAddress": false,
-    "path": "",
-    "pinnedPeerCertSha256": [
-      ""
-    ],
-    "port": 0,
-    "remark": "",
-    "security": "same",
-    "serverDescription": "",
-    "shuffleHost": false,
-    "sni": "",
-    "sockoptParams": "",
-    "sortOrder": 0,
-    "tags": [
-      ""
-    ],
-    "verifyPeerCertByName": "",
-    "vlessRoute": ""
-  },
   "Client": {
     "allowedIPs": [
       ""
@@ -356,6 +310,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "finalMask": "",
     "fingerprint": "",
+    "groupId": "",
     "hostHeader": "",
     "id": 1,
     "inboundId": 1,

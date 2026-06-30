@@ -1865,7 +1865,7 @@
       "fields": {
         "remark": "Примечание",
         "serverDescription": "Описание",
-        "inbound": "Входящее",
+        "inbound": "Входящие",
         "address": "Адрес",
         "port": "Порт",
         "endpoint": "Конечная точка",
@@ -1892,7 +1892,8 @@
         "shuffleHost": "Перемешивать хост",
         "tags": "Теги",
         "nodeGuids": "Узлы",
-        "excludeFromSubTypes": "Исключить из форматов"
+        "excludeFromSubTypes": "Исключить из форматов",
+        "inheritAddress": "Наследует адрес"
       },
       "hints": {
         "address": "Оставьте пустым, чтобы унаследовать собственный адрес входящего.",

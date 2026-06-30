@@ -85,15 +85,15 @@ export type HostFormValues = z.infer<typeof HostFormSchema>;
 // HostRecord is the loose list/read projection from /panel/api/hosts. Slice and
 // free-JSON fields tolerate the backend serializing nil as null.
 export const HostRecordSchema = z.object({
-  id: z.number(),
-  inboundId: z.number(),
+  groupId: z.string(),
+  inboundIds: z.array(z.number()),
+  hosts: z.array(z.string()),
   sortOrder: z.number().optional(),
   remark: z.string().optional(),
   serverDescription: z.string().optional(),
   isDisabled: z.boolean().optional(),
   isHidden: z.boolean().optional(),
   tags: z.array(z.string()).nullish(),
-  address: z.string().optional(),
   port: z.number().optional(),
   security: z.string().optional(),
   sni: z.string().optional(),

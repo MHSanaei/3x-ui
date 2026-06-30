@@ -1892,7 +1892,8 @@
         "shuffleHost": "随机打乱 Host",
         "tags": "标签",
         "nodeGuids": "节点",
-        "excludeFromSubTypes": "从格式中排除"
+        "excludeFromSubTypes": "从格式中排除",
+        "inheritAddress": "继承地址"
       },
       "hints": {
         "address": "留空则继承入站自身的地址。",

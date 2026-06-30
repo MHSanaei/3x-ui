@@ -996,7 +996,7 @@
       "fields": {
         "remark": "Remark",
         "serverDescription": "Description",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Address",
         "port": "Port",
         "endpoint": "Endpoint",
@@ -1023,7 +1023,8 @@
         "shuffleHost": "Shuffle host",
         "tags": "Tags",
         "nodeGuids": "Nodes",
-        "excludeFromSubTypes": "Exclude from formats"
+        "excludeFromSubTypes": "Exclude from formats",
+        "inheritAddress": "Inherits"
       },
       "hints": {
         "address": "Leave blank to inherit the inbound's own address.",
@@ -1078,9 +1079,9 @@
       "toasts": {
         "list": "Failed to load hosts",
         "obtain": "Failed to load host",
-        "add": "Add host",
-        "update": "Update host",
-        "delete": "Delete host",
+        "add": "Host added successfully",
+        "update": "Host updated successfully",
+        "delete": "Host deleted successfully",
         "badTag": "Invalid tag",
         "badVlessRoute": "Enter a single number between 0 and 65535"
       }
