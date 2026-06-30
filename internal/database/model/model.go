@@ -69,6 +69,15 @@ type Inbound struct {
 	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:node" validate:"omitempty,oneof=node listen custom"`
 	ShareAddr         string   `json:"shareAddr" form:"shareAddr" gorm:"column:share_addr"`
 
+	// DisableFlow opts this inbound out of automatic XTLS flow
+	// (xtls-rprx-vision) injection even when the transport would otherwise be
+	// flow-capable — e.g. a tunneled/CDN-fronted XHTTP+vlessenc inbound where an
+	// operator does not want Vision applied. Panel-only metadata; never sent to
+	// xray. When true, the inbound reports tlsFlowCapable=false, the write path
+	// clamps each attached client's flow to empty, and share links/subscriptions
+	// never carry the flow for it.
+	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false"`
+
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
 	// inbound, propagated up across hops (#4983). Empty for an inbound that
 	// lives on this panel's own xray; set to the originating node's GUID when

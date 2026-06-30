@@ -147,7 +147,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 }
 
 func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
-	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings, ib.Settings) {
+	if ib.DisableFlow || !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings, ib.Settings) {
 		c.Flow = ""
 	}
 	return c
