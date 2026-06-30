@@ -652,6 +652,8 @@
         "shareAddrHelp": "Yalnızca paylaşım adresi stratejisi Özel olduğunda kullanılır. Şema veya port olmadan bir ana makine ya da IP girin.",
         "subSortIndex": "Abonelikte sıralama",
         "subSortIndexHelp": "Bu gelen bağlantının linklerinin abonelik çıktısındaki (abonelik sayfası ve istemci uygulamaları) konumu. Küçük değerler önce gelir; eşit değerlerde oluşturulma sırası korunur. Paneldeki gelen bağlantı listesini etkilemez.",
+        "disableFlow": "XTLS akışını devre dışı bırak",
+        "disableFlowHelp": "Taşıması flow destekliyor olsa bile (ör. VLESS şifrelemeli, tünellenmiş bir XHTTP inbound) bu inbound'u otomatik xtls-rprx-vision eklemenin dışında tut. İstemciler aynı abonelikteki diğer uygun inbound'larda Vision'ı korur. Yalnızca VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Düğüm adresi",
           "listen": "Inbound dinleme adresi",

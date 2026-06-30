@@ -421,6 +421,12 @@ export default function InboundFormModal({
       if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
         form.setFieldValue('nodeId', null);
       }
+      // disableFlow is a VLESS-only opt-out; clear it when switching to a
+      // protocol that can't carry XTLS flow so a stale disableFlow=true is
+      // never persisted on a non-VLESS inbound.
+      if (next !== Protocols.VLESS) {
+        form.setFieldValue('disableFlow', false);
+      }
       // Hysteria uses its dedicated transport — force the network branch
       // so the stream tab renders the hysteria sub-form, not the leftover
       // tcpSettings from the previous protocol. When leaving hysteria,

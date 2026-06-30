@@ -673,6 +673,8 @@
         "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
         "subSortIndex": "Orden en la suscripción",
         "subSortIndexHelp": "Posición de los enlaces de esta entrada en la salida de la suscripción (página de suscripción y apps cliente). Los valores más bajos van primero; con valores iguales se mantiene el orden de creación. No afecta a la lista de entradas del panel.",
+        "disableFlow": "Desactivar el flujo XTLS",
+        "disableFlowHelp": "Excluye este inbound de la inyección automática de xtls-rprx-vision, incluso cuando su transporte admite flow (p. ej. un inbound XHTTP tunelizado con cifrado VLESS). Los clientes mantienen Vision en tus demás inbounds compatibles de la misma suscripción. Solo VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",
