@@ -804,6 +804,7 @@
       "groupPlaceholder": "например, customer-a",
       "comment": "Комментарий",
       "traffic": "Трафик",
+      "speed": "Скорость",
       "offline": "Не в сети",
       "addClient": "Добавить клиента",
       "qrCode": "QR-код",

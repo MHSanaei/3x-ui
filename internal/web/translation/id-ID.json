@@ -804,6 +804,7 @@
       "groupPlaceholder": "mis. customer-a",
       "comment": "Komentar",
       "traffic": "Lalu lintas",
+      "speed": "Kecepatan",
       "offline": "Offline",
       "addClient": "Tambah klien",
       "qrCode": "Kode QR",
