@@ -1801,7 +1801,7 @@
         "title": "Observatory",
         "burstTitle": "Burst Observatory",
         "autoManaged": "Observers are managed automatically from your balancers. Tune how they probe below — the watched outbounds follow your balancer selectors.",
-        "emptyHint": "No connection observer is active. One is added automatically when you create a Least Ping or Least Load balancer — or a Random / Round-robin balancer with a fallback — so the balancer can measure your outbounds and pick the best one.",
+        "emptyHint": "No connection observer is active. One is added automatically when you create a Least Ping or Least Load balancer — or a Random / Round-robin balancer with a fallback — so observer-backed balancers can check outbound health before choosing a target.",
         "subjectSelector": "Watched Outbounds",
         "subjectSelectorDesc": "Outbound tags this observer probes. Managed automatically from your balancers.",
         "probeURL": "Probe URL",

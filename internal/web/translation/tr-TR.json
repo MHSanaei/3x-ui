@@ -1685,7 +1685,7 @@
         "title": "Gözlemci",
         "burstTitle": "Burst Gözlemci",
         "autoManaged": "Gözlemciler dengeleyicilerinize göre otomatik yönetilir. Nasıl sınama yapacaklarını aşağıdan ayarlayın; izlenen çıkışlar dengeleyici seçicilerini izler.",
-        "emptyHint": "Etkin bir bağlantı gözlemcisi yok. Least Ping veya Least Load dengeleyici — ya da fallback içeren Random / Round-robin dengeleyici — oluşturduğunuzda otomatik olarak bir tane eklenir; böylece dengeleyici çıkışlarınızı ölçüp en iyisini seçebilir.",
+        "emptyHint": "Etkin bir bağlantı gözlemcisi yok. Least Ping veya Least Load dengeleyici — ya da fallback içeren Random / Round-robin dengeleyici — oluşturduğunuzda otomatik olarak bir tane eklenir; böylece gözlemci kullanan dengeleyiciler hedef seçmeden önce çıkış sağlığını kontrol edebilir.",
         "subjectSelector": "İzlenen Çıkışlar",
         "subjectSelectorDesc": "Bu gözlemcinin sınadığı çıkış etiketleri. Dengeleyicilerinize göre otomatik yönetilir.",
         "probeURL": "Sınama URL'si",

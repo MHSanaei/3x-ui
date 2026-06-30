@@ -1685,7 +1685,7 @@
         "title": "Observatório",
         "burstTitle": "Observatório Burst",
         "autoManaged": "Os observadores são gerenciados automaticamente a partir dos seus balanceadores. Ajuste abaixo como eles sondam; as saídas monitoradas seguem os seletores do balanceador.",
-        "emptyHint": "Nenhum observador de conexão ativo. Um é adicionado automaticamente ao criar um balanceador Least Ping ou Least Load — ou um balanceador Random / Round-robin com fallback — para que o balanceador possa medir suas saídas e escolher a melhor.",
+        "emptyHint": "Nenhum observador de conexão ativo. Um é adicionado automaticamente ao criar um balanceador Least Ping ou Least Load — ou um balanceador Random / Round-robin com fallback — para que balanceadores com observador possam verificar a saúde das saídas antes de escolher um destino.",
         "subjectSelector": "Saídas monitoradas",
         "subjectSelectorDesc": "Tags de saída que este observador sonda. Gerenciadas automaticamente a partir dos seus balanceadores.",
         "probeURL": "URL de sondagem",

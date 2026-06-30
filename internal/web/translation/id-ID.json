@@ -1685,7 +1685,7 @@
         "title": "Observatory",
         "burstTitle": "Burst Observatory",
         "autoManaged": "Observer dikelola otomatis dari balancer Anda. Atur cara mereka melakukan probe di bawah; outbound yang dipantau mengikuti selector balancer.",
-        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer dapat mengukur outbound Anda dan memilih yang terbaik.",
+        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer yang memakai observer dapat memeriksa kesehatan outbound sebelum memilih target.",
         "subjectSelector": "Outbound yang Dipantau",
         "subjectSelectorDesc": "Tag outbound yang di-probe observer ini. Dikelola otomatis dari balancer Anda.",
         "probeURL": "URL Probe",
