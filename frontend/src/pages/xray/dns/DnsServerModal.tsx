@@ -205,13 +205,13 @@ export default function DnsServerModal({
         <Form.List name="domains">
           {(fields, { add, remove }) => (
             <Form.Item label={t('pages.xray.dns.domains')}>
-              <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => add('')} />
+              <Button size="small" type="primary" icon={<PlusOutlined />} aria-label={t('add')} onClick={() => add('')} />
               {fields.map((field) => (
                 <Space.Compact key={field.key} block style={{ marginTop: 4 }}>
                   <Form.Item name={field.name} noStyle>
                     <Input />
                   </Form.Item>
-                  <InputAddon onClick={() => remove(field.name)}>
+                  <InputAddon ariaLabel={t('remove')} onClick={() => remove(field.name)}>
                     <MinusOutlined />
                   </InputAddon>
                 </Space.Compact>
@@ -223,13 +223,13 @@ export default function DnsServerModal({
         <Form.List name="expectedIPs">
           {(fields, { add, remove }) => (
             <Form.Item label={t('pages.xray.dns.expectIPs')}>
-              <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => add('')} />
+              <Button size="small" type="primary" icon={<PlusOutlined />} aria-label={t('add')} onClick={() => add('')} />
               {fields.map((field) => (
                 <Space.Compact key={field.key} block style={{ marginTop: 4 }}>
                   <Form.Item name={field.name} noStyle>
                     <Input />
                   </Form.Item>
-                  <InputAddon onClick={() => remove(field.name)}>
+                  <InputAddon ariaLabel={t('remove')} onClick={() => remove(field.name)}>
                     <MinusOutlined />
                   </InputAddon>
                 </Space.Compact>
@@ -241,13 +241,13 @@ export default function DnsServerModal({
         <Form.List name="unexpectedIPs">
           {(fields, { add, remove }) => (
             <Form.Item label={t('pages.xray.dns.unexpectIPs')}>
-              <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => add('')} />
+              <Button size="small" type="primary" icon={<PlusOutlined />} aria-label={t('add')} onClick={() => add('')} />
               {fields.map((field) => (
                 <Space.Compact key={field.key} block style={{ marginTop: 4 }}>
                   <Form.Item name={field.name} noStyle>
                     <Input />
                   </Form.Item>
-                  <InputAddon onClick={() => remove(field.name)}>
+                  <InputAddon ariaLabel={t('remove')} onClick={() => remove(field.name)}>
                     <MinusOutlined />
                   </InputAddon>
                 </Space.Compact>

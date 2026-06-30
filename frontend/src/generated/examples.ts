@@ -340,7 +340,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "updatedAt": 0,
     "verifyPeerCertByName": "",
-    "vlessRoute": ""
+    "vlessRoute": "443"
   },
   "Inbound": {
     "clientStats": [

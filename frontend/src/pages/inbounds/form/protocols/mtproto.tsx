@@ -27,6 +27,7 @@ export default function MtprotoFields() {
             <Input readOnly style={{ width: 'calc(100% - 32px)' }} />
           </Form.Item>
           <Button
+            aria-label={t('regenerate')}
             icon={<ReloadOutlined />}
             onClick={() => {
               const domain = form.getFieldValue(['settings', 'fakeTlsDomain']);

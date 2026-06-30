@@ -1545,7 +1545,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "vlessRoute": {
-        "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
+        "description": "Single VLESS route value (0-65535) baked into the subscription UUID's 3rd\ngroup (bytes 6-7), which xray reads via net.PortFromBytes(id[6:8]). Empty = none.",
+        "example": "443",
         "type": "string"
       }
     },

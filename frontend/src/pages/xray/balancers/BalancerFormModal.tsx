@@ -224,16 +224,18 @@ export default function BalancerFormModal({
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
+                aria-label={t('add')}
                 onClick={() => updateBaselines([...baselines, ''])}
               />
               {baselines.map((b, idx) => (
                 <Space.Compact key={idx} block style={{ marginTop: 4 }}>
                   <Input
                     value={b}
+                    aria-label={t('pages.xray.balancer.baselines')}
                     placeholder="e.g. 1s"
                     onChange={(e) => updateBaselines(baselines.map((x, i) => (i === idx ? e.target.value : x)))}
                   />
-                  <InputAddon onClick={() => updateBaselines(baselines.filter((_, i) => i !== idx))}>
+                  <InputAddon ariaLabel={t('remove')} onClick={() => updateBaselines(baselines.filter((_, i) => i !== idx))}>
                     <MinusOutlined />
                   </InputAddon>
                 </Space.Compact>
@@ -244,28 +246,32 @@ export default function BalancerFormModal({
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
+                aria-label={t('add')}
                 onClick={() => updateCosts([...costs, { regexp: false, match: '', value: 1 }])}
               />
               {costs.map((c, idx) => (
                 <Space.Compact key={idx} block style={{ marginTop: 4 }}>
                   <Switch
                     checked={c.regexp}
+                    aria-label={t('pages.xray.balancer.costRegexp')}
                     checkedChildren="re"
                     unCheckedChildren="lit"
                     onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)))}
                   />
                   <Input
                     value={c.match}
+                    aria-label={t('pages.xray.balancer.costMatch')}
                     placeholder="tag pattern"
                     onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
                   />
                   <InputNumber
                     value={c.value}
+                    aria-label={t('pages.xray.balancer.costValue')}
                     placeholder="weight"
                     style={{ width: 100 }}
                     onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, value: typeof v === 'number' ? v : 0 } : x)))}
                   />
-                  <InputAddon onClick={() => updateCosts(costs.filter((_, i) => i !== idx))}>
+                  <InputAddon ariaLabel={t('remove')} onClick={() => updateCosts(costs.filter((_, i) => i !== idx))}>
                     <MinusOutlined />
                   </InputAddon>
                 </Space.Compact>

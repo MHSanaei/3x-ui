@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Input, Space } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
@@ -74,6 +75,7 @@ function rowsToMap(rows: HeaderRow[], mode: HeaderMapMode): Record<string, strin
 }
 
 export default function HeaderMapEditor({ mode, value, onChange }: HeaderMapEditorProps) {
+  const { t } = useTranslation();
   // Local state holds rows including blanks. Without it, addRow() would
   // append a {name:'', value:''} that rowsToMap immediately filters out
   // before reaching the form, so the new row would never reach UI. The
@@ -130,7 +132,7 @@ export default function HeaderMapEditor({ mode, value, onChange }: HeaderMapEdit
             placeholder="Value"
             onChange={(e) => setRow(idx, { value: e.target.value })}
           />
-          <Button icon={<MinusOutlined />} onClick={() => removeRow(idx)} />
+          <Button aria-label={t('remove')} icon={<MinusOutlined />} onClick={() => removeRow(idx)} />
         </Space.Compact>
       ))}
       <Button size="small" type="primary" icon={<PlusOutlined />} onClick={addRow}>

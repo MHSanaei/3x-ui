@@ -3,6 +3,7 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch, type FormInsta
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { Wireguard } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { InputAddon } from '@/components/ui';
 import { WireguardDomainStrategy } from '@/schemas/primitives';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
@@ -17,10 +18,11 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
       <Form.Item label={t('pages.inbounds.privatekey')}>
         <Space.Compact block>
           <Form.Item name={['settings', 'secretKey']} noStyle>
-            <Input style={{ width: 'calc(100% - 32px)' }} />
+            <Input aria-label={t('pages.inbounds.privatekey')} style={{ width: 'calc(100% - 32px)' }} />
           </Form.Item>
           <Button
             icon={<ReloadOutlined />}
+            aria-label={t('regenerate')}
             onClick={() => {
               const pair = Wireguard.generateKeypair();
               form.setFieldValue(['settings', 'secretKey'], pair.privateKey);
@@ -61,6 +63,7 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
+                aria-label={t('add')}
                 onClick={() =>
                   add({
                     publicKey: '',
@@ -80,7 +83,11 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
                     {fields.length > 1 && (
                       <DeleteOutlined
                         className="danger-icon"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('remove')}
                         onClick={() => remove(field.name)}
+                        onKeyDown={activateOnKey(() => remove(field.name))}
                       />
                     )}
                   </div>
@@ -108,10 +115,10 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
                             style={{ marginBottom: 4 }}
                           >
                             <Form.Item noStyle name={ipField.name}>
-                              <Input />
+                              <Input aria-label={t('pages.xray.wireguard.allowedIPs')} />
                             </Form.Item>
                             {ipFields.length > 1 && (
-                              <InputAddon onClick={() => removeIp(ipIdx)}>
+                              <InputAddon ariaLabel={t('remove')} onClick={() => removeIp(ipIdx)}>
                                 <MinusOutlined />
                               </InputAddon>
                             )}
@@ -120,6 +127,7 @@ export default function WireguardFields({ form }: { form: FormInstance<OutboundF
                         <Button
                           size="small"
                           icon={<PlusOutlined />}
+                          aria-label={t('add')}
                           onClick={() => addIp('')}
                         />
                       </>

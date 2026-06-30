@@ -210,7 +210,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "vmess":
 			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "vless":
-			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, jsonMux(mux, hostMux)))
+			vc := client
+			vc.ID = applyVlessRoute(client.ID, hostVlessRoute(extPrxy))
+			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, vc, jsonMux(mux, hostMux)))
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":

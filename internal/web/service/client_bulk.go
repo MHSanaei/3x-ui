@@ -421,6 +421,27 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 	}
 
+	now := time.Now().Unix() * 1000
+	cond := depletedCond(db)
+	candidateEmails := make([]string, 0, len(plan))
+	for email, entry := range plan {
+		if entry.applyExpiry || entry.applyTotal {
+			candidateEmails = append(candidateEmails, email)
+		}
+	}
+	wasDisabledDepleted := map[string]struct{}{}
+	for _, batch := range chunkStrings(candidateEmails, sqlInChunk) {
+		var rows []string
+		if err := db.Model(xray.ClientTraffic{}).
+			Where(cond+" AND enable = ? AND email IN ?", now, false, batch).
+			Pluck("email", &rows).Error; err != nil {
+			return result, needRestart, err
+		}
+		for _, e := range rows {
+			wasDisabledDepleted[e] = struct{}{}
+		}
+	}
+
 	adjusted := map[string]struct{}{}
 	for email, entry := range plan {
 		if _, skipped := skippedReasons[email]; skipped {
@@ -464,6 +485,41 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 		result.Skipped = append(result.Skipped, BulkAdjustReport{Email: email, Reason: "flow not supported on inbound"})
 	}
+
+	if len(wasDisabledDepleted) > 0 {
+		stillDepleted := map[string]struct{}{}
+		wasList := make([]string, 0, len(wasDisabledDepleted))
+		for e := range wasDisabledDepleted {
+			wasList = append(wasList, e)
+		}
+		for _, batch := range chunkStrings(wasList, sqlInChunk) {
+			var rows []string
+			if err := db.Model(xray.ClientTraffic{}).
+				Where(cond+" AND email IN ?", now, batch).
+				Pluck("email", &rows).Error; err != nil {
+				return result, needRestart, err
+			}
+			for _, e := range rows {
+				stillDepleted[e] = struct{}{}
+			}
+		}
+		reEnable := make([]string, 0, len(wasDisabledDepleted))
+		for e := range wasDisabledDepleted {
+			if _, still := stillDepleted[e]; !still {
+				reEnable = append(reEnable, e)
+			}
+		}
+		if len(reEnable) > 0 {
+			_, nr, err := s.BulkSetEnable(inboundSvc, reEnable, true)
+			if err != nil {
+				return result, needRestart, err
+			}
+			if nr {
+				needRestart = true
+			}
+		}
+	}
+
 	return result, needRestart, nil
 }
 

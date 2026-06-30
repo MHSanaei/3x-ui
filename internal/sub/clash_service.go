@@ -239,7 +239,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["cipher"] = cipher
 	case model.VLESS:
 		proxy["type"] = "vless"
-		proxy["uuid"] = client.ID
+		proxy["uuid"] = applyVlessRoute(client.ID, hostVlessRoute(ep))
 		var inboundSettings map[string]any
 		_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
 		streamSecurity, _ := stream["security"].(string)

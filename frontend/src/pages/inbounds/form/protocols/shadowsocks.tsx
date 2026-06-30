@@ -33,6 +33,7 @@ export default function ShadowsocksFields({ form, isSSWith2022 }: ShadowsocksFie
               <Input style={{ width: 'calc(100% - 32px)' }} />
             </Form.Item>
             <Button
+              aria-label={t('regenerate')}
               icon={<ReloadOutlined />}
               onClick={() => {
                 const method = form.getFieldValue(['settings', 'method']);

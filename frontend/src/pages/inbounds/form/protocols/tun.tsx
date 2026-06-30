@@ -15,7 +15,7 @@ export default function TunFields() {
       <Form.List name={['settings', 'gateway']}>
         {(fields, { add, remove }) => (
           <Form.Item label={t('pages.inbounds.info.gateway')}>
-            <Button size="small" onClick={() => add('')}>
+            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
               <PlusOutlined />
             </Button>
             {fields.map((field, j) => (
@@ -23,7 +23,7 @@ export default function TunFields() {
                 <Form.Item name={field.name} noStyle>
                   <Input placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'} />
                 </Form.Item>
-                <Button size="small" onClick={() => remove(field.name)}>
+                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
                   <MinusOutlined />
                 </Button>
               </Space.Compact>
@@ -34,7 +34,7 @@ export default function TunFields() {
       <Form.List name={['settings', 'dns']}>
         {(fields, { add, remove }) => (
           <Form.Item label="DNS">
-            <Button size="small" onClick={() => add('')}>
+            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
               <PlusOutlined />
             </Button>
             {fields.map((field, j) => (
@@ -42,7 +42,7 @@ export default function TunFields() {
                 <Form.Item name={field.name} noStyle>
                   <Input placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'} />
                 </Form.Item>
-                <Button size="small" onClick={() => remove(field.name)}>
+                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
                   <MinusOutlined />
                 </Button>
               </Space.Compact>
@@ -62,7 +62,7 @@ export default function TunFields() {
               </Tooltip>
             }
           >
-            <Button size="small" onClick={() => add('')}>
+            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
               <PlusOutlined />
             </Button>
             {fields.map((field, j) => (
@@ -70,7 +70,7 @@ export default function TunFields() {
                 <Form.Item name={field.name} noStyle>
                   <Input placeholder={j === 0 ? '0.0.0.0/0' : '::/0'} />
                 </Form.Item>
-                <Button size="small" onClick={() => remove(field.name)}>
+                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
                   <MinusOutlined />
                 </Button>
               </Space.Compact>

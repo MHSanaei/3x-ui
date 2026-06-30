@@ -124,6 +124,7 @@ export default function TlsForm({
           <>
             <Form.Item label={t('certificate')}>
               <Button
+                aria-label={t('add')}
                 type="primary"
                 size="small"
                 onClick={() => add({
@@ -242,7 +243,7 @@ export default function TlsForm({
                   name={[certField.name, 'ocspStapling']}
                   label="OCSP Stapling"
                 >
-                  <InputNumber min={0} addonAfter="s" style={{ width: '50%' }} />
+                  <InputNumber min={0} suffix="s" style={{ width: '50%' }} />
                 </Form.Item>
                 <Form.Item
                   name={[certField.name, 'oneTimeLoading']}

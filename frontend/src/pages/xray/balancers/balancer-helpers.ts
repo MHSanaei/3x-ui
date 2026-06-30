@@ -72,19 +72,3 @@ export function syncObservatories(t: XraySettingsValue) {
     delete t.burstObservatory;
   }
 }
-
-export function observersRemovedByDeletingBalancer(
-  t: XraySettingsValue,
-  idx: number,
-): { observatory: boolean; burst: boolean } {
-  const hadObservatory = !!t.observatory;
-  const hadBurst = !!t.burstObservatory;
-  if (!hadObservatory && !hadBurst) return { observatory: false, burst: false };
-  const clone = JSON.parse(JSON.stringify(t)) as XraySettingsValue;
-  if (clone.routing?.balancers) clone.routing.balancers.splice(idx, 1);
-  syncObservatories(clone);
-  return {
-    observatory: hadObservatory && !clone.observatory,
-    burst: hadBurst && !clone.burstObservatory,
-  };
-}

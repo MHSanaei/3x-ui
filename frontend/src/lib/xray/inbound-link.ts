@@ -326,6 +326,18 @@ export interface GenVlessLinkInput {
   externalProxy?: ExternalProxyEntry | null;
 }
 
+// Mirror of the Go applyVlessRoute: bake a single 0-65535 value into the UUID's
+// 3rd group (bytes 6-7), which xray reads as the vless route. Empty/invalid/non-
+// UUID input is returned unchanged.
+export function applyVlessRoute(id: string, route: string | undefined): string {
+  const r = (route ?? '').trim();
+  if (r === '' || !/^\d{1,5}$/.test(r)) return id;
+  const n = Number(r);
+  if (n > 65535) return id;
+  if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) return id;
+  return id.slice(0, 14) + n.toString(16).padStart(4, '0') + id.slice(18);
+}
+
 // VLESS share link: vless://<uuid>@<host>:<port>?<query>#<remark>. The
 // query carries network type, encryption, network-specific knobs, and
 // security-specific knobs (TLS fingerprint/alpn/sni or Reality
@@ -437,7 +449,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('flow', flow);
   }
 
-  const url = new URL(`vless://${clientId}@${formatUrlHost(address)}:${port}`);
+  const url = new URL(`vless://${applyVlessRoute(clientId, externalProxy?.vlessRoute)}@${formatUrlHost(address)}:${port}`);
   for (const [key, value] of params) url.searchParams.set(key, value);
   url.hash = encodeURIComponent(remark);
   return url.toString();
