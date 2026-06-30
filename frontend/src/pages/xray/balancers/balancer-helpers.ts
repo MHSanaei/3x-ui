@@ -43,9 +43,9 @@ export function collectSelectors(list: BalancerObject[]): string[] {
 //
 // So each observer lives exactly as long as something requires it, and is
 // dropped the moment nothing does — clearing the last fallbackTag (or deleting
-// the last leastLoad) removes the burst observer again. A no-fallback balancer's
-// selector is still probed while the observer exists for another reason, but
-// never keeps it alive on its own.
+// the last leastLoad) removes the burst observer again. A no-fallback
+// Random/RoundRobin balancer never expands the observer either, because those
+// strategies do not consume observer data.
 export function syncObservatories(t: XraySettingsValue) {
   const balancers = (t.routing?.balancers || []) as BalancerObject[];
 
@@ -56,18 +56,12 @@ export function syncObservatories(t: XraySettingsValue) {
     if (type === 'leastLoad') return true;
     return (type === 'random' || type === 'roundRobin') && hasFallback(b);
   });
-  const optional = balancers.filter((b) => {
-    const type = b.strategy?.type || 'random';
-    return (type === 'random' || type === 'roundRobin') && !hasFallback(b);
-  });
-
   if (required.length > 0) {
     delete t.observatory;
     if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
     (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([
       ...required,
       ...leastPings,
-      ...optional,
     ]);
   } else {
     delete t.burstObservatory;
