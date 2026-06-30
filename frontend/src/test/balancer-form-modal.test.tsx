@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import BalancerFormModal from '@/pages/xray/balancers/BalancerFormModal';
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
 import type { BalancerFormValue } from '@/pages/xray/balancers/BalancerFormModal';
 import { renderWithProviders } from './test-utils';
 
 function renderModal(onConfirm = vi.fn(), balancer: BalancerFormValue | null = null) {
-  renderWithProviders(
+  const result = renderWithProviders(
     <BalancerFormModal
       open
       balancer={balancer}
@@ -17,7 +17,7 @@ function renderModal(onConfirm = vi.fn(), balancer: BalancerFormValue | null = n
       onConfirm={onConfirm}
     />,
   );
-  return { onConfirm };
+  return { onConfirm, ...result };
 }
 
 function erroredItemCount(): number {
@@ -83,6 +83,39 @@ describe('BalancerFormModal', () => {
       { regex: '[' },
       { silent: true },
     );
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('does not confirm after a pending regex validation is cancelled by unmounting', async () => {
+    let resolveValidation!: (value: Msg) => void;
+    const pendingValidation = new Promise<Msg>((resolve) => {
+      resolveValidation = resolve;
+    });
+    vi.mocked(HttpUtil.post).mockReturnValueOnce(pendingValidation);
+    const onConfirm = vi.fn();
+    const { unmount } = renderModal(onConfirm, {
+      tag: 'load-balancer',
+      strategy: 'leastLoad',
+      selector: ['proxy'],
+      fallbackTag: '',
+      settings: {
+        costs: [{ regexp: true, match: '^proxy-', value: 1 }],
+      },
+    });
+
+    fireEvent.click(createButton());
+
+    await waitFor(() => {
+      const cancelButton = document.querySelector('.ant-modal-footer .ant-btn-default') as HTMLButtonElement | null;
+      expect(cancelButton?.disabled).toBe(true);
+      expect(document.querySelector('.ant-modal-close')).toBeNull();
+    });
+    unmount();
+    await act(async () => {
+      resolveValidation(new Msg(true));
+      await pendingValidation;
+    });
+
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });

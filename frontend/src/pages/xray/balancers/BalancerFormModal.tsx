@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
@@ -73,7 +73,12 @@ export default function BalancerFormModal({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [costErrors, setCostErrors] = useState<Record<number, string>>({});
   const [validatingCosts, setValidatingCosts] = useState(false);
+  const submissionSequence = useRef(0);
   const isEdit = balancer != null;
+
+  useEffect(() => () => {
+    submissionSequence.current += 1;
+  }, []);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
@@ -107,6 +112,7 @@ export default function BalancerFormModal({
       setSubmitAttempted(true);
       return;
     }
+    const submission = ++submissionSequence.current;
     const nextErrors: Record<number, string> = {};
     if (state.strategy === 'leastLoad') {
       setValidatingCosts(true);
@@ -114,6 +120,7 @@ export default function BalancerFormModal({
         idx,
         error: cost.regexp ? await validateGoRegex(cost.match) : '',
       })));
+      if (submission !== submissionSequence.current) return;
       setValidatingCosts(false);
       for (const result of validationResults) {
         if (result.error) nextErrors[result.idx] = result.error;
@@ -162,9 +169,14 @@ export default function BalancerFormModal({
       okText={okText}
       cancelText={t('close')}
       confirmLoading={validatingCosts}
+      cancelButtonProps={{ disabled: validatingCosts }}
+      closable={!validatingCosts}
+      keyboard={!validatingCosts}
       mask={{ closable: false }}
       onOk={submit}
-      onCancel={onClose}
+      onCancel={() => {
+        if (!validatingCosts) onClose();
+      }}
     >
       <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
         <Form.Item
