@@ -306,8 +306,8 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
 		}
-		if got := resp.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
-			t.Fatalf("Content-Type = %q, want JSON", got)
+		if got := resp.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want legacy text/plain", got)
 		}
 		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "{") {
 			t.Fatalf("legacy explicit JSON body is not an object: %s", body)
@@ -323,8 +323,8 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
 		}
-		if got := resp.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
-			t.Fatalf("Content-Type = %q, want JSON", got)
+		if got := resp.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want legacy text/plain", got)
 		}
 		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") {
 			t.Fatalf("standards-compliant explicit JSON body is not an array: %s", body)

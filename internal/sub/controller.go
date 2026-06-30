@@ -312,7 +312,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		return
 	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
 		logSubscriptionRoute(userAgent, "json")
-		a.serveJson(c, true)
+		a.serveJson(c, true, "application/json; charset=utf-8")
 		return
 	} else {
 		logSubscriptionRoute(userAgent, "raw")
@@ -582,10 +582,10 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
-	a.serveJson(c, a.jsonAlwaysArray)
+	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
 }
 
-func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool) {
+func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, contentType string) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
@@ -598,7 +598,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool) {
 		}
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
-		c.Data(200, "application/json; charset=utf-8", []byte(jsonSub))
+		c.Data(200, contentType, []byte(jsonSub))
 	}
 }
 
