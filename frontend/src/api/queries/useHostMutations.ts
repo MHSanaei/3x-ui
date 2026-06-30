@@ -10,11 +10,6 @@ export function useHostMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.hosts.root() });
 
-  const createMut = useMutation({
-    mutationFn: (payload: BulkAddHostValues) => HttpUtil.post('/panel/api/hosts/add', payload, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
-  });
-
   const bulkCreateMut = useMutation({
     mutationFn: (payload: BulkAddHostValues) => HttpUtil.post('/panel/api/hosts/bulk/add', payload, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
@@ -54,7 +49,6 @@ export function useHostMutations() {
   });
 
   return {
-    create: (payload: BulkAddHostValues) => createMut.mutateAsync(payload),
     bulkCreate: (payload: BulkAddHostValues) => bulkCreateMut.mutateAsync(payload),
     update: (groupId: string, payload: BulkAddHostValues) => updateMut.mutateAsync({ groupId, payload }),
     remove: (groupId: string) => removeMut.mutateAsync(groupId),

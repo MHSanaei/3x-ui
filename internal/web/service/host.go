@@ -139,23 +139,21 @@ func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 }
 
 // GetHostsByInbound returns one inbound's host groups.
+// It first fetches the distinct group_ids that contain the given inbound, then
+// loads only those rows — avoiding a full-table scan.
 func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, error) {
-	var hosts []*model.Host
-	err := database.GetDB().Order("sort_order asc, id asc").Find(&hosts).Error
-	if err != nil {
+	var groupIds []string
+	if err := database.GetDB().Model(&model.Host{}).Where("inbound_id = ?", inboundId).Distinct().Pluck("group_id", &groupIds).Error; err != nil {
 		return nil, err
 	}
-	grouped := groupHosts(hosts)
-	var res []*entity.HostGroup
-	for _, g := range grouped {
-		for _, ibId := range g.InboundIds {
-			if ibId == inboundId {
-				res = append(res, g)
-				break
-			}
-		}
+	if len(groupIds) == 0 {
+		return nil, nil
 	}
-	return res, nil
+	var hosts []*model.Host
+	if err := database.GetDB().Where("group_id IN ?", groupIds).Order("sort_order asc, id asc").Find(&hosts).Error; err != nil {
+		return nil, err
+	}
+	return groupHosts(hosts), nil
 }
 
 // GetHostGroup returns a single host group by GroupId.
@@ -280,6 +278,17 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	}
 	if count == 0 {
 		return nil, common.NewError("host group not found")
+	}
+
+	// Validate every new inbound ID exists before destroying the old rows.
+	for _, inboundId := range req.InboundIds {
+		var ibCount int64
+		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&ibCount).Error; err != nil {
+			return nil, err
+		}
+		if ibCount == 0 {
+			return nil, common.NewError("inbound not found")
+		}
 	}
 
 	if err := tx.Where("group_id = ?", groupId).Delete(&model.Host{}).Error; err != nil {
