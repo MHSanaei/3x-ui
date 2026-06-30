@@ -169,10 +169,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
-        "subClashAutoDetect": {
-            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
-            "type": "boolean"
-        },
+      "subClashAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -453,7 +453,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
-        "subClashAutoDetect",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
@@ -703,10 +703,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
-        "subClashAutoDetect": {
-            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
-            "type": "boolean"
-        },
+      "subClashAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -994,7 +994,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
-        "subClashAutoDetect",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
