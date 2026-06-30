@@ -1,9 +1,11 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Space, Tabs, Tag, Tooltip } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
+import { Button, Divider, Modal, Select, Space, Tabs, Tag, Tooltip } from 'antd';
 import { CopyOutlined, SyncOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import { HttpUtil, IntlUtil, SizeFormatter, ColorUtils, Wireguard } from '@/utils';
+import { keys } from '@/api/queryKeys';
 import { Protocols } from '@/schemas/primitives';
 import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -41,8 +43,10 @@ export default function InboundInfoModal({
 }: InboundInfoModalProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
+  const queryClient = useQueryClient();
 
   const [inbound, setInbound] = useState<InboundInfo | null>(null);
+  const [flowSaving, setFlowSaving] = useState(false);
   const [clientSettings, setClientSettings] = useState<ClientSetting | null>(null);
   const [clientStats, setClientStats] = useState<ClientStats | null>(null);
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
@@ -97,6 +101,21 @@ export default function InboundInfoModal({
       setClientIpsText(t('tgbot.noIpRecord'));
     }
   }, [clientStats, t]);
+
+  const setClientFlow = useCallback(async (flow: string) => {
+    const email = clientSettings?.email;
+    if (!email || !dbInbound) return;
+    setFlowSaving(true);
+    const msg = await HttpUtil.post(`/panel/api/clients/${email}/flow`, {
+      inboundId: dbInbound.id,
+      flow,
+    });
+    setFlowSaving(false);
+    if (msg?.success) {
+      setClientSettings((prev) => (prev ? { ...prev, flow: flow === 'none' ? '' : flow } : prev));
+      void queryClient.invalidateQueries({ queryKey: keys.inbounds.root() });
+    }
+  }, [clientSettings, dbInbound, queryClient]);
 
   useEffect(() => {
     if (!open || !dbInbound) return;
@@ -256,11 +275,22 @@ export default function InboundInfoModal({
           {dbInbound.isVMess && (
             <tr><td>{t('security')}</td><td><Tag>{clientSettings?.security}</Tag></td></tr>
           )}
-          {inbound.isVlessTlsFlow && (
+          {inbound.isVlessTlsFlow && clientSettings?.email && (
             <tr>
               <td>{t('pages.clients.flow')}</td>
               <td>
-                {clientSettings?.flow ? <Tag>{clientSettings.flow}</Tag> : <Tag color="orange">{t('none')}</Tag>}
+                <Select
+                  size="small"
+                  style={{ minWidth: 220 }}
+                  loading={flowSaving}
+                  disabled={flowSaving}
+                  value={clientSettings?.flow ? clientSettings.flow : 'none'}
+                  onChange={setClientFlow}
+                  options={[
+                    { value: 'xtls-rprx-vision', label: 'xtls-rprx-vision' },
+                    { value: 'none', label: t('none') },
+                  ]}
+                />
               </td>
             </tr>
           )}
