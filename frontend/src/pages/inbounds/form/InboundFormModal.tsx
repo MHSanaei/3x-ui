@@ -599,6 +599,16 @@ export default function InboundFormModal({
         <InputNumber min={1} />
       </Form.Item>
 
+      {protocol === Protocols.VLESS && (
+        <Form.Item
+          name="disableFlow"
+          valuePropName="checked"
+          label={labelWithHint(t('pages.inbounds.form.disableFlow'), t('pages.inbounds.form.disableFlowHelp'))}
+        >
+          <Switch />
+        </Form.Item>
+      )}
+
       <Form.Item
         name="port"
         label={t('pages.inbounds.port')}
