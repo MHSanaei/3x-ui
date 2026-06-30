@@ -1,6 +1,7 @@
 import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
 import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -15,6 +16,7 @@ interface SubscriptionGeneralTabProps {
 
 export default function SubscriptionGeneralTab({ allSetting, updateSetting }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isMobile } = useMediaQuery();
 
   return (
@@ -41,7 +43,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 title={t('pages.settings.subFormatsTipTitle')}
                 description={t('pages.settings.subFormatsTipDesc')}
                 action={(
-                  <Button size="small" href="#subscription-formats">
+                  <Button size="small" onClick={() => navigate('/settings#subscription-formats')}>
                     {t('pages.settings.subFormatsTipAction')}
                   </Button>
                 )}
