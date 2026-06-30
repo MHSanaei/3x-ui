@@ -1596,7 +1596,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "array"
       },
       "disableFlow": {
-        "description": "DisableFlow opts this inbound out of automatic XTLS flow\n(xtls-rprx-vision) injection even when the transport would otherwise be\nflow-capable — e.g. a tunneled/CDN-fronted XHTTP+vlessenc inbound where an\noperator does not want Vision applied. Panel-only metadata; never sent to\nxray. When true, the inbound reports tlsFlowCapable=false, the write path\nclamps each attached client's flow to empty, and share links/subscriptions\nnever carry the flow for it.",
         "example": false,
         "type": "boolean"
       },

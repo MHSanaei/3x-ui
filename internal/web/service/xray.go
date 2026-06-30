@@ -171,10 +171,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"
 			}
-			// DisableFlow is authoritative on the live config too: never advertise
-			// a flow xray would expect server-side while the subscription suppresses
-			// it. Defense-in-depth so a stray flow_override can't cause a handshake
-			// mismatch regardless of how it got stored.
 			if inbound.DisableFlow {
 				flow = ""
 			}

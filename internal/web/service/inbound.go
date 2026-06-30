@@ -634,10 +634,6 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, common.NewError("Duplicate email:", existEmail)
 	}
 
-	// DisableFlow is authoritative at creation too: a new inbound flagged
-	// disabled must not persist or advertise any client flow, or xray would
-	// expect Vision server-side that the subscription never sends. Strip both
-	// the settings JSON and the parsed clients used for SyncInbound below.
 	if inbound.DisableFlow {
 		if stripped, changed := stripClientFlows(inbound.Settings); changed {
 			inbound.Settings = stripped
@@ -1139,11 +1135,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				inbound.Settings = restored
 			}
 		} else {
-			// DisableFlow is authoritative: strip any flow already stored on this
-			// inbound's clients so xray and the subscription agree — a toggled-on
-			// inbound must not expect Vision server-side that the client config no
-			// longer advertises. SyncInbound (below) rebuilds each client_inbounds
-			// flow_override from these stripped settings, so no explicit clear here.
 			if stripped, changed := stripClientFlows(inbound.Settings); changed {
 				inbound.Settings = stripped
 			}

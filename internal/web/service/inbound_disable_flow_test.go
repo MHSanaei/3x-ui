@@ -13,9 +13,6 @@ import (
 
 const visionTest = "xtls-rprx-vision"
 
-// clientFlowsInSettings parses an inbound's settings JSON and returns a map of
-// client email -> flow, for asserting what xray would read from the stored
-// settings.
 func clientFlowsInSettings(t *testing.T, settings string) map[string]string {
 	t.Helper()
 	var parsed map[string]any
@@ -36,8 +33,6 @@ func clientFlowsInSettings(t *testing.T, settings string) map[string]string {
 	return out
 }
 
-// stripClientFlows must clear every client's flow and report whether it changed,
-// leaving non-flow clients and malformed input untouched.
 func TestStripClientFlows(t *testing.T) {
 	cases := []struct {
 		name        string
@@ -107,9 +102,6 @@ func initFlowTestDB(t *testing.T) *gorm.DB {
 	return database.GetDB()
 }
 
-// AddInbound on a DisableFlow inbound must persist the column and clamp every
-// client's flow to empty, both in settings and in the derived flow_override, so
-// the live xray config never expects a flow the subscription suppresses.
 func TestAddInbound_DisableFlowClampsClientFlow(t *testing.T) {
 	initFlowTestDB(t)
 	ibSvc := &InboundService{}
@@ -143,10 +135,6 @@ func TestAddInbound_DisableFlowClampsClientFlow(t *testing.T) {
 	}
 }
 
-// Toggling DisableFlow on via UpdateInbound (the #5689 path: editing an existing
-// multi-inbound client's inbound) must persist the column, strip stored flows,
-// and — crucially — survive the Vision-restore migration so it does not silently
-// self-revert to Vision.
 func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) {
 	db := initFlowTestDB(t)
 	ibSvc := &InboundService{}
@@ -155,8 +143,6 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 	const email = "shared@x"
 	const uid = "ce8d33df-3a64-4f10-8f9b-91c3a8e0d001"
 
-	// Sibling reality inbound (lowest id) where the client keeps Vision — this is
-	// what EffectiveFlowsByEmails would otherwise propagate back onto the target.
 	sibling := &model.Inbound{
 		Tag: "sib", Enable: true, Port: 52101, Protocol: model.VLESS,
 		StreamSettings: `{"network":"tcp","security":"reality"}`,
@@ -170,8 +156,6 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 		t.Fatalf("sync sibling: %v", err)
 	}
 
-	// Target: a flow-eligible VLESS Reality inbound where the same client also has
-	// Vision today. We will toggle DisableFlow on it.
 	target := &model.Inbound{
 		Tag: "tgt", Enable: true, Port: 52102, Protocol: model.VLESS,
 		StreamSettings: `{"network":"tcp","security":"reality"}`,
@@ -185,14 +169,12 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 		t.Fatalf("sync target: %v", err)
 	}
 
-	// Toggle DisableFlow on the target via the real update path.
 	upd := *target
 	upd.DisableFlow = true
 	if _, _, err := ibSvc.UpdateInbound(&upd); err != nil {
 		t.Fatalf("UpdateInbound: %v", err)
 	}
 
-	// (a) column persisted
 	reloaded, err := ibSvc.GetInbound(target.Id)
 	if err != nil {
 		t.Fatalf("GetInbound: %v", err)
@@ -200,11 +182,9 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 	if !reloaded.DisableFlow {
 		t.Fatal("DisableFlow did not persist through UpdateInbound (blocking regression)")
 	}
-	// (b) settings stripped
 	if f := clientFlowsInSettings(t, reloaded.Settings)["shared@x"]; f != "" {
 		t.Errorf("target settings flow = %q, want empty after disable", f)
 	}
-	// (c) flow_override empty
 	list, err := cs.ListForInbound(nil, target.Id)
 	if err != nil {
 		t.Fatalf("ListForInbound(target): %v", err)
@@ -213,7 +193,6 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 		t.Errorf("target flow_override = %#v, want empty", list)
 	}
 
-	// (d) the restore migration must NOT re-inject Vision onto the disabled inbound
 	ibSvc.MigrationRestoreVisionFlow()
 	reloaded2, err := ibSvc.GetInbound(target.Id)
 	if err != nil {
@@ -222,7 +201,6 @@ func TestUpdateInbound_DisableFlowPersistsStripsAndResistsRestore(t *testing.T) 
 	if f := clientFlowsInSettings(t, reloaded2.Settings)["shared@x"]; f != "" {
 		t.Errorf("after MigrationRestoreVisionFlow target flow = %q, want empty (must not self-revert)", f)
 	}
-	// Sibling still keeps its Vision (disable is per-inbound).
 	sList, err := cs.ListForInbound(nil, sibling.Id)
 	if err != nil {
 		t.Fatalf("ListForInbound(sibling): %v", err)

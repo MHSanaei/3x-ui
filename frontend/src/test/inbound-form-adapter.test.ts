@@ -265,10 +265,6 @@ describe('formValuesToWirePayload', () => {
 });
 
 describe('disableFlow', () => {
-  // Regression: DBInbound must DECLARE disableFlow so ObjectUtil.cloneProps
-  // (which only copies keys the destination already owns) carries the API value
-  // through. Without the field the edit form always read it as false and saving
-  // reverted a per-inbound opt-out.
   it('DBInbound constructor preserves disableFlow from the API row', () => {
     expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);
     expect(new DBInbound({ disableFlow: false }).disableFlow).toBe(false);
