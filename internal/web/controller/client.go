@@ -58,6 +58,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:email/attach", a.attach)
 	g.POST("/:email/detach", a.detach)
 	g.POST("/:email/externalLinks", a.setExternalLinks)
+	g.POST("/:email/flow", a.setInboundFlow)
 	g.GET("/export", a.export)
 	g.POST("/import", a.importClients)
 	g.POST("/delOrphans", a.delOrphans)
@@ -170,6 +171,33 @@ func (a *ClientController) update(c *gin.Context) {
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), pendingNodeObj(a.clientService.HasPendingNode(&a.inboundService, email)), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	notifyClientsChanged()
+}
+
+type setFlowBody struct {
+	InboundId int    `json:"inboundId"`
+	Flow      string `json:"flow"`
+}
+
+// setInboundFlow overrides the XTLS flow for one client on a single inbound,
+// bypassing the capability clamp so the client can keep Vision on its other
+// flow-capable inbounds in the same subscription (approach 1 of #5689).
+func (a *ClientController) setInboundFlow(c *gin.Context) {
+	email := c.Param("email")
+	var body setFlowBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.clientService.SetInboundClientFlow(&a.inboundService, body.InboundId, email, body.Flow)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
