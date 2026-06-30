@@ -36,6 +36,7 @@ var xrayTemplateConfig string
 const (
 	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
 	DefaultSubJsonUserAgentRegex  = `(?i)^streisand([ /]|$)`
+	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	maxRegexLength                = 2048
 )
 
@@ -64,7 +65,7 @@ var defaultValueMap = map[string]string{
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
-	"remarkTemplate":              "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
+	"remarkTemplate":              DefaultRemarkTemplate,
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",

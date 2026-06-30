@@ -264,11 +264,35 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	g := engine.Group("/")
 
-	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, ClashPath, subClashAutoDetect, subClashUserAgentRegex, subJsonAutoDetect, subJsonUserAgentRegex, subJsonAlwaysArray, subJsonEnable, subClashEnable, Encrypt, RemarkTemplate, SubUpdates,
-		SubJsonMux, SubJsonRules, SubJsonFinalMask, SubClashEnableRouting, SubClashRules, SubTitle, SubSupportUrl,
-		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules, SubHideSettings,
-		SubIncyEnableRouting, SubIncyRoutingRules)
+	s.sub = NewSUBController(g,
+		WithSUBPath(LinksPath),
+		WithSUBJsonPath(JsonPath),
+		WithSUBClashPath(ClashPath),
+		WithSUBClashAutoDetect(subClashAutoDetect),
+		WithSUBClashUserAgentRegex(subClashUserAgentRegex),
+		WithSUBJsonAutoDetect(subJsonAutoDetect),
+		WithSUBJsonUserAgentRegex(subJsonUserAgentRegex),
+		WithSUBJsonAlwaysArray(subJsonAlwaysArray),
+		WithSUBJsonEnabled(subJsonEnable),
+		WithSUBClashEnabled(subClashEnable),
+		WithSUBEncryption(Encrypt),
+		WithSUBRemarkTemplate(RemarkTemplate),
+		WithSUBUpdateInterval(SubUpdates),
+		WithSUBJsonMux(SubJsonMux),
+		WithSUBJsonRules(SubJsonRules),
+		WithSUBJsonFinalMask(SubJsonFinalMask),
+		WithSUBClashEnableRouting(SubClashEnableRouting),
+		WithSUBClashRules(SubClashRules),
+		WithSUBTitle(SubTitle),
+		WithSUBSupportURL(SubSupportUrl),
+		WithSUBProfileURL(SubProfileUrl),
+		WithSUBAnnounce(SubAnnounce),
+		WithSUBEnableRouting(SubEnableRouting),
+		WithSUBRoutingRules(SubRoutingRules),
+		WithSUBHideSettings(SubHideSettings),
+		WithSUBIncyEnableRouting(SubIncyEnableRouting),
+		WithSUBIncyRoutingRules(SubIncyRoutingRules),
+	)
 
 	return engine, nil
 }

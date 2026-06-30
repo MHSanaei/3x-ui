@@ -78,66 +78,198 @@ type SUBController struct {
 	subTemplateCache map[string]*cachedSubTemplate
 }
 
+type subControllerConfig struct {
+	subPath      string
+	subJsonPath  string
+	subClashPath string
+
+	subClashAutoDetect     bool
+	subClashUserAgentRegex string
+	subJsonAutoDetect      bool
+	subJsonUserAgentRegex  string
+	subJsonAlwaysArray     bool
+	subJsonEnabled         bool
+	subClashEnabled        bool
+
+	subEncrypt     bool
+	remarkTemplate string
+	updateInterval string
+
+	subJsonMux            string
+	subJsonRules          string
+	subJsonFinalMask      string
+	subClashEnableRouting bool
+	subClashRules         string
+
+	subTitle         string
+	subSupportURL    string
+	subProfileURL    string
+	subAnnounce      string
+	subEnableRouting bool
+	subRoutingRules  string
+	subHideSettings  bool
+
+	subIncyEnableRouting bool
+	subIncyRoutingRules  string
+}
+
+type SUBControllerOption func(*subControllerConfig)
+
+func WithSUBPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subPath = value }
+}
+
+func WithSUBJsonPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonPath = value }
+}
+
+func WithSUBClashPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashPath = value }
+}
+
+func WithSUBClashAutoDetect(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashAutoDetect = value }
+}
+
+func WithSUBClashUserAgentRegex(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashUserAgentRegex = value }
+}
+
+func WithSUBJsonAutoDetect(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonAutoDetect = value }
+}
+
+func WithSUBJsonUserAgentRegex(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonUserAgentRegex = value }
+}
+
+func WithSUBJsonAlwaysArray(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonAlwaysArray = value }
+}
+
+func WithSUBJsonEnabled(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonEnabled = value }
+}
+
+func WithSUBClashEnabled(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashEnabled = value }
+}
+
+func WithSUBEncryption(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subEncrypt = value }
+}
+
+func WithSUBRemarkTemplate(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.remarkTemplate = value }
+}
+
+func WithSUBUpdateInterval(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.updateInterval = value }
+}
+
+func WithSUBJsonMux(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonMux = value }
+}
+
+func WithSUBJsonRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonRules = value }
+}
+
+func WithSUBJsonFinalMask(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
+}
+
+func WithSUBClashEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashEnableRouting = value }
+}
+
+func WithSUBClashRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashRules = value }
+}
+
+func WithSUBTitle(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subTitle = value }
+}
+
+func WithSUBSupportURL(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subSupportURL = value }
+}
+
+func WithSUBProfileURL(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subProfileURL = value }
+}
+
+func WithSUBAnnounce(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subAnnounce = value }
+}
+
+func WithSUBEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subEnableRouting = value }
+}
+
+func WithSUBRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subRoutingRules = value }
+}
+
+func WithSUBHideSettings(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subHideSettings = value }
+}
+
+func WithSUBIncyEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subIncyEnableRouting = value }
+}
+
+func WithSUBIncyRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subIncyRoutingRules = value }
+}
+
+func defaultSUBControllerConfig() subControllerConfig {
+	return subControllerConfig{
+		subPath:        "/sub/",
+		subJsonPath:    "/json/",
+		subClashPath:   "/clash/",
+		subEncrypt:     true,
+		remarkTemplate: service.DefaultRemarkTemplate,
+		updateInterval: "12",
+	}
+}
+
 // NewSUBController creates a new subscription controller with the given configuration.
-func NewSUBController(
-	g *gin.RouterGroup,
-	subPath string,
-	jsonPath string,
-	clashPath string,
-	clashAutoDetect bool,
-	clashUserAgentRegex string,
-	jsonAutoDetect bool,
-	jsonUserAgentRegex string,
-	jsonAlwaysArray bool,
-	jsonEnabled bool,
-	clashEnabled bool,
-	encrypt bool,
-	remarkTemplate string,
-	update string,
-	jsonMux string,
-	jsonRules string,
-	jsonFinalMask string,
-	clashEnableRouting bool,
-	clashRules string,
-	subTitle string,
-	subSupportUrl string,
-	subProfileUrl string,
-	subAnnounce string,
-	subEnableRouting bool,
-	subRoutingRules string,
-	subHideSettings bool,
-	subIncyEnableRouting bool,
-	subIncyRoutingRules string,
-) *SUBController {
-	sub := NewSubService(remarkTemplate)
+func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBController {
+	config := defaultSUBControllerConfig()
+	for _, option := range options {
+		option(&config)
+	}
+
+	sub := NewSubService(config.remarkTemplate)
 	a := &SUBController{
-		subTitle:         subTitle,
-		subSupportUrl:    subSupportUrl,
-		subProfileUrl:    subProfileUrl,
-		subAnnounce:      subAnnounce,
-		subEnableRouting: subEnableRouting,
-		subRoutingRules:  subRoutingRules,
-		subHideSettings:  subHideSettings,
+		subTitle:         config.subTitle,
+		subSupportUrl:    config.subSupportURL,
+		subProfileUrl:    config.subProfileURL,
+		subAnnounce:      config.subAnnounce,
+		subEnableRouting: config.subEnableRouting,
+		subRoutingRules:  config.subRoutingRules,
+		subHideSettings:  config.subHideSettings,
 
-		subIncyEnableRouting: subIncyEnableRouting,
-		subIncyRoutingRules:  subIncyRoutingRules,
+		subIncyEnableRouting: config.subIncyEnableRouting,
+		subIncyRoutingRules:  config.subIncyRoutingRules,
 
-		subPath:            subPath,
-		subJsonPath:        jsonPath,
-		subClashPath:       clashPath,
-		subClashAutoDetect: clashAutoDetect,
-		clashUserAgent:     compileUserAgentRegex("Clash/Mihomo", clashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
-		jsonAutoDetect:     jsonAutoDetect,
-		jsonUserAgent:      compileUserAgentRegex("Xray JSON", jsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
-		jsonAlwaysArray:    jsonAlwaysArray,
-		jsonEnabled:        jsonEnabled,
-		clashEnabled:       clashEnabled,
-		subEncrypt:         encrypt,
-		updateInterval:     update,
+		subPath:            config.subPath,
+		subJsonPath:        config.subJsonPath,
+		subClashPath:       config.subClashPath,
+		subClashAutoDetect: config.subClashAutoDetect,
+		clashUserAgent:     compileUserAgentRegex("Clash/Mihomo", config.subClashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
+		jsonAutoDetect:     config.subJsonAutoDetect,
+		jsonUserAgent:      compileUserAgentRegex("Xray JSON", config.subJsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
+		jsonAlwaysArray:    config.subJsonAlwaysArray,
+		jsonEnabled:        config.subJsonEnabled,
+		clashEnabled:       config.subClashEnabled,
+		subEncrypt:         config.subEncrypt,
+		updateInterval:     config.updateInterval,
 
 		subService:      sub,
-		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
-		subClashService: NewSubClashService(clashEnableRouting, clashRules, sub),
+		subJsonService:  NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub),
+		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},
 	}

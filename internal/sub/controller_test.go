@@ -21,6 +21,68 @@ func newTestSUBController() *SUBController {
 	return &SUBController{subTemplateCache: map[string]*cachedSubTemplate{}}
 }
 
+type subscriptionTestRouterConfig struct {
+	clashAutoDetect     bool
+	clashUserAgentRegex string
+	jsonAutoDetect      bool
+	jsonUserAgentRegex  string
+	jsonAlwaysArray     bool
+}
+
+func newSubscriptionTestRouter(config subscriptionTestRouterConfig) *gin.Engine {
+	router := gin.New()
+	options := []SUBControllerOption{
+		WithSUBJsonEnabled(true),
+		WithSUBClashEnabled(true),
+	}
+	if config.clashAutoDetect {
+		options = append(options, WithSUBClashAutoDetect(true))
+	}
+	if config.clashUserAgentRegex != "" {
+		options = append(options, WithSUBClashUserAgentRegex(config.clashUserAgentRegex))
+	}
+	if config.jsonAutoDetect {
+		options = append(options, WithSUBJsonAutoDetect(true))
+	}
+	if config.jsonUserAgentRegex != "" {
+		options = append(options, WithSUBJsonUserAgentRegex(config.jsonUserAgentRegex))
+	}
+	if config.jsonAlwaysArray {
+		options = append(options, WithSUBJsonAlwaysArray(true))
+	}
+	NewSUBController(router.Group("/"), options...)
+	return router
+}
+
+func TestNewSUBControllerOptions(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	defaults := NewSUBController(gin.New().Group("/"))
+	if defaults.subPath != "/sub/" || defaults.subJsonPath != "/json/" || defaults.subClashPath != "/clash/" {
+		t.Fatalf("default paths = %q, %q, %q", defaults.subPath, defaults.subJsonPath, defaults.subClashPath)
+	}
+	if !defaults.subEncrypt || defaults.updateInterval != "12" {
+		t.Fatalf("default encryption/update = %v, %q", defaults.subEncrypt, defaults.updateInterval)
+	}
+	if defaults.subService.remarkTemplate != service.DefaultRemarkTemplate {
+		t.Fatalf("default remark template = %q", defaults.subService.remarkTemplate)
+	}
+	if defaults.jsonEnabled || defaults.clashEnabled {
+		t.Fatalf("format endpoints enabled by default: json=%v clash=%v", defaults.jsonEnabled, defaults.clashEnabled)
+	}
+
+	configured := NewSUBController(
+		gin.New().Group("/"),
+		WithSUBPath("/custom/"),
+		WithSUBJsonEnabled(true),
+		WithSUBEncryption(false),
+		WithSUBUpdateInterval("24"),
+	)
+	if configured.subPath != "/custom/" || !configured.jsonEnabled || configured.subEncrypt || configured.updateInterval != "24" {
+		t.Fatalf("configured values were not applied: path=%q json=%v encrypt=%v update=%q",
+			configured.subPath, configured.jsonEnabled, configured.subEncrypt, configured.updateInterval)
+	}
+}
+
 func TestShouldAutoServeClash(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -119,24 +181,12 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 	seedSubInbound(t, "s1", "auto", 4480, 1, `{"network":"tcp","security":"none"}`)
 	gin.SetMode(gin.TestMode)
 
-	newRouter := func(autoDetect bool, clashUserAgentRegex string, jsonAutoDetect bool, jsonUserAgentRegex string, jsonAlwaysArray bool) *gin.Engine {
-		router := gin.New()
-		NewSUBController(
-			router.Group("/"),
-			"/sub/", "/json/", "/clash/",
-			autoDetect, clashUserAgentRegex, jsonAutoDetect, jsonUserAgentRegex, jsonAlwaysArray, true, true, true,
-			"", "12", "", "", "", false, "",
-			"", "", "", "", false, "", false, false, "",
-		)
-		return router
-	}
-
 	t.Run("recognized client receives YAML", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
 		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, "", false, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{clashAutoDetect: true}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -154,7 +204,12 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Hybrid/1.0")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, `(?i)^hybrid/`, true, `(?i)^hybrid/`, false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect:     true,
+			clashUserAgentRegex: `(?i)^hybrid/`,
+			jsonAutoDetect:      true,
+			jsonUserAgentRegex:  `(?i)^hybrid/`,
+		}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -169,7 +224,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", false, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -188,7 +243,10 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Mihomo/1.19")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, `(?i)^custom-client/`, false, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect:     true,
+			clashUserAgentRegex: `(?i)^custom-client/`,
+		}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -203,7 +261,10 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "v2rayNG/1.10.0")
 		resp := httptest.NewRecorder()
 
-		newRouter(true, "", true, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect: true,
+			jsonAutoDetect:  true,
+		}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -222,7 +283,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req.Header.Set("User-Agent", "Streisand/1.6.32")
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", true, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{jsonAutoDetect: true}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -239,7 +300,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", false, "", false).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
@@ -256,7 +317,7 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
 		resp := httptest.NewRecorder()
 
-		newRouter(false, "", false, "", true).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{jsonAlwaysArray: true}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
