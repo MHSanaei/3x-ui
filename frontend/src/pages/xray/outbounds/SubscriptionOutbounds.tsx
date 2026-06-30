@@ -106,6 +106,7 @@ export default function SubscriptionOutbounds({
     return (
       <Tooltip title={`${t('check')} (${(isUdpOutbound(record) ? 'http' : testMode).toUpperCase()})`}>
         <Button
+          aria-label={t('check')}
           type="primary"
           shape="circle"
           size={isMobile ? 'small' : undefined}

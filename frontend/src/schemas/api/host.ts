@@ -58,11 +58,12 @@ export const HostFormSchema = z.object({
   muxParams: z.string().default(''),
   sockoptParams: z.string().default(''),
   finalMask: z.string().default(''),
-  // A comma-separated list of ports/ranges (e.g. "53,443,1000-2000"). Empty = none.
+  // Single value 0-65535 baked into the subscription UUID's 3rd group. Empty = none.
   vlessRoute: z
     .string()
     .trim()
-    .regex(/^(\d{1,5}(-\d{1,5})?)(\s*,\s*\d{1,5}(-\d{1,5})?)*$/, 'pages.hosts.toasts.badVlessRoute')
+    .regex(/^\d{1,5}$/, 'pages.hosts.toasts.badVlessRoute')
+    .refine((v) => Number(v) <= 65535, 'pages.hosts.toasts.badVlessRoute')
     .or(z.literal(''))
     .default(''),
 

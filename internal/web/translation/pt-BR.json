@@ -15,6 +15,10 @@
   "copied": "Copiado",
   "more": "mais",
   "download": "Baixar",
+  "regenerate": "Regenerar",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Baixar imagem",
+  "sort": "Ordenar",
   "remark": "Observação",
   "enable": "Ativado",
   "protocol": "Protocolo",
@@ -118,7 +122,8 @@
     "link": "Gerenciar",
     "donate": "Doar",
     "hosts": "Hosts",
-    "docs": "Documentação"
+    "docs": "Documentação",
+    "openMenu": "Abrir menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Cabeçalho da Requisição",
           "responseHeader": "Cabeçalho da Resposta"
         }
-      }
+      },
+      "sniffingDestOverride": "Substituição de destino"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1142,7 +1148,9 @@
         "custom": "Personalizado (crontab)",
         "seconds": "Segundos",
         "minutes": "Minutos",
-        "hours": "Horas"
+        "hours": "Horas",
+        "interval": "Intervalo",
+        "unit": "Unidade"
       },
       "tgNotifyBackup": "Backup do Banco de Dados",
       "tgNotifyBackupDesc": "Enviar arquivo de backup do banco de dados junto com o relatório.",
@@ -1618,7 +1626,8 @@
         "city": "Cidade",
         "allCities": "Todas as Cidades",
         "privateKey": "Chave Privada",
-        "load": "Carga"
+        "load": "Carga",
+        "moveToTop": "Mover para o topo"
       },
       "outboundSub": {
         "manage": "Assinaturas",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "Este é o último balanceador que usa o Observatório, então ele também será removido.",
         "deleteAlsoBurst": "Este é o último balanceador que usa o Observatório Burst, então ele também será removido."
       },
+      "refCleanup": {
+        "header": "Excluir isto também atualiza o seu roteamento:",
+        "ruleRemoved": "Regra {label} — removida (sem destino restante)",
+        "ruleModified": "Regra {label} — mantida (agora usa {keeps})",
+        "balancerRemoved": "Balanceador {tag} — removido (sem destinos restantes)"
+      },
       "balancer": {
         "addBalancer": "Adicionar Balanceador",
         "editBalancer": "Editar Balanceador",
@@ -1717,7 +1732,10 @@
         "tolerance": "Tolerância",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Não é possível usar balancerTag e outboundTag ao mesmo tempo. Se usados simultaneamente, apenas outboundTag funcionará."
+        "balancerDesc": "Não é possível usar balancerTag e outboundTag ao mesmo tempo. Se usados simultaneamente, apenas outboundTag funcionará.",
+        "costMatch": "Padrão de tag",
+        "costValue": "Peso",
+        "costRegexp": "Correspondência por expressão regular"
       },
       "wireguard": {
         "secretKey": "Chave Secreta",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "Escolha os nós que foram resolvidos a partir deste host. Apenas atribuição visual.",
         "serverDescription": "Nota opcional exibida abaixo da observação.",
         "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Portas/intervalos roteados via VLESS, ex.: 53,443,1000-2000. Deixe em branco para nenhum.",
+        "vlessRoute": "Um único valor de rota VLESS (0-65535) embutido no UUID, ex.: 443. Deixe em branco para nenhum.",
         "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "Atualizar host",
         "delete": "Excluir host",
         "badTag": "Tag inválida",
-        "badVlessRoute": "Use portas/intervalos como 53,443,1000-2000"
+        "badVlessRoute": "Insira um único número entre 0 e 65535"
       }
     }
   },

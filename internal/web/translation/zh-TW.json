@@ -15,6 +15,10 @@
   "copied": "已複製",
   "more": "更多",
   "download": "下載",
+  "regenerate": "重新產生",
+  "jsonEditor": "JSON 編輯器",
+  "downloadImage": "下載圖片",
+  "sort": "排序",
   "remark": "備註",
   "enable": "啟用",
   "protocol": "協議",
@@ -118,7 +122,8 @@
     "link": "管理",
     "donate": "捐贈",
     "hosts": "Hosts",
-    "docs": "文件"
+    "docs": "文件",
+    "openMenu": "開啟選單"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "請求頭",
           "responseHeader": "響應頭"
         }
-      }
+      },
+      "sniffingDestOverride": "目標覆寫"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1142,7 +1148,9 @@
         "custom": "自訂 (crontab)",
         "seconds": "秒",
         "minutes": "分鐘",
-        "hours": "小時"
+        "hours": "小時",
+        "interval": "間隔",
+        "unit": "單位"
       },
       "tgNotifyBackup": "資料庫備份",
       "tgNotifyBackupDesc": "傳送帶有報告的資料庫備份檔案",
@@ -1618,7 +1626,8 @@
         "city": "城市",
         "allCities": "所有城市",
         "privateKey": "私密金鑰",
-        "load": "負載"
+        "load": "負載",
+        "moveToTop": "移到頂部"
       },
       "outboundSub": {
         "manage": "訂閱",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "這是最後一個使用 Observatory 的負載平衡器，因此它也會一併被移除。",
         "deleteAlsoBurst": "這是最後一個使用 Burst Observatory 的負載平衡器，因此它也會一併被移除。"
       },
+      "refCleanup": {
+        "header": "刪除此項也會更新你的路由：",
+        "ruleRemoved": "規則 {label} — 已移除（沒有剩餘出口）",
+        "ruleModified": "規則 {label} — 已保留（現使用 {keeps}）",
+        "balancerRemoved": "負載平衡器 {tag} — 已移除（沒有剩餘目標）"
+      },
       "balancer": {
         "addBalancer": "新增負載均衡",
         "editBalancer": "編輯負載均衡",
@@ -1717,7 +1732,10 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。"
+        "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。",
+        "costMatch": "標籤比對模式",
+        "costValue": "權重",
+        "costRegexp": "正規表示式比對"
       },
       "wireguard": {
         "secretKey": "金鑰",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "選擇由此 Host 解析而來的節點。僅為視覺上的指派。",
         "serverDescription": "顯示於備註下方的選填註記。",
         "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
-        "vlessRoute": "透過 VLESS 路由的連接埠／範圍，例如 53,443,1000-2000。留空表示無。",
+        "vlessRoute": "嵌入 UUID 的單一 VLESS 路由值（0-65535），例如 443。留空表示無。",
         "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "更新 Host",
         "delete": "刪除 Host",
         "badTag": "無效的標籤",
-        "badVlessRoute": "請使用連接埠／範圍，例如 53,443,1000-2000"
+        "badVlessRoute": "請輸入 0 到 65535 之間的單一數字"
       }
     }
   },

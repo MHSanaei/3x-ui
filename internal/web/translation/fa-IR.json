@@ -15,6 +15,10 @@
   "copied": "کپی شد",
   "more": "بیشتر",
   "download": "دانلود",
+  "regenerate": "تولید مجدد",
+  "jsonEditor": "ویرایشگر JSON",
+  "downloadImage": "دانلود تصویر",
+  "sort": "مرتب‌سازی",
   "remark": "نام",
   "enable": "فعال",
   "protocol": "پروتکل",
@@ -118,7 +122,8 @@
     "link": "مدیریت",
     "donate": "حمایت مالی",
     "hosts": "میزبان‌ها",
-    "docs": "مستندات"
+    "docs": "مستندات",
+    "openMenu": "باز کردن منو"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "سربرگ درخواست",
           "responseHeader": "سربرگ پاسخ"
         }
-      }
+      },
+      "sniffingDestOverride": "بازنویسی مقصد"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -1144,7 +1150,9 @@
         "custom": "سفارشی (crontab)",
         "seconds": "ثانیه",
         "minutes": "دقیقه",
-        "hours": "ساعت"
+        "hours": "ساعت",
+        "interval": "بازه زمانی",
+        "unit": "واحد"
       },
       "tgNotifyBackup": "پشتیبان‌گیری از دیتابیس",
       "tgNotifyBackupDesc": "فایل پشتیبان‌دیتابیس را به‌همراه گزارش ارسال می‌کند",
@@ -1618,7 +1626,8 @@
         "city": "شهر",
         "allCities": "همه شهرها",
         "privateKey": "کلید خصوصی",
-        "load": "فشار سرور"
+        "load": "فشار سرور",
+        "moveToTop": "انتقال به بالا"
       },
       "outboundSub": {
         "manage": "سابسکریپشن‌ها",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "این آخرین بالانسری است که از Observatory استفاده می‌کند، بنابراین آن هم حذف خواهد شد.",
         "deleteAlsoBurst": "این آخرین بالانسری است که از Burst Observatory استفاده می‌کند، بنابراین آن هم حذف خواهد شد."
       },
+      "refCleanup": {
+        "header": "حذف این مورد مسیریابی شما را هم به‌روز می‌کند:",
+        "ruleRemoved": "قاعده {label} — حذف شد (مقصدی باقی نماند)",
+        "ruleModified": "قاعده {label} — حفظ شد (اکنون از {keeps} استفاده می‌کند)",
+        "balancerRemoved": "بالانسر {tag} — حذف شد (هدفی باقی نماند)"
+      },
       "balancer": {
         "addBalancer": "افزودن بالانسر",
         "editBalancer": "ویرایش بالانسر",
@@ -1717,7 +1732,10 @@
         "tolerance": "تحمل",
         "baselines": "خطوط پایه",
         "costs": "هزینه‌ها",
-        "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد."
+        "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد.",
+        "costMatch": "الگوی برچسب",
+        "costValue": "وزن",
+        "costRegexp": "تطبیق با عبارت باقاعده"
       },
       "wireguard": {
         "secretKey": "کلید شخصی",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "نودهایی را که از این میزبان resolve می‌شوند انتخاب کنید. صرفاً انتساب نمایشی است.",
         "serverDescription": "یادداشت اختیاری که زیر نام نمایش داده می‌شود.",
         "allowInsecure": "رد کردن بررسی گواهی TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "پورت‌ها/بازه‌هایی که از طریق VLESS مسیریابی می‌شوند، مثلاً 53,443,1000-2000. برای هیچ‌کدام خالی بگذارید.",
+        "vlessRoute": "یک مقدار مسیر VLESS (0 تا 65535) که در UUID جاسازی می‌شود، مثلاً 443. برای هیچ‌کدام خالی بگذارید.",
         "remark": "یک برچسب ساده برای این میزبان. تنها زمانی به‌عنوان نام کانفیگ نمایش داده می‌شود که اینباند نام مخصوص خود را نداشته باشد."
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "به‌روزرسانی میزبان",
         "delete": "حذف میزبان",
         "badTag": "برچسب نامعتبر",
-        "badVlessRoute": "از پورت‌ها/بازه‌هایی مانند 53,443,1000-2000 استفاده کنید"
+        "badVlessRoute": "یک عدد بین 0 تا 65535 وارد کنید"
       }
     }
   },

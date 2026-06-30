@@ -83,7 +83,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
               {isPostgres ? t('pages.index.exportDatabasePgDesc') : t('pages.index.exportDatabaseDesc')}
             </div>
           </div>
-          <Button type="primary" onClick={exportDb} icon={<DownloadOutlined />} />
+          <Button type="primary" aria-label={t('pages.index.exportDatabase')} onClick={exportDb} icon={<DownloadOutlined />} />
         </div>
 
         <div className="backup-item">
@@ -93,7 +93,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
               {isPostgres ? t('pages.index.migrationDownloadPgDesc') : t('pages.index.migrationDownloadDesc')}
             </div>
           </div>
-          <Button type="primary" onClick={exportMigration} icon={<DownloadOutlined />} />
+          <Button type="primary" aria-label={t('pages.index.migrationDownload')} onClick={exportMigration} icon={<DownloadOutlined />} />
         </div>
 
         <div className="backup-item">
@@ -103,7 +103,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
               {isPostgres ? t('pages.index.importDatabasePgDesc') : t('pages.index.importDatabaseDesc')}
             </div>
           </div>
-          <Button type="primary" onClick={importDb} icon={<UploadOutlined />} />
+          <Button type="primary" aria-label={t('pages.index.importDatabase')} onClick={importDb} icon={<UploadOutlined />} />
         </div>
       </div>
     </Modal>

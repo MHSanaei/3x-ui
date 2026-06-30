@@ -115,6 +115,7 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
         value={state.mode}
         options={modeOptions}
         onChange={onModeChange}
+        aria-label={t('pages.settings.telegramNotifyTime')}
       />
       {state.mode === 'every' && (
         <Space.Compact style={{ width: '100%' }}>
@@ -123,12 +124,14 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
             style={{ width: '50%' }}
             value={state.num}
             onChange={(v) => update({ num: Math.max(1, Number(v) || 1) })}
+            aria-label={t('pages.settings.notifyTime.interval')}
           />
           <Select<Unit>
             style={{ width: '50%' }}
             value={state.unit}
             options={unitOptions}
             onChange={(unit) => update({ unit })}
+            aria-label={t('pages.settings.notifyTime.unit')}
           />
         </Space.Compact>
       )}
@@ -137,6 +140,7 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
           value={state.custom}
           placeholder="0 30 8 * * *"
           onChange={(e) => update({ custom: e.target.value })}
+          aria-label={t('pages.settings.notifyTime.custom')}
         />
       )}
     </Space>

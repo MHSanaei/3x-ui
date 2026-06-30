@@ -36,6 +36,17 @@ describe('HostFormSchema', () => {
     expect(() => HostFormSchema.parse({ ...valid, port: 70000 })).toThrow();
   });
 
+  it('accepts a single vlessRoute 0-65535 and rejects specs/out-of-range', () => {
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '443' })).not.toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '0' })).not.toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '65535' })).not.toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '' })).not.toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '53,443' })).toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '1000-2000' })).toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: '70000' })).toThrow();
+    expect(() => HostFormSchema.parse({ ...valid, vlessRoute: 'abc' })).toThrow();
+  });
+
   it('rejects a bad security enum', () => {
     expect(() => HostFormSchema.parse({ ...valid, security: 'bogus' })).toThrow();
   });

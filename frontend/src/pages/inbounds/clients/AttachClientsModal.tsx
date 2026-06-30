@@ -164,6 +164,7 @@ export default function AttachClientsModal({
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search
             allowClear
+            aria-label={t('search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('pages.inbounds.attachClientsSearchPlaceholder')}
@@ -196,6 +197,7 @@ export default function AttachClientsModal({
       ) : (
         <Select
           mode="multiple"
+          aria-label={t('pages.inbounds.attachClientsTargets')}
           style={{ width: '100%' }}
           value={targetIds}
           onChange={setTargetIds}

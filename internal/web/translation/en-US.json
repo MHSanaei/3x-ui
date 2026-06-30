@@ -15,6 +15,10 @@
   "copied": "Copied",
   "more": "more",
   "download": "Download",
+  "regenerate": "Regenerate",
+  "jsonEditor": "JSON editor",
+  "downloadImage": "Download Image",
+  "sort": "Sort",
   "remark": "Remark",
   "enable": "Enabled",
   "protocol": "Protocol",
@@ -118,7 +122,8 @@
     "logout": "Log Out",
     "link": "Manage",
     "donate": "Donate",
-    "docs": "Documentation"
+    "docs": "Documentation",
+    "openMenu": "Open menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Request Header",
           "responseHeader": "Response Header"
         }
-      }
+      },
+      "sniffingDestOverride": "Destination override"
     },
     "clients": {
       "tabBasics": "Basics",
@@ -1026,7 +1032,7 @@
         "nodeGuids": "Pick nodes which resolved from this host. Only visual assignment.",
         "serverDescription": "Optional note shown under the remark.",
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Ports/ranges routed via VLESS, e.g. 53,443,1000-2000. Leave blank for none.",
+        "vlessRoute": "Single VLESS route value (0-65535) baked into the UUID, e.g. 443. Leave blank for none.",
         "remark": "A plain label for this host. Shown as the config name only when the inbound has no remark of its own."
       },
       "remarkVars": {
@@ -1076,7 +1082,7 @@
         "update": "Update host",
         "delete": "Delete host",
         "badTag": "Invalid tag",
-        "badVlessRoute": "Use ports/ranges like 53,443,1000-2000"
+        "badVlessRoute": "Enter a single number between 0 and 65535"
       }
     },
     "nodes": {
@@ -1260,7 +1266,9 @@
         "custom": "Custom (crontab)",
         "seconds": "Seconds",
         "minutes": "Minutes",
-        "hours": "Hours"
+        "hours": "Hours",
+        "interval": "Interval",
+        "unit": "Unit"
       },
       "tgNotifyBackup": "Database Backup",
       "tgNotifyBackupDesc": "Send a database backup file with a report.",
@@ -1734,7 +1742,8 @@
         "city": "City",
         "allCities": "All Cities",
         "privateKey": "Private Key",
-        "load": "Load"
+        "load": "Load",
+        "moveToTop": "Move to top"
       },
       "outboundSub": {
         "manage": "Subscriptions",
@@ -1816,6 +1825,12 @@
         "deleteAlsoObservatory": "This is the last balancer using the Observatory, so it will be removed too.",
         "deleteAlsoBurst": "This is the last balancer using the Burst Observatory, so it will be removed too."
       },
+      "refCleanup": {
+        "header": "Deleting this also updates your routing:",
+        "ruleRemoved": "Rule {label} — removed (no destination left)",
+        "ruleModified": "Rule {label} — kept (now uses {keeps})",
+        "balancerRemoved": "Balancer {tag} — removed (no targets left)"
+      },
       "balancer": {
         "addBalancer": "Add Balancer",
         "editBalancer": "Edit Balancer",
@@ -1833,7 +1848,10 @@
         "tolerance": "Tolerance",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "It is not possible to use balancerTag and outboundTag at the same time. If used at the same time, only outboundTag will work."
+        "balancerDesc": "It is not possible to use balancerTag and outboundTag at the same time. If used at the same time, only outboundTag will work.",
+        "costMatch": "Tag pattern",
+        "costValue": "Weight",
+        "costRegexp": "Regular expression match"
       },
       "wireguard": {
         "secretKey": "Secret Key",

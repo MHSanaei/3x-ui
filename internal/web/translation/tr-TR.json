@@ -15,6 +15,10 @@
   "copied": "Kopyalandı",
   "more": "Diğer",
   "download": "İndir",
+  "regenerate": "Yeniden Oluştur",
+  "jsonEditor": "JSON Düzenleyici",
+  "downloadImage": "Resmi İndir",
+  "sort": "Sırala",
   "remark": "Açıklama",
   "enable": "Etkin",
   "protocol": "Protokol",
@@ -118,7 +122,8 @@
     "link": "Yönet",
     "donate": "Bağış Yap",
     "hosts": "Host'lar",
-    "docs": "Belgeler"
+    "docs": "Belgeler",
+    "openMenu": "Menüyü aç"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "İstek Başlığı",
           "responseHeader": "Yanıt Başlığı"
         }
-      }
+      },
+      "sniffingDestOverride": "Hedef geçersiz kılma"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -1142,7 +1148,9 @@
         "custom": "Özel (crontab)",
         "seconds": "Saniye",
         "minutes": "Dakika",
-        "hours": "Saat"
+        "hours": "Saat",
+        "interval": "Aralık",
+        "unit": "Birim"
       },
       "tgNotifyBackup": "Veritabanı Yedeği",
       "tgNotifyBackupDesc": "Bir rapor ile birlikte veritabanı yedek dosyasını gönderir.",
@@ -1618,7 +1626,8 @@
         "city": "Şehir",
         "allCities": "Tüm Şehirler",
         "privateKey": "Özel Anahtar",
-        "load": "Yükle"
+        "load": "Yükle",
+        "moveToTop": "En üste taşı"
       },
       "outboundSub": {
         "manage": "Abonelikler",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "Bu, Observatory kullanan son dengeleyici, bu yüzden o da kaldırılacak.",
         "deleteAlsoBurst": "Bu, Burst Observatory kullanan son dengeleyici, bu yüzden o da kaldırılacak."
       },
+      "refCleanup": {
+        "header": "Bunu silmek yönlendirmenizi de günceller:",
+        "ruleRemoved": "Kural {label} — kaldırıldı (hedef kalmadı)",
+        "ruleModified": "Kural {label} — korundu (artık {keeps} kullanıyor)",
+        "balancerRemoved": "Dengeleyici {tag} — kaldırıldı (hedef kalmadı)"
+      },
       "balancer": {
         "addBalancer": "Dengeleyici Ekle",
         "editBalancer": "Dengeleyiciyi Düzenle",
@@ -1717,7 +1732,10 @@
         "tolerance": "Tolerans",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur."
+        "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur.",
+        "costMatch": "Etiket deseni",
+        "costValue": "Ağırlık",
+        "costRegexp": "Düzenli ifade eşleşmesi"
       },
       "wireguard": {
         "secretKey": "Gizli Anahtar",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "Bu host'tan çözümlenen düğümleri seçin. Yalnızca görsel atama.",
         "serverDescription": "Açıklamanın altında gösterilen isteğe bağlı not.",
         "allowInsecure": "TLS sertifika doğrulamasını atla (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "VLESS üzerinden yönlendirilen portlar/aralıklar, örn. 53,443,1000-2000. Hiçbiri için boş bırakın.",
+        "vlessRoute": "UUID'ye gömülen tek bir VLESS rota değeri (0-65535), örn. 443. Hiçbiri için boş bırakın.",
         "remark": "Bu host için düz bir etiket. Yalnızca gelen bağlantının kendi açıklaması yoksa yapılandırma adı olarak gösterilir."
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "Host'u güncelle",
         "delete": "Host'u sil",
         "badTag": "Geçersiz etiket",
-        "badVlessRoute": "53,443,1000-2000 gibi portlar/aralıklar kullanın"
+        "badVlessRoute": "0 ile 65535 arasında tek bir sayı girin"
       }
     }
   },

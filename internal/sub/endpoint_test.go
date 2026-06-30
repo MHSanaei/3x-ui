@@ -80,7 +80,7 @@ func TestBuildEndpointLinks_ParamForm(t *testing.T) {
 		externalProxyToEndpoint(map[string]any{"forceTls": "none", "dest": "b.example.com", "port": float64(80), "remark": "B"}),
 	}
 	got := s.buildEndpointLinks(eps, params, "tls",
-		func(dest string, port int) string { return fmt.Sprintf("vless://uid@%s", joinHostPort(dest, port)) },
+		func(e ShareEndpoint) string { return fmt.Sprintf("vless://uid@%s", joinHostPort(e.Address, e.Port)) },
 		func(e ShareEndpoint) string { return s.genRemark(in, "user", e.Remark, "") },
 	)
 	want := "vless://uid@a.example.com:8443?fp=chrome&security=tls&sni=a.sni&type=tcp#ib-A-user\n" +

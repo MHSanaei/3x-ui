@@ -341,7 +341,7 @@ export default function BasicsTab({
                 min={0}
                 style={{ width: '100%' }}
                 placeholder="300"
-                addonAfter={t('pages.xray.seconds')}
+                suffix={t('pages.xray.seconds')}
                 onChange={(v) => setLevel0('connIdle', v as number | null)}
               />
             }
@@ -356,7 +356,7 @@ export default function BasicsTab({
                 min={0}
                 style={{ width: '100%' }}
                 placeholder={t('pages.xray.bufferSizePlaceholder')}
-                addonAfter="KB"
+                suffix="KB"
                 onChange={(v) => setLevel0('bufferSize', v as number | null)}
               />
             }

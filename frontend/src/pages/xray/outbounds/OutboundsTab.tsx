@@ -43,6 +43,8 @@ import TextModal from '@/components/feedback/TextModal';
 
 import OutboundFormModal from './OutboundFormModal';
 import { propagateOutboundTagRename } from '../basics/helpers';
+import { planOutboundDeletion, applyOutboundDeletion } from '../reference-cleanup';
+import DeletionImpactList from '../DeletionImpactList';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
 
@@ -208,16 +210,16 @@ export default function OutboundsTab({
   }
 
   function confirmDelete(idx: number) {
+    const impact = templateSettings
+      ? planOutboundDeletion(templateSettings, idx)
+      : { rules: [], balancers: [], observatory: false, burst: false };
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Outbounds')} #${idx + 1}?`,
+      content: <DeletionImpactList impact={impact} />,
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
-      onOk: () => {
-        mutate((tt) => {
-          tt.outbounds?.splice(idx, 1);
-        });
-      },
+      onOk: () => mutate((tt) => applyOutboundDeletion(tt, idx)),
     });
   }
   function setFirst(idx: number) {
@@ -496,7 +498,7 @@ export default function OutboundsTab({
                 title={t('pages.inbounds.resetAllTrafficContent')}
                 onConfirm={() => onResetTraffic('-alltags-')}
               >
-                <Button icon={<RetweetOutlined />} />
+                <Button aria-label={t('pages.inbounds.resetTraffic')} icon={<RetweetOutlined />} />
               </Popconfirm>
             </Space>
           </Col>
@@ -657,7 +659,7 @@ export default function OutboundsTab({
           <div>
             <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               {t('pages.xray.outboundSub.active')}
-              <Button size="small" icon={<ReloadOutlined />} onClick={loadSubs} loading={subsLoading} />
+              <Button aria-label={t('refresh')} size="small" icon={<ReloadOutlined />} onClick={loadSubs} loading={subsLoading} />
               {subs.length > 0 && (
                 <Button size="small" type="primary" icon={<ReloadOutlined />} onClick={refreshAllSubs} loading={refreshingAll}>
                   {t('pages.xray.outboundSub.refreshAll')}
@@ -680,8 +682,8 @@ export default function OutboundsTab({
                     width: 56,
                     render: (_: unknown, r: OutboundSub, index: number) => (
                       <Space size={0}>
-                        <Button type="text" size="small" icon={<ArrowUpOutlined />} disabled={index === 0 || busyId === r.id} onClick={() => moveSub(r.id, 'up')} />
-                        <Button type="text" size="small" icon={<ArrowDownOutlined />} disabled={index === subs.length - 1 || busyId === r.id} onClick={() => moveSub(r.id, 'down')} />
+                        <Button aria-label={t('pages.inbounds.form.moveUp')} type="text" size="small" icon={<ArrowUpOutlined />} disabled={index === 0 || busyId === r.id} onClick={() => moveSub(r.id, 'up')} />
+                        <Button aria-label={t('pages.inbounds.form.moveDown')} type="text" size="small" icon={<ArrowDownOutlined />} disabled={index === subs.length - 1 || busyId === r.id} onClick={() => moveSub(r.id, 'down')} />
                       </Space>
                     ),
                   },
@@ -716,10 +718,10 @@ export default function OutboundsTab({
                     key: 'actions',
                     render: (_: unknown, r: OutboundSub) => (
                       <Space>
-                        <Button size="small" icon={<EditOutlined />} onClick={() => openEditSub(r)} title={t('edit')} />
-                        <Button size="small" icon={<ReloadOutlined />} loading={refreshingId === r.id} onClick={() => refreshOne(r.id)} title={t('pages.xray.outboundSub.refreshNow')} />
+                        <Button aria-label={t('edit')} size="small" icon={<EditOutlined />} onClick={() => openEditSub(r)} title={t('edit')} />
+                        <Button aria-label={t('pages.xray.outboundSub.refreshNow')} size="small" icon={<ReloadOutlined />} loading={refreshingId === r.id} onClick={() => refreshOne(r.id)} title={t('pages.xray.outboundSub.refreshNow')} />
                         <Popconfirm title={t('pages.xray.outboundSub.deleteConfirm')} okText={t('delete')} cancelText={t('cancel')} onConfirm={() => deleteOne(r.id)}>
-                          <Button size="small" danger icon={<DeleteOutlined />} />
+                          <Button aria-label={t('delete')} size="small" danger icon={<DeleteOutlined />} />
                         </Popconfirm>
                       </Space>
                     ),

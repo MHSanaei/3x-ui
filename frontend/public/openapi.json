@@ -1574,7 +1574,8 @@
             "type": "string"
           },
           "vlessRoute": {
-            "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
+            "description": "Single VLESS route value (0-65535) baked into the subscription UUID's 3rd\ngroup (bytes 6-7), which xray reads via net.PortFromBytes(id[6:8]). Empty = none.",
+            "example": "443",
             "type": "string"
           }
         },
@@ -5909,7 +5910,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
@@ -8191,7 +8192,7 @@
                       ],
                       "updatedAt": 0,
                       "verifyPeerCertByName": "",
-                      "vlessRoute": ""
+                      "vlessRoute": "443"
                     }
                   ]
                 }
@@ -8283,7 +8284,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": "",
-                    "vlessRoute": ""
+                    "vlessRoute": "443"
                   }
                 }
               }
@@ -8378,7 +8379,7 @@
                       ],
                       "updatedAt": 0,
                       "verifyPeerCertByName": "",
-                      "vlessRoute": ""
+                      "vlessRoute": "443"
                     }
                   ]
                 }
@@ -8518,7 +8519,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": "",
-                    "vlessRoute": ""
+                    "vlessRoute": "443"
                   }
                 }
               }
@@ -8630,7 +8631,7 @@
                     ],
                     "updatedAt": 0,
                     "verifyPeerCertByName": "",
-                    "vlessRoute": ""
+                    "vlessRoute": "443"
                   }
                 }
               }

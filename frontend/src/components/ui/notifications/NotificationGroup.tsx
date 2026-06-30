@@ -40,7 +40,7 @@ export function NotificationGroup({ config, selected, onToggle, onToggleAll, all
         />
       }
     >
-      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         {config.events.map((event) => (
           <NotificationEvent
             key={event.key}

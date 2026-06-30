@@ -280,6 +280,7 @@ export default function ClientBulkAddModal({
                 style={{ flex: 1 }}
               />
               <Button
+                aria-label={t('regenerate')}
                 icon={<ReloadOutlined />}
                 onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))}
               />

@@ -15,6 +15,10 @@
   "copied": "コピー済み",
   "more": "もっと",
   "download": "ダウンロード",
+  "regenerate": "再生成",
+  "jsonEditor": "JSON エディター",
+  "downloadImage": "画像をダウンロード",
+  "sort": "並べ替え",
   "remark": "備考",
   "enable": "有効化",
   "protocol": "プロトコル",
@@ -118,7 +122,8 @@
     "link": "リンク管理",
     "donate": "寄付",
     "hosts": "ホスト",
-    "docs": "ドキュメント"
+    "docs": "ドキュメント",
+    "openMenu": "メニューを開く"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "リクエストヘッダー",
           "responseHeader": "レスポンスヘッダー"
         }
-      }
+      },
+      "sniffingDestOverride": "宛先のオーバーライド"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1142,7 +1148,9 @@
         "custom": "カスタム (crontab)",
         "seconds": "秒",
         "minutes": "分",
-        "hours": "時間"
+        "hours": "時間",
+        "interval": "間隔",
+        "unit": "単位"
       },
       "tgNotifyBackup": "データベースバックアップ",
       "tgNotifyBackupDesc": "レポート付きのデータベースバックアップファイルを送信",
@@ -1618,7 +1626,8 @@
         "city": "都市",
         "allCities": "すべての都市",
         "privateKey": "秘密鍵",
-        "load": "負荷"
+        "load": "負荷",
+        "moveToTop": "先頭に移動"
       },
       "outboundSub": {
         "manage": "サブスクリプション",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "これは Observatory を使用する最後のバランサーのため、こちらも削除されます。",
         "deleteAlsoBurst": "これは Burst Observatory を使用する最後のバランサーのため、こちらも削除されます。"
       },
+      "refCleanup": {
+        "header": "これを削除するとルーティングも更新されます:",
+        "ruleRemoved": "ルール {label} — 削除（送信先が残っていません）",
+        "ruleModified": "ルール {label} — 保持（現在は {keeps} を使用）",
+        "balancerRemoved": "バランサー {tag} — 削除（対象が残っていません）"
+      },
       "balancer": {
         "addBalancer": "負荷分散追加",
         "editBalancer": "負荷分散編集",
@@ -1717,7 +1732,10 @@
         "tolerance": "許容範囲",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。"
+        "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。",
+        "costMatch": "タグパターン",
+        "costValue": "重み",
+        "costRegexp": "正規表現で一致"
       },
       "wireguard": {
         "secretKey": "シークレットキー",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "このホストから解決されたノードを選択します。視覚的な割り当てのみです。",
         "serverDescription": "備考の下に表示される任意のメモ。",
         "allowInsecure": "TLS 証明書の検証をスキップします（allowInsecure / skip-cert-verify）。",
-        "vlessRoute": "VLESS 経由でルーティングするポート/範囲。例: 53,443,1000-2000。なしの場合は空欄にします。",
+        "vlessRoute": "UUID に埋め込まれる単一の VLESS ルート値（0〜65535）。例: 443。なしの場合は空欄にします。",
         "remark": "このホストのプレーンなラベル。インバウンド自身に備考がない場合にのみ設定名として表示されます。"
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "ホストを更新",
         "delete": "ホストを削除",
         "badTag": "無効なタグ",
-        "badVlessRoute": "53,443,1000-2000 のようにポート/範囲を指定してください"
+        "badVlessRoute": "0〜65535 の単一の数値を入力してください"
       }
     }
   },

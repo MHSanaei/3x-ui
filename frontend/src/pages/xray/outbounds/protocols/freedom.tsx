@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { AutoComplete, Button, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
+import { activateOnKey } from '@/utils/a11y';
 import { OutboundDomainStrategies } from '@/schemas/primitives';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 
@@ -138,6 +139,7 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
                   type="primary"
                   className="ml-8"
                   icon={<PlusOutlined />}
+                  aria-label={t('add')}
                   onClick={() =>
                     add({
                       type: 'rand',
@@ -157,7 +159,11 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
                     {fields.length > 1 && (
                       <DeleteOutlined
                         className="danger-icon"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('remove')}
                         onClick={() => remove(field.name)}
+                        onKeyDown={activateOnKey(() => remove(field.name))}
                       />
                     )}
                   </div>
@@ -198,6 +204,7 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
                 size="small"
                 type="primary"
                 icon={<PlusOutlined />}
+                aria-label={t('add')}
                 onClick={() =>
                   add({
                     action: 'allow',
@@ -219,7 +226,11 @@ export default function FreedomFields({ form }: { form: FormInstance<OutboundFor
                     <span>{t('pages.xray.outboundForm.ruleN', { n: index + 1 })}</span>
                     <DeleteOutlined
                       className="danger-icon"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t('remove')}
                       onClick={() => remove(field.name)}
+                      onKeyDown={activateOnKey(() => remove(field.name))}
                     />
                   </div>
                 </Form.Item>

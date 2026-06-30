@@ -15,6 +15,10 @@
   "copied": "Tersalin",
   "more": "lainnya",
   "download": "Unduh",
+  "regenerate": "Buat Ulang",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Unduh Gambar",
+  "sort": "Urutkan",
   "remark": "Catatan",
   "enable": "Aktifkan",
   "protocol": "Protokol",
@@ -118,7 +122,8 @@
     "link": "Kelola",
     "donate": "Donasi",
     "hosts": "Host",
-    "docs": "Dokumentasi"
+    "docs": "Dokumentasi",
+    "openMenu": "Buka menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "sniffingDestOverride": "Penggantian tujuan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1142,7 +1148,9 @@
         "custom": "Kustom (crontab)",
         "seconds": "Detik",
         "minutes": "Menit",
-        "hours": "Jam"
+        "hours": "Jam",
+        "interval": "Interval",
+        "unit": "Satuan"
       },
       "tgNotifyBackup": "Cadangan Database",
       "tgNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",
@@ -1618,7 +1626,8 @@
         "city": "Kota",
         "allCities": "Semua Kota",
         "privateKey": "Kunci Privat",
-        "load": "Beban"
+        "load": "Beban",
+        "moveToTop": "Pindahkan ke atas"
       },
       "outboundSub": {
         "manage": "Langganan",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "Ini balancer terakhir yang memakai Observatory, jadi itu juga akan dihapus.",
         "deleteAlsoBurst": "Ini balancer terakhir yang memakai Burst Observatory, jadi itu juga akan dihapus."
       },
+      "refCleanup": {
+        "header": "Menghapus ini juga memperbarui perutean Anda:",
+        "ruleRemoved": "Aturan {label} — dihapus (tidak ada tujuan tersisa)",
+        "ruleModified": "Aturan {label} — dipertahankan (kini memakai {keeps})",
+        "balancerRemoved": "Balancer {tag} — dihapus (tidak ada target tersisa)"
+      },
       "balancer": {
         "addBalancer": "Tambahkan Penyeimbang",
         "editBalancer": "Sunting Penyeimbang",
@@ -1717,7 +1732,10 @@
         "tolerance": "Toleransi",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi."
+        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
+        "costMatch": "Pola tag",
+        "costValue": "Bobot",
+        "costRegexp": "Pencocokan ekspresi reguler"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "Pilih node yang teresolusi dari host ini. Hanya penetapan visual.",
         "serverDescription": "Catatan opsional yang ditampilkan di bawah catatan.",
         "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Port/rentang yang dirutekan melalui VLESS, mis. 53,443,1000-2000. Biarkan kosong jika tidak ada.",
+        "vlessRoute": "Satu nilai rute VLESS (0-65535) yang disisipkan ke UUID, mis. 443. Biarkan kosong jika tidak ada.",
         "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "Perbarui host",
         "delete": "Hapus host",
         "badTag": "Tag tidak valid",
-        "badVlessRoute": "Gunakan port/rentang seperti 53,443,1000-2000"
+        "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
       }
     }
   },

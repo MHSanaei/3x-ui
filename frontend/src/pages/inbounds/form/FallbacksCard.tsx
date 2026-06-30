@@ -66,6 +66,7 @@ export default function FallbacksCard({
           >
             <Space.Compact block style={{ marginBottom: 8 }}>
               <Select
+                aria-label={t('pages.inbounds.fallbacks.pickInbound')}
                 value={record.childId}
                 options={fallbackChildOptions}
                 placeholder={t('pages.inbounds.fallbacks.pickInbound') || 'Pick an inbound'}
@@ -78,23 +79,25 @@ export default function FallbacksCard({
                 onChange={(v) => updateFallback(record.rowKey, { childId: v ?? null })}
               />
               <Button
+                aria-label={t('pages.inbounds.form.moveUp')}
                 disabled={idx === 0}
                 onClick={() => moveFallback(idx, -1)}
                 title={t('pages.inbounds.form.moveUp')}
                 icon={<ArrowUpOutlined />}
               />
               <Button
+                aria-label={t('pages.inbounds.form.moveDown')}
                 disabled={idx === fallbacks.length - 1}
                 onClick={() => moveFallback(idx, 1)}
                 title={t('pages.inbounds.form.moveDown')}
                 icon={<ArrowDownOutlined />}
               />
-              <Button danger onClick={() => removeFallback(idx)} icon={<DeleteOutlined />} />
+              <Button aria-label={t('delete')} danger onClick={() => removeFallback(idx)} icon={<DeleteOutlined />} />
             </Space.Compact>
             <Row gutter={[8, 8]}>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="SNI"
+                  prefix="SNI"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.name}
                   onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })}
@@ -102,7 +105,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="ALPN"
+                  prefix="ALPN"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.alpn}
                   onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })}
@@ -110,7 +113,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="Path"
+                  prefix="Path"
                   placeholder="/"
                   value={record.path}
                   onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })}
@@ -118,7 +121,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  addonBefore="Dest"
+                  prefix="Dest"
                   placeholder={t('pages.inbounds.fallbacks.destPlaceholder') || 'auto'}
                   value={record.dest}
                   onChange={(e) => updateFallback(record.rowKey, { dest: e.target.value })}
@@ -126,7 +129,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <InputNumber
-                  addonBefore="xver"
+                  prefix="xver"
                   min={0}
                   max={2}
                   style={{ width: '100%' }}

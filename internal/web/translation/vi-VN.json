@@ -15,6 +15,10 @@
   "copied": "Đã sao chép",
   "more": "thêm",
   "download": "Tải xuống",
+  "regenerate": "Tạo lại",
+  "jsonEditor": "Trình chỉnh sửa JSON",
+  "downloadImage": "Tải hình ảnh",
+  "sort": "Sắp xếp",
   "remark": "Ghi chú",
   "enable": "Kích hoạt",
   "protocol": "Giao thức",
@@ -118,7 +122,8 @@
     "link": "Quản lý",
     "donate": "Quyên góp",
     "hosts": "Hosts",
-    "docs": "Tài liệu"
+    "docs": "Tài liệu",
+    "openMenu": "Mở menu"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "Header yêu cầu",
           "responseHeader": "Header phản hồi"
         }
-      }
+      },
+      "sniffingDestOverride": "Ghi đè đích"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -1142,7 +1148,9 @@
         "custom": "Tùy chỉnh (crontab)",
         "seconds": "Giây",
         "minutes": "Phút",
-        "hours": "Giờ"
+        "hours": "Giờ",
+        "interval": "Khoảng thời gian",
+        "unit": "Đơn vị"
       },
       "tgNotifyBackup": "Sao lưu Cơ sở dữ liệu",
       "tgNotifyBackupDesc": "Bao gồm tệp sao lưu cơ sở dữ liệu với thông báo báo cáo.",
@@ -1618,7 +1626,8 @@
         "city": "Thành phố",
         "allCities": "Tất cả thành phố",
         "privateKey": "Khóa riêng",
-        "load": "Tải"
+        "load": "Tải",
+        "moveToTop": "Chuyển lên đầu"
       },
       "outboundSub": {
         "manage": "Đăng ký",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "Đây là balancer cuối cùng dùng Observatory, nên nó cũng sẽ bị xóa.",
         "deleteAlsoBurst": "Đây là balancer cuối cùng dùng Burst Observatory, nên nó cũng sẽ bị xóa."
       },
+      "refCleanup": {
+        "header": "Xóa mục này cũng cập nhật định tuyến của bạn:",
+        "ruleRemoved": "Quy tắc {label} — đã xóa (không còn đích đến)",
+        "ruleModified": "Quy tắc {label} — giữ lại (giờ dùng {keeps})",
+        "balancerRemoved": "Balancer {tag} — đã xóa (không còn mục tiêu)"
+      },
       "balancer": {
         "addBalancer": "Thêm cân bằng",
         "editBalancer": "Chỉnh sửa cân bằng",
@@ -1717,7 +1732,10 @@
         "tolerance": "Dung sai",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động."
+        "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động.",
+        "costMatch": "Mẫu thẻ",
+        "costValue": "Trọng số",
+        "costRegexp": "Khớp biểu thức chính quy"
       },
       "wireguard": {
         "secretKey": "Khoá bí mật",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "Chọn các nút được phân giải từ host này. Chỉ là gán trực quan.",
         "serverDescription": "Ghi chú tùy chọn hiển thị bên dưới ghi chú.",
         "allowInsecure": "Bỏ qua xác minh chứng chỉ TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Cổng/dải cổng định tuyến qua VLESS, ví dụ 53,443,1000-2000. Để trống nếu không dùng.",
+        "vlessRoute": "Một giá trị định tuyến VLESS (0-65535) được nhúng vào UUID, ví dụ 443. Để trống nếu không dùng.",
         "remark": "Nhãn đơn giản cho host này. Chỉ hiển thị làm tên cấu hình khi inbound không có ghi chú riêng."
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "Cập nhật host",
         "delete": "Xóa host",
         "badTag": "Tag không hợp lệ",
-        "badVlessRoute": "Dùng cổng/dải cổng như 53,443,1000-2000"
+        "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
       }
     }
   },

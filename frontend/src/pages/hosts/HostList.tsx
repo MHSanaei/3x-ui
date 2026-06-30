@@ -84,16 +84,16 @@ export default function HostList(props: HostListProps) {
         return (
           <Space size={2}>
             <Tooltip title={t('pages.hosts.moveUp')}>
-              <Button size="small" type="text" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => onMove(h, 'up')} />
+              <Button size="small" type="text" icon={<ArrowUpOutlined />} aria-label={t('pages.hosts.moveUp')} disabled={idx === 0} onClick={() => onMove(h, 'up')} />
             </Tooltip>
             <Tooltip title={t('pages.hosts.moveDown')}>
-              <Button size="small" type="text" icon={<ArrowDownOutlined />} disabled={idx >= count - 1} onClick={() => onMove(h, 'down')} />
+              <Button size="small" type="text" icon={<ArrowDownOutlined />} aria-label={t('pages.hosts.moveDown')} disabled={idx >= count - 1} onClick={() => onMove(h, 'down')} />
             </Tooltip>
             <Tooltip title={t('edit')}>
-              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(h)} />
+              <Button size="small" type="text" icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onEdit(h)} />
             </Tooltip>
             <Tooltip title={t('delete')}>
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(h)} />
+              <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={t('delete')} onClick={() => onDelete(h)} />
             </Tooltip>
           </Space>
         );

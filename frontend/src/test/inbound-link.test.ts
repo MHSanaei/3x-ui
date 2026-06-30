@@ -6,6 +6,7 @@ import {
   genInboundLinks,
   genShadowsocksLink,
   genTrojanLink,
+  applyVlessRoute,
   genVlessLink,
   genVmessLink,
   genWireguardConfig,
@@ -86,6 +87,55 @@ describe('genVlessLink', () => {
       expect(link).toMatchSnapshot();
     });
   }
+});
+
+describe('applyVlessRoute', () => {
+  const id = '11111111-2222-4333-8444-555555555555';
+  it('encodes a single value into the 3rd group and no-ops on invalid input', () => {
+    expect(applyVlessRoute(id, '443')).toBe('11111111-2222-01bb-8444-555555555555');
+    expect(applyVlessRoute(id, '53')).toBe('11111111-2222-0035-8444-555555555555');
+    expect(applyVlessRoute(id, '0')).toBe('11111111-2222-0000-8444-555555555555');
+    expect(applyVlessRoute(id, '65535')).toBe('11111111-2222-ffff-8444-555555555555');
+    expect(applyVlessRoute(id, '')).toBe(id);
+    expect(applyVlessRoute(id, undefined)).toBe(id);
+    expect(applyVlessRoute(id, '70000')).toBe(id);
+    expect(applyVlessRoute(id, '53,443')).toBe(id);
+    expect(applyVlessRoute(id, 'abc')).toBe(id);
+    expect(applyVlessRoute('short', '443')).toBe('short');
+  });
+});
+
+describe('genVlessLink vlessRoute', () => {
+  const [, raw] = fixturesForProtocol('vless')[0];
+  const typed = InboundSchema.parse(raw);
+
+  it('bakes a host route value into the link UUID 3rd group', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      forceTls: 'same',
+      remark: 'r',
+      clientId: '11111111-2222-4333-8444-555555555555',
+      flow: '' as never,
+      externalProxy: { forceTls: 'same', dest: 'example.test', port: typed.port, remark: '', vlessRoute: '443' },
+    });
+    expect(link).toContain('vless://11111111-2222-01bb-8444-555555555555@');
+  });
+
+  it('leaves the UUID unchanged when no route is set', () => {
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      forceTls: 'same',
+      remark: 'r',
+      clientId: '11111111-2222-4333-8444-555555555555',
+      flow: '' as never,
+      externalProxy: null,
+    });
+    expect(link).toContain('vless://11111111-2222-4333-8444-555555555555@');
+  });
 });
 
 describe('genTrojanLink', () => {

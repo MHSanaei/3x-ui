@@ -15,6 +15,10 @@
   "copied": "已复制",
   "more": "更多",
   "download": "下载",
+  "regenerate": "重新生成",
+  "jsonEditor": "JSON 编辑器",
+  "downloadImage": "下载图片",
+  "sort": "排序",
   "remark": "备注",
   "enable": "启用",
   "protocol": "协议",
@@ -118,7 +122,8 @@
     "link": "管理",
     "donate": "捐赠",
     "hosts": "主机",
-    "docs": "文档"
+    "docs": "文档",
+    "openMenu": "打开菜单"
   },
   "pages": {
     "login": {
@@ -712,7 +717,8 @@
           "requestHeader": "请求头",
           "responseHeader": "响应头"
         }
-      }
+      },
+      "sniffingDestOverride": "目标覆盖"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1142,7 +1148,9 @@
         "custom": "自定义 (crontab)",
         "seconds": "秒",
         "minutes": "分钟",
-        "hours": "小时"
+        "hours": "小时",
+        "interval": "间隔",
+        "unit": "单位"
       },
       "tgNotifyBackup": "数据库备份",
       "tgNotifyBackupDesc": "发送带有报告的数据库备份文件",
@@ -1618,7 +1626,8 @@
         "city": "城市",
         "allCities": "所有城市",
         "privateKey": "私钥",
-        "load": "负载"
+        "load": "负载",
+        "moveToTop": "移到顶部"
       },
       "outboundSub": {
         "manage": "订阅",
@@ -1700,6 +1709,12 @@
         "deleteAlsoObservatory": "这是最后一个使用 Observatory 的负载均衡器，因此它也会被一并移除。",
         "deleteAlsoBurst": "这是最后一个使用 Burst Observatory 的负载均衡器，因此它也会被一并移除。"
       },
+      "refCleanup": {
+        "header": "删除此项还会更新你的路由：",
+        "ruleRemoved": "规则 {label} — 已移除（没有剩余出口）",
+        "ruleModified": "规则 {label} — 已保留（现使用 {keeps}）",
+        "balancerRemoved": "负载均衡器 {tag} — 已移除（没有剩余目标）"
+      },
       "balancer": {
         "addBalancer": "添加负载均衡",
         "editBalancer": "编辑负载均衡",
@@ -1717,7 +1732,10 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "无法同时使用 balancerTag 和 outboundTag。如果同时使用，则只有 outboundTag 会生效。"
+        "balancerDesc": "无法同时使用 balancerTag 和 outboundTag。如果同时使用，则只有 outboundTag 会生效。",
+        "costMatch": "标签匹配模式",
+        "costValue": "权重",
+        "costRegexp": "正则表达式匹配"
       },
       "wireguard": {
         "secretKey": "密钥",
@@ -1883,7 +1901,7 @@
         "nodeGuids": "选择从此主机解析的节点。仅用于可视化关联。",
         "serverDescription": "可选备注，显示在备注下方。",
         "allowInsecure": "跳过 TLS 证书验证（allowInsecure / skip-cert-verify）。",
-        "vlessRoute": "通过 VLESS 路由的端口/范围，例如 53,443,1000-2000。留空表示不路由。",
+        "vlessRoute": "嵌入 UUID 的单个 VLESS 路由值（0-65535），例如 443。留空表示不路由。",
         "remark": "此主机的纯文本标签。仅当入站没有自己的备注时，才作为配置名称显示。"
       },
       "remarkVars": {
@@ -1933,7 +1951,7 @@
         "update": "更新主机",
         "delete": "删除主机",
         "badTag": "无效的标签",
-        "badVlessRoute": "请使用端口/范围格式，如 53,443,1000-2000"
+        "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
       }
     }
   },

@@ -6,7 +6,9 @@ import type { ColumnsType } from 'antd/es/table';
 
 import BalancerFormModal from './BalancerFormModal';
 import type { BalancerFormValue } from './BalancerFormModal';
-import { syncObservatories, observersRemovedByDeletingBalancer } from './balancer-helpers';
+import { syncObservatories } from './balancer-helpers';
+import { planBalancerDeletion, applyBalancerDeletion } from '../reference-cleanup';
+import DeletionImpactList from '../DeletionImpactList';
 import ObservatorySettingsTab from './ObservatorySettingsTab';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HttpUtil } from '@/utils';
@@ -185,24 +187,16 @@ export default function BalancersTab({
   }
 
   function confirmDelete(idx: number) {
-    const removed = templateSettings
-      ? observersRemovedByDeletingBalancer(templateSettings, idx)
-      : { observatory: false, burst: false };
-    const warnings: string[] = [];
-    if (removed.observatory) warnings.push(t('pages.xray.observatory.deleteAlsoObservatory'));
-    if (removed.burst) warnings.push(t('pages.xray.observatory.deleteAlsoBurst'));
+    const impact = templateSettings
+      ? planBalancerDeletion(templateSettings, idx)
+      : { rules: [], balancers: [], observatory: false, burst: false };
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Balancers')} #${idx + 1}?`,
-      content: warnings.length ? warnings.join(' ') : undefined,
+      content: <DeletionImpactList impact={impact} />,
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
-      onOk: () => mutate((tt) => {
-        if (tt.routing?.balancers) {
-          tt.routing.balancers.splice(idx, 1);
-          syncObservatories(tt);
-        }
-      }),
+      onOk: () => mutate((tt) => applyBalancerDeletion(tt, idx)),
     });
   }
 
@@ -217,7 +211,7 @@ export default function BalancersTab({
           <span className="row-index">{index + 1}</span>
           <div className={!isMobile ? 'action-buttons' : ''}>
             {!isMobile && (
-              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+              <Button aria-label={t('edit')} shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
             )}
             <Dropdown
               trigger={['click']}
@@ -249,7 +243,7 @@ export default function BalancersTab({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button aria-label={t('more')} shape="circle" size="small" icon={<MoreOutlined />} />
             </Dropdown>
           </div>
         </div>
@@ -339,7 +333,7 @@ export default function BalancersTab({
               {t('pages.xray.Balancers')}
             </Button>
             <Tooltip title={t('pages.xray.balancerLiveRefresh')}>
-              <Button icon={<SyncOutlined spin={liveLoading} />} onClick={refreshLive} />
+              <Button aria-label={t('pages.xray.balancerLiveRefresh')} icon={<SyncOutlined spin={liveLoading} />} onClick={refreshLive} />
             </Tooltip>
           </Space>
 

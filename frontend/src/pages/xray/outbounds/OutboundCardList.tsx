@@ -53,7 +53,7 @@ export default function OutboundCardList({
   if (rows.length === 0) {
     return (
       <div className="card-empty">
-        <ExportOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+        <ExportOutlined style={{ fontSize: 32, marginBottom: 8 }} aria-hidden="true" />
         <div>{t('noData')}</div>
       </div>
     );
@@ -81,7 +81,7 @@ export default function OutboundCardList({
               menu={{
                 items: [
                   ...(index > 0
-                    ? [{ key: 'top', label: <VerticalAlignTopOutlined />, onClick: () => setFirst(index) }]
+                    ? [{ key: 'top', label: <><VerticalAlignTopOutlined /> {t('pages.xray.outbound.moveToTop')}</>, onClick: () => setFirst(index) }]
                     : []),
                   { key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) },
                   { key: 'reset', label: <><RetweetOutlined /> {t('pages.inbounds.resetTraffic')}</>, onClick: () => onResetTraffic(record.tag || '') },
@@ -89,7 +89,7 @@ export default function OutboundCardList({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button shape="circle" size="small" icon={<MoreOutlined />} aria-label={t('more')} />
             </Dropdown>
           </div>
           {outboundAddresses(record).length > 0 && (
@@ -118,6 +118,7 @@ export default function OutboundCardList({
                 loading={isTesting(outboundTestStates, index)}
                 disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
                 icon={<ThunderboltOutlined />}
+                aria-label={t('check')}
                 onClick={() => onTest(index, testMode)}
               />
             </span>
