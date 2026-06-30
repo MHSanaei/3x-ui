@@ -596,8 +596,9 @@ type Client struct {
 	Security     string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
 	Password     string         `json:"password,omitempty"` // Client password
 	Flow         string         `json:"flow,omitempty"`     // Flow control (XTLS)
-	Reverse      *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
-	Auth         string         `json:"auth,omitempty"`     // Auth password (Hysteria)
+	FlowLock     bool           `json:"flowLock,omitempty"`
+	Reverse      *ClientReverse `json:"reverse,omitempty"` // VLESS simple reverse proxy settings
+	Auth         string         `json:"auth,omitempty"`    // Auth password (Hysteria)
 	PrivateKey   string         `json:"privateKey,omitempty"`
 	PublicKey    string         `json:"publicKey,omitempty"`
 	AllowedIPs   []string       `json:"allowedIPs,omitempty"`

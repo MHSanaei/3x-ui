@@ -7,29 +7,18 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
-// clientWithFlow returns a copy of the client matching email with its Flow set
-// verbatim, plus whether a match was found. Pure (no DB) so the override is
-// unit-testable; unlike clientWithInboundFlow it does not clamp the value.
 func clientWithFlow(clients []model.Client, email, flow string) (model.Client, bool) {
 	for i := range clients {
 		if clients[i].Email == email {
 			c := clients[i]
 			c.Flow = flow
+			c.FlowLock = true
 			return c, true
 		}
 	}
 	return model.Client{}, false
 }
 
-// SetInboundClientFlow overrides the XTLS flow for one client on a single
-// inbound, so a client can keep Vision on some flow-capable inbounds and clear
-// it on another within the same subscription (#5689, approach 1).
-//
-// Clearing (""/"none") is always allowed; a non-empty flow must be a recognized
-// value (bulkFlowAllowed) and is only accepted on a flow-capable inbound, so an
-// invalid value or a flow on a non-capable transport can't reach the Xray
-// config. Persists via UpdateInboundClient, whose SyncInbound recreates the
-// client_inbounds.flow_override row from the written settings flow.
 func (s *ClientService) SetInboundClientFlow(inboundSvc *InboundService, inboundId int, email, flow string) (bool, error) {
 	if _, ok := bulkFlowAllowed[flow]; !ok {
 		return false, common.NewError("unsupported flow value:", flow)

@@ -153,6 +153,19 @@ func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
 	return c
 }
 
+func clientForInboundEdit(svc *InboundService, updated model.Client, ib *model.Inbound) model.Client {
+	if existing, err := svc.GetClients(ib); err == nil {
+		for i := range existing {
+			if existing[i].FlowLock && strings.EqualFold(existing[i].Email, updated.Email) {
+				updated.Flow = existing[i].Flow
+				updated.FlowLock = true
+				return updated
+			}
+		}
+	}
+	return clientWithInboundFlow(updated, ib)
+}
+
 func shadowsocksMethodFromSettings(settings string) string {
 	if settings == "" {
 		return ""
@@ -369,7 +382,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(updated, inbound)}})
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientForInboundEdit(inboundSvc, updated, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}

@@ -1100,6 +1100,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Flow control (XTLS)",
         "type": "string"
       },
+      "flowLock": {
+        "type": "boolean"
+      },
       "group": {
         "description": "Logical grouping label",
         "type": "string"

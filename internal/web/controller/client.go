@@ -182,9 +182,6 @@ type setFlowBody struct {
 	Flow      string `json:"flow"`
 }
 
-// setInboundFlow overrides the XTLS flow for one client on a single inbound,
-// bypassing the capability clamp so the client can keep Vision on its other
-// flow-capable inbounds in the same subscription (approach 1 of #5689).
 func (a *ClientController) setInboundFlow(c *gin.Context) {
 	email := c.Param("email")
 	var body setFlowBody

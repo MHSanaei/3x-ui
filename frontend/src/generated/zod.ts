@@ -248,6 +248,7 @@ export const ClientSchema = z.object({
   enable: z.boolean(),
   expiryTime: z.number().int(),
   flow: z.string().optional(),
+  flowLock: z.boolean().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
   keepAlive: z.number().int().optional(),

@@ -51,6 +51,9 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 		if flow, _ := cm["flow"].(string); flow != "" {
 			continue // respect an explicit flow (Vision or otherwise)
 		}
+		if locked, _ := cm["flowLock"].(bool); locked {
+			continue
+		}
 		if email, _ := cm["email"].(string); email != "" {
 			emails = append(emails, email)
 		}
@@ -69,6 +72,9 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 			continue
 		}
 		if flow, _ := cm["flow"].(string); flow != "" {
+			continue
+		}
+		if locked, _ := cm["flowLock"].(bool); locked {
 			continue
 		}
 		email, _ := cm["email"].(string)

@@ -232,6 +232,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
+  flowLock?: boolean;
   group?: string;
   id?: string;
   keepAlive?: number;
