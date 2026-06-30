@@ -350,6 +350,7 @@ export interface Host {
 
 export interface Inbound {
   clientStats: ClientTraffic[];
+  disableFlow: boolean;
   down: number;
   enable: boolean;
   expiryTime: number;

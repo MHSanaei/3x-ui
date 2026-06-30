@@ -76,7 +76,7 @@ type Inbound struct {
 	// xray. When true, the inbound reports tlsFlowCapable=false, the write path
 	// clamps each attached client's flow to empty, and share links/subscriptions
 	// never carry the flow for it.
-	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false"`
+	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false" example:"false"`
 
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
 	// inbound, propagated up across hops (#4983). Empty for an inbound that

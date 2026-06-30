@@ -131,6 +131,16 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	}
 }
 
+func TestSubJsonServiceVlessFlowSuppressedByDisableFlow(t *testing.T) {
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`, DisableFlow: true}
+	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
+
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client, ""))
+	if _, ok := settings["flow"]; ok {
+		t.Fatalf("DisableFlow inbound must not carry a flow in the JSON outbound: %#v", settings)
+	}
+}
+
 func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
 	client := model.Client{ID: "uuid-2"}

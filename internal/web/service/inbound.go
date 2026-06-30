@@ -1125,6 +1125,23 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
 				inbound.Settings = restored
 			}
+		} else {
+			// DisableFlow is authoritative: strip any flow already stored on this
+			// inbound's clients so xray and the subscription agree — a toggled-on
+			// inbound must not expect Vision server-side that the client config no
+			// longer advertises.
+			if stripped, changed := stripClientFlows(inbound.Settings); changed {
+				inbound.Settings = stripped
+			}
+			db := tx
+			if db == nil {
+				db = database.GetDB()
+			}
+			if uErr := db.Model(&model.ClientInbound{}).
+				Where("inbound_id = ?", oldInbound.Id).
+				Update("flow_override", "").Error; uErr != nil {
+				logger.Warning("UpdateInbound: clearing flow_override for DisableFlow inbound failed:", uErr)
+			}
 		}
 
 		oldInbound.Total = inbound.Total

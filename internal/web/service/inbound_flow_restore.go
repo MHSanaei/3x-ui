@@ -88,3 +88,41 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 	}
 	return string(out), true
 }
+
+// stripClientFlows clears the flow on every client in a VLESS inbound's settings
+// JSON, returning the rewritten settings and whether anything changed. Used when
+// an inbound's DisableFlow is on, so the flow xray reads from the stored settings
+// matches the subscription output (which never advertises the flow for such an
+// inbound). Without it, toggling DisableFlow on an inbound that already has
+// xtls-rprx-vision clients would leave xray expecting Vision server-side while
+// the client config carries none — breaking the connection.
+func stripClientFlows(settings string) (string, bool) {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok || len(clients) == 0 {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if flow, _ := cm["flow"].(string); flow != "" {
+			cm["flow"] = ""
+			clients[i] = cm
+			changed = true
+		}
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
