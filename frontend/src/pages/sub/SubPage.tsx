@@ -401,7 +401,7 @@ export default function SubPage() {
                     </div>
                   </>
                 )}
-
+                {/*
                 {links.length > 0 && (
                   <>
                     <Divider>{t('pages.inbounds.copyLink')}</Divider>
@@ -486,7 +486,7 @@ export default function SubPage() {
                     </div>
                   </>
                 )}
-
+                */}
                 <Row gutter={[8, 8]} justify="center" className="apps-row">
                   <Col xs={24} sm={12} className="app-col">
                     <Dropdown trigger={['click']} menu={{ items: androidMenuItems }}>
