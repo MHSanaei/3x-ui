@@ -76,6 +76,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [form] = Form.useForm<FormShape>();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
 
   const security = (Form.useWatch('security', form) ?? 'same') as string;
@@ -142,10 +143,10 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
     try {
       const res = await save(payload);
       if (res?.success) {
-        message.success(t(mode === 'add' ? 'pages.hosts.toasts.add' : 'pages.hosts.toasts.update'));
+        messageApi.success(t(mode === 'add' ? 'pages.hosts.toasts.add' : 'pages.hosts.toasts.update'));
         onOpenChange(false);
       } else if (res?.msg) {
-        message.error(res.msg);
+        messageApi.error(res.msg);
       }
     } catch (err) {
       console.error(err);
@@ -167,6 +168,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
       width={isMobile ? '95vw' : 760}
       styles={{ body: { maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' } }}
     >
+      {messageContextHolder}
       <Form
         form={form}
         colon={false}
