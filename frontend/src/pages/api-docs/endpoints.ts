@@ -641,6 +641,18 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/:email/flow',
+        summary: 'Override a client\'s XTLS flow on a single inbound, bypassing the per-inbound capability clamp — so a client can keep xtls-rprx-vision on one flow-capable inbound and clear it on another in the same subscription. Clearing ("" or "none") is always allowed; a non-empty flow must be a recognized value and is only accepted on a flow-capable inbound.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          { name: 'inboundId', in: 'body (json)', type: 'integer', desc: 'Inbound to set the flow on.' },
+          { name: 'flow', in: 'body (json)', type: 'string', desc: 'XTLS flow: "xtls-rprx-vision" / "xtls-rprx-vision-udp443" to set (flow-capable inbounds only), or "" / "none" to clear.' },
+        ],
+        body: '{\n  "inboundId": 7,\n  "flow": ""\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/resetAllTraffics',
         summary: 'Reset the up/down counters for every client globally. Quotas and expiry are not affected. Triggers an Xray restart if any counter actually moved.',
         response: '{\n  "success": true\n}',

@@ -5634,6 +5634,64 @@
         }
       }
     },
+    "/panel/api/clients/{email}/flow": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Override a client's XTLS flow on a single inbound, bypassing the per-inbound capability clamp — so a client can keep xtls-rprx-vision on one flow-capable inbound and clear it on another in the same subscription. Clearing (\"\" or \"none\") is always allowed; a non-empty flow must be a recognized value and is only accepted on a flow-capable inbound.",
+        "operationId": "post_panel_api_clients_email_flow",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundId": 7,
+                "flow": ""
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/resetAllTraffics": {
       "post": {
         "tags": [

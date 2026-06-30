@@ -3,18 +3,13 @@ package service
 import (
 	"encoding/json"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
-// clientWithFlow returns a copy of the client matching email from clients, with
-// its Flow set verbatim, plus whether a match was found. Pure (no DB) so the
-// per-inbound flow override is unit-testable. Unlike clientWithInboundFlow it
-// does NOT clamp the value against the inbound's capability — applying an empty
-// flow to a flow-capable inbound is exactly the point of a per-(client, inbound)
-// override (#5689, approach 1).
+// clientWithFlow returns a copy of the client matching email with its Flow set
+// verbatim, plus whether a match was found. Pure (no DB) so the override is
+// unit-testable; unlike clientWithInboundFlow it does not clamp the value.
 func clientWithFlow(clients []model.Client, email, flow string) (model.Client, bool) {
 	for i := range clients {
 		if clients[i].Email == email {
@@ -26,28 +21,28 @@ func clientWithFlow(clients []model.Client, email, flow string) (model.Client, b
 	return model.Client{}, false
 }
 
-// SetInboundClientFlow overrides the XTLS flow for one client on ONE inbound,
-// bypassing the capability clamp. It lets a client carry Vision on some
-// flow-capable inbounds and an empty flow on others within the same
-// subscription (#5689, approach 1) — e.g. Vision on a Reality inbound but not on
-// a tunneled XHTTP+vlessenc inbound the same client is delivered on.
+// SetInboundClientFlow overrides the XTLS flow for one client on a single
+// inbound, so a client can keep Vision on some flow-capable inbounds and clear
+// it on another within the same subscription (#5689, approach 1).
 //
-// It writes the inbound settings.clients[].flow (read by subscription
-// generation) via UpdateInboundClient, then mirrors the value onto the
-// per-membership client_inbounds.flow_override (read by EffectiveFlow and the
-// clients UI).
-//
-// NOTE for reviewers: an explicit empty flow can be re-populated by
-// restoreVisionFlowForEligibleInbound (#4792) if the inbound is later edited
-// into a newly flow-eligible state, since that path treats an empty settings
-// flow as "restore the intended Vision from a sibling". Making an explicit clear
-// durable across such edits needs a small marker (e.g. a sentinel flow_override
-// value or a per-membership lock) — a design decision deferred to maintainers;
-// see #5689.
+// Clearing (""/"none") is always allowed; a non-empty flow must be a recognized
+// value (bulkFlowAllowed) and is only accepted on a flow-capable inbound, so an
+// invalid value or a flow on a non-capable transport can't reach the Xray
+// config. Persists via UpdateInboundClient, whose SyncInbound recreates the
+// client_inbounds.flow_override row from the written settings flow.
 func (s *ClientService) SetInboundClientFlow(inboundSvc *InboundService, inboundId int, email, flow string) (bool, error) {
+	if _, ok := bulkFlowAllowed[flow]; !ok {
+		return false, common.NewError("unsupported flow value:", flow)
+	}
+	if flow == bulkFlowClear {
+		flow = ""
+	}
 	inbound, err := inboundSvc.GetInbound(inboundId)
 	if err != nil {
 		return false, err
+	}
+	if flow != "" && !inboundCanEnableTlsFlow(string(inbound.Protocol), inbound.StreamSettings, inbound.Settings) {
+		return false, common.NewError("inbound is not flow-capable:", inboundId)
 	}
 	clients, err := inboundSvc.GetClients(inbound)
 	if err != nil {
@@ -61,21 +56,8 @@ func (s *ClientService) SetInboundClientFlow(inboundSvc *InboundService, inbound
 	if err != nil {
 		return false, err
 	}
-	needRestart, err := s.UpdateInboundClient(inboundSvc, &model.Inbound{
+	return s.UpdateInboundClient(inboundSvc, &model.Inbound{
 		Id:       inboundId,
 		Settings: string(settingsPayload),
 	}, email)
-	if err != nil {
-		return needRestart, err
-	}
-	// Mirror onto the relational per-membership override so EffectiveFlow and the
-	// clients UI agree with what the subscription now emits.
-	if rec, rErr := s.GetRecordByEmail(nil, email); rErr == nil {
-		if uErr := database.GetDB().Model(&model.ClientInbound{}).
-			Where("client_id = ? AND inbound_id = ?", rec.Id, inboundId).
-			Update("flow_override", flow).Error; uErr != nil {
-			logger.Warning("SetInboundClientFlow: flow_override update failed:", uErr)
-		}
-	}
-	return needRestart, nil
 }
