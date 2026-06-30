@@ -85,8 +85,10 @@ func TestIsEligibleXrayReleaseTag(t *testing.T) {
 		{tag: "main", want: false},
 		{tag: "v26.6", want: false},
 	} {
-		if got := isEligibleXrayReleaseTag(tc.tag); got != tc.want {
-			t.Fatalf("isEligibleXrayReleaseTag(%q) = %v, want %v", tc.tag, got, tc.want)
-		}
+		t.Run(tc.tag, func(t *testing.T) {
+			if got := isEligibleXrayReleaseTag(tc.tag); got != tc.want {
+				t.Errorf("isEligibleXrayReleaseTag(%q) = %v, want %v", tc.tag, got, tc.want)
+			}
+		})
 	}
 }
