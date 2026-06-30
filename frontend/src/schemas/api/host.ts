@@ -123,3 +123,10 @@ export const HostRecordSchema = z.object({
 export type HostRecord = z.infer<typeof HostRecordSchema>;
 
 export const HostListSchema = z.array(HostRecordSchema);
+
+export const BulkAddHostSchema = HostFormSchema.omit({ inboundId: true, address: true }).extend({
+  inboundIds: z.array(z.number().int().positive()).min(1),
+  hosts: z.array(z.string().trim().min(1)).min(1),
+});
+export type BulkAddHostValues = z.infer<typeof BulkAddHostSchema>;
+

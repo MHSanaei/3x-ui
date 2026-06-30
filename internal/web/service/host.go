@@ -2,10 +2,13 @@ package service
 
 import (
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
 
 // HostService manages Host rows (override endpoints attached to an inbound).
@@ -127,4 +130,104 @@ func (s *HostService) GetAllTags() ([]string, error) {
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+func parseHostAndPort(hostStr string, defaultPort int) (string, int) {
+	hostStr = strings.TrimSpace(hostStr)
+	if hostStr == "" {
+		return "", defaultPort
+	}
+	if strings.Count(hostStr, ":") > 1 && !strings.Contains(hostStr, "[") {
+		return hostStr, defaultPort
+	}
+	lastColon := strings.LastIndex(hostStr, ":")
+	if lastColon != -1 && lastColon < len(hostStr)-1 {
+		pStr := hostStr[lastColon+1:]
+		if p, err := strconv.Atoi(pStr); err == nil && p >= 0 && p <= 65535 {
+			addr := hostStr[:lastColon]
+			if strings.HasPrefix(addr, "[") && strings.HasSuffix(addr, "]") {
+				addr = addr[1 : len(addr)-1]
+			}
+			return addr, p
+		}
+	}
+	addr := hostStr
+	if strings.HasPrefix(addr, "[") && strings.HasSuffix(addr, "]") {
+		addr = addr[1 : len(addr)-1]
+	}
+	return addr, defaultPort
+}
+
+func (s *HostService) AddHostsBulk(req *entity.BulkAddHostReq) ([]*model.Host, error) {
+	db := database.GetDB()
+	tx := db.Begin()
+	var committed bool
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		} else if !committed {
+			tx.Rollback()
+		}
+	}()
+
+	var created []*model.Host
+
+	for _, inboundId := range req.InboundIds {
+		var count int64
+		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&count).Error; err != nil {
+			return nil, err
+		}
+		if count == 0 {
+			return nil, common.NewError("inbound not found")
+		}
+	}
+
+	for _, hostStr := range req.Hosts {
+		addr, port := parseHostAndPort(hostStr, req.Port)
+		for _, inboundId := range req.InboundIds {
+			h := &model.Host{
+				InboundId:              inboundId,
+				SortOrder:              req.SortOrder,
+				Remark:                 req.Remark,
+				ServerDescription:      req.ServerDescription,
+				IsDisabled:             req.IsDisabled,
+				IsHidden:               req.IsHidden,
+				Tags:                   req.Tags,
+				Address:                addr,
+				Port:                   port,
+				Security:               req.Security,
+				Sni:                    req.Sni,
+				HostHeader:             req.HostHeader,
+				Path:                   req.Path,
+				Alpn:                   req.Alpn,
+				Fingerprint:            req.Fingerprint,
+				OverrideSniFromAddress: req.OverrideSniFromAddress,
+				KeepSniBlank:           req.KeepSniBlank,
+				PinnedPeerCertSha256:   req.PinnedPeerCertSha256,
+				VerifyPeerCertByName:   req.VerifyPeerCertByName,
+				AllowInsecure:          req.AllowInsecure,
+				EchConfigList:          req.EchConfigList,
+				MuxParams:              req.MuxParams,
+				SockoptParams:          req.SockoptParams,
+				FinalMask:              req.FinalMask,
+				VlessRoute:             req.VlessRoute,
+				ExcludeFromSubTypes:    req.ExcludeFromSubTypes,
+				NodeGuids:              req.NodeGuids,
+				MihomoIpVersion:        req.MihomoIpVersion,
+				MihomoX25519:           req.MihomoX25519,
+				ShuffleHost:            req.ShuffleHost,
+			}
+			if err := tx.Create(h).Error; err != nil {
+				return nil, err
+			}
+			created = append(created, h)
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+	committed = true
+	return created, nil
 }

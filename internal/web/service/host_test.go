@@ -5,6 +5,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
 
 func mkHost(t *testing.T, svc *HostService, inboundId int, remark string, order int) *model.Host {
@@ -174,6 +175,132 @@ func TestGetAllTags(t *testing.T) {
 	for i := range want {
 		if tags[i] != want[i] {
 			t.Fatalf("tags = %v, want %v", tags, want)
+		}
+	}
+}
+
+func TestAddHostsBulk(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib1 := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	ib2 := mkInbound(t, 80, model.VLESS, `{"clients":[]}`)
+
+	req := &entity.BulkAddHostReq{
+		InboundIds: []int{ib1.Id, ib2.Id},
+		Hosts:      []string{"h1.com", "h2.com:443", "[2001:db8::1]:80"},
+		Remark:     "BulkRemark",
+		Port:       8443,
+		Security:   "same",
+	}
+
+	created, err := svc.AddHostsBulk(req)
+	if err != nil {
+		t.Fatalf("AddHostsBulk: %v", err)
+	}
+
+	if len(created) != 6 {
+		t.Fatalf("expected 6 created hosts, got %d", len(created))
+	}
+
+	got1, _ := svc.GetHostsByInbound(ib1.Id)
+	if len(got1) != 3 {
+		t.Fatalf("expected 3 hosts for inbound 1, got %d", len(got1))
+	}
+
+	var foundH2Port443 bool
+	var foundIPv6Port80 bool
+	var foundH1DefaultPort8443 bool
+
+	for _, h := range got1 {
+		if h.Remark != "BulkRemark" {
+			t.Errorf("expected remark BulkRemark, got %s", h.Remark)
+		}
+		if h.Address == "h2.com" && h.Port == 443 {
+			foundH2Port443 = true
+		}
+		if h.Address == "2001:db8::1" && h.Port == 80 {
+			foundIPv6Port80 = true
+		}
+		if h.Address == "h1.com" && h.Port == 8443 {
+			foundH1DefaultPort8443 = true
+		}
+	}
+
+	if !foundH2Port443 {
+		t.Error("missing custom port override host h2.com:443")
+	}
+	if !foundIPv6Port80 {
+		t.Error("missing IPv6 host with port override [2001:db8::1]:80")
+	}
+	if !foundH1DefaultPort8443 {
+		t.Error("missing default port fallback host h1.com:8443")
+	}
+}
+
+func TestParseHostAndPort_IPv6EdgeCases(t *testing.T) {
+	tests := []struct {
+		input       string
+		defaultPort int
+		wantAddr    string
+		wantPort    int
+	}{
+		{"2001:db8::1", 8443, "2001:db8::1", 8443},
+		{"[2001:db8::1]:80", 8443, "2001:db8::1", 80},
+		{"h1.com:443", 8443, "h1.com", 443},
+		{"h1.com", 8443, "h1.com", 8443},
+	}
+
+	for _, tc := range tests {
+		addr, port := parseHostAndPort(tc.input, tc.defaultPort)
+		if addr != tc.wantAddr || port != tc.wantPort {
+			t.Errorf("parseHostAndPort(%q, %d) = (%q, %d); want (%q, %d)",
+				tc.input, tc.defaultPort, addr, port, tc.wantAddr, tc.wantPort)
+		}
+	}
+}
+
+func TestParseHostAndPort_AdversarialStressCases(t *testing.T) {
+	tests := []struct {
+		input       string
+		defaultPort int
+		wantAddr    string
+		wantPort    int
+	}{
+		{"", 8443, "", 8443},
+		{" ", 8443, "", 8443},
+		{"h1.com: ", 8443, "h1.com:", 8443},
+		{"h1.com: -1", 8443, "h1.com: -1", 8443},
+		{"h1.com:-1", 8443, "h1.com:-1", 8443},
+		{"h1.com:0", 8443, "h1.com", 0},
+		{"h1.com:65535", 8443, "h1.com", 65535},
+		{"h1.com:65536", 8443, "h1.com:65536", 8443},
+		{"h1.com:80a", 8443, "h1.com:80a", 8443},
+		{"h1.com:123:456", 8443, "h1.com:123:456", 8443},
+		{"[2001:db8::1]", 8443, "2001:db8::1", 8443},
+		{"[2001:db8::1]:80", 8443, "2001:db8::1", 80},
+		{"2001:db8::1", 8443, "2001:db8::1", 8443},
+		{"[2001:db8::1]:65536", 8443, "[2001:db8::1]:65536", 8443},
+		{"[]:80", 8443, "", 80},
+		{"[:]::80", 8443, "[:]:", 80},
+		{"h1.com:", 8443, "h1.com:", 8443},
+		{"h1.com:123:", 8443, "h1.com:123:", 8443},
+		{" h1.com : 80 ", 8443, "h1.com : 80", 8443},
+		{" [2001:db8::1]:80 ", 8443, "2001:db8::1", 80},
+		{"[2001:db8::1]:+80", 8443, "2001:db8::1", 80},
+		{"[2001:db8::1]:080", 8443, "2001:db8::1", 80},
+		{"[2001:db8::1]80", 8443, "[2001:db8::1]80", 8443},
+		{"[::1]", 8443, "::1", 8443},
+		{"[2001:db8::1", 8443, "[2001:db8:", 1},
+		{"[2001:db8::1]:-80", 8443, "[2001:db8::1]:-80", 8443},
+		{"h1.com:443:80", 8443, "h1.com:443:80", 8443},
+		{"[2001:db8::1]::80", 8443, "[2001:db8::1]:", 80},
+	}
+
+	for _, tc := range tests {
+		addr, port := parseHostAndPort(tc.input, tc.defaultPort)
+		if addr != tc.wantAddr || port != tc.wantPort {
+			t.Errorf("parseHostAndPort(%q, %d) = (%q, %d); want (%q, %d)",
+				tc.input, tc.defaultPort, addr, port, tc.wantAddr, tc.wantPort)
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
@@ -33,6 +34,7 @@ func (a *HostController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:id", a.del)
 	g.POST("/setEnable/:id", a.setEnable)
 	g.POST("/reorder", a.reorder)
+	g.POST("/bulk/add", a.bulkAdd)
 	g.POST("/bulk/setEnable", a.bulkSetEnable)
 	g.POST("/bulk/del", a.bulkDel)
 }
@@ -191,4 +193,17 @@ func (a *HostController) bulkDel(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.delete"), nil)
+}
+
+func (a *HostController) bulkAdd(c *gin.Context) {
+	req, ok := middleware.BindJSONAndValidate[entity.BulkAddHostReq](c)
+	if !ok {
+		return
+	}
+	created, err := a.hostService.AddHostsBulk(req)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.add"), err)
+		return
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.hosts.toasts.add"), created, nil)
 }

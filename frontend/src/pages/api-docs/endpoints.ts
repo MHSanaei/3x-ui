@@ -1092,6 +1092,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/hosts/bulk/add',
+        summary: 'Add multiple hosts to multiple inbounds at the same time.',
+        body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/hosts/bulk/setEnable',
         summary: 'Enable or disable many hosts in one call.',
         body: '{\n  "ids": [1, 2, 3],\n  "enable": false\n}',

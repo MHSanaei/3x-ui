@@ -223,6 +223,39 @@ export interface ApiTokenView {
   token?: string;
 }
 
+export interface BulkAddHostReq {
+  allowInsecure: boolean;
+  alpn: string[];
+  echConfigList: string;
+  excludeFromSubTypes: string[];
+  finalMask: string;
+  fingerprint: string;
+  hostHeader: string;
+  hosts: string[];
+  inboundIds: number[];
+  isDisabled: boolean;
+  isHidden: boolean;
+  keepSniBlank: boolean;
+  mihomoIpVersion: string;
+  mihomoX25519: boolean;
+  muxParams: string;
+  nodeGuids: string[];
+  overrideSniFromAddress: boolean;
+  path: string;
+  pinnedPeerCertSha256: string[];
+  port: number;
+  remark: string;
+  security: string;
+  serverDescription: string;
+  shuffleHost: boolean;
+  sni: string;
+  sockoptParams: string;
+  sortOrder: number;
+  tags: string[];
+  verifyPeerCertByName: string;
+  vlessRoute: string;
+}
+
 export interface Client {
   allowedIPs?: string[];
   auth?: string;

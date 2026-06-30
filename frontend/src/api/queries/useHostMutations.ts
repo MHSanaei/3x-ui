@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil } from '@/utils';
 import { keys } from '@/api/queryKeys';
-import type { HostFormValues } from '@/schemas/api/host';
+import type { HostFormValues, BulkAddHostValues } from '@/schemas/api/host';
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
 
@@ -12,6 +12,11 @@ export function useHostMutations() {
 
   const createMut = useMutation({
     mutationFn: (payload: Partial<HostFormValues>) => HttpUtil.post('/panel/api/hosts/add', payload),
+    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+  });
+
+  const bulkCreateMut = useMutation({
+    mutationFn: (payload: BulkAddHostValues) => HttpUtil.post('/panel/api/hosts/bulk/add', payload, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
@@ -50,6 +55,7 @@ export function useHostMutations() {
 
   return {
     create: (payload: Partial<HostFormValues>) => createMut.mutateAsync(payload),
+    bulkCreate: (payload: BulkAddHostValues) => bulkCreateMut.mutateAsync(payload),
     update: (id: number, payload: Partial<HostFormValues>) => updateMut.mutateAsync({ id, payload }),
     remove: (id: number) => removeMut.mutateAsync(id),
     setEnable: (id: number, enable: boolean) => setEnableMut.mutateAsync({ id, enable }),

@@ -10,7 +10,7 @@ import { useHostMutations } from '@/api/queries/useHostMutations';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import AppSidebar from '@/layouts/AppSidebar';
 import { setMessageInstance } from '@/utils/messageBus';
-import type { HostFormValues } from '@/schemas/api/host';
+import type { HostFormValues, BulkAddHostValues } from '@/schemas/api/host';
 import HostList from './HostList';
 import HostFormModal from './HostFormModal';
 
@@ -35,7 +35,7 @@ export default function HostsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const { hosts, loading, fetched, fetchError, refetch } = useHostsQuery();
-  const { create, update, remove, setEnable, reorder, bulkSetEnable, bulkDel } = useHostMutations();
+  const { bulkCreate, update, remove, setEnable, reorder, bulkSetEnable, bulkDel } = useHostMutations();
   const { data: inboundOptions = [] } = useInboundOptions();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -55,12 +55,12 @@ export default function HostsPage() {
     setFormOpen(true);
   }, []);
 
-  const onSave = useCallback(async (payload: Partial<HostFormValues>) => {
+  const onSave = useCallback(async (payload: Partial<HostFormValues> | BulkAddHostValues) => {
     if (formMode === 'edit' && formHost?.id) {
-      return update(formHost.id, payload);
+      return update(formHost.id, payload as Partial<HostFormValues>);
     }
-    return create(payload);
-  }, [formMode, formHost, update, create]);
+    return bulkCreate(payload as BulkAddHostValues);
+  }, [formMode, formHost, update, bulkCreate]);
 
   const onDelete = useCallback((host: HostRecord) => {
     modal.confirm({
@@ -201,6 +201,7 @@ export default function HostsPage() {
           mode={formMode}
           host={formHost}
           inboundOptions={inboundOptions}
+          existingHosts={hosts}
           save={onSave}
           onOpenChange={setFormOpen}
         />
