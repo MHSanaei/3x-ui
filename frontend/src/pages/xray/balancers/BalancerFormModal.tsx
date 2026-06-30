@@ -81,6 +81,7 @@ export default function BalancerFormModal({
   }, []);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    if (validatingCosts) return;
     setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
     setState((prev) => ({ ...prev, [key]: value }));
   };
@@ -141,6 +142,7 @@ export default function BalancerFormModal({
     key: K,
     value: BalancerStrategySettings[K],
   ) => {
+    if (validatingCosts) return;
     setState((prev) => ({
       ...prev,
       settings: { ...(prev.settings ?? {}), [key]: value },
@@ -178,7 +180,13 @@ export default function BalancerFormModal({
         if (!validatingCosts) onClose();
       }}
     >
-      <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
+      <Form
+        colon={false}
+        disabled={validatingCosts}
+        aria-busy={validatingCosts}
+        labelCol={{ md: { span: 8 } }}
+        wrapperCol={{ md: { span: 14 } }}
+      >
         <Form.Item
           label={t('pages.xray.balancer.tag')}
           required

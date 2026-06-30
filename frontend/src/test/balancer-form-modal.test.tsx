@@ -118,4 +118,37 @@ describe('BalancerFormModal', () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it('prevents edits while regex validation is pending', async () => {
+    let resolveValidation!: (value: Msg) => void;
+    const pendingValidation = new Promise<Msg>((resolve) => {
+      resolveValidation = resolve;
+    });
+    vi.mocked(HttpUtil.post).mockReturnValueOnce(pendingValidation);
+    const onConfirm = vi.fn();
+    renderModal(onConfirm, {
+      tag: 'load-balancer',
+      strategy: 'leastLoad',
+      selector: ['proxy'],
+      fallbackTag: '',
+      settings: {
+        costs: [{ regexp: true, match: '^proxy-', value: 1 }],
+      },
+    });
+    const tagInput = screen.getByDisplayValue('load-balancer') as HTMLInputElement;
+
+    fireEvent.click(createButton());
+
+    await waitFor(() => expect(tagInput.disabled).toBe(true));
+    fireEvent.change(tagInput, { target: { value: 'edited-while-pending' } });
+    expect(tagInput.value).toBe('load-balancer');
+
+    await act(async () => {
+      resolveValidation(new Msg(true));
+      await pendingValidation;
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][0].tag).toBe('load-balancer');
+  });
 });
