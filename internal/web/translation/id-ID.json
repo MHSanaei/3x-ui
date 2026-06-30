@@ -1745,7 +1745,6 @@
         "tolerance": "Toleransi",
         "baselines": "Baselines",
         "costs": "Costs",
-        "invalidGoRegex": "Ekspresi reguler Go RE2 tidak valid",
         "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
         "costMatch": "Pola tag",
         "costValue": "Bobot",

@@ -1745,7 +1745,6 @@
         "tolerance": "تحمل",
         "baselines": "خطوط پایه",
         "costs": "هزینه‌ها",
-        "invalidGoRegex": "عبارت منظم Go RE2 نامعتبر",
         "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد.",
         "costMatch": "الگوی برچسب",
         "costValue": "وزن",

@@ -1745,7 +1745,6 @@
         "tolerance": "容差",
         "baselines": "Baselines",
         "costs": "Costs",
-        "invalidGoRegex": "无效的 Go RE2 正则表达式",
         "balancerDesc": "无法同时使用 balancerTag 和 outboundTag。如果同时使用，则只有 outboundTag 会生效。",
         "costMatch": "标签匹配模式",
         "costValue": "权重",

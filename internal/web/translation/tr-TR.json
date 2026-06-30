@@ -1745,7 +1745,6 @@
         "tolerance": "Tolerans",
         "baselines": "Baselines",
         "costs": "Costs",
-        "invalidGoRegex": "Geçersiz Go RE2 düzenli ifadesi",
         "balancerDesc": "Dengeleyici Etiketi (balancerTag) ve Giden Bağlantı Etiketi (outboundTag) aynı anda kullanılamaz. Aynı anda kullanıldığında yalnızca giden bağlantı etiketi geçerli olur.",
         "costMatch": "Etiket deseni",
         "costValue": "Ağırlık",

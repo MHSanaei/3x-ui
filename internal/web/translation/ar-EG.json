@@ -1745,7 +1745,6 @@
         "tolerance": "التحمل",
         "baselines": "Baselines",
         "costs": "Costs",
-        "invalidGoRegex": "تعبير Go RE2 منتظم غير صالح",
         "balancerDesc": "ماينفعش تستخدم balancerTag و outboundTag مع بعض. لو اتستخدموا مع بعض، outboundTag هو اللي هيشتغل.",
         "costMatch": "نمط الوسم",
         "costValue": "الوزن",

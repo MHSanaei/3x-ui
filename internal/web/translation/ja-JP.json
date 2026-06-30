@@ -1745,7 +1745,6 @@
         "tolerance": "許容範囲",
         "baselines": "Baselines",
         "costs": "Costs",
-        "invalidGoRegex": "無効な Go RE2 正規表現",
         "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。",
         "costMatch": "タグパターン",
         "costValue": "重み",
