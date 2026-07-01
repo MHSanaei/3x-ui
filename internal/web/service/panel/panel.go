@@ -230,6 +230,9 @@ func downloadPanelUpdater() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("write panel updater: %w", err)
 	}
+	if n == 0 {
+		return "", fmt.Errorf("panel updater download is empty")
+	}
 	if n > maxPanelUpdaterBytes {
 		return "", fmt.Errorf("panel updater exceeds %d bytes", maxPanelUpdaterBytes)
 	}

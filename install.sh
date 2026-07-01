@@ -1368,9 +1368,17 @@ install_x-ui() {
             exit 1
         fi
     fi
-    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    local xui_script_temp="/usr/bin/x-ui-temp.$$"
+    rm -f "${xui_script_temp}"
+    curl -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
         echo -e "${red}Failed to download x-ui.sh${plain}"
+        exit 1
+    fi
+    if [[ ! -s "${xui_script_temp}" ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Downloaded x-ui.sh is empty${plain}"
         exit 1
     fi
 
@@ -1414,7 +1422,12 @@ install_x-ui() {
     fi
 
     # Update x-ui cli and se set permission
-    mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
+    mv -f "${xui_script_temp}" /usr/bin/x-ui
+    if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Failed to install x-ui.sh${plain}"
+        exit 1
+    fi
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
     config_after_install
