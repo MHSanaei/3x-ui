@@ -30,31 +30,32 @@ fi
 
 echo "📂 Путь к исходникам: $BASE_DIR"
 
-# 2. Проверка и установка зависимостей (Node.js v22, Go и Кросс-компиляторы)
+# 2. Проверка и установка зависимостей (АБСОЛЮТНО НАДЕЖНЫЙ ВАРИАНТ)
 NEED_CROSS_ARM64=0
-if [[ "$TARGET" == "all" || "$TARGET" == "linux" || "$TARGET" == "arm64" ]]; then
-    if [[ "$CURRENT_ARCH" == "amd64" ]]; then
+if [ "$TARGET" = "all" ] || [ "$TARGET" = "linux" ] || [ "$TARGET" = "arm64" ]; then
+    if [ "$CURRENT_ARCH" = "amd64" ]; then
         NEED_CROSS_ARM64=1
     fi
 fi
 
-# Проверяем версию Node.js без падения баша
 NODE_TOO_OLD=0
 if command -v node &> /dev/null; then
     NODE_VER=$(node -v 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1)
-    if [[ "$NODE_VER" -lt 20 ]]; then
+    if [ "$NODE_VER" -lt 20 ]; then
         NODE_TOO_OLD=1
     fi
 else
     NODE_TOO_OLD=1
 fi
 
+# Собираем флаг: нужны ли нам обновления/установки
 MISSING_DEPS=0
-if ! command -v npm &> /dev/null || ! command -v go &> /dev/null || [[ "$NODE_TOO_OLD" -eq 1 ]] || [[ $NEED_CROSS_ARM64 -eq 1 && ! command -v aarch64-linux-gnu-gcc &> /dev/null ]]; then
-    MISSING_DEPS=1
-fi
+if ! command -v npm &> /dev/null; then MISSING_DEPS=1; fi
+if ! command -v go &> /dev/null; then MISSING_DEPS=1; fi
+if [ "$NODE_TOO_OLD" -eq 1 ]; then MISSING_DEPS=1; fi
+if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then MISSING_DEPS=1; fi
 
-if [[ "$MISSING_DEPS" -eq 1 ]]; then
+if [ "$MISSING_DEPS" -eq 1 ]; then
     if [ "$EUID" -ne 0 ]; then
         echo "❌ Компоненты отсутствуют. Запустите через sudo: sudo bash $0 $TARGET"
         exit 1
@@ -63,7 +64,7 @@ if [[ "$MISSING_DEPS" -eq 1 ]]; then
     apt-get update && apt-get install -y curl zip unzip 2>/dev/null || apt-get install -y curl
     
     # Установка Node.js 22
-    if [[ "$NODE_TOO_OLD" -eq 1 ]]; then
+    if [ "$NODE_TOO_OLD" -eq 1 ]; then
         apt-get remove -y nodejs npm libnode-dev 2>/dev/null || true
         curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs
     fi
@@ -73,8 +74,8 @@ if [[ "$MISSING_DEPS" -eq 1 ]]; then
         apt-get install -y golang-go
     fi
 
-    # Установка кросс-компилятора Си под ARM64 (универсальный билдер)
-    if [[ $NEED_CROSS_ARM64 -eq 1 && ! command -v aarch64-linux-gnu-gcc &> /dev/null ]]; then
+    # Установка кросс-компилятора Си под ARM64
+    if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then
         echo "🛠 Установка Си-компилятора для сборки под ARM64 (gcc-aarch64-linux-gnu)..."
         apt-get install -y gcc-aarch64-linux-gnu
     fi
@@ -106,7 +107,7 @@ compile_target() {
     fi
 
     # Умная подстановка кросс-компилятора Си при сборке Linux-ARM64 на машине x86_64
-    if [[ "$os" == "linux" && "$arch" == "arm64" && "$CURRENT_ARCH" == "amd64" ]]; then
+    if [ "$os" = "linux" ] && [ "$arch" = "arm64" ] && [ "$CURRENT_ARCH" = "amd64" ]; then
         echo "🔧 Включение кросс-компилятора Си: aarch64-linux-gnu-gcc"
         env_cc="CC=aarch64-linux-gnu-gcc"
     fi
@@ -129,10 +130,8 @@ compile_target() {
 case "$TARGET" in
     all)
         echo "🌍 Сборка абсолютно под ВСЁ (Linux + Windows)..."
-        # Linux билды
         compile_target "linux" "amd64"
         compile_target "linux" "arm64"
-        # Windows билды
         compile_target "windows" "amd64"
         compile_target "windows" "386"
         ;;
@@ -147,7 +146,6 @@ case "$TARGET" in
         compile_target "linux" "arm64"
         ;;
     *)
-        # Если передана просто архитектура (например, amd64), собираем её под Linux
         compile_target "linux" "$TARGET"
         ;;
 esac
