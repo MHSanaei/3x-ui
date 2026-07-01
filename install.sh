@@ -621,6 +621,7 @@ install_x-ui() {
     fi
     
     chmod +x x-ui
+    install_xray
 
     # 4. Скачивание CLI-скрипта x-ui.sh
     curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh
