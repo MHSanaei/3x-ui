@@ -14,54 +14,31 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-# Значения по умолчанию для автоматического режима
-MODE="git"          # Режим для X-UI: git или build
-INSTALL_BOT=0       # Флаг установки бота (0 - нет, 1 - да)
+MODE="git"          
+INSTALL_BOT=0       
 
-# Сохраняем оригинальное количество аргументов до shift
 ORIG_ARGS_COUNT=$#
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --build)
-            MODE="build"
-            shift
-            ;;
-        --with-bot)
-            INSTALL_BOT=1
-            shift
-            ;;
-        *)
-            echo -e "${red}Unknown option: $1${plain}"
-            exit 1
-            ;;
+        --build) MODE="build"; shift ;;
+        --with-bot) INSTALL_BOT=1; shift ;;
+        *) echo -e "${red}Unknown option: $1${plain}"; exit 1 ;;
     esac
 done
 
-# Определение ОС
 DETECTED_OS="linux"
 case "$(uname -s)" in
-    CYGWIN*|MINGW*|MSYS*|Windows*)
-        DETECTED_OS="windows"
-        release="windows"
-        echo "Detected OS: Windows"
-        ;;
+    CYGWIN*|MINGW*|MSYS*|Windows*) DETECTED_OS="windows"; release="windows"; echo "Detected OS: Windows" ;;
     *)
         [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
-        if [[ -f /etc/os-release ]]; then
-            source /etc/os-release
-            release=$ID
-        elif [[ -f /usr/lib/os-release ]]; then
-            source /usr/lib/os-release
-            release=$ID
-        else
-            release="unknown_linux"
-        fi
+        if [[ -f /etc/os-release ]]; then source /etc/os-release; release=$ID
+        elif [[ -f /usr/lib/os-release ]]; then source /usr/lib/os-release; release=$ID
+        else release="unknown_linux"; fi
         echo "Detected OS: Linux ($release)"
         ;;
 esac
 
-# Определение архитектуры
 arch() {
     case "$(uname -m)" in
         x86_64 | x64 | amd64) echo 'amd64' ;;
@@ -76,11 +53,7 @@ arch() {
 }
 echo "Arch: $(arch)"
 
-if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then
-    NONINTERACTIVE=1
-else
-    NONINTERACTIVE=0
-fi
+if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then NONINTERACTIVE=1; else NONINTERACTIVE=0; fi
 export NONINTERACTIVE
 
 is_ipv4() { [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1; }
@@ -98,9 +71,7 @@ write_install_result() {
     local result_file="/etc/x-ui/install-result.env"
     local url_host="${host:-SERVER_IP_UNKNOWN}"
     install -d -m 755 /etc/x-ui 2> /dev/null
-    local prev_umask
-    prev_umask=$(umask)
-    umask 077
+    local prev_umask=$(umask); umask 077
     if ! {
         printf 'XUI_USERNAME=%q\n' "$u"
         printf 'XUI_PASSWORD=%q\n' "$p"
@@ -114,9 +85,7 @@ write_install_result() {
         echo -e "${yellow}Warning: failed to write ${result_file}.${plain}" >&2
         return 1
     fi
-    umask "$prev_umask"
-    chmod 600 "$result_file" 2> /dev/null
-    chown root:root "$result_file" 2> /dev/null || true
+    umask "$prev_umask"; chmod 600 "$result_file" 2> /dev/null; chown root:root "$result_file" 2> /dev/null || true
     echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
 }
 
@@ -155,9 +124,10 @@ install_bot_deps() {
 }
 
 config_after_install() {
-    echo -e "${green}Запуск первоначальной настройки и миграции базы данных...${plain}"
-    local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
+    echo -e "${green}Инициализация базы данных...${plain}"
+    # Глушим вывод технического хелпа панели в /dev/null, чтобы он не спамил ложными меню
+    local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}' || echo "true")
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##' || echo "")
     local server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
     if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="${XUI_SERVER_IP:-127.0.0.1}"; fi
 
@@ -171,8 +141,8 @@ config_after_install() {
             local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
             local config_port="${XUI_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
             
-            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
-            local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
+            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}" > /dev/null 2>&1
+            local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true 2>/dev/null | grep -Eo 'apiToken: .+' | awk '{print $2}')
 
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${green}Username:    ${config_username}${plain}"
@@ -183,10 +153,10 @@ config_after_install() {
             write_install_result "${config_username}" "${config_password}" "${config_port}" "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "sqlite"
         else
             local config_webBasePath=$(gen_random_string 18)
-            ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
+            ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}" > /dev/null 2>&1
         fi
     fi
-    ${xui_folder}/x-ui migrate
+    ${xui_folder}/x-ui migrate > /dev/null 2>&1
 }
 
 install_xray() {
@@ -238,7 +208,6 @@ install_xray_bot() {
 install_x-ui() {
     install_base
 
-    # Очищаем старое, бережно сохраняя ядро Xray
     if [[ -e ${xui_folder}/ ]]; then
         systemctl stop x-ui > /dev/null 2>&1 || true
         find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' -exec rm -rf {} +
@@ -247,7 +216,6 @@ install_x-ui() {
     mkdir -p ${xui_folder}
     cd ${xui_folder}
 
-    # Собираем или качаем x-ui
     if [[ "$MODE" == "build" ]]; then
         echo -e "${green}🛠 Локальная сборка панели...${plain}"
         install_build_deps
@@ -263,7 +231,6 @@ install_x-ui() {
         local current_arch=$(arch)
         ./build.sh "$current_arch"
         
-        # Копируем и переименовываем в просто 'x-ui', чтобы служба его нашла
         cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
         cp x-ui.sh /usr/bin/x-ui
         chmod +x ${xui_folder}/x-ui /usr/bin/x-ui
@@ -273,18 +240,18 @@ install_x-ui() {
         local ui_file="x-ui-linux-${arch_type}"
         wget -N --no-check-certificate -O "${xui_folder}/x-ui" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
         chmod +x "${xui_folder}/x-ui"
-        ln -sf "${xui_folder}/x-ui" /usr/bin/x-ui
+        cp "${xui_folder}/x-ui" /usr/bin/x-ui
+        # Если скачиваем готовый, подтягиваем скрипт меню
+        wget -N --no-check-certificate -O /usr/bin/x-ui "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh" || true
+        chmod +x /usr/bin/x-ui
     fi
 
-    # 1. Проверяем / доставляем Xray-core
     install_xray
 
-    # 2. Ставим бота (если надо)
     if [[ "$INSTALL_BOT" == "1" ]]; then
         install_xray_bot "$MODE"
     fi
 
-    # 3. Накатываем службу systemd в систему (пока не запускаем)
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
@@ -305,12 +272,18 @@ EOF
     systemctl daemon-reload
     systemctl enable x-ui
 
-    # 4. Инициализируем базу и вызываем меню команд панели (то самое меню вылетает тут)
     config_after_install
 
-    # 5. Запускаем службу
-    systemctl start x-ui
+    # Запускаем службу жестко и принудительно
+    systemctl restart x-ui
+    sleep 1
+
     echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена службой.${plain}"
+    echo -e "${yellow}Запускаем интерактивное меню управления...${plain}"
+    sleep 1
+    
+    # ФИНАЛЬНЫЙ СУПЕР-ШАГ: Передаем управление настоящему интерактивному меню системы!
+    exec /usr/bin/x-ui
 }
 
 show_menu() {
