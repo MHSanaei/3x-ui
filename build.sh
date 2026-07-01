@@ -30,30 +30,32 @@ fi
 
 echo "📂 Путь к исходникам: $BASE_DIR"
 
-# 2. Проверка и установка зависимостей (АБСОЛЮТНО НАДЕЖНЫЙ ВАРИАНТ)
+# 2. Проверка и установка зависимостей (Включая кросс-компиляторы для Windows)
 NEED_CROSS_ARM64=0
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "linux" ] || [ "$TARGET" = "arm64" ]; then
-    if [ "$CURRENT_ARCH" = "amd64" ]; then
-        NEED_CROSS_ARM64=1
-    fi
+    if [ "$CURRENT_ARCH" = "amd64" ]; then NEED_CROSS_ARM64=1; fi
+fi
+
+NEED_CROSS_WIN=0
+if [ "$TARGET" = "all" ] || [ "$TARGET" = "windows" ]; then
+    NEED_CROSS_WIN=1
 fi
 
 NODE_TOO_OLD=0
 if command -v node &> /dev/null; then
     NODE_VER=$(node -v 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1)
-    if [ "$NODE_VER" -lt 20 ]; then
-        NODE_TOO_OLD=1
-    fi
+    if [ "$NODE_VER" -lt 20 ]; then NODE_TOO_OLD=1; fi
 else
     NODE_TOO_OLD=1
 fi
 
-# Собираем флаг: нужны ли нам обновления/установки
+# Проверяем, чего не хватает
 MISSING_DEPS=0
 if ! command -v npm &> /dev/null; then MISSING_DEPS=1; fi
 if ! command -v go &> /dev/null; then MISSING_DEPS=1; fi
 if [ "$NODE_TOO_OLD" -eq 1 ]; then MISSING_DEPS=1; fi
 if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then MISSING_DEPS=1; fi
+if [ "$NEED_CROSS_WIN" -eq 1 ] && ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then MISSING_DEPS=1; fi
 
 if [ "$MISSING_DEPS" -eq 1 ]; then
     if [ "$EUID" -ne 0 ]; then
@@ -70,14 +72,18 @@ if [ "$MISSING_DEPS" -eq 1 ]; then
     fi
     
     # Установка Go
-    if ! command -v go &> /dev/null; then
-        apt-get install -y golang-go
-    fi
+    if ! command -v go &> /dev/null; then apt-get install -y golang-go; fi
 
     # Установка кросс-компилятора Си под ARM64
     if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then
-        echo "🛠 Установка Си-компилятора для сборки под ARM64 (gcc-aarch64-linux-gnu)..."
+        echo "🛠 Установка Си-компилятора для сборки под ARM64..."
         apt-get install -y gcc-aarch64-linux-gnu
+    fi
+
+    # Установка кросс-компилятора Си под Windows (Mingw-w64)
+    if [ "$NEED_CROSS_WIN" -eq 1 ] && ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then
+        echo "🛠 Установка Си-компилятора для сборки под Windows (mingw-w64)..."
+        apt-get install -y mingw-w64
     fi
 fi
 
@@ -85,7 +91,7 @@ fi
 BUILD_OUT_DIR="$(pwd)/build"
 mkdir -p "$BUILD_OUT_DIR"
 
-# 4. Сборка фронтенда (один раз для всех платформ)
+# 4. Сборка фронтенда
 if [ -d "$BASE_DIR/frontend" ]; then
     echo "📦 Шаг 1: Сборка фронтенда панели..."
     pushd "$BASE_DIR/frontend" > /dev/null
@@ -94,33 +100,31 @@ if [ -d "$BASE_DIR/frontend" ]; then
     popd > /dev/null
 fi
 
-# Функция компиляции: принимает ОС и Архитектуру
+# Функция компиляции
 compile_target() {
     local os=$1
     local arch=$2
     local extension=""
     local env_cc=""
     
-    # Для Windows добавляем расширение .exe
     if [ "$os" = "windows" ]; then
         extension=".exe"
+        if [ "$arch" = "amd64" ]; then
+            env_cc="CC=x86_64-w64-mingw32-gcc"
+        elif [ "$arch" = "386" ]; then
+            env_cc="CC=i686-w64-mingw32-gcc"
+        fi
     fi
 
-    # Умная подстановка кросс-компилятора Си при сборке Linux-ARM64 на машине x86_64
     if [ "$os" = "linux" ] && [ "$arch" = "arm64" ] && [ "$CURRENT_ARCH" = "amd64" ]; then
-        echo "🔧 Включение кросс-компилятора Си: aarch64-linux-gnu-gcc"
         env_cc="CC=aarch64-linux-gnu-gcc"
     fi
 
-    echo "🐹 Шаг 2: Компиляция Go под [$os | $arch]..."
+    echo "🐹 Шаг 2: Компиляция Go под [$os | $arch] с поддержкой CGO..."
     
     pushd "$BASE_DIR" > /dev/null
-    
-    # Загружаем новый драйвер в кэш модулей Go перед сборкой
-    go get modernc.org/sqlite@latest 2>/dev/null || true
     go mod tidy
     
-    # Запуск сборки с динамическими параметрами окружения
     env GOOS=$os GOARCH=$arch CGO_ENABLED=1 $env_cc go build -o "$BUILD_OUT_DIR/x-ui-$os-$arch$extension" main.go
     popd > /dev/null
     echo "✅ Создан файл: build/x-ui-$os-$arch$extension"
@@ -136,12 +140,12 @@ case "$TARGET" in
         compile_target "windows" "386"
         ;;
     windows)
-        echo "🪟 Сборка только под Windows (amd64 и 32-bit)..."
+        echo "🪟 Сборка только под Windows..."
         compile_target "windows" "amd64"
         compile_target "windows" "386"
         ;;
     linux)
-        echo "🐧 Сборка только под Linux (amd64 и arm64)..."
+        echo "🐧 Сборка только под Linux..."
         compile_target "linux" "amd64"
         compile_target "linux" "arm64"
         ;;
