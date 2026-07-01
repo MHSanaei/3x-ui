@@ -2,7 +2,7 @@
 .idea/
 .vscode/
 .cursor/
-.claude/
+.claude/*
 .cache/
 .sync*
 
