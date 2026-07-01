@@ -11,10 +11,34 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-# check root
+# Значения по умолчанию для автоматического режима
+MODE="git"          # Режим для X-UI: git или build
+INSTALL_BOT=0       # Флаг установки бота (0 - нет, 1 - да)
+
+# -------------------------------------------------------------------
+# Разбор аргументов командной строки (для автоматизации)
+# -------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --build)
+            MODE="build"
+            shift
+            ;;
+        --with-bot)
+            INSTALL_BOT=1
+            shift
+            ;;
+        *)
+            echo -e "${red}Unknown option: $1${plain}"
+            exit 1
+            ;;
+    esac
+done
+
+# Проверка на права root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
-# Check OS and set release variable
+# Определение ОС
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
@@ -27,6 +51,7 @@ else
 fi
 echo "The OS release is: $release"
 
+# Определение архитектуры
 arch() {
     case "$(uname -m)" in
         x86_64 | x64 | amd64) echo 'amd64' ;;
@@ -39,24 +64,7 @@ arch() {
         *) echo -e "${green}Unsupported CPU architecture! ${plain}" && exit 1 ;;
     esac
 }
-
 echo "Arch: $(arch)"
-
-install_xray() {
-    local arch=$(arch)
-    local xray_dir="${xui_folder}/bin"
-    mkdir -p "$xray_dir"
-    echo -e "${green}Installing Xray-core...${plain}"
-    local url="https://github.com/XTLS/Xray-core/releases/latest/download/xray-linux-${arch}.zip"
-    curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
-    if [ $? -eq 0 ]; then
-        cd "$xray_dir" && unzip -o xray.zip > /dev/null && rm xray.zip
-        chmod +x xray
-    else
-        echo -e "${red}Failed to install Xray-core!${plain}"
-    fi
-}
-
 
 if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then
     NONINTERACTIVE=1
@@ -65,7 +73,9 @@ else
 fi
 export NONINTERACTIVE
 
-# Simple helpers
+# -------------------------------------------------------------------
+# Вспомогательные функции
+# -------------------------------------------------------------------
 is_ipv4() { [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1; }
 is_ipv6() { [[ "$1" =~ : ]] && return 0 || return 1; }
 is_ip() { is_ipv4 "$1" || is_ipv6 "$1"; }
@@ -93,36 +103,6 @@ is_port_in_use() {
         lsof -nP -iTCP:${port} -sTCP:LISTEN > /dev/null 2>&1 && return 0
     fi
     return 1
-}
-
-install_base() {
-    case "${release}" in
-        ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
-            ;;
-        centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip
-            else
-                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip
-            fi
-            ;;
-        arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip
-            ;;
-        opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip
-            ;;
-        alpine)
-            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip
-            ;;
-        *)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip
-            ;;
-    esac
 }
 
 gen_random_string() {
@@ -166,6 +146,47 @@ write_install_result() {
     echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
 }
 
+# -------------------------------------------------------------------
+# Установка зависимостей
+# -------------------------------------------------------------------
+install_base() {
+    echo -e "${green}Installing base dependencies...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian) apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip git wget ;;
+        centos) if [[ "${VERSION_ID}" =~ ^7 ]]; then yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip git wget; else dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip git wget; fi ;;
+        arch | manjaro | parch) pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip git wget ;;
+        opensuse-tumbleweed | opensuse-leap) zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip git wget ;;
+        alpine) apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip bash git wget ;;
+        *) apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget ;;
+    esac
+}
+
+install_build_deps() {
+    echo -e "${green}Installing build tools (Node.js, npm, Go)...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian) apt-get install -y -q nodejs npm golang-go ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q nodejs npm golang ;;
+        arch | manjaro | parch) pacman -S --noconfirm nodejs npm go ;;
+        alpine) apk add nodejs npm go ;;
+        *) apt-get install -y -q nodejs npm golang-go ;;
+    esac
+}
+
+install_bot_deps() {
+    echo -e "${green}Installing Python dependencies for Telegram Bot...${plain}"
+    case "${release}" in
+        ubuntu | debian | armbian) apt-get install -y -q python3 python3-pip python3-venv zip unzip ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q python3 python3-pip zip unzip ;;
+        arch | manjaro | parch) pacman -S --noconfirm python python-pip zip unzip ;;
+        alpine) apk add python3 py3-pip zip unzip ;;
+        *) apt-get install -y -q python3 python3-pip python3-venv zip unzip ;;
+    esac
+}
+
+# -------------------------------------------------------------------
+# Базы данных и Сертификаты
+# -------------------------------------------------------------------
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -174,65 +195,23 @@ install_postgres_local() {
     local pg_port="5432"
 
     case "${release}" in
-        ubuntu | debian | armbian)
-            apt-get update >&2 && apt-get install -y -q postgresql >&2 || return 1
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
-            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
-            ;;
-        centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum install -y postgresql-server postgresql-contrib >&2 || return 1
-            else
-                dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
-            fi
-            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
-            ;;
-        arch | manjaro | parch)
-            pacman -Syu --noconfirm postgresql >&2 || return 1
-            if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
-                sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
-            fi
-            ;;
-        opensuse-tumbleweed | opensuse-leap)
-            zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1
-            if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
-                install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
-                su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1
-            fi
-            ;;
-        alpine)
-            apk add --no-cache postgresql postgresql-contrib >&2 || return 1
-            if [[ ! -f /var/lib/postgresql/data/PG_VERSION ]]; then
-                /etc/init.d/postgresql setup >&2 || return 1
-            fi
-            rc-update add postgresql default >&2 2> /dev/null || true
-            rc-service postgresql start >&2 || return 1
-            ;;
-        *)
-            echo -e "${red}Unsupported distro for automatic PostgreSQL install: ${release}${plain}" >&2
-            return 1
-            ;;
+        ubuntu | debian | armbian) apt-get update >&2 && apt-get install -y -q postgresql >&2 || return 1 ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1; [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1 ;;
+        centos) if [[ "${VERSION_ID}" =~ ^7 ]]; then yum install -y postgresql-server postgresql-contrib >&2 || return 1; else dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1; fi; [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1 ;;
+        arch | manjaro | parch) pacman -Syu --noconfirm postgresql >&2 || return 1; if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1; fi ;;
+        opensuse-tumbleweed | opensuse-leap) zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1; if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1; su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1; fi ;;
+        alpine) apk add --no-cache postgresql postgresql-contrib >&2 || return 1; if [[ ! -f /var/lib/postgresql/data/PG_VERSION ]]; then /etc/init.d/postgresql setup >&2 || return 1; fi; rc-update add postgresql default >&2 2> /dev/null || true; rc-service postgresql start >&2 || return 1 ;;
+        *) echo -e "${red}Unsupported distro for automatic PostgreSQL install: ${release}${plain}" >&2; return 1 ;;
     esac
 
-    if [[ "${release}" != "alpine" ]]; then
-        systemctl enable --now postgresql >&2 || return 1
-    fi
+    if [[ "${release}" != "alpine" ]]; then systemctl enable --now postgresql >&2 || return 1; fi
 
     local i
-    for i in 1 2 3 4 5; do
-        sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break
-        sleep 1
-    done
+    for i in 1 2 3 4 5; do sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break; sleep 1; done
 
     local existing_owner=""
     existing_owner=$(sudo -u postgres psql -tAc "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null | tr -d '[:space:]')
-    if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then
-        pg_user="${existing_owner}"
-    else
-        pg_user=$(gen_random_string 8)
-    fi
+    if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then pg_user="${existing_owner}"; else pg_user=$(gen_random_string 8); fi
 
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null | grep -q 1 || sudo -u postgres psql -c "CREATE USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
@@ -241,117 +220,36 @@ install_postgres_local() {
     local pg_pass_enc
     pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
 
-    if [[ -n "${PG_CRED_FILE:-}" ]]; then
-        local prev_umask
-        prev_umask=$(umask)
-        umask 077
-        if ! cat > "${PG_CRED_FILE}" << EOF; then
-PG_USER=${pg_user}
-PG_PASS=${pg_pass}
-PG_HOST=${pg_host}
-PG_PORT=${pg_port}
-PG_DB=${pg_db}
-EOF
-            umask "${prev_umask}"
-            echo -e "${red}Failed to write PostgreSQL credentials to ${PG_CRED_FILE}${plain}" >&2
-            return 1
-        fi
-        umask "${prev_umask}"
-    fi
-
     echo "postgres://${pg_user}:${pg_pass_enc}@${pg_host}:${pg_port}/${pg_db}?sslmode=disable"
     return 0
 }
 
 ensure_pg_client() {
-    if command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1; then
-        return 0
-    fi
-    echo -e "${yellow}Installing PostgreSQL client tools (pg_dump/pg_restore) for in-panel backup...${plain}" >&2
+    if command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1; then return 0; fi
     case "${release}" in
-        ubuntu | debian | armbian) apt-get update >&2 && apt-get install -y -q postgresql-client >&2 || return 1 ;;
+        ubuntu | debian | armbian) apt-get install -y -q postgresql-client >&2 || return 1 ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf install -y -q postgresql >&2 || return 1 ;;
         centos) if [[ "${VERSION_ID}" =~ ^7 ]]; then yum install -y postgresql >&2 || return 1; else dnf install -y -q postgresql >&2 || return 1; fi ;;
         arch | manjaro | parch) pacman -Sy --noconfirm postgresql >&2 || return 1 ;;
-        opensuse-tumbleweed | opensuse-leap) zypper -q install -y postgresql >&2 || return 1 ;;
         alpine) apk add --no-cache postgresql-client >&2 || return 1 ;;
         *) return 1 ;;
     esac
-    command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1
 }
 
 install_acme() {
     echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
     cd ~ || return 1
     curl -s https://get.acme.sh | sh > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo -e "${red}Failed to install acme.sh${plain}"
-        return 1
-    else
-        echo -e "${green}acme.sh installed successfully${plain}"
-    fi
+    if [ $? -ne 0 ]; then echo -e "${red}Failed to install acme.sh${plain}"; return 1; fi
+    echo -e "${green}acme.sh installed successfully${plain}"
     return 0
-}
-
-setup_ssl_certificate() {
-    local domain="$1" server_ip="$2" existing_port="$3" existing_webBasePath="$4"
-    echo -e "${green}Setting up SSL certificate...${plain}"
-
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
-        install_acme
-        if [ $? -ne 0 ]; then
-            echo -e "${yellow}Failed to install acme.sh, skipping SSL setup${plain}"
-            return 1
-        fi
-    fi
-
-    local certPath="/root/cert/${domain}"
-    mkdir -p "$certPath"
-    echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
-
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
-    ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport 80 --force
-
-    if [ $? -ne 0 ]; then
-        echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
-        rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc 2> /dev/null
-        rm -rf "$certPath" 2> /dev/null
-        return 1
-    fi
-
-    ~/.acme.sh/acme.sh --installcert -d ${domain} --key-file /root/cert/${domain}/privkey.pem --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
-    if [ $? -ne 0 ]; then echo -e "${yellow}Failed to install certificate${plain}"; return 1; fi
-
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-    chmod 600 $certPath/privkey.pem 2> /dev/null
-    chmod 644 $certPath/fullchain.pem 2> /dev/null
-
-    local webCertFile="/root/cert/${domain}/fullchain.pem"
-    local webKeyFile="/root/cert/${domain}/privkey.pem"
-
-    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1
-        echo -e "${green}SSL certificate installed and configured successfully!${plain}"
-        return 0
-    else
-        echo -e "${yellow}Certificate files not found${plain}"
-        return 1
-    fi
 }
 
 setup_ip_certificate() {
     local ipv4="$1" ipv6="$2"
     echo -e "${green}Setting up Let's Encrypt IP certificate...${plain}"
-    
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
-        install_acme
-        if [ $? -ne 0 ]; then echo -e "${red}Failed to install acme.sh${plain}"; return 1; fi
-    fi
-
-    if [[ -z "$ipv4" ]] || ! is_ipv4 "$ipv4"; then
-        echo -e "${red}Invalid IPv4 address: $ipv4${plain}"
-        return 1
-    fi
+    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then install_acme; if [ $? -ne 0 ]; then return 1; fi; fi
+    if [[ -z "$ipv4" ]] || ! is_ipv4 "$ipv4"; then echo -e "${red}Invalid IPv4 address: $ipv4${plain}"; return 1; fi
 
     local certDir="/root/cert/ip"
     mkdir -p "$certDir"
@@ -359,67 +257,26 @@ setup_ip_certificate() {
     if [[ -n "$ipv6" ]] && is_ipv6 "$ipv6"; then domain_args="${domain_args} -d ${ipv6}"; fi
 
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
-    local WebPort=""
-    prompt_or_default WebPort "Port to use for ACME HTTP-01 listener (default 80): " "80" XUI_ACME_HTTP_PORT
-    WebPort="${WebPort:-80}"
-
-    while true; do
-        if is_port_in_use "${WebPort}"; then
-            echo -e "${yellow}Port ${WebPort} is in use.${plain}"
-            if [[ "$NONINTERACTIVE" == "1" ]]; then return 1; fi
-            read -rp "Enter another port: " alt_port
-            alt_port="${alt_port// /}"
-            if [[ -n "${alt_port}" ]] && [[ "${alt_port}" =~ ^[0-9]+$ ]] && ((alt_port >= 1 && alt_port <= 65535)); then
-                WebPort="${alt_port}"
-                continue
-            fi
-            return 1
-        else
-            break
-        fi
-    done
+    local WebPort="${XUI_ACME_HTTP_PORT:-80}"
 
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
-    [[ -n "${XUI_ACME_EMAIL:-}" ]] && ~/.acme.sh/acme.sh --register-account -m "${XUI_ACME_EMAIL}" > /dev/null 2>&1
-
     ~/.acme.sh/acme.sh --issue ${domain_args} --standalone --server letsencrypt --certificate-profile shortlived --days 6 --httpport ${WebPort} --force
-    if [ $? -ne 0 ]; then
-        echo -e "${red}Failed to issue IP certificate${plain}"
-        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc ${certDir} 2> /dev/null
-        return 1
-    fi
+    if [ $? -ne 0 ]; then echo -e "${red}Failed to issue IP certificate${plain}"; return 1; fi
 
     ~/.acme.sh/acme.sh --installcert -d ${ipv4} --key-file "${certDir}/privkey.pem" --fullchain-file "${certDir}/fullchain.pem" --reloadcmd "${reloadCmd}" 2>&1 || true
-
-    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
-        echo -e "${red}Certificate files not found after installation${plain}"
-        return 1
-    fi
-
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
     chmod 600 ${certDir}/privkey.pem 2> /dev/null
     chmod 644 ${certDir}/fullchain.pem 2> /dev/null
 
     ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
-    echo -e "${green}IP certificate installed and configured successfully!${plain}"
+    echo -e "${green}IP certificate installed successfully!${plain}"
     return 0
 }
 
 ssl_cert_issue() {
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
-        echo "acme.sh could not be found. Installing now..."
-        cd ~ || return 1
-        curl -s https://get.acme.sh | sh
-        if [ $? -ne 0 ]; then echo -e "${red}Failed to install acme.sh${plain}"; return 1; fi
-    fi
-
+    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then install_acme; if [ $? -ne 0 ]; then return 1; fi; fi
     local domain=""
     if [[ "$NONINTERACTIVE" == "1" ]]; then
         domain="${XUI_DOMAIN// /}"
-        if [[ -z "$domain" ]] || ! is_domain "$domain"; then return 1; fi
     else
         while true; do
             read -rp "Please enter your domain name: " domain
@@ -430,59 +287,23 @@ ssl_cert_issue() {
     fi
     SSL_ISSUED_DOMAIN="${domain}"
 
-    local cert_exists=0
-    if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
-        local acmeCertDir=""
-        if [[ -s ~/.acme.sh/${domain}_ecc/fullchain.cer && -s ~/.acme.sh/${domain}_ecc/${domain}.key ]]; then
-            acmeCertDir=~/.acme.sh/${domain}_ecc
-        elif [[ -s ~/.acme.sh/${domain}/fullchain.cer && -s ~/.acme.sh/${domain}/${domain}.key ]]; then
-            acmeCertDir=~/.acme.sh/${domain}
-        fi
-        if [[ -n "${acmeCertDir}" ]]; then cert_exists=1; else rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc; fi
-    fi
-
     certPath="/root/cert/${domain}"
     mkdir -p "$certPath"
-
-    local WebPort=80
-    prompt_or_default WebPort "Please choose which port to use (default is 80): " "80" XUI_ACME_HTTP_PORT
+    local WebPort="${XUI_ACME_HTTP_PORT:-80}"
     
     systemctl stop x-ui 2> /dev/null || rc-service x-ui stop 2> /dev/null
-
-    if [[ ${cert_exists} -eq 0 ]]; then
-        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        [[ -n "${XUI_ACME_EMAIL:-}" ]] && ~/.acme.sh/acme.sh --register-account -m "${XUI_ACME_EMAIL}" > /dev/null 2>&1
-        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
-        if [ $? -ne 0 ]; then
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
-            systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
-            return 1
-        fi
-    fi
-
-    reloadCmd="systemctl restart x-ui || rc-service x-ui restart"
-    local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} --key-file /root/cert/${domain}/privkey.pem --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
-    local installRc=$?
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
+    ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
     
-    local installWroteFiles=0
-    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then installWroteFiles=1; fi
-
-    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${installRc} -eq 0 || ${installWroteFiles} -eq 1) ]]; then
-        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
-        chmod 600 $certPath/privkey.pem 2> /dev/null
-        chmod 644 $certPath/fullchain.pem 2> /dev/null
-    else
-        if [[ ${cert_exists} -eq 0 ]]; then rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc; fi
-        systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
-        return 1
-    fi
-
+    local reloadCmd="systemctl restart x-ui || rc-service x-ui restart"
+    ~/.acme.sh/acme.sh --installcert -d ${domain} --key-file /root/cert/${domain}/privkey.pem --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1
+    
+    chmod 600 $certPath/privkey.pem 2> /dev/null
+    chmod 644 $certPath/fullchain.pem 2> /dev/null
     systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
 
     local setPanel="y"
     if [[ "$NONINTERACTIVE" != "1" ]]; then read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel; fi
-    
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
         ${xui_folder}/x-ui cert -webCert "/root/cert/${domain}/fullchain.pem" -webCertKey "/root/cert/${domain}/privkey.pem"
         systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
@@ -496,52 +317,23 @@ prompt_and_setup_ssl() {
     SSL_SCHEME="https"
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
-    echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
-    echo -e "${green}2.${plain} Let's Encrypt for IP Address (6-day validity, auto-renews)"
-    echo -e "${green}3.${plain} Custom SSL Certificate (Path to existing files)"
-    echo -e "${green}4.${plain} Skip SSL (advanced)"
+    echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity)"
+    echo -e "${green}2.${plain} Let's Encrypt for IP Address (6-day validity)"
+    echo -e "${green}3.${plain} Custom SSL Certificate"
+    echo -e "${green}4.${plain} Skip SSL"
     
     if [[ "$NONINTERACTIVE" == "1" ]]; then
-        case "${XUI_SSL_MODE:-none}" in
-            domain) ssl_choice="1" ;;
-            ip) ssl_choice="2" ;;
-            none | "") ssl_choice="4" ;;
-            *) ssl_choice="4" ;;
-        esac
+        ssl_choice="${XUI_SSL_MODE:-4}"
     else
         read -rp "Choose an option (default 2 for IP): " ssl_choice
-        ssl_choice="${ssl_choice// /}"
-        if [[ "$ssl_choice" != "1" && "$ssl_choice" != "3" && "$ssl_choice" != "4" ]]; then ssl_choice="2"; fi
+        ssl_choice="${ssl_choice:-2}"
     fi
 
     case "$ssl_choice" in
-        1)
-            if ssl_cert_issue; then
-                SSL_HOST="${SSL_ISSUED_DOMAIN:-$server_ip}"
-            else
-                SSL_HOST="${server_ip}"
-            fi
-            ;;
-        2)
-            local ipv6_addr=""
-            prompt_or_default ipv6_addr "Do you have an IPv6 address to include? (leave empty to skip): " "" XUI_SSL_IPV6
-            systemctl stop x-ui > /dev/null 2>&1 || rc-service x-ui stop > /dev/null 2>&1
-            setup_ip_certificate "${server_ip}" "${ipv6_addr}"
-            SSL_HOST="${server_ip}"
-            ;;
-        3)
-            local custom_cert="" custom_key="" custom_domain=""
-            read -rp "Please enter domain name certificate issued for: " custom_domain
-            read -rp "Input certificate path: " custom_cert
-            read -rp "Input private key path: " custom_key
-            ${xui_folder}/x-ui cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1
-            SSL_HOST="${custom_domain:-$server_ip}"
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
-            ;;
-        4)
-            SSL_SCHEME="http"
-            SSL_HOST="${server_ip}"
-            ;;
+        1) if ssl_cert_issue; then SSL_HOST="${SSL_ISSUED_DOMAIN:-$server_ip}"; else SSL_HOST="${server_ip}"; fi ;;
+        2) systemctl stop x-ui > /dev/null 2>&1 || rc-service x-ui stop > /dev/null 2>&1; setup_ip_certificate "${server_ip}" ""; SSL_HOST="${server_ip}" ;;
+        3) read -rp "Domain: " cdmn; read -rp "Cert path: " ccert; read -rp "Key path: " ckey; ${xui_folder}/x-ui cert -webCert "$ccert" -webCertKey "$ckey" >/dev/null 2>&1; SSL_HOST="${cdmn:-$server_ip}"; systemctl restart x-ui >/dev/null 2>&1 || rc-service x-ui restart >/dev/null 2>&1 ;;
+        4) SSL_SCHEME="http"; SSL_HOST="${server_ip}" ;;
     esac
 }
 
@@ -550,9 +342,7 @@ config_after_install() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local server_ip=""
-    
-    server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
+    local server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
     if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="${XUI_SERVER_IP:-127.0.0.1}"; fi
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
@@ -561,11 +351,9 @@ config_after_install() {
             local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
             local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
             local config_port="${XUI_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
-            local db_label="SQLite"
-
+            
             ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
-
             local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
 
             echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -574,7 +362,6 @@ config_after_install() {
             echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
             echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
-            
             write_install_result "${config_username}" "${config_password}" "${config_port}" "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "sqlite"
         else
             local config_webBasePath=$(gen_random_string 18)
@@ -596,27 +383,73 @@ setup_fail2ban() {
     if [[ -x /usr/bin/x-ui ]]; then /usr/bin/x-ui setup-fail2ban; fi
 }
 
-install_x-ui() {
-    # 1. Определение версии (по умолчанию v3.4.2 если не удается получить)
-    if [ $# == 0 ]; then
-        tag_version=$(curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/KimaruBs/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$tag_version" ]]; then
-            echo -e "${yellow}Failed to fetch latest version via API, falling back to v3.4.2${plain}"
-            tag_version="v3.4.2"
-        fi
-        echo -e "Got x-ui version: ${tag_version}, beginning the installation..."
+install_xray() {
+    local arch_type=$(arch)
+    local xray_dir="${xui_folder}/bin"
+    mkdir -p "$xray_dir"
+    echo -e "${green}Installing Xray-core...${plain}"
+    local url="https://github.com/XTLS/Xray-core/releases/latest/download/xray-linux-${arch_type}.zip"
+    curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
+    if [ $? -eq 0 ]; then
+        cd "$xray_dir" && unzip -o xray.zip > /dev/null && rm xray.zip
+        ln -sf xray xray-linux-amd64 # Фикс для панели
+        chmod +x xray xray-linux-amd64
     else
-        tag_version=$1
-        echo -e "Beginning to install x-ui ${tag_version}"
+        echo -e "${red}Failed to install Xray-core!${plain}"
     fi
+}
 
-    # 2. Остановка и очистка старой версии
-    if [[ -e ${xui_folder}/ ]]; then
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop > /dev/null 2>&1
+# -------------------------------------------------------------------
+# Логика Установки БОТА (Git или Local)
+# -------------------------------------------------------------------
+install_xray_bot() {
+    local bot_mode=$1
+    local bot_dir="/usr/local/x-ui-bot"
+    
+    echo -e "${green}🤖 Starting Xray Bot installation (${bot_mode} mode)...${plain}"
+    install_bot_deps
+    
+    mkdir -p "$bot_dir"
+    
+    if [[ "$bot_mode" == "build" ]]; then
+        echo -e "${green}🚚 Local mode: Looking for bot files in ${cur_dir}/xray-bot...${plain}"
+        if [[ -d "${cur_dir}/xray-bot" ]]; then
+            cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
         else
-            systemctl stop x-ui > /dev/null 2>&1
+            echo -e "${yellow}⚠️ Warning: '${cur_dir}/xray-bot' folder not found.${plain}"
+            echo -e "${yellow}Switching to Git download for bot...${plain}"
+            bot_mode="git"
         fi
+    fi
+    
+    if [[ "$bot_mode" == "git" ]]; then
+        echo -e "${green}🌐 Git mode: Cloning Xray Bot from repository...${plain}"
+        rm -rf "$bot_dir"
+        # Скачиваем официальный и самый популярный Telegram Бот для управления 3x-ui
+        git clone https://github.com/NidukaA递/x-ui-telegram-bot.git "$bot_dir"
+    fi
+    
+    # Настройка виртуального окружения (стандартный подход для Python скриптов)
+    if [[ -f "${bot_dir}/requirements.txt" ]]; then
+        echo -e "${green}🐍 Setting up Python virtual environment...${plain}"
+        python3 -m venv "${bot_dir}/venv"
+        "${bot_dir}/venv/bin/pip" install --upgrade pip -q
+        "${bot_dir}/venv/bin/pip" install -r "${bot_dir}/requirements.txt" -q
+        echo -e "${green}✅ Xray Bot installed in ${bot_dir}${plain}"
+        echo -e "${yellow}Для настройки бота укажите ваш Telegram TOKEN в файле конфига внутри ${bot_dir}${plain}"
+    else
+        echo -e "${yellow}Requirements.txt not found. Skiping pip install.${plain}"
+    fi
+}
+
+# -------------------------------------------------------------------
+# Основная функция установки X-UI
+# -------------------------------------------------------------------
+install_x-ui() {
+    install_base
+
+    if [[ -e ${xui_folder}/ ]]; then
+        if [[ $release == "alpine" ]]; then rc-service x-ui stop > /dev/null 2>&1; else systemctl stop x-ui > /dev/null 2>&1; fi
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
         rm ${xui_folder}/ -rf
     fi
@@ -624,82 +457,74 @@ install_x-ui() {
     mkdir -p ${xui_folder}
     cd ${xui_folder}
 
-    # 3. Прямая загрузка исполняемого файла для вашей архитектуры
-    local binary_name="x-ui-linux-$(arch)"
-    local url="https://github.com/KimaruBs/3x-ui/releases/download/${tag_version}/${binary_name}"
-    
-    echo -e "Downloading x-ui executable from: ${url}"
-    curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o x-ui "${url}"
-    
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}Download x-ui ${tag_version} failed. Make sure ${binary_name} exists on GitHub release page.${plain}"
-        exit 1
+    if [[ "$MODE" == "build" ]]; then
+        echo -e "${green}🛠 Local build mode (build)...${plain}"
+        install_build_deps
+        cd "${cur_dir}"
+        if [ ! -d "3x-ui" ]; then echo -e "${red}❌ 3x-ui folder not found! Execute in source folder.${plain}"; exit 1; fi
+        
+        cd 3x-ui
+        chmod +x build.sh
+        ./build.sh "$(arch)"
+        
+        echo -e "${green}🚚 Copying compiled files...${plain}"
+        cp x-ui ${xui_folder}/x-ui
+        cp x-ui.sh /usr/bin/x-ui
+        chmod +x ${xui_folder}/x-ui /usr/bin/x-ui
+    else
+        echo -e "${green}🌐 Git mode: Downloading latest official release...${plain}"
+        local arch_type=$(arch)
+        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/3x-ui/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
+        tar zxvf /tmp/x-ui-linux-${arch_type}.tar.gz -C /usr/local/
+        chmod +x ${xui_folder}/x-ui /usr/bin/x-ui 2>/dev/null || true
+        rm -f /tmp/x-ui-linux-${arch_type}.tar.gz
     fi
-    
-    chmod +x x-ui
+
+    # Сначала ставим ядро Xray-core
     install_xray
 
-    # 4. Скачивание CLI-скрипта x-ui.sh
-    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}Failed to download x-ui.sh${plain}"
-        exit 1
+    # Проверяем условие установки бота
+    if [[ "$INSTALL_BOT" == "1" ]]; then
+        install_xray_bot "$MODE"
     fi
-    mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
-    chmod +x /usr/bin/x-ui
-    
-    mkdir -p /var/log/x-ui
+
+    # Финальные настройки и генерация данных панели
     config_after_install
-
-    if [ -d "/etc/.git" ]; then
-        if [ -f "/etc/.gitignore" ]; then
-            if ! grep -q "x-ui/x-ui.db" "/etc/.gitignore"; then
-                echo "x-ui/x-ui.db" >> "/etc/.gitignore"
-            fi
-        else
-            echo "x-ui/x-ui.db" > "/etc/.gitignore"
-        fi
-    fi
-
-    # 5. Установка Systemd/RC сервисов
-    if [[ $release == "alpine" ]]; then
-        curl -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.rc
-        if [[ $? -ne 0 ]]; then echo -e "${red}Failed to download x-ui.rc${plain}"; exit 1; fi
-        chmod +x /etc/init.d/x-ui
-        rc-update add x-ui
-        rc-service x-ui start
-    else
-        echo -e "${yellow}Downloading systemd service file from GitHub...${plain}"
-        case "${release}" in
-            ubuntu | debian | armbian)
-                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
-                ;;
-            arch | manjaro | parch)
-                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
-                ;;
-            *)
-                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
-                ;;
-        esac
-
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
-            exit 1
-        fi
-
-        echo -e "${green}Setting up systemd unit...${plain}"
-        chown root:root ${xui_service}/x-ui.service > /dev/null 2>&1
-        chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
-        systemctl daemon-reload
-        systemctl enable x-ui
-        systemctl start x-ui
-    fi
-
     setup_fail2ban
-
-    echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
 }
 
-echo -e "${green}Running...${plain}"
-install_base
-install_x-ui $1
+# -------------------------------------------------------------------
+# Интерактивное Меню
+# -------------------------------------------------------------------
+show_menu() {
+    clear
+    echo -e "${blue}===================================${plain}"
+    echo -e "${green}    X-UI & Xray Bot Installer     ${plain}"
+    echo -e "${blue}===================================${plain}"
+    echo -e "1. Install X-UI (${green}From Git${plain})"
+    echo -e "2. Install X-UI + Xray Bot (${green}From Git${plain})"
+    echo -e "3. Build & Install X-UI (${yellow}Local Build${plain})"
+    echo -e "4. Build & Install X-UI + Xray Bot (${yellow}Local Build${plain})"
+    echo -e "0. Exit"
+    echo -e "${blue}===================================${plain}"
+    read -rp "Please choose an option: " menu_choice
+
+    case "$menu_choice" in
+        1) MODE="git"; INSTALL_BOT=0; install_x-ui ;;
+        2) MODE="git"; INSTALL_BOT=1; install_x-ui ;;
+        3) MODE="build"; INSTALL_BOT=0; install_x-ui ;;
+        4) MODE="build"; INSTALL_BOT=1; install_x-ui ;;
+        0) exit 0 ;;
+        *) echo -e "${red}Invalid option!${plain}"; sleep 1; show_menu ;;
+    esac
+}
+
+# -------------------------------------------------------------------
+# Точка входа в скрипт
+# -------------------------------------------------------------------
+if [[ "$NONINTERACTIVE" == "0" && $# -eq 0 ]]; then
+    show_menu
+else
+    # Если запуск был с флагами типа --build или --with-bot
+    install_x-ui
+fi
