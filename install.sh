@@ -19,7 +19,7 @@ INSTALL_BOT=0       # Флаг установки бота (0 - нет, 1 - да
 # Разбор аргументов командной строки (для автоматизации)
 # -------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
-    case $1 in
+    case "$1" in
         --build)
             MODE="build"
             shift
@@ -492,15 +492,27 @@ install_x-ui() {
     if [[ "$MODE" == "build" ]]; then
         echo -e "${green}🛠 Local build mode (build)...${plain}"
         install_build_deps
-        cd "${cur_dir}"
-        if [ ! -d "3x-ui" ]; then echo -e "${red}❌ 3x-ui folder not found! Execute in source folder.${plain}"; exit 1; fi
         
-        cd 3x-ui
+        # УМНОЕ ОПРЕДЕЛЕНИЕ ПУТИ К ИСХОДНИКАМ (Вложенная папка или текущая)
+        if [ -d "${cur_dir}/3x-ui" ]; then
+            SRC_DIR="${cur_dir}/3x-ui"
+        elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then
+            SRC_DIR="${cur_dir}"
+        else
+            echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены ни в текущей папке, ни в подпапке '3x-ui'!${plain}"
+            exit 1
+        fi
+        
+        echo -e "${green}📂 Исходники найдены в: $SRC_DIR${plain}"
+        cd "$SRC_DIR"
         chmod +x build.sh
-        ./build.sh "$(arch)"
+        
+        local current_arch=$(arch)
+        ./build.sh "$current_arch"
         
         echo -e "${green}🚚 Copying compiled files...${plain}"
-        cp x-ui ${xui_folder}/x-ui
+        # Забираем скомпилированный бинарник из подпапки build/, куда его складывает новый build.sh
+        cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
         cp x-ui.sh /usr/bin/x-ui
         chmod +x ${xui_folder}/x-ui /usr/bin/x-ui
     else
@@ -543,7 +555,6 @@ install_x-ui() {
             echo -e "${green}Панель x-ui под Linux успешно установлена.${plain}"
         fi
     fi
-
 
     # Сначала ставим ядро Xray-core
     install_xray
