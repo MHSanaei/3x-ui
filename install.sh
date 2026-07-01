@@ -42,6 +42,22 @@ arch() {
 
 echo "Arch: $(arch)"
 
+install_xray() {
+    local arch=$(arch)
+    local xray_dir="${xui_folder}/bin"
+    mkdir -p "$xray_dir"
+    echo -e "${green}Installing Xray-core...${plain}"
+    local url="https://github.com/XTLS/Xray-core/releases/latest/download/xray-linux-${arch}.zip"
+    curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
+    if [ $? -eq 0 ]; then
+        cd "$xray_dir" && unzip -o xray.zip > /dev/null && rm xray.zip
+        chmod +x xray
+    else
+        echo -e "${red}Failed to install Xray-core!${plain}"
+    fi
+}
+
+
 if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then
     NONINTERACTIVE=1
 else
