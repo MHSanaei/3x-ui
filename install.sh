@@ -1326,6 +1326,40 @@ setup_fail2ban() {
     return 0
 }
 
+# Lands a systemd unit file at ${xui_service}/x-ui.service via a temp file +
+# atomic mv, so a failed cp/curl or an interrupted mv never leaves a
+# truncated unit file at the live path -- systemd would then fail to parse
+# it on the next daemon-reload/start. Same pattern already used for
+# /usr/bin/x-ui elsewhere in this script. source_is_url picks cp (from a
+# file already extracted from the release tarball) vs curl (GitHub fallback).
+_install_xui_service_unit() {
+    local source="$1"
+    local source_is_url="$2"
+    local dest="${xui_service}/x-ui.service"
+    local temp_file="${dest}.tmp.$$"
+
+    rm -f "$temp_file"
+    if [[ "$source_is_url" == "true" ]]; then
+        curl -fLRo "$temp_file" "$source" > /dev/null 2>&1
+    else
+        cp -f "$source" "$temp_file" > /dev/null 2>&1
+    fi
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    if [[ ! -s "$temp_file" ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    mv -f "$temp_file" "$dest"
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    return 0
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -1461,8 +1495,7 @@ install_x-ui() {
 
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
-            if [[ $? -eq 0 ]]; then
+            if _install_xui_service_unit "x-ui.service" "false"; then
                 service_installed=true
             fi
         fi
@@ -1472,8 +1505,7 @@ install_x-ui() {
                 ubuntu | debian | armbian)
                     if [ -f "x-ui.service.debian" ]; then
                         echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.debian" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1481,8 +1513,7 @@ install_x-ui() {
                 arch | manjaro | parch)
                     if [ -f "x-ui.service.arch" ]; then
                         echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.arch" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1490,8 +1521,7 @@ install_x-ui() {
                 *)
                     if [ -f "x-ui.service.rhel" ]; then
                         echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.rhel" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1504,17 +1534,17 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian"
                     ;;
                 arch | manjaro | parch)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch"
                     ;;
                 *)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel"
                     ;;
             esac
 
-            if [[ $? -ne 0 ]]; then
+            if ! _install_xui_service_unit "$service_unit_url" "true"; then
                 echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
                 exit 1
             fi
