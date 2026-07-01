@@ -974,12 +974,22 @@ update_x-ui() {
     chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    ${curl_bin} -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
+    local xui_script_temp="/usr/bin/x-ui-temp.$$"
+    rm -f "${xui_script_temp}"
+    ${curl_bin} -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        rm -f /usr/bin/x-ui-temp
+        rm -f "${xui_script_temp}"
         _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
     fi
-    mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
+    if [[ ! -s "${xui_script_temp}" ]]; then
+        rm -f "${xui_script_temp}"
+        _fail "ERROR: Downloaded x-ui.sh script is empty, please be sure that your server can access GitHub"
+    fi
+    mv -f "${xui_script_temp}" /usr/bin/x-ui
+    if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
+        _fail "ERROR: Failed to install x-ui.sh script"
+    fi
 
     chmod +x ${xui_folder}/x-ui.sh > /dev/null 2>&1
     chmod +x /usr/bin/x-ui > /dev/null 2>&1
