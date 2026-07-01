@@ -394,12 +394,18 @@ setup_fail2ban() {
 # ИСПРАВЛЕННАЯ ФУНКЦИЯ УСТАНОВКИ XRAY-CORE
 # -------------------------------------------------------------------
 install_xray() {
-    local arch_type=$(arch)
     local xray_dir="${xui_folder}/bin"
+    
+    # ПРОВЕРКА: Если xray уже установлен и работает, пропускаем скачивание
+    if [[ -x "${xray_dir}/xray" ]] && "${xray_dir}/xray" -version &>/dev/null; then
+        echo -e "${green}Xray-core уже установлен и исправно работает. Пропускаем скачивание.${plain}"
+        return 0
+    fi
+
+    local arch_type=$(arch)
     mkdir -p "$xray_dir"
     echo -e "${green}Installing Xray-core...${plain}"
     
-    # ФИКС: подгоняем маску имени под реальные файлы релизов GitHub
     local xray_file="Xray-linux-${arch_type}.zip"
     if [[ "$arch_type" == "arm64" ]]; then
         xray_file="Xray-linux-arm64-v8a.zip"
@@ -415,17 +421,15 @@ install_xray() {
     curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
     if [ $? -eq 0 ]; then
         cd "$xray_dir" && unzip -o xray.zip > /dev/null && rm xray.zip
-        
-        # Переименовываем распакованный файл 'Xray' в 'xray' (нижний регистр) под логику панели
         if [[ -f "Xray" ]]; then
             mv Xray xray
         fi
-        
-        ln -sf xray xray-linux-amd64 # Фикс для панели
+        ln -sf xray xray-linux-amd64
         chmod +x xray xray-linux-amd64
         echo -e "${green}Xray-core успешно установлен!${plain}"
     else
         echo -e "${red}Failed to install Xray-core!${plain}"
+        return 1
     fi
 }
 
