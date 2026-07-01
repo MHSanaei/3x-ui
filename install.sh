@@ -240,7 +240,7 @@ install_xray_bot() {
 install_x-ui() {
     install_base
 
-    # ПОПРАВЛЕНО: Удаляем всё КРОМЕ папки 'bin', чтобы не стереть уже скачанный рабочий Xray
+    # Очищаем старое, бережно сохраняя ядро Xray
     if [[ -e ${xui_folder}/ ]]; then
         systemctl stop x-ui > /dev/null 2>&1 || true
         find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' -exec rm -rf {} +
@@ -249,6 +249,7 @@ install_x-ui() {
     mkdir -p ${xui_folder}
     cd ${xui_folder}
 
+    # Собираем или качаем x-ui
     if [[ "$MODE" == "build" ]]; then
         echo -e "${green}🛠 Локальная сборка панели...${plain}"
         install_build_deps
@@ -275,6 +276,44 @@ install_x-ui() {
         chmod +x "${xui_folder}/x-ui"
         ln -sf "${xui_folder}/x-ui" /usr/bin/x-ui
     fi
+
+    # 1. Проверяем / доставляем Xray-core
+    install_xray
+
+    # 2. Ставим бота (если надо)
+    if [[ "$INSTALL_BOT" == "1" ]]; then
+        install_xray_bot "$MODE"
+    fi
+
+    # 3. Накатываем службу systemd в систему (пока не запускаем)
+    cat > /etc/systemd/system/x-ui.service <<EOF
+[Unit]
+Description=3x-ui customized panel
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/x-ui
+ExecStart=/usr/local/x-ui/x-ui
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable x-ui
+
+    # 4. И ВОТ ТЕПЕРЬ ПОСЛЕДНИМ ШАГОМ: инициализируем базу, 
+    # выводим то самое меню команд и СРАЗУ СЛЕДОМ запускаем службу!
+    config_after_install
+
+    systemctl start x-ui
+    echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена службой.${plain}"
+}
+
 
     # 1. Доставляем ядро Xray (скачается ТОЛЬКО если папка bin пустая или повреждена)
     install_xray
