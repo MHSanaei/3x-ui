@@ -497,7 +497,7 @@ install_x-ui() {
         local arch_type=$(arch)
         
         # ФИКС: замена старой битой ссылки 3x-ui/3x-ui на рабочую Mauxito/3x-ui
-        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/Mauxito/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
+        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/KimaruBs/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
         tar zxvf /tmp/x-ui-linux-${arch_type}.tar.gz -C /usr/local/
         chmod +x ${xui_folder}/x-ui /usr/bin/x-ui 2>/dev/null || true
         rm -f /tmp/x-ui-linux-${arch_type}.tar.gz
