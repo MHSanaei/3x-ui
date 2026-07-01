@@ -202,7 +202,10 @@ replace_xui_script() {
         rm -f "$temp_file"
         return 1
     fi
+    # The move already landed the new script; a transient chmod failure here
+    # shouldn't make callers think the whole replace failed.
     chmod +x /usr/bin/x-ui
+    return 0
 }
 
 update_menu() {
@@ -1224,6 +1227,10 @@ update_geofiles() {
         "RU")
             dat_files=(geoip_RU geosite_RU)
             dat_source="runetfreedom/russia-v2ray-rules-dat"
+            ;;
+        *)
+            echo -e "${red}update_geofiles: unknown dataset '${1}'${plain}"
+            return 1
             ;;
     esac
     local failed=0 http_code

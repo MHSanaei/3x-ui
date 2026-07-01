@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -114,6 +116,35 @@ func TestUpdatePanel_UnsupportedPlatformReturnsNoRunId(t *testing.T) {
 	env := doPanelUpdateReq(t, engine, http.MethodPost, "/panel/api/server/updatePanel")
 	if env.Success {
 		t.Fatal("updatePanel on an unsupported platform: success = true, want false")
+	}
+	if len(env.Obj) != 0 && string(env.Obj) != "null" {
+		t.Fatalf("updatePanel error response must not carry an obj/runId: got %s", env.Obj)
+	}
+}
+
+// TestUpdatePanel_InvalidDevValueRejectedBeforeLaunch covers the one branch of
+// updatePanel that's both untested and safe to exercise on any OS/CI runner:
+// an unparseable "dev" form value is rejected by strconv.ParseBool before
+// StartUpdateChannel (and therefore any real exec/network call) is ever
+// reached, on Linux or otherwise.
+func TestUpdatePanel_InvalidDevValueRejectedBeforeLaunch(t *testing.T) {
+	newHostTestDB(t)
+	engine := newPanelUpdateTestEngine()
+
+	form := url.Values{"dev": {"notabool"}}
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d, body=%s", w.Code, w.Body.String())
+	}
+	var env hostEnvelope
+	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v body=%s", err, w.Body.String())
+	}
+	if env.Success {
+		t.Fatal("updatePanel with dev=notabool: success = true, want false")
 	}
 	if len(env.Obj) != 0 && string(env.Obj) != "null" {
 		t.Fatalf("updatePanel error response must not carry an obj/runId: got %s", env.Obj)

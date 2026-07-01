@@ -1376,6 +1376,11 @@ install_x-ui() {
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
         fi
+        if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+            rm ${xui_folder}-linux-$(arch).tar.gz -f
+            echo -e "${red}Downloaded x-ui release archive is empty${plain}"
+            exit 1
+        fi
     else
         tag_version=$1
         # The rolling dev channel ships under a fixed, non-semver tag that is
@@ -1399,6 +1404,11 @@ install_x-ui() {
         curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Download x-ui ${tag_version} failed, please check if the version exists ${plain}"
+            exit 1
+        fi
+        if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+            rm ${xui_folder}-linux-$(arch).tar.gz -f
+            echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
     fi
@@ -1433,9 +1443,18 @@ install_x-ui() {
 
     # Extract resources and set permissions
     tar zxvf x-ui-linux-$(arch).tar.gz
+    if [[ $? -ne 0 ]]; then
+        rm x-ui-linux-$(arch).tar.gz -f
+        echo -e "${red}Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
+        exit 1
+    fi
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    if [[ $? -ne 0 || ! -s x-ui ]]; then
+        echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
+        exit 1
+    fi
     chmod +x x-ui
     chmod +x x-ui.sh
 

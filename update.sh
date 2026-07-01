@@ -979,6 +979,10 @@ update_x-ui() {
     if [[ $? -ne 0 ]]; then
         _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
     fi
+    if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+        rm ${xui_folder}-linux-$(arch).tar.gz -f > /dev/null 2>&1
+        _fail "ERROR: Downloaded x-ui release archive is empty, please be sure that your server can access GitHub"
+    fi
 
     if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
@@ -1029,8 +1033,15 @@ update_x-ui() {
 
     echo -e "${green}Installing new x-ui version...${plain}"
     tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
+        _fail "ERROR: Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
+    fi
     rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
     cd x-ui > /dev/null 2>&1
+    if [[ $? -ne 0 || ! -s x-ui ]]; then
+        _fail "ERROR: Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
+    fi
     chmod +x x-ui > /dev/null 2>&1
 
     # Check the system's architecture and rename the file accordingly
