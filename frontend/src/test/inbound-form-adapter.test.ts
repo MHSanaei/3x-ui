@@ -7,6 +7,7 @@ import {
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
 import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
+import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
 // Round-trip: raw DB row → InboundFormValues → wire payload, asserting
@@ -302,5 +303,53 @@ describe('subSortIndex', () => {
     // A valid integer >= 1 must pass (guards against a mutant rejecting all values).
     expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 5 }).success).toBe(true);
     expect(InboundDbFieldsSchema.parse({}).subSortIndex).toBe(1);
+  });
+});
+
+describe('legacy xhttp session keys on edit (#5621)', () => {
+  const legacyXhttpRow: RawInboundRow = {
+    ...vlessRow,
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/xh',
+        mode: 'packet-up',
+        sessionPlacement: 'cookie',
+        sessionKey: 'x_session',
+      },
+    },
+  };
+
+  it('rawInboundToFormValues lifts sessionPlacement/sessionKey onto the renamed keys', () => {
+    const values = rawInboundToFormValues(legacyXhttpRow);
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    expect(xhttp.sessionIDPlacement).toBe('cookie');
+    expect(xhttp.sessionIDKey).toBe('x_session');
+    expect(xhttp.sessionPlacement).toBeUndefined();
+    expect(xhttp.sessionKey).toBeUndefined();
+    expect(xhttp.path).toBe('/xh');
+    expect(xhttp.xPaddingBytes).toBe('100-1000');
+  });
+
+  it('formValuesToWirePayload never emits the legacy key names', () => {
+    const values = rawInboundToFormValues(legacyXhttpRow);
+    const payload = formValuesToWirePayload(values);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
+    expect(stream.xhttpSettings.sessionPlacement).toBeUndefined();
+    expect(stream.xhttpSettings.sessionKey).toBeUndefined();
+    expect(stream.xhttpSettings.sessionIDPlacement).toBe('cookie');
+    expect(stream.xhttpSettings.sessionIDKey).toBe('x_session');
+  });
+
+  it('normalizeXhttpForWire lifts stale legacy keys that bypassed the schema', () => {
+    const out = normalizeXhttpForWire(
+      { sessionPlacement: 'header', sessionKey: 'x_raw' },
+      'inbound',
+    );
+    expect(out.sessionIDPlacement).toBe('header');
+    expect(out.sessionIDKey).toBe('x_raw');
+    expect(out.sessionPlacement).toBeUndefined();
+    expect(out.sessionKey).toBeUndefined();
   });
 });
