@@ -38,10 +38,23 @@ if [[ "$TARGET" == "all" || "$TARGET" == "linux" || "$TARGET" == "arm64" ]]; the
     fi
 fi
 
-if ! command -v npm &> /dev/null || ! command -v go &> /dev/null || \
-   [[ $(node -v 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1) -lt 20 ]] || \
-   [[ $NEED_CROSS_ARM64 -eq 1 && ! command -v aarch64-linux-gnu-gcc &> /dev/null ]]; then
-    
+# Проверяем версию Node.js без падения баша
+NODE_TOO_OLD=0
+if command -v node &> /dev/null; then
+    NODE_VER=$(node -v 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1)
+    if [[ "$NODE_VER" -lt 20 ]]; then
+        NODE_TOO_OLD=1
+    fi
+else
+    NODE_TOO_OLD=1
+fi
+
+MISSING_DEPS=0
+if ! command -v npm &> /dev/null || ! command -v go &> /dev/null || [[ "$NODE_TOO_OLD" -eq 1 ]] || [[ $NEED_CROSS_ARM64 -eq 1 && ! command -v aarch64-linux-gnu-gcc &> /dev/null ]]; then
+    MISSING_DEPS=1
+fi
+
+if [[ "$MISSING_DEPS" -eq 1 ]]; then
     if [ "$EUID" -ne 0 ]; then
         echo "❌ Компоненты отсутствуют. Запустите через sudo: sudo bash $0 $TARGET"
         exit 1
@@ -50,7 +63,7 @@ if ! command -v npm &> /dev/null || ! command -v go &> /dev/null || \
     apt-get update && apt-get install -y curl zip unzip 2>/dev/null || apt-get install -y curl
     
     # Установка Node.js 22
-    if ! command -v node &> /dev/null || [[ $(node -v 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1) -lt 20 ]]; then
+    if [[ "$NODE_TOO_OLD" -eq 1 ]]; then
         apt-get remove -y nodejs npm libnode-dev 2>/dev/null || true
         curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs
     fi
