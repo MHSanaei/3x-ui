@@ -158,7 +158,6 @@ config_after_install() {
     echo -e "${green}Запуск первоначальной настройки и миграции базы данных...${plain}"
     local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
     if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="${XUI_SERVER_IP:-127.0.0.1}"; fi
 
@@ -192,7 +191,6 @@ config_after_install() {
 
 install_xray() {
     local xray_dir="${xui_folder}/bin"
-    # ПОПРАВЛЕНО: Исправная проверка существования и работоспособности ядра Xray
     if [[ -x "${xray_dir}/xray" ]] && "${xray_dir}/xray" -version &>/dev/null; then
         echo -e "${green}Xray-core уже установлен и исправно работает. Пропускаем скачивание.${plain}"
         return 0
@@ -306,50 +304,12 @@ EOF
     systemctl daemon-reload
     systemctl enable x-ui
 
-    # 4. И ВОТ ТЕПЕРЬ ПОСЛЕДНИМ ШАГОМ: инициализируем базу, 
-    # выводим то самое меню команд и СРАЗУ СЛЕДОМ запускаем службу!
+    # 4. И ВОТ ТЕПЕРЬ ПОСЛЕДНИМ ШАГОМ: инициализируем базу и вызываем меню команд панели
     config_after_install
 
+    # 5. И только теперь даем команду на запуск службы, когда все логи и меню распечатаны!
     systemctl start x-ui
     echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена службой.${plain}"
-}
-
-
-    # 1. Доставляем ядро Xray (скачается ТОЛЬКО если папка bin пустая или повреждена)
-    install_xray
-
-    # 2. Ставим бота, если запросили
-    if [[ "$INSTALL_BOT" == "1" ]]; then
-        install_xray_bot "$MODE"
-    fi
-
-    # 3. Настраиваем базу данных и конфиги (теперь бинарник x-ui вызывается безопасно)
-    config_after_install
-
-    # 4. САМЫЙ ПОСЛЕДНИЙ ШАГ: Создание службы и запуск x-ui в системе
-    echo -e "${green}Создаем службу автозапуска в systemd и запускаем x-ui...${plain}"
-    cat > /etc/systemd/system/x-ui.service <<EOF
-[Unit]
-Description=3x-ui customized panel
-After=network.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=/usr/local/x-ui
-ExecStart=/usr/local/x-ui/x-ui
-Restart=on-failure
-RestartSec=3s
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    systemctl daemon-reload
-    systemctl enable x-ui
-    systemctl start x-ui
-    
-    echo -e "${green}🎉 Установка полностью завершена! Панель наконец запущена службой.${plain}"
 }
 
 show_menu() {
