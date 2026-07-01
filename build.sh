@@ -74,16 +74,12 @@ compile_target() {
     
     pushd "$BASE_DIR" > /dev/null
     
-    echo "🔄 Подмена драйвера SQLite на Pure-Go версию (без CGO)..."
-    # Находим все упоминания старого драйвера во всех .go файлах проекта и заменяем на modernc.org/sqlite
-    find . -type f -name "*.go" -exec sed -i 's|"github.com/mattn/go-sqlite3"|"modernc.org/sqlite"|g' {} +
     
     # Загружаем новый драйвер в кэш модулей Go перед сборкой
     go get modernc.org/sqlite@latest 2>/dev/null || true
     go mod tidy
     
-    # Кросс-компиляция силами самого Go с отключенным CGO (теперь это полностью автономный бинарник)
-    env GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$BUILD_OUT_DIR/x-ui-$os-$arch$extension" main.go
+    env GOOS=$os GOARCH=$arch CGO_ENABLED=1 go build -o "$BUILD_OUT_DIR/x-ui-$os-$arch$extension" main.go
     popd > /dev/null
     echo "✅ Создан файл: build/x-ui-$os-$arch$extension"
 }
