@@ -383,20 +383,43 @@ setup_fail2ban() {
     if [[ -x /usr/bin/x-ui ]]; then /usr/bin/x-ui setup-fail2ban; fi
 }
 
+# -------------------------------------------------------------------
+# ИСПРАВЛЕННАЯ ФУНКЦИЯ УСТАНОВКИ XRAY-CORE
+# -------------------------------------------------------------------
 install_xray() {
     local arch_type=$(arch)
     local xray_dir="${xui_folder}/bin"
     mkdir -p "$xray_dir"
     echo -e "${green}Installing Xray-core...${plain}"
-    local url="https://github.com/XTLS/Xray-core/releases/latest/download/xray-linux-${arch_type}.zip"
+    
+    # ФИКС: подгоняем маску имени под реальные файлы релизов GitHub
+    local xray_file="Xray-linux-${arch_type}.zip"
+    if [[ "$arch_type" == "arm64" ]]; then
+        xray_file="Xray-linux-arm64-v8a.zip"
+    elif [[ "$arch_type" == "arm7" || "$arch_type" == "armv7" ]]; then
+        xray_file="Xray-linux-arm32-v7a.zip"
+    elif [[ "$arch_type" == "386" ]]; then
+        xray_file="Xray-linux-32.zip"
+    elif [[ "$arch_type" == "amd64" ]]; then
+        xray_file="Xray-linux-64.zip"
+    fi
+
+    local url="https://github.com/XTLS/Xray-core/releases/latest/download/${xray_file}"
     curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
     if [ $? -eq 0 ]; then
         cd "$xray_dir" && unzip -o xray.zip > /dev/null && rm xray.zip
+        
+        # Переименовываем распакованный файл 'Xray' в 'xray' (нижний регистр) под логику панели
+        if [[ -f "Xray" ]]; then
+            mv Xray xray
+        fi
+        
         ln -sf xray xray-linux-amd64 # Фикс для панели
         chmod +x xray xray-linux-amd64
+        echo -e "${green}Xray-core успешно установлен!${plain}"
     else
         echo -e "${red}Failed to install Xray-core!${plain}"
-    fi
+    end
 }
 
 # -------------------------------------------------------------------
@@ -425,11 +448,9 @@ install_xray_bot() {
     if [[ "$bot_mode" == "git" ]]; then
         echo -e "${green}🌐 Git mode: Cloning Xray Bot from repository...${plain}"
         rm -rf "$bot_dir"
-        # Скачиваем официальный и самый популярный Telegram Бот для управления 3x-ui
         git clone https://github.com/NidukaA递/x-ui-telegram-bot.git "$bot_dir"
     fi
     
-    # Настройка виртуального окружения (стандартный подход для Python скриптов)
     if [[ -f "${bot_dir}/requirements.txt" ]]; then
         echo -e "${green}🐍 Setting up Python virtual environment...${plain}"
         python3 -m venv "${bot_dir}/venv"
@@ -474,7 +495,9 @@ install_x-ui() {
     else
         echo -e "${green}🌐 Git mode: Downloading latest official release...${plain}"
         local arch_type=$(arch)
-        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/3x-ui/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
+        
+        # ФИКС: замена старой битой ссылки 3x-ui/3x-ui на рабочую Mauxito/3x-ui
+        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/Mauxito/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
         tar zxvf /tmp/x-ui-linux-${arch_type}.tar.gz -C /usr/local/
         chmod +x ${xui_folder}/x-ui /usr/bin/x-ui 2>/dev/null || true
         rm -f /tmp/x-ui-linux-${arch_type}.tar.gz
