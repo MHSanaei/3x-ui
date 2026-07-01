@@ -175,11 +175,11 @@ update_dev() {
 
 replace_xui_script() {
     local url="$1"
-    local conditional="$2"
+    local use_if_modified_since="$2"
     local temp_file="/usr/bin/x-ui-temp.$$"
 
     rm -f "$temp_file"
-    if [[ "$conditional" == "true" ]]; then
+    if [[ "$use_if_modified_since" == "true" ]]; then
         curl -fLRo "$temp_file" -z /usr/bin/x-ui "$url"
     else
         curl -fLRo "$temp_file" "$url"
@@ -191,7 +191,9 @@ replace_xui_script() {
 
     if [[ ! -s "$temp_file" ]]; then
         rm -f "$temp_file"
-        [[ "$conditional" == "true" ]] && return 0
+        # -z above means "not modified since /usr/bin/x-ui" rather than a
+        # real failure, so an empty download here is success, not an error.
+        [[ "$use_if_modified_since" == "true" ]] && return 0
         return 1
     fi
 

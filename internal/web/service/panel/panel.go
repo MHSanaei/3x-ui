@@ -68,18 +68,22 @@ type PanelUpdateStatus struct {
 
 var releaseCommitRegex = regexp.MustCompile(`(?i)commit=([0-9a-f]{7,40})`)
 
-// updateMu guards updateRunning/updateStarted, which stop a second self-update
-// from launching while one is still in flight (two concurrent update.sh runs
-// would race each other extracting the release tarball and swapping the
-// service unit). updateStaleAfter bounds how long a launch is considered
-// "in flight" for, so a run that never reaches a terminal state (e.g. killed
-// by the OOM killer before its EXIT trap can fire) doesn't lock out retries
-// indefinitely -- a successful update replaces this process via a service
+// updateMu guards updateRunning/updateStarted/updateRunID, which stop a
+// second self-update from launching while one is still in flight (two
+// concurrent update.sh runs would race each other extracting the release
+// tarball and swapping the service unit). A slot is released as soon as the
+// in-flight run's own status file reports success or failure -- checked
+// against updateRunID so a stale file from an even earlier run can't be
+// mistaken for this one finishing -- so a fast failure doesn't lock out a
+// retry. updateStaleAfter is the fallback for a run that never reaches a
+// terminal state at all (e.g. killed by the OOM killer before its EXIT trap
+// can fire): a successful update replaces this process via a service
 // restart anyway, which resets updateRunning to false for free.
 var (
 	updateMu      sync.Mutex
 	updateRunning bool
 	updateStarted time.Time
+	updateRunID   int64
 )
 
 const updateStaleAfter = 5 * time.Minute
@@ -194,7 +198,8 @@ func (s *PanelService) GetUpdateStatus() *PanelUpdateStatus {
 }
 
 func (s *PanelService) startUpdate(useDev bool) (int64, error) {
-	if !acquireUpdateSlot() {
+	runID := time.Now().UnixNano()
+	if !acquireUpdateSlot(runID) {
 		return 0, fmt.Errorf("a panel update is already in progress")
 	}
 	launched := false
@@ -218,9 +223,7 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 		return 0, err
 	}
 
-	runID := time.Now().UnixNano()
 	statusFile := config.GetUpdateStatusFilePath()
-	writeUpdateStatus(statusFile, runID, updateStatePending, 0)
 
 	mainFolder, serviceFolder := resolveUpdateFolders()
 	updateTag := ""
@@ -279,48 +282,38 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	return runID, nil
 }
 
-func acquireUpdateSlot() bool {
+// acquireUpdateSlot claims the single in-flight-update slot for runID. It
+// refuses while another run is genuinely still in flight, but grants the
+// slot immediately once that run's own status file reports a terminal
+// result (success or failure) -- a fast failure shouldn't force the next
+// attempt to wait out updateStaleAfter for no reason.
+func acquireUpdateSlot(runID int64) bool {
 	updateMu.Lock()
 	defer updateMu.Unlock()
-	if updateRunning && time.Since(updateStarted) < updateStaleAfter {
-		return false
+	if updateRunning {
+		stale := time.Since(updateStarted) >= updateStaleAfter
+		if !stale && !previousRunIsTerminal() {
+			return false
+		}
 	}
 	updateRunning = true
 	updateStarted = time.Now()
+	updateRunID = runID
 	return true
+}
+
+// previousRunIsTerminal reports whether the run currently recorded in
+// updateRunID has reached success or failure per its status file. Must be
+// called with updateMu held.
+func previousRunIsTerminal() bool {
+	status := (&PanelService{}).GetUpdateStatus()
+	return status.RunID == strconv.FormatInt(updateRunID, 10) && status.State != updateStatePending
 }
 
 func releaseUpdateSlot() {
 	updateMu.Lock()
 	updateRunning = false
 	updateMu.Unlock()
-}
-
-// writeUpdateStatus persists the current update state to disk so it survives
-// the panel process being replaced mid-update. Best-effort: a failure here
-// only degrades the status the frontend can poll, it never blocks the update
-// itself. Writes via a temp file + rename so a concurrent reader never sees a
-// partially written file.
-func writeUpdateStatus(path string, runID int64, state string, exitCode int) {
-	status := PanelUpdateStatus{RunID: strconv.FormatInt(runID, 10), State: state, ExitCode: exitCode, FinishedAt: time.Now().Unix()}
-	data, err := json.Marshal(status)
-	if err != nil {
-		logger.Warning("marshal panel update status failed:", err)
-		return
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		logger.Warning("create panel update status folder failed:", err)
-		return
-	}
-	tmpPath := fmt.Sprintf("%s.tmp.%d", path, os.Getpid())
-	if err := os.WriteFile(tmpPath, data, 0o644); err != nil {
-		logger.Warning("write panel update status failed:", err)
-		return
-	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		logger.Warning("install panel update status failed:", err)
-		_ = os.Remove(tmpPath)
-	}
 }
 
 func downloadPanelUpdater() (string, error) {

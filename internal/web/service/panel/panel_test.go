@@ -1,7 +1,10 @@
 package panel
 
 import (
+	"fmt"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -111,47 +114,129 @@ func TestShortCommit(t *testing.T) {
 	}
 }
 
-func TestAcquireUpdateSlot(t *testing.T) {
+func resetUpdateSlot(t *testing.T) {
+	t.Helper()
 	t.Cleanup(func() {
 		updateMu.Lock()
 		updateRunning = false
+		updateRunID = 0
 		updateMu.Unlock()
 	})
+}
 
-	if !acquireUpdateSlot() {
+// writeStatusFile hand-writes the status file in the exact wire format
+// update.sh itself produces (a bare printf, not Go's json.Marshal), since
+// that's the real cross-language contract this package reads in production.
+func writeStatusFile(t *testing.T, path string, runID int64, state string) {
+	t.Helper()
+	body := fmt.Sprintf(`{"runId":"%d","state":"%s","exitCode":0,"finishedAt":%d}`, runID, state, time.Now().Unix())
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAcquireUpdateSlot(t *testing.T) {
+	resetUpdateSlot(t)
+
+	if !acquireUpdateSlot(1) {
 		t.Fatal("first acquire: got false, want true")
 	}
-	if acquireUpdateSlot() {
+	if acquireUpdateSlot(2) {
 		t.Fatal("second acquire while first is held: got true, want false")
 	}
 	releaseUpdateSlot()
-	if !acquireUpdateSlot() {
+	if !acquireUpdateSlot(3) {
 		t.Fatal("acquire after release: got false, want true")
 	}
 	releaseUpdateSlot()
 }
 
 func TestAcquireUpdateSlotExpiresAfterStaleWindow(t *testing.T) {
-	t.Cleanup(func() {
-		updateMu.Lock()
-		updateRunning = false
-		updateMu.Unlock()
-	})
+	resetUpdateSlot(t)
 
-	if !acquireUpdateSlot() {
+	if !acquireUpdateSlot(1) {
 		t.Fatal("first acquire: got false, want true")
 	}
 	updateMu.Lock()
 	updateStarted = time.Now().Add(-(updateStaleAfter + time.Second))
 	updateMu.Unlock()
 
-	if !acquireUpdateSlot() {
+	if !acquireUpdateSlot(2) {
 		t.Fatal("acquire after stale window elapsed: got false, want true")
 	}
 	releaseUpdateSlot()
 }
 
-func TestWriteAndGetUpdateStatus(t *testing.T) {
+// TestAcquireUpdateSlotReleasesOnTerminalStatus is the regression test for the
+// bug adversarial review found: a fast failure used to still lock out retries
+// for the full updateStaleAfter window, because acquireUpdateSlot only looked
+// at the in-memory started-at timestamp, never at the status file's own
+// terminal state.
+func TestAcquireUpdateSlotReleasesOnTerminalStatus(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	resetUpdateSlot(t)
+	path := config.GetUpdateStatusFilePath()
+
+	if !acquireUpdateSlot(111) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	writeStatusFile(t, path, 111, updateStateFailed)
+
+	if !acquireUpdateSlot(222) {
+		t.Fatal("acquire after the in-flight run reported failed: got false, want true (should not wait out updateStaleAfter)")
+	}
+	releaseUpdateSlot()
+}
+
+// TestAcquireUpdateSlotIgnoresStaleUnrelatedStatus confirms the terminal-state
+// check is scoped to the run it actually launched: a status file left behind
+// by some earlier, unrelated run (different runID) must not be mistaken for
+// this run finishing.
+func TestAcquireUpdateSlotIgnoresStaleUnrelatedStatus(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	resetUpdateSlot(t)
+	path := config.GetUpdateStatusFilePath()
+
+	writeStatusFile(t, path, 999, updateStateSuccess) // leftover from some earlier run
+	if !acquireUpdateSlot(111) {
+		t.Fatal("first acquire: got false, want true")
+	}
+
+	if acquireUpdateSlot(222) {
+		t.Fatal("acquire while status file only reflects an unrelated older runID: got true, want false")
+	}
+	releaseUpdateSlot()
+}
+
+// TestAcquireUpdateSlotConcurrency proves the check-then-set is actually
+// atomic under real concurrent access, not just correct when called
+// sequentially. A prior version of this test suite only ever called
+// acquireUpdateSlot from a single goroutine, so it gave no signal if the
+// mutex's core promise (only one concurrent launch wins) were broken.
+func TestAcquireUpdateSlotConcurrency(t *testing.T) {
+	resetUpdateSlot(t)
+
+	const attempts = 200
+	var wins atomic.Int32
+	var wg sync.WaitGroup
+	wg.Add(attempts)
+	for i := range attempts {
+		go func(runID int64) {
+			defer wg.Done()
+			if acquireUpdateSlot(runID) {
+				wins.Add(1)
+			}
+		}(int64(i))
+	}
+	wg.Wait()
+
+	if got := wins.Load(); got != 1 {
+		t.Fatalf("concurrent acquireUpdateSlot: %d of %d attempts won, want exactly 1", got, attempts)
+	}
+	releaseUpdateSlot()
+}
+
+func TestGetUpdateStatus(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
 	path := config.GetUpdateStatusFilePath()
 	svc := &PanelService{}
@@ -160,7 +245,7 @@ func TestWriteAndGetUpdateStatus(t *testing.T) {
 		t.Fatalf("missing status file: State = %q, want %q", got.State, updateStatePending)
 	}
 
-	writeUpdateStatus(path, 1735689600123456789, updateStateSuccess, 0)
+	writeStatusFile(t, path, 1735689600123456789, updateStateSuccess)
 	got := svc.GetUpdateStatus()
 	if got.RunID != "1735689600123456789" {
 		t.Fatalf("RunID = %q, want %q (must round-trip as a decimal string, not a JSON number, or it loses precision past 2^53 in JS)", got.RunID, "1735689600123456789")
@@ -176,7 +261,7 @@ func TestWriteAndGetUpdateStatus(t *testing.T) {
 		t.Fatalf("corrupt status file: State = %q, want %q", got.State, updateStatePending)
 	}
 
-	writeUpdateStatus(path, 1, "some-unrecognized-state", 0)
+	writeStatusFile(t, path, 1, "some-unrecognized-state")
 	if got := svc.GetUpdateStatus(); got.State != updateStatePending {
 		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
