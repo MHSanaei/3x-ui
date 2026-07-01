@@ -3,6 +3,7 @@ package panel
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -120,6 +121,7 @@ func resetUpdateSlot(t *testing.T) {
 		updateMu.Lock()
 		updateRunning = false
 		updateRunID = 0
+		updatePID = 0
 		updateMu.Unlock()
 	})
 }
@@ -163,6 +165,56 @@ func TestAcquireUpdateSlotExpiresAfterStaleWindow(t *testing.T) {
 
 	if !acquireUpdateSlot(2) {
 		t.Fatal("acquire after stale window elapsed: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+// TestAcquireUpdateSlotWaitsForAliveProcessPastStaleWindow is the regression
+// test for the concurrency bug an upstream review found: past
+// updateStaleAfter, the old logic freed the slot purely on elapsed time, even
+// if the process it launched was still genuinely running (not crashed) --
+// update.sh's own package-manager step plus several downloads can plausibly
+// run long on a slow host with nothing actually wrong. Now a confirmed-alive
+// PID keeps the slot held past the stale window.
+func TestAcquireUpdateSlotWaitsForAliveProcessPastStaleWindow(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("processAlive is a no-op stub on non-Linux; this test only exercises real liveness checking on Linux")
+	}
+	resetUpdateSlot(t)
+
+	if !acquireUpdateSlot(1) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	recordUpdatePID(os.Getpid()) // the test process itself: guaranteed alive
+	updateMu.Lock()
+	updateStarted = time.Now().Add(-(updateStaleAfter + time.Second))
+	updateMu.Unlock()
+
+	if acquireUpdateSlot(2) {
+		t.Fatal("acquire past the stale window while the recorded PID is still alive: got true, want false")
+	}
+	releaseUpdateSlot()
+}
+
+// TestAcquireUpdateSlotHardCeilingOverridesLiveness confirms the absolute
+// backstop: even a confirmed-alive process can't hold the slot forever, so a
+// genuinely wedged run can't lock out retries permanently.
+func TestAcquireUpdateSlotHardCeilingOverridesLiveness(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("processAlive is a no-op stub on non-Linux; this test only exercises real liveness checking on Linux")
+	}
+	resetUpdateSlot(t)
+
+	if !acquireUpdateSlot(1) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	recordUpdatePID(os.Getpid())
+	updateMu.Lock()
+	updateStarted = time.Now().Add(-(updateHardCeiling + time.Second))
+	updateMu.Unlock()
+
+	if !acquireUpdateSlot(2) {
+		t.Fatal("acquire past the hard ceiling despite a live PID: got false, want true")
 	}
 	releaseUpdateSlot()
 }

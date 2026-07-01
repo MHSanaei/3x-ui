@@ -68,25 +68,40 @@ type PanelUpdateStatus struct {
 
 var releaseCommitRegex = regexp.MustCompile(`(?i)commit=([0-9a-f]{7,40})`)
 
-// updateMu guards updateRunning/updateStarted/updateRunID, which stop a
-// second self-update from launching while one is still in flight (two
+// updateMu guards updateRunning/updateStarted/updateRunID/updatePID, which
+// stop a second self-update from launching while one is still in flight (two
 // concurrent update.sh runs would race each other extracting the release
 // tarball and swapping the service unit). A slot is released as soon as the
 // in-flight run's own status file reports success or failure -- checked
 // against updateRunID so a stale file from an even earlier run can't be
 // mistaken for this one finishing -- so a fast failure doesn't lock out a
-// retry. updateStaleAfter is the fallback for a run that never reaches a
-// terminal state at all (e.g. killed by the OOM killer before its EXIT trap
-// can fire): a successful update replaces this process via a service
-// restart anyway, which resets updateRunning to false for free.
+// retry.
+//
+// For a run that never reaches a terminal state at all, staleness is judged
+// primarily by whether the process we actually launched is still alive
+// (updatePID, via processAlive), not by wall-clock time alone: update.sh
+// runs install_base() (a package-manager update+install) before anything
+// else, plus several downloads, which can legitimately run past a short
+// fixed timeout on a slow or throttled host without anything being wrong.
+// updateStaleAfter/updatePID together are only a fallback for the systemd-run
+// launch path, where the process we can observe (systemd-run itself) has
+// already exited by the time startUpdate returns and the actual update.sh
+// unit's PID is never recorded -- for that path this is still a pure
+// wall-clock heuristic. updateHardCeiling is an absolute backstop so a
+// genuinely wedged run (alive but hung forever) can never lock out retries
+// permanently, even on the PID-tracked path.
 var (
 	updateMu      sync.Mutex
 	updateRunning bool
 	updateStarted time.Time
 	updateRunID   int64
+	updatePID     int
 )
 
-const updateStaleAfter = 5 * time.Minute
+const (
+	updateStaleAfter  = 20 * time.Minute
+	updateHardCeiling = 2 * time.Hour
+)
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
 	go func() {
@@ -278,6 +293,7 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 		logger.Warning("failed to release panel update process:", err)
 	}
 	logger.Infof("started panel update job with pid %d", cmd.Process.Pid)
+	recordUpdatePID(cmd.Process.Pid)
 	launched = true
 	return runID, nil
 }
@@ -286,20 +302,42 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 // refuses while another run is genuinely still in flight, but grants the
 // slot immediately once that run's own status file reports a terminal
 // result (success or failure) -- a fast failure shouldn't force the next
-// attempt to wait out updateStaleAfter for no reason.
+// attempt to wait out updateStaleAfter for no reason. Past updateStaleAfter
+// with no terminal status yet, it grants the slot anyway UNLESS the process
+// we recorded (updatePID) is confirmed still alive, so a merely-slow run
+// isn't mistaken for a crashed one; past updateHardCeiling it grants the
+// slot unconditionally regardless of liveness, so a truly wedged run can
+// never lock out retries forever.
 func acquireUpdateSlot(runID int64) bool {
 	updateMu.Lock()
 	defer updateMu.Unlock()
-	if updateRunning {
-		stale := time.Since(updateStarted) >= updateStaleAfter
-		if !stale && !previousRunIsTerminal() {
-			return false
+	if updateRunning && !previousRunIsTerminal() {
+		elapsed := time.Since(updateStarted)
+		if elapsed < updateHardCeiling {
+			stale := elapsed >= updateStaleAfter
+			alive := updatePID > 0 && processAlive(updatePID)
+			if !stale || alive {
+				return false
+			}
 		}
 	}
 	updateRunning = true
 	updateStarted = time.Now()
 	updateRunID = runID
+	updatePID = 0
 	return true
+}
+
+// recordUpdatePID notes the PID of the detached update.sh process the
+// current slot is tracking, so a later acquireUpdateSlot call can check
+// whether it is actually still running instead of only how long ago it
+// started. Only reachable for the detached-fallback launch path -- the
+// systemd-run path never learns update.sh's own PID, since the process it
+// directly observes (systemd-run) has already exited by the time it returns.
+func recordUpdatePID(pid int) {
+	updateMu.Lock()
+	updatePID = pid
+	updateMu.Unlock()
 }
 
 // previousRunIsTerminal reports whether the run currently recorded in

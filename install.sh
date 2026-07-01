@@ -1445,6 +1445,7 @@ install_x-ui() {
     tar zxvf x-ui-linux-$(arch).tar.gz
     if [[ $? -ne 0 ]]; then
         rm x-ui-linux-$(arch).tar.gz -f
+        rm -f "${xui_script_temp}"
         echo -e "${red}Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
         exit 1
     fi
@@ -1452,6 +1453,7 @@ install_x-ui() {
 
     cd x-ui
     if [[ $? -ne 0 || ! -s x-ui ]]; then
+        rm -f "${xui_script_temp}"
         echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
         exit 1
     fi
