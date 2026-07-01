@@ -152,11 +152,11 @@ install_base() {
 install_build_deps() {
     echo -e "${green}Installing build tools (Node.js, npm, Go)...${plain}"
     case "${release}" in
-        ubuntu | debian | armbian) apt-get install -y -q nodejs npm golang-go ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q nodejs npm golang ;;
-        arch | manjaro | parch) pacman -S --noconfirm nodejs npm go ;;
-        alpine) apk add nodejs npm go ;;
-        *) apt-get install -y -q nodejs npm golang-go ;;
+        ubuntu | debian | armbian) apt-get install -y -q nodejs golang-go ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q nodejs golang ;;
+        arch | manjaro | parch) pacman -S --noconfirm nodejs go ;;
+        alpine) apk add nodejs go ;;
+        *) apt-get install -y -q nodejs golang-go ;;
     esac
 }
 
