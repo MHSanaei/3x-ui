@@ -31,6 +31,40 @@ _fail() {
     exit 2
 }
 
+# Records this run's outcome for the panel's web updater to poll, since it
+# launches this script detached and has no other way to learn whether it
+# finished. Written to a fixed path outside XUI_MAIN_FOLDER so it survives
+# the update regardless of what happens to that folder. The EXIT trap below
+# covers every exit path in this file, including the bare `exit 1`/`exit 2`
+# calls that don't go through _fail.
+xui_update_run_id="${XUI_UPDATE_RUN_ID:-0}"
+[[ "${xui_update_run_id}" =~ ^[0-9]+$ ]] || xui_update_run_id="0"
+xui_update_status_file="${XUI_UPDATE_STATUS_FILE:-/etc/x-ui/update-status.json}"
+
+_write_update_status() {
+    local state="$1"
+    local exit_code="$2"
+    local status_dir
+    status_dir="$(dirname "${xui_update_status_file}")"
+    mkdir -p "${status_dir}" > /dev/null 2>&1
+    local tmp_file="${xui_update_status_file}.tmp.$$"
+    printf '{"runId":"%s","state":"%s","exitCode":%s,"finishedAt":%s}\n' \
+        "${xui_update_run_id}" "${state}" "${exit_code}" "$(date +%s)" > "${tmp_file}" 2> /dev/null
+    mv -f "${tmp_file}" "${xui_update_status_file}" > /dev/null 2>&1
+}
+
+_report_update_exit() {
+    local code=$?
+    if [[ "${code}" -eq 0 ]]; then
+        _write_update_status "success" "0"
+    else
+        _write_update_status "failed" "${code}"
+    fi
+}
+trap _report_update_exit EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+
 # check root
 [[ $EUID -ne 0 ]] && _fail "FATAL ERROR: Please run this script with root privilege."
 

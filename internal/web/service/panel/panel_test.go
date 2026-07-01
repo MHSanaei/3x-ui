@@ -1,8 +1,11 @@
 package panel
 
 import (
+	"os"
 	"testing"
+	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -105,5 +108,76 @@ func TestShortCommit(t *testing.T) {
 	}
 	if got := shortCommit("abc"); got != "abc" {
 		t.Fatalf("shortCommit short input = %q, want %q", got, "abc")
+	}
+}
+
+func TestAcquireUpdateSlot(t *testing.T) {
+	t.Cleanup(func() {
+		updateMu.Lock()
+		updateRunning = false
+		updateMu.Unlock()
+	})
+
+	if !acquireUpdateSlot() {
+		t.Fatal("first acquire: got false, want true")
+	}
+	if acquireUpdateSlot() {
+		t.Fatal("second acquire while first is held: got true, want false")
+	}
+	releaseUpdateSlot()
+	if !acquireUpdateSlot() {
+		t.Fatal("acquire after release: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+func TestAcquireUpdateSlotExpiresAfterStaleWindow(t *testing.T) {
+	t.Cleanup(func() {
+		updateMu.Lock()
+		updateRunning = false
+		updateMu.Unlock()
+	})
+
+	if !acquireUpdateSlot() {
+		t.Fatal("first acquire: got false, want true")
+	}
+	updateMu.Lock()
+	updateStarted = time.Now().Add(-(updateStaleAfter + time.Second))
+	updateMu.Unlock()
+
+	if !acquireUpdateSlot() {
+		t.Fatal("acquire after stale window elapsed: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+func TestWriteAndGetUpdateStatus(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	path := config.GetUpdateStatusFilePath()
+	svc := &PanelService{}
+
+	if got := svc.GetUpdateStatus(); got.State != updateStatePending {
+		t.Fatalf("missing status file: State = %q, want %q", got.State, updateStatePending)
+	}
+
+	writeUpdateStatus(path, 1735689600123456789, updateStateSuccess, 0)
+	got := svc.GetUpdateStatus()
+	if got.RunID != "1735689600123456789" {
+		t.Fatalf("RunID = %q, want %q (must round-trip as a decimal string, not a JSON number, or it loses precision past 2^53 in JS)", got.RunID, "1735689600123456789")
+	}
+	if got.State != updateStateSuccess {
+		t.Fatalf("State = %q, want %q", got.State, updateStateSuccess)
+	}
+
+	if err := os.WriteFile(path, []byte("not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := svc.GetUpdateStatus(); got.State != updateStatePending {
+		t.Fatalf("corrupt status file: State = %q, want %q", got.State, updateStatePending)
+	}
+
+	writeUpdateStatus(path, 1, "some-unrecognized-state", 0)
+	if got := svc.GetUpdateStatus(); got.State != updateStatePending {
+		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
 }

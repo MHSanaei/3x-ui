@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -44,9 +45,44 @@ const (
 	// devReleaseTag is the fixed-tag rolling pre-release the CI force-moves to the
 	// newest main commit; the dev update channel installs from it.
 	devReleaseTag = "dev-latest"
+
+	updateStatePending = "pending"
+	updateStateSuccess = "success"
+	updateStateFailed  = "failed"
 )
 
+// PanelUpdateStatus reports the outcome of the most recently launched panel
+// self-update. RunID lets the caller confirm this status belongs to the
+// update it started rather than a stale result left over from an earlier
+// run; State is one of "pending", "success", or "failed". RunID is a decimal
+// string, not a JSON number: it's a formatted UnixNano timestamp, and
+// JavaScript's number type can't represent that precisely (it exceeds
+// Number.MAX_SAFE_INTEGER), which would let two different runs round to the
+// same value on the wire and defeat the whole point of this field.
+type PanelUpdateStatus struct {
+	RunID      string `json:"runId" example:"1735689600123456789"`
+	State      string `json:"state" example:"success"`
+	ExitCode   int    `json:"exitCode" example:"0"`
+	FinishedAt int64  `json:"finishedAt" example:"1735689612"`
+}
+
 var releaseCommitRegex = regexp.MustCompile(`(?i)commit=([0-9a-f]{7,40})`)
+
+// updateMu guards updateRunning/updateStarted, which stop a second self-update
+// from launching while one is still in flight (two concurrent update.sh runs
+// would race each other extracting the release tarball and swapping the
+// service unit). updateStaleAfter bounds how long a launch is considered
+// "in flight" for, so a run that never reaches a terminal state (e.g. killed
+// by the OOM killer before its EXIT trap can fire) doesn't lock out retries
+// indefinitely -- a successful update replaces this process via a service
+// restart anyway, which resets updateRunning to false for free.
+var (
+	updateMu      sync.Mutex
+	updateRunning bool
+	updateStarted time.Time
+)
+
+const updateStaleAfter = 5 * time.Minute
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
 	go func() {
@@ -122,32 +158,69 @@ func getDevUpdateInfo() (*PanelUpdateInfo, error) {
 	}, nil
 }
 
-// StartUpdate starts the official updater using this panel's own channel setting.
-func (s *PanelService) StartUpdate() error {
+// StartUpdate starts the official updater using this panel's own channel
+// setting. Returns the run ID to pass to GetUpdateStatus so the caller can
+// tell this run's result apart from a stale one.
+func (s *PanelService) StartUpdate() (int64, error) {
 	return s.startUpdate(devChannelActive())
 }
 
 // StartUpdateChannel runs the updater against an explicitly chosen channel,
 // overriding the local dev-channel setting. Used by the master node updater so
 // a node can be moved to the dev channel from the central panel.
-func (s *PanelService) StartUpdateChannel(dev bool) error {
+func (s *PanelService) StartUpdateChannel(dev bool) (int64, error) {
 	return s.startUpdate(dev)
 }
 
-func (s *PanelService) startUpdate(useDev bool) error {
+// GetUpdateStatus reports the outcome of the most recently launched panel
+// self-update, as recorded by update.sh's EXIT trap (see the script for why
+// that covers every exit path, not just the happy one). This is a best-effort
+// side channel: a missing or unreadable status file reads as "pending"
+// rather than an error, since the update itself is what matters, not this
+// status file.
+func (s *PanelService) GetUpdateStatus() *PanelUpdateStatus {
+	data, err := os.ReadFile(config.GetUpdateStatusFilePath())
+	if err != nil {
+		return &PanelUpdateStatus{State: updateStatePending}
+	}
+	var status PanelUpdateStatus
+	if err := json.Unmarshal(data, &status); err != nil {
+		return &PanelUpdateStatus{State: updateStatePending}
+	}
+	if status.State != updateStateSuccess && status.State != updateStateFailed {
+		status.State = updateStatePending
+	}
+	return &status
+}
+
+func (s *PanelService) startUpdate(useDev bool) (int64, error) {
+	if !acquireUpdateSlot() {
+		return 0, fmt.Errorf("a panel update is already in progress")
+	}
+	launched := false
+	defer func() {
+		if !launched {
+			releaseUpdateSlot()
+		}
+	}()
+
 	if runtime.GOOS != "linux" {
-		return fmt.Errorf("panel web update is supported only on Linux installations")
+		return 0, fmt.Errorf("panel web update is supported only on Linux installations")
 	}
 
 	bash, err := exec.LookPath("bash")
 	if err != nil {
-		return fmt.Errorf("bash is required to run the panel updater: %w", err)
+		return 0, fmt.Errorf("bash is required to run the panel updater: %w", err)
 	}
 
 	scriptPath, err := downloadPanelUpdater()
 	if err != nil {
-		return err
+		return 0, err
 	}
+
+	runID := time.Now().UnixNano()
+	statusFile := config.GetUpdateStatusFilePath()
+	writeUpdateStatus(statusFile, runID, updateStatePending, 0)
 
 	mainFolder, serviceFolder := resolveUpdateFolders()
 	updateTag := ""
@@ -155,6 +228,8 @@ func (s *PanelService) startUpdate(useDev bool) error {
 		updateTag = devReleaseTag
 	}
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
+	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
+	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
 		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
@@ -163,6 +238,8 @@ func (s *PanelService) startUpdate(useDev bool) error {
 			"--setenv", "XUI_MAIN_FOLDER="+mainFolder,
 			"--setenv", "XUI_SERVICE="+serviceFolder,
 			"--setenv", "XUI_UPDATE_TAG="+updateTag,
+			"--setenv", runIDEnv,
+			"--setenv", statusFileEnv,
 			bash, "-lc", updateScript,
 		)
 		out, err := cmd.CombinedOutput()
@@ -171,12 +248,13 @@ func (s *PanelService) startUpdate(useDev bool) error {
 			if !strings.Contains(output, "System has not been booted with systemd") &&
 				!strings.Contains(output, "Failed to connect to bus") {
 				_ = os.Remove(scriptPath)
-				return fmt.Errorf("failed to start panel update job: %w: %s", err, output)
+				return 0, fmt.Errorf("failed to start panel update job: %w: %s", err, output)
 			}
 			logger.Warning("systemd-run is unavailable, falling back to detached update process:", output)
 		} else {
 			logger.Infof("started panel update job via systemd-run unit %s", unitName)
-			return nil
+			launched = true
+			return runID, nil
 		}
 	}
 
@@ -185,17 +263,64 @@ func (s *PanelService) startUpdate(useDev bool) error {
 		"XUI_MAIN_FOLDER="+mainFolder,
 		"XUI_SERVICE="+serviceFolder,
 		"XUI_UPDATE_TAG="+updateTag,
+		runIDEnv,
+		statusFileEnv,
 	)
 	setDetachedProcess(cmd)
 	if err := cmd.Start(); err != nil {
 		_ = os.Remove(scriptPath)
-		return fmt.Errorf("failed to start panel update job: %w", err)
+		return 0, fmt.Errorf("failed to start panel update job: %w", err)
 	}
 	if err := cmd.Process.Release(); err != nil {
 		logger.Warning("failed to release panel update process:", err)
 	}
 	logger.Infof("started panel update job with pid %d", cmd.Process.Pid)
-	return nil
+	launched = true
+	return runID, nil
+}
+
+func acquireUpdateSlot() bool {
+	updateMu.Lock()
+	defer updateMu.Unlock()
+	if updateRunning && time.Since(updateStarted) < updateStaleAfter {
+		return false
+	}
+	updateRunning = true
+	updateStarted = time.Now()
+	return true
+}
+
+func releaseUpdateSlot() {
+	updateMu.Lock()
+	updateRunning = false
+	updateMu.Unlock()
+}
+
+// writeUpdateStatus persists the current update state to disk so it survives
+// the panel process being replaced mid-update. Best-effort: a failure here
+// only degrades the status the frontend can poll, it never blocks the update
+// itself. Writes via a temp file + rename so a concurrent reader never sees a
+// partially written file.
+func writeUpdateStatus(path string, runID int64, state string, exitCode int) {
+	status := PanelUpdateStatus{RunID: strconv.FormatInt(runID, 10), State: state, ExitCode: exitCode, FinishedAt: time.Now().Unix()}
+	data, err := json.Marshal(status)
+	if err != nil {
+		logger.Warning("marshal panel update status failed:", err)
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		logger.Warning("create panel update status folder failed:", err)
+		return
+	}
+	tmpPath := fmt.Sprintf("%s.tmp.%d", path, os.Getpid())
+	if err := os.WriteFile(tmpPath, data, 0o644); err != nil {
+		logger.Warning("write panel update status failed:", err)
+		return
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		logger.Warning("install panel update status failed:", err)
+		_ = os.Remove(tmpPath)
+	}
 }
 
 func downloadPanelUpdater() (string, error) {
