@@ -14,7 +14,8 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-# Флаг установки бота (0 - нет, 1 - да)
+# Значения по умолчанию
+MODE="git"          
 INSTALL_BOT=0       
 
 # Определение ОС
@@ -150,7 +151,7 @@ install_xray_bot() {
     install_bot_deps
     mkdir -p "$bot_dir"
     
-    if [ -d "${cur_dir}/xray-bot" ]; then
+    if [[ "$MODE" == "build" && -d "${cur_dir}/xray-bot" ]]; then
         cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
     else
         git clone https://github.com/NidukaA递/x-ui-telegram-bot.git "$bot_dir" || true
@@ -175,29 +176,42 @@ start_installation() {
 
     mkdir -p ${xui_folder}
 
-    echo -e "${green}🛠 Локальная сборка панели из исходников...${plain}"
-    install_build_deps
-    
-    if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
-    elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
-    else
-        echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены в текущей папке!${plain}" && exit 1
-    fi
-    
-    cd "$SRC_DIR"
-    chmod +x build.sh
-    ./build.sh "$current_arch"
-    
-    # СТРОГОЕРАЗДЕЛЕНИЕ ФАЙЛОВ:
+    # Чистим старые файлы перед новой установкой, чтобы избежать каши
     rm -f "${xui_folder}/x-ui" /usr/bin/x-ui
-    
-    # 1. Бинарник (сервер) идёт в /usr/local/x-ui/x-ui
-    cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
-    chmod +x "${xui_folder}/x-ui"
-    
-    # 2. Текстовое меню идёт в /usr/bin/x-ui
-    cp x-ui.sh /usr/bin/x-ui
-    chmod +x /usr/bin/x-ui
+
+    if [[ "$MODE" == "build" ]]; then
+        echo -e "${green}🛠 Локальная сборка панели из исходников...${plain}"
+        install_build_deps
+        
+        if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
+        elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
+        else
+            echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены в текущей папке!${plain}" && exit 1
+        fi
+        
+        cd "$SRC_DIR"
+        chmod +x build.sh
+        ./build.sh "$current_arch"
+        
+        # 1. Раскладываем бинарник локальной сборки
+        cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
+        chmod +x "${xui_folder}/x-ui"
+        
+        # 2. Раскладываем меню локальной сборки
+        cp x-ui.sh /usr/bin/x-ui
+        chmod +x /usr/bin/x-ui
+    else
+        echo -e "${green}🌐 Скачивание готового релиза из репозитория Git...${plain}"
+        local ui_file="x-ui-linux-${current_arch}"
+        
+        # 1. Скачиваем БИНАРНИК СЕРВЕРА строго в его рабочую папку
+        wget -N --no-check-certificate -O "${xui_folder}/x-ui" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
+        chmod +x "${xui_folder}/x-ui"
+        
+        # 2. Скачиваем ИНТЕРАКТИВНОЕ МЕНЮ строго в системные команды
+        wget -N --no-check-certificate -O /usr/bin/x-ui "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh"
+        chmod +x /usr/bin/x-ui
+    fi
 
     install_xray
 
@@ -205,7 +219,7 @@ start_installation() {
         install_xray_bot
     fi
 
-    # Создаем службу
+    # Создаем службу systemd
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
@@ -228,7 +242,7 @@ EOF
 
     config_after_install
 
-    # Запускаем фоновую службу
+    # Перезапускаем фоновую службу сервера
     systemctl restart x-ui
     sleep 1
 
@@ -236,24 +250,28 @@ EOF
     echo -e "${yellow}Запускаем интерактивное меню управления...${plain}"
     sleep 1
     
-    # Передаем управление меню, чтобы им можно было пользоваться сразу
+    # Запускаем настоящее рабочее меню
     exec /usr/bin/x-ui
 }
 
 show_menu() {
     clear
     echo -e "${blue}===================================${plain}"
-    echo -e "${green}    3X-UI Local Build Installer    ${plain}"
+    echo -e "${green}        3X-UI Smart Installer      ${plain}"
     echo -e "${blue}===================================${plain}"
-    echo -e "1. Build & Install X-UI"
-    echo -e "2. Build & Install X-UI + Xray Bot"
+    echo -e "1. Install X-UI (${green}Download from Git${plain})"
+    echo -e "2. Install X-UI + Xray Bot (${green}Download from Git${plain})"
+    echo -e "3. Build & Install X-UI (${yellow}Local Build${plain})"
+    echo -e "4. Build & Install X-UI + Xray Bot (${yellow}Local Build${plain})"
     echo -e "0. Exit"
     echo -e "${blue}===================================${plain}"
     read -rp "Please choose an option: " menu_choice
 
     case "$menu_choice" in
-        1) INSTALL_BOT=0; start_installation ;;
-        2) INSTALL_BOT=1; start_installation ;;
+        1) MODE="git";   INSTALL_BOT=0; start_installation ;;
+        2) MODE="git";   INSTALL_BOT=1; start_installation ;;
+        3) MODE="build"; INSTALL_BOT=0; start_installation ;;
+        4) MODE="build"; INSTALL_BOT=1; start_installation ;;
         0) exit 0 ;;
         *) echo -e "${red}Invalid option!${plain}"; sleep 1; show_menu ;;
     esac
