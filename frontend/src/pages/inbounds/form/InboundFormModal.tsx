@@ -421,6 +421,9 @@ export default function InboundFormModal({
       if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
         form.setFieldValue('nodeId', null);
       }
+      if (next !== Protocols.VLESS) {
+        form.setFieldValue('disableFlow', false);
+      }
       // Hysteria uses its dedicated transport — force the network branch
       // so the stream tab renders the hysteria sub-form, not the leftover
       // tcpSettings from the previous protocol. When leaving hysteria,
@@ -598,6 +601,16 @@ export default function InboundFormModal({
       >
         <InputNumber min={1} />
       </Form.Item>
+
+      {protocol === Protocols.VLESS && (
+        <Form.Item
+          name="disableFlow"
+          valuePropName="checked"
+          label={labelWithHint(t('pages.inbounds.form.disableFlow'), t('pages.inbounds.form.disableFlowHelp'))}
+        >
+          <Switch />
+        </Form.Item>
+      )}
 
       <Form.Item
         name="port"

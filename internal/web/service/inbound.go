@@ -318,9 +318,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		StreamSettings string `gorm:"column:stream_settings"`
 		Settings       string `gorm:"column:settings"`
 		NodeId         *int   `gorm:"column:node_id"`
+		DisableFlow    bool   `gorm:"column:disable_flow"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
+		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id, disable_flow").
 		Where("user_id = ?", userId).
 		Order("id ASC").
 		Scan(&rows).Error
@@ -336,7 +337,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Tag:            r.Tag,
 			Protocol:       r.Protocol,
 			Port:           r.Port,
-			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
+			TlsFlowCapable: !r.DisableFlow && inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 			WgPublicKey:    wgPublicKey,
 			WgMtu:          wgMtu,
@@ -631,6 +632,15 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 	if existEmail != "" {
 		return inbound, false, common.NewError("Duplicate email:", existEmail)
+	}
+
+	if inbound.DisableFlow {
+		if stripped, changed := stripClientFlows(inbound.Settings); changed {
+			inbound.Settings = stripped
+		}
+		for i := range clients {
+			clients[i].Flow = ""
+		}
 	}
 
 	// Ensure created_at and updated_at on clients in settings
@@ -1120,8 +1130,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		// VLESS inbound just became flow-eligible (e.g. vlessenc was enabled on an
 		// XHTTP inbound), restore Vision for clients whose intended flow is Vision
 		// but was stripped while the inbound was ineligible.
-		if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
-			inbound.Settings = restored
+		if !inbound.DisableFlow {
+			if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
+				inbound.Settings = restored
+			}
+		} else {
+			if stripped, changed := stripClientFlows(inbound.Settings); changed {
+				inbound.Settings = stripped
+			}
 		}
 
 		oldInbound.Total = inbound.Total
@@ -1133,6 +1149,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
+		oldInbound.DisableFlow = inbound.DisableFlow
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
 		oldInbound.Sniffing = inbound.Sniffing

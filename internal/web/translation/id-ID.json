@@ -657,6 +657,8 @@
         "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
         "subSortIndex": "Urutan dalam langganan",
         "subSortIndexHelp": "Posisi tautan inbound ini dalam keluaran langganan (halaman langganan dan aplikasi klien). Nilai lebih kecil tampil lebih dulu; nilai sama mempertahankan urutan pembuatan. Tidak memengaruhi daftar inbound di panel.",
+        "disableFlow": "Nonaktifkan flow XTLS",
+        "disableFlowHelp": "Kecualikan inbound ini dari injeksi otomatis xtls-rprx-vision, meskipun transport-nya mendukung flow (mis. inbound XHTTP yang dituneling dengan enkripsi VLESS). Klien tetap memakai Vision pada inbound lain yang mendukung dalam langganan yang sama. Hanya VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Alamat node",
           "listen": "Alamat listen inbound",
