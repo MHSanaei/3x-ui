@@ -197,7 +197,7 @@ func TestAcquireUpdateSlotIgnoresStaleUnrelatedStatus(t *testing.T) {
 	resetUpdateSlot(t)
 	path := config.GetUpdateStatusFilePath()
 
-	writeStatusFile(t, path, 999, updateStateSuccess) // leftover from some earlier run
+	writeStatusFile(t, path, 999, updateStateSuccess)
 	if !acquireUpdateSlot(111) {
 		t.Fatal("first acquire: got false, want true")
 	}

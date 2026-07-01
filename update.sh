@@ -1073,9 +1073,21 @@ update_x-ui() {
 
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
+        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
+        rm -f "${xui_rc_temp}"
+        ${curl_bin} -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
             _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
+        fi
+        if [[ ! -s "${xui_rc_temp}" ]]; then
+            rm -f "${xui_rc_temp}"
+            _fail "ERROR: Downloaded startup unit x-ui.rc is empty, please be sure that your server can access GitHub"
+        fi
+        mv -f "${xui_rc_temp}" /etc/init.d/x-ui
+        if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
+            _fail "ERROR: Failed to install startup unit x-ui.rc"
         fi
         chmod +x /etc/init.d/x-ui > /dev/null 2>&1
         chown root:root /etc/init.d/x-ui > /dev/null 2>&1

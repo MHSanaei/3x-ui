@@ -1481,9 +1481,23 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
+        rm -f "${xui_rc_temp}"
+        curl -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
         if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
             echo -e "${red}Failed to download x-ui.rc${plain}"
+            exit 1
+        fi
+        if [[ ! -s "${xui_rc_temp}" ]]; then
+            rm -f "${xui_rc_temp}"
+            echo -e "${red}Downloaded x-ui.rc is empty${plain}"
+            exit 1
+        fi
+        mv -f "${xui_rc_temp}" /etc/init.d/x-ui
+        if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
+            echo -e "${red}Failed to install x-ui.rc${plain}"
             exit 1
         fi
         chmod +x /etc/init.d/x-ui
