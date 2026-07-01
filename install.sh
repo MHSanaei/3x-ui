@@ -419,7 +419,7 @@ install_xray() {
         echo -e "${green}Xray-core успешно установлен!${plain}"
     else
         echo -e "${red}Failed to install Xray-core!${plain}"
-    end
+    fi
 }
 
 # -------------------------------------------------------------------
