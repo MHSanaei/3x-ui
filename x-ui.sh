@@ -184,14 +184,15 @@ update_menu() {
         return 0
     fi
 
-    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    chmod +x ${xui_folder}/x-ui.sh
-    chmod +x /usr/bin/x-ui
-
+    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? == 0 ]]; then
+        mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
+        chmod +x ${xui_folder}/x-ui.sh
+        chmod +x /usr/bin/x-ui
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
         exit 0
     else
+        rm -f /usr/bin/x-ui-temp
         echo -e "${red}Failed to update the menu.${plain}"
         return 1
     fi
@@ -804,12 +805,16 @@ enable_bbr() {
 }
 
 update_shell() {
-    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
+    curl -fLRo /usr/bin/x-ui-temp -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
+        rm -f /usr/bin/x-ui-temp
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
         before_show_menu
     else
+        if [[ -s /usr/bin/x-ui-temp ]]; then
+            mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
+        fi
         chmod +x /usr/bin/x-ui
         LOGI "Upgrade script succeeded, Please rerun the script"
         before_show_menu
