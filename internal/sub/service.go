@@ -1357,6 +1357,11 @@ func applyShareRealityParams(stream map[string]any, params map[string]string) {
 			}
 		}
 		params["spx"] = "/" + random.Seq(15)
+		if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
+			if spx, ok := spxValue.(string); ok && len(spx) > 0 {
+				params["spx"] = spx
+			}
+		}
 	}
 }
 

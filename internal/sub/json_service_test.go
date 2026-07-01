@@ -254,3 +254,46 @@ func TestSubJsonServiceGlobalMuxWhenNoXmux(t *testing.T) {
 		t.Fatalf("mux payload wrong: %#v", m)
 	}
 }
+
+func TestSubJsonServiceRealityDataUsesConfiguredSpiderX(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+
+	stream := svc.streamData(`{
+		"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},
+		"realitySettings":{
+			"serverNames":["reality.example.com"],
+			"shortIds":["ab12cd"],
+			"settings":{"publicKey":"PBKvalue","fingerprint":"firefox","spiderX":"/mypath"}
+		}
+	}`)
+
+	rlty, _ := stream["realitySettings"].(map[string]any)
+	if rlty == nil {
+		t.Fatal("streamData dropped realitySettings")
+	}
+	if rlty["spiderX"] != "/mypath" {
+		t.Fatalf("spiderX = %v, want configured /mypath (#5718)", rlty["spiderX"])
+	}
+}
+
+func TestSubJsonServiceRealityDataSpiderXFallsBackToRandom(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+
+	stream := svc.streamData(`{
+		"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},
+		"realitySettings":{
+			"serverNames":["reality.example.com"],
+			"shortIds":["ab12cd"],
+			"settings":{"publicKey":"PBKvalue","fingerprint":"firefox"}
+		}
+	}`)
+
+	rlty, _ := stream["realitySettings"].(map[string]any)
+	if rlty == nil {
+		t.Fatal("streamData dropped realitySettings")
+	}
+	spx, _ := rlty["spiderX"].(string)
+	if len(spx) != 16 || spx[0] != '/' {
+		t.Fatalf("spiderX fallback = %q, want random 16-char /-prefixed value", spx)
+	}
+}
