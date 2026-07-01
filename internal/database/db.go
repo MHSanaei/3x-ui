@@ -83,6 +83,9 @@ func initModels() error {
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {
+		if IsPostgres() && postgresModelSettled(mdl) {
+			continue
+		}
 		if err := db.AutoMigrate(mdl); err != nil {
 			if isIgnorableDuplicateColumnErr(err, mdl) {
 				log.Printf("Ignoring duplicate column during auto migration for %T: %v", mdl, err)
@@ -117,6 +120,30 @@ func initModels() error {
 		}
 	}
 	return nil
+}
+
+// postgresModelSettled skips AutoMigrate when table, columns, and indexes all exist:
+// its catalog-filtered column probe misdetects on some setups and re-ADDs columns forever (#5665).
+func postgresModelSettled(mdl any) bool {
+	migrator := db.Migrator()
+	if !migrator.HasTable(mdl) {
+		return false
+	}
+	stmt := &gorm.Statement{DB: db}
+	if err := stmt.Parse(mdl); err != nil || stmt.Schema == nil {
+		return false
+	}
+	for _, dbName := range stmt.Schema.DBNames {
+		if !migrator.HasColumn(mdl, dbName) {
+			return false
+		}
+	}
+	for _, idx := range stmt.Schema.ParseIndexes() {
+		if !migrator.HasIndex(mdl, idx.Name) {
+			return false
+		}
+	}
+	return true
 }
 
 func dropLegacyForeignKeys() error {
