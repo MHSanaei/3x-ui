@@ -35,21 +35,28 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Проверка на права root
-[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
-
-# Определение ОС
-if [[ -f /etc/os-release ]]; then
-    source /etc/os-release
-    release=$ID
-elif [[ -f /usr/lib/os-release ]]; then
-    source /usr/lib/os-release
-    release=$ID
-else
-    echo "Failed to check the system OS, please contact the author!" >&2
-    exit 1
-fi
-echo "The OS release is: $release"
+# Определение ОС (Кроссплатформенное)
+DETECTED_OS="linux"
+case "$(uname -s)" in
+    CYGWIN*|MINGW*|MSYS*|Windows*)
+        DETECTED_OS="windows"
+        release="windows"
+        echo "Detected OS: Windows"
+        ;;
+    *)
+        [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
+        if [[ -f /etc/os-release ]]; then
+            source /etc/os-release
+            release=$ID
+        elif [[ -f /usr/lib/os-release ]]; then
+            source /usr/lib/os-release
+            release=$ID
+        else
+            release="unknown_linux"
+        fi
+        echo "Detected OS: Linux ($release)"
+        ;;
+esac
 
 # Определение архитектуры
 arch() {
