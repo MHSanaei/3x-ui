@@ -14,31 +14,23 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-MODE="git"          
+# Флаг установки бота (0 - нет, 1 - да)
 INSTALL_BOT=0       
 
-ORIG_ARGS_COUNT=$#
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --build) MODE="build"; shift ;;
-        --with-bot) INSTALL_BOT=1; shift ;;
-        *) echo -e "${red}Unknown option: $1${plain}"; exit 1 ;;
-    esac
-done
-
+# Определение ОС
 DETECTED_OS="linux"
-case "$(uname -s)" in
-    CYGWIN*|MINGW*|MSYS*|Windows*) DETECTED_OS="windows"; release="windows"; echo "Detected OS: Windows" ;;
-    *)
-        [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
-        if [[ -f /etc/os-release ]]; then source /etc/os-release; release=$ID
-        elif [[ -f /usr/lib/os-release ]]; then source /usr/lib/os-release; release=$ID
-        else release="unknown_linux"; fi
-        echo "Detected OS: Linux ($release)"
-        ;;
-esac
+if [[ -f /etc/os-release ]]; then
+    source /etc/os-release
+    release=$ID
+elif [[ -f /usr/lib/os-release ]]; then
+    source /usr/lib/os-release
+    release=$ID
+else
+    release="unknown_linux"
+fi
+echo "Detected OS: Linux ($release)"
 
+# Определение архитектуры
 arch() {
     case "$(uname -m)" in
         x86_64 | x64 | amd64) echo 'amd64' ;;
@@ -51,15 +43,8 @@ arch() {
         *) echo -e "${green}Unsupported CPU architecture! ${plain}" && exit 1 ;;
     esac
 }
-echo "Arch: $(arch)"
-
-if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then NONINTERACTIVE=1; else NONINTERACTIVE=0; fi
-export NONINTERACTIVE
-
-is_ipv4() { [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1; }
-is_ipv6() { [[ "$1" =~ : ]] && return 0 || return 1; }
-is_ip() { is_ipv4 "$1" || is_ipv6 "$1"; }
-is_domain() { [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1; }
+current_arch=$(arch)
+echo "Arch: $current_arch"
 
 gen_random_string() {
     local length="$1"
@@ -86,60 +71,39 @@ write_install_result() {
         return 1
     fi
     umask "$prev_umask"; chmod 600 "$result_file" 2> /dev/null; chown root:root "$result_file" 2> /dev/null || true
-    echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
 }
 
 install_base() {
     echo -e "${green}Installing base dependencies...${plain}"
-    case "${release}" in
-        ubuntu | debian | armbian) apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip git wget ;;
-        centos) if [[ "${VERSION_ID}" =~ ^7 ]]; then yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl unzip git wget; else dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip git wget; fi ;;
-        arch | manjaro | parch) pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip git wget ;;
-        alpine) apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip bash git wget ;;
-        *) apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget ;;
-    esac
+    apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget
 }
 
 install_build_deps() {
     echo -e "${green}Installing build tools (Node.js, Go)...${plain}"
-    case "${release}" in
-        ubuntu | debian | armbian) apt-get install -y -q nodejs golang-go ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q nodejs golang ;;
-        arch | manjaro | parch) pacman -S --noconfirm nodejs go ;;
-        alpine) apk add nodejs go ;;
-        *) apt-get install -y -q nodejs golang-go ;;
-    esac
+    apt-get install -y -q nodejs golang-go
 }
 
 install_bot_deps() {
     echo -e "${green}Installing Python dependencies for Telegram Bot...${plain}"
-    case "${release}" in
-        ubuntu | debian | armbian) apt-get install -y -q python3 python3-pip python3-venv zip unzip ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos) dnf install -y -q python3 python3-pip zip unzip ;;
-        arch | manjaro | parch) pacman -S --noconfirm python python-pip zip unzip ;;
-        alpine) apk add python3 py3-pip zip unzip ;;
-        *) apt-get install -y -q python3 python3-pip python3-venv zip unzip ;;
-    esac
+    apt-get install -y -q python3 python3-pip python3-venv zip unzip
 }
 
 config_after_install() {
     echo -e "${green}Инициализация базы данных...${plain}"
-    # Глушим вывод технического хелпа панели в /dev/null, чтобы он не спамил ложными меню
     local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}' || echo "true")
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##' || echo "")
     local server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
-    if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="${XUI_SERVER_IP:-127.0.0.1}"; fi
+    if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="127.0.0.1"; fi
 
     SSL_SCHEME="http"
     SSL_HOST="${server_ip}"
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
-            local config_webBasePath="${XUI_WEB_BASE_PATH:-$(gen_random_string 18)}"
-            local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
-            local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
-            local config_port="${XUI_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
+            local config_webBasePath=$(gen_random_string 18)
+            local config_username=$(gen_random_string 10)
+            local config_password=$(gen_random_string 10)
+            local config_port=$(shuf -i 1024-62000 -n 1)
             
             ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}" > /dev/null 2>&1
             local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true 2>/dev/null | grep -Eo 'apiToken: .+' | awk '{print $2}')
@@ -166,14 +130,11 @@ install_xray() {
         return 0
     fi
 
-    local arch_type=$(arch)
     mkdir -p "$xray_dir"
     echo -e "${green}Installing Xray-core...${plain}"
     
-    local xray_file="Xray-linux-${arch_type}.zip"
-    if [[ "$arch_type" == "arm64" ]]; then xray_file="Xray-linux-arm64-v8a.zip"
-    elif [[ "$arch_type" == "amd64" ]]; then xray_file="Xray-linux-64.zip"
-    fi
+    local xray_file="Xray-linux-64.zip"
+    if [[ "$current_arch" == "arm64" ]]; then xray_file="Xray-linux-arm64-v8a.zip"; fi
 
     local url="https://github.com/XTLS/Xray-core/releases/latest/download/${xray_file}"
     curl -fLR --retry 5 -o "${xray_dir}/xray.zip" "$url"
@@ -181,17 +142,15 @@ install_xray() {
     if [[ -f "Xray" ]]; then mv Xray xray; fi
     ln -sf xray xray-linux-amd64
     chmod +x xray xray-linux-amd64
-    echo -e "${green}Xray-core успешно добавлен!${plain}"
 }
 
 install_xray_bot() {
-    local bot_mode=$1
     local bot_dir="/usr/local/x-ui-bot"
     echo -e "${green}🤖 Installing Xray Bot...${plain}"
     install_bot_deps
     mkdir -p "$bot_dir"
     
-    if [[ "$bot_mode" == "build" && -d "${cur_dir}/xray-bot" ]]; then
+    if [ -d "${cur_dir}/xray-bot" ]; then
         cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
     else
         git clone https://github.com/NidukaA递/x-ui-telegram-bot.git "$bot_dir" || true
@@ -205,53 +164,48 @@ install_xray_bot() {
     fi
 }
 
-install_x-ui() {
+start_installation() {
     install_base
 
+    # Очищаем старое
     if [[ -e ${xui_folder}/ ]]; then
         systemctl stop x-ui > /dev/null 2>&1 || true
         find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' -exec rm -rf {} +
     fi
 
     mkdir -p ${xui_folder}
-    cd ${xui_folder}
 
-    if [[ "$MODE" == "build" ]]; then
-        echo -e "${green}🛠 Локальная сборка панели...${plain}"
-        install_build_deps
-        
-        if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
-        elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
-        else
-            echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены!${plain}" && exit 1
-        fi
-        
-        cd "$SRC_DIR"
-        chmod +x build.sh
-        local current_arch=$(arch)
-        ./build.sh "$current_arch"
-        
-        cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
-        cp x-ui.sh /usr/bin/x-ui
-        chmod +x ${xui_folder}/x-ui /usr/bin/x-ui
+    echo -e "${green}🛠 Локальная сборка панели из исходников...${plain}"
+    install_build_deps
+    
+    if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
+    elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
     else
-        echo -e "${green}🌐 Скачивание готового релиза из Git...${plain}"
-        local arch_type=$(arch)
-        local ui_file="x-ui-linux-${arch_type}"
-        wget -N --no-check-certificate -O "${xui_folder}/x-ui" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
-        chmod +x "${xui_folder}/x-ui"
-        cp "${xui_folder}/x-ui" /usr/bin/x-ui
-        # Если скачиваем готовый, подтягиваем скрипт меню
-        wget -N --no-check-certificate -O /usr/bin/x-ui "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh" || true
-        chmod +x /usr/bin/x-ui
+        echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены в текущей папке!${plain}" && exit 1
     fi
+    
+    cd "$SRC_DIR"
+    chmod +x build.sh
+    ./build.sh "$current_arch"
+    
+    # СТРОГОЕРАЗДЕЛЕНИЕ ФАЙЛОВ:
+    rm -f "${xui_folder}/x-ui" /usr/bin/x-ui
+    
+    # 1. Бинарник (сервер) идёт в /usr/local/x-ui/x-ui
+    cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
+    chmod +x "${xui_folder}/x-ui"
+    
+    # 2. Текстовое меню идёт в /usr/bin/x-ui
+    cp x-ui.sh /usr/bin/x-ui
+    chmod +x /usr/bin/x-ui
 
     install_xray
 
     if [[ "$INSTALL_BOT" == "1" ]]; then
-        install_xray_bot "$MODE"
+        install_xray_bot
     fi
 
+    # Создаем службу
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
@@ -274,43 +228,35 @@ EOF
 
     config_after_install
 
-    # Запускаем службу жестко и принудительно
+    # Запускаем фоновую службу
     systemctl restart x-ui
     sleep 1
 
-    echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена службой.${plain}"
+    echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена.${plain}"
     echo -e "${yellow}Запускаем интерактивное меню управления...${plain}"
     sleep 1
     
-    # ФИНАЛЬНЫЙ СУПЕР-ШАГ: Передаем управление настоящему интерактивному меню системы!
+    # Передаем управление меню, чтобы им можно было пользоваться сразу
     exec /usr/bin/x-ui
 }
 
 show_menu() {
     clear
     echo -e "${blue}===================================${plain}"
-    echo -e "${green}    X-UI & Xray Bot Installer     ${plain}"
+    echo -e "${green}    3X-UI Local Build Installer    ${plain}"
     echo -e "${blue}===================================${plain}"
-    echo -e "1. Install X-UI (${green}From Git${plain})"
-    echo -e "2. Install X-UI + Xray Bot (${green}From Git${plain})"
-    echo -e "3. Build & Install X-UI (${yellow}Local Build${plain})"
-    echo -e "4. Build & Install X-UI + Xray Bot (${yellow}Local Build${plain})"
+    echo -e "1. Build & Install X-UI"
+    echo -e "2. Build & Install X-UI + Xray Bot"
     echo -e "0. Exit"
     echo -e "${blue}===================================${plain}"
     read -rp "Please choose an option: " menu_choice
 
     case "$menu_choice" in
-        1) MODE="git"; INSTALL_BOT=0; install_x-ui ;;
-        2) MODE="git"; INSTALL_BOT=1; install_x-ui ;;
-        3) MODE="build"; INSTALL_BOT=0; install_x-ui ;;
-        4) MODE="build"; INSTALL_BOT=1; install_x-ui ;;
+        1) INSTALL_BOT=0; start_installation ;;
+        2) INSTALL_BOT=1; start_installation ;;
         0) exit 0 ;;
         *) echo -e "${red}Invalid option!${plain}"; sleep 1; show_menu ;;
     esac
 }
 
-if [[ "$ORIG_ARGS_COUNT" -eq 0 && "$NONINTERACTIVE" == "0" ]]; then
-    show_menu
-else
-    install_x-ui
-fi
+show_menu
