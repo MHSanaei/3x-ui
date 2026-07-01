@@ -263,6 +263,7 @@ install_x-ui() {
         local current_arch=$(arch)
         ./build.sh "$current_arch"
         
+        # ИСПРАВЛЕНО: Копируем и переименовываем в просто 'x-ui', чтобы служба его нашла!
         cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
         cp x-ui.sh /usr/bin/x-ui
         chmod +x ${xui_folder}/x-ui /usr/bin/x-ui
@@ -274,6 +275,44 @@ install_x-ui() {
         chmod +x "${xui_folder}/x-ui"
         ln -sf "${xui_folder}/x-ui" /usr/bin/x-ui
     fi
+
+    # 1. Проверяем / доставляем Xray-core
+    install_xray
+
+    # 2. Ставим бота (если надо)
+    if [[ "$INSTALL_BOT" == "1" ]]; then
+        install_xray_bot "$MODE"
+    fi
+
+    # 3. Накатываем службу systemd в систему (пока не запускаем)
+    cat > /etc/systemd/system/x-ui.service <<EOF
+[Unit]
+Description=3x-ui customized panel
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/x-ui
+ExecStart=/usr/local/x-ui/x-ui
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable x-ui
+
+    # 4. Инициализируем базу и вызываем внутреннее меню команд панели
+    config_after_install
+
+    # 5. Запускаем службу, теперь бинарник на месте!
+    systemctl start x-ui
+    echo -e "${green}🎉 Установка полностью завершена! Панель успешно запущена службой.${plain}"
+}
+
 
     # 1. Проверяем / доставляем Xray-core
     install_xray
