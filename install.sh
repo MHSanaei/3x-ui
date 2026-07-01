@@ -506,13 +506,44 @@ install_x-ui() {
     else
         echo -e "${green}🌐 Git mode: Downloading latest official release...${plain}"
         local arch_type=$(arch)
-        
-        # ФИКС: замена старой битой ссылки 3x-ui/3x-ui на рабочую Mauxito/3x-ui
-        wget -N --no-check-certificate -O /tmp/x-ui-linux-${arch_type}.tar.gz https://github.com/KimaruBs/3x-ui/releases/latest/download/x-ui-linux-${arch_type}.tar.gz
-        tar zxvf /tmp/x-ui-linux-${arch_type}.tar.gz -C /usr/local/
-        chmod +x ${xui_folder}/x-ui /usr/bin/x-ui 2>/dev/null || true
-        rm -f /tmp/x-ui-linux-${arch_type}.tar.gz
+        local ui_file=""
+
+        if [[ "$DETECTED_OS" == "windows" ]]; then
+            ui_file="x-ui-windows-amd64.exe"
+            echo -e "${yellow}Downloading Windows binary to current directory...${plain}"
+            
+            wget -N --no-check-certificate -O "./x-ui.exe" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
+            chmod +x "./x-ui.exe" 2>/dev/null || true
+            
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}Панель x-ui для Windows успешно скачана!${plain}"
+            echo -e "${green}Файл сохранен как: $(pwd)/x-ui.exe${plain}"
+            echo -e "${green}Запустите его вручную в командной строке.${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            exit 0
+        else
+            if [[ "$arch_type" == "amd64" ]]; then
+                ui_file="x-ui-linux-amd64"
+            elif [[ "$arch_type" == "arm64" ]]; then
+                ui_file="x-ui-linux-arm64"
+            else
+                echo -e "${red}❌ Нет подходящего билда панели под Linux-$arch_type в релизах!${plain}"
+                exit 1
+            fi
+
+            wget -N --no-check-certificate -O "${xui_folder}/x-ui" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
+            
+            if [[ ! -f "${xui_folder}/x-ui" || $(stat -c%s "${xui_folder}/x-ui") -le 10000 ]]; then
+                echo -e "${red}❌ Ошибка: Файл панели не скачался (404 или пустой).${plain}"
+                exit 1
+            fi
+
+            chmod +x "${xui_folder}/x-ui"
+            ln -sf "${xui_folder}/x-ui" /usr/bin/x-ui
+            echo -e "${green}Панель x-ui под Linux успешно установлена.${plain}"
+        fi
     fi
+
 
     # Сначала ставим ядро Xray-core
     install_xray
