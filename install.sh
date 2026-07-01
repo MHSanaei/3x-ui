@@ -36,15 +36,12 @@ arch() {
         armv6* | armv6) echo 'armv6' ;;
         armv5* | armv5) echo 'armv5' ;;
         s390x) echo 's390x' ;;
-        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && exit 1 ;;
     esac
 }
 
 echo "Arch: $(arch)"
 
-# Non-interactive mode: triggered explicitly via XUI_NONINTERACTIVE=1, or
-# implicitly when stdin is not a TTY (e.g. `curl ... | bash`, cloud-init).
-# In this mode every prompt below is replaced by an env var or a sane default.
 if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then
     NONINTERACTIVE=1
 else
@@ -53,23 +50,11 @@ fi
 export NONINTERACTIVE
 
 # Simple helpers
-is_ipv4() {
-    [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
-}
-is_ipv6() {
-    [[ "$1" =~ : ]] && return 0 || return 1
-}
-is_ip() {
-    is_ipv4 "$1" || is_ipv6 "$1"
-}
-is_domain() {
-    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
-}
+is_ipv4() { [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1; }
+is_ipv6() { [[ "$1" =~ : ]] && return 0 || return 1; }
+is_ip() { is_ipv4 "$1" || is_ipv6 "$1"; }
+is_domain() { [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1; }
 
-# acme.sh's standalone server binds IPv4 by default; --listen-v6 makes it
-# v6-only, which breaks HTTP-01 validation when the domain's A record points
-# at this host's IPv4 (#4994). Only force IPv6 when the host has no global
-# IPv4 address at all.
 acme_listen_flag() {
     if ip -4 addr show scope global 2> /dev/null | grep -q "inet "; then
         echo ""
@@ -78,7 +63,6 @@ acme_listen_flag() {
     fi
 }
 
-# Port helpers
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
@@ -127,32 +111,18 @@ install_base() {
 
 gen_random_string() {
     local length="$1"
-    openssl rand -base64 $((length * 2)) \
-        | tr -dc 'a-zA-Z0-9' \
-        | head -c "$length"
+    openssl rand -base64 $((length * 2)) | tr -dc 'a-zA-Z0-9' | head -c "$length"
 }
 
-# prompt_or_default VARNAME "prompt text" "default" [ENV_NAME]
-# Interactive: read into VARNAME. Non-interactive: VARNAME = ${ENV_NAME:-default}.
-# ENV_NAME defaults to VARNAME when omitted. Keeps every interactive prompt
-# string byte-for-byte identical to the original `read -rp`.
 prompt_or_default() {
     local __var="$1" __prompt="$2" __default="$3" __env="${4:-$1}"
     if [[ "$NONINTERACTIVE" == "1" ]]; then
         printf -v "$__var" '%s' "${!__env:-$__default}"
     else
-        # shellcheck disable=SC2229
         read -rp "$__prompt" "$__var"
     fi
 }
 
-# write_install_result <user> <pass> <port> <webpath> <scheme> <host> <token> <dbtype>
-# Persists a parseable, root-only credentials file consumed by cloud-init/MOTD.
-# Values are written with printf '%q' so a pinned password/username containing
-# spaces, quotes, $(...) or backticks is shell-escaped and the file stays safely
-# source-able (consumers do '. install-result.env'). For the alphanumeric random
-# values gen_random_string emits, %q is a no-op. This is a DIFFERENT file from the
-# Postgres env file (/etc/default/x-ui).
 write_install_result() {
     local u="$1" p="$2" port="$3" wbp="$4" scheme="$5" host="$6" token="$7" dbtype="$8"
     local result_file="/etc/x-ui/install-result.env"
@@ -234,7 +204,6 @@ install_postgres_local() {
         systemctl enable --now postgresql >&2 || return 1
     fi
 
-    # Wait briefly for the server to accept connections.
     local i
     for i in 1 2 3 4 5; do
         sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break
@@ -242,25 +211,15 @@ install_postgres_local() {
     done
 
     local existing_owner=""
-    existing_owner=$(sudo -u postgres psql -tAc \
-        "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
-        | tr -d '[:space:]')
+    existing_owner=$(sudo -u postgres psql -tAc "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null | tr -d '[:space:]')
     if [[ -n "${existing_owner}" && "${existing_owner}" != "postgres" ]]; then
         pg_user="${existing_owner}"
     else
         pg_user=$(gen_random_string 8)
     fi
 
-    # Idempotent role/db creation. Identifiers are double-quoted because a
-    # random username may start with a digit, which Postgres rejects unquoted.
-    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null \
-        | grep -q 1 \
-        || sudo -u postgres psql -c "CREATE USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
-
-    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null \
-        | grep -q 1 \
-        || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
-
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${pg_user}'" 2> /dev/null | grep -q 1 || sudo -u postgres psql -c "CREATE USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
     sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
 
     local pg_pass_enc
@@ -294,31 +253,13 @@ ensure_pg_client() {
     fi
     echo -e "${yellow}Installing PostgreSQL client tools (pg_dump/pg_restore) for in-panel backup...${plain}" >&2
     case "${release}" in
-        ubuntu | debian | armbian)
-            apt-get update >&2 && apt-get install -y -q postgresql-client >&2 || return 1
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf install -y -q postgresql >&2 || return 1
-            ;;
-        centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum install -y postgresql >&2 || return 1
-            else
-                dnf install -y -q postgresql >&2 || return 1
-            fi
-            ;;
-        arch | manjaro | parch)
-            pacman -Sy --noconfirm postgresql >&2 || return 1
-            ;;
-        opensuse-tumbleweed | opensuse-leap)
-            zypper -q install -y postgresql >&2 || return 1
-            ;;
-        alpine)
-            apk add --no-cache postgresql-client >&2 || return 1
-            ;;
-        *)
-            return 1
-            ;;
+        ubuntu | debian | armbian) apt-get update >&2 && apt-get install -y -q postgresql-client >&2 || return 1 ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf install -y -q postgresql >&2 || return 1 ;;
+        centos) if [[ "${VERSION_ID}" =~ ^7 ]]; then yum install -y postgresql >&2 || return 1; else dnf install -y -q postgresql >&2 || return 1; fi ;;
+        arch | manjaro | parch) pacman -Sy --noconfirm postgresql >&2 || return 1 ;;
+        opensuse-tumbleweed | opensuse-leap) zypper -q install -y postgresql >&2 || return 1 ;;
+        alpine) apk add --no-cache postgresql-client >&2 || return 1 ;;
+        *) return 1 ;;
     esac
     command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1
 }
@@ -337,14 +278,9 @@ install_acme() {
 }
 
 setup_ssl_certificate() {
-    local domain="$1"
-    local server_ip="$2"
-    local existing_port="$3"
-    local existing_webBasePath="$4"
-
+    local domain="$1" server_ip="$2" existing_port="$3" existing_webBasePath="$4"
     echo -e "${green}Setting up SSL certificate...${plain}"
 
-    # Check if acme.sh is installed
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
         install_acme
         if [ $? -ne 0 ]; then
@@ -353,43 +289,27 @@ setup_ssl_certificate() {
         fi
     fi
 
-    # Create certificate directory
     local certPath="/root/cert/${domain}"
     mkdir -p "$certPath"
-
-    # Issue certificate
     echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
-    echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
 
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
     ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport 80 --force
 
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
-        echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
         rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc 2> /dev/null
         rm -rf "$certPath" 2> /dev/null
         return 1
     fi
 
-    # Install certificate
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
-        --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem \
-        --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
+    ~/.acme.sh/acme.sh --installcert -d ${domain} --key-file /root/cert/${domain}/privkey.pem --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then echo -e "${yellow}Failed to install certificate${plain}"; return 1; fi
 
-    if [ $? -ne 0 ]; then
-        echo -e "${yellow}Failed to install certificate${plain}"
-        return 1
-    fi
-
-    # Enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-    # Secure permissions: private key readable only by owner
     chmod 600 $certPath/privkey.pem 2> /dev/null
     chmod 644 $certPath/fullchain.pem 2> /dev/null
 
-    # Set certificate for panel
     local webCertFile="/root/cert/${domain}/fullchain.pem"
     local webKeyFile="/root/cert/${domain}/privkey.pem"
 
@@ -403,215 +323,97 @@ setup_ssl_certificate() {
     fi
 }
 
-# Issue Let's Encrypt IP certificate with shortlived profile (~6 days validity)
-# Requires acme.sh and port 80 open for HTTP-01 challenge
 setup_ip_certificate() {
-    local ipv4="$1"
-    local ipv6="$2" # optional
-
-    echo -e "${green}Setting up Let's Encrypt IP certificate (shortlived profile)...${plain}"
-    echo -e "${yellow}Note: IP certificates are valid for ~6 days and will auto-renew.${plain}"
-    echo -e "${yellow}Default listener is port 80. If you choose another port, ensure external port 80 forwards to it.${plain}"
-
-    # Check for acme.sh
+    local ipv4="$1" ipv6="$2"
+    echo -e "${green}Setting up Let's Encrypt IP certificate...${plain}"
+    
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
         install_acme
-        if [ $? -ne 0 ]; then
-            echo -e "${red}Failed to install acme.sh${plain}"
-            return 1
-        fi
+        if [ $? -ne 0 ]; then echo -e "${red}Failed to install acme.sh${plain}"; return 1; fi
     fi
 
-    # Validate IP address
-    if [[ -z "$ipv4" ]]; then
-        echo -e "${red}IPv4 address is required${plain}"
-        return 1
-    fi
-
-    if ! is_ipv4 "$ipv4"; then
+    if [[ -z "$ipv4" ]] || ! is_ipv4 "$ipv4"; then
         echo -e "${red}Invalid IPv4 address: $ipv4${plain}"
         return 1
     fi
 
-    # Create certificate directory
     local certDir="/root/cert/ip"
     mkdir -p "$certDir"
-
-    # Build domain arguments
     local domain_args="-d ${ipv4}"
-    if [[ -n "$ipv6" ]] && is_ipv6 "$ipv6"; then
-        domain_args="${domain_args} -d ${ipv6}"
-        echo -e "${green}Including IPv6 address: ${ipv6}${plain}"
-    fi
+    if [[ -n "$ipv6" ]] && is_ipv6 "$ipv6"; then domain_args="${domain_args} -d ${ipv6}"; fi
 
-    # Set reload command for auto-renewal (add || true so it doesn't fail during first install)
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
-
-    # Choose port for HTTP-01 listener (default 80, prompt override)
     local WebPort=""
     prompt_or_default WebPort "Port to use for ACME HTTP-01 listener (default 80): " "80" XUI_ACME_HTTP_PORT
     WebPort="${WebPort:-80}"
-    if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
-        echo -e "${red}Invalid port provided. Falling back to 80.${plain}"
-        WebPort=80
-    fi
-    echo -e "${green}Using port ${WebPort} for standalone validation.${plain}"
-    if [[ "${WebPort}" -ne 80 ]]; then
-        echo -e "${yellow}Reminder: Let's Encrypt still connects on port 80; forward external port 80 to ${WebPort}.${plain}"
-    fi
 
-    # Ensure chosen port is available
     while true; do
         if is_port_in_use "${WebPort}"; then
             echo -e "${yellow}Port ${WebPort} is in use.${plain}"
-
-            local alt_port=""
-            if [[ "$NONINTERACTIVE" == "1" ]]; then
-                echo -e "${red}Port ${WebPort} is busy; cannot proceed in non-interactive mode.${plain}"
-                return 1
-            fi
-            read -rp "Enter another port for acme.sh standalone listener (leave empty to abort): " alt_port
+            if [[ "$NONINTERACTIVE" == "1" ]]; then return 1; fi
+            read -rp "Enter another port: " alt_port
             alt_port="${alt_port// /}"
-            if [[ -z "${alt_port}" ]]; then
-                echo -e "${red}Port ${WebPort} is busy; cannot proceed.${plain}"
-                return 1
+            if [[ -n "${alt_port}" ]] && [[ "${alt_port}" =~ ^[0-9]+$ ]] && ((alt_port >= 1 && alt_port <= 65535)); then
+                WebPort="${alt_port}"
+                continue
             fi
-            if ! [[ "${alt_port}" =~ ^[0-9]+$ ]] || ((alt_port < 1 || alt_port > 65535)); then
-                echo -e "${red}Invalid port provided.${plain}"
-                return 1
-            fi
-            WebPort="${alt_port}"
-            continue
+            return 1
         else
-            echo -e "${green}Port ${WebPort} is free and ready for standalone validation.${plain}"
             break
         fi
     done
 
-    # Issue certificate with shortlived profile
-    echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
     [[ -n "${XUI_ACME_EMAIL:-}" ]] && ~/.acme.sh/acme.sh --register-account -m "${XUI_ACME_EMAIL}" > /dev/null 2>&1
 
-    ~/.acme.sh/acme.sh --issue \
-        ${domain_args} \
-        --standalone \
-        --server letsencrypt \
-        --certificate-profile shortlived \
-        --days 6 \
-        --httpport ${WebPort} \
-        --force
-
+    ~/.acme.sh/acme.sh --issue ${domain_args} --standalone --server letsencrypt --certificate-profile shortlived --days 6 --httpport ${WebPort} --force
     if [ $? -ne 0 ]; then
         echo -e "${red}Failed to issue IP certificate${plain}"
-        echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
+        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc ${certDir} 2> /dev/null
         return 1
     fi
 
-    echo -e "${green}Certificate issued successfully, installing...${plain}"
+    ~/.acme.sh/acme.sh --installcert -d ${ipv4} --key-file "${certDir}/privkey.pem" --fullchain-file "${certDir}/fullchain.pem" --reloadcmd "${reloadCmd}" 2>&1 || true
 
-    # Install certificate
-    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
-    # but the cert files are still installed. We check for files instead of exit code.
-    ~/.acme.sh/acme.sh --installcert -d ${ipv4} \
-        --key-file "${certDir}/privkey.pem" \
-        --fullchain-file "${certDir}/fullchain.pem" \
-        --reloadcmd "${reloadCmd}" 2>&1 || true
-
-    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
     if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
         echo -e "${red}Certificate files not found after installation${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
         return 1
     fi
 
-    echo -e "${green}Certificate files installed successfully${plain}"
-
-    # Enable auto-upgrade for acme.sh (ensures cron job runs)
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-
-    # Secure permissions: private key readable only by owner
     chmod 600 ${certDir}/privkey.pem 2> /dev/null
     chmod 644 ${certDir}/fullchain.pem 2> /dev/null
 
-    # Configure panel to use the certificate
-    echo -e "${green}Setting certificate paths for the panel...${plain}"
     ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
-
-    if [ $? -ne 0 ]; then
-        echo -e "${yellow}Warning: Could not set certificate paths automatically${plain}"
-        echo -e "${yellow}Certificate files are at:${plain}"
-        echo -e "  Cert: ${certDir}/fullchain.pem"
-        echo -e "  Key:  ${certDir}/privkey.pem"
-    else
-        echo -e "${green}Certificate paths configured successfully${plain}"
-    fi
-
     echo -e "${green}IP certificate installed and configured successfully!${plain}"
-    echo -e "${green}Certificate valid for ~6 days, auto-renews via acme.sh cron job.${plain}"
-    echo -e "${yellow}acme.sh will automatically renew and reload x-ui before expiry.${plain}"
     return 0
 }
 
-# Comprehensive manual SSL certificate issuance via acme.sh
 ssl_cert_issue() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
-    # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
         echo "acme.sh could not be found. Installing now..."
         cd ~ || return 1
         curl -s https://get.acme.sh | sh
-        if [ $? -ne 0 ]; then
-            echo -e "${red}Failed to install acme.sh${plain}"
-            return 1
-        else
-            echo -e "${green}acme.sh installed successfully${plain}"
-        fi
+        if [ $? -ne 0 ]; then echo -e "${red}Failed to install acme.sh${plain}"; return 1; fi
     fi
 
-    # get the domain here, and we need to verify it
     local domain=""
     if [[ "$NONINTERACTIVE" == "1" ]]; then
         domain="${XUI_DOMAIN// /}"
-        if [[ -z "$domain" ]] || ! is_domain "$domain"; then
-            echo -e "${red}XUI_SSL_MODE=domain requires a valid XUI_DOMAIN (got: '${XUI_DOMAIN:-}').${plain}"
-            return 1
-        fi
+        if [[ -z "$domain" ]] || ! is_domain "$domain"; then return 1; fi
     else
         while true; do
             read -rp "Please enter your domain name: " domain
-            domain="${domain// /}" # Trim whitespace
-
-            if [[ -z "$domain" ]]; then
-                echo -e "${red}Domain name cannot be empty. Please try again.${plain}"
-                continue
-            fi
-
-            if ! is_domain "$domain"; then
-                echo -e "${red}Invalid domain format: ${domain}. Please enter a valid domain name.${plain}"
-                continue
-            fi
-
+            domain="${domain// /}"
+            if [[ -z "$domain" ]] || ! is_domain "$domain"; then continue; fi
             break
         done
     fi
-    echo -e "${green}Your domain is: ${domain}, checking it...${plain}"
     SSL_ISSUED_DOMAIN="${domain}"
 
-    # detect existing certificate and reuse it only if its files are actually
-    # present and non-empty. acme.sh stores ECC certs under ${domain}_ecc and RSA
-    # certs under ${domain}; a failed issuance can leave a domain entry in --list
-    # with no usable cert files, which must not be reused (it produces a 0-byte
-    # fullchain.pem). Broken partial state is cleaned up so issuance can proceed.
     local cert_exists=0
     if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
         local acmeCertDir=""
@@ -620,168 +422,60 @@ ssl_cert_issue() {
         elif [[ -s ~/.acme.sh/${domain}/fullchain.cer && -s ~/.acme.sh/${domain}/${domain}.key ]]; then
             acmeCertDir=~/.acme.sh/${domain}
         fi
-        if [[ -n "${acmeCertDir}" ]]; then
-            cert_exists=1
-            local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
-            echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
-            [[ -n "${certInfo}" ]] && echo "$certInfo"
-        else
-            echo -e "${yellow}Found incomplete acme.sh state for ${domain} (no valid certificate files); cleaning it up and re-issuing.${plain}"
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
-        fi
-    fi
-    if [[ ${cert_exists} -eq 0 ]]; then
-        echo -e "${green}Your domain is ready for issuing certificates now...${plain}"
+        if [[ -n "${acmeCertDir}" ]]; then cert_exists=1; else rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc; fi
     fi
 
-    # create a directory for the certificate
     certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
-    else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
-    fi
+    mkdir -p "$certPath"
 
-    # get the port number for the standalone server
     local WebPort=80
     prompt_or_default WebPort "Please choose which port to use (default is 80): " "80" XUI_ACME_HTTP_PORT
-    if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
-        echo -e "${yellow}Your input ${WebPort} is invalid, will use default port 80.${plain}"
-        WebPort=80
-    fi
-    echo -e "${green}Will use port: ${WebPort} to issue certificates. Please make sure this port is open.${plain}"
-
-    # Stop panel temporarily
-    echo -e "${yellow}Stopping panel temporarily...${plain}"
+    
     systemctl stop x-ui 2> /dev/null || rc-service x-ui stop 2> /dev/null
 
     if [[ ${cert_exists} -eq 0 ]]; then
-        # issue the certificate
         ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
         [[ -n "${XUI_ACME_EMAIL:-}" ]] && ~/.acme.sh/acme.sh --register-account -m "${XUI_ACME_EMAIL}" > /dev/null 2>&1
         ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
         if [ $? -ne 0 ]; then
-            echo -e "${red}Issuing certificate failed, please check logs.${plain}"
             rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
             systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
             return 1
-        else
-            echo -e "${green}Issuing certificate succeeded, installing certificates...${plain}"
         fi
-    else
-        echo -e "${green}Using existing certificate, installing certificates...${plain}"
     fi
 
-    # Setup reload command
     reloadCmd="systemctl restart x-ui || rc-service x-ui restart"
-    echo -e "${green}Default --reloadcmd for ACME is: ${yellow}systemctl restart x-ui || rc-service x-ui restart${plain}"
-    echo -e "${green}This command will run on every certificate issue and renew.${plain}"
-    if [[ "$NONINTERACTIVE" == "1" ]]; then
-        setReloadcmd="n"
-    else
-        read -rp "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
-    fi
-    if [[ "$setReloadcmd" == "y" || "$setReloadcmd" == "Y" ]]; then
-        echo -e "\n${green}\t1.${plain} Preset: systemctl reload nginx ; systemctl restart x-ui"
-        echo -e "${green}\t2.${plain} Input your own command"
-        echo -e "${green}\t0.${plain} Keep default reloadcmd"
-        read -rp "Choose an option: " choice
-        case "$choice" in
-            1)
-                echo -e "${green}Reloadcmd is: systemctl reload nginx ; systemctl restart x-ui${plain}"
-                reloadCmd="systemctl reload nginx ; systemctl restart x-ui"
-                ;;
-            2)
-                echo -e "${yellow}It's recommended to put x-ui restart at the end${plain}"
-                read -rp "Please enter your custom reloadcmd: " reloadCmd
-                echo -e "${green}Reloadcmd is: ${reloadCmd}${plain}"
-                ;;
-            *)
-                echo -e "${green}Keeping default reloadcmd${plain}"
-                ;;
-        esac
-    fi
-
-    # install the certificate
     local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
-        --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
+    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} --key-file /root/cert/${domain}/privkey.pem --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
     local installRc=$?
-    echo "${installOutput}"
-
+    
     local installWroteFiles=0
-    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
-        installWroteFiles=1
-    fi
+    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then installWroteFiles=1; fi
 
     if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${installRc} -eq 0 || ${installWroteFiles} -eq 1) ]]; then
-        echo -e "${green}Installing certificate succeeded, enabling auto renew...${plain}"
+        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+        chmod 600 $certPath/privkey.pem 2> /dev/null
+        chmod 644 $certPath/fullchain.pem 2> /dev/null
     else
-        echo -e "${red}Installing certificate failed, exiting.${plain}"
-        if [[ ${cert_exists} -eq 0 ]]; then
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
-        fi
+        if [[ ${cert_exists} -eq 0 ]]; then rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc; fi
         systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
         return 1
     fi
 
-    # enable auto-renew
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade
-    if [ $? -ne 0 ]; then
-        echo -e "${yellow}Auto renew setup had issues, certificate details:${plain}"
-        ls -lah /root/cert/${domain}/
-        # Secure permissions: private key readable only by owner
-        chmod 600 $certPath/privkey.pem 2> /dev/null
-        chmod 644 $certPath/fullchain.pem 2> /dev/null
-    else
-        echo -e "${green}Auto renew succeeded, certificate details:${plain}"
-        ls -lah /root/cert/${domain}/
-        # Secure permissions: private key readable only by owner
-        chmod 600 $certPath/privkey.pem 2> /dev/null
-        chmod 644 $certPath/fullchain.pem 2> /dev/null
-    fi
-
-    # start panel
     systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
 
-    # Prompt user to set panel paths after successful certificate installation
-    if [[ "$NONINTERACTIVE" == "1" ]]; then
-        setPanel="y"
-    else
-        read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
-    fi
+    local setPanel="y"
+    if [[ "$NONINTERACTIVE" != "1" ]]; then read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel; fi
+    
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
-        local webCertFile="/root/cert/${domain}/fullchain.pem"
-        local webKeyFile="/root/cert/${domain}/privkey.pem"
-
-        if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
-            echo -e "${green}Certificate paths set for the panel${plain}"
-            echo -e "${green}Certificate File: $webCertFile${plain}"
-            echo -e "${green}Private Key File: $webKeyFile${plain}"
-            echo ""
-            echo -e "${green}Access URL: https://${domain}:${existing_port}/${existing_webBasePath}${plain}"
-            echo -e "${yellow}Panel will restart to apply SSL certificate...${plain}"
-            systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
-        else
-            echo -e "${red}Error: Certificate or private key file not found for domain: $domain.${plain}"
-        fi
-    else
-        echo -e "${yellow}Skipping panel path setting.${plain}"
+        ${xui_folder}/x-ui cert -webCert "/root/cert/${domain}/fullchain.pem" -webCertKey "/root/cert/${domain}/privkey.pem"
+        systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
     fi
-
     return 0
 }
 
-# Reusable interactive SSL setup (domain or IP)
-# Sets global `SSL_HOST` to the chosen domain/IP for Access URL usage
 prompt_and_setup_ssl() {
-    local panel_port="$1"
-    local web_base_path="$2"
-    local server_ip="$3"
-
+    local panel_port="$1" web_base_path="$2" server_ip="$3"
     local ssl_choice=""
     SSL_SCHEME="https"
 
@@ -789,178 +483,47 @@ prompt_and_setup_ssl() {
     echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
     echo -e "${green}2.${plain} Let's Encrypt for IP Address (6-day validity, auto-renews)"
     echo -e "${green}3.${plain} Custom SSL Certificate (Path to existing files)"
-    echo -e "${green}4.${plain} Skip SSL (advanced — behind reverse proxy / SSH tunnel only)"
-    echo -e "${blue}Note:${plain} Options 1 & 2 require port 80 open. Option 3 requires manual paths."
-    echo -e "${blue}Note:${plain} Option 4 serves the panel over plain HTTP — only safe behind nginx/Caddy or an SSH tunnel."
+    echo -e "${green}4.${plain} Skip SSL (advanced)"
+    
     if [[ "$NONINTERACTIVE" == "1" ]]; then
         case "${XUI_SSL_MODE:-none}" in
             domain) ssl_choice="1" ;;
             ip) ssl_choice="2" ;;
             none | "") ssl_choice="4" ;;
-            *)
-                echo -e "${yellow}Unknown XUI_SSL_MODE='${XUI_SSL_MODE}', defaulting to none (HTTP).${plain}"
-                ssl_choice="4"
-                ;;
+            *) ssl_choice="4" ;;
         esac
     else
         read -rp "Choose an option (default 2 for IP): " ssl_choice
-        ssl_choice="${ssl_choice// /}" # Trim whitespace
-
-        # Default to 2 (IP cert) if input is empty or invalid (not 1, 3 or 4)
-        if [[ "$ssl_choice" != "1" && "$ssl_choice" != "3" && "$ssl_choice" != "4" ]]; then
-            ssl_choice="2"
-        fi
+        ssl_choice="${ssl_choice// /}"
+        if [[ "$ssl_choice" != "1" && "$ssl_choice" != "3" && "$ssl_choice" != "4" ]]; then ssl_choice="2"; fi
     fi
 
     case "$ssl_choice" in
         1)
-            # User chose Let's Encrypt domain option
-            echo -e "${green}Using Let's Encrypt for domain certificate...${plain}"
             if ssl_cert_issue; then
-                local cert_domain="${SSL_ISSUED_DOMAIN}"
-                if [[ -z "${cert_domain}" ]]; then
-                    cert_domain=$(~/.acme.sh/acme.sh --list 2> /dev/null | tail -1 | awk '{print $1}')
-                fi
-
-                if [[ -n "${cert_domain}" ]]; then
-                    SSL_HOST="${cert_domain}"
-                    echo -e "${green}✓ SSL certificate configured successfully with domain: ${cert_domain}${plain}"
-                else
-                    echo -e "${yellow}SSL setup may have completed, but domain extraction failed${plain}"
-                    SSL_HOST="${server_ip}"
-                fi
+                SSL_HOST="${SSL_ISSUED_DOMAIN:-$server_ip}"
             else
-                echo -e "${red}SSL certificate setup failed for domain mode.${plain}"
                 SSL_HOST="${server_ip}"
             fi
             ;;
         2)
-            # User chose Let's Encrypt IP certificate option
-            echo -e "${green}Using Let's Encrypt for IP certificate (shortlived profile)...${plain}"
-
-            # Ask for optional IPv6
             local ipv6_addr=""
             prompt_or_default ipv6_addr "Do you have an IPv6 address to include? (leave empty to skip): " "" XUI_SSL_IPV6
-            ipv6_addr="${ipv6_addr// /}" # Trim whitespace
-
-            # Stop panel if running (port 80 needed)
-            if [[ $release == "alpine" ]]; then
-                rc-service x-ui stop > /dev/null 2>&1
-            else
-                systemctl stop x-ui > /dev/null 2>&1
-            fi
-
+            systemctl stop x-ui > /dev/null 2>&1 || rc-service x-ui stop > /dev/null 2>&1
             setup_ip_certificate "${server_ip}" "${ipv6_addr}"
-            if [ $? -eq 0 ]; then
-                SSL_HOST="${server_ip}"
-                echo -e "${green}✓ Let's Encrypt IP certificate configured successfully${plain}"
-            else
-                echo -e "${red}✗ IP certificate setup failed. Please check port 80 is open.${plain}"
-                SSL_HOST="${server_ip}"
-            fi
+            SSL_HOST="${server_ip}"
             ;;
         3)
-            # User chose Custom Paths (User Provided) option
-            echo -e "${green}Using custom existing certificate...${plain}"
-            local custom_cert=""
-            local custom_key=""
-            local custom_domain=""
-
-            # 3.1 Request Domain to compose Panel URL later
+            local custom_cert="" custom_key="" custom_domain=""
             read -rp "Please enter domain name certificate issued for: " custom_domain
-            custom_domain="${custom_domain// /}" # Remove spaces
-
-            # 3.2 Loop for Certificate Path
-            while true; do
-                read -rp "Input certificate path (keywords: .crt / fullchain): " custom_cert
-                # Strip quotes if present
-                custom_cert=$(echo "$custom_cert" | tr -d '"' | tr -d "'")
-
-                if [[ -f "$custom_cert" && -r "$custom_cert" && -s "$custom_cert" ]]; then
-                    break
-                elif [[ ! -f "$custom_cert" ]]; then
-                    echo -e "${red}Error: File does not exist! Try again.${plain}"
-                elif [[ ! -r "$custom_cert" ]]; then
-                    echo -e "${red}Error: File exists but is not readable (check permissions)!${plain}"
-                else
-                    echo -e "${red}Error: File is empty!${plain}"
-                fi
-            done
-
-            # 3.3 Loop for Private Key Path
-            while true; do
-                read -rp "Input private key path (keywords: .key / privatekey): " custom_key
-                # Strip quotes if present
-                custom_key=$(echo "$custom_key" | tr -d '"' | tr -d "'")
-
-                if [[ -f "$custom_key" && -r "$custom_key" && -s "$custom_key" ]]; then
-                    break
-                elif [[ ! -f "$custom_key" ]]; then
-                    echo -e "${red}Error: File does not exist! Try again.${plain}"
-                elif [[ ! -r "$custom_key" ]]; then
-                    echo -e "${red}Error: File exists but is not readable (check permissions)!${plain}"
-                else
-                    echo -e "${red}Error: File is empty!${plain}"
-                fi
-            done
-
-            # 3.4 Apply Settings via x-ui binary
+            read -rp "Input certificate path: " custom_cert
+            read -rp "Input private key path: " custom_key
             ${xui_folder}/x-ui cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1
-
-            # Set SSL_HOST for composing Panel URL
-            if [[ -n "$custom_domain" ]]; then
-                SSL_HOST="$custom_domain"
-            else
-                SSL_HOST="${server_ip}"
-            fi
-
-            echo -e "${green}✓ Custom certificate paths applied.${plain}"
-            echo -e "${yellow}Note: You are responsible for renewing these files externally.${plain}"
-
+            SSL_HOST="${custom_domain:-$server_ip}"
             systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
             ;;
         4)
-            echo ""
-            echo -e "${red}⚠ Panel will be installed WITHOUT SSL/TLS.${plain}"
-            echo -e "${yellow}Login credentials and cookies will travel as plain HTTP.${plain}"
-            echo -e "${yellow}Only safe when:${plain}"
-            echo -e "${yellow}  • A reverse proxy (nginx, Caddy, Traefik) terminates TLS for you, or${plain}"
-            echo -e "${yellow}  • You access the panel exclusively via SSH tunnel${plain}"
-            echo ""
-
             SSL_SCHEME="http"
-            SSL_HOST="${server_ip}"
-
-            local bind_local=""
-            if [[ "$NONINTERACTIVE" == "1" ]]; then
-                # Cloud images must stay reachable on their public interface.
-                bind_local="n"
-            else
-                read -rp "Bind the panel to 127.0.0.1 only? (recommended — forces SSH tunnel / reverse-proxy access) [y/N]: " bind_local
-            fi
-            if [[ "$bind_local" == "y" || "$bind_local" == "Y" ]]; then
-                ${xui_folder}/x-ui setting -listenIP "127.0.0.1" > /dev/null 2>&1
-                SSL_HOST="127.0.0.1"
-                echo -e "${green}✓ Panel bound to 127.0.0.1 only. It is now unreachable from the public internet.${plain}"
-                echo ""
-                echo -e "${green}SSH Port Forwarding — open the panel from your local machine via:${plain}"
-                echo -e "  Standard SSH command:"
-                echo -e "  ${yellow}ssh -L 2222:127.0.0.1:${panel_port} root@${server_ip}${plain}"
-                echo -e "  If using an SSH key:"
-                echo -e "  ${yellow}ssh -i <sshkeypath> -L 2222:127.0.0.1:${panel_port} root@${server_ip}${plain}"
-                echo -e "  Then open in your browser:"
-                echo -e "  ${yellow}http://localhost:2222/${web_base_path}${plain}"
-                echo ""
-                echo -e "${yellow}Alternative: point a reverse proxy (nginx/Caddy) at 127.0.0.1:${panel_port} and let it terminate TLS.${plain}"
-            else
-                echo -e "${yellow}Panel will listen on all interfaces over plain HTTP. Make sure something else is terminating TLS in front of it.${plain}"
-            fi
-
-            systemctl restart x-ui > /dev/null 2>&1 || rc-service x-ui restart > /dev/null 2>&1
-            echo -e "${green}✓ SSL setup skipped.${plain}"
-            ;;
-        *)
-            echo -e "${red}Invalid option. Skipping SSL setup.${plain}"
             SSL_HOST="${server_ip}"
             ;;
     esac
@@ -970,581 +533,154 @@ config_after_install() {
     local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local URL_lists=(
-        "https://api4.ipify.org"
-        "https://ipv4.icanhazip.com"
-        "https://v4.api.ipinfo.io/ip"
-        "https://ipv4.myexternalip.com/raw"
-        "https://4.ident.me"
-        "https://check-host.net/ip"
-    )
     local server_ip=""
-    for ip_address in "${URL_lists[@]}"; do
-        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2> /dev/null)
-        local http_code=$(echo "$response" | tail -n1)
-        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]"')
-        if [[ "${http_code}" == "200" && "${ip_result}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            server_ip="${ip_result}"
-            break
-        fi
-    done
-
-    if [[ -z "$server_ip" ]]; then
-        if [[ "$NONINTERACTIVE" == "1" ]]; then
-            # Panel binds 0.0.0.0 regardless; the IP is only used to compose the
-            # displayed access URL. Fall back to XUI_SERVER_IP or leave blank.
-            server_ip="${XUI_SERVER_IP:-}"
-        else
-            echo -e "${yellow}Could not auto-detect server IP from any provider.${plain}"
-            while [[ -z "$server_ip" ]]; do
-                read -rp "Please enter your server's public IPv4 address: " server_ip
-                server_ip="${server_ip// /}"
-                if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                    echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
-                    server_ip=""
-                fi
-            done
-        fi
-    fi
+    
+    server_ip=$(curl -s -w "\n%{http_code}" --max-time 3 "https://v4.api.ipinfo.io/ip" 2> /dev/null | head -n-1 | tr -d '[:space:]"')
+    if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="${XUI_SERVER_IP:-127.0.0.1}"; fi
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_webBasePath="${XUI_WEB_BASE_PATH:-$(gen_random_string 18)}"
             local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
             local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
-            local config_port=""
-
-            local db_label="SQLite (/etc/x-ui/x-ui.db)"
-            echo ""
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}     Database Selection                    ${plain}"
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "  1) SQLite     (default — recommended for < 500 clients)"
-            echo -e "  2) PostgreSQL (recommended for high client counts / many nodes)"
-            if [[ "$NONINTERACTIVE" == "1" ]]; then
-                if [[ "${XUI_DB_TYPE:-sqlite}" == "postgres" ]]; then
-                    db_choice="2"
-                else
-                    db_choice="1"
-                fi
-            else
-                read -rp "Choose [1]: " db_choice
-                db_choice="${db_choice:-1}"
-            fi
-            if [[ "$db_choice" == "2" ]]; then
-                local xui_env_file
-                case "${release}" in
-                    ubuntu | debian | armbian)
-                        xui_env_file="/etc/default/x-ui"
-                        ;;
-                    arch | manjaro | parch | alpine)
-                        xui_env_file="/etc/conf.d/x-ui"
-                        ;;
-                    *)
-                        xui_env_file="/etc/sysconfig/x-ui"
-                        ;;
-                esac
-
-                local xui_dsn=""
-                local pg_mode=""
-                local pg_local_installed=0
-                while [[ -z "$xui_dsn" ]]; do
-                    if [[ "$NONINTERACTIVE" == "1" ]]; then
-                        if [[ -n "${XUI_DB_DSN:-}" ]]; then
-                            xui_dsn="${XUI_DB_DSN}"
-                            db_label="PostgreSQL (external)"
-                            break
-                        fi
-                        echo -e "${yellow}Installing PostgreSQL locally (non-interactive)...${plain}"
-                        local pg_cred_file
-                        pg_cred_file=$(mktemp 2> /dev/null) || pg_cred_file=$(mktemp -t x-ui-pg-creds.XXXXXXXX)
-                        if [[ -n "${pg_cred_file}" ]] && xui_dsn=$(PG_CRED_FILE="${pg_cred_file}" install_postgres_local); then
-                            pg_local_installed=1
-                            if [[ -r "${pg_cred_file}" ]]; then
-                                # shellcheck disable=SC1090
-                                source "${pg_cred_file}"
-                            fi
-                            rm -f "${pg_cred_file}"
-                            db_label="PostgreSQL (${PG_USER}@${PG_HOST}:${PG_PORT}/${PG_DB})"
-                            break
-                        fi
-                        rm -f "${pg_cred_file}"
-                        echo -e "${red}PostgreSQL installation failed in non-interactive mode; aborting.${plain}"
-                        echo -e "${yellow}Set XUI_DB_DSN to use an existing server, or XUI_DB_TYPE=sqlite.${plain}"
-                        exit 1
-                    fi
-                    echo ""
-                    echo -e "  1) Install PostgreSQL locally and create a dedicated user/db (recommended)"
-                    echo -e "  2) Use an existing PostgreSQL server (enter DSN)"
-                    read -rp "Choose [1]: " pg_mode
-                    pg_mode="${pg_mode:-1}"
-                    if [[ "$pg_mode" == "2" ]]; then
-                        while [[ -z "$xui_dsn" ]]; do
-                            read -rp "Enter PostgreSQL DSN (postgres://user:pass@host:port/dbname?sslmode=disable): " xui_dsn
-                            xui_dsn="${xui_dsn// /}"
-                        done
-                        db_label="PostgreSQL (external)"
-                    else
-                        echo -e "${yellow}Installing PostgreSQL — this may take a moment...${plain}"
-                        local pg_cred_file
-                        pg_cred_file=$(mktemp 2> /dev/null) || pg_cred_file=$(mktemp -t x-ui-pg-creds.XXXXXXXX)
-                        if [[ -z "${pg_cred_file}" ]]; then
-                            echo -e "${red}Failed to create temporary credentials file.${plain}"
-                            xui_dsn=""
-                            continue
-                        fi
-                        if xui_dsn=$(PG_CRED_FILE="${pg_cred_file}" install_postgres_local); then
-                            pg_local_installed=1
-                            if [[ -r "${pg_cred_file}" ]]; then
-                                # shellcheck disable=SC1090
-                                source "${pg_cred_file}"
-                            fi
-                            rm -f "${pg_cred_file}"
-                            db_label="PostgreSQL (${PG_USER}@${PG_HOST}:${PG_PORT}/${PG_DB})"
-                        else
-                            rm -f "${pg_cred_file}"
-                            echo ""
-                            echo -e "${red}PostgreSQL installation failed.${plain}"
-                            echo -e "  1) Retry local install"
-                            echo -e "  2) Enter an external DSN instead"
-                            echo -e "  3) Abort install"
-                            echo -e "  4) Fall back to SQLite"
-                            read -rp "Choose [1]: " pg_fail
-                            pg_fail="${pg_fail:-1}"
-                            case "$pg_fail" in
-                                2) pg_mode="2" ;;
-                                3)
-                                    echo -e "${red}Install aborted.${plain}"
-                                    exit 1
-                                    ;;
-                                4)
-                                    db_choice="1"
-                                    xui_dsn=""
-                                    break
-                                    ;;
-                                *) xui_dsn="" ;;
-                            esac
-                        fi
-                    fi
-                done
-                if [[ -n "$xui_dsn" ]]; then
-                    install -d -m 755 "$(dirname "$xui_env_file")"
-                    umask 077
-                    cat > "$xui_env_file" << EOF
-XUI_DB_TYPE=postgres
-XUI_DB_DSN=${xui_dsn}
-EOF
-                    chmod 600 "$xui_env_file"
-                    umask 022
-                    export XUI_DB_TYPE=postgres
-                    export XUI_DB_DSN="${xui_dsn}"
-                    ensure_pg_client || echo -e "${yellow}⚠ Could not install pg_dump/pg_restore. In-panel database backup/restore will be unavailable until you install the postgresql-client package.${plain}"
-                fi
-            fi
-
-            if [[ "$NONINTERACTIVE" == "1" ]]; then
-                if [[ -n "${XUI_PANEL_PORT:-}" ]]; then
-                    config_port="${XUI_PANEL_PORT}"
-                    echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
-                else
-                    config_port=$(shuf -i 1024-62000 -n 1)
-                    echo -e "${yellow}Generated random port: ${config_port}${plain}"
-                fi
-            else
-                read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/n]: " config_confirm
-                if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-                    read -rp "Please set up the panel port: " config_port
-                    echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
-                else
-                    config_port=$(shuf -i 1024-62000 -n 1)
-                    echo -e "${yellow}Generated random port: ${config_port}${plain}"
-                fi
-            fi
+            local config_port="${XUI_PANEL_PORT:-$(shuf -i 1024-62000 -n 1)}"
+            local db_label="SQLite"
 
             ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
-
-            echo ""
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}     SSL Certificate Setup (RECOMMENDED)   ${plain}"
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${yellow}SSL is strongly recommended. Skip only if a reverse proxy${plain}"
-            echo -e "${yellow}or SSH tunnel handles TLS for you.${plain}"
-            echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
-            echo ""
-
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
 
-            # Retrieve the API token for display
             local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
 
-            # Display final credentials and access information
-            echo ""
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}     Panel Installation Complete!         ${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${green}Username:    ${config_username}${plain}"
             echo -e "${green}Password:    ${config_password}${plain}"
             echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
-            echo -e "${green}Database:    ${db_label}${plain}"
             echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
-            echo -e "${green}API Token:   ${config_apiToken}${plain}"
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${yellow}⚠ IMPORTANT: Save these credentials securely!${plain}"
-            if [[ "$SSL_SCHEME" == "https" ]]; then
-                echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
-            else
-                echo -e "${yellow}⚠ SSL Certificate: Skipped — panel is HTTP-only. Use a reverse proxy or SSH tunnel.${plain}"
-            fi
-
-            if [[ "$db_choice" == "2" ]]; then
-                echo ""
-                echo -e "${green}PostgreSQL backup & restore is built into the panel:${plain}"
-                echo -e "  ${blue}${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain} → Backup & Restore"
-                echo -e "${yellow}  Back Up downloads a pg_dump .dump file; Restore reloads it via pg_restore.${plain}"
-            fi
-
-            if [[ "$db_choice" == "2" && "$pg_local_installed" == "1" ]]; then
-                echo ""
-                echo -e "${green}═══════════════════════════════════════════${plain}"
-                echo -e "${green}     PostgreSQL Credentials               ${plain}"
-                echo -e "${green}═══════════════════════════════════════════${plain}"
-                echo -e "${green}DB Name:    ${PG_DB}${plain}"
-                echo -e "${green}Username:   ${PG_USER}${plain}"
-                echo -e "${green}Password:   ${PG_PASS}${plain}"
-                echo -e "${green}Host:       ${PG_HOST}${plain}"
-                echo -e "${green}Port:       ${PG_PORT}${plain}"
-                echo -e "${green}DSN:        ${xui_dsn}${plain}"
-                echo -e "${green}Env file:   ${xui_env_file}${plain}"
-                echo -e "${green}-------------------------------------------${plain}"
-                echo -e "${green}Connect from this server:${plain}"
-                echo -e "  ${blue}sudo -u postgres psql -d ${PG_DB}${plain}      (as the postgres superuser)"
-                echo -e "  ${blue}PGPASSWORD='${PG_PASS}' psql -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB}${plain}"
-                echo -e "${green}═══════════════════════════════════════════${plain}"
-                echo -e "${yellow}⚠ The panel reads these credentials from ${xui_env_file}.${plain}"
-                echo -e "${yellow}⚠ Save the password — it is not stored anywhere else in plain text.${plain}"
-                unset PG_USER PG_PASS PG_HOST PG_PORT PG_DB
-            fi
-
-            # Persist a machine-parseable credentials file for cloud-init / MOTD.
-            : "${SSL_SCHEME:=https}"
-            : "${SSL_HOST:=${server_ip}}"
-            local db_type_out="sqlite"
-            [[ "$db_choice" == "2" ]] && db_type_out="postgres"
-            write_install_result "${config_username}" "${config_password}" "${config_port}" \
-                "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}"
+            
+            write_install_result "${config_username}" "${config_password}" "${config_port}" "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "sqlite"
         else
             local config_webBasePath=$(gen_random_string 18)
-            echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
             ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
-            echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
-
-            # If the panel is already installed but no certificate is configured, prompt for SSL now
-            if [[ -z "${existing_cert}" ]]; then
-                echo ""
-                echo -e "${green}═══════════════════════════════════════════${plain}"
-                echo -e "${green}     SSL Certificate Setup (RECOMMENDED)   ${plain}"
-                echo -e "${green}═══════════════════════════════════════════${plain}"
-                echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
-                echo ""
-                prompt_and_setup_ssl "${existing_port}" "${config_webBasePath}" "${server_ip}"
-                echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${config_webBasePath}${plain}"
-            else
-                # If a cert already exists, just show the access URL
-                echo -e "${green}Access URL: https://${server_ip}:${existing_port}/${config_webBasePath}${plain}"
-            fi
+            if [[ -z "${existing_cert}" ]]; then prompt_and_setup_ssl "${existing_port}" "${config_webBasePath}" "${server_ip}"; fi
         fi
     else
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
             local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
-
-            echo -e "${yellow}Default credentials detected. Security update required...${plain}"
             ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}"
-            echo -e "Generated new random login credentials:"
-            echo -e "###############################################"
-            echo -e "${green}Username: ${config_username}${plain}"
-            echo -e "${green}Password: ${config_password}${plain}"
-            echo -e "###############################################"
-
-            # Persist a machine-parseable credentials file for cloud-init / MOTD.
-            local config_apiToken
-            config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true | grep -Eo 'apiToken: .+' | awk '{print $2}')
-            : "${SSL_SCHEME:=https}"
-            : "${SSL_HOST:=${server_ip}}"
-            write_install_result "${config_username}" "${config_password}" "${existing_port}" \
-                "${existing_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${XUI_DB_TYPE:-sqlite}"
-        else
-            echo -e "${green}Username, Password, and WebBasePath are properly set.${plain}"
         fi
-
-        # Existing install: if no cert configured, prompt user for SSL setup
-        # Properly detect empty cert by checking if cert: line exists and has content after it
-        existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-        if [[ -z "$existing_cert" ]]; then
-            echo ""
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}     SSL Certificate Setup (RECOMMENDED)   ${plain}"
-            echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
-            echo ""
-            prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
-            echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
-        else
-            echo -e "${green}SSL certificate already configured. No action needed.${plain}"
-        fi
+        if [[ -z "$existing_cert" ]]; then prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"; fi
     fi
-
     ${xui_folder}/x-ui migrate
 }
 
-# setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
-# by invoking the freshly installed x-ui CLI. IP Limit is load-bearing on
-# fail2ban (without it the panel disables the limitIp field and zeroes existing
-# limits), so a fresh install should make it work out of the box, just like the
-# Docker image already does. Non-fatal by design: a fail2ban failure must never
-# abort the panel install.
 setup_fail2ban() {
-    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
-        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    if [[ ! -x /usr/bin/x-ui ]]; then
-        echo -e "${yellow}x-ui CLI not found; skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
-    if /usr/bin/x-ui setup-fail2ban; then
-        echo -e "${green}Fail2ban setup complete.${plain}"
-    else
-        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' and open the IP Limit menu. Continuing.${plain}"
-    fi
-    return 0
+    if [[ -x /usr/bin/x-ui ]]; then /usr/bin/x-ui setup-fail2ban; fi
 }
 
 install_x-ui() {
-    cd ${xui_folder%/x-ui}/
-
-    # Download resources
+    # 1. Определение версии (по умолчанию v3.4.2 если не удается получить)
     if [ $# == 0 ]; then
-        tag_version=$(curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/KimaruBs/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
-            echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
-            exit 1
+            echo -e "${yellow}Failed to fetch latest version via API, falling back to v3.4.2${plain}"
+            tag_version="v3.4.2"
         fi
-        echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
-            exit 1
-        fi
+        echo -e "Got x-ui version: ${tag_version}, beginning the installation..."
     else
         tag_version=$1
-        # The rolling dev channel ships under a fixed, non-semver tag that is
-        # force-moved to the latest main commit on every push. Accept `dev` as a
-        # convenient alias and skip the numeric floor check for it.
-        if [[ "$tag_version" == "dev" || "$tag_version" == "dev-latest" ]]; then
-            tag_version="dev-latest"
-            echo -e "${yellow}Installing the rolling dev build (tag: dev-latest). This is a per-commit pre-release, not a stable version.${plain}"
-        else
-            tag_version_numeric=${tag_version#v}
-            min_version="2.3.5"
-
-            if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
-                echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
-                exit 1
-            fi
-        fi
-
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui ${tag_version}"
-        curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o ${xui_folder}-linux-$(arch).tar.gz ${url}
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui ${tag_version} failed, please check if the version exists ${plain}"
-            exit 1
-        fi
-    fi
-    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}Failed to download x-ui.sh${plain}"
-        exit 1
     fi
 
-    # Stop x-ui service and remove old resources
+    # 2. Остановка и очистка старой версии
     if [[ -e ${xui_folder}/ ]]; then
         if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop
+            rc-service x-ui stop > /dev/null 2>&1
         else
-            systemctl stop x-ui
+            systemctl stop x-ui > /dev/null 2>&1
         fi
-        # Kill any leftover mtg (MTProto) sidecars. x-ui runs them outside its own
-        # lifecycle, so on Linux a stale one can survive the stop and keep holding
-        # an inbound port with an outdated secret, silently breaking new clients.
-        # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
         rm ${xui_folder}/ -rf
     fi
 
-    # Extract resources and set permissions
-    tar zxvf x-ui-linux-$(arch).tar.gz
-    rm x-ui-linux-$(arch).tar.gz -f
+    mkdir -p ${xui_folder}
+    cd ${xui_folder}
 
-    cd x-ui
+    # 3. Прямая загрузка исполняемого файла для вашей архитектуры
+    local binary_name="x-ui-linux-$(arch)"
+    local url="https://github.com/KimaruBs/3x-ui/releases/download/${tag_version}/${binary_name}"
+    
+    echo -e "Downloading x-ui executable from: ${url}"
+    curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o x-ui "${url}"
+    
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}Download x-ui ${tag_version} failed. Make sure ${binary_name} exists on GitHub release page.${plain}"
+        exit 1
+    fi
+    
     chmod +x x-ui
-    chmod +x x-ui.sh
 
-    # Check the system's architecture and rename the file accordingly
-    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
-        if [[ -f bin/mtg-linux-$(arch) ]]; then
-            mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
-            chmod +x bin/mtg-linux-arm
-        fi
+    # 4. Скачивание CLI-скрипта x-ui.sh
+    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}Failed to download x-ui.sh${plain}"
+        exit 1
     fi
-    chmod +x x-ui bin/xray-linux-$(arch)
-    if [[ -f bin/mtg-linux-arm ]]; then
-        chmod +x bin/mtg-linux-arm
-    elif [[ -f bin/mtg-linux-$(arch) ]]; then
-        chmod +x bin/mtg-linux-$(arch)
-    fi
-
-    # Update x-ui cli and se set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
+    
     mkdir -p /var/log/x-ui
     config_after_install
 
-    # Etckeeper compatibility
     if [ -d "/etc/.git" ]; then
         if [ -f "/etc/.gitignore" ]; then
             if ! grep -q "x-ui/x-ui.db" "/etc/.gitignore"; then
-                echo "" >> "/etc/.gitignore"
                 echo "x-ui/x-ui.db" >> "/etc/.gitignore"
-                echo -e "${green}Added x-ui.db to /etc/.gitignore for etckeeper${plain}"
             fi
         else
             echo "x-ui/x-ui.db" > "/etc/.gitignore"
-            echo -e "${green}Created /etc/.gitignore and added x-ui.db for etckeeper${plain}"
         fi
     fi
 
+    # 5. Установка Systemd/RC сервисов
     if [[ $release == "alpine" ]]; then
-        curl -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Failed to download x-ui.rc${plain}"
-            exit 1
-        fi
+        curl -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.rc
+        if [[ $? -ne 0 ]]; then echo -e "${red}Failed to download x-ui.rc${plain}"; exit 1; fi
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
         rc-service x-ui start
     else
-        # Install systemd service file
-        service_installed=false
+        echo -e "${yellow}Downloading systemd service file from GitHub...${plain}"
+        case "${release}" in
+            ubuntu | debian | armbian)
+                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                ;;
+            arch | manjaro | parch)
+                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                ;;
+            *)
+                curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                ;;
+        esac
 
-        if [ -f "x-ui.service" ]; then
-            echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
-            if [[ $? -eq 0 ]]; then
-                service_installed=true
-            fi
-        fi
-
-        if [ "$service_installed" = false ]; then
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    if [ -f "x-ui.service.debian" ]; then
-                        echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-                arch | manjaro | parch)
-                    if [ -f "x-ui.service.arch" ]; then
-                        echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-                *)
-                    if [ -f "x-ui.service.rhel" ]; then
-                        echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                    ;;
-            esac
-        fi
-
-        # If service file not found in tar.gz, download from GitHub
-        if [ "$service_installed" = false ]; then
-            echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
-                    ;;
-                arch | manjaro | parch)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
-                    ;;
-                *)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
-                    ;;
-            esac
-
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
-                exit 1
-            fi
-            service_installed=true
-        fi
-
-        if [ "$service_installed" = true ]; then
-            echo -e "${green}Setting up systemd unit...${plain}"
-            chown root:root ${xui_service}/x-ui.service > /dev/null 2>&1
-            chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
-            systemctl daemon-reload
-            systemctl enable x-ui
-            systemctl start x-ui
-        else
-            echo -e "${red}Failed to install x-ui.service file${plain}"
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
             exit 1
         fi
+
+        echo -e "${green}Setting up systemd unit...${plain}"
+        chown root:root ${xui_service}/x-ui.service > /dev/null 2>&1
+        chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
+        systemctl daemon-reload
+        systemctl enable x-ui
+        systemctl start x-ui
     fi
 
-    # IP Limit relies on fail2ban; install + configure it now so the feature
-    # works out of the box (no-op when XUI_ENABLE_FAIL2BAN=false). Never fatal.
     setup_fail2ban
 
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
-    echo -e ""
-    echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - Legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-└───────────────────────────────────────────────────────┘"
 }
 
 echo -e "${green}Running...${plain}"
