@@ -1230,17 +1230,34 @@ update_geofiles() {
     for dat in "${dat_files[@]}"; do
         # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
         remote_file="${dat%%_*}"
-        # -z skips the download (server answers 304) when the local copy is already current
-        http_code=$(curl -sSfLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat -w '%{http_code}' \
+        local dest="${xui_folder}/bin/${dat}.dat"
+        local temp_file="${dest}.tmp.$$"
+        rm -f "$temp_file"
+        # -z (against the live file, not the temp file) skips the download
+        # (server answers 304) when the local copy is already current.
+        http_code=$(curl -sSfLRo "$temp_file" -z "$dest" -w '%{http_code}' \
             https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat)
         if [[ $? -ne 0 ]]; then
             echo -e "${red}${dat}.dat: download failed${plain}"
+            rm -f "$temp_file"
             failed=1
         elif [[ "$http_code" == "304" ]]; then
             echo -e "${dat}.dat: already up to date"
+            rm -f "$temp_file"
+        elif [[ ! -s "$temp_file" ]]; then
+            echo -e "${red}${dat}.dat: downloaded file is empty${plain}"
+            rm -f "$temp_file"
+            failed=1
         else
-            echo -e "${green}${dat}.dat: updated${plain}"
-            geo_updated=1
+            mv -f "$temp_file" "$dest"
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}${dat}.dat: failed to install${plain}"
+                rm -f "$temp_file"
+                failed=1
+            else
+                echo -e "${green}${dat}.dat: updated${plain}"
+                geo_updated=1
+            fi
         fi
     done
     return $failed
