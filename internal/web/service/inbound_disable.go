@@ -80,7 +80,7 @@ func depletedCond(tx *gorm.DB) string {
 	return depletedClientsCondLocal
 }
 
-func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int, error) {
+func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
 	needRestart := false
 	cond := depletedCond(tx)
@@ -90,10 +90,10 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 		Where(cond+" AND enable = ?", now, true).
 		Find(&depletedRows).Error
 	if err != nil {
-		return false, 0, nil, err
+		return false, 0, err
 	}
 	if len(depletedRows) == 0 {
-		return false, 0, nil, nil
+		return false, 0, nil
 	}
 
 	depletedEmails := make([]string, 0, len(depletedRows))
@@ -121,7 +121,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 			WHERE clients.email IN ?
 		`, depletedEmails).Scan(&targets).Error
 		if err != nil {
-			return false, 0, nil, err
+			return false, 0, err
 		}
 	}
 
@@ -168,7 +168,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 	err = result.Error
 	count := result.RowsAffected
 	if err != nil {
-		return needRestart, count, nil, err
+		return needRestart, count, err
 	}
 
 	if len(depletedEmails) > 0 {
@@ -179,7 +179,6 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 		}
 	}
 
-	disabledNodeIDs := make(map[int]struct{})
 	for inboundID, group := range remoteByInbound {
 		emails := make(map[string]struct{}, len(group))
 		for _, t := range group {
@@ -188,21 +187,10 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, []int,
 		if pushErr := s.disableRemoteClients(tx, inboundID, emails); pushErr != nil {
 			logger.Warning("disableInvalidClients: push to remote failed for inbound", inboundID, ":", pushErr)
 			needRestart = true
-		} else {
-			for _, t := range group {
-				if t.NodeID != nil {
-					disabledNodeIDs[*t.NodeID] = struct{}{}
-				}
-			}
 		}
 	}
 
-	nodeIDs := make([]int, 0, len(disabledNodeIDs))
-	for nodeID := range disabledNodeIDs {
-		nodeIDs = append(nodeIDs, nodeID)
-	}
-
-	return needRestart, count, nodeIDs, nil
+	return needRestart, count, nil
 }
 
 // markClientsDisabledInSettings flips client.enable=false in the inbound's
@@ -255,6 +243,10 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	return &snapshot, &ib, nil
 }
 
+// disableRemoteClients flips the clients off in the inbound's stored settings
+// and pushes the updated inbound to its node, which applies it to its own
+// running Xray. That push is the whole reconcile — restarting the node's Xray
+// afterwards would drop every live connection on the node for nothing (#5740).
 func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails map[string]struct{}) error {
 	oldSnapshot, ib, err := s.markClientsDisabledInSettings(tx, inboundID, emails)
 	if err != nil {
