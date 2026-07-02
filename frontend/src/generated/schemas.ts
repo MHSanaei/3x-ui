@@ -169,6 +169,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -187,6 +191,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashURI": {
         "description": "Clash/Mihomo subscription server URI",
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
         "type": "string"
       },
       "subDomain": {
@@ -217,6 +225,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "description": "Always return JSON subscriptions as an array, including single-profile responses",
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -238,6 +254,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subJsonURI": {
         "description": "JSON subscription server URI",
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Xray JSON subscription clients",
         "type": "string"
       },
       "subKeyFile": {
@@ -433,11 +453,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -445,12 +467,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",
@@ -678,6 +703,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "SSL certificate file for subscription server",
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+        "type": "boolean"
+      },
       "subClashEnable": {
         "description": "Enable Clash/Mihomo subscription endpoint",
         "type": "boolean"
@@ -696,6 +725,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashURI": {
         "description": "Clash/Mihomo subscription server URI",
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
         "type": "string"
       },
       "subDomain": {
@@ -726,6 +759,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "description": "Always return JSON subscriptions as an array, including single-profile responses",
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "description": "Enable JSON subscription endpoint",
         "type": "boolean"
@@ -747,6 +788,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subJsonURI": {
         "description": "JSON subscription server URI",
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
+        "description": "Go RE2 regular expression used to recognize Xray JSON subscription clients",
         "type": "string"
       },
       "subKeyFile": {
@@ -949,11 +994,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -961,12 +1008,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",

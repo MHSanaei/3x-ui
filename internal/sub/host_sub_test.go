@@ -281,7 +281,7 @@ func TestSub_HostSockoptJSON(t *testing.T) {
 		SockoptParams: `{"tcpFastOpen":true}`,
 	})
 	js := NewSubJsonService("", "", "", NewSubService(""))
-	out, _, err := js.GetJson("s1", "req.example.com")
+	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestSub_HostMuxJSON(t *testing.T) {
 		MuxParams: `{"enabled":true,"concurrency":8}`,
 	})
 	js := NewSubJsonService("", "", "", NewSubService(""))
-	out, _, err := js.GetJson("s1", "req.example.com")
+	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
 	}

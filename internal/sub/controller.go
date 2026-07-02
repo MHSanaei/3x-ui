@@ -10,10 +10,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -54,13 +56,18 @@ type SUBController struct {
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
 
-	subPath        string
-	subJsonPath    string
-	subClashPath   string
-	jsonEnabled    bool
-	clashEnabled   bool
-	subEncrypt     bool
-	updateInterval string
+	subPath            string
+	subJsonPath        string
+	subClashPath       string
+	subClashAutoDetect bool
+	clashUserAgent     *regexp.Regexp
+	jsonAutoDetect     bool
+	jsonUserAgent      *regexp.Regexp
+	jsonAlwaysArray    bool
+	jsonEnabled        bool
+	clashEnabled       bool
+	subEncrypt         bool
+	updateInterval     string
 
 	subService      *SubService
 	subJsonService  *SubJsonService
@@ -71,56 +78,198 @@ type SUBController struct {
 	subTemplateCache map[string]*cachedSubTemplate
 }
 
+type subControllerConfig struct {
+	subPath      string
+	subJsonPath  string
+	subClashPath string
+
+	subClashAutoDetect     bool
+	subClashUserAgentRegex string
+	subJsonAutoDetect      bool
+	subJsonUserAgentRegex  string
+	subJsonAlwaysArray     bool
+	subJsonEnabled         bool
+	subClashEnabled        bool
+
+	subEncrypt     bool
+	remarkTemplate string
+	updateInterval string
+
+	subJsonMux            string
+	subJsonRules          string
+	subJsonFinalMask      string
+	subClashEnableRouting bool
+	subClashRules         string
+
+	subTitle         string
+	subSupportURL    string
+	subProfileURL    string
+	subAnnounce      string
+	subEnableRouting bool
+	subRoutingRules  string
+	subHideSettings  bool
+
+	subIncyEnableRouting bool
+	subIncyRoutingRules  string
+}
+
+type SUBControllerOption func(*subControllerConfig)
+
+func WithSUBPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subPath = value }
+}
+
+func WithSUBJsonPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonPath = value }
+}
+
+func WithSUBClashPath(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashPath = value }
+}
+
+func WithSUBClashAutoDetect(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashAutoDetect = value }
+}
+
+func WithSUBClashUserAgentRegex(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashUserAgentRegex = value }
+}
+
+func WithSUBJsonAutoDetect(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonAutoDetect = value }
+}
+
+func WithSUBJsonUserAgentRegex(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonUserAgentRegex = value }
+}
+
+func WithSUBJsonAlwaysArray(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonAlwaysArray = value }
+}
+
+func WithSUBJsonEnabled(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonEnabled = value }
+}
+
+func WithSUBClashEnabled(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashEnabled = value }
+}
+
+func WithSUBEncryption(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subEncrypt = value }
+}
+
+func WithSUBRemarkTemplate(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.remarkTemplate = value }
+}
+
+func WithSUBUpdateInterval(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.updateInterval = value }
+}
+
+func WithSUBJsonMux(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonMux = value }
+}
+
+func WithSUBJsonRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonRules = value }
+}
+
+func WithSUBJsonFinalMask(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
+}
+
+func WithSUBClashEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashEnableRouting = value }
+}
+
+func WithSUBClashRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashRules = value }
+}
+
+func WithSUBTitle(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subTitle = value }
+}
+
+func WithSUBSupportURL(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subSupportURL = value }
+}
+
+func WithSUBProfileURL(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subProfileURL = value }
+}
+
+func WithSUBAnnounce(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subAnnounce = value }
+}
+
+func WithSUBEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subEnableRouting = value }
+}
+
+func WithSUBRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subRoutingRules = value }
+}
+
+func WithSUBHideSettings(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subHideSettings = value }
+}
+
+func WithSUBIncyEnableRouting(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subIncyEnableRouting = value }
+}
+
+func WithSUBIncyRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subIncyRoutingRules = value }
+}
+
+func defaultSUBControllerConfig() subControllerConfig {
+	return subControllerConfig{
+		subPath:        "/sub/",
+		subJsonPath:    "/json/",
+		subClashPath:   "/clash/",
+		subEncrypt:     true,
+		remarkTemplate: service.DefaultRemarkTemplate,
+		updateInterval: "12",
+	}
+}
+
 // NewSUBController creates a new subscription controller with the given configuration.
-func NewSUBController(
-	g *gin.RouterGroup,
-	subPath string,
-	jsonPath string,
-	clashPath string,
-	jsonEnabled bool,
-	clashEnabled bool,
-	encrypt bool,
-	remarkTemplate string,
-	update string,
-	jsonMux string,
-	jsonRules string,
-	jsonFinalMask string,
-	clashEnableRouting bool,
-	clashRules string,
-	subTitle string,
-	subSupportUrl string,
-	subProfileUrl string,
-	subAnnounce string,
-	subEnableRouting bool,
-	subRoutingRules string,
-	subHideSettings bool,
-	subIncyEnableRouting bool,
-	subIncyRoutingRules string,
-) *SUBController {
-	sub := NewSubService(remarkTemplate)
+func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBController {
+	config := defaultSUBControllerConfig()
+	for _, option := range options {
+		option(&config)
+	}
+
+	sub := NewSubService(config.remarkTemplate)
 	a := &SUBController{
-		subTitle:         subTitle,
-		subSupportUrl:    subSupportUrl,
-		subProfileUrl:    subProfileUrl,
-		subAnnounce:      subAnnounce,
-		subEnableRouting: subEnableRouting,
-		subRoutingRules:  subRoutingRules,
-		subHideSettings:  subHideSettings,
+		subTitle:         config.subTitle,
+		subSupportUrl:    config.subSupportURL,
+		subProfileUrl:    config.subProfileURL,
+		subAnnounce:      config.subAnnounce,
+		subEnableRouting: config.subEnableRouting,
+		subRoutingRules:  config.subRoutingRules,
+		subHideSettings:  config.subHideSettings,
 
-		subIncyEnableRouting: subIncyEnableRouting,
-		subIncyRoutingRules:  subIncyRoutingRules,
+		subIncyEnableRouting: config.subIncyEnableRouting,
+		subIncyRoutingRules:  config.subIncyRoutingRules,
 
-		subPath:        subPath,
-		subJsonPath:    jsonPath,
-		subClashPath:   clashPath,
-		jsonEnabled:    jsonEnabled,
-		clashEnabled:   clashEnabled,
-		subEncrypt:     encrypt,
-		updateInterval: update,
+		subPath:            config.subPath,
+		subJsonPath:        config.subJsonPath,
+		subClashPath:       config.subClashPath,
+		subClashAutoDetect: config.subClashAutoDetect,
+		clashUserAgent:     compileUserAgentRegex("Clash/Mihomo", config.subClashUserAgentRegex, service.DefaultSubClashUserAgentRegex),
+		jsonAutoDetect:     config.subJsonAutoDetect,
+		jsonUserAgent:      compileUserAgentRegex("Xray JSON", config.subJsonUserAgentRegex, service.DefaultSubJsonUserAgentRegex),
+		jsonAlwaysArray:    config.subJsonAlwaysArray,
+		jsonEnabled:        config.subJsonEnabled,
+		clashEnabled:       config.subClashEnabled,
+		subEncrypt:         config.subEncrypt,
+		updateInterval:     config.updateInterval,
 
 		subService:      sub,
-		subJsonService:  NewSubJsonService(jsonMux, jsonRules, jsonFinalMask, sub),
-		subClashService: NewSubClashService(clashEnableRouting, clashRules, sub),
+		subJsonService:  NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub),
+		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},
 	}
@@ -149,13 +298,28 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
-	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subReq := a.subService.ForRequest(host)
 	// The remark template's per-client info is for the content a client app
 	// imports — the raw subscription body. A browser viewing the HTML info page
 	// gets clean, name-only remarks (usage is shown in the page summary).
 	accept := c.GetHeader("Accept")
+	userAgent := c.GetHeader("User-Agent")
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+	if wantsHTML {
+		logSubscriptionRoute(userAgent, "html")
+	} else if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+		logSubscriptionRoute(userAgent, "clash")
+		a.subClashs(c)
+		return
+	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+		logSubscriptionRoute(userAgent, "json")
+		a.serveJson(c, true, "application/json; charset=utf-8")
+		return
+	} else {
+		logSubscriptionRoute(userAgent, "raw")
+	}
+
+	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
+	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = !wantsHTML
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
@@ -205,6 +369,58 @@ func (a *SUBController) subs(c *gin.Context) {
 			c.String(200, result.String())
 		}
 	}
+}
+
+// shouldAutoServeClash reports whether the standard subscription endpoint
+// should return Clash/Mihomo YAML for this request. Browser HTML always wins,
+// and disabling either auto-detection or Clash subscriptions preserves the
+// existing raw/base64 behavior.
+func shouldAutoServeClash(autoDetect, clashEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	return shouldAutoServeFormat(autoDetect, clashEnabled, wantsHTML, userAgent, userAgentRegex)
+}
+
+func shouldAutoServeJson(autoDetect, jsonEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	return shouldAutoServeFormat(autoDetect, jsonEnabled, wantsHTML, userAgent, userAgentRegex)
+}
+
+func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
+	// NewSUBController normally guarantees a compiled regex. Keep this guard so
+	// direct callers and partially initialized controllers fail closed.
+	if !autoDetect || !formatEnabled || wantsHTML || userAgentRegex == nil {
+		return false
+	}
+	return userAgentRegex.MatchString(userAgent)
+}
+
+func logSubscriptionRoute(userAgent, branch string) {
+	logger.Debugf("Subscription request routed: branch=%s user_agent=%q", branch, sanitizeUserAgentForLog(userAgent))
+}
+
+func sanitizeUserAgentForLog(userAgent string) string {
+	clean := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, userAgent)
+	runes := []rune(clean)
+	if len(runes) > 512 {
+		return string(runes[:512])
+	}
+	return clean
+}
+
+func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		pattern = defaultPattern
+	}
+	compiled, err := regexp.Compile(pattern)
+	if err == nil {
+		return compiled
+	}
+	logger.Warningf("Invalid %s User-Agent regex %q; falling back to default %q: %v", name, pattern, defaultPattern, err)
+	return regexp.MustCompile(defaultPattern)
 }
 
 // serveSubPage renders internal/web/dist/subpage.html for the current subscription
@@ -366,9 +582,13 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
+	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
+}
+
+func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, contentType string) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
 	if err != nil || len(jsonSub) == 0 {
 		writeSubError(c, err)
 	} else {
@@ -378,7 +598,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		}
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
-		c.String(200, jsonSub)
+		c.Data(200, contentType, []byte(jsonSub))
 	}
 }
 
