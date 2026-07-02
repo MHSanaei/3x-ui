@@ -683,7 +683,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "tls":
 		applyShareTLSParams(stream, params)
 	case "reality":
-		applyShareRealityParams(stream, params)
+		applyShareRealityParams(stream, params, subKey(clients[clientIndex]))
 	default:
 		params["security"] = "none"
 	}
@@ -734,7 +734,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "tls":
 		applyShareTLSParams(stream, params)
 	case "reality":
-		applyShareRealityParams(stream, params)
+		applyShareRealityParams(stream, params, subKey(clients[clientIndex]))
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
 			params["flow"] = clients[clientIndex].Flow
 		}
@@ -1330,7 +1330,7 @@ func hysteriaPinHex(pin string) string {
 	return pin
 }
 
-func applyShareRealityParams(stream map[string]any, params map[string]string) {
+func applyShareRealityParams(stream map[string]any, params map[string]string, clientKey string) {
 	params["security"] = "reality"
 	realitySetting, _ := stream["realitySettings"].(map[string]any)
 	realitySettings, _ := searchKey(realitySetting, "settings")
@@ -1356,13 +1356,31 @@ func applyShareRealityParams(stream map[string]any, params map[string]string) {
 				params["pqv"] = pqv
 			}
 		}
-		params["spx"] = "/" + random.Seq(15)
+		seed := ""
 		if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
-			if spx, ok := spxValue.(string); ok && len(spx) > 0 {
-				params["spx"] = spx
-			}
+			seed, _ = spxValue.(string)
 		}
+		params["spx"] = deriveSpiderX(seed, clientKey)
 	}
+}
+
+// subKey returns a stable per-client identity for deterministic derivations,
+// preferring the subscription id and falling back to the (unique) email.
+func subKey(c model.Client) string {
+	if c.SubID != "" {
+		return c.SubID
+	}
+	return c.Email
+}
+
+// deriveSpiderX maps the inbound's spiderX seed plus a stable client key to a
+// deterministic per-client "/path"; frontend/src/lib/xray/spider-x.ts mirrors it.
+func deriveSpiderX(seed, clientKey string) string {
+	if seed == "" && clientKey == "" {
+		return "/" + random.Seq(15)
+	}
+	sum := sha256.Sum256([]byte(seed + "|" + clientKey))
+	return "/" + hex.EncodeToString(sum[:])[:15]
 }
 
 func buildVmessLink(obj map[string]any) string {

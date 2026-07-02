@@ -658,6 +658,7 @@
         "scanUse": "استفاده",
         "scanRescan": "اسکن مجدد",
         "spiderX": "SpiderX",
+        "spiderXHint": "دانه‌ی هر کاربر — پنل از روی آن مسیر spx یکتا برای هر کاربر می‌سازد؛ برای چرخش مسیر همه، دوباره تولید کنید",
         "getNewCert": "دریافت گواهی جدید",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

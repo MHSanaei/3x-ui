@@ -667,6 +667,7 @@
         "scanUse": "Usar",
         "scanRescan": "Reescanear",
         "spiderX": "SpiderX",
+        "spiderXHint": "Semilla por cliente: el panel deriva de ella una ruta spx única para cada cliente; regenera para rotar las rutas de todos",
         "getNewCert": "Obtener nuevo cert",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

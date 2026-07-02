@@ -667,6 +667,7 @@
         "scanUse": "使用",
         "scanRescan": "再スキャン",
         "spiderX": "SpiderX",
+        "spiderXHint": "クライアントごとのシード。パネルはこれから各クライアント固有の spx パスを生成します。再生成で全員のパスを更新します",
         "getNewCert": "新しい証明書を取得",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

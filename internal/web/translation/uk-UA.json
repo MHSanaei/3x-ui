@@ -646,6 +646,7 @@
         "scanUse": "Обрати",
         "scanRescan": "Пересканувати",
         "spiderX": "SpiderX",
+        "spiderXHint": "Сід на клієнта — панель формує з нього унікальний шлях spx для кожного клієнта; перегенеруйте, щоб оновити шляхи всіх",
         "getNewCert": "Отримати новий сертифікат",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

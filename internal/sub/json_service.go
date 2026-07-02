@@ -138,7 +138,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 
 func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
 	var newJsonArray []json_util.RawMessage
-	stream := s.streamData(inbound.StreamSettings)
+	stream := s.streamData(inbound.StreamSettings, subKey(client))
 
 	// When externalProxy is empty the JSON config falls back to a
 	// synthetic one whose `dest` is the host the client connects to.
@@ -234,15 +234,25 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 	return newJsonArray
 }
 
-func (s *SubJsonService) streamData(stream string) map[string]any {
+func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {
 	var streamSettings map[string]any
-	_ = json.Unmarshal([]byte(stream), &streamSettings)
+	if err := json.Unmarshal([]byte(stream), &streamSettings); err != nil || streamSettings == nil {
+		streamSettings = map[string]any{}
+	}
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":
-		streamSettings["tlsSettings"] = s.tlsData(streamSettings["tlsSettings"].(map[string]any))
+		if tlsSettings, ok := streamSettings["tlsSettings"].(map[string]any); ok {
+			streamSettings["tlsSettings"] = s.tlsData(tlsSettings)
+		} else {
+			delete(streamSettings, "tlsSettings")
+		}
 	case "reality":
-		streamSettings["realitySettings"] = s.realityData(streamSettings["realitySettings"].(map[string]any))
+		if realitySettings, ok := streamSettings["realitySettings"].(map[string]any); ok {
+			streamSettings["realitySettings"] = s.realityData(realitySettings, clientKey)
+		} else {
+			delete(streamSettings, "realitySettings")
+		}
 	}
 	delete(streamSettings, "sockopt")
 
@@ -322,7 +332,7 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	return tlsData
 }
 
-func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
+func (s *SubJsonService) realityData(rData map[string]any, clientKey string) map[string]any {
 	rltyData := make(map[string]any, 1)
 	rltyClientSettings, _ := rData["settings"].(map[string]any)
 
@@ -331,10 +341,8 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	rltyData["fingerprint"] = rltyClientSettings["fingerprint"]
 	rltyData["mldsa65Verify"] = rltyClientSettings["mldsa65Verify"]
 
-	rltyData["spiderX"] = "/" + random.Seq(15)
-	if spx, ok := rltyClientSettings["spiderX"].(string); ok && spx != "" {
-		rltyData["spiderX"] = spx
-	}
+	seed, _ := rltyClientSettings["spiderX"].(string)
+	rltyData["spiderX"] = deriveSpiderX(seed, clientKey)
 	shortIds, ok := rData["shortIds"].([]any)
 	if ok && len(shortIds) > 0 {
 		rltyData["shortId"] = shortIds[random.Num(len(shortIds))].(string)
