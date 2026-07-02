@@ -216,7 +216,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(subReq, inbound, newStream, client, jsonMux(mux, hostMux)))
+			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -473,7 +473,7 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 	return result
 }
 
-func (s *SubJsonService) genHy(subReq *SubService, inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	outbound.Protocol = string(inbound.Protocol)

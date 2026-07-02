@@ -308,6 +308,12 @@ export default function ClientInfoModal({
                   <td>{t('pages.inbounds.updatedAt')}</td>
                   <td><Tag>{dateLabel(client.updatedAt)}</Tag></td>
                 </tr>
+                {client.group && (
+                  <tr>
+                    <td>{t('pages.clients.group')}</td>
+                    <td><Tag color="geekblue">{client.group}</Tag></td>
+                  </tr>
+                )}
                 {client.comment && (
                   <tr>
                     <td>{t('pages.clients.comment')}</td>

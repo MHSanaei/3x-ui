@@ -1583,13 +1583,13 @@ ssl_cert_issue_for_ip() {
             apt-get update > /dev/null 2>&1 && apt-get install socat -y > /dev/null 2>&1
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
+            dnf makecache -y > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update > /dev/null 2>&1 && yum -y install socat > /dev/null 2>&1
+                yum makecache -y > /dev/null 2>&1 && yum -y install socat > /dev/null 2>&1
             else
-                dnf -y update > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
+                dnf makecache -y > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
             fi
             ;;
         arch | manjaro | parch)
@@ -1749,13 +1749,13 @@ ssl_cert_issue() {
             apt-get update > /dev/null 2>&1 && apt-get install socat -y > /dev/null 2>&1
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
+            dnf makecache -y > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update > /dev/null 2>&1 && yum -y install socat > /dev/null 2>&1
+                yum makecache -y > /dev/null 2>&1 && yum -y install socat > /dev/null 2>&1
             else
-                dnf -y update > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
+                dnf makecache -y > /dev/null 2>&1 && dnf -y install socat > /dev/null 2>&1
             fi
             ;;
         arch | manjaro | parch)
@@ -2286,14 +2286,14 @@ setup_fail2ban_iplimit() {
                 apt-get update && apt-get install fail2ban nftables -y
                 ;;
             fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-                dnf -y update && dnf -y install fail2ban nftables
+                dnf makecache -y && dnf -y install fail2ban nftables
                 ;;
             centos)
                 if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                    yum update -y && yum install epel-release -y
+                    yum makecache -y && yum install epel-release -y
                     yum -y install fail2ban nftables
                 else
-                    dnf -y update && dnf -y install fail2ban nftables
+                    dnf makecache -y && dnf -y install fail2ban nftables
                 fi
                 ;;
             arch | manjaro | parch)
