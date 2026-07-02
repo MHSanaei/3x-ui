@@ -1831,10 +1831,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "allowPrivateAddress": {
         "type": "boolean"
       },
-      "apiToken": {
-        "example": "abcdef0123456789",
-        "type": "string"
-      },
       "basePath": {
         "example": "/",
         "type": "string"
@@ -1998,7 +1994,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "activeCount",
       "address",
       "allowPrivateAddress",
-      "apiToken",
       "basePath",
       "clientCount",
       "configDirty",

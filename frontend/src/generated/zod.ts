@@ -430,7 +430,6 @@ export const NodeSchema = z.object({
   activeCount: z.number().int(),
   address: z.string(),
   allowPrivateAddress: z.boolean(),
-  apiToken: z.string(),
   basePath: z.string(),
   clientCount: z.number().int(),
   configDirty: z.boolean(),

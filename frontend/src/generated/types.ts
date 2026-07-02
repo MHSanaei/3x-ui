@@ -401,7 +401,6 @@ export interface Node {
   activeCount: number;
   address: string;
   allowPrivateAddress: boolean;
-  apiToken: string;
   basePath: string;
   clientCount: number;
   configDirty: boolean;

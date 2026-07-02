@@ -403,7 +403,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "activeCount": 23,
     "address": "node1.example.com",
     "allowPrivateAddress": false,
-    "apiToken": "abcdef0123456789",
     "basePath": "/",
     "clientCount": 27,
     "configDirty": false,

@@ -1857,10 +1857,6 @@
           "allowPrivateAddress": {
             "type": "boolean"
           },
-          "apiToken": {
-            "example": "abcdef0123456789",
-            "type": "string"
-          },
           "basePath": {
             "example": "/",
             "type": "string"
@@ -2024,7 +2020,6 @@
           "activeCount",
           "address",
           "allowPrivateAddress",
-          "apiToken",
           "basePath",
           "clientCount",
           "configDirty",
@@ -6912,7 +6907,6 @@
                       "activeCount": 23,
                       "address": "node1.example.com",
                       "allowPrivateAddress": false,
-                      "apiToken": "abcdef0123456789",
                       "basePath": "/",
                       "clientCount": 27,
                       "configDirty": false,
