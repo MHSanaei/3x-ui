@@ -459,11 +459,8 @@ func (s *SubService) statsForClient(inbound *model.Inbound, client model.Client)
 // needed when a global remark template references client-only tokens. Falls back
 // to an email-only client if not found.
 func (s *SubService) lookupClient(inbound *model.Inbound, email string) model.Client {
-	clients, _ := s.inboundService.GetClients(inbound)
-	for _, c := range clients {
-		if c.Email == email {
-			return c
-		}
+	if c, ok := s.clientForLink(inbound, email); ok {
+		return c
 	}
 	return model.Client{Email: email}
 }

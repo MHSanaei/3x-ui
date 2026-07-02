@@ -122,7 +122,7 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vless outbound must not use vnext")
 	}
@@ -151,7 +151,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
 	client := model.Client{Password: "p4ss"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(trojan, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(&SubService{}, trojan, nil, client, ""))
 	server := firstServer(settings)
 	if server == nil {
 		t.Fatalf("trojan outbound must use a servers array, got: %#v", settings)
@@ -164,7 +164,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	}
 
 	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
-	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(ss, nil, client, ""))
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(&SubService{}, ss, nil, client, ""))
 	ssServer := firstServer(ssSettings)
 	if ssServer == nil {
 		t.Fatalf("shadowsocks outbound must use a servers array, got: %#v", ssSettings)
@@ -194,7 +194,7 @@ func TestSubJsonServiceXmuxSuppressesGlobalMux(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1"}
 
-	raw := svc.genVless(inbound, streamSettings, client, mux)
+	raw := svc.genVless(&SubService{}, inbound, streamSettings, client, mux)
 	var ob map[string]any
 	if err := json.Unmarshal(raw, &ob); err != nil {
 		t.Fatalf("unmarshal outbound: %v", err)
@@ -240,7 +240,7 @@ func TestSubJsonServiceGlobalMuxWhenNoXmux(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1"}
 
-	raw := svc.genVless(inbound, streamSettings, client, mux)
+	raw := svc.genVless(&SubService{}, inbound, streamSettings, client, mux)
 	var ob map[string]any
 	if err := json.Unmarshal(raw, &ob); err != nil {
 		t.Fatalf("unmarshal outbound: %v", err)
