@@ -710,11 +710,13 @@ func (s *SettingService) GetSubTitle() (string, error) {
 }
 
 func (s *SettingService) GetSubSupportUrl() (string, error) {
-	return s.getString("subSupportUrl")
+	value, err := s.getString("subSupportUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubProfileUrl() (string, error) {
-	return s.getString("subProfileUrl")
+	value, err := s.getString("subProfileUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -1177,6 +1179,12 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	// Support/profile links land in subscription headers and page data, where
+	// client apps resolve a scheme-less value against the panel's own domain.
+	// Non-http schemes (tg://, mailto:) are legitimate here, so only default
+	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
+	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
+	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
 	return nil
 }
 
