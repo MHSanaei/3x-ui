@@ -928,14 +928,18 @@ func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.Clien
 		}
 		traffics = append(traffics, page...)
 	}
+	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
 }
 
 // GetAllClientTraffics returns the full set of client_traffics rows so the
-// websocket broadcasters can ship a complete snapshot every cycle. The old
-// delta-only path (GetActiveClientTraffics on activeEmails) silently dropped
-// the per-client section whenever no client moved bytes in the cycle or a
-// node sync failed, leaving client rows in the UI stuck at stale numbers.
+// websocket broadcasters can ship a complete snapshot every cycle. A pure
+// delta path silently dropped the per-client section whenever no client moved
+// bytes in the cycle or a node sync failed, leaving client rows in the UI
+// stuck at stale numbers — so small installs broadcast this snapshot, and only
+// above the traffic job's snapshot threshold (where the marshaled snapshot
+// would exceed the hub's payload cap and be dropped wholesale) does the job
+// fall back to active-row deltas.
 func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
@@ -944,6 +948,13 @@ func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	}
 	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
+}
+
+func (s *InboundService) CountClientTraffics() (int64, error) {
+	db := database.GetDB()
+	var count int64
+	err := db.Model(xray.ClientTraffic{}).Count(&count).Error
+	return count, err
 }
 
 type InboundTrafficSummary struct {

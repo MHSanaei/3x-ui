@@ -551,9 +551,9 @@ export function useClients() {
 
   const applyClientStatsEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: ClientStatRow[] };
+    const p = payload as { clients?: ClientStatRow[]; snapshot?: boolean };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
-    setAllClientStats(p.clients);
+    if (p.snapshot !== false) setAllClientStats(p.clients);
     const byEmail = new Map<string, ClientTraffic>();
     for (const row of p.clients) {
       if (row && row.email) byEmail.set(row.email, row);
