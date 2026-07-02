@@ -197,7 +197,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=${bot_dir}
+WorkingDirectory=${bot_dir}/src
 ExecStart=${bot_dir}/venv/bin/python3 bot.py
 Restart=on-failure
 RestartSec=3s
