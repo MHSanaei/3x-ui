@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -162,13 +163,23 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		}
 	}
 
-	result := tx.Model(xray.ClientTraffic{}).
-		Where(cond+" AND enable = ?", now, true).
-		Update("enable", false)
-	err = result.Error
-	count := result.RowsAffected
-	if err != nil {
-		return needRestart, count, err
+	// Flip the rows already collected above by primary key instead of
+	// re-evaluating the depleted predicate, which was a second full scan of
+	// client_traffics on every poll. Sorted ids keep the lock order stable.
+	ids := make([]int, 0, len(depletedRows))
+	for i := range depletedRows {
+		ids = append(ids, depletedRows[i].Id)
+	}
+	slices.Sort(ids)
+	var count int64
+	for _, batch := range chunkInts(ids, sqlInChunk) {
+		result := tx.Model(xray.ClientTraffic{}).
+			Where("id IN ? AND enable = ?", batch, true).
+			Update("enable", false)
+		if result.Error != nil {
+			return needRestart, count, result.Error
+		}
+		count += result.RowsAffected
 	}
 
 	if len(depletedEmails) > 0 {
