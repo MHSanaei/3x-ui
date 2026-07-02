@@ -1,0 +1,37 @@
+Metadata-Version: 2.1
+Name: magic-filter
+Version: 1.0.12
+Project-URL: Documentation, https://docs.aiogram.dev/en/dev-3.x/dispatcher/filters/magic_filters.html
+Project-URL: Issues, https://github.com/aiogram/magic-filter/issues
+Project-URL: Source, https://github.com/aiogram/magic-filter
+Author-email: Alex Root Junior <pypi@aiogram.dev>
+License-Expression: MIT
+License-File: LICENSE
+Keywords: filter,magic,validation
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Utilities
+Classifier: Typing :: Typed
+Requires-Python: >=3.7
+Provides-Extra: dev
+Requires-Dist: black~=22.8.0; extra == 'dev'
+Requires-Dist: flake8~=5.0.4; extra == 'dev'
+Requires-Dist: isort~=5.11.5; extra == 'dev'
+Requires-Dist: mypy~=1.4.1; extra == 'dev'
+Requires-Dist: pre-commit~=2.20.0; extra == 'dev'
+Requires-Dist: pytest-cov~=3.0.0; extra == 'dev'
+Requires-Dist: pytest-html~=3.1.1; extra == 'dev'
+Requires-Dist: pytest~=7.1.3; extra == 'dev'
+Requires-Dist: types-setuptools~=65.3.0; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# magic-filter
+
+This package provides magic filter based on dynamic attribute getter

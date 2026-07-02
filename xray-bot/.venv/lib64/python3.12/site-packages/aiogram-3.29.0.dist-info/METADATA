@@ -1,0 +1,146 @@
+Metadata-Version: 2.4
+Name: aiogram
+Version: 3.29.0
+Summary: Modern and fully asynchronous framework for Telegram Bot API
+Project-URL: Homepage, https://aiogram.dev/
+Project-URL: Documentation, https://docs.aiogram.dev/
+Project-URL: Repository, https://github.com/aiogram/aiogram/
+Author-email: Alex Root Junior <jroot.junior@gmail.com>
+Maintainer-email: Alex Root Junior <jroot.junior@gmail.com>
+License-Expression: MIT
+License-File: LICENSE
+Keywords: api,asyncio,bot,framework,telegram,wrapper
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Framework :: AsyncIO
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Communications :: Chat
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Typing :: Typed
+Requires-Python: <3.15,>=3.10
+Requires-Dist: aiofiles<26.0,>=23.2.1
+Requires-Dist: aiohttp<3.15,>=3.9.0
+Requires-Dist: certifi>=2023.7.22
+Requires-Dist: magic-filter<1.1,>=1.0.12
+Requires-Dist: pydantic<2.14,>=2.4.1
+Requires-Dist: typing-extensions<=5.0,>=4.7.0
+Provides-Extra: cli
+Requires-Dist: aiogram-cli<2.0.0,>=1.1.0; extra == 'cli'
+Provides-Extra: docs
+Requires-Dist: furo~=2024.8.6; extra == 'docs'
+Requires-Dist: markdown-include~=0.8.1; extra == 'docs'
+Requires-Dist: pygments~=2.18.0; extra == 'docs'
+Requires-Dist: pymdown-extensions~=10.3; extra == 'docs'
+Requires-Dist: sphinx-autobuild~=2024.9.3; extra == 'docs'
+Requires-Dist: sphinx-copybutton~=0.5.2; extra == 'docs'
+Requires-Dist: sphinx-intl~=2.2.0; extra == 'docs'
+Requires-Dist: sphinx-substitution-extensions~=2024.8.6; extra == 'docs'
+Requires-Dist: sphinxcontrib-towncrier~=0.4.0a0; extra == 'docs'
+Requires-Dist: sphinx~=8.0.2; extra == 'docs'
+Requires-Dist: towncrier~=24.8.0; extra == 'docs'
+Provides-Extra: fast
+Requires-Dist: aiodns>=3.0.0; extra == 'fast'
+Requires-Dist: uvloop>=0.17.0; ((sys_platform == 'darwin' or sys_platform == 'linux') and platform_python_implementation != 'PyPy' and python_version < '3.13') and extra == 'fast'
+Requires-Dist: uvloop>=0.21.0; ((sys_platform == 'darwin' or sys_platform == 'linux') and platform_python_implementation != 'PyPy' and python_version >= '3.13') and extra == 'fast'
+Provides-Extra: i18n
+Requires-Dist: babel<3,>=2.13.0; extra == 'i18n'
+Provides-Extra: mongo
+Requires-Dist: motor<3.8,>=3.3.2; extra == 'mongo'
+Requires-Dist: pymongo<4.18,>4.5; extra == 'mongo'
+Provides-Extra: proxy
+Requires-Dist: aiohttp-socks<1.12.0,>=0.10.1; extra == 'proxy'
+Provides-Extra: redis
+Requires-Dist: redis[hiredis]<8,>=6.2.0; extra == 'redis'
+Provides-Extra: signature
+Requires-Dist: cryptography>=46.0.0; extra == 'signature'
+Description-Content-Type: text/x-rst
+
+#######
+aiogram
+#######
+
+.. image:: https://img.shields.io/pypi/l/aiogram.svg?style=flat-square
+    :target: https://opensource.org/licenses/MIT
+    :alt: MIT License
+
+.. image:: https://img.shields.io/pypi/status/aiogram.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/aiogram
+    :alt: PyPi status
+
+.. image:: https://img.shields.io/pypi/v/aiogram.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/aiogram
+    :alt: PyPi Package Version
+
+.. image:: https://img.shields.io/pypi/dm/aiogram.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/aiogram
+    :alt: Downloads
+
+.. image:: https://img.shields.io/pypi/pyversions/aiogram.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/aiogram
+    :alt: Supported python versions
+
+.. image:: https://img.shields.io/badge/dynamic/json?color=blue&logo=telegram&label=Telegram%20Bot%20API&query=%24.api.version&url=https%3A%2F%2Fraw.githubusercontent.com%2Faiogram%2Faiogram%2Fdev-3.x%2F.butcher%2Fschema%2Fschema.json&style=flat-square
+    :target: https://core.telegram.org/bots/api
+    :alt: Telegram Bot API
+
+.. image:: https://img.shields.io/github/actions/workflow/status/aiogram/aiogram/tests.yml?branch=dev-3.x&style=flat-square
+    :target: https://github.com/aiogram/aiogram/actions
+    :alt: Tests
+
+.. image:: https://img.shields.io/codecov/c/github/aiogram/aiogram?style=flat-square
+    :target: https://app.codecov.io/gh/aiogram/aiogram
+    :alt: Codecov
+
+**aiogram** is a modern and fully asynchronous framework for
+`Telegram Bot API <https://core.telegram.org/bots/api>`_ written in Python 3.10+ using
+`asyncio <https://docs.python.org/3/library/asyncio.html>`_ and
+`aiohttp <https://github.com/aio-libs/aiohttp>`_.
+
+Make your bots faster and more powerful!
+
+Documentation:
+ - 🇺🇸 `English <https://docs.aiogram.dev/en/dev-3.x/>`_
+ - 🇺🇦 `Ukrainian <https://docs.aiogram.dev/uk_UA/dev-3.x/>`_
+
+
+Features
+========
+
+- Asynchronous (`asyncio docs <https://docs.python.org/3/library/asyncio.html>`_, :pep:`492`)
+- Has type hints (:pep:`484`) and can be used with `mypy <http://mypy-lang.org/>`_
+- Supports `PyPy <https://www.pypy.org/>`_
+- Supports `Telegram Bot API 10.1 <https://core.telegram.org/bots/api>`_ and gets fast updates to the latest versions of the Bot API
+- Telegram Bot API integration code was `autogenerated <https://github.com/aiogram/tg-codegen>`_ and can be easily re-generated when API gets updated
+- Updates router (Blueprints)
+- Has Finite State Machine
+- Uses powerful `magic filters <https://docs.aiogram.dev/en/latest/dispatcher/filters/magic_filters.html#magic-filters>`_
+- Middlewares (incoming updates and API calls)
+- Provides `Replies into Webhook <https://core.telegram.org/bots/faq#how-can-i-make-requests-in-response-to-updates>`_
+- Integrated I18n/L10n support with GNU Gettext (or Fluent)
+
+
+.. warning::
+
+    It is strongly advised that you have prior experience working
+    with `asyncio <https://docs.python.org/3/library/asyncio.html>`_
+    before beginning to use **aiogram**.
+
+    If you have any questions, you can visit our community chats on Telegram:
+
+    - 🇺🇸 `@aiogram <https://t.me/aiogram>`_
+    - 🇺🇦 `@aiogramua <https://t.me/aiogramua>`_
+    - 🇺🇿 `@aiogram_uz <https://t.me/aiogram_uz>`_
+    - 🇰🇿 `@aiogram_kz <https://t.me/aiogram_kz>`_
+    - 🇷🇺 `@aiogram_ru <https://t.me/aiogram_ru>`_
+    - 🇮🇷 `@aiogram_fa <https://t.me/aiogram_fa>`_
+    - 🇮🇹 `@aiogram_it <https://t.me/aiogram_it>`_
+    - 🇧🇷 `@aiogram_br <https://t.me/aiogram_br>`_

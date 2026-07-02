@@ -1,0 +1,20 @@
+[Unit]
+Description=XRay Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+WorkingDirectory=/path/to/XRay-bot
+ExecStart=/path/to/XRay-bot/.venv/bin/python /path/to/XRay-bot/src/app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+# Защита сервиса
+NoNewPrivileges=yes
+ProtectSystem=strict
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
