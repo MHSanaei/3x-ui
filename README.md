@@ -17,7 +17,7 @@
   <a href="https://goreportcard.com/report/github.com/KimaruBs/3x-ui/v3"><img src="https://goreportcard.com/badge/github.com/KimaruBs/3x-ui/v3" alt="Go Report Card"></a>
 </p>
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+**3X-UI PROD EDITION** is an advanced, open-source web control panel + bot for selling access to your VPN service for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
 
 Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
 
