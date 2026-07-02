@@ -432,6 +432,13 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 	return clients, nil
 }
 
+// GetClientsBySubId returns the inbound's clients with the given subscription
+// id, resolved from the normalized clients tables (the same source the running
+// Xray users are built from) instead of parsing the settings JSON blob.
+func (s *InboundService) GetClientsBySubId(inboundId int, subId string) ([]model.Client, error) {
+	return s.clientService.ListForInboundBySubId(nil, inboundId, subId)
+}
+
 func (s *InboundService) GetAllEmails() ([]string, error) {
 	db := database.GetDB()
 	var emails []string

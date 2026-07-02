@@ -9,6 +9,7 @@ import { SettingListItem } from '@/components/ui';
 import { TelegramNotifications } from '@/components/ui/notifications/TelegramNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
+import SecretInput from './SecretInput';
 
 interface TelegramTabProps {
   allSetting: AllSetting;
@@ -193,12 +194,15 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
             <SettingListItem
               paddings="small"
               title={t('pages.settings.telegramToken')}
-              description={allSetting.hasTgBotToken ? t('pages.settings.telegramTokenConfigured') : t('pages.settings.telegramTokenDesc')}
+              description={allSetting.hasTgBotToken && !allSetting.clearTgBotToken ? t('pages.settings.telegramTokenConfigured') : t('pages.settings.telegramTokenDesc')}
             >
-              <Input.Password
+              <SecretInput
                 value={allSetting.tgBotToken}
-                placeholder={allSetting.hasTgBotToken ? t('pages.settings.telegramTokenPlaceholder') : ''}
-                onChange={(e) => updateSetting({ tgBotToken: e.target.value })}
+                configured={allSetting.hasTgBotToken}
+                clearArmed={allSetting.clearTgBotToken}
+                placeholder={t('pages.settings.telegramTokenPlaceholder')}
+                onChange={(v) => updateSetting({ tgBotToken: v })}
+                onClearArmedChange={(armed) => updateSetting({ clearTgBotToken: armed })}
               />
             </SettingListItem>
 

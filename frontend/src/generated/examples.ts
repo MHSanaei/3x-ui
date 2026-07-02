@@ -472,6 +472,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 0,
     "up": 0
   },
+  "PanelUpdateStatus": {
+    "exitCode": 0,
+    "finishedAt": 1735689612,
+    "runId": "1735689600123456789",
+    "state": "success"
+  },
   "ProbeResultUI": {
     "cpuPct": 12.5,
     "error": "",
