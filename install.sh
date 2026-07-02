@@ -146,32 +146,77 @@ install_xray() {
 }
 
 install_xray_bot() {
-    local bot_dir="/usr/local/x-ui-bot"
+    local bot_dir="${xui_folder}/xray-bot"
     echo -e "${green}🤖 Installing Xray Bot...${plain}"
     install_bot_deps
+    
+    # Чистим старую установку бота, если она была
+    rm -rf "$bot_dir" /usr/bin/xray-bot
     mkdir -p "$bot_dir"
     
-    if [[ "$MODE" == "build" && -d "${cur_dir}/xray-bot" ]]; then
-        cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
+    # Развёртывание исходников бота
+    if [[ "$MODE" == "build" && -d "${SRC_DIR}/xray-bot" ]]; then
+        cp -r "${SRC_DIR}/xray-bot/"* "$bot_dir/"
+        if [[ -f "${SRC_DIR}/xray-bot.sh" ]]; then
+            cp "${SRC_DIR}/xray-bot.sh" /usr/bin/xray-bot
+        fi
     else
-        git clone https://github.com/NidukaA递/x-ui-telegram-bot.git "$bot_dir" || true
+        # Git-режим: Клонируем ветку/репо и качаем меню управления
+        git clone https://github.com/KimaruBs/3x-ui.git "${bot_dir}_tmp"
+        cp -r "${bot_dir}_tmp/xray-bot/"* "$bot_dir/"
+        wget -N --no-check-certificate -O /usr/bin/xray-bot "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/xray-bot.sh"
+        rm -rf "${bot_dir}_tmp"
     fi
     
+    chmod +x /usr/bin/xray-bot
+
+    # Создание venv и установка зависимостей Python
     if [[ -f "${bot_dir}/requirements.txt" ]]; then
         python3 -m venv "${bot_dir}/venv"
         "${bot_dir}/venv/bin/pip" install --upgrade pip -q
         "${bot_dir}/venv/bin/pip" install -r "${bot_dir}/requirements.txt" -q
         echo -e "${green}✅ Бот развернут в ${bot_dir}${plain}"
     fi
+
+    # Настройка и запуск демона (службы systemd) для бота
+    echo -e "${green}⚙️ Создание системной службы для xray-bot...${plain}"
+    cat > /etc/systemd/system/xray-bot.service <<EOF
+[Unit]
+Description=3x-ui Xray Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=${bot_dir}
+ExecStart=${bot_dir}/venv/bin/python3 bot.py
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable xray-bot
+    systemctl restart xray-bot
+    echo -e "${green}✅ Служба xray-bot успешно запущена! Управление: xray-bot${plain}"
 }
 
 start_installation() {
     install_base
 
+    # Логика определения исходников для локального билда
+    if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
+    elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
+    else SRC_DIR="${cur_dir}"
+    fi
+
     # Очищаем старое
     if [[ -e ${xui_folder}/ ]]; then
         systemctl stop x-ui > /dev/null 2>&1 || true
-        find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' -exec rm -rf {} +
+        # Оставляем папку базы данных bin и xray-bot, если они существуют
+        find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' ! -name 'xray-bot' -exec rm -rf {} +
     fi
 
     mkdir -p ${xui_folder}
@@ -183,9 +228,7 @@ start_installation() {
         echo -e "${green}🛠 Локальная сборка панели из исходников...${plain}"
         install_build_deps
         
-        if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
-        elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
-        else
+        if [ ! -f "${SRC_DIR}/build.sh" ]; then
             echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены в текущей папке!${plain}" && exit 1
         fi
         
@@ -219,7 +262,7 @@ start_installation() {
         install_xray_bot
     fi
 
-    # Создаем службу systemd
+    # Создаем службу systemd для панели
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
