@@ -7,6 +7,7 @@ import {
   USERS_SECURITY,
   UTLS_FINGERPRINT,
 } from '@/schemas/primitives';
+import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { SSMethodSchema } from '@/schemas/protocols/shared/shadowsocks';
 
 export const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
@@ -17,6 +18,10 @@ export const MODE_OPTIONS = Object.values(MODE_OPTION).map((v) => ({ value: v, l
 export const UTLS_OPTIONS = Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v }));
 export const ALPN_OPTIONS = Object.values(ALPN_OPTION).map((v) => ({ value: v, label: v }));
 export const ADDRESS_PORT_STRATEGY_OPTIONS = Object.values(Address_Port_Strategy).map((v) => ({
+  value: v,
+  label: v,
+}));
+export const TARGET_STRATEGY_OPTIONS = OutboundDomainStrategySchema.options.map((v) => ({
   value: v,
   label: v,
 }));
