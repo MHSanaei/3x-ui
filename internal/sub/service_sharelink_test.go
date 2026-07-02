@@ -52,11 +52,43 @@ func TestGenVlessLink_TLSParamsMapped(t *testing.T) {
 	}
 }
 
-// TestGenVlessLink_RealityParamsMapped locks the reality field mapping
-// (applyShareRealityParams, service.go:1147). serverNames/shortIds are single-element
-// so random.Num is deterministic (index 0); spx is random so it is asserted by prefix.
-// Distinct pbk/sid values catch a pbk<->sid swap mutant.
+// Locks the reality field mapping of applyShareRealityParams; a configured
+// spiderX must round-trip verbatim (#5718), distinct pbk/sid catch a swap mutant.
 func TestGenVlessLink_RealityParamsMapped(t *testing.T) {
+	stream := `{
+		"network":"tcp","security":"reality",
+		"tcpSettings":{"header":{"type":"none"}},
+		"realitySettings":{
+			"serverNames":["reality.example.com"],
+			"shortIds":["ab12cd"],
+			"settings":{"publicKey":"PBKvalue","fingerprint":"firefox","spiderX":"/mypath"}
+		}
+	}`
+	s := &SubService{}
+	link := s.genVlessLink(shareLinkInbound(stream), "user")
+
+	wants := []string{
+		"security=reality",
+		"sni=reality.example.com",
+		"pbk=PBKvalue",
+		"sid=ab12cd",
+		"fp=firefox",
+		"spx=%2Fmypath",
+	}
+	for _, w := range wants {
+		if !strings.Contains(link, w) {
+			t.Fatalf("reality link missing %q\n got: %s", w, link)
+		}
+	}
+	// A pbk<->sid swap must not silently pass: pbk must not carry the shortId.
+	if strings.Contains(link, "pbk=ab12cd") || strings.Contains(link, "sid=PBKvalue") {
+		t.Fatalf("reality pbk/sid mapping crossed: %s", link)
+	}
+}
+
+// Without a configured spiderX, spx must still fall back to a random
+// "/"-prefixed value so clients always receive a plausible path.
+func TestGenVlessLink_RealitySpiderXFallsBackToRandom(t *testing.T) {
 	stream := `{
 		"network":"tcp","security":"reality",
 		"tcpSettings":{"header":{"type":"none"}},
@@ -69,21 +101,7 @@ func TestGenVlessLink_RealityParamsMapped(t *testing.T) {
 	s := &SubService{}
 	link := s.genVlessLink(shareLinkInbound(stream), "user")
 
-	wants := []string{
-		"security=reality",
-		"sni=reality.example.com",
-		"pbk=PBKvalue",
-		"sid=ab12cd",
-		"fp=firefox",
-		"spx=%2F", // "/" + random.Seq(15), percent-encoded leading slash
-	}
-	for _, w := range wants {
-		if !strings.Contains(link, w) {
-			t.Fatalf("reality link missing %q\n got: %s", w, link)
-		}
-	}
-	// A pbk<->sid swap must not silently pass: pbk must not carry the shortId.
-	if strings.Contains(link, "pbk=ab12cd") || strings.Contains(link, "sid=PBKvalue") {
-		t.Fatalf("reality pbk/sid mapping crossed: %s", link)
+	if !strings.Contains(link, "spx=%2F") {
+		t.Fatalf("reality link missing random spx fallback\n got: %s", link)
 	}
 }

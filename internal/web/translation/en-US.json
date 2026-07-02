@@ -900,6 +900,7 @@
       "wireguardPublicKey": "WireGuard Public Key",
       "wireguardPreSharedKey": "WireGuard Pre-Shared Key",
       "wireguardAllowedIPs": "WireGuard Allowed IPs",
+      "wireguardAllowedIPsHint": "Leave empty to auto-assign; separate entries with commas",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Optional reverse tag",
       "telegramId": "Telegram user ID",

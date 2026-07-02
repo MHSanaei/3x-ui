@@ -125,3 +125,105 @@ func TestResetGroupTraffic_EmptyNameRejected(t *testing.T) {
 		t.Fatal("ResetGroupTraffic(blank) = nil, want error")
 	}
 }
+
+func TestGroupTotalsSurviveSingleClientReset(t *testing.T) {
+	initTrafficTestDB(t)
+	csvc := &ClientService{}
+	isvc := &InboundService{}
+
+	seedGroupedClient(t, "erin", "gold", 100, 200)
+	seedGroupedClient(t, "frank", "gold", 40, 60)
+
+	if err := isvc.ResetClientTrafficByEmail("erin"); err != nil {
+		t.Fatalf("ResetClientTrafficByEmail: %v", err)
+	}
+
+	g := groupByName(t, csvc, "gold")
+	if g.Up != 140 || g.Down != 260 || g.TrafficUsed != 400 {
+		t.Fatalf("group totals changed by client reset: got %+v, want up=140 down=260 used=400", g)
+	}
+
+	var erin xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", "erin").First(&erin).Error; err != nil {
+		t.Fatalf("load erin traffic: %v", err)
+	}
+	if erin.Up != 0 || erin.Down != 0 {
+		t.Fatalf("client traffic not reset: up=%d down=%d", erin.Up, erin.Down)
+	}
+}
+
+func TestGroupTotalsSurviveBulkClientReset(t *testing.T) {
+	initTrafficTestDB(t)
+	csvc := &ClientService{}
+	isvc := &InboundService{}
+
+	seedGroupedClient(t, "gina", "silver", 10, 20)
+	seedGroupedClient(t, "hank", "silver", 30, 40)
+
+	affected, err := csvc.BulkResetTraffic(isvc, []string{"gina", "hank"})
+	if err != nil {
+		t.Fatalf("BulkResetTraffic: %v", err)
+	}
+	if affected != 2 {
+		t.Fatalf("BulkResetTraffic affected = %d, want 2", affected)
+	}
+
+	g := groupByName(t, csvc, "silver")
+	if g.Up != 40 || g.Down != 60 || g.TrafficUsed != 100 {
+		t.Fatalf("group totals changed by bulk reset: got %+v, want up=40 down=60 used=100", g)
+	}
+}
+
+func TestGroupTotalsSurviveClientDelete(t *testing.T) {
+	initTrafficTestDB(t)
+	csvc := &ClientService{}
+	isvc := &InboundService{}
+
+	seedGroupedClient(t, "iris", "bronze", 70, 30)
+	seedGroupedClient(t, "jack", "bronze", 5, 5)
+
+	var rec model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "iris").First(&rec).Error; err != nil {
+		t.Fatalf("load iris record: %v", err)
+	}
+	if _, err := csvc.Delete(isvc, rec.Id, false); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	g := groupByName(t, csvc, "bronze")
+	if g.Up != 75 || g.Down != 35 || g.TrafficUsed != 110 {
+		t.Fatalf("group totals changed by client delete: got %+v, want up=75 down=35 used=110", g)
+	}
+	if g.ClientCount != 1 {
+		t.Fatalf("client count = %d, want 1", g.ClientCount)
+	}
+
+	var trafficRows int64
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", "iris").Count(&trafficRows).Error; err != nil {
+		t.Fatalf("count iris traffic rows: %v", err)
+	}
+	if trafficRows != 0 {
+		t.Fatalf("iris traffic row survived delete")
+	}
+}
+
+func TestGroupResetStillZeroesAfterBaselineAdjustments(t *testing.T) {
+	initTrafficTestDB(t)
+	csvc := &ClientService{}
+	isvc := &InboundService{}
+
+	seedGroupedClient(t, "kate", "iron", 100, 100)
+	if err := isvc.ResetClientTrafficByEmail("kate"); err != nil {
+		t.Fatalf("ResetClientTrafficByEmail: %v", err)
+	}
+	if g := groupByName(t, csvc, "iron"); g.TrafficUsed != 200 {
+		t.Fatalf("pre group-reset: got %+v, want used=200", g)
+	}
+
+	if err := csvc.ResetGroupTraffic("iron"); err != nil {
+		t.Fatalf("ResetGroupTraffic: %v", err)
+	}
+	if g := groupByName(t, csvc, "iron"); g.Up != 0 || g.Down != 0 || g.TrafficUsed != 0 {
+		t.Fatalf("group reset did not zero adjusted baselines: got %+v", g)
+	}
+}

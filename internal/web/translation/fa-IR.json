@@ -900,6 +900,7 @@
       "wireguardPublicKey": "کلید عمومی وایرگارد",
       "wireguardPreSharedKey": "کلید پیش‌اشتراکی وایرگارد",
       "wireguardAllowedIPs": "آی‌پی‌های مجاز وایرگارد",
+      "wireguardAllowedIPsHint": "برای تخصیص خودکار خالی بگذارید؛ ورودی‌ها را با کاما جدا کنید",
       "reverseTag": "تگ معکوس",
       "reverseTagPlaceholder": "Reverse tag اختیاری",
       "telegramId": "شناسه کاربر تلگرام",

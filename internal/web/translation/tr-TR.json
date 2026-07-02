@@ -900,6 +900,7 @@
       "wireguardPublicKey": "WireGuard Genel Anahtarı",
       "wireguardPreSharedKey": "WireGuard Ön Paylaşımlı Anahtar",
       "wireguardAllowedIPs": "WireGuard İzin Verilen IP'ler",
+      "wireguardAllowedIPsHint": "Otomatik atama için boş bırakın; girişleri virgülle ayırın",
       "reverseTag": "Reverse Tag",
       "reverseTagPlaceholder": "İsteğe Bağlı Reverse Tag",
       "telegramId": "Telegram Kullanıcı ID'si",

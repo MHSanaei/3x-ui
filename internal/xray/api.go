@@ -397,6 +397,15 @@ func IsExistingTagErr(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "existing tag")
 }
 
+// IsUserExistsErr reports whether err is xray's response to adding a user whose
+// email is already registered on the inbound.
+func IsUserExistsErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "already exists")
+}
+
 // ensureXrayAssetLocation makes geoip.dat/geosite.dat resolvable when xray-core
 // config builders run inside the panel process. The xray binary resolves assets
 // relative to its own executable, but the panel binary lives one level above

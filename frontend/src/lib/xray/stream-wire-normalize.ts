@@ -108,6 +108,18 @@ export function validateRealityTarget(target: string): string | undefined {
   return undefined;
 }
 
+function liftLegacyXhttpSessionKeys(obj: Record<string, unknown>): void {
+  const lift = (legacy: string, renamed: string) => {
+    const v = obj[legacy];
+    if ((obj[renamed] === undefined || obj[renamed] === '') && typeof v === 'string' && v !== '') {
+      obj[renamed] = v;
+    }
+    delete obj[legacy];
+  };
+  lift('sessionPlacement', 'sessionIDPlacement');
+  lift('sessionKey', 'sessionIDKey');
+}
+
 function dropEmptyStrings(obj: Record<string, unknown>, keys: readonly string[]): void {
   for (const key of keys) {
     const v = obj[key];
@@ -160,6 +172,7 @@ export function normalizeXhttpForWire(
   side: StreamWireSide,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...raw };
+  liftLegacyXhttpSessionKeys(out);
   const mode = typeof out.mode === 'string' && out.mode !== '' ? out.mode : 'auto';
   const enableXmux = out.enableXmux === true;
   delete out.enableXmux;

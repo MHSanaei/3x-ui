@@ -900,6 +900,7 @@
       "wireguardPublicKey": "Публічний ключ WireGuard",
       "wireguardPreSharedKey": "Спільний ключ WireGuard",
       "wireguardAllowedIPs": "Дозволені IP WireGuard",
+      "wireguardAllowedIPsHint": "Залиште порожнім для автопризначення; розділяйте записи комами",
       "reverseTag": "Зворотний тег",
       "reverseTagPlaceholder": "Необов'язковий Reverse tag",
       "telegramId": "ID користувача Telegram",
