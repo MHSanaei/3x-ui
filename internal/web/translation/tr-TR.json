@@ -646,6 +646,7 @@
         "scanUse": "Kullan",
         "scanRescan": "Yeniden tara",
         "spiderX": "SpiderX",
+        "spiderXHint": "İstemci başına tohum — panel bundan her istemci için benzersiz bir spx yolu türetir; herkesin yolunu döndürmek için yeniden üretin",
         "getNewCert": "Yeni Sertifika Al",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

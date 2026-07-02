@@ -646,6 +646,7 @@
         "scanUse": "Gunakan",
         "scanRescan": "Pindai ulang",
         "spiderX": "SpiderX",
+        "spiderXHint": "Seed per-klien — panel menurunkan jalur spx unik untuk tiap klien darinya; regenerasi untuk merotasi jalur semua klien",
         "getNewCert": "Dapatkan sertifikat baru",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

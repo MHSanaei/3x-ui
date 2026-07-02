@@ -248,6 +248,7 @@ export default function InboundFormModal({
     scanRealityCandidates,
     applyRealityScanResult,
     randomizeShortIds,
+    randomizeSpiderX,
     getNewEchCert,
     clearEchCert,
     pinFromCert,
@@ -896,6 +897,7 @@ export default function InboundFormModal({
           scanRealityCandidates={scanRealityCandidates}
           applyRealityScanResult={applyRealityScanResult}
           randomizeShortIds={randomizeShortIds}
+          randomizeSpiderX={randomizeSpiderX}
           genRealityKeypair={genRealityKeypair}
           clearRealityKeypair={clearRealityKeypair}
           genMldsa65={genMldsa65}

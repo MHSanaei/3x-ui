@@ -666,6 +666,7 @@
         "scanUse": "使用",
         "scanRescan": "重新扫描",
         "spiderX": "SpiderX",
+        "spiderXHint": "按客户端的种子——面板据此为每个客户端派生唯一的 spx 路径；重新生成可轮换所有客户端的路径",
         "getNewCert": "获取新证书",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

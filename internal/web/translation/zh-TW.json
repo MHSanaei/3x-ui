@@ -646,6 +646,7 @@
         "scanUse": "使用",
         "scanRescan": "重新掃描",
         "spiderX": "SpiderX",
+        "spiderXHint": "各客戶端的種子——面板據此為每個客戶端衍生唯一的 spx 路徑；重新產生可輪換所有客戶端的路徑",
         "getNewCert": "取得新憑證",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
