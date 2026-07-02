@@ -8,6 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+
+	"gorm.io/gorm"
 )
 
 type GroupSummary struct {
@@ -67,6 +69,57 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
 	})
 	return out, nil
+}
+
+// adjustGroupBaselinesForRemovedTraffic shifts group baselines down by the clients'
+// current counters so ListGroups totals survive a traffic reset or client delete (#5675).
+func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
+	if len(emails) == 0 {
+		return nil
+	}
+	type groupDelta struct {
+		Name string
+		Up   int64
+		Down int64
+	}
+	totals := make(map[string]*groupDelta)
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var part []groupDelta
+		if err := tx.Table("clients AS c").
+			Select("c.group_name AS name, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
+			Joins("JOIN client_traffics ct ON ct.email = c.email").
+			Where("c.group_name <> '' AND c.email IN ?", batch).
+			Group("c.group_name").
+			Scan(&part).Error; err != nil {
+			return err
+		}
+		for i := range part {
+			if agg, ok := totals[part[i].Name]; ok {
+				agg.Up += part[i].Up
+				agg.Down += part[i].Down
+			} else {
+				totals[part[i].Name] = &part[i]
+			}
+		}
+	}
+	for name, d := range totals {
+		if d.Up == 0 && d.Down == 0 {
+			continue
+		}
+		res := tx.Model(&model.ClientGroup{}).Where("name = ?", name).Updates(map[string]any{
+			"reset_up":   gorm.Expr("reset_up - ?", d.Up),
+			"reset_down": gorm.Expr("reset_down - ?", d.Down),
+		})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			if err := tx.Create(&model.ClientGroup{Name: name, ResetUp: -d.Up, ResetDown: -d.Down}).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *ClientService) EmailsByGroup(name string) ([]string, error) {

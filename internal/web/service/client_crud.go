@@ -466,24 +466,31 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	}
 
 	db := database.GetDB()
-	if err := db.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
-		return needRestart, err
-	}
-	if err := db.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
-		return needRestart, err
-	}
-	if !keepTraffic && existing.Email != "" {
-		if err := db.Where("email = ?", existing.Email).Delete(&xray.ClientTraffic{}).Error; err != nil {
-			return needRestart, err
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if existing.Email != "" {
+			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{existing.Email}); err != nil {
+				return err
+			}
 		}
-		if err := clearGlobalTraffic(db, existing.Email); err != nil {
-			return needRestart, err
+		if err := tx.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
+			return err
 		}
-		if err := db.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
-			return needRestart, err
+		if err := tx.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
+			return err
 		}
-	}
-	if err := db.Delete(&model.ClientRecord{}, id).Error; err != nil {
+		if !keepTraffic && existing.Email != "" {
+			if err := tx.Where("email = ?", existing.Email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+				return err
+			}
+			if err := clearGlobalTraffic(tx, existing.Email); err != nil {
+				return err
+			}
+			if err := tx.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Delete(&model.ClientRecord{}, id).Error
+	}); err != nil {
 		return needRestart, err
 	}
 	return needRestart, nil
