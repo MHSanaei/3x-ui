@@ -1738,6 +1738,7 @@
         "tagPlaceholder": "唯一均衡器標籤",
         "selector": "選擇器",
         "fallback": "Fallback",
+        "cycleTooltip": "循環: {path} → (回到 {start})",
         "expected": "期望",
         "expectedPlaceholder": "最佳節點數",
         "maxRtt": "最大 RTT",
@@ -1747,7 +1748,12 @@
         "balancerDesc": "無法同時使用 balancerTag 和 outboundTag。如果同時使用，則只有 outboundTag 會生效。",
         "costMatch": "標籤比對模式",
         "costValue": "權重",
-        "costRegexp": "正規表示式比對"
+        "costRegexp": "正規表示式比對",
+        "balancerDeleteInUse": "無法刪除此負載平衡器 — 它被用作以下負載平衡器的備用：{names}",
+        "balancerFallbackCycle": "無法將此負載平衡器設定為備用 — 這會建立循環依賴。",
+        "balancerFallbackInfo": "流量將透過以下路徑路由：負載平衡器 → Loopback → 伺服器 → 目標負載平衡器 → 出站連線。這會增加一個經過伺服器的額外跳轉，可能會引入輕微延遲。",
+        "fallbackBalancerHint": "選擇另一個負載平衡器作為備用",
+        "reservedPrefix": "_bl_ 前綴保留給內部負載均衡器迴圈物件"
       },
       "wireguard": {
         "secretKey": "金鑰",

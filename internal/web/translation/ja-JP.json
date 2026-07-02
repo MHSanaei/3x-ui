@@ -1738,6 +1738,7 @@
         "tagPlaceholder": "一意のバランサータグ",
         "selector": "セレクター",
         "fallback": "Fallback",
+        "cycleTooltip": "循環: {path} → ({start} に戻る)",
         "expected": "期待値",
         "expectedPlaceholder": "最適ノード数",
         "maxRtt": "最大 RTT",
@@ -1747,7 +1748,12 @@
         "balancerDesc": "balancerTagとoutboundTagは同時に使用できません。同時に使用された場合、outboundTagのみが有効になります。",
         "costMatch": "タグパターン",
         "costValue": "重み",
-        "costRegexp": "正規表現で一致"
+        "costRegexp": "正規表現で一致",
+        "balancerDeleteInUse": "このバランサーを削除できません — 以下のバランサーのフォールバックとして使用されています：{names}",
+        "balancerFallbackCycle": "このバランサーをフォールバックに設定できません — 循環依存が発生します。",
+        "balancerFallbackInfo": "トラフィックは以下のルートで転送されます：バランサー → Loopback → サーバー → ターゲットバランサー → アウトバウンド。これによりサーバーを経由する追加ホップが発生し、多少の遅延が生じる場合があります。",
+        "fallbackBalancerHint": "フォールバックとして別のバランサーを選択してください",
+        "reservedPrefix": "プレフィックス _bl_ はバランサーの内部ループバックオブジェクト用に予約されています"
       },
       "wireguard": {
         "secretKey": "シークレットキー",

@@ -10,22 +10,15 @@ function renderModal(onConfirm = vi.fn()) {
       open
       balancer={null}
       outboundTags={['proxy', 'direct']}
+      balancerTags={[]}
+      balancers={[]}
+      templateSettings={null}
       otherTags={['existing']}
       onClose={() => {}}
       onConfirm={onConfirm}
     />,
   );
   return { onConfirm };
-}
-
-function erroredItemCount(): number {
-  return document.querySelectorAll('.ant-form-item-has-error').length;
-}
-
-function explainText(): string {
-  return Array.from(document.querySelectorAll('.ant-form-item-explain'))
-    .map((el) => (el.textContent ?? '').trim())
-    .join(' | ');
 }
 
 function createButton(): HTMLElement {
@@ -35,24 +28,29 @@ function createButton(): HTMLElement {
 }
 
 describe('BalancerFormModal', () => {
-  it('shows no validation errors when freshly opened in add mode', () => {
+  it('opens with create button disabled (tag and selector required)', () => {
     renderModal();
     expect(document.querySelector('.ant-modal')).toBeTruthy();
-    expect(erroredItemCount()).toBe(0);
-    expect(explainText()).not.toContain('Tag is required');
-    expect(explainText()).not.toContain('Pick at least one outbound');
-    expect(createButton().hasAttribute('disabled')).toBe(false);
+    expect(createButton().hasAttribute('disabled')).toBe(true);
   });
 
-  it('reveals required-field errors only after a save attempt, without confirming', () => {
+  it('keeps button disabled when only tag is filled (selector still empty)', () => {
+    renderModal();
+    const tagInput = document.querySelector('.ant-modal input') as HTMLInputElement;
+    fireEvent.change(tagInput, { target: { value: 'my-bal' } });
+    expect(createButton().hasAttribute('disabled')).toBe(true);
+  });
+
+  it('disables button for duplicate tag', () => {
+    renderModal();
+    const tagInput = document.querySelector('.ant-modal input') as HTMLInputElement;
+    fireEvent.change(tagInput, { target: { value: 'existing' } });
+    expect(createButton().hasAttribute('disabled')).toBe(true);
+  });
+
+  it('does not call onConfirm when form is invalid', () => {
     const { onConfirm } = renderModal();
-    expect(erroredItemCount()).toBe(0);
-
     fireEvent.click(createButton());
-
-    expect(erroredItemCount()).toBe(2);
-    expect(explainText()).toContain('Tag is required');
-    expect(explainText()).toContain('Pick at least one outbound');
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });

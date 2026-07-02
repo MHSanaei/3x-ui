@@ -1738,6 +1738,7 @@
         "tagPlaceholder": "tag balancer duy nhất",
         "selector": "Selector",
         "fallback": "Fallback",
+        "cycleTooltip": "Vòng lặp: {path} → (quay lại {start})",
         "expected": "Kỳ vọng",
         "expectedPlaceholder": "số node tối ưu",
         "maxRtt": "RTT tối đa",
@@ -1747,7 +1748,12 @@
         "balancerDesc": "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động.",
         "costMatch": "Mẫu thẻ",
         "costValue": "Trọng số",
-        "costRegexp": "Khớp biểu thức chính quy"
+        "costRegexp": "Khớp biểu thức chính quy",
+        "balancerDeleteInUse": "Không thể xóa load balancer này — nó được sử dụng làm dự phòng cho: {names}",
+        "balancerFallbackCycle": "Không thể đặt load balancer này làm dự phòng — sẽ tạo ra phụ thuộc vòng.",
+        "balancerFallbackInfo": "Lưu lượng sẽ được định tuyến qua: Load Balancer → Loopback → Máy chủ → Load Balancer mục tiêu → kết nối ra ngoài. Điều này thêm một hop bổ sung qua máy chủ, có thể gây ra độ trễ nhẹ.",
+        "fallbackBalancerHint": "Chọn một load balancer khác làm dự phòng",
+        "reservedPrefix": "Tiền tố _bl_ được dành riêng cho các đối tượng loopback nội bộ của bộ cân bằng"
       },
       "wireguard": {
         "secretKey": "Khoá bí mật",

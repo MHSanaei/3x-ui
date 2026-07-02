@@ -1738,6 +1738,7 @@
         "tagPlaceholder": "وسم موازن فريد",
         "selector": "المحدد",
         "fallback": "Fallback",
+        "cycleTooltip": "حلقة: {path} → (العودة إلى {start})",
         "expected": "المتوقع",
         "expectedPlaceholder": "العدد الأمثل للعقد",
         "maxRtt": "أقصى RTT",
@@ -1747,7 +1748,12 @@
         "balancerDesc": "ماينفعش تستخدم balancerTag و outboundTag مع بعض. لو اتستخدموا مع بعض، outboundTag هو اللي هيشتغل.",
         "costMatch": "نمط الوسم",
         "costValue": "الوزن",
-        "costRegexp": "مطابقة تعبير نمطي"
+        "costRegexp": "مطابقة تعبير نمطي",
+        "balancerDeleteInUse": "لا يمكن حذف هذا الموزان — يتم استخدامه كبديل لـ: {names}",
+        "balancerFallbackCycle": "لا يمكن تعيين هذا الموزان كبديل — سيؤدي ذلك إلى إنشاء تبعية دائرية.",
+        "balancerFallbackInfo": "سيتم توجيه حركة المرور عبر: الموزان → Loopback → الخادم → الموزان المستهدف → الاتصال الخارجي. سيؤدي هذا إلى إضافة قفزة إضافية عبر الخادم، مما قد يسبب تأخيرات طفيفة.",
+        "fallbackBalancerHint": "اختر موزان أحمال آخر كبديل",
+        "reservedPrefix": "البادئة _bl_ محجوزة لكائنات loopback الداخلية للموازنات"
       },
       "wireguard": {
         "secretKey": "المفتاح السري",
