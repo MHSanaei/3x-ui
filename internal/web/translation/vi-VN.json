@@ -809,6 +809,7 @@
       "groupPlaceholder": "ví dụ customer-a",
       "comment": "Ghi chú",
       "traffic": "Lưu lượng",
+      "speed": "Tốc độ",
       "offline": "Ngoại tuyến",
       "addClient": "Thêm khách hàng",
       "qrCode": "Mã QR",

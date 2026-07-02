@@ -809,6 +809,7 @@
       "groupPlaceholder": "напр. customer-a",
       "comment": "Коментар",
       "traffic": "Трафік",
+      "speed": "Швидкість",
       "offline": "Не в мережі",
       "addClient": "Додати клієнта",
       "qrCode": "QR-код",

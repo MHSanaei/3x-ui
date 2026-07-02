@@ -809,6 +809,7 @@
       "groupPlaceholder": "e.g. customer-a",
       "comment": "Comment",
       "traffic": "Traffic",
+      "speed": "Speed",
       "offline": "Offline",
       "addClient": "Add Client",
       "qrCode": "QR Code",

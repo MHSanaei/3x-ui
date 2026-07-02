@@ -809,6 +809,7 @@
       "groupPlaceholder": "مثلاً customer-a",
       "comment": "توضیحات",
       "traffic": "ترافیک",
+      "speed": "سرعت",
       "offline": "آفلاین",
       "addClient": "افزودن کلاینت",
       "qrCode": "کد QR",
