@@ -1399,7 +1399,9 @@
       "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
       "validation": {
         "pathLeadingSlash": "Path harus diawali dengan /"
-      }
+      },
+      "secretClear": "Hapus",
+      "secretClearUndo": "Batalkan hapus"
     },
     "xray": {
       "title": "Konfigurasi Xray",

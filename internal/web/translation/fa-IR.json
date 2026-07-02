@@ -1399,7 +1399,9 @@
       "eventMemoryHigh": "مصرف حافظه بالا (%)",
       "validation": {
         "pathLeadingSlash": "مسیر باید با / شروع شود"
-      }
+      },
+      "secretClear": "پاک کردن",
+      "secretClearUndo": "لغو پاک کردن"
     },
     "xray": {
       "title": "پیکربندی ایکس‌ری",

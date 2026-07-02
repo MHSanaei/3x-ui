@@ -1515,7 +1515,9 @@
       "eventMemoryHigh": "Memory high (%)",
       "validation": {
         "pathLeadingSlash": "Path must start with /"
-      }
+      },
+      "secretClear": "Clear",
+      "secretClearUndo": "Undo clear"
     },
     "xray": {
       "title": "Xray Configs",

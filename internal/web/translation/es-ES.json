@@ -1399,7 +1399,9 @@
       "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior.",
       "validation": {
         "pathLeadingSlash": "La ruta debe comenzar con /"
-      }
+      },
+      "secretClear": "Borrar",
+      "secretClearUndo": "Deshacer borrado"
     },
     "xray": {
       "title": "Xray Configuración",

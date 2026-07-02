@@ -1399,7 +1399,9 @@
       "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。",
       "validation": {
         "pathLeadingSlash": "路径必须以 / 开头"
-      }
+      },
+      "secretClear": "清除",
+      "secretClearUndo": "撤销清除"
     },
     "xray": {
       "importRules": "导入规则",

@@ -1399,7 +1399,9 @@
       "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın.",
       "validation": {
         "pathLeadingSlash": "Yol / ile başlamalıdır"
-      }
+      },
+      "secretClear": "Temizle",
+      "secretClearUndo": "Temizlemeyi geri al"
     },
     "xray": {
       "title": "Xray Yapılandırmaları",

@@ -77,7 +77,7 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := &view.AllSetting
-	if err := s.UpdateAllSetting(settings); err != nil {
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.GetTgBotToken(); got != "telegram-secret" {
@@ -91,6 +91,54 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 	}
 	if got, _ := s.GetSmtpPassword(); got != "smtp-secret" {
 		t.Fatalf("smtp password = %q, want preserved secret", got)
+	}
+}
+
+func TestUpdateAllSettingClearsFlaggedSecrets(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	if err := s.saveSetting("tgBotToken", "telegram-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.saveSetting("ldapPassword", "ldap-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.saveSetting("smtpPassword", "smtp-secret"); err != nil {
+		t.Fatal(err)
+	}
+
+	view, err := s.GetAllSettingView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UpdateAllSetting(&view.AllSetting, SecretClears{SmtpPassword: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetSmtpPassword(); got != "" {
+		t.Fatalf("smtp password = %q, want cleared", got)
+	}
+	if got, _ := s.GetTgBotToken(); got != "telegram-secret" {
+		t.Fatalf("tg token = %q, unflagged secret must stay preserved", got)
+	}
+	if got, _ := s.GetLdapPassword(); got != "ldap-secret" {
+		t.Fatalf("ldap password = %q, unflagged secret must stay preserved", got)
+	}
+
+	view, err = s.GetAllSettingView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.HasSmtpPassword {
+		t.Fatal("hasSmtpPassword must report false after clearing")
+	}
+	if err := s.UpdateAllSetting(&view.AllSetting, SecretClears{TgBotToken: true, LdapPassword: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetTgBotToken(); got != "" {
+		t.Fatalf("tg token = %q, want cleared", got)
+	}
+	if got, _ := s.GetLdapPassword(); got != "" {
+		t.Fatalf("ldap password = %q, want cleared", got)
 	}
 }
 

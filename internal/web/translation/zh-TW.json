@@ -1399,7 +1399,9 @@
       "remarkTemplateDesc": "設定後，這將取代每個訂閱連結的備註模型——使用變數標記撰寫您自己的格式（使用按鈕來插入）。留空則使用上方的模型。",
       "validation": {
         "pathLeadingSlash": "路徑必須以 / 開頭"
-      }
+      },
+      "secretClear": "清除",
+      "secretClearUndo": "復原清除"
     },
     "xray": {
       "title": "Xray 配置",
