@@ -770,10 +770,7 @@ func TestGenTemplatedRemarkPreservesConfiguredOuterWhitespace(t *testing.T) {
 }
 
 func TestRepeatedBodyRemarksGetNumericSuffix(t *testing.T) {
-	s := &SubService{
-		subscriptionBody: true,
-		remarkCounts:    map[string]int{},
-	}
+	s := &SubService{subscriptionBody: true}
 	inbound := &model.Inbound{Remark: "日本"}
 	client := model.Client{Email: "ZouJP"}
 
@@ -797,7 +794,6 @@ func TestRepeatedTemplatedBodyRemarksGetNumericSuffix(t *testing.T) {
 		remarkTemplate:   "{{INBOUND}}-{{EMAIL}}",
 		subscriptionBody: true,
 		usageShown:       map[string]bool{},
-		remarkCounts:     map[string]int{},
 	}
 	inbound := &model.Inbound{Remark: "日本"}
 	client := model.Client{Email: "ZouJP"}
