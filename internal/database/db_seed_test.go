@@ -153,3 +153,44 @@ func TestNormalizeInboundClientSubId_FillsMissingAndPreservesExisting(t *testing
 		t.Fatalf("expected one InboundClientSubIdFix history row, got %d", historyCount)
 	}
 }
+
+func TestNormalizeSettingPaths_RepairsLegacyValues(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	seed := []model.Setting{
+		{Key: "subJsonPath", Value: "YIrCXJOOOL"},
+		{Key: "subPath", Value: "/sub"},
+		{Key: "subClashPath", Value: "clash/"},
+		{Key: "webBasePath", Value: "/panel/"},
+	}
+	for i := range seed {
+		if err := db.Create(&seed[i]).Error; err != nil {
+			t.Fatalf("seed setting %s: %v", seed[i].Key, err)
+		}
+	}
+
+	if err := normalizeSettingPaths(); err != nil {
+		t.Fatalf("normalizeSettingPaths: %v", err)
+	}
+
+	want := map[string]string{
+		"subJsonPath":  "/YIrCXJOOOL/",
+		"subPath":      "/sub/",
+		"subClashPath": "/clash/",
+		"webBasePath":  "/panel/",
+	}
+	for key, expected := range want {
+		var row model.Setting
+		if err := db.Where("key = ?", key).First(&row).Error; err != nil {
+			t.Fatalf("read %s: %v", key, err)
+		}
+		if row.Value != expected {
+			t.Errorf("%s = %q, want %q", key, row.Value, expected)
+		}
+	}
+}

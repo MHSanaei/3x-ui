@@ -1396,7 +1396,10 @@
       "smtpErrorUnknown": "Error de SMTP: {{ .Error }}",
       "eventMemoryHigh": "Uso de memoria alto (%)",
       "remarkTemplate": "Plantilla de notas",
-      "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior."
+      "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior.",
+      "validation": {
+        "pathLeadingSlash": "La ruta debe comenzar con /"
+      }
     },
     "xray": {
       "title": "Xray Configuración",

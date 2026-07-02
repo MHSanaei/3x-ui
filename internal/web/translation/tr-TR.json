@@ -1396,7 +1396,10 @@
       "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
       "eventMemoryHigh": "Bellek kullanımı yüksek (%)",
       "remarkTemplate": "Açıklama Şablonu",
-      "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın."
+      "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın.",
+      "validation": {
+        "pathLeadingSlash": "Yol / ile başlamalıdır"
+      }
     },
     "xray": {
       "title": "Xray Yapılandırmaları",

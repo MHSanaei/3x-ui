@@ -1396,7 +1396,10 @@
       "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}",
       "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)",
       "remarkTemplate": "Mẫu ghi chú",
-      "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên."
+      "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên.",
+      "validation": {
+        "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
+      }
     },
     "xray": {
       "title": "Cài đặt Xray",

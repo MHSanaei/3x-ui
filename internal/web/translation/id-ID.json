@@ -1396,7 +1396,10 @@
       "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
       "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
-      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
+      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
+      "validation": {
+        "pathLeadingSlash": "Path harus diawali dengan /"
+      }
     },
     "xray": {
       "title": "Konfigurasi Xray",
