@@ -486,6 +486,14 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
 
+		// Adopting the node's settings verbatim would re-add a client the master
+		// deleted moments ago if this snapshot was fetched before the deletion
+		// push landed — filter just-deleted emails out while their tombstone lives.
+		adoptedSettings := snapIb.Settings
+		if stripped, changed := stripTombstonedClients(adoptedSettings); changed {
+			adoptedSettings = stripped
+		}
+
 		updates := map[string]any{}
 		if !dirty {
 			updates["enable"] = snapIb.Enable
@@ -496,7 +504,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["protocol"] = snapIb.Protocol
 			updates["total"] = snapIb.Total
 			updates["expiry_time"] = snapIb.ExpiryTime
-			updates["settings"] = snapIb.Settings
+			updates["settings"] = adoptedSettings
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
@@ -513,7 +521,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["origin_node_guid"] = og
 		}
 
-		if !dirty && (c.Settings != snapIb.Settings ||
+		if !dirty && (c.Settings != adoptedSettings ||
 			c.Remark != snapIb.Remark ||
 			c.Listen != snapIb.Listen ||
 			c.Port != snapIb.Port ||
@@ -634,8 +642,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if dirty {
 					continue
 				}
+				_, isNewInbound := newInboundIDs[c.Id]
+				// On a known inbound a missing row plus a live tombstone means the
+				// master just deleted this client and the snapshot predates the
+				// deletion push — recreating the row (at zero) would resurrect the
+				// client. A freshly adopted inbound still gets its row (seeded at
+				// zero) so adoption semantics stay intact.
+				if !isNewInbound && isClientEmailTombstoned(cs.Email) {
+					continue
+				}
 				var seedUp, seedDown int64
-				if _, isNewInbound := newInboundIDs[c.Id]; isNewInbound && !isClientEmailTombstoned(cs.Email) {
+				if isNewInbound && !isClientEmailTombstoned(cs.Email) {
 					seedUp, seedDown = canon.Up, canon.Down
 				}
 				row := &xray.ClientTraffic{
