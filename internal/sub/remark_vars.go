@@ -676,7 +676,7 @@ func (s *SubService) uniqueBodyRemark(remark string) string {
 	if s.remarkCounts[remark] <= 1 {
 		return remark
 	}
-	return fmt.Sprintf("%s %d", remark, s.remarkCounts[remark])
+	return fmt.Sprintf("%s-%d", remark, s.remarkCounts[remark])
 }
 
 // genHostRemark builds one host endpoint's remark for a specific client. With a
