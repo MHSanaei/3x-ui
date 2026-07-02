@@ -173,6 +173,41 @@ update_dev() {
     fi
 }
 
+replace_xui_script() {
+    local url="$1"
+    local use_if_modified_since="$2"
+    local temp_file="/usr/bin/x-ui-temp.$$"
+
+    rm -f "$temp_file"
+    if [[ "$use_if_modified_since" == "true" ]]; then
+        curl -fLRo "$temp_file" -z /usr/bin/x-ui "$url"
+    else
+        curl -fLRo "$temp_file" "$url"
+    fi
+    if [[ $? != 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+
+    if [[ ! -s "$temp_file" ]]; then
+        rm -f "$temp_file"
+        # -z above means "not modified since /usr/bin/x-ui" rather than a
+        # real failure, so an empty download here is success, not an error.
+        [[ "$use_if_modified_since" == "true" ]] && return 0
+        return 1
+    fi
+
+    mv -f "$temp_file" /usr/bin/x-ui
+    if [[ $? != 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    # The move already landed the new script; a transient chmod failure here
+    # shouldn't make callers think the whole replace failed.
+    chmod +x /usr/bin/x-ui
+    return 0
+}
+
 update_menu() {
     echo -e "${yellow}Updating Menu${plain}"
     confirm "This function will update the menu to the latest changes." "y"
@@ -184,11 +219,8 @@ update_menu() {
         return 0
     fi
 
-    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    chmod +x ${xui_folder}/x-ui.sh
-    chmod +x /usr/bin/x-ui
-
-    if [[ $? == 0 ]]; then
+    if replace_xui_script "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh" "false"; then
+        chmod +x ${xui_folder}/x-ui.sh
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
         exit 0
     else
@@ -804,14 +836,12 @@ enable_bbr() {
 }
 
 update_shell() {
-    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
-    if [[ $? != 0 ]]; then
-        echo ""
-        LOGE "Failed to download script, Please check whether the machine can connect Github"
+    if replace_xui_script "https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh" "true"; then
+        LOGI "Upgrade script succeeded, Please rerun the script"
         before_show_menu
     else
-        chmod +x /usr/bin/x-ui
-        LOGI "Upgrade script succeeded, Please rerun the script"
+        echo ""
+        LOGE "Failed to download script, Please check whether the machine can connect Github"
         before_show_menu
     fi
 }
@@ -1198,22 +1228,43 @@ update_geofiles() {
             dat_files=(geoip_RU geosite_RU)
             dat_source="runetfreedom/russia-v2ray-rules-dat"
             ;;
+        *)
+            echo -e "${red}update_geofiles: unknown dataset '${1}'${plain}"
+            return 1
+            ;;
     esac
     local failed=0 http_code
     for dat in "${dat_files[@]}"; do
         # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
         remote_file="${dat%%_*}"
-        # -z skips the download (server answers 304) when the local copy is already current
-        http_code=$(curl -sSfLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat -w '%{http_code}' \
+        local dest="${xui_folder}/bin/${dat}.dat"
+        local temp_file="${dest}.tmp.$$"
+        rm -f "$temp_file"
+        # -z (against the live file, not the temp file) skips the download
+        # (server answers 304) when the local copy is already current.
+        http_code=$(curl -sSfLRo "$temp_file" -z "$dest" -w '%{http_code}' \
             https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat)
         if [[ $? -ne 0 ]]; then
             echo -e "${red}${dat}.dat: download failed${plain}"
+            rm -f "$temp_file"
             failed=1
         elif [[ "$http_code" == "304" ]]; then
             echo -e "${dat}.dat: already up to date"
+            rm -f "$temp_file"
+        elif [[ ! -s "$temp_file" ]]; then
+            echo -e "${red}${dat}.dat: downloaded file is empty${plain}"
+            rm -f "$temp_file"
+            failed=1
         else
-            echo -e "${green}${dat}.dat: updated${plain}"
-            geo_updated=1
+            mv -f "$temp_file" "$dest"
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}${dat}.dat: failed to install${plain}"
+                rm -f "$temp_file"
+                failed=1
+            else
+                echo -e "${green}${dat}.dat: updated${plain}"
+                geo_updated=1
+            fi
         fi
     done
     return $failed

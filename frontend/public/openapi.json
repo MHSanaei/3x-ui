@@ -2147,6 +2147,34 @@
         ],
         "type": "object"
       },
+      "PanelUpdateStatus": {
+        "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
+        "properties": {
+          "exitCode": {
+            "example": 0,
+            "type": "integer"
+          },
+          "finishedAt": {
+            "example": 1735689612,
+            "type": "integer"
+          },
+          "runId": {
+            "example": "1735689600123456789",
+            "type": "string"
+          },
+          "state": {
+            "example": "success",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exitCode",
+          "finishedAt",
+          "runId",
+          "state"
+        ],
+        "type": "object"
+      },
       "ProbeResultUI": {
         "properties": {
           "cpuPct": {
@@ -3901,6 +3929,47 @@
         }
       }
     },
+    "/panel/api/server/getUpdateStatus": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Report the outcome of the most recently launched panel self-update (see POST updatePanel). Compare the returned runId against the one updatePanel returned to tell this run apart from a stale result.",
+        "operationId": "get_panel_api_server_getUpdateStatus",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/PanelUpdateStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "exitCode": 0,
+                    "finishedAt": 1735689612,
+                    "runId": "1735689600123456789",
+                    "state": "success"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getConfigJson": {
       "get": {
         "tags": [
@@ -4426,6 +4495,12 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "runId": "1735689600123456789"
                   }
                 }
               }

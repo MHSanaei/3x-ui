@@ -1326,6 +1326,40 @@ setup_fail2ban() {
     return 0
 }
 
+# Lands a systemd unit file at ${xui_service}/x-ui.service via a temp file +
+# atomic mv, so a failed cp/curl or an interrupted mv never leaves a
+# truncated unit file at the live path -- systemd would then fail to parse
+# it on the next daemon-reload/start. Same pattern already used for
+# /usr/bin/x-ui elsewhere in this script. source_is_url picks cp (from a
+# file already extracted from the release tarball) vs curl (GitHub fallback).
+_install_xui_service_unit() {
+    local source="$1"
+    local source_is_url="$2"
+    local dest="${xui_service}/x-ui.service"
+    local temp_file="${dest}.tmp.$$"
+
+    rm -f "$temp_file"
+    if [[ "$source_is_url" == "true" ]]; then
+        curl -fLRo "$temp_file" "$source" > /dev/null 2>&1
+    else
+        cp -f "$source" "$temp_file" > /dev/null 2>&1
+    fi
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    if [[ ! -s "$temp_file" ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    mv -f "$temp_file" "$dest"
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    return 0
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -1340,6 +1374,11 @@ install_x-ui() {
         curl -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 300 -o ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
+            exit 1
+        fi
+        if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+            rm ${xui_folder}-linux-$(arch).tar.gz -f
+            echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
     else
@@ -1367,10 +1406,23 @@ install_x-ui() {
             echo -e "${red}Download x-ui ${tag_version} failed, please check if the version exists ${plain}"
             exit 1
         fi
+        if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+            rm ${xui_folder}-linux-$(arch).tar.gz -f
+            echo -e "${red}Downloaded x-ui release archive is empty${plain}"
+            exit 1
+        fi
     fi
-    curl -fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    local xui_script_temp="/usr/bin/x-ui-temp.$$"
+    rm -f "${xui_script_temp}"
+    curl -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
         echo -e "${red}Failed to download x-ui.sh${plain}"
+        exit 1
+    fi
+    if [[ ! -s "${xui_script_temp}" ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Downloaded x-ui.sh is empty${plain}"
         exit 1
     fi
 
@@ -1391,9 +1443,20 @@ install_x-ui() {
 
     # Extract resources and set permissions
     tar zxvf x-ui-linux-$(arch).tar.gz
+    if [[ $? -ne 0 ]]; then
+        rm x-ui-linux-$(arch).tar.gz -f
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
+        exit 1
+    fi
     rm x-ui-linux-$(arch).tar.gz -f
 
     cd x-ui
+    if [[ $? -ne 0 || ! -s x-ui ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
+        exit 1
+    fi
     chmod +x x-ui
     chmod +x x-ui.sh
 
@@ -1414,7 +1477,12 @@ install_x-ui() {
     fi
 
     # Update x-ui cli and se set permission
-    mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
+    mv -f "${xui_script_temp}" /usr/bin/x-ui
+    if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Failed to install x-ui.sh${plain}"
+        exit 1
+    fi
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
     config_after_install
@@ -1434,9 +1502,23 @@ install_x-ui() {
     fi
 
     if [[ $release == "alpine" ]]; then
-        curl -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
+        rm -f "${xui_rc_temp}"
+        curl -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
         if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
             echo -e "${red}Failed to download x-ui.rc${plain}"
+            exit 1
+        fi
+        if [[ ! -s "${xui_rc_temp}" ]]; then
+            rm -f "${xui_rc_temp}"
+            echo -e "${red}Downloaded x-ui.rc is empty${plain}"
+            exit 1
+        fi
+        mv -f "${xui_rc_temp}" /etc/init.d/x-ui
+        if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
+            echo -e "${red}Failed to install x-ui.rc${plain}"
             exit 1
         fi
         chmod +x /etc/init.d/x-ui
@@ -1448,8 +1530,7 @@ install_x-ui() {
 
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
-            if [[ $? -eq 0 ]]; then
+            if _install_xui_service_unit "x-ui.service" "false"; then
                 service_installed=true
             fi
         fi
@@ -1459,8 +1540,7 @@ install_x-ui() {
                 ubuntu | debian | armbian)
                     if [ -f "x-ui.service.debian" ]; then
                         echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.debian" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1468,8 +1548,7 @@ install_x-ui() {
                 arch | manjaro | parch)
                     if [ -f "x-ui.service.arch" ]; then
                         echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.arch" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1477,8 +1556,7 @@ install_x-ui() {
                 *)
                     if [ -f "x-ui.service.rhel" ]; then
                         echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.rhel" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1491,17 +1569,17 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian"
                     ;;
                 arch | manjaro | parch)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch"
                     ;;
                 *)
-                    curl -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel"
                     ;;
             esac
 
-            if [[ $? -ne 0 ]]; then
+            if ! _install_xui_service_unit "$service_unit_url" "true"; then
                 echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
                 exit 1
             fi
