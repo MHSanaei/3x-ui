@@ -150,11 +150,10 @@ install_xray_bot() {
     echo -e "${green}🤖 Installing Xray Bot...${plain}"
     install_bot_deps
     
-    rm -rf "$bot_dir" /usr/bin/xray-bot
+    rm -f /usr/bin/xray-bot
     mkdir -p "$bot_dir"
     
     if [[ "$MODE" == "build" ]]; then
-        # Ищем папку xray-bot и скрипт меню в текущей рабочей директории билда
         if [[ -d "${SRC_DIR}/xray-bot" ]]; then
             cp -r "${SRC_DIR}/xray-bot/"* "$bot_dir/"
         elif [[ -d "${cur_dir}/xray-bot" ]]; then
@@ -167,14 +166,12 @@ install_xray_bot() {
             cp "${cur_dir}/xray-bot.sh" /usr/bin/xray-bot
         fi
     else
-        # Режим Git: качаем файлы напрямую из репозитория
         git clone https://github.com/KimaruBs/3x-ui.git "${bot_dir}_tmp"
         cp -r "${bot_dir}_tmp/xray-bot/"* "$bot_dir/"
         wget -N --no-check-certificate -O /usr/bin/xray-bot "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/xray-bot.sh"
         rm -rf "${bot_dir}_tmp"
     fi
     
-    # Гарантируем права и копирование, если по какой-то причине файл не перенёсся
     if [[ ! -f /usr/bin/xray-bot && -f "${bot_dir}/xray-bot.sh" ]]; then
         cp "${bot_dir}/xray-bot.sh" /usr/bin/xray-bot
     fi
@@ -188,7 +185,10 @@ install_xray_bot() {
         echo -e "${green}✅ Бот развернут в ${bot_dir}${plain}"
     fi
 
-    echo -e "${green}⚙️ Создание системной службы для xray-bot...${plain}"
+    echo -e "${green}⚙️ Обновление системной службы для xray-bot...${plain}"
+    systemctl stop xray-bot > /dev/null 2>&1 || true
+    rm -f /etc/systemd/system/xray-bot.service
+
     cat > /etc/systemd/system/xray-bot.service <<EOF
 [Unit]
 Description=3x-ui Xray Telegram Bot
@@ -198,7 +198,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=${bot_dir}/src
-ExecStart=${bot_dir}/venv/bin/python3 bot.py
+ExecStart=${bot_dir}/venv/bin/python3 app.py
 Restart=on-failure
 RestartSec=3s
 
@@ -209,13 +209,12 @@ EOF
     systemctl daemon-reload
     systemctl enable xray-bot
     systemctl restart xray-bot
-    echo -e "${green}✅ Служба xray-bot успешно запущена! Управление: xray-bot${plain}"
+    echo -e "${green}✅ Служба xray-bot успешно перезапущена! Управление: xray-bot${plain}"
 }
 
 start_installation() {
     install_base
 
-    # Определение корневой папки исходников
     if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
     elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
     else SRC_DIR="${cur_dir}"
