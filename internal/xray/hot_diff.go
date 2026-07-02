@@ -108,6 +108,10 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		if oldIb.Tag == apiTag || oldIb.Tag == "api" {
 			return false
 		}
+		if exists && (inboundHasReverseClient(oldIb) || inboundHasReverseClient(newIb)) {
+			logger.Debug("hot diff: inbound [", oldIb.Tag, "] carries a reverse-tagged client, forcing a full restart instead of a hot swap")
+			return false
+		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
 		if exists {
 			raw, err := json.Marshal(newIb)
@@ -132,6 +136,31 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		diff.AddedInbounds = append(diff.AddedInbounds, raw)
 	}
 	return true
+}
+
+func inboundHasReverseClient(ib *InboundConfig) bool {
+	if ib == nil {
+		return false
+	}
+	var settings struct {
+		Clients []struct {
+			Reverse json.RawMessage `json:"reverse"`
+		} `json:"clients"`
+	}
+	if err := json.Unmarshal(ib.Settings, &settings); err != nil {
+		return false
+	}
+	for _, c := range settings.Clients {
+		if len(c.Reverse) == 0 {
+			continue
+		}
+		var tag any
+		if err := json.Unmarshal(c.Reverse, &tag); err != nil || tag == nil {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // diffOutbounds fills diff with outbound removals/additions keyed by tag.

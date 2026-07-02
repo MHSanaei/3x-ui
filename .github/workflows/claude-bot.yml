@@ -30,7 +30,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_non_write_users: "*"
           claude_args: |
-            --model claude-sonnet-4-6
+            --model claude-sonnet-5
+            --effort xhigh
             --max-turns 300
             --allowedTools "Bash(gh:*),Read,Glob,Grep"
           prompt: |
@@ -282,7 +283,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_non_write_users: "*"
           claude_args: |
-            --model claude-opus-4-8
+            --model claude-sonnet-5
+            --effort max
             --max-turns 250
             --allowedTools "Bash(gh:*),Bash(git:*),Read,Glob,Grep"
           prompt: |
@@ -500,7 +502,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
-            --model claude-opus-4-8
+            --model claude-sonnet-5
+            --effort max
             --max-turns 250
             --allowedTools "Bash(gh:*),Bash(git:*),Read,Glob,Grep,Edit,Write"
             --append-system-prompt "You are replying to an @claude mention in the MHSanaei/3x-ui repository, an open-source web panel for managing Xray-core servers. The full repo source is checked out in the working directory; use Read, Glob and Grep to open and verify the relevant files before stating any default, path, flag, option name, or behavior.
