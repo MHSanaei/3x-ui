@@ -15,15 +15,27 @@ import (
 type HotDiff struct {
 	RemovedInboundTags  []string
 	AddedInbounds       [][]byte
+	RemovedUsers        []UserOp
+	AddedUsers          []UserOp
 	RemovedOutboundTags []string
 	AddedOutbounds      [][]byte
 	RoutingConfig       []byte // full new routing section; nil when unchanged
+}
+
+// UserOp is a per-user AlterInbound operation; User is nil for removals.
+type UserOp struct {
+	Tag      string
+	Protocol string
+	Email    string
+	User     map[string]any
 }
 
 // Empty reports whether the diff contains no operations.
 func (d *HotDiff) Empty() bool {
 	return len(d.RemovedInboundTags) == 0 &&
 		len(d.AddedInbounds) == 0 &&
+		len(d.RemovedUsers) == 0 &&
+		len(d.AddedUsers) == 0 &&
 		len(d.RemovedOutboundTags) == 0 &&
 		len(d.AddedOutbounds) == 0 &&
 		d.RoutingConfig == nil
@@ -112,6 +124,9 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			logger.Debug("hot diff: inbound [", oldIb.Tag, "] carries a reverse-tagged client, forcing a full restart instead of a hot swap")
 			return false
 		}
+		if exists && diffInboundUsers(oldIb, newIb, diff) {
+			continue
+		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
 		if exists {
 			raw, err := json.Marshal(newIb)
@@ -136,6 +151,99 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		diff.AddedInbounds = append(diff.AddedInbounds, raw)
 	}
 	return true
+}
+
+var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}}
+
+// diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
+// differ only in settings.clients, so the handler (and its listener) survives.
+func diffInboundUsers(oldIb, newIb *InboundConfig, diff *HotDiff) bool {
+	if oldIb.Port != newIb.Port || oldIb.Protocol != newIb.Protocol || oldIb.Tag != newIb.Tag {
+		return false
+	}
+	if _, ok := userDiffableProtocols[oldIb.Protocol]; !ok {
+		return false
+	}
+	if !rawEqualNormalized(oldIb.Listen, newIb.Listen) ||
+		!rawEqualNormalized(oldIb.StreamSettings, newIb.StreamSettings) ||
+		!rawEqualNormalized(oldIb.Sniffing, newIb.Sniffing) {
+		return false
+	}
+	oldClients, oldRest, ok := splitSettingsClients(oldIb.Settings)
+	if !ok {
+		return false
+	}
+	newClients, newRest, ok := splitSettingsClients(newIb.Settings)
+	if !ok {
+		return false
+	}
+	if !bytes.Equal(oldRest, newRest) {
+		return false
+	}
+	for email, oldC := range oldClients {
+		newC, exists := newClients[email]
+		if exists && bytes.Equal(oldC.norm, newC.norm) {
+			continue
+		}
+		diff.RemovedUsers = append(diff.RemovedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email})
+		if exists {
+			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: newC.user})
+		}
+	}
+	for email, newC := range newClients {
+		if _, exists := oldClients[email]; !exists {
+			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: newC.user})
+		}
+	}
+	return true
+}
+
+type clientEntry struct {
+	user map[string]any
+	norm []byte
+}
+
+// splitSettingsClients indexes settings.clients by email and returns the rest of
+// the settings in canonical form; ok is false when a client has no unique email.
+func splitSettingsClients(raw json_util.RawMessage) (map[string]clientEntry, []byte, bool) {
+	if len(raw) == 0 {
+		return nil, nil, false
+	}
+	settings := map[string]any{}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := decoder.Decode(&settings); err != nil {
+		return nil, nil, false
+	}
+	clientsRaw, hasClients := settings["clients"].([]any)
+	if !hasClients {
+		return nil, nil, false
+	}
+	clients := make(map[string]clientEntry, len(clientsRaw))
+	for _, c := range clientsRaw {
+		obj, ok := c.(map[string]any)
+		if !ok {
+			return nil, nil, false
+		}
+		email, _ := obj["email"].(string)
+		if email == "" {
+			return nil, nil, false
+		}
+		if _, dup := clients[email]; dup {
+			return nil, nil, false
+		}
+		norm, err := json.Marshal(obj)
+		if err != nil {
+			return nil, nil, false
+		}
+		clients[email] = clientEntry{user: obj, norm: norm}
+	}
+	delete(settings, "clients")
+	rest, err := json.Marshal(settings)
+	if err != nil {
+		return nil, nil, false
+	}
+	return clients, rest, true
 }
 
 func inboundHasReverseClient(ib *InboundConfig) bool {
