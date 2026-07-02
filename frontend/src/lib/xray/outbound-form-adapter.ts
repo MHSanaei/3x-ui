@@ -1,7 +1,9 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 import type { Sniffing, SniffingDest } from '@/schemas/primitives';
+import type { OutboundDomainStrategy } from '@/schemas/protocols/outbound';
 
 import type {
   DnsOutboundFormSettings,
@@ -54,6 +56,16 @@ function asPort(value: unknown, fallback: number): number {
   const n = asNumber(value, fallback);
   if (!Number.isInteger(n) || n < 1 || n > 65535) return fallback;
   return n;
+}
+
+// xray-core matches targetStrategy/domainStrategy case-insensitively;
+// normalize the wire value to the canonical spelling or '' (= AsIs).
+function targetStrategyFromWire(value: unknown): OutboundDomainStrategy | '' {
+  const s = asString(value);
+  if (!s) return '';
+  return OutboundDomainStrategySchema.options.find(
+    (v) => v.toLowerCase() === s.toLowerCase(),
+  ) ?? '';
 }
 
 const SNIFFING_DEST_VALUES: readonly SniffingDest[] = ['http', 'tls', 'quic', 'fakedns'];
@@ -285,14 +297,9 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
     && typeof raw.fragment === 'object'
     && Object.keys(fragment).length > 0;
   return {
-    domainStrategy: ((): FreedomOutboundFormSettings['domainStrategy'] => {
-      const allowed = [
-        'AsIs', 'UseIP', 'UseIPv4', 'UseIPv6', 'UseIPv6v4', 'UseIPv4v6',
-        'ForceIP', 'ForceIPv6v4', 'ForceIPv6', 'ForceIPv4v6', 'ForceIPv4',
-      ];
-      const s = asString(raw.domainStrategy);
-      return (allowed.includes(s) ? s : '') as FreedomOutboundFormSettings['domainStrategy'];
-    })(),
+    domainStrategy: targetStrategyFromWire(
+      asString(raw.targetStrategy) || asString(raw.domainStrategy),
+    ),
     redirect: asString(raw.redirect),
     userLevel: asNumber(raw.userLevel, 0),
     proxyProtocol: ((): FreedomOutboundFormSettings['proxyProtocol'] => {
@@ -374,6 +381,7 @@ export interface RawOutboundRow {
   tag?: string;
   protocol?: string;
   sendThrough?: string;
+  targetStrategy?: string;
   settings?: unknown;
   streamSettings?: unknown;
   mux?: unknown;
@@ -401,6 +409,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
   const settings = asObject(raw.settings);
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);
+  const targetStrategy = targetStrategyFromWire(raw.targetStrategy);
   const mux = muxFromWire(raw.mux);
   const hasStream = raw.streamSettings
     && typeof raw.streamSettings === 'object'
@@ -430,6 +439,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     ...typed,
     tag,
     sendThrough,
+    targetStrategy,
     mux,
     streamSettings,
   };
@@ -543,6 +553,8 @@ function hysteriaToWire(s: HysteriaOutboundFormSettings) {
 }
 
 function freedomToWire(s: FreedomOutboundFormSettings) {
+  // The strategy is emitted under the legacy domainStrategy key: new cores
+  // fall back to it when targetStrategy is absent, old cores only know it.
   // Legacy semantics: emit fragment only when the user actually populated
   // at least one of the four sub-fields. Defaults like packets='1-3' alone
   // are not enough — the modal's Fragment Switch sets all four together.
@@ -672,6 +684,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     settings,
   };
   if (values.tag) result.tag = values.tag;
+  if (values.targetStrategy) result.targetStrategy = values.targetStrategy;
 
   // streamSettings emission gates on canEnableStream — non-stream protocols
   // still emit just `sockopt` if that key is present (legacy behavior).

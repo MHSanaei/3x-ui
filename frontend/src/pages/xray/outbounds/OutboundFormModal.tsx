@@ -39,6 +39,7 @@ import {
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
+  TARGET_STRATEGY_OPTIONS,
 } from './outbound-form-constants';
 import {
   applyNetworkChange,
@@ -392,6 +393,14 @@ export default function OutboundFormModal({
 
                     <Form.Item label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
                       <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
+                    </Form.Item>
+
+                    <Form.Item
+                      label={t('pages.xray.outbound.targetStrategy')}
+                      name="targetStrategy"
+                      tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
+                    >
+                      <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
                     </Form.Item>
 
                     {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
