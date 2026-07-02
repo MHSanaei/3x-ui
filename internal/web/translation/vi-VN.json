@@ -231,6 +231,10 @@
       "panelUpdateDialogDesc": "Điều này sẽ cập nhật 3X-UI lên #version# và khởi động lại dịch vụ panel.",
       "panelUpdateCheckPopover": "Kiểm tra cập nhật panel thất bại",
       "panelUpdateStartedPopover": "Bắt đầu cập nhật panel",
+      "panelUpdateFailedTitle": "Cập nhật panel thất bại",
+      "panelUpdateFailedDesc": "Bản cập nhật không hoàn tất thành công. Hãy kiểm tra nhật ký máy chủ, hoặc chạy 'x-ui update' từ dòng lệnh.",
+      "panelUpdateUnknownTitle": "Không thể xác nhận việc cập nhật đã hoàn tất",
+      "panelUpdateUnknownDesc": "Panel không báo cáo kết quả kịp thời. Hãy tải lại trang để kiểm tra phiên bản hiện tại, hoặc kiểm tra nhật ký máy chủ.",
       "geofileUpdateDialog": "Bạn có chắc chắn muốn cập nhật geofile không?",
       "geofileUpdateDialogDesc": "Hành động này sẽ cập nhật tệp #filename#.",
       "geofilesUpdateDialogDesc": "Thao tác này sẽ cập nhật tất cả các tập tin.",
@@ -1396,7 +1400,12 @@
       "smtpErrorUnknown": "Lỗi SMTP: {{ .Error }}",
       "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)",
       "remarkTemplate": "Mẫu ghi chú",
-      "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên."
+      "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên.",
+      "validation": {
+        "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
+      },
+      "secretClear": "Xóa",
+      "secretClearUndo": "Hoàn tác xóa"
     },
     "xray": {
       "title": "Cài đặt Xray",
@@ -1687,7 +1696,8 @@
         "title": "Observatory",
         "burstTitle": "Burst Observatory",
         "autoManaged": "Observer được quản lý tự động từ các balancer của bạn. Điều chỉnh cách chúng dò ở bên dưới; các outbound được theo dõi sẽ tuân theo selector của balancer.",
-        "emptyHint": "Không có observer kết nối nào đang hoạt động. Một observer sẽ được thêm tự động khi bạn tạo balancer Least Ping hoặc Least Load — hoặc balancer Random / Round-robin có fallback — để balancer có thể đo các outbound và chọn cái tốt nhất.",
+        "emptyHint": "Không có observer kết nối nào đang hoạt động. Một observer sẽ được thêm tự động khi bạn tạo balancer Least Ping hoặc Least Load — hoặc balancer Random / Round-robin có fallback — để các balancer dùng observer có thể kiểm tra sức khỏe outbound trước khi chọn mục tiêu.",
+        "mixedLegacy": "Cấu hình này có cả Observatory và Burst Observatory. Xray chỉ dùng một observer toàn cục, nên trạng thái hỗn hợp cũ này không được hỗ trợ; khi lưu balancer, nó sẽ được chuẩn hóa về một observer.",
         "subjectSelector": "Outbound được theo dõi",
         "subjectSelectorDesc": "Các thẻ outbound mà observer này dò. Được quản lý tự động từ các balancer của bạn.",
         "probeURL": "URL dò",

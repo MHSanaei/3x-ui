@@ -231,6 +231,10 @@
       "panelUpdateDialogDesc": "Isso atualizará o 3X-UI para #version# e reiniciará o serviço do painel.",
       "panelUpdateCheckPopover": "Falha na verificação de atualização do painel",
       "panelUpdateStartedPopover": "Atualização do painel iniciada",
+      "panelUpdateFailedTitle": "Falha ao atualizar o painel",
+      "panelUpdateFailedDesc": "A atualização não foi concluída com sucesso. Verifique os logs do servidor ou execute 'x-ui update' na linha de comando.",
+      "panelUpdateUnknownTitle": "Não foi possível confirmar se a atualização terminou",
+      "panelUpdateUnknownDesc": "O painel não retornou um resultado a tempo. Recarregue a página para verificar a versão atual, ou verifique os logs do servidor.",
       "geofileUpdateDialog": "Você realmente deseja atualizar o geofile?",
       "geofileUpdateDialogDesc": "Isso atualizará o arquivo #filename#.",
       "geofilesUpdateDialogDesc": "Isso atualizará todos os arquivos.",
@@ -1396,7 +1400,12 @@
       "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}",
       "eventMemoryHigh": "Uso de memória alto (%)",
       "remarkTemplate": "Modelo de Observação",
-      "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima."
+      "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima.",
+      "validation": {
+        "pathLeadingSlash": "O caminho deve começar com /"
+      },
+      "secretClear": "Limpar",
+      "secretClearUndo": "Desfazer limpeza"
     },
     "xray": {
       "title": "Configurações Xray",
@@ -1687,7 +1696,8 @@
         "title": "Observatório",
         "burstTitle": "Observatório Burst",
         "autoManaged": "Os observadores são gerenciados automaticamente a partir dos seus balanceadores. Ajuste abaixo como eles sondam; as saídas monitoradas seguem os seletores do balanceador.",
-        "emptyHint": "Nenhum observador de conexão ativo. Um é adicionado automaticamente ao criar um balanceador Least Ping ou Least Load — ou um balanceador Random / Round-robin com fallback — para que o balanceador possa medir suas saídas e escolher a melhor.",
+        "emptyHint": "Nenhum observador de conexão ativo. Um é adicionado automaticamente ao criar um balanceador Least Ping ou Least Load — ou um balanceador Random / Round-robin com fallback — para que balanceadores com observador possam verificar a saúde das saídas antes de escolher um destino.",
+        "mixedLegacy": "Esta configuração contém Observatory e Burst Observatory ao mesmo tempo. O Xray usa um único observador global, então esse estado misto legado não é suportado; ao salvar os balanceadores ele será normalizado para um único observador.",
         "subjectSelector": "Saídas monitoradas",
         "subjectSelectorDesc": "Tags de saída que este observador sonda. Gerenciadas automaticamente a partir dos seus balanceadores.",
         "probeURL": "URL de sondagem",

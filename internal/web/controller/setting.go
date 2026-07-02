@@ -26,9 +26,16 @@ type updateUserForm struct {
 	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
 }
 
+// updateSettingForm carries the persisted settings plus request-scoped fields
+// that must never land in the settings table: the 2FA confirmation code and
+// the explicit clear flags for redacted secrets (a blank secret alone means
+// "unchanged", so clearing needs its own signal — see #5724).
 type updateSettingForm struct {
 	entity.AllSetting
-	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
+	TwoFactorCode     string `json:"twoFactorCode" form:"twoFactorCode"`
+	ClearTgBotToken   bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
+	ClearLdapPassword bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
+	ClearSmtpPassword bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
 }
 
 // SettingController handles settings and user management operations.
@@ -105,7 +112,11 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 			return
 		}
 	}
-	err := a.settingService.UpdateAllSetting(allSetting)
+	err := a.settingService.UpdateAllSetting(allSetting, service.SecretClears{
+		TgBotToken:   form.ClearTgBotToken,
+		LdapPassword: form.ClearLdapPassword,
+		SmtpPassword: form.ClearSmtpPassword,
+	})
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr

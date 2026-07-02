@@ -231,6 +231,10 @@
       "panelUpdateDialogDesc": "Bu işlem 3X-UI'yi #version# sürümüne güncelleyecek ve panel servisini yeniden başlatacaktır.",
       "panelUpdateCheckPopover": "Panel güncelleme kontrolü başarısız oldu",
       "panelUpdateStartedPopover": "Panel güncellemesi başlatıldı",
+      "panelUpdateFailedTitle": "Panel güncellemesi başarısız oldu",
+      "panelUpdateFailedDesc": "Güncelleme başarıyla tamamlanamadı. Sunucu günlüklerini kontrol edin veya komut satırından 'x-ui update' çalıştırın.",
+      "panelUpdateUnknownTitle": "Güncellemenin tamamlandığı doğrulanamadı",
+      "panelUpdateUnknownDesc": "Panel zamanında bir sonuç bildirmedi. Geçerli sürümü kontrol etmek için sayfayı yenileyin veya sunucu günlüklerini kontrol edin.",
       "geofileUpdateDialog": "Geofile'ı gerçekten güncellemek istiyor musunuz?",
       "geofileUpdateDialogDesc": "Bu işlem #filename# dosyasını güncelleyecektir.",
       "geofilesUpdateDialogDesc": "Bu, tüm dosyaları güncelleyecektir.",
@@ -1396,7 +1400,12 @@
       "smtpErrorUnknown": "SMTP hatası: {{ .Error }}",
       "eventMemoryHigh": "Bellek kullanımı yüksek (%)",
       "remarkTemplate": "Açıklama Şablonu",
-      "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın."
+      "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın.",
+      "validation": {
+        "pathLeadingSlash": "Yol / ile başlamalıdır"
+      },
+      "secretClear": "Temizle",
+      "secretClearUndo": "Temizlemeyi geri al"
     },
     "xray": {
       "title": "Xray Yapılandırmaları",
@@ -1687,7 +1696,8 @@
         "title": "Gözlemci",
         "burstTitle": "Burst Gözlemci",
         "autoManaged": "Gözlemciler dengeleyicilerinize göre otomatik yönetilir. Nasıl sınama yapacaklarını aşağıdan ayarlayın; izlenen çıkışlar dengeleyici seçicilerini izler.",
-        "emptyHint": "Etkin bir bağlantı gözlemcisi yok. Least Ping veya Least Load dengeleyici — ya da fallback içeren Random / Round-robin dengeleyici — oluşturduğunuzda otomatik olarak bir tane eklenir; böylece dengeleyici çıkışlarınızı ölçüp en iyisini seçebilir.",
+        "emptyHint": "Etkin bir bağlantı gözlemcisi yok. Least Ping veya Least Load dengeleyici — ya da fallback içeren Random / Round-robin dengeleyici — oluşturduğunuzda otomatik olarak bir tane eklenir; böylece gözlemci kullanan dengeleyiciler hedef seçmeden önce çıkış sağlığını kontrol edebilir.",
+        "mixedLegacy": "Bu yapılandırmada hem Observatory hem de Burst Observatory var. Xray tek bir global gözlemci kullanır, bu nedenle bu eski karma durum desteklenmez; dengeleyiciler kaydedildiğinde tek bir gözlemciye normalleştirilir.",
         "subjectSelector": "İzlenen Çıkışlar",
         "subjectSelectorDesc": "Bu gözlemcinin sınadığı çıkış etiketleri. Dengeleyicilerinize göre otomatik yönetilir.",
         "probeURL": "Sınama URL'si",

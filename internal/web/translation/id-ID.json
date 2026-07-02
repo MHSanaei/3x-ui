@@ -231,6 +231,10 @@
       "panelUpdateDialogDesc": "Ini akan memperbarui 3X-UI ke #version# dan me-restart layanan panel.",
       "panelUpdateCheckPopover": "Pemeriksaan pembaruan panel gagal",
       "panelUpdateStartedPopover": "Pembaruan panel dimulai",
+      "panelUpdateFailedTitle": "Pembaruan panel gagal",
+      "panelUpdateFailedDesc": "Pembaruan tidak selesai dengan sukses. Periksa log server, atau jalankan 'x-ui update' dari baris perintah.",
+      "panelUpdateUnknownTitle": "Tidak dapat memastikan pembaruan selesai",
+      "panelUpdateUnknownDesc": "Panel tidak melaporkan hasil tepat waktu. Muat ulang untuk memeriksa versi saat ini, atau periksa log server.",
       "geofileUpdateDialog": "Apakah Anda yakin ingin memperbarui geofile?",
       "geofileUpdateDialogDesc": "Ini akan memperbarui file #filename#.",
       "geofilesUpdateDialogDesc": "Ini akan memperbarui semua berkas.",
@@ -1396,7 +1400,12 @@
       "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
       "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
-      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
+      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
+      "validation": {
+        "pathLeadingSlash": "Path harus diawali dengan /"
+      },
+      "secretClear": "Hapus",
+      "secretClearUndo": "Batalkan hapus"
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1687,7 +1696,8 @@
         "title": "Observatory",
         "burstTitle": "Burst Observatory",
         "autoManaged": "Observer dikelola otomatis dari balancer Anda. Atur cara mereka melakukan probe di bawah; outbound yang dipantau mengikuti selector balancer.",
-        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer dapat mengukur outbound Anda dan memilih yang terbaik.",
+        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer yang memakai observer dapat memeriksa kesehatan outbound sebelum memilih target.",
+        "mixedLegacy": "Konfigurasi ini berisi Observatory dan Burst Observatory sekaligus. Xray memakai satu observer global, jadi status campuran lama ini tidak didukung; menyimpan balancer akan menormalkannya menjadi satu observer.",
         "subjectSelector": "Outbound yang Dipantau",
         "subjectSelectorDesc": "Tag outbound yang di-probe observer ini. Dikelola otomatis dari balancer Anda.",
         "probeURL": "URL Probe",

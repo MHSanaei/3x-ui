@@ -79,6 +79,14 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 	now := time.Now().Unix()
 	cutoff := now - clientIpStaleAfterSeconds
 
+	// Node syncs run concurrently (one goroutine per node) and shared clients
+	// appear in several nodes' reports. Locking rows in each node's arbitrary
+	// report order lets two merges grab the same rows in opposite order, which
+	// Postgres aborts as a deadlock (40P01) — take them in one global order.
+	sort.Slice(incomingIps, func(i, j int) bool {
+		return incomingIps[i].ClientEmail < incomingIps[j].ClientEmail
+	})
+
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
