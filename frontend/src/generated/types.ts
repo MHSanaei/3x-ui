@@ -321,6 +321,7 @@ export interface Host {
   excludeFromSubTypes: string[];
   finalMask: string;
   fingerprint: string;
+  groupId: string;
   hostHeader: string;
   id: number;
   inboundId: number;

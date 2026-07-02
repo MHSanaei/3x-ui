@@ -85,15 +85,15 @@ export type HostFormValues = z.infer<typeof HostFormSchema>;
 // HostRecord is the loose list/read projection from /panel/api/hosts. Slice and
 // free-JSON fields tolerate the backend serializing nil as null.
 export const HostRecordSchema = z.object({
-  id: z.number(),
-  inboundId: z.number(),
+  groupId: z.string(),
+  inboundIds: z.array(z.number()),
+  hosts: z.array(z.string()),
   sortOrder: z.number().optional(),
   remark: z.string().optional(),
   serverDescription: z.string().optional(),
   isDisabled: z.boolean().optional(),
   isHidden: z.boolean().optional(),
   tags: z.array(z.string()).nullish(),
-  address: z.string().optional(),
   port: z.number().optional(),
   security: z.string().optional(),
   sni: z.string().optional(),
@@ -123,3 +123,12 @@ export const HostRecordSchema = z.object({
 export type HostRecord = z.infer<typeof HostRecordSchema>;
 
 export const HostListSchema = z.array(HostRecordSchema);
+
+// send an empty array to mean "inherit the inbound address" — the backend
+// falls back to address="" which lets xray use the inbound endpoint as-is.
+export const BulkAddHostSchema = HostFormSchema.omit({ inboundId: true, address: true }).extend({
+  inboundIds: z.array(z.number().int().positive()).min(1),
+  hosts: z.array(z.string()).default([]),
+});
+export type BulkAddHostValues = z.infer<typeof BulkAddHostSchema>;
+

@@ -344,6 +344,7 @@ export const HostSchema = z.object({
   excludeFromSubTypes: z.array(z.string()),
   finalMask: z.string(),
   fingerprint: z.string(),
+  groupId: z.string(),
   hostHeader: z.string(),
   id: z.number().int(),
   inboundId: z.number().int(),

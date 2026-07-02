@@ -1879,7 +1879,7 @@
       "fields": {
         "remark": "نام",
         "serverDescription": "توضیحات",
-        "inbound": "اینباند",
+        "inbound": "اینباندها",
         "address": "آدرس",
         "port": "پورت",
         "endpoint": "نقطه پایانی",
@@ -1906,7 +1906,8 @@
         "shuffleHost": "درهم‌سازی میزبان",
         "tags": "برچسب‌ها",
         "nodeGuids": "نودها",
-        "excludeFromSubTypes": "حذف از فرمت‌ها"
+        "excludeFromSubTypes": "حذف از فرمت‌ها",
+        "inheritAddress": "ارث‌بری آدرس"
       },
       "hints": {
         "address": "برای ارث‌بری آدرس خودِ اینباند خالی بگذارید.",

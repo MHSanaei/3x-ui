@@ -1879,7 +1879,7 @@
       "fields": {
         "remark": "Примітка",
         "serverDescription": "Опис",
-        "inbound": "Вхідний",
+        "inbound": "Вхідні",
         "address": "Адреса",
         "port": "Порт",
         "endpoint": "Кінцева точка",
@@ -1906,7 +1906,8 @@
         "shuffleHost": "Перемішувати host",
         "tags": "Теги",
         "nodeGuids": "Вузли",
-        "excludeFromSubTypes": "Виключити з форматів"
+        "excludeFromSubTypes": "Виключити з форматів",
+        "inheritAddress": "Успадковує адресу"
       },
       "hints": {
         "address": "Залиште порожнім, щоб успадкувати власну адресу вхідного.",

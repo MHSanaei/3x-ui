@@ -1879,7 +1879,7 @@
       "fields": {
         "remark": "Notas",
         "serverDescription": "Descripción",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Dirección",
         "port": "Puerto",
         "endpoint": "Punto final",
@@ -1906,7 +1906,8 @@
         "shuffleHost": "Barajar host",
         "tags": "Etiquetas",
         "nodeGuids": "Nodos",
-        "excludeFromSubTypes": "Excluir de formatos"
+        "excludeFromSubTypes": "Excluir de formatos",
+        "inheritAddress": "Hereda dirección"
       },
       "hints": {
         "address": "Déjalo en blanco para heredar la dirección propia del inbound.",

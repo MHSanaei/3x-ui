@@ -1445,6 +1445,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "fingerprint": {
         "type": "string"
       },
+      "groupId": {
+        "type": "string"
+      },
       "hostHeader": {
         "type": "string"
       },
@@ -1559,6 +1562,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "excludeFromSubTypes",
       "finalMask",
       "fingerprint",
+      "groupId",
       "hostHeader",
       "id",
       "inboundId",

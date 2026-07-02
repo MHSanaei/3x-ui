@@ -1906,7 +1906,8 @@
         "shuffleHost": "ホストをシャッフル",
         "tags": "タグ",
         "nodeGuids": "ノード",
-        "excludeFromSubTypes": "形式から除外"
+        "excludeFromSubTypes": "形式から除外",
+        "inheritAddress": "アドレス継承"
       },
       "hints": {
         "address": "空欄にするとインバウンド自身のアドレスを継承します。",

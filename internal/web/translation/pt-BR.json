@@ -1879,7 +1879,7 @@
       "fields": {
         "remark": "Observação",
         "serverDescription": "Descrição",
-        "inbound": "Entrada",
+        "inbound": "Entradas",
         "address": "Endereço",
         "port": "Porta",
         "endpoint": "Endpoint",
@@ -1906,7 +1906,8 @@
         "shuffleHost": "Embaralhar host",
         "tags": "Tags",
         "nodeGuids": "Nós",
-        "excludeFromSubTypes": "Excluir dos formatos"
+        "excludeFromSubTypes": "Excluir dos formatos",
+        "inheritAddress": "Herda endereço"
       },
       "hints": {
         "address": "Deixe em branco para herdar o próprio endereço da entrada.",

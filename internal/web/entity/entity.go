@@ -260,3 +260,38 @@ func (s *AllSetting) CheckValid() error {
 
 	return nil
 }
+
+type HostGroup struct {
+	GroupId    string   `json:"groupId"`
+	InboundIds []int    `json:"inboundIds" validate:"required,min=1"`
+	Hosts      []string `json:"hosts" validate:"omitempty"`
+
+	SortOrder              int      `json:"sortOrder"`
+	Remark                 string   `json:"remark" validate:"required,max=256"`
+	ServerDescription      string   `json:"serverDescription" validate:"omitempty,max=64"`
+	IsDisabled             bool     `json:"isDisabled"`
+	IsHidden               bool     `json:"isHidden"`
+	Tags                   []string `json:"tags"`
+	Port                   int      `json:"port" validate:"gte=0,lte=65535"`
+	Security               string   `json:"security" validate:"omitempty,oneof=same tls none reality"`
+	Sni                    string   `json:"sni"`
+	HostHeader             string   `json:"hostHeader"`
+	Path                   string   `json:"path"`
+	Alpn                   []string `json:"alpn"`
+	Fingerprint            string   `json:"fingerprint"`
+	OverrideSniFromAddress bool     `json:"overrideSniFromAddress"`
+	KeepSniBlank           bool     `json:"keepSniBlank"`
+	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256"`
+	VerifyPeerCertByName   string   `json:"verifyPeerCertByName"`
+	AllowInsecure          bool     `json:"allowInsecure"`
+	EchConfigList          string   `json:"echConfigList"`
+	MuxParams              string   `json:"muxParams"`
+	SockoptParams          string   `json:"sockoptParams"`
+	FinalMask              string   `json:"finalMask"`
+	VlessRoute             string   `json:"vlessRoute"`
+	ExcludeFromSubTypes    []string `json:"excludeFromSubTypes"`
+	NodeGuids              []string `json:"nodeGuids"`
+	MihomoIpVersion        string   `json:"mihomoIpVersion" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
+	MihomoX25519           bool     `json:"mihomoX25519"`
+	ShuffleHost            bool     `json:"shuffleHost"`
+}
