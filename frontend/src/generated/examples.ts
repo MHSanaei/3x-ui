@@ -224,6 +224,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
+    "flowLock": false,
     "group": "",
     "id": "",
     "keepAlive": 0,

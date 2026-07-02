@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -10,6 +10,7 @@ import {
   Modal,
   Radio,
   Select,
+  Space,
   Switch,
   Tabs,
   Tooltip,
@@ -29,8 +30,10 @@ import {
   canEnableSniffing,
   canEnableStream,
   canEnableTls,
+  canEnableTlsFlow,
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
+import { buildInboundInfo } from '../info/helpers';
 import {
   InboundFormBaseSchema,
   InboundFormSchema,
@@ -197,6 +200,7 @@ export default function InboundFormModal({
   // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
   const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
+  const vlessDecryption = Form.useWatch(['settings', 'decryption'], form) ?? '';
   const ssMethod = Form.useWatch(['settings', 'method'], form);
   const isSSWith2022 = isSS2022({
     protocol,
@@ -207,6 +211,34 @@ export default function InboundFormModal({
   const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
   const streamEnabled = canEnableStream({ protocol });
   const sniffingSupported = canEnableSniffing({ protocol });
+  const inboundInfo = useMemo(() => (dbInbound ? buildInboundInfo(dbInbound) : null), [dbInbound]);
+  const flowClients = useMemo(
+    () => (inboundInfo?.clients ?? []).filter((c) => !!c.email),
+    [inboundInfo],
+  );
+  const isVlessTlsFlowNow = canEnableTlsFlow({
+    protocol,
+    settings: { encryption: vlessEncryption, decryption: vlessDecryption },
+    streamSettings: { network, security },
+  });
+  const [flowOverrides, setFlowOverrides] = useState<Record<string, string>>({});
+  const [flowSavingEmail, setFlowSavingEmail] = useState<string | null>(null);
+  useEffect(() => {
+    setFlowOverrides({});
+  }, [dbInbound?.id]);
+  const setClientFlow = useCallback(async (email: string, flow: string) => {
+    if (!dbInbound) return;
+    setFlowSavingEmail(email);
+    const msg = await HttpUtil.post(`/panel/api/clients/${email}/flow`, {
+      inboundId: dbInbound.id,
+      flow,
+    });
+    setFlowSavingEmail(null);
+    if (msg?.success) {
+      setFlowOverrides((prev) => ({ ...prev, [email]: flow }));
+      onSaved();
+    }
+  }, [dbInbound, onSaved]);
   // Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no
   // user-selectable transport — their stream tab is just sockopt, which is all
   // Tunnel's TProxy/redirect mode needs (sockopt.tproxy). Hysteria carries its
@@ -1000,6 +1032,28 @@ export default function InboundFormModal({
 
   const sniffingTab = <SniffingTab />;
 
+  const clientsTab = (
+    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      {flowClients.map((c) => (
+        <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span>{c.email}</span>
+          <Select
+            size="small"
+            style={{ minWidth: 220 }}
+            loading={flowSavingEmail === c.email}
+            disabled={flowSavingEmail === c.email}
+            value={flowOverrides[c.email as string] ?? (c.flow ? c.flow : 'none')}
+            onChange={(flow) => setClientFlow(c.email as string, flow)}
+            options={[
+              { value: 'xtls-rprx-vision', label: 'xtls-rprx-vision' },
+              { value: 'none', label: t('none') },
+            ]}
+          />
+        </div>
+      ))}
+    </Space>
+  );
+
   return (
     <>
       {messageContextHolder}
@@ -1055,6 +1109,9 @@ export default function InboundFormModal({
               : []),
             ...(sniffingSupported
               ? [{ key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true }]
+              : []),
+            ...(mode === 'edit' && isVlessTlsFlowNow && flowClients.length > 0
+              ? [{ key: 'clients', label: t('pages.clients.flow'), children: clientsTab, forceRender: true }]
               : []),
             { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab, forceRender: true },
           ]} />
