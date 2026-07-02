@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -125,7 +127,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return nil
 	}
 
-	dbClientTraffics, err = s.adjustTraffics(tx, dbClientTraffics)
+	dbClientTraffics, convertedExpiryByEmail, err := s.adjustTraffics(tx, dbClientTraffics)
 	if err != nil {
 		return err
 	}
@@ -161,22 +163,22 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 
 	// adjustTraffics converts delayed-start rows (negative ExpiryTime → absolute
 	// deadline) in-memory. Persist that conversion now since the traffic UPDATE
-	// above only touches up/down/last_online.
-	for _, ct := range dbClientTraffics {
-		if ct.ExpiryTime > 0 {
-			if err = tx.Exec(
-				`UPDATE client_traffics SET expiry_time = ? WHERE email = ? AND expiry_time < 0`,
-				ct.ExpiryTime, ct.Email,
-			).Error; err != nil {
-				logger.Warning("AddClientTraffic update expiry_time ", err)
-			}
+	// above only touches up/down/last_online. Only converted emails are written:
+	// updating every polled row issued one no-op UPDATE per active client per
+	// poll. Sorted order keeps concurrent writers lock-compatible on Postgres.
+	for _, email := range slices.Sorted(maps.Keys(convertedExpiryByEmail)) {
+		if err = tx.Exec(
+			`UPDATE client_traffics SET expiry_time = ? WHERE email = ? AND expiry_time < 0`,
+			convertedExpiryByEmail[email], email,
+		).Error; err != nil {
+			logger.Warning("AddClientTraffic update expiry_time ", err)
 		}
 	}
 
 	return nil
 }
 
-func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, error) {
+func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, map[string]int64, error) {
 	now := time.Now().UnixMilli()
 
 	// "Start After First Use" stores a negative expiry (the duration). On the
@@ -190,7 +192,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		}
 	}
 	if len(newExpiryByEmail) == 0 {
-		return dbClientTraffics, nil
+		return dbClientTraffics, nil, nil
 	}
 
 	delayedEmails := make([]string, 0, len(newExpiryByEmail))
@@ -208,16 +210,16 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		Distinct().
 		Pluck("client_inbounds.inbound_id", &inboundIds).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(inboundIds) == 0 {
-		return dbClientTraffics, nil
+		return dbClientTraffics, nil, nil
 	}
 
 	var inbounds []*model.Inbound
 	err = tx.Model(model.Inbound{}).Where("id IN (?)", inboundIds).Find(&inbounds).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
@@ -243,7 +245,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 			settings["clients"] = newClients
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			inbounds[inbound_index].Settings = string(modifiedSettings)
@@ -276,7 +278,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		}
 	}
 
-	return dbClientTraffics, nil
+	return dbClientTraffics, newExpiryByEmail, nil
 }
 
 func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
