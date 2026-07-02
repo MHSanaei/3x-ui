@@ -667,6 +667,7 @@
         "scanUse": "Dùng",
         "scanRescan": "Quét lại",
         "spiderX": "SpiderX",
+        "spiderXHint": "Hạt giống theo từng client — bảng điều khiển suy ra đường dẫn spx riêng cho mỗi client từ đó; tạo lại để xoay đường dẫn của tất cả",
         "getNewCert": "Lấy chứng chỉ mới",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

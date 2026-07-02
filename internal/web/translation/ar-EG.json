@@ -646,6 +646,7 @@
         "scanUse": "استخدام",
         "scanRescan": "إعادة الفحص",
         "spiderX": "SpiderX",
+        "spiderXHint": "بذرة لكل عميل — تشتق اللوحة مسار spx فريدًا لكل عميل منها؛ أعد التوليد لتدوير مسارات الجميع",
         "getNewCert": "احصل على شهادة جديدة",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",

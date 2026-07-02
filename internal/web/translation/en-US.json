@@ -658,6 +658,7 @@
         "scanUse": "Use",
         "scanRescan": "Rescan",
         "spiderX": "SpiderX",
+        "spiderXHint": "Per-client seed — the panel derives a unique spx path for each client from it; regenerate to rotate everyone's paths",
         "getNewCert": "Get New Cert",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
