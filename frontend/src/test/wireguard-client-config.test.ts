@@ -66,7 +66,7 @@ describe('buildWireguardClientConfig', () => {
 
   it('honors the custom share-address strategy over the node address', () => {
     const cfg = buildWireguardClientConfig(
-      { ...client },
+      client,
       { ...inbound, nodeAddress: 'node.example.net', shareAddrStrategy: 'custom', shareAddr: 'vpn.example.com' },
       'master.example.com',
       '',
@@ -76,11 +76,17 @@ describe('buildWireguardClientConfig', () => {
 
   it('honors the listen share-address strategy over the node address', () => {
     const cfg = buildWireguardClientConfig(
-      { ...client },
+      client,
       { ...inbound, nodeAddress: 'node.example.net', shareAddrStrategy: 'listen', listen: '198.51.100.7' },
       'master.example.com',
       '',
     );
     expect(cfg).toContain('Endpoint = 198.51.100.7:51820');
+  });
+
+  it('keeps a panel hostname that fails share-host normalization instead of emitting an empty endpoint', () => {
+    const cfg = buildWireguardClientConfig(client, { ...inbound, listen: '0.0.0.0' }, 'wg_gw.corp.lan', '');
+    expect(cfg).toContain('Endpoint = wg_gw.corp.lan:51820');
+    expect(cfg).not.toContain('Endpoint = :51820');
   });
 });

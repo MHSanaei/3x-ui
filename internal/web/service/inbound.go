@@ -320,21 +320,21 @@ type InboundOption struct {
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
-		Id                int     `gorm:"column:id"`
-		Remark            string  `gorm:"column:remark"`
-		Tag               string  `gorm:"column:tag"`
-		Protocol          string  `gorm:"column:protocol"`
-		Port              int     `gorm:"column:port"`
-		StreamSettings    string  `gorm:"column:stream_settings"`
-		Settings          string  `gorm:"column:settings"`
-		Listen            string  `gorm:"column:listen"`
-		ShareAddr         string  `gorm:"column:share_addr"`
-		ShareAddrStrategy string  `gorm:"column:share_addr_strategy"`
-		NodeId            *int    `gorm:"column:node_id"`
-		NodeAddress       *string `gorm:"column:node_address"`
+		Id                int    `gorm:"column:id"`
+		Remark            string `gorm:"column:remark"`
+		Tag               string `gorm:"column:tag"`
+		Protocol          string `gorm:"column:protocol"`
+		Port              int    `gorm:"column:port"`
+		StreamSettings    string `gorm:"column:stream_settings"`
+		Settings          string `gorm:"column:settings"`
+		Listen            string `gorm:"column:listen"`
+		ShareAddr         string `gorm:"column:share_addr"`
+		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
+		NodeId            *int   `gorm:"column:node_id"`
+		NodeAddress       string `gorm:"column:node_address"`
 	}
 	err := db.Table("inbounds").
-		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, nodes.address AS node_address").
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
 		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
 		Where("inbounds.user_id = ?", userId).
 		Order("inbounds.id ASC").
@@ -345,9 +345,9 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
 		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
-		nodeAddress := ""
-		if r.NodeId != nil && r.NodeAddress != nil {
-			nodeAddress = *r.NodeAddress
+		shareAddrStrategy := r.ShareAddrStrategy
+		if shareAddrStrategy == "node" {
+			shareAddrStrategy = ""
 		}
 		out = append(out, InboundOption{
 			Id:                r.Id,
@@ -361,10 +361,10 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
 			NodeId:            r.NodeId,
-			NodeAddress:       nodeAddress,
+			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
 			ShareAddr:         r.ShareAddr,
-			ShareAddrStrategy: r.ShareAddrStrategy,
+			ShareAddrStrategy: shareAddrStrategy,
 		})
 	}
 	return out, nil

@@ -22,11 +22,7 @@ export function buildWireguardClientConfig(
   host = window.location.hostname,
   publicHost = '',
 ): string {
-  const endpointHost = resolveShareHost(
-    { listen: inbound?.listen ?? '', shareAddr: inbound?.shareAddr, shareAddrStrategy: inbound?.shareAddrStrategy },
-    inbound?.nodeAddress ?? '',
-    preferPublicHost(host, publicHost),
-  );
+  const endpointHost = resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
   const address = client.allowedIPs || '10.0.0.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';

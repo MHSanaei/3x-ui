@@ -69,8 +69,8 @@ func TestGetInboundOptions_NodeAddress(t *testing.T) {
 	if got.Listen != "0.0.0.0" {
 		t.Fatalf("node inbound Listen = %q, want 0.0.0.0", got.Listen)
 	}
-	if got.ShareAddrStrategy != "node" {
-		t.Fatalf("node inbound ShareAddrStrategy = %q, want node (DB default for an unset strategy)", got.ShareAddrStrategy)
+	if got.ShareAddrStrategy != "" {
+		t.Fatalf("node inbound ShareAddrStrategy = %q, want empty (the default node strategy is elided so omitempty drops it)", got.ShareAddrStrategy)
 	}
 
 	local, ok := byID[localInbound.Id]

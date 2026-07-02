@@ -24,7 +24,10 @@ export interface RemoteInboundOption {
 
 export function useNodeMutations() {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.nodes.root() });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: keys.nodes.root() });
+    queryClient.invalidateQueries({ queryKey: keys.inbounds.options() });
+  };
 
   const createMut = useMutation({
     mutationFn: (payload: Partial<NodeRecord>) =>
