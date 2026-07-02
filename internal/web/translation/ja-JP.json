@@ -900,6 +900,7 @@
       "wireguardPublicKey": "WireGuard 公開鍵",
       "wireguardPreSharedKey": "WireGuard 事前共有鍵",
       "wireguardAllowedIPs": "WireGuard 許可IP",
+      "wireguardAllowedIPsHint": "空欄で自動割り当て。複数指定はカンマ区切り",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "任意の Reverse tag",
       "telegramId": "Telegram ユーザー ID",

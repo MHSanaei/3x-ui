@@ -900,6 +900,7 @@
       "wireguardPublicKey": "مفتاح وايرغارد العام",
       "wireguardPreSharedKey": "مفتاح وايرغارد المشترك مسبقًا",
       "wireguardAllowedIPs": "عناوين IP المسموحة لوايرغارد",
+      "wireguardAllowedIPsHint": "اتركه فارغًا للتعيين التلقائي؛ افصل بين الإدخالات بفواصل",
       "reverseTag": "وسم عكسي",
       "reverseTagPlaceholder": "Reverse tag اختياري",
       "telegramId": "معرّف مستخدم تلغرام",

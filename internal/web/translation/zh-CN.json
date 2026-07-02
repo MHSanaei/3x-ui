@@ -900,6 +900,7 @@
       "wireguardPublicKey": "WireGuard 公钥",
       "wireguardPreSharedKey": "WireGuard 预共享密钥",
       "wireguardAllowedIPs": "WireGuard 允许的 IP",
+      "wireguardAllowedIPsHint": "留空则自动分配；多个条目用逗号分隔",
       "reverseTag": "反向标签",
       "reverseTagPlaceholder": "可选 Reverse tag",
       "telegramId": "Telegram 用户 ID",

@@ -900,6 +900,7 @@
       "wireguardPublicKey": "Kunci Publik WireGuard",
       "wireguardPreSharedKey": "Kunci Pra-Berbagi WireGuard",
       "wireguardAllowedIPs": "IP yang Diizinkan WireGuard",
+      "wireguardAllowedIPsHint": "Biarkan kosong untuk penetapan otomatis; pisahkan entri dengan koma",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag opsional",
       "telegramId": "ID pengguna Telegram",
