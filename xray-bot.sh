@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Пути к боту и конфигу (подставь свои, если они другие)
+# Пути к боту и конфигу
 BOT_DIR="/usr/local/x-ui/xray-bot"
 ENV_FILE="$BOT_DIR/src/.env"
-SERVICE_NAME="xray-bot" # Предполагаем, что бот работает как служба systemd
+SERVICE_NAME="xray-bot"
 
 # Цвета для красоты
 RED='\033[0;31m'
@@ -20,7 +20,7 @@ check_status() {
     fi
 }
 
-# Функция изменения параметров .env
+# Функция изменения параметров .env (СТРОГИЙ РЕЖИМ)
 manage_env() {
     if [ ! -f "$ENV_FILE" ]; then
         echo -e "${RED}Ошибка: Файл .env не найден по пути $ENV_FILE${PLAIN}"
@@ -34,22 +34,24 @@ manage_env() {
     echo "Введите название переменной, которую хотите изменить (например, BOT_TOKEN):"
     read -r var_name
     
-    # Проверяем, есть ли такая переменная
+    if [ -z "$var_name" ]; then
+        echo -e "${RED}Название не может быть пустым!${PLAIN}"
+        return
+    fi
+    
+    # СТРОГАЯ ПРОВЕРКА: Если поля изначально нет в файле — шлем нафиг, ничего не создаем
     if ! grep -q "^$var_name=" "$ENV_FILE"; then
-        echo -e "${YELLOW}Переменная не найдена. Она будет создана.${PLAIN}"
+        echo -e "${RED}Ошибка: Параметр '$var_name' отсутствует в .env файле! Создание новых полей запрещено.${PLAIN}"
+        return
     fi
     
     echo "Введите новое значение для $var_name:"
     read -r var_value
     
-    # Если переменная есть — меняем, если нет — дописываем в конец
-    if grep -q "^$var_name=" "$ENV_FILE"; then
-        sed -i "s|^$var_name=.*|$var_name=$var_value|" "$ENV_FILE"
-    else
-        echo "$var_name=$var_value" >> "$ENV_FILE"
-    fi
+    # Меняем значение существующей переменной
+    sed -i "s|^$var_name=.*|$var_name=$var_value|" "$ENV_FILE"
     
-    echo -e "${GREEN}Настройки успешно обновлены! Не забудьте перезапустить бота.${PLAIN}"
+    echo -e "${GREEN}Настройки успешно обновлены! Не забудьте перезапустить бота (пункт 3).${PLAIN}"
 }
 
 # Бесконечный цикл меню
