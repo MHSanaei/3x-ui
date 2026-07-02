@@ -1806,6 +1806,13 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 1,
         "type": "integer"
       },
+      "listen": {
+        "type": "string"
+      },
+      "nodeAddress": {
+        "description": "Share-host resolution inputs, mirroring the subscription's\nresolveInboundAddress so the clients page renders a node-managed WireGuard\nEndpoint that points at the node, not the master panel. NodeAddress is the\nhosting node's externally reachable address (empty for this panel's own\ninbounds); Listen and ShareAddrStrategy/ShareAddr feed the same\nnode→listen→custom fallback the share/QR links already use.",
+        "type": "string"
+      },
       "nodeId": {
         "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
         "nullable": true,
@@ -1821,6 +1828,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "remark": {
         "example": "VLESS-443",
+        "type": "string"
+      },
+      "shareAddr": {
+        "type": "string"
+      },
+      "shareAddrStrategy": {
         "type": "string"
       },
       "ssMethod": {
