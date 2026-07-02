@@ -534,13 +534,9 @@ var connectionTokens = map[string]bool{
 var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
 
 // firstLinkOnlyBodyTokens are stripped from every subscription-body link after a
-// client's first one: the usage/info tokens plus the per-client EMAIL/USERNAME
-// identity. A client app needs the email once, so repeating it on every link of
-// the same subscription is noise — show it on the first link only, like traffic.
-var firstLinkOnlyBodyTokens = mergeTokenSets(usageInfoTokens, map[string]bool{
-	"EMAIL":    true,
-	"USERNAME": true,
-})
+// client's first one. Keep EMAIL/USERNAME on every link so a client attached to
+// multiple inbounds still imports as "inbound-client" / "inbound-client 2".
+var firstLinkOnlyBodyTokens = usageInfoTokens
 
 func mergeTokenSets(sets ...map[string]bool) map[string]bool {
 	out := make(map[string]bool)
