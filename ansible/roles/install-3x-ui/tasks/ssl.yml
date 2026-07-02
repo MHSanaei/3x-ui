@@ -1,0 +1,157 @@
+---
+# roles/3x_ui/tasks/ssl.yml
+
+- name: Handle Custom SSL Certificates
+  when: xui_ssl_mode == 'custom'
+  tags:
+    - 3x_ui
+    - ssl
+    - configure
+  block:
+    - name: Verify custom certificate files exist on target host
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: custom_cert_stat
+      loop:
+        - "{{ xui_ssl_custom_cert }}"
+        - "{{ xui_ssl_custom_key }}"
+
+    - name: Fail if custom certificates are missing
+      ansible.builtin.assert:
+        that: item.stat.exists
+        fail_msg: "Custom SSL file {{ item.item }} does not exist! Please ensure files are provisioned before running."
+      loop: "{{ custom_cert_stat.results }}"
+
+    - name: Set certificate path facts for custom mode
+      ansible.builtin.set_fact:
+        xui_final_cert_path: "{{ xui_ssl_custom_cert }}"
+        xui_final_key_path: "{{ xui_ssl_custom_key }}"
+
+- name: Handle Automated Let's Encrypt via acme.sh (Domain or IP)
+  when: xui_ssl_mode in ['domain', 'ip']
+  tags:
+    - 3x_ui
+    - ssl
+    - configure
+  block:
+    - name: Define ACME target entity (Domain or IP)
+      ansible.builtin.set_fact:
+        xui_acme_target: "{{ xui_domain if xui_ssl_mode == 'domain' else ansible_host }}"
+
+    - name: Ensure certificate storage directory exists
+      ansible.builtin.file:
+        path: "/root/cert/{{ xui_acme_target }}"
+        state: directory
+        mode: '0700'
+
+    - name: Check if acme.sh is already installed
+      ansible.builtin.stat:
+        path: /root/.acme.sh/acme.sh
+      register: acme_sh_stat
+
+    - name: Bootstrap acme.sh installation
+      when: not acme_sh_stat.stat.exists
+      block:
+        - name: Ensure socat and git are installed (Required by acme.sh standalone)
+          ansible.builtin.package:
+            name:
+              - git
+              - socat
+            state: present
+
+        - name: Clone acme.sh repository
+          ansible.builtin.git:
+            repo: https://github.com/acmesh-official/acme.sh.git
+            dest: /usr/local/src/acme.sh
+            version: "{{ xui_acme_sh_version }}"
+            depth: 1
+
+        - name: Install acme.sh globally
+          ansible.builtin.command: >
+            ./acme.sh --install --noprofile --home /root/.acme.sh --accountemail "{{ xui_acme_email }}"
+          args:
+            chdir: /usr/local/src/acme.sh
+            creates: /root/.acme.sh/acme.sh
+
+        - name: Set Let's Encrypt default CA
+          ansible.builtin.command: /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+          changed_when: false
+
+    - name: Execute ACME Standalone Challenge
+      block:
+        - name: Stop x-ui service temporarily to free Port 80 for HTTP-01 challenge
+          ansible.builtin.systemd:
+            name: x-ui
+            state: stopped
+          failed_when: false # Ignore if service doesn't exist yet
+
+        - name: Issue Certificate (Domain Mode)
+          ansible.builtin.command: >
+            /root/.acme.sh/acme.sh --issue -d {{ xui_acme_target }} --standalone --httpport 80 --force
+          args:
+            creates: "/root/.acme.sh/{{ xui_acme_target }}/{{ xui_acme_target }}.cer"
+          when: xui_ssl_mode == 'domain'
+
+        - name: Issue Certificate (IP Mode - Shortlived 6-day profile)
+          ansible.builtin.command: >
+            /root/.acme.sh/acme.sh --issue
+            -d {{ xui_acme_target }}
+            --standalone
+            --server letsencrypt
+            --certificate-profile shortlived
+            --days 6
+            --httpport 80
+            --force
+          args:
+            creates: "/root/.acme.sh/{{ xui_acme_target }}/{{ xui_acme_target }}.cer"
+          when: xui_ssl_mode == 'ip'
+
+        - name: Install Certificate to application directory
+          ansible.builtin.command: >
+            /root/.acme.sh/acme.sh --installcert -d {{ xui_acme_target }}
+            --key-file /root/cert/{{ xui_acme_target }}/privkey.pem
+            --fullchain-file /root/cert/{{ xui_acme_target }}/fullchain.pem
+          args:
+            creates: "/root/cert/{{ xui_acme_target }}/fullchain.pem"
+          notify: Restart 3x-ui
+
+      always:
+        - name: Ensure x-ui service is restarted after challenge completes
+          ansible.builtin.systemd:
+            name: x-ui
+            state: started
+          failed_when: false
+
+    - name: Ensure strict permissions on installed certificates
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/root/cert/{{ xui_acme_target }}/privkey.pem", mode: '0600' }
+        - { path: "/root/cert/{{ xui_acme_target }}/fullchain.pem", mode: '0644' }
+
+    - name: Set certificate path facts for ACME mode
+      ansible.builtin.set_fact:
+        xui_final_cert_path: "/root/cert/{{ xui_acme_target }}/fullchain.pem"
+        xui_final_key_path: "/root/cert/{{ xui_acme_target }}/privkey.pem"
+
+- name: Apply SSL Configuration to 3x-ui Panel Database
+  tags:
+    - 3x_ui
+    - ssl
+    - configure
+  block:
+    - name: Check current panel certificate configuration
+      ansible.builtin.command: "{{ xui_base_dir }}/x-ui setting -getCert true"
+      register: xui_current_cert
+      changed_when: false
+      failed_when: false
+
+    - name: Configure panel to use specified SSL paths
+      ansible.builtin.command: >
+        {{ xui_base_dir }}/x-ui cert
+        -webCert {{ xui_final_cert_path }}
+        -webCertKey {{ xui_final_key_path }}
+      when: xui_final_cert_path not in xui_current_cert.stdout
+      changed_when: xui_final_cert_path not in xui_current_cert.stdout
+      notify: Restart 3x-ui

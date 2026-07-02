@@ -1,0 +1,56 @@
+---
+# roles/3x_ui/tasks/service.yml
+
+- name: Determine dynamic platform configuration attributes
+  ansible.builtin.set_fact:
+    xui_service_manager: "{{ ansible_facts['service_mgr'] }}"
+    xui_env_file_path: >-
+      {% if ansible_facts['os_family'] == 'Debian' %}
+      /etc/default/x-ui
+      {% elif ansible_facts['os_family'] == 'Archlinux' or ansible_facts['os_family'] == 'Alpine' %}
+      /etc/conf.d/x-ui
+      {% else %}
+      /etc/sysconfig/x-ui
+      {% endif %}
+  tags:
+    - 3x_ui
+    - service
+    - setup
+
+- name: Configure Linux Systemd service unit descriptor
+  ansible.builtin.template:
+    src: x-ui.service.j2
+    dest: /etc/systemd/system/x-ui.service
+    owner: root
+    group: root
+    mode: '0644'
+  register: systemd_unit_file
+  when: xui_service_manager == 'systemd'
+  notify: Reload systemd daemon
+  tags:
+    - 3x_ui
+    - service
+    - setup
+
+- name: Configure Alpine Linux OpenRC execution script
+  ansible.builtin.template:
+    src: x-ui.rc.j2
+    dest: /etc/init.d/x-ui
+    owner: root
+    group: root
+    mode: '0755'
+  when: ansible_facts['os_family'] == 'Alpine' or xui_service_manager == 'openrc'
+  tags:
+    - 3x_ui
+    - service
+    - setup
+
+- name: Enforce operational state and autostart policy for 3x-ui daemon
+  ansible.builtin.service:
+    name: x-ui
+    state: started
+    enabled: true
+  tags:
+    - 3x_ui
+    - service
+    - setup

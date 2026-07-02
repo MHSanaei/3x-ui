@@ -1,0 +1,218 @@
+---
+# roles/3x_ui/tasks/install.yml
+
+- name: Resolve GitHub repository tag version
+  tags:
+    - 3x_ui
+    - install
+    - update
+  block:
+    - name: Fetch latest release tag from GitHub API if version is unmapped
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest"
+        return_content: true
+        status_code: 200
+      register: github_latest_release
+      when: xui_version | default('latest') == 'latest'
+
+    - name: Set target application version fact
+      ansible.builtin.set_fact:
+        xui_target_version: >-
+          {{
+            github_latest_release.json.tag_name
+            if xui_version | default('latest') == 'latest'
+            else xui_version
+          }}
+
+- name: Enforce version constraint parameters
+  ansible.builtin.assert:
+    that:
+      - xui_target_version is defined
+      - xui_target_version is match('^v?[2-9]\.[3-9]\.[5-9].*') or xui_target_version is match('^v?[3-9]\.')
+    fail_msg: "Production deployment requires 3x-ui versions greater than or equal to v2.3.5."
+  tags:
+    - 3x_ui
+    - install
+
+- name: Map architecture matrix facts
+  ansible.builtin.set_fact:
+    xui_arch: "{{ xui_arch_map[ansible_architecture] | default('amd64') }}"
+  tags:
+    - 3x_ui
+    - install
+    - update
+
+- name: Perform pre-flight binary upgrades and process isolation
+  tags:
+    - 3x_ui
+    - update
+  block:
+    - name: Check if x-ui service manager state is active
+      ansible.builtin.service_facts:
+
+    - name: Halt running x-ui service to prevent binary deadlocks
+      ansible.builtin.systemd:
+        name: x-ui
+        state: stopped
+      when: "'x-ui.service' in ansible_facts.services and ansible_facts.services['x-ui.service'].state == 'running'"
+
+    - name: Cleanly terminate orphaned MTProto sidecar processes
+      ansible.builtin.command: pkill -f 'mtg-linux-[^ ]* run '
+      register: pkill_output
+      failed_when: false
+      changed_when: pkill_output.rc == 0
+
+- name: Prepare isolated application directory trees
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ xui_base_dir }}", mode: '0755' }
+    - { path: "/var/log/x-ui", mode: '0750' }
+    - { path: "/root/cert", mode: '0700' }
+  tags:
+    - 3x_ui
+    - install
+
+- name: Acquire and unpack application distribution components
+  tags:
+    - 3x_ui
+    - install
+    - update
+  block:
+    - name: Securely download release archive binary target
+      ansible.builtin.get_url:
+        url: "https://github.com/MHSanaei/3x-ui/releases/download/{{ xui_target_version }}/x-ui-linux-{{ xui_arch }}.tar.gz"
+        dest: "/tmp/x-ui-linux-{{ xui_arch }}.tar.gz"
+        mode: '0600'
+        force: true
+
+    - name: Extract archive payload directly to target folder
+      ansible.builtin.unarchive:
+        src: "/tmp/x-ui-linux-{{ xui_arch }}.tar.gz"
+        dest: "{{ xui_base_dir | dirname }}"
+        remote_src: true
+
+    - name: Clean temporary downpour downloads archive
+      ansible.builtin.file:
+        path: "/tmp/x-ui-linux-{{ xui_arch }}.tar.gz"
+        state: absent
+
+- name: Normalise multi-architecture compiled binary definitions
+  ansible.builtin.shell: |
+    set -e
+    mv bin/xray-linux-{{ xui_arch }} bin/xray-linux-arm
+    if [ -f bin/mtg-linux-{{ xui_arch }} ]; then
+        mv bin/mtg-linux-{{ xui_arch }} bin/mtg-linux-arm
+    fi
+  args:
+    executable: /bin/bash
+    chdir: "{{ xui_base_dir }}"
+  when: xui_arch in ['armv5', 'armv6', 'armv7']
+  register: arch_rename_state
+  changed_when: arch_rename_state.rc == 0
+  tags:
+    - 3x_ui
+    - install
+
+- name: Restructure global CLI orchestration helpers
+  tags:
+    - 3x_ui
+    - install
+  block:
+    - name: Sync dashboard maintenance wrapper to system binary path
+      ansible.builtin.copy:
+        src: "{{ xui_base_dir }}/x-ui.sh"
+        dest: /usr/bin/x-ui
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Enforce strict execution context flags on absolute binaries
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - "{{ xui_base_dir }}/x-ui"
+        - "/usr/bin/x-ui"
+
+- name: Secure Xray runtime workspace and satisfy routing asset requirements
+  tags:
+    - 3x_ui
+    - install
+    - update
+  block:
+    - name: Enforce strict permissions on the core bin directory
+      ansible.builtin.file:
+        path: "{{ xui_base_dir }}/bin"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Enforce execution context flags on the child xray-core binary
+      ansible.builtin.file:
+        path: "{{ xui_base_dir }}/bin/xray-linux-{{ 'arm' if xui_arch in ['armv5', 'armv6', 'armv7'] else xui_arch }}"
+        owner: root
+        group: root
+        mode: '0755'
+        state: file
+
+    - name: Check if MTProto sidecar binary exists
+      ansible.builtin.stat:
+        path: "{{ xui_base_dir }}/bin/mtg-linux-{{ 'arm' if xui_arch in ['armv5', 'armv6', 'armv7'] else xui_arch }}"
+      register: mtg_binary_stat
+
+    - name: Enforce execution context flags on the MTProto sidecar binary
+      ansible.builtin.file:
+        path: "{{ xui_base_dir }}/bin/mtg-linux-{{ 'arm' if xui_arch in ['armv5', 'armv6', 'armv7'] else xui_arch }}"
+        owner: root
+        group: root
+        mode: '0755'
+        state: file
+      when: mtg_binary_stat.stat.exists
+
+    - name: Verify presence of Xray routing geo-assets
+      ansible.builtin.stat:
+        path: "{{ xui_base_dir }}/bin/{{ item }}"
+      register: xray_geo_assets
+      loop:
+        - geoip.dat
+        - geosite.dat
+
+    - name: Download missing Geo data routing assets if absent
+      ansible.builtin.get_url:
+        url: "https://github.com/v2fly/domain-list-community/releases/latest/download/{{ item.item }}"
+        dest: "{{ xui_base_dir }}/bin/{{ item.item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ xray_geo_assets.results }}"
+      when: not item.stat.exists
+
+- name: Handle revision control engine etckeeper mutations
+  ansible.builtin.stat:
+    path: /etc/.git
+  register: etc_git_env
+  tags:
+    - 3x_ui
+    - install
+
+- name: Append database storage to etckeeper runtime exclusions
+  ansible.builtin.lineinfile:
+    path: /etc/.gitignore
+    line: "x-ui/x-ui.db"
+    create: true
+    mode: '0644'
+    owner: root
+    group: root
+  when: etc_git_env.stat.exists
+  tags:
+    - 3x_ui
+    - install

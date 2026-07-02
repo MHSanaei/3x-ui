@@ -1,0 +1,56 @@
+---
+# defaults file for install-3x-ui
+
+# Database selection: 'sqlite' or 'postgres'
+xui_db_type: 'sqlite'
+
+# PostgreSQL specific configurations
+xui_pg_install_local: true
+xui_pg_host: '127.0.0.1'
+xui_pg_port: 5432
+xui_pg_database: 'xui'
+xui_pg_user: 'xui_user'
+xui_pg_password: 'VaultedPassword' # Use ansible-vault for this!
+
+# DSN generation based on variables
+xui_db_dsn: "postgres://{{ xui_pg_user }}:{{ xui_pg_password | urlencode }}@{{ xui_pg_host }}:{{ xui_pg_port }}/{{ xui_pg_database }}?sslmode=disable"
+
+xui_version: 'v3.4.1' # Define explicit tags like 'v2.4.3'
+xui_base_dir: '/usr/local/x-ui'
+
+# Hardware Translation Lookup Map
+xui_arch_map:
+  x86_64: 'amd64'
+  amd64: 'amd64'
+  aarch64: 'arm64'
+  arm64: 'arm64'
+  armv7l: 'armv7'
+  armv6l: 'armv6'
+  i386: '386'
+
+# SSL Configuration Mode: 'none', 'domain', 'ip', or 'custom'
+xui_ssl_mode: 'domain'
+
+# Required if xui_ssl_mode == 'domain'
+xui_domain: 'example.com'
+xui_acme_email: 'example.email@gmail.com'
+
+# Required if xui_ssl_mode == 'custom'
+xui_ssl_custom_cert: '/etc/ssl/certs/cert.pem'
+xui_ssl_custom_key: '/etc/ssl/private/key.pem'
+
+# Use a specific, stable release tag from the acme.sh repository
+xui_acme_sh_version: "3.0.8"
+
+# defaults file for install-3x-ui
+xui_folder: "/usr/local/x-ui"
+
+# Core Settings (Should ideally be overwritten using ansible-vault)
+xui_username: "admin"
+xui_password: "panelPassword"
+xui_port: 2053
+xui_web_base_path: "panel"
+
+# Networking Configuration
+# Set to '127.0.0.1' if you want to isolate the interface behind Nginx/Caddy or an SSH tunnel
+xui_listen_ip: "0.0.0.0"

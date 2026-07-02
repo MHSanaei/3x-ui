@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+
+description="3x-ui Panel Manager Core Daemon"
+supervisor="supervise-daemon"
+command="{{ xui_folder | default('/usr/local/x-ui') }}/x-ui"
+command_background="true"
+directory="{{ xui_folder | default('/usr/local/x-ui') }}"
+
+depend() {
+    need net
+    after firewall
+}
+
+start_pre() {
+    if [ -f "{{ xui_env_file_path }}" ]; then
+        . "{{ xui_env_file_path }}"
+    fi
+}

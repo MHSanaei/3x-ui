@@ -1,0 +1,44 @@
+---
+# tasks file for install-3x-ui
+
+- name: Ensure prerequisites and base packages are installed
+  ansible.builtin.include_tasks: prerequisites.yml
+  tags:
+    - 3x_ui
+    - prerequisites
+    - setup
+
+- name: Provision and configure the database (SQLite/PostgreSQL)
+  ansible.builtin.include_tasks: database.yml
+  tags:
+    - 3x_ui
+    - database
+    - setup
+
+- name: Download, extract, and install 3x-ui binaries
+  ansible.builtin.include_tasks: install.yml
+  tags:
+    - 3x_ui
+    - install
+    - update
+
+- name: Setup and configure SSL certificates
+  ansible.builtin.include_tasks: ssl.yml
+  when: xui_ssl_mode != 'none'
+  tags:
+    - 3x_ui
+    - ssl
+    - configure
+
+- name: Apply panel configurations and settings
+  ansible.builtin.include_tasks: configure.yml
+  tags:
+    - 3x_ui
+    - configure
+
+- name: Ensure 3x-ui systemd service is configured and running
+  ansible.builtin.include_tasks: service.yml
+  tags:
+    - 3x_ui
+    - service
+    - setup

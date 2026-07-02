@@ -1,0 +1,9 @@
+# Copy this file to hosts.yml and update with your server details
+all:
+  children:
+    xui_servers:
+      hosts:
+        server_1:
+          ansible_host: 0.0.0.0      # Replace with your VPS/Server public IPv4 or domain
+          ansible_port: 22           # Replace with your custom SSH port if changed
+          ansible_user: root         # Replace with sudo user or root
