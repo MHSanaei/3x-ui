@@ -2,7 +2,7 @@
 
 # Пути к боту и конфигу (подставь свои, если они другие)
 BOT_DIR="/usr/local/x-ui/xray-bot"
-ENV_FILE="$BOT_DIR/.env"
+ENV_FILE="$BOT_DIR/src/.env"
 SERVICE_NAME="xray-bot" # Предполагаем, что бот работает как служба systemd
 
 # Цвета для красоты
