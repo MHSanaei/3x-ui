@@ -83,6 +83,65 @@ describe('outbound deletion', () => {
     expect(tt.routing!.rules![0].balancerTag).toBeUndefined();
   });
 
+  it('cascade-removes the burst observer when deleting an outbound removes the last leastLoad balancer', () => {
+    const tt = tpl({
+      outbounds: [{ tag: 'll-out' }],
+      routing: {
+        rules: [],
+        balancers: [{ tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } }],
+      },
+      burstObservatory: { subjectSelector: ['ll-out'] },
+    });
+    const impact = planOutboundDeletion(tt, 0);
+    expect(impact.balancers).toEqual([{ tag: 'll', reason: 'selectorEmptied' }]);
+    expect(impact.burst).toBe(true);
+    applyOutboundDeletion(tt, 0);
+    expect(tt.burstObservatory).toBeUndefined();
+    expect(tt.routing!.balancers).toEqual([]);
+  });
+
+  it('cascade-switches from burst to regular observer when only leastPing remains', () => {
+    const tt = tpl({
+      outbounds: [{ tag: 'lp-out' }, { tag: 'll-out' }],
+      routing: {
+        rules: [],
+        balancers: [
+          { tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } },
+          { tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } },
+        ],
+      },
+      burstObservatory: { subjectSelector: ['lp-out', 'll-out'] },
+    });
+    const impact = planOutboundDeletion(tt, 1);
+    expect(impact.balancers).toEqual([{ tag: 'll', reason: 'selectorEmptied' }]);
+    expect(impact.burst).toBe(true);
+    applyOutboundDeletion(tt, 1);
+    expect(tt.burstObservatory).toBeUndefined();
+    expect((tt.observatory as { subjectSelector: string[] }).subjectSelector).toEqual(['lp-out']);
+    expect(tt.routing!.balancers).toEqual([{ tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } }]);
+  });
+
+  it('cascade-keeps burst observer when leastPing is removed but leastLoad remains', () => {
+    const tt = tpl({
+      outbounds: [{ tag: 'lp-out' }, { tag: 'll-out' }],
+      routing: {
+        rules: [],
+        balancers: [
+          { tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } },
+          { tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } },
+        ],
+      },
+      burstObservatory: { subjectSelector: ['lp-out', 'll-out'] },
+    });
+    const impact = planOutboundDeletion(tt, 0);
+    expect(impact.balancers).toEqual([{ tag: 'lp', reason: 'selectorEmptied' }]);
+    expect(impact.burst).toBe(false);
+    applyOutboundDeletion(tt, 0);
+    expect(tt.observatory).toBeUndefined();
+    expect((tt.burstObservatory as { subjectSelector: string[] }).subjectSelector).toEqual(['ll-out']);
+    expect(tt.routing!.balancers).toEqual([{ tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } }]);
+  });
+
   it('clears a fallbackTag and a dialerProxy pointing at the deleted outbound', () => {
     const tt = tpl({
       outbounds: [
@@ -251,6 +310,68 @@ describe('balancer deletion', () => {
     applyBalancerDeletion(tt, 0);
     expect(tt.observatory).toBeUndefined();
     expect(tt.routing!.balancers).toEqual([]);
+  });
+
+  it('reports and removes the burst observer when deleting the last leastLoad balancer', () => {
+    const tt = tpl({
+      routing: { rules: [], balancers: [{ tag: 'll', selector: ['a'], strategy: { type: 'leastLoad' } }] },
+      burstObservatory: { subjectSelector: ['a'] },
+    });
+    expect(planBalancerDeletion(tt, 0).burst).toBe(true);
+    applyBalancerDeletion(tt, 0);
+    expect(tt.burstObservatory).toBeUndefined();
+    expect(tt.routing!.balancers).toEqual([]);
+  });
+
+  it('reports and removes the burst observer when deleting the last fallback balancer', () => {
+    const tt = tpl({
+      routing: { rules: [], balancers: [{ tag: 'rf', selector: ['a'], fallbackTag: 'direct' }] },
+      burstObservatory: { subjectSelector: ['a'] },
+    });
+    expect(planBalancerDeletion(tt, 0).burst).toBe(true);
+    applyBalancerDeletion(tt, 0);
+    expect(tt.burstObservatory).toBeUndefined();
+    expect(tt.routing!.balancers).toEqual([]);
+  });
+
+  it('switches from burst to regular observer when the deleted balancer was the last burst-required one', () => {
+    const tt = tpl({
+      routing: {
+        rules: [],
+        balancers: [
+          { tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } },
+          { tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } },
+        ],
+      },
+      burstObservatory: { subjectSelector: ['lp-out', 'll-out'] },
+    });
+    const impact = planBalancerDeletion(tt, 1);
+    expect(impact.burst).toBe(true);
+    expect(impact.observatory).toBe(false);
+    applyBalancerDeletion(tt, 1);
+    expect(tt.burstObservatory).toBeUndefined();
+    expect((tt.observatory as { subjectSelector: string[] }).subjectSelector).toEqual(['lp-out']);
+    expect(tt.routing!.balancers).toEqual([{ tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } }]);
+  });
+
+  it('keeps burst observer when deleting leastPing but a burst-required balancer remains', () => {
+    const tt = tpl({
+      routing: {
+        rules: [],
+        balancers: [
+          { tag: 'lp', selector: ['lp-out'], strategy: { type: 'leastPing' } },
+          { tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } },
+        ],
+      },
+      burstObservatory: { subjectSelector: ['lp-out', 'll-out'] },
+    });
+    const impact = planBalancerDeletion(tt, 0);
+    expect(impact.burst).toBe(false);
+    expect(impact.observatory).toBe(false);
+    applyBalancerDeletion(tt, 0);
+    expect(tt.observatory).toBeUndefined();
+    expect((tt.burstObservatory as { subjectSelector: string[] }).subjectSelector).toEqual(['ll-out']);
+    expect(tt.routing!.balancers).toEqual([{ tag: 'll', selector: ['ll-out'], strategy: { type: 'leastLoad' } }]);
   });
 
   it('does not report rules when the deleted balancer is unreferenced', () => {
