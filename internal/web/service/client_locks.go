@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -138,4 +139,40 @@ func isClientEmailTombstoned(email string) bool {
 		return false
 	}
 	return true
+}
+
+// stripTombstonedClients drops just-deleted client entries from a node
+// snapshot's settings JSON so adopting a stale snapshot can't re-add them to
+// the central inbound while the delete tombstone is live. Returns the filtered
+// JSON and whether anything was removed.
+func stripTombstonedClients(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, _ := parsed["clients"].([]any)
+	if len(clients) == 0 {
+		return settings, false
+	}
+	kept := make([]any, 0, len(clients))
+	for _, c := range clients {
+		if cm, ok := c.(map[string]any); ok {
+			if email, _ := cm["email"].(string); email != "" && isClientEmailTombstoned(email) {
+				continue
+			}
+		}
+		kept = append(kept, c)
+	}
+	if len(kept) == len(clients) {
+		return settings, false
+	}
+	parsed["clients"] = kept
+	b, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(b), true
 }

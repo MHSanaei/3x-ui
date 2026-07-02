@@ -3,6 +3,7 @@ package service
 import (
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -137,5 +138,46 @@ func TestNodeRenewExtendsExpiry(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 20, Down: 20, ExpiryTime: renewed, Enable: true})
 	if got := readTraffic(t, db, email).ExpiryTime; got != renewed {
 		t.Fatalf("node renewal did not propagate: expiry = %d, want %d", got, renewed)
+	}
+}
+
+// TestNodeActivationLiftsClientRecordExpiry reproduces #5714: the node activates
+// the deadline (positive ClientStats) while its settings JSON still carries the
+// negative duration, so SyncInbound keeps writing the stale value into the
+// client record and the Clients page shows "not started" forever.
+func TestNodeActivationLiftsClientRecordExpiry(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "delayed")
+	svc := &InboundService{}
+
+	const email = "delayed"
+	const duration = int64(-2592000000)
+	const activated = int64(1798448344010)
+	negSettings := `{"clients":[{"email":"delayed","enable":true,"expiryTime":-2592000000}]}`
+
+	if err := db.Create(&model.ClientRecord{Email: email, Enable: true, ExpiryTime: duration}).Error; err != nil {
+		t.Fatalf("seed client record: %v", err)
+	}
+
+	readRecordExpiry := func() int64 {
+		t.Helper()
+		var rec model.ClientRecord
+		if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+			t.Fatalf("read client record: %v", err)
+		}
+		return rec.ExpiryTime
+	}
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", negSettings, xray.ClientTraffic{Email: email, ExpiryTime: duration, Enable: true})
+	if got := readRecordExpiry(); got != duration {
+		t.Fatalf("before activation: record expiry = %d, want %d", got, duration)
+	}
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", negSettings, xray.ClientTraffic{Email: email, Up: 100, Down: 100, ExpiryTime: activated, Enable: true})
+	if got := readTraffic(t, db, email).ExpiryTime; got != activated {
+		t.Fatalf("client_traffics not activated: expiry = %d, want %d", got, activated)
+	}
+	if got := readRecordExpiry(); got != activated {
+		t.Fatalf("client record kept stale duration (#5714): expiry = %d, want %d", got, activated)
 	}
 }

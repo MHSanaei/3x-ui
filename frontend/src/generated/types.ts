@@ -465,6 +465,13 @@ export interface OutboundTraffics {
   up: number;
 }
 
+export interface PanelUpdateStatus {
+  exitCode: number;
+  finishedAt: number;
+  runId: string;
+  state: string;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;

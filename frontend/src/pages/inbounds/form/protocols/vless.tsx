@@ -1,18 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
 
-type VlessAuthKind =
-  | 'x25519'
-  | 'x25519_xorpub'
-  | 'x25519_random'
-  | 'mlkem768'
-  | 'mlkem768_xorpub'
-  | 'mlkem768_random';
+import { VLESS_AUTH_LABEL_KEYS, type VlessAuthKind } from '@/lib/xray/vless-encryption';
 
 interface VlessFieldsProps {
   saving: boolean;
   selectedVlessAuth: string;
+  vlessAuthKind: VlessAuthKind | null;
   network: string;
   security: string;
   getNewVlessEnc: (kind: VlessAuthKind) => void;
@@ -22,22 +17,22 @@ interface VlessFieldsProps {
 export default function VlessFields({
   saving,
   selectedVlessAuth,
+  vlessAuthKind,
   network,
   security,
   getNewVlessEnc,
   clearVlessEnc,
 }: VlessFieldsProps) {
   const { t } = useTranslation();
-  const [authKind, setAuthKind] = useState<VlessAuthKind>('x25519');
+  const [authKind, setAuthKind] = useState<VlessAuthKind>(vlessAuthKind ?? 'x25519');
 
-  const authOptions = [
-    { value: 'x25519', label: t('pages.inbounds.vlessAuthX25519') },
-    { value: 'x25519_xorpub', label: t('pages.inbounds.vlessAuthX25519Xorpub') },
-    { value: 'x25519_random', label: t('pages.inbounds.vlessAuthX25519Random') },
-    { value: 'mlkem768', label: t('pages.inbounds.vlessAuthMlkem768') },
-    { value: 'mlkem768_xorpub', label: t('pages.inbounds.vlessAuthMlkem768Xorpub') },
-    { value: 'mlkem768_random', label: t('pages.inbounds.vlessAuthMlkem768Random') },
-  ];
+  useEffect(() => {
+    setAuthKind(vlessAuthKind ?? 'x25519');
+  }, [vlessAuthKind]);
+
+  const authOptions = (Object.entries(VLESS_AUTH_LABEL_KEYS) as [VlessAuthKind, string][]).map(
+    ([value, labelKey]) => ({ value, label: t(labelKey) }),
+  );
 
   return (
     <>

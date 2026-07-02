@@ -83,6 +83,9 @@ func initModels() error {
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {
+		if IsPostgres() && postgresModelSettled(mdl) {
+			continue
+		}
 		if err := db.AutoMigrate(mdl); err != nil {
 			if isIgnorableDuplicateColumnErr(err, mdl) {
 				log.Printf("Ignoring duplicate column during auto migration for %T: %v", mdl, err)
@@ -117,6 +120,30 @@ func initModels() error {
 		}
 	}
 	return nil
+}
+
+// postgresModelSettled skips AutoMigrate when table, columns, and indexes all exist:
+// its catalog-filtered column probe misdetects on some setups and re-ADDs columns forever (#5665).
+func postgresModelSettled(mdl any) bool {
+	migrator := db.Migrator()
+	if !migrator.HasTable(mdl) {
+		return false
+	}
+	stmt := &gorm.Statement{DB: db}
+	if err := stmt.Parse(mdl); err != nil || stmt.Schema == nil {
+		return false
+	}
+	for _, dbName := range stmt.Schema.DBNames {
+		if !migrator.HasColumn(mdl, dbName) {
+			return false
+		}
+	}
+	for _, idx := range stmt.Schema.ParseIndexes() {
+		if !migrator.HasIndex(mdl, idx.Name) {
+			return false
+		}
+	}
+	return true
 }
 
 func dropLegacyForeignKeys() error {
@@ -641,7 +668,10 @@ func runSeeders(isUsersEmpty bool) error {
 	if err := seedHostGroupIds(); err != nil {
 		return err
 	}
-	return nil
+
+	// Idempotent, not seeder-gated: bad values can re-enter via a restored
+	// backup, so re-check on every start.
+	return normalizeSettingPaths()
 }
 
 // seedHostGroupIds assigns a unique group ID to any existing host overrides that do not have one.
@@ -777,6 +807,37 @@ func clearLegacyProxySettings() error {
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
 	})
+}
+
+// normalizeSettingPaths repairs URI-path settings persisted before the
+// leading/trailing-slash rules existed (or restored from an old backup),
+// mirroring entity.AllSetting.CheckValid. CheckValid self-heals these on save,
+// but the frontend rejects the whole Settings form on the bad stored value
+// before a save can ever reach it (#5726), so the stored rows themselves must
+// be fixed. Idempotent; runs on every start.
+func normalizeSettingPaths() error {
+	pathKeys := []string{"webBasePath", "subPath", "subJsonPath", "subClashPath"}
+	var rows []model.Setting
+	if err := db.Where("key IN ?", pathKeys).Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		fixed := row.Value
+		if !strings.HasPrefix(fixed, "/") {
+			fixed = "/" + fixed
+		}
+		if !strings.HasSuffix(fixed, "/") {
+			fixed += "/"
+		}
+		if fixed == row.Value {
+			continue
+		}
+		if err := db.Model(&model.Setting{}).Where("id = ?", row.Id).
+			Update("value", fixed).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func normalizeInboundClientTgId() error {

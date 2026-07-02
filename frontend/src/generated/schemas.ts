@@ -2125,6 +2125,34 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PanelUpdateStatus": {
+    "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
+    "properties": {
+      "exitCode": {
+        "example": 0,
+        "type": "integer"
+      },
+      "finishedAt": {
+        "example": 1735689612,
+        "type": "integer"
+      },
+      "runId": {
+        "example": "1735689600123456789",
+        "type": "string"
+      },
+      "state": {
+        "example": "success",
+        "type": "string"
+      }
+    },
+    "required": [
+      "exitCode",
+      "finishedAt",
+      "runId",
+      "state"
+    ],
+    "type": "object"
+  },
   "ProbeResultUI": {
     "properties": {
       "cpuPct": {

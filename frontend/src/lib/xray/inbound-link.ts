@@ -13,6 +13,7 @@ import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
+import { deriveSpiderX } from './spider-x';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -322,6 +323,7 @@ export interface GenVlessLinkInput {
   forceTls?: ForceTls;
   remark?: string;
   clientId: string;
+  clientKey?: string;
   flow?: VlessClient['flow'];
   externalProxy?: ExternalProxyEntry | null;
 }
@@ -350,6 +352,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     forceTls = 'same',
     remark = '',
     clientId,
+    clientKey = '',
     flow = '',
     externalProxy = null,
   } = input;
@@ -430,7 +433,8 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       if (sni && sni.length > 0) params.set('sni', sni);
 
       if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
-      if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
+      const spx = deriveSpiderX(reality.settings.spiderX, clientKey);
+      if (spx.length > 0) params.set('spx', spx);
       if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
     }
   } else {
@@ -512,7 +516,7 @@ function writeTlsParams(stream: NonNullable<Inbound['streamSettings']>, params: 
 
 // Reality query-string writer shared by VLESS and Trojan. Preserves the
 // legacy SNI-omission quirk (see genVlessLink for the full story).
-function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, params: URLSearchParams): void {
+function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, params: URLSearchParams, clientKey: string): void {
   if (stream.security !== 'reality') return;
   const reality = stream.realitySettings;
   params.set('pbk', reality.settings.publicKey);
@@ -526,7 +530,8 @@ function writeRealityParams(stream: NonNullable<Inbound['streamSettings']>, para
   if (sni && sni.length > 0) params.set('sni', sni);
 
   if (reality.shortIds.length > 0) params.set('sid', reality.shortIds[0]);
-  if (reality.settings.spiderX.length > 0) params.set('spx', reality.settings.spiderX);
+  const spx = deriveSpiderX(reality.settings.spiderX, clientKey);
+  if (spx.length > 0) params.set('spx', spx);
   if (reality.settings.mldsa65Verify.length > 0) params.set('pqv', reality.settings.mldsa65Verify);
 }
 
@@ -537,6 +542,7 @@ export interface GenTrojanLinkInput {
   forceTls?: ForceTls;
   remark?: string;
   clientPassword: string;
+  clientKey?: string;
   externalProxy?: ExternalProxyEntry | null;
 }
 
@@ -551,6 +557,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
     forceTls = 'same',
     remark = '',
     clientPassword,
+    clientKey = '',
     externalProxy = null,
   } = input;
 
@@ -571,7 +578,7 @@ export function genTrojanLink(input: GenTrojanLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   } else if (security === 'reality') {
     params.set('security', 'reality');
-    writeRealityParams(stream, params);
+    writeRealityParams(stream, params, clientKey);
   } else {
     params.set('security', 'none');
   }
@@ -1017,7 +1024,13 @@ export function preferPublicHost(browserHost: string, publicHost: string): strin
 // `this.clients` getter, which used isSSMultiUser to gate). Returns null
 // for SS single-user, http, mixed, tunnel, wireguard, hysteria2-without-
 // clients, and any protocol without a clients array.
-type ClientShape = { id?: string; security?: VmessSecurity; flow?: VlessClient['flow']; password?: string; auth?: string; email?: string };
+type ClientShape = { id?: string; security?: VmessSecurity; flow?: VlessClient['flow']; password?: string; auth?: string; email?: string; subId?: string };
+
+// Mirror of the Go subKey: the stable per-client identity spx derivation
+// keys on — subscription id first, unique email as the fallback.
+function clientSubKey(client: ClientShape): string {
+  return client.subId || client.email || '';
+}
 
 export function getInboundClients(inbound: Inbound): ClientShape[] | null {
   switch (inbound.protocol) {
@@ -1066,6 +1079,7 @@ export function genLink(input: GenLinkInput): string {
       return genVlessLink({
         inbound, address, port, forceTls, remark,
         clientId: client.id ?? '',
+        clientKey: clientSubKey(client),
         flow: client.flow,
         externalProxy,
       });
@@ -1081,6 +1095,7 @@ export function genLink(input: GenLinkInput): string {
       return genTrojanLink({
         inbound, address, port, forceTls, remark,
         clientPassword: client.password ?? '',
+        clientKey: clientSubKey(client),
         externalProxy,
       });
     case 'hysteria':

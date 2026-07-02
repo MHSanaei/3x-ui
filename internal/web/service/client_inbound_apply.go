@@ -528,6 +528,26 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 		if len(clients[0].AllowedIPs) == 0 {
 			clients[0].AllowedIPs = old.AllowedIPs
+		} else {
+			normalized, nErr := normalizeWireguardAllowedIPs(clients[0].AllowedIPs)
+			if nErr != nil {
+				return false, nErr
+			}
+			if len(normalized) == 0 {
+				clients[0].AllowedIPs = old.AllowedIPs
+			} else {
+				peers := make([]string, 0, len(oldClients))
+				for i := range oldClients {
+					if i == clientIndex {
+						continue
+					}
+					peers = append(peers, oldClients[i].AllowedIPs...)
+				}
+				if hit := wireguardAllowedIPsCollision(normalized, peers); hit != "" {
+					return false, common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
+				}
+				clients[0].AllowedIPs = normalized
+			}
 		}
 		if clients[0].PreSharedKey == "" {
 			clients[0].PreSharedKey = old.PreSharedKey

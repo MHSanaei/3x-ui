@@ -492,6 +492,13 @@ export default function ClientFormModal({
       if (form.wgPreSharedKey) {
         clientPayload.preSharedKey = form.wgPreSharedKey;
       }
+      const allowedIPs = form.wgAllowedIPs
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s !== '');
+      if (allowedIPs.length > 0) {
+        clientPayload.allowedIPs = allowedIPs;
+      }
     }
 
     const externalLinks: ExternalLinkInput[] = form.externalLinks
@@ -802,11 +809,16 @@ export default function ClientFormModal({
                             onChange={(e) => update('wgPreSharedKey', e.target.value)}
                           />
                         </Form.Item>
-                        {isEdit && form.wgAllowedIPs && (
-                          <Form.Item label={t('pages.clients.wireguardAllowedIPs')}>
-                            <Input value={form.wgAllowedIPs} disabled />
-                          </Form.Item>
-                        )}
+                        <Form.Item
+                          label={t('pages.clients.wireguardAllowedIPs')}
+                          extra={t('pages.clients.wireguardAllowedIPsHint')}
+                        >
+                          <Input
+                            value={form.wgAllowedIPs}
+                            placeholder="10.0.0.2/32"
+                            onChange={(e) => update('wgAllowedIPs', e.target.value)}
+                          />
+                        </Form.Item>
                       </>
                     )}
                   </>

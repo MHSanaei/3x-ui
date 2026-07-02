@@ -325,6 +325,12 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/getUpdateStatus',
+        summary: 'Report the outcome of the most recently launched panel self-update (see POST updatePanel). Compare the returned runId against the one updatePanel returned to tell this run apart from a stale result.',
+        responseSchema: 'PanelUpdateStatus',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/getConfigJson',
         summary: 'Return the assembled Xray config that\u2019s currently running on this host.',
         response: '{\n  "success": true,\n  "obj": {\n    "log": { "loglevel": "warning" },\n    "inbounds": [...],\n    "outbounds": [...],\n    "routing": { "rules": [...] }\n  }\n}',
@@ -407,6 +413,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/updatePanel',
         summary: 'Self-update the panel to the latest version. The server restarts on success.',
+        response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
       },
       {
         method: 'POST',

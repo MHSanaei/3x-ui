@@ -270,19 +270,14 @@ func resetPostgresSequences(dst *gorm.DB) error {
 	return resyncPostgresSequences(dst, migrationModels())
 }
 
-// resyncPostgresSequences sets each model's id sequence to MAX(id) so the next
-// auto-increment INSERT won't collide with an existing row. Table names are
-// resolved from the models themselves (not hardcoded), so they always match the
-// migrated tables. The statement is a no-op for tables without an id sequence
-// (e.g. composite-PK tables), and idempotent on a healthy DB, so it is safe to
-// run both after migration and on every Postgres startup.
+// resyncPostgresSequences sets each model's id sequence to MAX(id); idempotent. Id-less
+// composite-PK tables are skipped — Postgres rejects MAX(id) at parse time and logs it (#5665).
 func resyncPostgresSequences(db *gorm.DB, models []any) error {
 	for _, m := range models {
-		stmt := &gorm.Statement{DB: db}
-		if err := stmt.Parse(m); err != nil {
+		t, ok := tableWithIdColumn(db, m)
+		if !ok {
 			continue
 		}
-		t := stmt.Table
 		// t comes from the trusted model set parsed by GORM, not user input, so
 		// interpolating it as an identifier is safe. We ignore errors per-table.
 		_ = db.Exec(
@@ -292,4 +287,17 @@ func resyncPostgresSequences(db *gorm.DB, models []any) error {
 		).Error
 	}
 	return nil
+}
+
+// tableWithIdColumn resolves a model's table name and reports whether its GORM
+// schema maps an "id" database column.
+func tableWithIdColumn(db *gorm.DB, m any) (string, bool) {
+	stmt := &gorm.Statement{DB: db}
+	if err := stmt.Parse(m); err != nil {
+		return "", false
+	}
+	if stmt.Schema == nil || stmt.Schema.LookUpField("id") == nil {
+		return "", false
+	}
+	return stmt.Table, true
 }

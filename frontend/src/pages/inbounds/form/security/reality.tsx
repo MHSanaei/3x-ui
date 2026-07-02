@@ -16,6 +16,7 @@ interface RealityFormProps {
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   applyRealityScanResult: (result: RealityScanResult) => void;
   randomizeShortIds: () => void;
+  randomizeSpiderX: () => void;
   genRealityKeypair: () => void;
   clearRealityKeypair: () => void;
   genMldsa65: () => void;
@@ -30,6 +31,7 @@ export default function RealityForm({
   scanRealityCandidates,
   applyRealityScanResult,
   randomizeShortIds,
+  randomizeSpiderX,
   genRealityKeypair,
   clearRealityKeypair,
   genMldsa65,
@@ -147,10 +149,18 @@ export default function RealityForm({
         </Space.Compact>
       </Form.Item>
       <Form.Item
-        name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}
         label={t('pages.inbounds.form.spiderX')}
+        tooltip={t('pages.inbounds.form.spiderXHint')}
       >
-        <Input />
+        <Space.Compact block style={{ display: 'flex' }}>
+          <Form.Item
+            name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}
+            noStyle
+          >
+            <Input style={{ flex: 1 }} />
+          </Form.Item>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={randomizeSpiderX} />
+        </Space.Compact>
       </Form.Item>
       <Form.Item
         name={['streamSettings', 'realitySettings', 'settings', 'publicKey']}

@@ -191,6 +191,17 @@ func mergeActivationExpiry(existing, node int64) int64 {
 	return node
 }
 
+// liftActivatedClientRecordExpiries copies a node-activated deadline from
+// client_traffics onto client records still holding the negative duration (#5714).
+func liftActivatedClientRecordExpiries(tx *gorm.DB) error {
+	return tx.Exec(
+		`UPDATE clients
+		 SET expiry_time = (SELECT ct.expiry_time FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0 LIMIT 1)
+		 WHERE clients.expiry_time < 0
+		   AND EXISTS (SELECT 1 FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0)`,
+	).Error
+}
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -475,6 +486,14 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		inGrace := c.LastTrafficResetTime > 0 && now-c.LastTrafficResetTime < resetGracePeriodMs
 
+		// Adopting the node's settings verbatim would re-add a client the master
+		// deleted moments ago if this snapshot was fetched before the deletion
+		// push landed — filter just-deleted emails out while their tombstone lives.
+		adoptedSettings := snapIb.Settings
+		if stripped, changed := stripTombstonedClients(adoptedSettings); changed {
+			adoptedSettings = stripped
+		}
+
 		updates := map[string]any{}
 		if !dirty {
 			updates["enable"] = snapIb.Enable
@@ -485,7 +504,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["protocol"] = snapIb.Protocol
 			updates["total"] = snapIb.Total
 			updates["expiry_time"] = snapIb.ExpiryTime
-			updates["settings"] = snapIb.Settings
+			updates["settings"] = adoptedSettings
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
@@ -502,7 +521,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["origin_node_guid"] = og
 		}
 
-		if !dirty && (c.Settings != snapIb.Settings ||
+		if !dirty && (c.Settings != adoptedSettings ||
 			c.Remark != snapIb.Remark ||
 			c.Listen != snapIb.Listen ||
 			c.Port != snapIb.Port ||
@@ -623,8 +642,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if dirty {
 					continue
 				}
+				_, isNewInbound := newInboundIDs[c.Id]
+				// On a known inbound a missing row plus a live tombstone means the
+				// master just deleted this client and the snapshot predates the
+				// deletion push — recreating the row (at zero) would resurrect the
+				// client. A freshly adopted inbound still gets its row (seeded at
+				// zero) so adoption semantics stay intact.
+				if !isNewInbound && isClientEmailTombstoned(cs.Email) {
+					continue
+				}
 				var seedUp, seedDown int64
-				if _, isNewInbound := newInboundIDs[c.Id]; isNewInbound && !isClientEmailTombstoned(cs.Email) {
+				if isNewInbound && !isClientEmailTombstoned(cs.Email) {
 					seedUp, seedDown = canon.Up, canon.Down
 				}
 				row := &xray.ClientTraffic{
@@ -847,6 +875,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	if err := liftActivatedClientRecordExpiries(tx); err != nil {
+		logger.Warning("setRemoteTraffic: lift activated expiries failed:", err)
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		return false, err
 	}
@@ -878,28 +910,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 
 	return structuralChange, nil
-}
-
-func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
-	restartOnDisable, err := (&SettingService{}).GetRestartXrayOnClientDisable()
-	if err != nil {
-		logger.Warning("disableInvalidClients: get RestartXrayOnClientDisable failed:", err)
-		return
-	}
-	if !restartOnDisable {
-		return
-	}
-	for _, nodeID := range nodeIDs {
-		nodeIDCopy := nodeID
-		rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
-		if rtErr != nil {
-			logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
-			continue
-		}
-		if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
-			logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
-		}
-	}
 }
 
 func (s *InboundService) GetOnlineClients() []string {

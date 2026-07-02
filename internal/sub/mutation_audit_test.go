@@ -67,11 +67,11 @@ func TestSubJsonService_MuxAttachedWhenConfigured(t *testing.T) {
 		protocol model.Protocol
 	}{
 		{"vmess mux", NewSubJsonService(mux, "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client, mux), true, model.VMESS},
-		{"vless mux", NewSubJsonService(mux, "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, mux), true, model.VLESS},
-		{"server mux", NewSubJsonService(mux, "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, mux), true, model.Trojan},
+		{"vless mux", NewSubJsonService(mux, "", "", nil).genVless(&SubService{}, &model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, mux), true, model.VLESS},
+		{"server mux", NewSubJsonService(mux, "", "", nil).genServer(&SubService{}, &model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, mux), true, model.Trojan},
 		{"vmess no mux", NewSubJsonService("", "", "", nil).genVnext(&model.Inbound{Protocol: model.VMESS, Settings: `{}`}, nil, client, ""), false, model.VMESS},
-		{"vless no mux", NewSubJsonService("", "", "", nil).genVless(&model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, ""), false, model.VLESS},
-		{"server no mux", NewSubJsonService("", "", "", nil).genServer(&model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, ""), false, model.Trojan},
+		{"vless no mux", NewSubJsonService("", "", "", nil).genVless(&SubService{}, &model.Inbound{Protocol: model.VLESS, Settings: `{}`}, nil, client, ""), false, model.VLESS},
+		{"server no mux", NewSubJsonService("", "", "", nil).genServer(&SubService{}, &model.Inbound{Protocol: model.Trojan, Settings: `{}`}, nil, client, ""), false, model.Trojan},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -95,15 +95,15 @@ func TestSubJsonService_MuxAttachedWhenConfigured(t *testing.T) {
 	}
 }
 
-// --- json_service.go:268 — a non-empty finalMask that merges to nothing must
+// --- applyGlobalFinalMask — a non-empty finalMask that merges to nothing must
 // not add the finalmask key (the `len(merged) > 0` guard). ---
 
 func TestSubJsonService_FinalMaskMergingToEmptyNotAdded(t *testing.T) {
 	// finalMask is non-empty (passes the len(fm)==0 early return) but its only
 	// key is an empty tcp slice, which mergeFinalMask drops → merged is empty,
-	// so applyGlobalFinalMask (json_service.go:268) must NOT set finalmask.
+	// so applyGlobalFinalMask must NOT set finalmask.
 	svc := NewSubJsonService("", "", `{"tcp":[]}`, nil)
-	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`)
+	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`, "")
 	if _, ok := stream["finalmask"]; ok {
 		t.Fatalf("finalMask merging to empty must not add a finalmask key: %#v", stream["finalmask"])
 	}
@@ -111,13 +111,13 @@ func TestSubJsonService_FinalMaskMergingToEmptyNotAdded(t *testing.T) {
 	// Sanity: a finalMask that DOES merge to something still gets set, so the
 	// guard is the only distinguishing factor.
 	svc2 := NewSubJsonService("", "", `{"tcp":[{"type":"fragment"}]}`, nil)
-	stream2 := svc2.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`)
+	stream2 := svc2.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`, "")
 	if _, ok := stream2["finalmask"]; !ok {
 		t.Fatal("non-empty finalMask must be set")
 	}
 }
 
-// --- json_service.go:494 — an empty extra tcp slice must not clobber the base ---
+// --- mergeFinalMask — an empty extra tcp slice must not clobber the base ---
 
 func TestMergeFinalMask_EmptyExtraTcpKeepsBase(t *testing.T) {
 	base := map[string]any{"tcp": []any{map[string]any{"type": "keep"}}}

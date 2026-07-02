@@ -84,7 +84,7 @@ func run(root, outDir string) error {
 		},
 		{
 			Path:        resolveRel(root, "internal/web/service/panel"),
-			StructAllow: setOf("ApiTokenView"),
+			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus"),
 		},
 	}
 

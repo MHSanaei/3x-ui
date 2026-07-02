@@ -124,6 +124,13 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId, setSca
     );
   };
 
+  const randomizeSpiderX = () => {
+    form.setFieldValue(
+      ['streamSettings', 'realitySettings', 'settings', 'spiderX'],
+      `/${RandomUtil.randomSeq(15)}`,
+    );
+  };
+
   const getNewEchCert = async () => {
     const sni = form.getFieldValue(['streamSettings', 'tlsSettings', 'serverName']);
     setSaving(true);
@@ -270,6 +277,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId, setSca
     }
     form.setFieldValue('streamSettings', cleaned);
     if (next === 'reality') {
+      randomizeSpiderX();
       try {
         const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
         if (msg?.success) {
@@ -292,6 +300,7 @@ export function useSecurityActions({ form, setSaving, messageApi, nodeId, setSca
     scanRealityCandidates,
     applyRealityScanResult,
     randomizeShortIds,
+    randomizeSpiderX,
     getNewEchCert,
     clearEchCert,
     pinFromCert,
