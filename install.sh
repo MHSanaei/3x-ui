@@ -150,27 +150,37 @@ install_xray_bot() {
     echo -e "${green}🤖 Installing Xray Bot...${plain}"
     install_bot_deps
     
-    # Чистим старую установку бота, если она была
     rm -rf "$bot_dir" /usr/bin/xray-bot
     mkdir -p "$bot_dir"
     
-    # Развёртывание исходников бота
-    if [[ "$MODE" == "build" && -d "${SRC_DIR}/xray-bot" ]]; then
-        cp -r "${SRC_DIR}/xray-bot/"* "$bot_dir/"
+    if [[ "$MODE" == "build" ]]; then
+        # Ищем папку xray-bot и скрипт меню в текущей рабочей директории билда
+        if [[ -d "${SRC_DIR}/xray-bot" ]]; then
+            cp -r "${SRC_DIR}/xray-bot/"* "$bot_dir/"
+        elif [[ -d "${cur_dir}/xray-bot" ]]; then
+            cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
+        fi
+
         if [[ -f "${SRC_DIR}/xray-bot.sh" ]]; then
             cp "${SRC_DIR}/xray-bot.sh" /usr/bin/xray-bot
+        elif [[ -f "${cur_dir}/xray-bot.sh" ]]; then
+            cp "${cur_dir}/xray-bot.sh" /usr/bin/xray-bot
         fi
     else
-        # Git-режим: Клонируем ветку/репо и качаем меню управления
+        # Режим Git: качаем файлы напрямую из репозитория
         git clone https://github.com/KimaruBs/3x-ui.git "${bot_dir}_tmp"
         cp -r "${bot_dir}_tmp/xray-bot/"* "$bot_dir/"
         wget -N --no-check-certificate -O /usr/bin/xray-bot "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/xray-bot.sh"
         rm -rf "${bot_dir}_tmp"
     fi
     
+    # Гарантируем права и копирование, если по какой-то причине файл не перенёсся
+    if [[ ! -f /usr/bin/xray-bot && -f "${bot_dir}/xray-bot.sh" ]]; then
+        cp "${bot_dir}/xray-bot.sh" /usr/bin/xray-bot
+    fi
+    
     chmod +x /usr/bin/xray-bot
 
-    # Создание venv и установка зависимостей Python
     if [[ -f "${bot_dir}/requirements.txt" ]]; then
         python3 -m venv "${bot_dir}/venv"
         "${bot_dir}/venv/bin/pip" install --upgrade pip -q
@@ -178,7 +188,6 @@ install_xray_bot() {
         echo -e "${green}✅ Бот развернут в ${bot_dir}${plain}"
     fi
 
-    # Настройка и запуск демона (службы systemd) для бота
     echo -e "${green}⚙️ Создание системной службы для xray-bot...${plain}"
     cat > /etc/systemd/system/xray-bot.service <<EOF
 [Unit]
@@ -206,52 +215,40 @@ EOF
 start_installation() {
     install_base
 
-    # Логика определения исходников для локального билда
+    # Определение корневой папки исходников
     if [ -d "${cur_dir}/3x-ui" ]; then SRC_DIR="${cur_dir}/3x-ui"
     elif [ -f "${cur_dir}/main.go" ] && [ -d "${cur_dir}/frontend" ]; then SRC_DIR="${cur_dir}"
     else SRC_DIR="${cur_dir}"
     fi
 
-    # Очищаем старое
     if [[ -e ${xui_folder}/ ]]; then
         systemctl stop x-ui > /dev/null 2>&1 || true
-        # Оставляем папку базы данных bin и xray-bot, если они существуют
         find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' ! -name 'xray-bot' -exec rm -rf {} +
     fi
 
     mkdir -p ${xui_folder}
-
-    # Чистим старые файлы перед новой установкой, чтобы избежать каши
     rm -f "${xui_folder}/x-ui" /usr/bin/x-ui
 
     if [[ "$MODE" == "build" ]]; then
         echo -e "${green}🛠 Локальная сборка панели из исходников...${plain}"
         install_build_deps
         
-        if [ ! -f "${SRC_DIR}/build.sh" ]; then
-            echo -e "${red}❌ Ошибка: Исходники 3x-ui не найдены в текущей папке!${plain}" && exit 1
-        fi
-        
         cd "$SRC_DIR"
         chmod +x build.sh
         ./build.sh "$current_arch"
         
-        # 1. Раскладываем бинарник локальной сборки
         cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
         chmod +x "${xui_folder}/x-ui"
         
-        # 2. Раскладываем меню локальной сборки
         cp x-ui.sh /usr/bin/x-ui
         chmod +x /usr/bin/x-ui
     else
         echo -e "${green}🌐 Скачивание готового релиза из репозитория Git...${plain}"
         local ui_file="x-ui-linux-${current_arch}"
         
-        # 1. Скачиваем БИНАРНИК СЕРВЕРА строго в его рабочую папку
         wget -N --no-check-certificate -O "${xui_folder}/x-ui" "https://github.com/KimaruBs/3x-ui/releases/latest/download/${ui_file}"
         chmod +x "${xui_folder}/x-ui"
         
-        # 2. Скачиваем ИНТЕРАКТИВНОЕ МЕНЮ строго в системные команды
         wget -N --no-check-certificate -O /usr/bin/x-ui "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/x-ui.sh"
         chmod +x /usr/bin/x-ui
     fi
@@ -262,7 +259,6 @@ start_installation() {
         install_xray_bot
     fi
 
-    # Создаем службу systemd для панели
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
@@ -284,8 +280,6 @@ EOF
     systemctl enable x-ui
 
     config_after_install
-
-    # Перезапускаем фоновую службу сервера
     systemctl restart x-ui
     sleep 1
 
@@ -293,7 +287,6 @@ EOF
     echo -e "${yellow}Запускаем интерактивное меню управления...${plain}"
     sleep 1
     
-    # Запускаем настоящее рабочее меню
     exec /usr/bin/x-ui
 }
 
