@@ -191,6 +191,17 @@ func mergeActivationExpiry(existing, node int64) int64 {
 	return node
 }
 
+// liftActivatedClientRecordExpiries copies a node-activated deadline from
+// client_traffics onto client records still holding the negative duration (#5714).
+func liftActivatedClientRecordExpiries(tx *gorm.DB) error {
+	return tx.Exec(
+		`UPDATE clients
+		 SET expiry_time = (SELECT ct.expiry_time FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0 LIMIT 1)
+		 WHERE clients.expiry_time < 0
+		   AND EXISTS (SELECT 1 FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0)`,
+	).Error
+}
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -845,6 +856,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			structuralChange = true
 		}
+	}
+
+	if err := liftActivatedClientRecordExpiries(tx); err != nil {
+		logger.Warning("setRemoteTraffic: lift activated expiries failed:", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
