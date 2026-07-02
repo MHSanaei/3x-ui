@@ -388,3 +388,28 @@ func TestGetInboundByEmailRejectsSubstringFallbackMatch(t *testing.T) {
 		t.Fatalf("substring email matched inbound %d; want no exact match", got.Id)
 	}
 }
+
+// hasLimitIp gates every 10s scan on the normalized clients table: a bare
+// "limitIp":0 in settings JSON (which the old LIKE scan matched and parsed)
+// must not enable enforcement, while a single clients.limit_ip > 0 row must.
+func TestHasLimitIp_ProbesClientRecords(t *testing.T) {
+	setupIntegrationDB(t)
+	j := &CheckClientIpJob{}
+
+	if j.hasLimitIp() {
+		t.Fatal("hasLimitIp = true on an empty database")
+	}
+
+	seedLinkedInboundWithClient(t, "no-limit", "nolimit@example.com", 0)
+	if j.hasLimitIp() {
+		t.Fatal("hasLimitIp = true with only limit_ip=0 clients")
+	}
+
+	limited := &model.ClientRecord{Email: "limited@example.com", LimitIP: 2}
+	if err := database.GetDB().Create(limited).Error; err != nil {
+		t.Fatalf("seed limited client: %v", err)
+	}
+	if !j.hasLimitIp() {
+		t.Fatal("hasLimitIp = false with a limit_ip=2 client present")
+	}
+}

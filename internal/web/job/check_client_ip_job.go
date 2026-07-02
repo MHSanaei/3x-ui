@@ -113,33 +113,15 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 	return observed, true
 }
 
+// hasLimitIp reports whether any client carries an IP limit. It probes the
+// normalized clients table (limit_ip is synced there by SyncInbound and the
+// legacy seeder), replacing the old `settings LIKE '%limitIp%'` scan that
+// loaded and JSON-parsed every inbound's settings blob on each 10s run.
 func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", "%limitIp%").Find(&inbounds).Error
-	if err != nil {
-		return false
-	}
-
-	for _, inbound := range inbounds {
-		if inbound.Settings == "" {
-			continue
-		}
-
-		settings := map[string][]model.Client{}
-		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients := settings["clients"]
-
-		for _, client := range clients {
-			limitIp := client.LimitIP
-			if limitIp > 0 {
-				return true
-			}
-		}
-	}
-
-	return false
+	var probe int64
+	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
+	return err == nil && probe > 0
 }
 
 // processObserved runs collection + enforcement for one scan's observations
