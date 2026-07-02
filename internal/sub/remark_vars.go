@@ -660,9 +660,23 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 		tmpl = filterRemarkTemplate(translateUISingleBrackets(s.remarkTemplate), displayRemoveTokens)
 	}
 	if out := expandRemarkVars(tmpl, ctx); strings.TrimSpace(out) != "" {
-		return out
+		return s.uniqueBodyRemark(out)
 	}
-	return ctx.configName()
+	return s.uniqueBodyRemark(ctx.configName())
+}
+
+func (s *SubService) uniqueBodyRemark(remark string) string {
+	if !s.subscriptionBody || strings.TrimSpace(remark) == "" {
+		return remark
+	}
+	if s.remarkCounts == nil {
+		s.remarkCounts = map[string]int{}
+	}
+	s.remarkCounts[remark]++
+	if s.remarkCounts[remark] <= 1 {
+		return remark
+	}
+	return fmt.Sprintf("%s %d", remark, s.remarkCounts[remark])
 }
 
 // genHostRemark builds one host endpoint's remark for a specific client. With a
@@ -673,5 +687,5 @@ func (s *SubService) genHostRemark(inbound *model.Inbound, client model.Client, 
 	if s.remarkTemplate != "" {
 		return s.genTemplatedRemark(inbound, client, hostRemark, transport)
 	}
-	return fallbackRemark(inbound.Remark, hostRemark, client.Email)
+	return s.uniqueBodyRemark(fallbackRemark(inbound.Remark, hostRemark, client.Email))
 }

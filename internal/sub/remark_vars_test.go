@@ -768,3 +768,60 @@ func TestGenTemplatedRemarkPreservesConfiguredOuterWhitespace(t *testing.T) {
 		t.Fatalf("remark = %q, want configured outer whitespace preserved", got)
 	}
 }
+
+func TestRepeatedBodyRemarksGetNumericSuffix(t *testing.T) {
+	s := &SubService{
+		subscriptionBody: true,
+		remarkCounts:    map[string]int{},
+	}
+	inbound := &model.Inbound{Remark: "日本"}
+	client := model.Client{Email: "ZouJP"}
+
+	first := s.genHostRemark(inbound, client, "", "")
+	second := s.genHostRemark(inbound, client, "", "")
+	third := s.genHostRemark(inbound, client, "", "")
+
+	if first != "日本-ZouJP" {
+		t.Fatalf("first remark = %q, want 日本-ZouJP", first)
+	}
+	if second != "日本-ZouJP 2" {
+		t.Fatalf("second remark = %q, want 日本-ZouJP 2", second)
+	}
+	if third != "日本-ZouJP 3" {
+		t.Fatalf("third remark = %q, want 日本-ZouJP 3", third)
+	}
+}
+
+func TestRepeatedTemplatedBodyRemarksGetNumericSuffix(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}-{{EMAIL}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+		remarkCounts:     map[string]int{},
+	}
+	inbound := &model.Inbound{Remark: "日本"}
+	client := model.Client{Email: "ZouJP"}
+
+	first := s.genTemplatedRemark(inbound, client, "", "")
+	second := s.genTemplatedRemark(inbound, client, "", "")
+
+	if first != "日本-ZouJP" {
+		t.Fatalf("first templated remark = %q, want 日本-ZouJP", first)
+	}
+	if second != "日本-ZouJP 2" {
+		t.Fatalf("second templated remark = %q, want 日本-ZouJP 2", second)
+	}
+}
+
+func TestRepeatedDisplayRemarksDoNotGetNumericSuffix(t *testing.T) {
+	s := &SubService{}
+	inbound := &model.Inbound{Remark: "日本"}
+	client := model.Client{Email: "ZouJP"}
+
+	first := s.genHostRemark(inbound, client, "", "")
+	second := s.genHostRemark(inbound, client, "", "")
+
+	if first != "日本-ZouJP" || second != "日本-ZouJP" {
+		t.Fatalf("display remarks should stay unchanged, got %q and %q", first, second)
+	}
+}

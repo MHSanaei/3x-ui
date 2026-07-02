@@ -45,6 +45,9 @@ type SubService struct {
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
 	usageShown             map[string]bool
+	// remarkCounts keeps duplicate node names distinct within one subscription body.
+	// PrepareForRequest resets this per-request state.
+	remarkCounts           map[string]int
 	showIdentityOnAllLinks bool
 	inboundService         service.InboundService
 	settingService         service.SettingService
@@ -101,6 +104,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.usageShown = map[string]bool{}
+	s.remarkCounts = map[string]int{}
 	s.statsByEmail = map[string]xray.ClientTraffic{}
 	s.clientsByInbound = map[int]map[string]model.Client{}
 	s.fullyPrimedInbounds = map[int]bool{}
@@ -2031,7 +2035,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 	if s.remarkTemplate != "" {
 		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
-	return fallbackRemark(inbound.Remark, extra, email)
+	return s.uniqueBodyRemark(fallbackRemark(inbound.Remark, extra, email))
 }
 
 func fallbackRemark(parts ...string) string {
