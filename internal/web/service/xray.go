@@ -206,20 +206,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
-				peer := map[string]any{"email": c.Email, "level": 0}
-				if c.PublicKey != "" {
-					peer["publicKey"] = c.PublicKey
-				}
-				if len(c.AllowedIPs) > 0 {
-					peer["allowedIPs"] = c.AllowedIPs
-				}
-				if c.PreSharedKey != "" {
-					peer["preSharedKey"] = c.PreSharedKey
-				}
-				if c.KeepAlive > 0 {
-					peer["keepAlive"] = c.KeepAlive
-				}
-				wgPeers = append(wgPeers, peer)
+				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
 			finalClients = append(finalClients, entry)
