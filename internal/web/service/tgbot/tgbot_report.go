@@ -374,7 +374,11 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	if onlinesCount > 0 {
 		var buttons []telego.InlineKeyboardButton
 		for _, online := range onlines {
-			buttons = append(buttons, tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
+			label := online
+			if _, inbound, err := t.inboundService.GetClientInboundByEmail(online); err == nil && inbound != nil && inbound.Remark != "" {
+				label = online + " - " + inbound.Remark
+			}
+			buttons = append(buttons, tu.InlineKeyboardButton(label).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
 		}
 		cols := 0
 		if onlinesCount < 21 {
