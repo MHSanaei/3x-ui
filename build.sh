@@ -18,7 +18,7 @@ echo "=========================================="
 echo "🚀 Запуск мультиплатформенной сборки. Цель: $TARGET"
 echo "=========================================="
 
-# Определение структуры проекта (корень репозитория или внешняя папка)
+# Определение структуры проекта
 if [ -d "3x-ui" ]; then
     BASE_DIR="$(pwd)/3x-ui"
 elif [ -f "main.go" ] && [ -d "frontend" ]; then
@@ -30,7 +30,48 @@ fi
 
 echo "📂 Путь к исходникам: $BASE_DIR"
 
-# 2. Проверка и установка зависимостей (Включая кросс-компиляторы для Windows)
+# Функция определения менеджера пакетов
+detect_pkg_manager() {
+    if command -v apt-get &> /dev/null; then
+        PKG_MANAGER="apt"
+    elif command -v dnf &> /dev/null; then
+        PKG_MANAGER="dnf"
+    elif command -v yum &> /dev/null; then
+        PKG_MANAGER="yum"
+    elif command -v apk &> /dev/null; then
+        PKG_MANAGER="apk"
+    else
+        echo "❌ Ошибка: Не поддерживаемый дистрибутив (нет apt, dnf, yum или apk)."
+        exit 1
+    fi
+}
+
+# Функция универсальной установки пакетов
+install_packages() {
+    detect_pkg_manager
+    local packages=("$@")
+    
+    echo "📦 Используется менеджер пакетов: $PKG_MANAGER"
+    
+    case "$PKG_MANAGER" in
+        apt)
+            apt-get update -qq
+            apt-get install -y "${packages[@]}"
+            ;;
+        dnf)
+            dnf install -y "${packages[@]}"
+            ;;
+        yum)
+            yum install -y "${packages[@]}"
+            ;;
+        apk)
+            apk update
+            apk add --no-cache "${packages[@]}"
+            ;;
+    esac
+}
+
+# 2. Проверка и установка зависимостей
 NEED_CROSS_ARM64=0
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "linux" ] || [ "$TARGET" = "arm64" ]; then
     if [ "$CURRENT_ARCH" = "amd64" ]; then NEED_CROSS_ARM64=1; fi
@@ -49,41 +90,73 @@ else
     NODE_TOO_OLD=1
 fi
 
-# Проверяем, чего не хватает
 MISSING_DEPS=0
-if ! command -v npm &> /dev/null; then MISSING_DEPS=1; fi
-if ! command -v go &> /dev/null; then MISSING_DEPS=1; fi
-if [ "$NODE_TOO_OLD" -eq 1 ]; then MISSING_DEPS=1; fi
-if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then MISSING_DEPS=1; fi
-if [ "$NEED_CROSS_WIN" -eq 1 ] && ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then MISSING_DEPS=1; fi
+DEPS_TO_INSTALL=()
+
+# Базовые утилиты
+if ! command -v curl &> /dev/null; then DEPS_TO_INSTALL+=("curl"); MISSING_DEPS=1; fi
+if ! command -v zip &> /dev/null; then DEPS_TO_INSTALL+=("zip" "unzip"); MISSING_DEPS=1; fi
+
+# Проверка Go
+if ! command -v go &> /dev/null; then
+    detect_pkg_manager
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        DEPS_TO_INSTALL+=("go")
+    else
+        DEPS_TO_INSTALL+=("golang")
+    fi
+    MISSING_DEPS=1
+fi
+
+# Проверка Node.js выполняется отдельно через Nodesource для не-Alpine систем
+if [ "$NODE_TOO_OLD" -eq 1 ]; then
+    MISSING_DEPS=1
+fi
+
+# Кросс-компиляторы (Имена пакетов зависят от дистрибутива)
+detect_pkg_manager
+if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then
+    case "$PKG_MANAGER" in
+        apt) DEPS_TO_INSTALL+=("gcc-aarch64-linux-gnu") ;;
+        dnf|yum) DEPS_TO_INSTALL+=("gcc-aarch64-linux-gnu") ;;
+        apk) DEPS_TO_INSTALL+=("gcc-aarch64-none-elf") ;; # В Alpine может отличаться
+    esac
+    MISSING_DEPS=1
+fi
+
+if [ "$NEED_CROSS_WIN" -eq 1 ] && ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then
+    case "$PKG_MANAGER" in
+        apt) DEPS_TO_INSTALL+=("mingw-w64") ;;
+        dnf|yum) DEPS_TO_INSTALL+=("mingw64-gcc") ;;
+        apk) DEPS_TO_INSTALL+=("mingw-w64-gcc") ;;
+    esac
+    MISSING_DEPS=1
+fi
 
 if [ "$MISSING_DEPS" -eq 1 ]; then
     if [ "$EUID" -ne 0 ]; then
-        echo "❌ Компоненты отсутствуют. Запустите через sudo: sudo bash $0 $TARGET"
+        echo "❌ Зависимости отсутствуют. Запустите скрипт с правами суперпользователя: sudo bash $0 $TARGET"
         exit 1
     fi
     
-    apt-get update && apt-get install -y curl zip unzip 2>/dev/null || apt-get install -y curl
+    # Сначала ставим базовые пакеты, если они в списке
+    if [ ${#DEPS_TO_INSTALL[@]} -gt 0 ]; then
+        echo "🛠 Установка пакетов: ${DEPS_TO_INSTALL[*]}"
+        install_packages "${DEPS_TO_INSTALL[@]}"
+    fi
     
-    # Установка Node.js 22
+    # Установка Node.js 22 (если старый/нет)
     if [ "$NODE_TOO_OLD" -eq 1 ]; then
-        apt-get remove -y nodejs npm libnode-dev 2>/dev/null || true
-        curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs
-    fi
-    
-    # Установка Go
-    if ! command -v go &> /dev/null; then apt-get install -y golang-go; fi
-
-    # Установка кросс-компилятора Си под ARM64
-    if [ "$NEED_CROSS_ARM64" -eq 1 ] && ! command -v aarch64-linux-gnu-gcc &> /dev/null; then
-        echo "🛠 Установка Си-компилятора для сборки под ARM64..."
-        apt-get install -y gcc-aarch64-linux-gnu
-    fi
-
-    # Установка кросс-компилятора Си под Windows (Mingw-w64)
-    if [ "$NEED_CROSS_WIN" -eq 1 ] && ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then
-        echo "🛠 Установка Си-компилятора для сборки под Windows (mingw-w64)..."
-        apt-get install -y mingw-w64
+        echo "📦 Установка актуальной версии Node.js..."
+        if [ "$PKG_MANAGER" = "apk" ]; then
+            apk add --no-cache nodejs npm
+        elif [ "$PKG_MANAGER" = "apt" ]; then
+            apt-get remove -y nodejs npm libnode-dev 2>/dev/null || true
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs
+        else # dnf / yum
+            dnf remove -y nodejs npm 2>/dev/null || true
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | bash - && dnf install -y nodejs
+        fi
     fi
 fi
 
@@ -117,7 +190,12 @@ compile_target() {
     fi
 
     if [ "$os" = "linux" ] && [ "$arch" = "arm64" ] && [ "$CURRENT_ARCH" = "amd64" ]; then
-        env_cc="CC=aarch64-linux-gnu-gcc"
+        # Проверяем имя компилятора в системе (для Alpine/других ОС)
+        if command -v aarch64-linux-gnu-gcc &> /dev/null; then
+            env_cc="CC=aarch64-linux-gnu-gcc"
+        elif command -v aarch64-none-elf-gcc &> /dev/null; then
+            env_cc="CC=aarch64-none-elf-gcc"
+        fi
     fi
 
     echo "🐹 Шаг 2: Компиляция Go под [$os | $arch] с поддержкой CGO..."
