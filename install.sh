@@ -490,7 +490,9 @@ EOF
     systemctl daemon-reload && systemctl enable x-ui
     config_after_install
     systemctl restart x-ui || true
-    
+
+    echo -e "${yellow}Принудительный запуск Xray-core...${plain}"
+    ${xui_folder}/x-ui xray start || true
     echo -e "${green}🎉 Установка завершена!${plain}"
     exec /usr/bin/x-ui
 }
