@@ -492,7 +492,7 @@ EOF
     systemctl restart x-ui || true
 
     echo -e "${yellow}Принудительный запуск Xray-core...${plain}"
-    ${xui_folder}/x-ui xray start || true
+    x-ui xray start || true
     echo -e "${green}🎉 Установка завершена!${plain}"
     exec /usr/bin/x-ui
 }
