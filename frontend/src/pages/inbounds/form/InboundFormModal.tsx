@@ -528,6 +528,7 @@ export default function InboundFormModal({
       {selectableNodes.length > 0 && isNodeEligible && (
         <Form.Item name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
+            showSearch
             disabled={mode === 'edit'}
             placeholder={t('pages.inbounds.localPanel')}
             allowClear

@@ -174,6 +174,7 @@ export default function InboundList({
               value={nodeFilter}
               onChange={(v) => setNodeFilter(v)}
               options={nodeFilterOptions}
+              showSearch
               popupMatchSelectWidth={false}
               style={{ minWidth: isMobile ? 90 : 140 }}
               aria-label={t('pages.clients.filters.nodes')}
