@@ -18,6 +18,9 @@ services:
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
+      # Persists acme.sh state so certificate auto-renewal survives container
+      # recreation (the entrypoint re-registers the renewal cron job from it).
+      - $PWD/acme/:/root/.acme.sh/
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
