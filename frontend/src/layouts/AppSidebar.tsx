@@ -163,7 +163,7 @@ export default function AppSidebar() {
     { key: '/groups', icon: 'groups', title: t('menu.groups') },
     { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
     { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
-    { key: '/telegram', icon: 'telegram', title: 'menu.tgBot' },
+    { key: '/telegram', icon: 'telegram', title: t('menu.tgBot') },
     { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
     { key: '/routing', icon: 'routing', title: t('menu.routing') },
     { key: '/settings', icon: 'setting', title: t('menu.settings') },
