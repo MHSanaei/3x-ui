@@ -44,7 +44,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   tunnel: 'orange',
 };
 
-function sortHosts(hosts: HostRecord[]): HostRecord[] {
+export function sortHosts(hosts: HostRecord[]): HostRecord[] {
   return [...hosts].sort((a, b) => {
     const sa = a.sortOrder ?? 0;
     const sb = b.sortOrder ?? 0;

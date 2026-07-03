@@ -1029,7 +1029,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/hosts/list',
         summary: 'List every host across all inbounds, grouped by inbound then ordered by sort order.',
-        responseSchema: 'Host',
+        responseSchema: 'HostGroup',
         responseSchemaArray: true,
       },
       {
@@ -1039,7 +1039,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' },
         ],
-        responseSchema: 'Host',
+        responseSchema: 'HostGroup',
       },
       {
         method: 'GET',
@@ -1048,7 +1048,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'inboundId', in: 'path', type: 'number', desc: 'Inbound ID.' },
         ],
-        responseSchema: 'Host',
+        responseSchema: 'HostGroup',
         responseSchemaArray: true,
       },
       {
@@ -1063,6 +1063,7 @@ export const sections: readonly Section[] = [
         summary: 'Create a host group on inbounds.',
         body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
         responseSchema: 'Host',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',
@@ -1073,6 +1074,7 @@ export const sections: readonly Section[] = [
         ],
         body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
         responseSchema: 'Host',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',
@@ -1102,6 +1104,8 @@ export const sections: readonly Section[] = [
         path: '/panel/api/hosts/bulk/add',
         summary: 'Add a host group to inbounds (same as /add).',
         body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false\n}',
+        responseSchema: 'Host',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',

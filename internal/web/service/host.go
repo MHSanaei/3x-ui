@@ -12,7 +12,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
 
-// HostService manages Host rows (override endpoints attached to an inbound) grouped by GroupId.
 type HostService struct{}
 
 func groupHosts(hosts []*model.Host) []*entity.HostGroup {
@@ -128,7 +127,6 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 	return res
 }
 
-// GetHosts returns every host group, ordered by sort_order then remark.
 func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 	var hosts []*model.Host
 	err := database.GetDB().Order("inbound_id asc, sort_order asc, id asc").Find(&hosts).Error
@@ -138,9 +136,6 @@ func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 	return groupHosts(hosts), nil
 }
 
-// GetHostsByInbound returns one inbound's host groups.
-// It first fetches the distinct group_ids that contain the given inbound, then
-// loads only those rows — avoiding a full-table scan.
 func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, error) {
 	var groupIds []string
 	if err := database.GetDB().Model(&model.Host{}).Where("inbound_id = ?", inboundId).Distinct().Pluck("group_id", &groupIds).Error; err != nil {
@@ -156,7 +151,6 @@ func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, err
 	return groupHosts(hosts), nil
 }
 
-// GetHostGroup returns a single host group by GroupId.
 func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 	var hosts []*model.Host
 	err := database.GetDB().Where("group_id = ?", groupId).Order("sort_order asc, id asc").Find(&hosts).Error
@@ -173,7 +167,6 @@ func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 	return grouped[0], nil
 }
 
-// AddHostGroup creates all host rows for a host group.
 func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error) {
 	db := database.GetDB()
 	tx := db.Begin()
@@ -244,10 +237,13 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
 			}
-			if err := tx.Create(h).Error; err != nil {
-				return nil, err
-			}
 			created = append(created, h)
+		}
+	}
+
+	if len(created) > 0 {
+		if err := tx.Create(&created).Error; err != nil {
+			return nil, err
 		}
 	}
 
@@ -258,7 +254,6 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 	return created, nil
 }
 
-// UpdateHostGroup updates a host group by deleting old hosts and creating new ones under the same GroupId.
 func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]*model.Host, error) {
 	db := database.GetDB()
 	tx := db.Begin()
@@ -279,8 +274,6 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	if count == 0 {
 		return nil, common.NewError("host group not found")
 	}
-
-	// Validate every new inbound ID exists before destroying the old rows.
 	for _, inboundId := range req.InboundIds {
 		var ibCount int64
 		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&ibCount).Error; err != nil {
@@ -336,10 +329,13 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
 			}
-			if err := tx.Create(h).Error; err != nil {
-				return nil, err
-			}
 			created = append(created, h)
+		}
+	}
+
+	if len(created) > 0 {
+		if err := tx.Create(&created).Error; err != nil {
+			return nil, err
 		}
 	}
 
@@ -350,17 +346,14 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	return created, nil
 }
 
-// DeleteHostGroup deletes all hosts belonging to a host group.
 func (s *HostService) DeleteHostGroup(groupId string) error {
 	return database.GetDB().Where("group_id = ?", groupId).Delete(&model.Host{}).Error
 }
 
-// SetHostGroupEnable toggles the disabled flag for all hosts in a host group.
 func (s *HostService) SetHostGroupEnable(groupId string, enable bool) error {
 	return database.GetDB().Model(&model.Host{}).Where("group_id = ?", groupId).Update("is_disabled", !enable).Error
 }
 
-// SetHostsGroupEnable toggles the disabled flag for all hosts in multiple host groups.
 func (s *HostService) SetHostsGroupEnable(groupIds []string, enable bool) error {
 	if len(groupIds) == 0 {
 		return nil
@@ -368,7 +361,6 @@ func (s *HostService) SetHostsGroupEnable(groupIds []string, enable bool) error 
 	return database.GetDB().Model(&model.Host{}).Where("group_id IN ?", groupIds).Update("is_disabled", !enable).Error
 }
 
-// DeleteHostsGroup deletes all hosts in multiple host groups.
 func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
@@ -376,7 +368,6 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 	return database.GetDB().Where("group_id IN ?", groupIds).Delete(&model.Host{}).Error
 }
 
-// ReorderHostGroups updates the sort_order of all host groups to match the order of groupIds.
 func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
@@ -391,7 +382,6 @@ func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	return tx.Commit().Error
 }
 
-// GetAllTags returns the distinct, sorted set of tags across all hosts.
 func (s *HostService) GetAllTags() ([]string, error) {
 	var hosts []*model.Host
 	err := database.GetDB().Find(&hosts).Error

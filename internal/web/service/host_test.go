@@ -309,7 +309,6 @@ func TestAddHostGroup_OptionalAddress(t *testing.T) {
 	svc := &HostService{}
 	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
 
-	// Add host group with nil/empty hosts
 	created, err := svc.AddHostGroup(&entity.HostGroup{
 		InboundIds: []int{ib.Id},
 		Remark:     "OptionalAddressHost",
@@ -334,3 +333,35 @@ func TestAddHostGroup_OptionalAddress(t *testing.T) {
 	}
 }
 
+func TestUpdateHostGroup_ValidateBeforeDelete(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	h1 := mkHost(t, svc, ib.Id, "h1", 0)
+
+	req := &entity.HostGroup{
+		InboundIds: []int{99999},
+		Remark:     "h1-updated",
+		Hosts:      []string{"h1.com"},
+	}
+	if _, err := svc.UpdateHostGroup(h1.GroupId, req); err == nil {
+		t.Fatalf("expected error updating host group with invalid inbound")
+	}
+
+	got, err := svc.GetHostGroup(h1.GroupId)
+	if err != nil {
+		t.Fatalf("original host group should not be deleted: %v", err)
+	}
+	if got.Remark != "h1" {
+		t.Fatalf("original host group remark changed: %s", got.Remark)
+	}
+
+	req.InboundIds = []int{ib.Id}
+	if _, err := svc.UpdateHostGroup(h1.GroupId, req); err != nil {
+		t.Fatalf("valid update failed: %v", err)
+	}
+	got2, _ := svc.GetHostGroup(h1.GroupId)
+	if got2.Remark != "h1-updated" {
+		t.Fatalf("remark not updated: %s", got2.Remark)
+	}
+}

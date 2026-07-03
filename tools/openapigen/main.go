@@ -65,7 +65,7 @@ func run(root, outDir string) error {
 				"Msg",
 				"AllSetting",
 				"AllSettingView",
-				"BulkAddHostReq",
+				"HostGroup",
 			),
 		},
 		{

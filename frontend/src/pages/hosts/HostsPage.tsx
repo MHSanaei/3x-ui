@@ -11,7 +11,7 @@ import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import AppSidebar from '@/layouts/AppSidebar';
 import { setMessageInstance } from '@/utils/messageBus';
 import type { BulkAddHostValues } from '@/schemas/api/host';
-import HostList from './HostList';
+import HostList, { sortHosts } from './HostList';
 import HostFormModal from './HostFormModal';
 
 export default function HostsPage() {
@@ -68,12 +68,7 @@ export default function HostsPage() {
   }, [setEnable]);
 
   const onMove = useCallback(async (host: HostRecord, dir: 'up' | 'down') => {
-    const sorted = [...hosts].sort((a, b) => {
-      const sa = a.sortOrder ?? 0;
-      const sb = b.sortOrder ?? 0;
-      if (sa !== sb) return sa - sb;
-      return (a.remark || '').localeCompare(b.remark || '');
-    });
+    const sorted = sortHosts(hosts);
     const idx = sorted.findIndex((h) => h.groupId === host.groupId);
     const swapWith = dir === 'up' ? idx - 1 : idx + 1;
     if (idx < 0 || swapWith < 0 || swapWith >= sorted.length) return;
