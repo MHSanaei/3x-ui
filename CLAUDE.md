@@ -3,6 +3,9 @@
 Operational guide for AI agents working in this repo. Long-form human docs:
 `CONTRIBUTING.md` (setup, testing philosophy) and `frontend/README.md`.
 Read those before large changes. This file is the short, must-follow version.
+For a deep navigation map (request lifecycle, cron-job table, symptom → file
+index, layering rules), read `docs/architecture.md` on demand — do not guess
+file locations when it can answer in one hop.
 
 ## Stack
 - Backend: Go 1.26 (`module github.com/mhsanaei/3x-ui/v3`), Gin, GORM.

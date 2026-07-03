@@ -420,11 +420,16 @@ export const InboundFallbackSchema = z.object({
 export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
+  enable: z.boolean(),
   id: z.number().int(),
+  listen: z.string().optional(),
+  nodeAddress: z.string().optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),
   protocol: z.string(),
   remark: z.string(),
+  shareAddr: z.string().optional(),
+  shareAddrStrategy: z.string().optional(),
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
@@ -494,6 +499,14 @@ export const OutboundTrafficsSchema = z.object({
   up: z.number().int(),
 });
 export type OutboundTraffics = z.infer<typeof OutboundTrafficsSchema>;
+
+export const PanelUpdateStatusSchema = z.object({
+  exitCode: z.number().int(),
+  finishedAt: z.number().int(),
+  runId: z.string(),
+  state: z.string(),
+});
+export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
 
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),

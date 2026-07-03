@@ -297,6 +297,7 @@ type InboundOption struct {
 	Tag            string `json:"tag" example:"in-443-tcp"`
 	Protocol       string `json:"protocol" example:"vless"`
 	Port           int    `json:"port" example:"443"`
+	Enable         bool   `json:"enable" example:"true"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
 	WgPublicKey    string `json:"wgPublicKey,omitempty"`
@@ -305,24 +306,40 @@ type InboundOption struct {
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
+	// Share-host resolution inputs, mirroring the subscription's
+	// resolveInboundAddress so the clients page renders a node-managed WireGuard
+	// Endpoint that points at the node, not the master panel. NodeAddress is the
+	// hosting node's externally reachable address (empty for this panel's own
+	// inbounds); Listen and ShareAddrStrategy/ShareAddr feed the same
+	// node→listen→custom fallback the share/QR links already use.
+	NodeAddress       string `json:"nodeAddress,omitempty"`
+	Listen            string `json:"listen,omitempty"`
+	ShareAddr         string `json:"shareAddr,omitempty"`
+	ShareAddrStrategy string `json:"shareAddrStrategy,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
-		Id             int    `gorm:"column:id"`
-		Remark         string `gorm:"column:remark"`
-		Tag            string `gorm:"column:tag"`
-		Protocol       string `gorm:"column:protocol"`
-		Port           int    `gorm:"column:port"`
-		StreamSettings string `gorm:"column:stream_settings"`
-		Settings       string `gorm:"column:settings"`
-		NodeId         *int   `gorm:"column:node_id"`
+		Id                int    `gorm:"column:id"`
+		Remark            string `gorm:"column:remark"`
+		Tag               string `gorm:"column:tag"`
+		Protocol          string `gorm:"column:protocol"`
+		Port              int    `gorm:"column:port"`
+		Enable            bool   `gorm:"column:enable"`
+		StreamSettings    string `gorm:"column:stream_settings"`
+		Settings          string `gorm:"column:settings"`
+		Listen            string `gorm:"column:listen"`
+		ShareAddr         string `gorm:"column:share_addr"`
+		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
+		NodeId            *int   `gorm:"column:node_id"`
+		NodeAddress       string `gorm:"column:node_address"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
-		Where("user_id = ?", userId).
-		Order("id ASC").
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
+		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
+		Where("inbounds.user_id = ?", userId).
+		Order("inbounds.id ASC").
 		Scan(&rows).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -330,18 +347,27 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
 		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
+		shareAddrStrategy := r.ShareAddrStrategy
+		if shareAddrStrategy == "node" {
+			shareAddrStrategy = ""
+		}
 		out = append(out, InboundOption{
-			Id:             r.Id,
-			Remark:         r.Remark,
-			Tag:            r.Tag,
-			Protocol:       r.Protocol,
-			Port:           r.Port,
-			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
-			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
-			WgPublicKey:    wgPublicKey,
-			WgMtu:          wgMtu,
-			WgDns:          wgDns,
-			NodeId:         r.NodeId,
+			Id:                r.Id,
+			Remark:            r.Remark,
+			Tag:               r.Tag,
+			Protocol:          r.Protocol,
+			Port:              r.Port,
+			Enable:            r.Enable,
+			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
+			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
+			WgPublicKey:       wgPublicKey,
+			WgMtu:             wgMtu,
+			WgDns:             wgDns,
+			NodeId:            r.NodeId,
+			NodeAddress:       r.NodeAddress,
+			Listen:            r.Listen,
+			ShareAddr:         r.ShareAddr,
+			ShareAddrStrategy: shareAddrStrategy,
 		})
 	}
 	return out, nil
@@ -407,6 +433,13 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 		return nil, nil
 	}
 	return clients, nil
+}
+
+// GetClientsBySubId returns the inbound's clients with the given subscription
+// id, resolved from the normalized clients tables (the same source the running
+// Xray users are built from) instead of parsing the settings JSON blob.
+func (s *InboundService) GetClientsBySubId(inboundId int, subId string) ([]model.Client, error) {
+	return s.clientService.ListForInboundBySubId(nil, inboundId, subId)
 }
 
 func (s *InboundService) GetAllEmails() ([]string, error) {

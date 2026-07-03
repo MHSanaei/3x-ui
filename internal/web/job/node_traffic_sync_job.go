@@ -110,6 +110,8 @@ func (j *NodeTrafficSyncJob) Run() {
 
 	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
 	var wg sync.WaitGroup
+	var activeMu sync.Mutex
+	var activeEmails []string
 	for _, n := range nodes {
 		if !n.Enable || n.Status != "online" {
 			continue
@@ -120,7 +122,11 @@ func (j *NodeTrafficSyncJob) Run() {
 		common.GoRecover("node-traffic-sync:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
-			j.syncOne(mgr, n, doIpSync)
+			if emails := j.syncOne(mgr, n, doIpSync); len(emails) > 0 {
+				activeMu.Lock()
+				activeEmails = append(activeEmails, emails...)
+				activeMu.Unlock()
+			}
 		})
 	}
 	wg.Wait()
@@ -143,14 +149,6 @@ func (j *NodeTrafficSyncJob) Run() {
 
 	j.maybePushGlobals(mgr, nodes)
 
-	lastOnline, err := j.inboundService.GetClientsLastOnline()
-	if err != nil {
-		logger.Warning("node traffic sync: get last-online failed:", err)
-	}
-	if lastOnline == nil {
-		lastOnline = map[string]int64{}
-	}
-
 	// Prune stale local-online entries (no local active emails or inbound tags
 	// to add here — only the local xray poll feeds those) so a stopped local
 	// xray's clients and inbounds still age out between traffic polls.
@@ -162,6 +160,45 @@ func (j *NodeTrafficSyncJob) Run() {
 
 	if !websocket.HasClients() {
 		return
+	}
+
+	// Same snapshot-vs-delta split as the local traffic job: above the
+	// threshold a full snapshot would be dropped by the hub's payload cap, so
+	// send only the rows for clients online on the synced nodes this tick.
+	snapshot := true
+	if total, countErr := j.inboundService.CountClientTraffics(); countErr != nil {
+		logger.Warning("node traffic sync: count client traffics failed:", countErr)
+	} else if total > clientStatsSnapshotMaxClients {
+		snapshot = false
+	}
+
+	var stats []*xray.ClientTraffic
+	var statsErr error
+	if snapshot {
+		stats, statsErr = j.inboundService.GetAllClientTraffics()
+	} else {
+		stats, statsErr = j.inboundService.GetActiveClientTraffics(activeEmails)
+	}
+	if statsErr != nil {
+		logger.Warning("node traffic sync: get client traffics for websocket failed:", statsErr)
+	}
+
+	var lastOnline map[string]int64
+	if snapshot {
+		var loErr error
+		if lastOnline, loErr = j.inboundService.GetClientsLastOnline(); loErr != nil {
+			logger.Warning("node traffic sync: get last-online failed:", loErr)
+		}
+	} else {
+		lastOnline = make(map[string]int64, len(stats))
+		for _, ct := range stats {
+			if ct != nil {
+				lastOnline[ct.Email] = ct.LastOnline
+			}
+		}
+	}
+	if lastOnline == nil {
+		lastOnline = map[string]int64{}
 	}
 
 	online := j.inboundService.GetOnlineClients()
@@ -181,10 +218,8 @@ func (j *NodeTrafficSyncJob) Run() {
 	trafficPayload["nodeTraffics"] = inboundSpeed
 	websocket.BroadcastTraffic(trafficPayload)
 
-	clientStats := map[string]any{}
-	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
-		logger.Warning("node traffic sync: get all client traffics for websocket failed:", err)
-	} else if len(stats) > 0 {
+	clientStats := map[string]any{"snapshot": snapshot}
+	if len(stats) > 0 {
 		clientStats["clients"] = stats
 	}
 	if summary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
@@ -192,7 +227,7 @@ func (j *NodeTrafficSyncJob) Run() {
 	} else if len(summary) > 0 {
 		clientStats["inbounds"] = summary
 	}
-	if len(clientStats) > 0 {
+	if len(clientStats) > 1 {
 		websocket.BroadcastClientStats(clientStats)
 	}
 
@@ -318,11 +353,14 @@ func (j *NodeTrafficSyncJob) maybePushGlobals(mgr *runtime.Manager, nodes []*mod
 	wg.Wait()
 }
 
-func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSync bool) {
+// syncOne pulls one node's traffic snapshot and merges it. It returns the
+// emails online on that node this tick, feeding the delta broadcast above the
+// snapshot threshold; nil on any failure path.
+func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSync bool) []string {
 	rt, err := mgr.RemoteFor(n)
 	if err != nil {
 		logger.Warningf("node traffic sync: remote lookup failed for %s: %v", n.Name, err)
-		return
+		return nil
 	}
 
 	if n.ConfigDirty {
@@ -330,13 +368,16 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n)
 		reconcileCancel()
 		if reconcileErr != nil {
-			logger.Warningf("node traffic sync: reconcile for %s failed: %v", n.Name, reconcileErr)
-			return
+			// The dirty flag stays set so reconcile retries next tick, but traffic
+			// accounting must keep flowing: one rejected inbound used to starve the
+			// whole node's traffic/online sync forever (#5685).
+			logger.Warningf("node traffic sync: reconcile for %s failed, continuing with traffic pull: %v", n.Name, reconcileErr)
+		} else {
+			if clearErr := j.nodeService.ClearNodeDirty(n.Id, n.ConfigDirtyAt); clearErr != nil {
+				logger.Warningf("node traffic sync: clear dirty for %s failed: %v", n.Name, clearErr)
+			}
+			j.structural.set()
 		}
-		if clearErr := j.nodeService.ClearNodeDirty(n.Id, n.ConfigDirtyAt); clearErr != nil {
-			logger.Warningf("node traffic sync: clear dirty for %s failed: %v", n.Name, clearErr)
-		}
-		j.structural.set()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), nodeTrafficSyncRequestTimeout)
@@ -346,21 +387,27 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if err != nil {
 		logger.Warningf("node traffic sync: fetch from %s failed: %v", n.Name, err)
 		j.inboundService.ClearNodeOnlineClients(n.Id)
-		return
+		return nil
 	}
 	service.FilterNodeSnapshot(n, snap)
 	_, _, dirty, _, _ := j.nodeService.NodeSyncState(n.Id)
 	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap, dirty)
 	if err != nil {
 		logger.Warningf("node traffic sync: merge for %s failed: %v", n.Name, err)
-		return
+		return nil
 	}
 	if changed {
 		j.structural.set()
 	}
 
+	active := make([]string, 0, len(snap.OnlineEmails))
+	active = append(active, snap.OnlineEmails...)
+	for _, emails := range snap.OnlineTree {
+		active = append(active, emails...)
+	}
+
 	if !doIpSync {
-		return
+		return active
 	}
 
 	ipCtx, ipCancel := context.WithTimeout(context.Background(), nodeClientIpSyncTimeout)
@@ -378,7 +425,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	masterIps, err := j.inboundService.GetAllInboundClientIps()
 	if err != nil {
 		logger.Warningf("node traffic sync: load client ips for push to %s failed: %v", n.Name, err)
-		return
+		return active
 	}
 	if len(masterIps) > 0 {
 		if err := rt.PushAllClientIps(ipCtx, masterIps); err != nil {
@@ -406,4 +453,5 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 			}
 		}
 	}
+	return active
 }

@@ -399,11 +399,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "xver": 0
   },
   "InboundOption": {
+    "enable": true,
     "id": 1,
+    "listen": "",
+    "nodeAddress": "",
     "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",
+    "shareAddr": "",
+    "shareAddrStrategy": "",
     "ssMethod": "",
     "tag": "in-443-tcp",
     "tlsFlowCapable": true,
@@ -467,6 +472,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": "",
     "total": 0,
     "up": 0
+  },
+  "PanelUpdateStatus": {
+    "exitCode": 0,
+    "finishedAt": 1735689612,
+    "runId": "1735689600123456789",
+    "state": "success"
   },
   "ProbeResultUI": {
     "cpuPct": 12.5,

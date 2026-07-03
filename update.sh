@@ -31,6 +31,40 @@ _fail() {
     exit 2
 }
 
+# Records this run's outcome for the panel's web updater to poll, since it
+# launches this script detached and has no other way to learn whether it
+# finished. Written to a fixed path outside XUI_MAIN_FOLDER so it survives
+# the update regardless of what happens to that folder. The EXIT trap below
+# covers every exit path in this file, including the bare `exit 1`/`exit 2`
+# calls that don't go through _fail.
+xui_update_run_id="${XUI_UPDATE_RUN_ID:-0}"
+[[ "${xui_update_run_id}" =~ ^[0-9]+$ ]] || xui_update_run_id="0"
+xui_update_status_file="${XUI_UPDATE_STATUS_FILE:-/etc/x-ui/update-status.json}"
+
+_write_update_status() {
+    local state="$1"
+    local exit_code="$2"
+    local status_dir
+    status_dir="$(dirname "${xui_update_status_file}")"
+    mkdir -p "${status_dir}" > /dev/null 2>&1
+    local tmp_file="${xui_update_status_file}.tmp.$$"
+    printf '{"runId":"%s","state":"%s","exitCode":%s,"finishedAt":%s}\n' \
+        "${xui_update_run_id}" "${state}" "${exit_code}" "$(date +%s)" > "${tmp_file}" 2> /dev/null
+    mv -f "${tmp_file}" "${xui_update_status_file}" > /dev/null 2>&1
+}
+
+_report_update_exit() {
+    local code=$?
+    if [[ "${code}" -eq 0 ]]; then
+        _write_update_status "success" "0"
+    else
+        _write_update_status "failed" "${code}"
+    fi
+}
+trap _report_update_exit EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+
 # check root
 [[ $EUID -ne 0 ]] && _fail "FATAL ERROR: Please run this script with root privilege."
 
@@ -149,13 +183,13 @@ install_base() {
             apt-get update > /dev/null 2>&1 && apt-get install -y -q cron curl tar tzdata socat openssl > /dev/null 2>&1
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+            dnf makecache -y > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update > /dev/null 2>&1 && yum install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+                yum makecache -y > /dev/null 2>&1 && yum install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
             else
-                dnf -y update > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
+                dnf makecache -y > /dev/null 2>&1 && dnf install -y -q cronie curl tar tzdata socat openssl > /dev/null 2>&1
             fi
             ;;
         arch | manjaro | parch)
@@ -223,7 +257,7 @@ setup_ssl_certificate() {
     fi
 
     # Install certificate
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+    ~/.acme.sh/acme.sh --installcert --force -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem \
         --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
@@ -361,7 +395,7 @@ setup_ip_certificate() {
     # Install certificate
     # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
     # but the cert files are still installed. We check for files instead of exit code.
-    ~/.acme.sh/acme.sh --installcert -d ${ipv4} \
+    ~/.acme.sh/acme.sh --installcert --force -d ${ipv4} \
         --key-file "${certDir}/privkey.pem" \
         --fullchain-file "${certDir}/fullchain.pem" \
         --reloadcmd "${reloadCmd}" 2>&1 || true
@@ -518,7 +552,7 @@ ssl_cert_issue() {
 
     # install the certificate
     local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
+    installOutput=$(~/.acme.sh/acme.sh --installcert --force -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
     local installRc=$?
@@ -881,6 +915,40 @@ setup_fail2ban() {
     return 0
 }
 
+# Lands a systemd unit file at ${xui_service}/x-ui.service via a temp file +
+# atomic mv, so a failed cp/curl or an interrupted mv never leaves a
+# truncated unit file at the live path -- systemd would then fail to parse
+# it on the next daemon-reload/start. Same pattern already used for
+# /usr/bin/x-ui elsewhere in this script. source_is_url picks cp (from a
+# file already extracted from the release tarball) vs curl (GitHub fallback).
+_install_xui_service_unit() {
+    local source="$1"
+    local source_is_url="$2"
+    local dest="${xui_service}/x-ui.service"
+    local temp_file="${dest}.tmp.$$"
+
+    rm -f "$temp_file"
+    if [[ "$source_is_url" == "true" ]]; then
+        ${curl_bin} -fLRo "$temp_file" "$source" > /dev/null 2>&1
+    else
+        cp -f "$source" "$temp_file" > /dev/null 2>&1
+    fi
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    if [[ ! -s "$temp_file" ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    mv -f "$temp_file" "$dest"
+    if [[ $? -ne 0 ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
+    return 0
+}
+
 update_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -910,6 +978,10 @@ update_x-ui() {
     ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
     if [[ $? -ne 0 ]]; then
         _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
+    fi
+    if [[ ! -s ${xui_folder}-linux-$(arch).tar.gz ]]; then
+        rm ${xui_folder}-linux-$(arch).tar.gz -f > /dev/null 2>&1
+        _fail "ERROR: Downloaded x-ui release archive is empty, please be sure that your server can access GitHub"
     fi
 
     if [[ -e ${xui_folder}/ ]]; then
@@ -961,8 +1033,15 @@ update_x-ui() {
 
     echo -e "${green}Installing new x-ui version...${plain}"
     tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
+        _fail "ERROR: Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
+    fi
     rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
     cd x-ui > /dev/null 2>&1
+    if [[ $? -ne 0 || ! -s x-ui ]]; then
+        _fail "ERROR: Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
+    fi
     chmod +x x-ui > /dev/null 2>&1
 
     # Check the system's architecture and rename the file accordingly
@@ -974,9 +1053,21 @@ update_x-ui() {
     chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    ${curl_bin} -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
+    local xui_script_temp="/usr/bin/x-ui-temp.$$"
+    rm -f "${xui_script_temp}"
+    ${curl_bin} -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh > /dev/null 2>&1
     if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
         _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
+    fi
+    if [[ ! -s "${xui_script_temp}" ]]; then
+        rm -f "${xui_script_temp}"
+        _fail "ERROR: Downloaded x-ui.sh script is empty, please be sure that your server can access GitHub"
+    fi
+    mv -f "${xui_script_temp}" /usr/bin/x-ui
+    if [[ $? -ne 0 ]]; then
+        rm -f "${xui_script_temp}"
+        _fail "ERROR: Failed to install x-ui.sh script"
     fi
 
     chmod +x ${xui_folder}/x-ui.sh > /dev/null 2>&1
@@ -993,9 +1084,21 @@ update_x-ui() {
 
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
+        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
+        rm -f "${xui_rc_temp}"
+        ${curl_bin} -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc > /dev/null 2>&1
         if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
             _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
+        fi
+        if [[ ! -s "${xui_rc_temp}" ]]; then
+            rm -f "${xui_rc_temp}"
+            _fail "ERROR: Downloaded startup unit x-ui.rc is empty, please be sure that your server can access GitHub"
+        fi
+        mv -f "${xui_rc_temp}" /etc/init.d/x-ui
+        if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}"
+            _fail "ERROR: Failed to install startup unit x-ui.rc"
         fi
         chmod +x /etc/init.d/x-ui > /dev/null 2>&1
         chown root:root /etc/init.d/x-ui > /dev/null 2>&1
@@ -1004,8 +1107,7 @@ update_x-ui() {
     else
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Installing systemd unit...${plain}"
-            cp -f x-ui.service ${xui_service}/ > /dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
+            if ! _install_xui_service_unit "x-ui.service" "false"; then
                 echo -e "${red}Failed to copy x-ui.service${plain}"
                 exit 1
             fi
@@ -1015,8 +1117,7 @@ update_x-ui() {
                 ubuntu | debian | armbian)
                     if [ -f "x-ui.service.debian" ]; then
                         echo -e "${green}Installing debian-like systemd unit...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.debian" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1024,8 +1125,7 @@ update_x-ui() {
                 arch | manjaro | parch)
                     if [ -f "x-ui.service.arch" ]; then
                         echo -e "${green}Installing arch-like systemd unit...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.arch" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1033,8 +1133,7 @@ update_x-ui() {
                 *)
                     if [ -f "x-ui.service.rhel" ]; then
                         echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service > /dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
+                        if _install_xui_service_unit "x-ui.service.rhel" "false"; then
                             service_installed=true
                         fi
                     fi
@@ -1046,17 +1145,17 @@ update_x-ui() {
                 echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
                 case "${release}" in
                     ubuntu | debian | armbian)
-                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian > /dev/null 2>&1
+                        service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian"
                         ;;
                     arch | manjaro | parch)
-                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch > /dev/null 2>&1
+                        service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch"
                         ;;
                     *)
-                        ${curl_bin} -fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel > /dev/null 2>&1
+                        service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel"
                         ;;
                 esac
 
-                if [[ $? -ne 0 ]]; then
+                if ! _install_xui_service_unit "$service_unit_url" "true"; then
                     echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
                     exit 1
                 fi

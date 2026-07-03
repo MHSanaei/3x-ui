@@ -374,7 +374,11 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	if onlinesCount > 0 {
 		var buttons []telego.InlineKeyboardButton
 		for _, online := range onlines {
-			buttons = append(buttons, tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
+			label := online
+			if _, inbound, err := t.inboundService.GetClientInboundByEmail(online); err == nil && inbound != nil && inbound.Remark != "" {
+				label = online + " - " + inbound.Remark
+			}
+			buttons = append(buttons, tu.InlineKeyboardButton(label).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
 		}
 		cols := 0
 		if onlinesCount < 21 {
@@ -396,7 +400,8 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 
 // sendBackup sends a backup of the database and configuration files.
 func (t *Tgbot) sendBackup(chatId int64) {
-	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
+	output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
+	output += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
 
 	// Send database backup (SQLite file, or a pg_dump archive on PostgreSQL)
@@ -442,7 +447,8 @@ func (t *Tgbot) sendBackup(chatId int64) {
 // sendBanLogs sends the ban logs to the specified chat.
 func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
 	if dt {
-		output := t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
+		output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
+		output += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
 		t.SendMsgToTgbot(chatId, output)
 	}
 

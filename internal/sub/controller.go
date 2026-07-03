@@ -146,18 +146,54 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	}
 }
 
-// subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
-func (a *SUBController) subs(c *gin.Context) {
-	subId := c.Param("subid")
-	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subReq := a.subService.ForRequest(host)
-	// The remark template's per-client info is for the content a client app
-	// imports — the raw subscription body. A browser viewing the HTML info page
-	// gets clean, name-only remarks (usage is shown in the page summary).
+// maybeServeSubPage renders the HTML info page when the request comes from a
+// browser (Accept: text/html) or explicitly asks for it (?html=1 or ?view=html).
+// It reports whether the request was handled. The remark template's per-client
+// info is for the content a client app imports — the raw subscription body. A
+// browser viewing the HTML info page gets clean, name-only remarks (usage is
+// shown in the page summary).
+func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	accept := c.GetHeader("Accept")
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
-	subReq.subscriptionBody = !wantsHTML
+	if !wantsHTML {
+		return false
+	}
+	subId := c.Param("subid")
+	_, host, _, hostHeader := a.subService.ResolveRequest(c)
+	subReq := a.subService.ForRequest(host)
+	subReq.subscriptionBody = false
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
+	if err != nil || len(subs) == 0 {
+		writeSubError(c, err)
+		return true
+	}
+	subURL, subJsonURL, subClashURL := subReq.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
+	if !a.jsonEnabled {
+		subJsonURL = ""
+	}
+	if !a.clashEnabled {
+		subClashURL = ""
+	}
+	basePath, exists := c.Get("base_path")
+	if !exists {
+		basePath = "/"
+	}
+	basePathStr := basePath.(string)
+	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+	a.serveSubPage(c, basePathStr, page)
+	return true
+}
+
+// subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
+func (a *SUBController) subs(c *gin.Context) {
+	if a.maybeServeSubPage(c) {
+		return
+	}
+	subId := c.Param("subid")
+	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
+	subReq := a.subService.ForRequest(host)
+	subReq.subscriptionBody = true
+	subs, _, _, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
 	} else {
@@ -165,25 +201,6 @@ func (a *SUBController) subs(c *gin.Context) {
 		for _, sub := range subs {
 			result.WriteString(sub)
 			result.WriteString("\n")
-		}
-
-		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
-		if wantsHTML {
-			subURL, subJsonURL, subClashURL := subReq.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
-			if !a.jsonEnabled {
-				subJsonURL = ""
-			}
-			if !a.clashEnabled {
-				subClashURL = ""
-			}
-			basePath, exists := c.Get("base_path")
-			if !exists {
-				basePath = "/"
-			}
-			basePathStr := basePath.(string)
-			page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
-			a.serveSubPage(c, basePathStr, page)
-			return
 		}
 
 		// Add headers
@@ -264,6 +281,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,
+		"announce":      a.subAnnounce,
 	}
 
 	// When an admin has configured a custom subscription theme, render it
@@ -366,6 +384,9 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
+	if a.maybeServeSubPage(c) {
+		return
+	}
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
@@ -383,6 +404,9 @@ func (a *SUBController) subJsons(c *gin.Context) {
 }
 
 func (a *SUBController) subClashs(c *gin.Context) {
+	if a.maybeServeSubPage(c) {
+		return
+	}
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)

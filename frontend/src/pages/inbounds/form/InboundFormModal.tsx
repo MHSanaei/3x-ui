@@ -41,6 +41,7 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
 import { KcpStreamSettingsSchema } from '@/schemas/protocols/stream/kcp';
@@ -248,6 +249,7 @@ export default function InboundFormModal({
     scanRealityCandidates,
     applyRealityScanResult,
     randomizeShortIds,
+    randomizeSpiderX,
     getNewEchCert,
     clearEchCert,
     pinFromCert,
@@ -316,27 +318,14 @@ export default function InboundFormModal({
     form.setFieldValue(['settings', 'encryption'], 'none');
   };
 
+  const vlessAuthKind = vlessEncryptionAuthKind(
+    typeof vlessEncryption === 'string' ? vlessEncryption : '',
+  );
   const selectedVlessAuth = (() => {
     const enc = typeof vlessEncryption === 'string' ? vlessEncryption : '';
     if (!enc || enc === 'none') return 'None';
-    const parts = enc.split('.').filter(Boolean);
-    const authKey = parts[parts.length - 1] || '';
-    if (!authKey) return t('pages.inbounds.vlessAuthCustom');
-    const mode = parts[1] || 'native';
-    const keyType = authKey.length > 300 ? 'mlkem768' : 'x25519';
-    if (mode === 'xorpub') {
-      return keyType === 'mlkem768'
-        ? t('pages.inbounds.vlessAuthMlkem768Xorpub')
-        : t('pages.inbounds.vlessAuthX25519Xorpub');
-    }
-    if (mode === 'random') {
-      return keyType === 'mlkem768'
-        ? t('pages.inbounds.vlessAuthMlkem768Random')
-        : t('pages.inbounds.vlessAuthX25519Random');
-    }
-    return keyType === 'mlkem768'
-      ? t('pages.inbounds.vlessAuthMlkem768')
-      : t('pages.inbounds.vlessAuthX25519');
+    if (!vlessAuthKind) return t('pages.inbounds.vlessAuthCustom');
+    return t(VLESS_AUTH_LABEL_KEYS[vlessAuthKind]);
   })();
 
   useEffect(() => {
@@ -539,6 +528,7 @@ export default function InboundFormModal({
       {selectableNodes.length > 0 && isNodeEligible && (
         <Form.Item name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
+            showSearch
             disabled={mode === 'edit'}
             placeholder={t('pages.inbounds.localPanel')}
             allowClear
@@ -702,7 +692,7 @@ export default function InboundFormModal({
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
 
-      {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
+      {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} vlessAuthKind={vlessAuthKind} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
 
       {isFallbackHost && fallbacksCard}
       {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN)
@@ -896,6 +886,7 @@ export default function InboundFormModal({
           scanRealityCandidates={scanRealityCandidates}
           applyRealityScanResult={applyRealityScanResult}
           randomizeShortIds={randomizeShortIds}
+          randomizeSpiderX={randomizeSpiderX}
           genRealityKeypair={genRealityKeypair}
           clearRealityKeypair={clearRealityKeypair}
           genMldsa65={genMldsa65}

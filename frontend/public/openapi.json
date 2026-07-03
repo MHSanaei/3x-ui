@@ -1824,9 +1824,20 @@
       },
       "InboundOption": {
         "properties": {
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
           "id": {
             "example": 1,
             "type": "integer"
+          },
+          "listen": {
+            "type": "string"
+          },
+          "nodeAddress": {
+            "description": "Share-host resolution inputs, mirroring the subscription's\nresolveInboundAddress so the clients page renders a node-managed WireGuard\nEndpoint that points at the node, not the master panel. NodeAddress is the\nhosting node's externally reachable address (empty for this panel's own\ninbounds); Listen and ShareAddrStrategy/ShareAddr feed the same\nnode→listen→custom fallback the share/QR links already use.",
+            "type": "string"
           },
           "nodeId": {
             "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
@@ -1843,6 +1854,12 @@
           },
           "remark": {
             "example": "VLESS-443",
+            "type": "string"
+          },
+          "shareAddr": {
+            "type": "string"
+          },
+          "shareAddrStrategy": {
             "type": "string"
           },
           "ssMethod": {
@@ -1867,6 +1884,7 @@
           }
         },
         "required": [
+          "enable",
           "id",
           "port",
           "protocol",
@@ -2144,6 +2162,34 @@
           "tag",
           "total",
           "up"
+        ],
+        "type": "object"
+      },
+      "PanelUpdateStatus": {
+        "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
+        "properties": {
+          "exitCode": {
+            "example": 0,
+            "type": "integer"
+          },
+          "finishedAt": {
+            "example": 1735689612,
+            "type": "integer"
+          },
+          "runId": {
+            "example": "1735689600123456789",
+            "type": "string"
+          },
+          "state": {
+            "example": "success",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exitCode",
+          "finishedAt",
+          "runId",
+          "state"
         ],
         "type": "object"
       },
@@ -2754,11 +2800,16 @@
                   "success": true,
                   "obj": [
                     {
+                      "enable": true,
                       "id": 1,
+                      "listen": "",
+                      "nodeAddress": "",
                       "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",
+                      "shareAddr": "",
+                      "shareAddrStrategy": "",
                       "ssMethod": "",
                       "tag": "in-443-tcp",
                       "tlsFlowCapable": true,
@@ -3901,6 +3952,47 @@
         }
       }
     },
+    "/panel/api/server/getUpdateStatus": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Report the outcome of the most recently launched panel self-update (see POST updatePanel). Compare the returned runId against the one updatePanel returned to tell this run apart from a stale result.",
+        "operationId": "get_panel_api_server_getUpdateStatus",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/PanelUpdateStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "exitCode": 0,
+                    "finishedAt": 1735689612,
+                    "runId": "1735689600123456789",
+                    "state": "success"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/getConfigJson": {
       "get": {
         "tags": [
@@ -4426,6 +4518,12 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "runId": "1735689600123456789"
                   }
                 }
               }

@@ -113,6 +113,9 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := migrateLegacySocksInboundsToMixed(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -483,6 +486,23 @@ func pruneOrphanedClientInbounds() error {
 	return nil
 }
 
+// migrateLegacySocksInboundsToMixed renames legacy socks inbounds to mixed.
+// The protocol enum dropped socks in favor of mixed (identical settings shape,
+// same behavior plus HTTP on the shared port), so rows predating the rename
+// fail model validation — most visibly when pushed to a node, where one legacy
+// inbound stalled the entire node's config and traffic sync (#5685).
+func migrateLegacySocksInboundsToMixed() error {
+	res := db.Exec("UPDATE inbounds SET protocol = 'mixed' WHERE protocol = 'socks'")
+	if res.Error != nil {
+		log.Printf("Error migrating legacy socks inbounds to mixed: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Migrated %d legacy socks inbound(s) to mixed", res.RowsAffected)
+	}
+	return nil
+}
+
 // normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
 // minimum (rows written by builds that defaulted the column to 0, or by nodes
 // predating the field) so they cannot sort ahead of explicitly ranked inbounds.
@@ -664,7 +684,10 @@ func runSeeders(isUsersEmpty bool) error {
 	if err := seedWireguardPeersToClients(); err != nil {
 		return err
 	}
-	return nil
+
+	// Idempotent, not seeder-gated: bad values can re-enter via a restored
+	// backup, so re-check on every start.
+	return normalizeSettingPaths()
 }
 
 // resetIpLimitsWithoutFail2ban zeroes every client's IP limit on hosts where
@@ -767,6 +790,37 @@ func clearLegacyProxySettings() error {
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
 	})
+}
+
+// normalizeSettingPaths repairs URI-path settings persisted before the
+// leading/trailing-slash rules existed (or restored from an old backup),
+// mirroring entity.AllSetting.CheckValid. CheckValid self-heals these on save,
+// but the frontend rejects the whole Settings form on the bad stored value
+// before a save can ever reach it (#5726), so the stored rows themselves must
+// be fixed. Idempotent; runs on every start.
+func normalizeSettingPaths() error {
+	pathKeys := []string{"webBasePath", "subPath", "subJsonPath", "subClashPath"}
+	var rows []model.Setting
+	if err := db.Where("key IN ?", pathKeys).Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		fixed := row.Value
+		if !strings.HasPrefix(fixed, "/") {
+			fixed = "/" + fixed
+		}
+		if !strings.HasSuffix(fixed, "/") {
+			fixed += "/"
+		}
+		if fixed == row.Value {
+			continue
+		}
+		if err := db.Model(&model.Setting{}).Where("id = ?", row.Id).
+			Update("value", fixed).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func normalizeInboundClientTgId() error {

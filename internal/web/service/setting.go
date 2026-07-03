@@ -710,11 +710,13 @@ func (s *SettingService) GetSubTitle() (string, error) {
 }
 
 func (s *SettingService) GetSubSupportUrl() (string, error) {
-	return s.getString("subSupportUrl")
+	value, err := s.getString("subSupportUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubProfileUrl() (string, error) {
-	return s.getString("subProfileUrl")
+	value, err := s.getString("subProfileUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -1083,8 +1085,17 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
-func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
-	if err := s.preserveRedactedSecrets(allSetting); err != nil {
+// SecretClears marks redacted secrets the user explicitly emptied. Without a
+// flag, a blank submitted secret means "unchanged" (the field is always served
+// blank to the browser) and the stored value is preserved.
+type SecretClears struct {
+	TgBotToken   bool
+	LdapPassword bool
+	SmtpPassword bool
+}
+
+func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
@@ -1130,15 +1141,15 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	})
 }
 
-func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {
-	if strings.TrimSpace(allSetting.TgBotToken) == "" {
+func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, clears SecretClears) error {
+	if !clears.TgBotToken && strings.TrimSpace(allSetting.TgBotToken) == "" {
 		value, err := s.GetTgBotToken()
 		if err != nil {
 			return err
 		}
 		allSetting.TgBotToken = value
 	}
-	if strings.TrimSpace(allSetting.LdapPassword) == "" {
+	if !clears.LdapPassword && strings.TrimSpace(allSetting.LdapPassword) == "" {
 		value, err := s.GetLdapPassword()
 		if err != nil {
 			return err
@@ -1152,7 +1163,7 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 		}
 		allSetting.TwoFactorToken = value
 	}
-	if strings.TrimSpace(allSetting.SmtpPassword) == "" {
+	if !clears.SmtpPassword && strings.TrimSpace(allSetting.SmtpPassword) == "" {
 		value, err := s.GetSmtpPassword()
 		if err != nil {
 			return err
@@ -1177,6 +1188,12 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	// Support/profile links land in subscription headers and page data, where
+	// client apps resolve a scheme-less value against the panel's own domain.
+	// Non-http schemes (tg://, mailto:) are legitimate here, so only default
+	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
+	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
+	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
 	return nil
 }
 

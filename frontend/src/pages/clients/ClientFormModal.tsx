@@ -376,12 +376,13 @@ export default function ClientFormModal({
   const inboundOptions = useMemo(
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
+      .filter((ib) => ib.enable || (form.inboundIds || []).includes(ib.id))
       .map((ib) => ({
         label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
         title: formatInboundLabel(ib.tag, ib.remark),
       })),
-    [inbounds],
+    [inbounds, form.inboundIds],
   );
 
   const linkRows = useMemo(() => form.externalLinks.filter((r) => r.kind === 'link'), [form.externalLinks]);
