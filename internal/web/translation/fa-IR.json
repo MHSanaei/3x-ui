@@ -2007,7 +2007,11 @@
       "startDesc": "نمایش منوی اصلی",
       "helpDesc": "راهنمای ربات",
       "statusDesc": "بررسی وضعیت ربات",
-      "idDesc": "نمایش شناسه تلگرام شما"
+      "idDesc": "نمایش شناسه تلگرام شما",
+      "usageDesc": "مشاهده مصرف کاربر: /usage ایمیل",
+      "inboundDesc": "جستجوی ورودی‌ها: /inbound نام (مدیر)",
+      "restartDesc": "راه‌اندازی مجدد هسته Xray (مدیر)",
+      "clearallDesc": "صفر کردن ترافیک همه کاربران (مدیر)"
     },
     "messages": {
       "cpuThreshold": "بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",

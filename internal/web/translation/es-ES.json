@@ -2007,7 +2007,11 @@
       "startDesc": "Mostrar el menú principal",
       "helpDesc": "Ayuda del bot",
       "statusDesc": "Comprobar el estado del bot",
-      "idDesc": "Mostrar tu ID de Telegram"
+      "idDesc": "Mostrar tu ID de Telegram",
+      "usageDesc": "Ver el uso del cliente: /usage correo",
+      "inboundDesc": "Buscar entradas: /inbound nombre (admin)",
+      "restartDesc": "Reiniciar el núcleo de Xray (admin)",
+      "clearallDesc": "Restablecer el tráfico de todos los clientes (admin)"
     },
     "messages": {
       "cpuThreshold": "El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",

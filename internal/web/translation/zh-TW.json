@@ -2007,7 +2007,11 @@
       "startDesc": "顯示主選單",
       "helpDesc": "機器人幫助",
       "statusDesc": "檢查機器人狀態",
-      "idDesc": "顯示您的 Telegram ID"
+      "idDesc": "顯示您的 Telegram ID",
+      "usageDesc": "查看客戶端用量：/usage 郵箱",
+      "inboundDesc": "搜尋入站：/inbound 備註（管理員）",
+      "restartDesc": "重啟 Xray 核心（管理員）",
+      "clearallDesc": "重置所有客戶端流量（管理員）"
     },
     "messages": {
       "cpuThreshold": "CPU 使用率為 {{ .Percent }}%，超過閾值 {{ .Threshold }}%",

@@ -2007,7 +2007,11 @@
       "startDesc": "Показать главное меню",
       "helpDesc": "Справка по боту",
       "statusDesc": "Проверить статус бота",
-      "idDesc": "Показать ваш Telegram ID"
+      "idDesc": "Показать ваш Telegram ID",
+      "usageDesc": "Показать трафик клиента: /usage email",
+      "inboundDesc": "Поиск входящих: /inbound имя (админ)",
+      "restartDesc": "Перезапустить ядро Xray (админ)",
+      "clearallDesc": "Сбросить трафик всех клиентов (админ)"
     },
     "messages": {
       "cpuThreshold": "Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%",

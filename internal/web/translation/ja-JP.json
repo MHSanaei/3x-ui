@@ -2007,7 +2007,11 @@
       "startDesc": "メインメニューを表示",
       "helpDesc": "ボットのヘルプ",
       "statusDesc": "ボットの状態を確認",
-      "idDesc": "Telegram IDを表示"
+      "idDesc": "Telegram IDを表示",
+      "usageDesc": "クライアント使用量を表示: /usage メール",
+      "inboundDesc": "インバウンド検索: /inbound 備考（管理者）",
+      "restartDesc": "Xray コアを再起動（管理者）",
+      "clearallDesc": "全クライアントのトラフィックをリセット（管理者）"
     },
     "messages": {
       "cpuThreshold": "CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",

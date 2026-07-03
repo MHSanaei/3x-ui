@@ -2007,7 +2007,11 @@
       "startDesc": "Hiển thị menu chính",
       "helpDesc": "Trợ giúp bot",
       "statusDesc": "Kiểm tra trạng thái bot",
-      "idDesc": "Hiển thị ID Telegram của bạn"
+      "idDesc": "Hiển thị ID Telegram của bạn",
+      "usageDesc": "Xem mức dùng của khách: /usage email",
+      "inboundDesc": "Tìm inbound: /inbound tên (quản trị)",
+      "restartDesc": "Khởi động lại lõi Xray (quản trị)",
+      "clearallDesc": "Đặt lại lưu lượng mọi khách hàng (quản trị)"
     },
     "messages": {
       "cpuThreshold": "Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",

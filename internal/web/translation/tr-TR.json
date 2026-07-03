@@ -2007,7 +2007,11 @@
       "startDesc": "Ana menüyü göster",
       "helpDesc": "Bot yardımı",
       "statusDesc": "Bot durumunu kontrol et",
-      "idDesc": "Telegram Kimliğinizi gösterir"
+      "idDesc": "Telegram Kimliğinizi gösterir",
+      "usageDesc": "İstemci kullanımını göster: /usage e-posta",
+      "inboundDesc": "Gelenleri ara: /inbound ad (yönetici)",
+      "restartDesc": "Xray çekirdeğini yeniden başlat (yönetici)",
+      "clearallDesc": "Tüm istemcilerin trafiğini sıfırla (yönetici)"
     },
     "messages": {
       "cpuThreshold": "CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",

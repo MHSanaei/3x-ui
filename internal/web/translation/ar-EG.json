@@ -2007,7 +2007,11 @@
       "startDesc": "عرض القائمة الرئيسية",
       "helpDesc": "مساعدة البوت",
       "statusDesc": "التحقق من حالة البوت",
-      "idDesc": "عرض معرف Telegram الخاص بك"
+      "idDesc": "عرض معرف Telegram الخاص بك",
+      "usageDesc": "عرض استهلاك العميل: /usage البريد",
+      "inboundDesc": "البحث في الواردات: /inbound الاسم (مشرف)",
+      "restartDesc": "إعادة تشغيل نواة Xray (مشرف)",
+      "clearallDesc": "تصفير استهلاك جميع العملاء (مشرف)"
     },
     "messages": {
       "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",

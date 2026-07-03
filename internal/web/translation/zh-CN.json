@@ -2007,7 +2007,11 @@
       "startDesc": "显示主菜单",
       "helpDesc": "机器人帮助",
       "statusDesc": "检查机器人状态",
-      "idDesc": "显示您的 Telegram ID"
+      "idDesc": "显示您的 Telegram ID",
+      "usageDesc": "查看客户端用量：/usage 邮箱",
+      "inboundDesc": "搜索入站：/inbound 备注（管理员）",
+      "restartDesc": "重启 Xray 内核（管理员）",
+      "clearallDesc": "重置所有客户端流量（管理员）"
     },
     "messages": {
       "cpuThreshold": "CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",

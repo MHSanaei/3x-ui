@@ -2007,7 +2007,11 @@
       "startDesc": "Show the main menu",
       "helpDesc": "Bot help",
       "statusDesc": "Check bot status",
-      "idDesc": "Show your Telegram ID"
+      "idDesc": "Show your Telegram ID",
+      "usageDesc": "Show client usage: /usage email",
+      "inboundDesc": "Search inbounds: /inbound remark (admin)",
+      "restartDesc": "Restart Xray core (admin)",
+      "clearallDesc": "Reset all clients' traffic (admin)"
     },
     "messages": {
       "cpuThreshold": "CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
