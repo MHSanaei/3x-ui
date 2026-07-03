@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"reflect"
 	"strings"
 	"time"
 
@@ -17,6 +19,14 @@ import (
 
 	"gorm.io/gorm"
 )
+
+func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {
+	aa := maps.Clone(a)
+	bb := maps.Clone(b)
+	delete(aa, "updated_at")
+	delete(bb, "updated_at")
+	return reflect.DeepEqual(aa, bb)
+}
 
 // delInboundClients removes several clients from a single inbound in one pass:
 // one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
@@ -562,13 +572,23 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
+	var oldSettingsBefore map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &oldSettingsBefore); err != nil {
+		return false, err
+	}
 	settingsClients, _ := oldSettings["clients"].([]any)
 	var preservedCreated any
+	var preservedUpdated any
 	var preservedSubID string
+	var oldClientMap map[string]any
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
 		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
+			oldClientMap = oldMap
 			if v, ok2 := oldMap["created_at"]; ok2 {
 				preservedCreated = v
+			}
+			if v, ok2 := oldMap["updated_at"]; ok2 {
+				preservedUpdated = v
 			}
 			preservedSubID, _ = oldMap["subId"].(string)
 		}
@@ -579,7 +599,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				preservedCreated = time.Now().Unix() * 1000
 			}
 			newMap["created_at"] = preservedCreated
-			newMap["updated_at"] = time.Now().Unix() * 1000
 			newSub, _ := newMap["subId"].(string)
 			if strings.TrimSpace(newSub) == "" {
 				if strings.TrimSpace(preservedSubID) != "" {
@@ -598,6 +617,15 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if clients[0].KeepAlive > 0 {
 					newMap["keepAlive"] = clients[0].KeepAlive
 				}
+			}
+			if oldClientMap != nil && sameClientConfigExceptUpdatedAt(oldClientMap, newMap) {
+				if preservedUpdated != nil {
+					newMap["updated_at"] = preservedUpdated
+				} else {
+					delete(newMap, "updated_at")
+				}
+			} else {
+				newMap["updated_at"] = time.Now().Unix() * 1000
 			}
 			interfaceClients[0] = newMap
 		}
@@ -623,6 +651,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if !hasVisionFlow {
 			delete(oldSettings, "testseed")
 		}
+	}
+
+	if reflect.DeepEqual(oldSettingsBefore, oldSettings) {
+		return false, nil
 	}
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
