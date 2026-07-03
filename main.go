@@ -91,7 +91,7 @@ func runWebServer() {
 		return
 	}
 
-	sigCh := make(chan os.Signal, 8)
+	sigCh := make(chan os.Signal, 16)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1, os.Interrupt)
 	global.SetRestartHook(func() {

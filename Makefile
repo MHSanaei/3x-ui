@@ -1,75 +1,62 @@
-# Canonical task runner. Mirrors .github/workflows/ci.yml so `make verify`
-# reproduces the PR gate locally. Run `make help` for the list.
+.PHONY: all build clean test lint docker docker-push
 
-SHELL := bash
-GO_PKGS = $(shell go list ./... | grep -v '/frontend/node_modules/')
-FRONTEND = frontend
+GOLANG_VERSION ?= 1.26
+BINARY_NAME ?= x-ui
+BUILD_FLAGS ?= -ldflags "-w -s -trimpath"
 
-.DEFAULT_GOAL := help
+all: build
 
-.PHONY: help
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
+build:
+	@echo "Building 3x-ui..."
+	@mkdir -p build
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-amd64 main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-arm64 main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-arm main.go
+	@echo "Build complete!"
 
-# go:embed of internal/web/dist needs the dir to exist even when the
-# frontend bundle has not been built. CI stubs it the same way.
-.PHONY: dist-stub
-dist-stub:
-	@mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+build-all:
+	@echo "Building for all platforms..."
+	@mkdir -p build
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-amd64 main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-arm64 main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-arm main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=386 go build $(BUILD_FLAGS) -o build/$(BINARY_NAME)-linux-386 main.go
+	@echo "All builds complete!"
 
-.PHONY: gen
-gen: ## Regenerate Zod schemas + OpenAPI from Go sources
-	cd $(FRONTEND) && npm run gen
+clean:
+	@echo "Cleaning..."
+	rm -rf build/*
+	@echo "Clean complete!"
 
-.PHONY: gen-check
-gen-check: gen ## Fail if generated files are stale
-	git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+test:
+	@echo "Running tests..."
+	go test -v ./...
 
-.PHONY: lint-go
-lint-go: dist-stub ## golangci-lint on Go sources
-	golangci-lint run
+lint:
+	@echo "Running linter..."
+	golangci-lint run --timeout 5m
 
-.PHONY: lint-fe
-lint-fe: ## ESLint on frontend sources
-	cd $(FRONTEND) && npm run lint
+frontend:
+	@echo "Building frontend..."
+	cd frontend && npm run build
 
-.PHONY: lint
-lint: lint-go lint-fe ## All linters
+docker:
+	@echo "Building Docker image..."
+	docker build -t anishtayin/3x-ui:latest .
 
-.PHONY: typecheck
-typecheck: ## tsc --noEmit
-	cd $(FRONTEND) && npm run typecheck
+docker-push:
+	@echo "Pushing Docker image..."
+	docker push anishtayin/3x-ui:latest
 
-.PHONY: test-go
-test-go: dist-stub ## Go tests (shuffle, no cache)
-	go test -shuffle=on -count=1 $(GO_PKGS)
+release:
+	@echo "Creating release with goreleaser..."
+	goreleaser release --clean
 
-.PHONY: race
-race: dist-stub ## Go tests with the race detector (needs a C compiler)
-	go test -race -shuffle=on -count=1 $(GO_PKGS)
-
-.PHONY: test-fe
-test-fe: ## Frontend tests (vitest)
-	cd $(FRONTEND) && npm test
-
-.PHONY: test
-test: test-go test-fe ## All tests
-
-.PHONY: vulncheck
-vulncheck: dist-stub ## govulncheck
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-
-.PHONY: build-fe
-build-fe: ## Build the Vite bundles into internal/web/dist
-	cd $(FRONTEND) && npm run build
-
-.PHONY: build
-build: build-fe ## Build the frontend then the Go binary
-	go build ./...
-
-# The PR gate. Matches ci.yml: codegen freshness, both linters, typecheck,
-# both test suites, and a full build.
-.PHONY: verify
-verify: gen-check lint typecheck test build ## Full local gate (mirrors CI)
-	@echo "verify: OK"
+.PHONY: docker-buildx
+docker-buildx:
+	@echo "Building multi-arch Docker image..."
+	docker buildx build --platform linux/amd64,linux/arm64,linux/arm \
+		--output "type=image,push=true" \
+		--tag anishtayin/3x-ui:latest \
+		--tag anishtayin/3x-ui:$(shell git rev-parse --short HEAD) \
+		.

@@ -27,7 +27,7 @@ COPY --from=frontend /src/internal/web/dist ./internal/web/dist
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
+RUN go build -ldflags "-w -s -trimpath" -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
 
 # ========================================================
@@ -43,13 +43,13 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
-  openssl
+  openssl \
+  && rm -rf /var/cache/apk/*
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 COPY --from=builder /app/internal/web/translation /app/internal/web/translation
-
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -62,6 +62,10 @@ RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
   /usr/bin/x-ui
+
+# Security hardening
+RUN chmod 600 /app/x-ui && \
+    chmod 644 /app/DockerEntrypoint.sh
 
 ENV XUI_IN_DOCKER="true"
 ENV XUI_MAIN_FOLDER="/app"

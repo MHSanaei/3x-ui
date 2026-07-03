@@ -1,0 +1,59 @@
+before:
+  builds:
+    - id: x-ui-linux
+      env:
+        - CGO_ENABLED=1
+        - GOARCH=amd64
+        - GOOS=linux
+      ldflags: -w -s -trimpath
+      flags: -v
+    - id: x-ui-linux-arm64
+      env:
+        - CGO_ENABLED=1
+        - GOARCH=arm64
+        - GOOS=linux
+      ldflags: -w -s -trimpath
+      flags: -v
+    - id: x-ui-linux-arm
+      env:
+        - CGO_ENABLED=1
+        - GOARCH=arm
+        - GOOS=linux
+      ldflags: -w -s -trimpath
+      flags: -v
+
+builds:
+  - id: x-ui-linux
+    binary: x-ui
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - 386
+    env:
+      - CGO_ENABLED=1
+    ldflags: -w -s -trimpath
+    flags: -v
+
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    format: tar.gz
+    files:
+      - README.md
+      - LICENSE
+
+release:
+  github:
+    owner: AnishtayiN
+    name: 3x-ui
+  prerelease: auto
+  draft: false
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
