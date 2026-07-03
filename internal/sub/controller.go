@@ -281,6 +281,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,
+		"announce":      a.subAnnounce,
 	}
 
 	// When an admin has configured a custom subscription theme, render it

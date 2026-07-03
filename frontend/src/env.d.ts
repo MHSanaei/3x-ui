@@ -18,6 +18,7 @@ interface SubPageData {
   links?: string[];
   emails?: string[];
   datepicker?: 'gregorian' | 'jalalian';
+  announce?: string;
   downloadByte?: string | number;
   uploadByte?: string | number;
   usedByte?: string | number;
