@@ -473,8 +473,7 @@ start_installation() {
     cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
-After=network.target
-Wants=network-online.target
+After=network.target network-online.target
 
 [Service]
 Type=simple
@@ -482,6 +481,7 @@ WorkingDirectory=/usr/local/x-ui
 ExecStart=/usr/local/x-ui/x-ui
 Restart=on-failure
 RestartSec=3s
+ExecStartPost=/usr/bin/x-ui restart-xray
 
 [Install]
 WantedBy=multi-user.target
@@ -491,8 +491,6 @@ EOF
     config_after_install
     systemctl restart x-ui || true
 
-    echo -e "${yellow}Принудительный запуск Xray-core...${plain}"
-    x-ui xray start || true
     echo -e "${green}🎉 Установка завершена!${plain}"
     exec /usr/bin/x-ui
 }
