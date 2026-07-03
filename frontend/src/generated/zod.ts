@@ -15,6 +15,9 @@ export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
+export const trafficLocalApplyActionSchema = z.number().int();
+export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
+
 export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
