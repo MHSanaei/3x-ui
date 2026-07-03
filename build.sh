@@ -165,13 +165,15 @@ BUILD_OUT_DIR="$(pwd)/build"
 mkdir -p "$BUILD_OUT_DIR"
 
 # 4. Сборка фронтенда
+# 4. Сборка фронтенда
 if [ -d "$BASE_DIR/frontend" ]; then
     echo "📦 Шаг 1: Сборка фронтенда панели..."
     pushd "$BASE_DIR/frontend" > /dev/null
-    rm -rf node_modules package-lock.json 2>/dev/null
+    rm -rf node_modules package-lock.json || true
     npm install && npm run build
     popd > /dev/null
 fi
+
 
 # Функция компиляции
 compile_target() {
