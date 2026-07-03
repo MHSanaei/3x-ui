@@ -1798,6 +1798,10 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "InboundOption": {
     "properties": {
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
       "id": {
         "example": 1,
         "type": "integer"
@@ -1854,6 +1858,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "enable",
       "id",
       "port",
       "protocol",

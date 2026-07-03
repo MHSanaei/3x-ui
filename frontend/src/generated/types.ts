@@ -393,6 +393,7 @@ export interface InboundFallback {
 }
 
 export interface InboundOption {
+  enable: boolean;
   id: number;
   listen?: string;
   nodeAddress?: string;

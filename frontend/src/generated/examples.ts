@@ -399,6 +399,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "xver": 0
   },
   "InboundOption": {
+    "enable": true,
     "id": 1,
     "listen": "",
     "nodeAddress": "",

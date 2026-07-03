@@ -420,6 +420,7 @@ export const InboundFallbackSchema = z.object({
 export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
+  enable: z.boolean(),
   id: z.number().int(),
   listen: z.string().optional(),
   nodeAddress: z.string().optional(),

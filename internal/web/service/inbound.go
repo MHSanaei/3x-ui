@@ -297,6 +297,7 @@ type InboundOption struct {
 	Tag            string `json:"tag" example:"in-443-tcp"`
 	Protocol       string `json:"protocol" example:"vless"`
 	Port           int    `json:"port" example:"443"`
+	Enable         bool   `json:"enable" example:"true"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
 	WgPublicKey    string `json:"wgPublicKey,omitempty"`
@@ -325,6 +326,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Tag               string `gorm:"column:tag"`
 		Protocol          string `gorm:"column:protocol"`
 		Port              int    `gorm:"column:port"`
+		Enable            bool   `gorm:"column:enable"`
 		StreamSettings    string `gorm:"column:stream_settings"`
 		Settings          string `gorm:"column:settings"`
 		Listen            string `gorm:"column:listen"`
@@ -334,7 +336,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		NodeAddress       string `gorm:"column:node_address"`
 	}
 	err := db.Table("inbounds").
-		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
 		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
 		Where("inbounds.user_id = ?", userId).
 		Order("inbounds.id ASC").
@@ -355,6 +357,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Tag:               r.Tag,
 			Protocol:          r.Protocol,
 			Port:              r.Port,
+			Enable:            r.Enable,
 			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
 			WgPublicKey:       wgPublicKey,

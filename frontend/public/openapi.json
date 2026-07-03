@@ -1824,6 +1824,10 @@
       },
       "InboundOption": {
         "properties": {
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
           "id": {
             "example": 1,
             "type": "integer"
@@ -1880,6 +1884,7 @@
           }
         },
         "required": [
+          "enable",
           "id",
           "port",
           "protocol",
@@ -2795,6 +2800,7 @@
                   "success": true,
                   "obj": [
                     {
+                      "enable": true,
                       "id": 1,
                       "listen": "",
                       "nodeAddress": "",
