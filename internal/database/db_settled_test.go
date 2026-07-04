@@ -2,6 +2,7 @@ package database
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -53,5 +54,26 @@ func TestPostgresModelSettled_TracksSchemaPresence(t *testing.T) {
 	}
 	if postgresModelSettled(&model.ClientGroup{}) {
 		t.Error("ClientGroup settled despite missing table")
+	}
+}
+
+func TestInitDBSQLitePragmasAndIndexes(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	var journalMode string
+	if err := db.Raw("PRAGMA journal_mode").Scan(&journalMode).Error; err != nil {
+		t.Fatalf("journal_mode: %v", err)
+	}
+	if strings.ToLower(journalMode) != "wal" {
+		t.Fatalf("journal_mode = %q, want wal", journalMode)
+	}
+	if !db.Migrator().HasIndex(&model.Inbound{}, "idx_inbounds_remark") {
+		t.Fatal("expected idx_inbounds_remark")
+	}
+	if !db.Migrator().HasIndex(&model.ClientRecord{}, "idx_clients_tg_id") {
+		t.Fatal("expected idx_clients_tg_id")
 	}
 }
