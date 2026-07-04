@@ -1,0 +1,9 @@
+.tgbot-page .tgbot-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tgbot-raw-editor {
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 13px;
+}
