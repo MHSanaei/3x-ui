@@ -137,8 +137,7 @@
         "emptyPassword": "Введите пароль",
         "wrongUsernameOrPassword": "Неверные данные учетной записи.",
         "successLogin": "Вход выполнен успешно"
-      }
-    },
+      },
     "tgbot": {
       "title": "Телеграм бот",
       "running": "Запущен",
