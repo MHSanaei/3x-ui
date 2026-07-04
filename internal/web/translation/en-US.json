@@ -137,7 +137,8 @@
         "emptyPassword": "Password is required",
         "wrongUsernameOrPassword": "Invalid username or password or two-factor code.",
         "successLogin": "You have successfully logged into your account."
-      },
+      }
+    },
     "tgbot": {
       "title": "Telegram Bot",
       "running": "Running",
