@@ -122,6 +122,7 @@
     "link": "مدیریت",
     "donate": "حمایت مالی",
     "hosts": "میزبان‌ها",
+    "links": "لینک‌ها",
     "docs": "مستندات",
     "openMenu": "باز کردن منو"
   },
@@ -729,6 +730,7 @@
       "tabBasics": "پایه",
       "tabCredentials": "اطلاعات اتصال",
       "tabLinks": "لینک‌ها",
+      "externalLinksAndSubscriptions": "لینک‌ها و سابسکریپشن‌های خارجی",
       "wireguardConfig": "پیکربندی WireGuard",
       "config": "پیکربندی",
       "linksHint": "لینک‌های اشتراک شخص‌ثالث و آدرس سابسکریپشن‌های خارجی را اضافه کنید تا در سابسکریپشن این کاربر قرار گیرند.",
@@ -1850,6 +1852,48 @@
         "edit": "ویرایش دی‌ان‌اس جعلی",
         "ipPool": "زیرشبکه استخر آی‌پی",
         "poolSize": "اندازه استخر"
+      }
+    },
+    "links": {
+      "addLink": "افزودن لینک",
+      "editLink": "ویرایش لینک",
+      "assign": "اختصاص دادن",
+      "assignTitle": "اختصاص {count} لینک",
+      "assignClients": "کلاینت‌ها",
+      "selectClients": "کلاینت‌ها را انتخاب کنید",
+      "attachExistingTitle": "الصاق کاربران موجود به «{remark}»",
+      "attachExistingDesc": "کاربران موجود ({count} کاربر در دسترس) را به این لینک الصاق می‌کند. مواردی که از قبل روی کلاینت هستند نادیده گرفته می‌شوند.",
+      "selectedCount": "{count} انتخاب‌شده",
+      "summary": {
+        "total": "کل",
+        "enabled": "فعال",
+        "subscriptions": "ساب‌ها"
+      },
+      "moveUp": "انتقال به بالا",
+      "moveDown": "انتقال به پایین",
+      "bulkEnable": "فعال‌سازی",
+      "bulkDisable": "غیرفعال‌سازی",
+      "bulkDelete": "حذف",
+      "bulkDeleteConfirm": "{count} لینک انتخاب‌شده حذف شود؟",
+      "deleteConfirmTitle": "لینک «{name}» حذف شود؟",
+      "kind": {
+        "link": "لینک خارجی",
+        "subscription": "ساب خارجی"
+      },
+      "fields": {
+        "actions": "عملیات",
+        "enable": "فعال",
+        "remark": "نام",
+        "kind": "نوع",
+        "value": "مقدار"
+      },
+      "toasts": {
+        "list": "بارگذاری لینک‌ها ناموفق بود",
+        "add": "لینک اضافه شد",
+        "update": "لینک به‌روزرسانی شد",
+        "delete": "لینک حذف شد",
+        "assign": "لینک‌ها اختصاص داده شدند",
+        "assignResult": "{attached} اضافه شد، {skipped} تکراری بود"
       }
     },
     "hosts": {

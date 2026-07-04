@@ -1113,6 +1113,87 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'links',
+    title: 'Links',
+    description:
+      'Reusable external share links and remote subscription URLs. These records live globally under /panel/api/links and can be bulk-assigned to clients; assignment copies enabled entries into each client external-links list.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/links/list',
+        summary: 'List all reusable external links and subscriptions ordered by sort order.',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "kind": "subscription",\n      "remark": "Partner sub",\n      "value": "https://example.com/sub",\n      "isDisabled": false,\n      "sortIndex": 1\n    }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/links/get/:id',
+        summary: 'Fetch one reusable link by ID.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Link ID.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/add',
+        summary: 'Create a reusable external link or subscription. kind is "link" for share links and "subscription" for remote subscription URLs.',
+        body: '{\n  "kind": "subscription",\n  "remark": "Partner sub",\n  "value": "https://example.com/sub",\n  "isDisabled": false\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/update/:id',
+        summary: 'Replace a reusable link or subscription.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Link ID.' },
+        ],
+        body: '{\n  "kind": "link",\n  "remark": "Static config",\n  "value": "vless://uuid@example.com:443?security=tls#static",\n  "isDisabled": false\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/del/:id',
+        summary: 'Delete one reusable link.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Link ID.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/setEnable/:id',
+        summary: 'Enable or disable one reusable link. Disabled links are not copied during assignment.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Link ID.' },
+        ],
+        body: '{\n  "enable": true\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/reorder',
+        summary: 'Set link sort order by the position of each id in the array.',
+        body: '{\n  "ids": [3, 1, 2]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/assign',
+        summary: 'Copy selected enabled links into selected clients external-links lists. Existing client entries with the same kind and value are skipped.',
+        body: '{\n  "linkIds": [1, 2],\n  "emails": ["alice@example.com", "bob@example.com"]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "attached": 4,\n    "skipped": 1\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/bulk/setEnable',
+        summary: 'Enable or disable many reusable links in one call.',
+        body: '{\n  "ids": [1, 2, 3],\n  "enable": false\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/bulk/del',
+        summary: 'Delete many reusable links in one call.',
+        body: '{\n  "ids": [1, 2, 3]\n}',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

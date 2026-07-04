@@ -123,7 +123,8 @@
     "donate": "捐赠",
     "hosts": "主机",
     "docs": "文档",
-    "openMenu": "打开菜单"
+    "openMenu": "打开菜单",
+    "links": "Links"
   },
   "pages": {
     "login": {
@@ -931,7 +932,8 @@
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
         "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
-      }
+      },
+      "externalLinksAndSubscriptions": "External Links and Subscriptions"
     },
     "groups": {
       "title": "分组",
@@ -1966,6 +1968,48 @@
         "delete": "删除主机",
         "badTag": "无效的标签",
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
+      }
+    },
+    "links": {
+      "addLink": "Add Link",
+      "editLink": "Edit Link",
+      "assign": "Assign",
+      "assignTitle": "Assign {count} link(s)",
+      "assignClients": "Clients",
+      "selectClients": "Select clients",
+      "attachExistingTitle": "Attach existing clients to \"{remark}\"",
+      "attachExistingDesc": "Attaches existing clients ({count} available) to this link - entries already on a client are skipped.",
+      "selectedCount": "{count} selected",
+      "summary": {
+        "total": "Total",
+        "enabled": "Enabled",
+        "subscriptions": "Subscriptions"
+      },
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "bulkEnable": "Enable",
+      "bulkDisable": "Disable",
+      "bulkDelete": "Delete",
+      "bulkDeleteConfirm": "Delete {count} selected link(s)?",
+      "deleteConfirmTitle": "Delete link \"{name}\"?",
+      "kind": {
+        "link": "External link",
+        "subscription": "External subscription"
+      },
+      "fields": {
+        "actions": "Actions",
+        "enable": "Enable",
+        "remark": "Remark",
+        "kind": "Type",
+        "value": "Value"
+      },
+      "toasts": {
+        "list": "Failed to load links",
+        "add": "Link added",
+        "update": "Link updated",
+        "delete": "Link deleted",
+        "assign": "Links assigned",
+        "assignResult": "{attached} attached, {skipped} skipped"
       }
     }
   },

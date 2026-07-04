@@ -123,7 +123,8 @@
     "donate": "Quyên góp",
     "hosts": "Hosts",
     "docs": "Tài liệu",
-    "openMenu": "Mở menu"
+    "openMenu": "Mở menu",
+    "links": "Links"
   },
   "pages": {
     "login": {
@@ -931,7 +932,8 @@
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
         "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
-      }
+      },
+      "externalLinksAndSubscriptions": "External Links and Subscriptions"
     },
     "groups": {
       "title": "Nhóm",
@@ -1966,6 +1968,48 @@
         "delete": "Xóa host",
         "badTag": "Tag không hợp lệ",
         "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
+      }
+    },
+    "links": {
+      "addLink": "Add Link",
+      "editLink": "Edit Link",
+      "assign": "Assign",
+      "assignTitle": "Assign {count} link(s)",
+      "assignClients": "Clients",
+      "selectClients": "Select clients",
+      "attachExistingTitle": "Attach existing clients to \"{remark}\"",
+      "attachExistingDesc": "Attaches existing clients ({count} available) to this link - entries already on a client are skipped.",
+      "selectedCount": "{count} selected",
+      "summary": {
+        "total": "Total",
+        "enabled": "Enabled",
+        "subscriptions": "Subscriptions"
+      },
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "bulkEnable": "Enable",
+      "bulkDisable": "Disable",
+      "bulkDelete": "Delete",
+      "bulkDeleteConfirm": "Delete {count} selected link(s)?",
+      "deleteConfirmTitle": "Delete link \"{name}\"?",
+      "kind": {
+        "link": "External link",
+        "subscription": "External subscription"
+      },
+      "fields": {
+        "actions": "Actions",
+        "enable": "Enable",
+        "remark": "Remark",
+        "kind": "Type",
+        "value": "Value"
+      },
+      "toasts": {
+        "list": "Failed to load links",
+        "add": "Link added",
+        "update": "Link updated",
+        "delete": "Link deleted",
+        "assign": "Links assigned",
+        "assignResult": "{attached} attached, {skipped} skipped"
       }
     }
   },

@@ -153,6 +153,19 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		}
 	}
 
+	externalLinksByClient := make(map[int][]model.ClientExternalLink, len(rows))
+	for _, batch := range chunkInts(clientIds, sqlInChunk) {
+		var links []model.ClientExternalLink
+		if err := db.Where("client_id IN ?", batch).
+			Order("sort_index ASC, id ASC").
+			Find(&links).Error; err != nil {
+			return nil, err
+		}
+		for _, l := range links {
+			externalLinksByClient[l.ClientId] = append(externalLinksByClient[l.ClientId], l)
+		}
+	}
+
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(emails))
 	if len(emails) > 0 {
 		var stats []xray.ClientTraffic
@@ -172,9 +185,10 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	out := make([]ClientWithAttachments, 0, len(rows))
 	for i := range rows {
 		out = append(out, ClientWithAttachments{
-			ClientRecord: rows[i],
-			InboundIds:   attachments[rows[i].Id],
-			Traffic:      trafficByEmail[rows[i].Email],
+			ClientRecord:  rows[i],
+			InboundIds:    attachments[rows[i].Id],
+			ExternalLinks: externalLinksByClient[rows[i].Id],
+			Traffic:       trafficByEmail[rows[i].Email],
 		})
 	}
 	return out, nil
