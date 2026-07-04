@@ -83,10 +83,10 @@ func batchIncrementInboundTrafficPG(tx *gorm.DB, deltas []TrafficDelta) error {
 	return tx.Exec(sb.String(), args...).Error
 }
 
-// ponytail: 3 vars per row, chunks at 333 rows (~999 vars). Upgrade to temp-table
+// ponytail: 5 vars per row (2*CASE + IN), chunks at ~199 rows (~999 vars). Upgrade to temp-table
 // approach if inbound count exceeds this.
 func batchIncrementInboundTrafficSQLite(tx *gorm.DB, deltas []TrafficDelta) error {
-	const varsPerRow = 3
+	const varsPerRow = 5
 	chunkSize := sqliteMaxVars / varsPerRow
 	for start := 0; start < len(deltas); start += chunkSize {
 		end := start + chunkSize
