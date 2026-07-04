@@ -809,6 +809,7 @@
       "groupPlaceholder": "如 customer-a",
       "comment": "备注",
       "traffic": "流量",
+      "speed": "速度",
       "offline": "离线",
       "addClient": "添加客户端",
       "qrCode": "二维码",

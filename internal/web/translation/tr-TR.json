@@ -809,6 +809,7 @@
       "groupPlaceholder": "örn. customer-a",
       "comment": "Yorum",
       "traffic": "Trafik",
+      "speed": "Hız",
       "offline": "Çevrimdışı",
       "addClient": "Kullanıcı Ekle",
       "qrCode": "QR Kodu",
