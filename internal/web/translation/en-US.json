@@ -159,8 +159,7 @@
       "installButton": "Install bot",
       "installSuccess": "Bot installed successfully",
       "installFailed": "Installation failed, check the log below"
-      }
-    },
+      },
     "index": {
       "title": "Overview",
       "cpu": "CPU",
