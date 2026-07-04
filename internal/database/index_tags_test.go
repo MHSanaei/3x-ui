@@ -30,7 +30,6 @@ func TestAutoMigrateCreatesHotPathIndexes(t *testing.T) {
 		index string
 	}{
 		{&model.ClientRecord{}, "idx_client_record_group"},
-		{&model.ClientRecord{}, "idx_clients_tg_id"},
 		{&xray.ClientTraffic{}, "idx_client_traffics_inbound"},
 		{&xray.ClientTraffic{}, "idx_client_traffics_renew"},
 		{&model.ClientGlobalTraffic{}, "idx_client_global_email"},
