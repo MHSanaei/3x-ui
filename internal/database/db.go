@@ -95,6 +95,9 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := initDatabaseIndexes(); err != nil {
+		return err
+	}
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}
@@ -123,6 +126,38 @@ func initModels() error {
 		}
 	}
 	return nil
+}
+
+func initDatabaseIndexes() error {
+	if IsPostgres() {
+		return initPostgresIndexes()
+	}
+	return db.Exec("CREATE INDEX IF NOT EXISTS idx_inbounds_remark ON inbounds (remark)").Error
+}
+
+func initPostgresIndexes() error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	for _, stmt := range []string{
+		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_client_traffics_email_up_down ON client_traffics (email) INCLUDE (up, down, last_online)",
+		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_tg_id ON clients (tg_id) WHERE tg_id != 0",
+		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_uuid ON clients (uuid) WHERE uuid != ''",
+	} {
+		if _, err := sqlDB.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	var hasTrgm bool
+	if err := sqlDB.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm')").Scan(&hasTrgm); err != nil {
+		return err
+	}
+	if hasTrgm {
+		_, err = sqlDB.ExecContext(ctx, "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inbounds_remark_trgm ON inbounds USING gin (remark gin_trgm_ops)")
+	}
+	return err
 }
 
 // postgresModelSettled skips AutoMigrate when table, columns, and indexes all exist:
@@ -1269,10 +1304,10 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
-		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
-		// sidecars). synchronous defaults to FULL for durability but is tunable.
+		// WAL keeps readers moving during traffic writes; synchronous remains
+		// tunable for operators that want a different durability/speed tradeoff.
 		sync := sqliteSynchronous()
-		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
+		dsn := dbPath + "?_journal_mode=WAL&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -1282,12 +1317,11 @@ func InitDB(dbPath string) error {
 			return err
 		}
 		// Re-assert the DSN pragmas plus scan-friendly ones for large datasets.
-		// cache_size/mmap_size/temp_store create no extra files, so the single-file
-		// guarantee holds; they just cut disk I/O on the 50k-row hot paths.
 		pragmas := []string{
-			"PRAGMA journal_mode=DELETE",
+			"PRAGMA journal_mode=WAL",
 			"PRAGMA busy_timeout=10000",
 			"PRAGMA synchronous=" + sync,
+			"PRAGMA wal_autocheckpoint=1000",
 			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
 			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
 			"PRAGMA temp_store=MEMORY",
