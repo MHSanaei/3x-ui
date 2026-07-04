@@ -5,6 +5,7 @@ package database
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -132,7 +133,15 @@ func initDatabaseIndexes() error {
 	if IsPostgres() {
 		return initPostgresIndexes()
 	}
-	return db.Exec("CREATE INDEX IF NOT EXISTS idx_inbounds_remark ON inbounds (remark)").Error
+	for _, stmt := range []string{
+		"CREATE INDEX IF NOT EXISTS idx_inbounds_remark ON inbounds (remark)",
+		"CREATE INDEX IF NOT EXISTS idx_clients_tg_id ON clients (tg_id)",
+	} {
+		if err := db.Exec(stmt).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func initPostgresIndexes() error {
@@ -141,6 +150,9 @@ func initPostgresIndexes() error {
 		return err
 	}
 	ctx := context.Background()
+	if err := replacePostgresNonPartialClientsTgIDIndex(ctx, sqlDB); err != nil {
+		return err
+	}
 	for _, stmt := range []string{
 		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_client_traffics_email_up_down ON client_traffics (email) INCLUDE (up, down, last_online)",
 		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_tg_id ON clients (tg_id) WHERE tg_id != 0",
@@ -157,6 +169,29 @@ func initPostgresIndexes() error {
 	if hasTrgm {
 		_, err = sqlDB.ExecContext(ctx, "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inbounds_remark_trgm ON inbounds USING gin (remark gin_trgm_ops)")
 	}
+	return err
+}
+
+func replacePostgresNonPartialClientsTgIDIndex(ctx context.Context, sqlDB *sql.DB) error {
+	var predicate sql.NullString
+	err := sqlDB.QueryRowContext(ctx, `
+		SELECT pg_get_expr(i.indpred, i.indrelid)
+		FROM pg_index i
+		JOIN pg_class c ON c.oid = i.indexrelid
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE c.relname = 'idx_clients_tg_id'
+		  AND n.nspname = ANY (current_schemas(false))
+	`).Scan(&predicate)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if predicate.Valid {
+		return nil
+	}
+	_, err = sqlDB.ExecContext(ctx, "DROP INDEX CONCURRENTLY IF EXISTS idx_clients_tg_id")
 	return err
 }
 

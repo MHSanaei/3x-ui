@@ -54,6 +54,15 @@ func TestBatchIncrementTrafficSQLite(t *testing.T) {
 	}
 }
 
+func TestBatchIncrementTrafficSQLiteChunkSizes(t *testing.T) {
+	if got := sqliteMaxVars / sqliteInboundTrafficVarsPerRow; got != 199 {
+		t.Fatalf("inbound traffic chunk size = %d, want 199", got)
+	}
+	if got := sqliteMaxVars / sqliteClientTrafficVarsPerRow; got != 142 {
+		t.Fatalf("client traffic chunk size = %d, want 142", got)
+	}
+}
+
 func TestCastBigintDialect(t *testing.T) {
 	oldDB := db
 	db = nil

@@ -231,3 +231,44 @@ func TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients(t *testing.T) {
 		t.Errorf("normal traffic not applied: up=%d down=%d, want 30/40", normal.Up, normal.Down)
 	}
 }
+
+func TestGetClientTrafficTgBotFallsBackToInboundSettings(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	const email = "legacy-tg@example.test"
+	const tgID int64 = 987654321
+
+	inbound := &model.Inbound{
+		UserId:   1,
+		Tag:      "legacy-tg",
+		Enable:   true,
+		Port:     46001,
+		Protocol: model.VLESS,
+		Settings: clientsSettings(t, []model.Client{{
+			Email:  email,
+			ID:     "ce8d33df-3a64-4f10-8f9b-91c3a8e0d001",
+			Enable: true,
+			TgID:   tgID,
+		}}),
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: email, Enable: true}).Error; err != nil {
+		t.Fatalf("create traffic: %v", err)
+	}
+
+	got, err := (&InboundService{}).GetClientTrafficTgBot(tgID)
+	if err != nil {
+		t.Fatalf("GetClientTrafficTgBot: %v", err)
+	}
+	if len(got) != 1 || got[0].Email != email {
+		t.Fatalf("traffic emails = %#v, want %q", got, email)
+	}
+}
