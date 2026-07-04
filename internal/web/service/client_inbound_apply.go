@@ -150,7 +150,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 				}
 			}
 		}
-		if e := tx.Save(oldInbound).Error; e != nil {
+		if e := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; e != nil {
 			return e
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
@@ -369,7 +369,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 				return e
 			}
 		}
-		if e := tx.Save(oldInbound).Error; e != nil {
+		if e := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; e != nil {
 			return e
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
@@ -703,7 +703,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			}
 		}
 
-		if e := tx.Save(oldInbound).Error; e != nil {
+		if e := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; e != nil {
 			return e
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
@@ -876,7 +876,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 				return e
 			}
 		}
-		if e := tx.Save(oldInbound).Error; e != nil {
+		if e := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; e != nil {
 			return e
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)

@@ -691,7 +691,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 	// Serialize against the traffic poll to avoid the cross-transaction
 	// lock-order deadlock on inbounds/client_records (runSerializedTx).
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
-		if err := tx.Save(oldInbound).Error; err != nil {
+		if err := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; err != nil {
 			return err
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
@@ -1072,7 +1072,7 @@ func (s *ClientService) bulkDelInboundClients(
 	// Serialize against the traffic poll to avoid the cross-transaction
 	// lock-order deadlock on inbounds/client_records (runSerializedTx).
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
-		if err := tx.Save(oldInbound).Error; err != nil {
+		if err := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; err != nil {
 			return err
 		}
 		finalClients, err := inboundSvc.GetClients(oldInbound)
@@ -1574,7 +1574,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	}
 
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
-		if e := tx.Save(oldInbound).Error; e != nil {
+		if e := tx.Model(oldInbound).Update("settings", oldInbound.Settings).Error; e != nil {
 			return e
 		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)

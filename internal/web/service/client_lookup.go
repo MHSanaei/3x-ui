@@ -191,10 +191,18 @@ func (s *ClientService) HasPendingNode(inboundSvc *InboundService, email string)
 	return inboundSvc.AnyNodePending(ids)
 }
 
-// findInboundIdsByClientEmail returns every inbound whose settings.clients[]
-// JSON contains an entry with the given email. Driver-portable (no JSON
-// operators) by parsing in Go — fine for the rare fallback path.
+// findInboundIdsByClientEmail returns every inbound attached to email. The
+// join table is authoritative; the JSON scan is a legacy-only fallback for
+// rows not migrated into clients/client_inbounds yet.
 func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error) {
+	ids, err := s.GetInboundIdsForEmail(nil, email)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) > 0 {
+		return ids, nil
+	}
+
 	var inbounds []model.Inbound
 	if err := database.GetDB().
 		Select("id, settings").

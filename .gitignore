@@ -3,6 +3,7 @@
 .vscode/
 .cursor/
 .claude/*
+.agents/
 .cache/
 .sync*
 
@@ -44,4 +45,3 @@ docker-compose.override.yml
 
 # Ignore .env (Environment Variables) file
 .env
-
