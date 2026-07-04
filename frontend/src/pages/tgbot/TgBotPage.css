@@ -7,3 +7,30 @@
   font-family: 'Consolas', 'Menlo', monospace;
   font-size: 13px;
 }
+
+.tgbot-deps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tgbot-dep-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tgbot-dep-row .dep-name {
+  font-weight: 500;
+  min-width: 90px;
+}
+
+.tgbot-dep-row .dep-detail {
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.tgbot-source-note {
+  opacity: 0.7;
+  font-size: 13px;
+}
