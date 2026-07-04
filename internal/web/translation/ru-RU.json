@@ -137,6 +137,23 @@
         "emptyPassword": "Введите пароль",
         "wrongUsernameOrPassword": "Неверные данные учетной записи.",
         "successLogin": "Вход выполнен успешно"
+      },
+      "tgbot": {
+        "title": "Телеграм бот",
+        "running": "Запущен",
+        "stopped": "Не работает",
+        "start": "Запустить",
+        "stop": "Остановить",
+        "restart": "Перезапустить",
+        "startSuccess": "Бот перезапущен",
+        "stopSuccess": "Бот остановлен",
+        "restartSuccess": "Бот перезапущен",
+        "envSettings": "Настройки бота",
+        "basicSettings": "Базовые",
+        "rawEnv": "Сырой .env",
+        "botToken": "Токен бота",
+        "adminIds": "Айди админов",
+        "envSaved": "Настройки сохранены. Перезапустите бота для их применения"
       }
     },
     "index": {
