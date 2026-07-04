@@ -321,7 +321,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 				continue
 			}
 			ib.Settings = string(newSettings)
-			if err := tx.Save(&ib).Error; err != nil {
+			if err := tx.Model(&ib).Update("settings", ib.Settings).Error; err != nil {
 				tx.Rollback()
 				return 0, err
 			}
@@ -422,7 +422,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 				continue
 			}
 			ib.Settings = string(newSettings)
-			if err := tx.Save(&ib).Error; err != nil {
+			if err := tx.Model(&ib).Update("settings", ib.Settings).Error; err != nil {
 				tx.Rollback()
 				return 0, err
 			}
