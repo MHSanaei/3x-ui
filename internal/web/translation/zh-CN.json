@@ -123,7 +123,8 @@
     "donate": "捐赠",
     "hosts": "主机",
     "docs": "文档",
-    "openMenu": "打开菜单"
+    "openMenu": "打开菜单",
+    "plugins": "Plugins"
   },
   "pages": {
     "login": {
@@ -1966,6 +1967,45 @@
         "delete": "删除主机",
         "badTag": "无效的标签",
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
+      }
+    },
+    "plugins": {
+      "manage": "Manage Plugins",
+      "addNew": "Add New Plugins",
+      "guide": "Plugin Guide",
+      "empty": "No plugins are installed yet",
+      "contractTitle": "Plugin contract is ready",
+      "contractHint": "This version defines the manifest, hooks, permissions, runtimes, and UI contribution zones. Runtime installation and execution can be wired behind this contract later.",
+      "manifestTemplate": "Manifest template",
+      "upload": {
+        "title": "Install plugin package",
+        "file": "Plugin ZIP file",
+        "hint": "The ZIP must include a 3x-plugin.json manifest at the package root.",
+        "dropTitle": "Drop the plugin ZIP here or click to choose",
+        "dropHint": "Only .zip packages are accepted. Maximum size is 10 MiB.",
+        "zipOnly": "Please select a .zip file.",
+        "selectFile": "Select a plugin ZIP first.",
+        "install": "Install Plugin"
+      },
+      "summary": {
+        "installed": "Installed",
+        "hooks": "Hooks",
+        "permissions": "Permissions"
+      },
+      "fields": {
+        "name": "Name",
+        "version": "Version",
+        "author": "Author"
+      },
+      "capabilities": {
+        "runtimes": "Runtimes",
+        "hooks": "Available hooks",
+        "permissions": "Permissions"
+      },
+      "toasts": {
+        "readZip": "Failed to read plugin package",
+        "install": "Plugin installation failed",
+        "installed": "Plugin installed"
       }
     }
   },

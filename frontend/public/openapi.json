@@ -2193,6 +2193,299 @@
         ],
         "type": "object"
       },
+      "PluginCapabilities": {
+        "properties": {
+          "hooks": {
+            "example": "panel.started",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permissions": {
+            "example": "inbounds:read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "runtimes": {
+            "example": "wasm",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uiZones": {
+            "example": "plugins.page",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hooks",
+          "permissions",
+          "runtimes",
+          "uiZones"
+        ],
+        "type": "object"
+      },
+      "PluginCatalog": {
+        "properties": {
+          "capabilities": {
+            "$ref": "#/components/schemas/PluginCapabilities"
+          },
+          "installed": {
+            "items": {
+              "$ref": "#/components/schemas/PluginRecord"
+            },
+            "type": "array"
+          },
+          "manifestVersion": {
+            "example": "3x.plugin.v1",
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/PluginManifest"
+          }
+        },
+        "required": [
+          "capabilities",
+          "installed",
+          "manifestVersion",
+          "template"
+        ],
+        "type": "object"
+      },
+      "PluginEntry": {
+        "properties": {
+          "args": {
+            "example": "--verbose",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "example": "./plugin",
+            "type": "string"
+          },
+          "env": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "path": {
+            "example": "./plugin.wasm",
+            "type": "string"
+          },
+          "runtime": {
+            "example": "wasm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runtime"
+        ],
+        "type": "object"
+      },
+      "PluginHook": {
+        "properties": {
+          "handler": {
+            "example": "onPanelStarted",
+            "type": "string"
+          },
+          "name": {
+            "example": "panel.started",
+            "type": "string"
+          },
+          "priority": {
+            "example": 100,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handler",
+          "name",
+          "priority"
+        ],
+        "type": "object"
+      },
+      "PluginManifest": {
+        "properties": {
+          "author": {
+            "example": "Your name or team",
+            "type": "string"
+          },
+          "config": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "description": {
+            "example": "Describe what this plugin adds to 3x-ui.",
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/PluginEntry"
+          },
+          "homepage": {
+            "example": "https://example.com",
+            "type": "string"
+          },
+          "hooks": {
+            "items": {
+              "$ref": "#/components/schemas/PluginHook"
+            },
+            "type": "array"
+          },
+          "id": {
+            "example": "example.plugin",
+            "type": "string"
+          },
+          "name": {
+            "example": "Example Plugin",
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PluginPermission"
+            },
+            "type": "array"
+          },
+          "schemaVersion": {
+            "example": "3x.plugin.v1",
+            "type": "string"
+          },
+          "ui": {
+            "items": {
+              "$ref": "#/components/schemas/PluginUIContribution"
+            },
+            "type": "array"
+          },
+          "version": {
+            "example": "0.1.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "author",
+          "config",
+          "description",
+          "entry",
+          "hooks",
+          "id",
+          "name",
+          "permissions",
+          "schemaVersion",
+          "ui",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PluginPermission": {
+        "properties": {
+          "name": {
+            "example": "inbounds:read",
+            "type": "string"
+          },
+          "reason": {
+            "example": "Read inbound data needed by the plugin.",
+            "type": "string"
+          },
+          "scope": {
+            "example": "panel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "reason",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "PluginRecord": {
+        "properties": {
+          "author": {
+            "example": "Your name or team",
+            "type": "string"
+          },
+          "description": {
+            "example": "Describe what this plugin adds to 3x-ui.",
+            "type": "string"
+          },
+          "enabled": {
+            "example": false,
+            "type": "boolean"
+          },
+          "id": {
+            "example": "example.plugin",
+            "type": "string"
+          },
+          "installedAt": {
+            "example": "2026-07-04T15:00:00Z",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/PluginManifest"
+          },
+          "name": {
+            "example": "Example Plugin",
+            "type": "string"
+          },
+          "packagePath": {
+            "example": "/etc/x-ui/plugins/example.plugin",
+            "type": "string"
+          },
+          "status": {
+            "example": "installed",
+            "type": "string"
+          },
+          "version": {
+            "example": "0.1.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "author",
+          "description",
+          "enabled",
+          "id",
+          "manifest",
+          "name",
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PluginUIContribution": {
+        "properties": {
+          "component": {
+            "example": "ExamplePanel",
+            "type": "string"
+          },
+          "label": {
+            "example": "Example",
+            "type": "string"
+          },
+          "route": {
+            "example": "/plugins/example",
+            "type": "string"
+          },
+          "zone": {
+            "example": "plugins.page",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "zone"
+        ],
+        "type": "object"
+      },
       "ProbeResultUI": {
         "properties": {
           "cpuPct": {
@@ -2420,6 +2713,10 @@
     {
       "name": "Hosts",
       "description": "Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts."
+    },
+    {
+      "name": "Plugins",
+      "description": "Initial plugin contract for this fork. These endpoints do not execute third-party code yet; they expose the manifest schema, supported hook names, permissions, runtimes, and UI contribution zones that future plugin installation/runtime work can use."
     },
     {
       "name": "Backup",
@@ -8906,6 +9203,300 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/plugins/list": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Return the plugin catalog: manifest version, installed plugins, supported capabilities, and an example manifest template.",
+        "operationId": "get_panel_api_plugins_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/PluginCatalog"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "capabilities": {
+                      "hooks": "panel.started",
+                      "permissions": "inbounds:read",
+                      "runtimes": "wasm",
+                      "uiZones": "plugins.page"
+                    },
+                    "installed": [
+                      {
+                        "author": "Your name or team",
+                        "description": "Describe what this plugin adds to 3x-ui.",
+                        "enabled": false,
+                        "id": "example.plugin",
+                        "installedAt": "2026-07-04T15:00:00Z",
+                        "manifest": {
+                          "author": "Your name or team",
+                          "config": {},
+                          "description": "Describe what this plugin adds to 3x-ui.",
+                          "entry": {
+                            "args": "--verbose",
+                            "command": "./plugin",
+                            "env": {},
+                            "path": "./plugin.wasm",
+                            "runtime": "wasm"
+                          },
+                          "homepage": "https://example.com",
+                          "hooks": [
+                            {
+                              "handler": "onPanelStarted",
+                              "name": "panel.started",
+                              "priority": 100
+                            }
+                          ],
+                          "id": "example.plugin",
+                          "name": "Example Plugin",
+                          "permissions": [
+                            {
+                              "name": "inbounds:read",
+                              "reason": "Read inbound data needed by the plugin.",
+                              "scope": "panel"
+                            }
+                          ],
+                          "schemaVersion": "3x.plugin.v1",
+                          "ui": [
+                            {
+                              "component": "ExamplePanel",
+                              "label": "Example",
+                              "route": "/plugins/example",
+                              "zone": "plugins.page"
+                            }
+                          ],
+                          "version": "0.1.0"
+                        },
+                        "name": "Example Plugin",
+                        "packagePath": "/etc/x-ui/plugins/example.plugin",
+                        "status": "installed",
+                        "version": "0.1.0"
+                      }
+                    ],
+                    "manifestVersion": "3x.plugin.v1",
+                    "template": {
+                      "author": "Your name or team",
+                      "config": {},
+                      "description": "Describe what this plugin adds to 3x-ui.",
+                      "entry": {
+                        "args": "--verbose",
+                        "command": "./plugin",
+                        "env": {},
+                        "path": "./plugin.wasm",
+                        "runtime": "wasm"
+                      },
+                      "homepage": "https://example.com",
+                      "hooks": [
+                        {
+                          "handler": "onPanelStarted",
+                          "name": "panel.started",
+                          "priority": 100
+                        }
+                      ],
+                      "id": "example.plugin",
+                      "name": "Example Plugin",
+                      "permissions": [
+                        {
+                          "name": "inbounds:read",
+                          "reason": "Read inbound data needed by the plugin.",
+                          "scope": "panel"
+                        }
+                      ],
+                      "schemaVersion": "3x.plugin.v1",
+                      "ui": [
+                        {
+                          "component": "ExamplePanel",
+                          "label": "Example",
+                          "route": "/plugins/example",
+                          "zone": "plugins.page"
+                        }
+                      ],
+                      "version": "0.1.0"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/plugins/template": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Return only the starter manifest template plugin authors can copy and adapt.",
+        "operationId": "get_panel_api_plugins_template",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/PluginManifest"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "author": "Your name or team",
+                    "config": {},
+                    "description": "Describe what this plugin adds to 3x-ui.",
+                    "entry": {
+                      "args": "--verbose",
+                      "command": "./plugin",
+                      "env": {},
+                      "path": "./plugin.wasm",
+                      "runtime": "wasm"
+                    },
+                    "homepage": "https://example.com",
+                    "hooks": [
+                      {
+                        "handler": "onPanelStarted",
+                        "name": "panel.started",
+                        "priority": 100
+                      }
+                    ],
+                    "id": "example.plugin",
+                    "name": "Example Plugin",
+                    "permissions": [
+                      {
+                        "name": "inbounds:read",
+                        "reason": "Read inbound data needed by the plugin.",
+                        "scope": "panel"
+                      }
+                    ],
+                    "schemaVersion": "3x.plugin.v1",
+                    "ui": [
+                      {
+                        "component": "ExamplePanel",
+                        "label": "Example",
+                        "route": "/plugins/example",
+                        "zone": "plugins.page"
+                      }
+                    ],
+                    "version": "0.1.0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/plugins/install": {
+      "post": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Upload and install a plugin ZIP package. The archive must include 3x-plugin.json at its root. The panel validates the manifest and extracts the package under the panel data folder plugins directory; runtime execution remains disabled until the plugin runtime is wired.",
+        "operationId": "post_panel_api_plugins_install",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/PluginRecord"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "author": "Your name or team",
+                    "description": "Describe what this plugin adds to 3x-ui.",
+                    "enabled": false,
+                    "id": "example.plugin",
+                    "installedAt": "2026-07-04T15:00:00Z",
+                    "manifest": {
+                      "author": "Your name or team",
+                      "config": {},
+                      "description": "Describe what this plugin adds to 3x-ui.",
+                      "entry": {
+                        "args": "--verbose",
+                        "command": "./plugin",
+                        "env": {},
+                        "path": "./plugin.wasm",
+                        "runtime": "wasm"
+                      },
+                      "homepage": "https://example.com",
+                      "hooks": [
+                        {
+                          "handler": "onPanelStarted",
+                          "name": "panel.started",
+                          "priority": 100
+                        }
+                      ],
+                      "id": "example.plugin",
+                      "name": "Example Plugin",
+                      "permissions": [
+                        {
+                          "name": "inbounds:read",
+                          "reason": "Read inbound data needed by the plugin.",
+                          "scope": "panel"
+                        }
+                      ],
+                      "schemaVersion": "3x.plugin.v1",
+                      "ui": [
+                        {
+                          "component": "ExamplePanel",
+                          "label": "Example",
+                          "route": "/plugins/example",
+                          "zone": "plugins.page"
+                        }
+                      ],
+                      "version": "0.1.0"
+                    },
+                    "name": "Example Plugin",
+                    "packagePath": "/etc/x-ui/plugins/example.plugin",
+                    "status": "installed",
+                    "version": "0.1.0"
                   }
                 }
               }

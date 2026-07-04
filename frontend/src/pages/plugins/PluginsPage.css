@@ -1,0 +1,59 @@
+.plugins-page {
+  min-height: 100vh;
+}
+
+.plugins-page .content-shell {
+  min-width: 0;
+}
+
+.plugins-page .content-area {
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+.plugins-page .plugins-summary {
+  border-radius: 12px;
+}
+
+.plugins-workspace {
+  min-width: 0;
+}
+
+.plugins-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.plugins-contract-grid {
+  width: 100%;
+}
+
+.plugin-manifest-code {
+  max-height: 520px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 6px;
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+@media (max-width: 768px) {
+  .plugins-page .content-area {
+    padding: 8px;
+  }
+
+  .plugins-page .ant-statistic-title {
+    min-height: 36px;
+  }
+
+  .plugin-manifest-code {
+    max-height: 420px;
+    font-size: 11px;
+  }
+}

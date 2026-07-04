@@ -6,6 +6,7 @@ import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
+  AppstoreAddOutlined,
   CloseOutlined,
   CloudServerOutlined,
   ClusterOutlined,
@@ -26,6 +27,7 @@ import {
   ReadOutlined,
   SafetyOutlined,
   SettingOutlined,
+  PlusCircleOutlined,
   SunOutlined,
   SwapOutlined,
   TagsOutlined,
@@ -45,7 +47,7 @@ const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 
-type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'hosts' | 'logout' | 'apidocs' | 'outbound' | 'routing';
+type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'hosts' | 'logout' | 'apidocs' | 'outbound' | 'routing' | 'plugins';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
@@ -60,6 +62,7 @@ const iconByName: Record<IconName, ComponentType> = {
   apidocs: ApiOutlined,
   outbound: ExportOutlined,
   routing: SwapOutlined,
+  plugins: AppstoreAddOutlined,
 };
 
 function readCollapsed(): boolean {
@@ -163,6 +166,7 @@ export default function AppSidebar() {
     { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
     { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
     { key: '/routing', icon: 'routing', title: t('menu.routing') },
+    { key: '/plugins', icon: 'plugins', title: t('menu.plugins') },
     { key: '/settings', icon: 'setting', title: t('menu.settings') },
     { key: '/xray', icon: 'tool', title: t('menu.xray') },
     { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
@@ -193,15 +197,24 @@ export default function AppSidebar() {
     { key: '/xray#advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
   ], [t]);
 
+  const pluginChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
+    { key: '/plugins#manage', icon: <AppstoreAddOutlined />, label: t('pages.plugins.manage') },
+    { key: '/plugins#add', icon: <PlusCircleOutlined />, label: t('pages.plugins.addNew') },
+    { key: '/plugins#guide', icon: <ReadOutlined />, label: t('pages.plugins.guide') },
+  ], [t]);
+
   const settingsActive = pathname === '/settings';
   const xrayActive = pathname === '/xray';
+  const pluginsActive = pathname === '/plugins';
   const selectedKey = settingsActive
     ? `/settings${hash || '#general'}`
     : xrayActive
       ? `/xray${hash || '#basic'}`
-      : (pathname === '' ? '/' : pathname);
+      : pluginsActive
+        ? `/plugins${hash || '#manage'}`
+        : (pathname === '' ? '/' : pathname);
 
-  const openSubmenu = settingsActive ? '/settings' : xrayActive ? '/xray' : null;
+  const openSubmenu = settingsActive ? '/settings' : xrayActive ? '/xray' : pluginsActive ? '/plugins' : null;
   const [openKeys, setOpenKeys] = useState<string[]>(() => (openSubmenu ? [openSubmenu] : []));
   useEffect(() => {
     if (openSubmenu) {
@@ -218,9 +231,12 @@ export default function AppSidebar() {
       if (tab.key === '/xray') {
         return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
       }
+      if (tab.key === '/plugins') {
+        return { key: tab.key, icon: <Icon />, label: tab.title, children: pluginChildren };
+      }
       return { key: tab.key, icon: <Icon />, label: tab.title };
     }),
-  [settingsChildren, xrayChildren]);
+  [settingsChildren, xrayChildren, pluginChildren]);
 
   const openLink = useCallback(async (key: string) => {
     if (key === LOGOUT_KEY) {

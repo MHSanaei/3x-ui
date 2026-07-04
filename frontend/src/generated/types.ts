@@ -476,6 +476,75 @@ export interface PanelUpdateStatus {
   state: string;
 }
 
+export interface PluginCapabilities {
+  hooks: string[];
+  permissions: string[];
+  runtimes: string[];
+  uiZones: string[];
+}
+
+export interface PluginCatalog {
+  capabilities: PluginCapabilities;
+  installed: PluginRecord[];
+  manifestVersion: string;
+  template: PluginManifest;
+}
+
+export interface PluginEntry {
+  args?: string[];
+  command?: string;
+  env?: Record<string, string>;
+  path?: string;
+  runtime: string;
+}
+
+export interface PluginHook {
+  handler: string;
+  name: string;
+  priority: number;
+}
+
+export interface PluginManifest {
+  author: string;
+  config: Record<string, unknown>;
+  description: string;
+  entry: PluginEntry;
+  homepage?: string;
+  hooks: PluginHook[];
+  id: string;
+  name: string;
+  permissions: PluginPermission[];
+  schemaVersion: string;
+  ui: PluginUIContribution[];
+  version: string;
+}
+
+export interface PluginPermission {
+  name: string;
+  reason: string;
+  scope: string;
+}
+
+export interface PluginRecord {
+  author: string;
+  description: string;
+  enabled: boolean;
+  id: string;
+  installedAt?: string;
+  manifest: PluginManifest;
+  name: string;
+  packagePath?: string;
+  status: string;
+  version: string;
+}
+
+export interface PluginUIContribution {
+  component?: string;
+  label: string;
+  route?: string;
+  zone: string;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;

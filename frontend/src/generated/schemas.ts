@@ -2167,6 +2167,299 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PluginCapabilities": {
+    "properties": {
+      "hooks": {
+        "example": "panel.started",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "permissions": {
+        "example": "inbounds:read",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "runtimes": {
+        "example": "wasm",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "uiZones": {
+        "example": "plugins.page",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "hooks",
+      "permissions",
+      "runtimes",
+      "uiZones"
+    ],
+    "type": "object"
+  },
+  "PluginCatalog": {
+    "properties": {
+      "capabilities": {
+        "$ref": "#/components/schemas/PluginCapabilities"
+      },
+      "installed": {
+        "items": {
+          "$ref": "#/components/schemas/PluginRecord"
+        },
+        "type": "array"
+      },
+      "manifestVersion": {
+        "example": "3x.plugin.v1",
+        "type": "string"
+      },
+      "template": {
+        "$ref": "#/components/schemas/PluginManifest"
+      }
+    },
+    "required": [
+      "capabilities",
+      "installed",
+      "manifestVersion",
+      "template"
+    ],
+    "type": "object"
+  },
+  "PluginEntry": {
+    "properties": {
+      "args": {
+        "example": "--verbose",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "command": {
+        "example": "./plugin",
+        "type": "string"
+      },
+      "env": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "path": {
+        "example": "./plugin.wasm",
+        "type": "string"
+      },
+      "runtime": {
+        "example": "wasm",
+        "type": "string"
+      }
+    },
+    "required": [
+      "runtime"
+    ],
+    "type": "object"
+  },
+  "PluginHook": {
+    "properties": {
+      "handler": {
+        "example": "onPanelStarted",
+        "type": "string"
+      },
+      "name": {
+        "example": "panel.started",
+        "type": "string"
+      },
+      "priority": {
+        "example": 100,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "handler",
+      "name",
+      "priority"
+    ],
+    "type": "object"
+  },
+  "PluginManifest": {
+    "properties": {
+      "author": {
+        "example": "Your name or team",
+        "type": "string"
+      },
+      "config": {
+        "additionalProperties": {},
+        "type": "object"
+      },
+      "description": {
+        "example": "Describe what this plugin adds to 3x-ui.",
+        "type": "string"
+      },
+      "entry": {
+        "$ref": "#/components/schemas/PluginEntry"
+      },
+      "homepage": {
+        "example": "https://example.com",
+        "type": "string"
+      },
+      "hooks": {
+        "items": {
+          "$ref": "#/components/schemas/PluginHook"
+        },
+        "type": "array"
+      },
+      "id": {
+        "example": "example.plugin",
+        "type": "string"
+      },
+      "name": {
+        "example": "Example Plugin",
+        "type": "string"
+      },
+      "permissions": {
+        "items": {
+          "$ref": "#/components/schemas/PluginPermission"
+        },
+        "type": "array"
+      },
+      "schemaVersion": {
+        "example": "3x.plugin.v1",
+        "type": "string"
+      },
+      "ui": {
+        "items": {
+          "$ref": "#/components/schemas/PluginUIContribution"
+        },
+        "type": "array"
+      },
+      "version": {
+        "example": "0.1.0",
+        "type": "string"
+      }
+    },
+    "required": [
+      "author",
+      "config",
+      "description",
+      "entry",
+      "hooks",
+      "id",
+      "name",
+      "permissions",
+      "schemaVersion",
+      "ui",
+      "version"
+    ],
+    "type": "object"
+  },
+  "PluginPermission": {
+    "properties": {
+      "name": {
+        "example": "inbounds:read",
+        "type": "string"
+      },
+      "reason": {
+        "example": "Read inbound data needed by the plugin.",
+        "type": "string"
+      },
+      "scope": {
+        "example": "panel",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "reason",
+      "scope"
+    ],
+    "type": "object"
+  },
+  "PluginRecord": {
+    "properties": {
+      "author": {
+        "example": "Your name or team",
+        "type": "string"
+      },
+      "description": {
+        "example": "Describe what this plugin adds to 3x-ui.",
+        "type": "string"
+      },
+      "enabled": {
+        "example": false,
+        "type": "boolean"
+      },
+      "id": {
+        "example": "example.plugin",
+        "type": "string"
+      },
+      "installedAt": {
+        "example": "2026-07-04T15:00:00Z",
+        "type": "string"
+      },
+      "manifest": {
+        "$ref": "#/components/schemas/PluginManifest"
+      },
+      "name": {
+        "example": "Example Plugin",
+        "type": "string"
+      },
+      "packagePath": {
+        "example": "/etc/x-ui/plugins/example.plugin",
+        "type": "string"
+      },
+      "status": {
+        "example": "installed",
+        "type": "string"
+      },
+      "version": {
+        "example": "0.1.0",
+        "type": "string"
+      }
+    },
+    "required": [
+      "author",
+      "description",
+      "enabled",
+      "id",
+      "manifest",
+      "name",
+      "status",
+      "version"
+    ],
+    "type": "object"
+  },
+  "PluginUIContribution": {
+    "properties": {
+      "component": {
+        "example": "ExamplePanel",
+        "type": "string"
+      },
+      "label": {
+        "example": "Example",
+        "type": "string"
+      },
+      "route": {
+        "example": "/plugins/example",
+        "type": "string"
+      },
+      "zone": {
+        "example": "plugins.page",
+        "type": "string"
+      }
+    },
+    "required": [
+      "label",
+      "zone"
+    ],
+    "type": "object"
+  },
   "ProbeResultUI": {
     "properties": {
       "cpuPct": {

@@ -172,7 +172,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// large backups and streams them to disk, so only its exact route suffix is
 	// exempt. Follow-up: make the limit a setting.
 	const maxRequestBodyBytes = 10 << 20 // 10 MiB
-	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB"))
+	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB", "/panel/api/plugins/install"))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {

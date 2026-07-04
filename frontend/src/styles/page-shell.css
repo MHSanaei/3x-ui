@@ -5,7 +5,8 @@
 .settings-page,
 .nodes-page,
 .groups-page,
-.api-docs-page {
+.api-docs-page,
+.plugins-page {
   --bg-page: #e6e8ec;
   --bg-card: #ffffff;
   min-height: 100vh;
@@ -19,7 +20,8 @@
 .settings-page.is-dark,
 .nodes-page.is-dark,
 .groups-page.is-dark,
-.api-docs-page.is-dark {
+.api-docs-page.is-dark,
+.plugins-page.is-dark {
   --bg-page: #1a1b1f;
   --bg-card: #23252b;
 }
@@ -31,7 +33,8 @@
 .settings-page.is-dark.is-ultra,
 .nodes-page.is-dark.is-ultra,
 .groups-page.is-dark.is-ultra,
-.api-docs-page.is-dark.is-ultra {
+.api-docs-page.is-dark.is-ultra,
+.plugins-page.is-dark.is-ultra {
   --bg-page: #000;
   --bg-card: #101013;
 }
@@ -51,7 +54,9 @@
 .groups-page .ant-layout,
 .groups-page .ant-layout-content,
 .api-docs-page .ant-layout,
-.api-docs-page .ant-layout-content {
+.api-docs-page .ant-layout-content,
+.plugins-page .ant-layout,
+.plugins-page .ant-layout-content {
   background: transparent;
 }
 
@@ -62,7 +67,8 @@
 .settings-page .content-shell,
 .nodes-page .content-shell,
 .groups-page .content-shell,
-.api-docs-page .content-shell {
+.api-docs-page .content-shell,
+.plugins-page .content-shell {
   background: transparent;
 }
 
@@ -72,7 +78,8 @@
 .xray-page .content-area,
 .settings-page .content-area,
 .nodes-page .content-area,
-.groups-page .content-area {
+.groups-page .content-area,
+.plugins-page .content-area {
   padding: 24px;
 }
 
@@ -80,7 +87,8 @@
   .clients-page .content-area,
   .inbounds-page .content-area,
   .nodes-page .content-area,
-  .groups-page .content-area {
+  .groups-page .content-area,
+  .plugins-page .content-area {
     padding: 8px;
   }
 }
@@ -164,7 +172,8 @@ body.dark .ant-dropdown-menu-item-divider {
 .clients-page .summary-card,
 .inbounds-page .summary-card,
 .nodes-page .summary-card,
-.groups-page .summary-card {
+.groups-page .summary-card,
+.plugins-page .summary-card {
   padding: 16px;
 }
 
@@ -172,7 +181,8 @@ body.dark .ant-dropdown-menu-item-divider {
   .clients-page .summary-card,
   .inbounds-page .summary-card,
   .nodes-page .summary-card,
-  .groups-page .summary-card {
+  .groups-page .summary-card,
+  .plugins-page .summary-card {
     padding: 8px;
   }
 }

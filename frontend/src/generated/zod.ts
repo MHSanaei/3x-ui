@@ -508,6 +508,83 @@ export const PanelUpdateStatusSchema = z.object({
 });
 export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
 
+export const PluginCapabilitiesSchema = z.object({
+  hooks: z.array(z.string()),
+  permissions: z.array(z.string()),
+  runtimes: z.array(z.string()),
+  uiZones: z.array(z.string()),
+});
+export type PluginCapabilities = z.infer<typeof PluginCapabilitiesSchema>;
+
+export const PluginCatalogSchema = z.object({
+  capabilities: z.lazy(() => PluginCapabilitiesSchema),
+  installed: z.array(z.lazy(() => PluginRecordSchema)),
+  manifestVersion: z.string(),
+  template: z.lazy(() => PluginManifestSchema),
+});
+export type PluginCatalog = z.infer<typeof PluginCatalogSchema>;
+
+export const PluginEntrySchema = z.object({
+  args: z.array(z.string()).optional(),
+  command: z.string().optional(),
+  env: z.record(z.string(), z.string()).optional(),
+  path: z.string().optional(),
+  runtime: z.string(),
+});
+export type PluginEntry = z.infer<typeof PluginEntrySchema>;
+
+export const PluginHookSchema = z.object({
+  handler: z.string(),
+  name: z.string(),
+  priority: z.number().int(),
+});
+export type PluginHook = z.infer<typeof PluginHookSchema>;
+
+export const PluginManifestSchema = z.object({
+  author: z.string(),
+  config: z.record(z.string(), z.unknown()),
+  description: z.string(),
+  entry: z.lazy(() => PluginEntrySchema),
+  homepage: z.string().optional(),
+  hooks: z.array(z.lazy(() => PluginHookSchema)),
+  id: z.string(),
+  name: z.string(),
+  permissions: z.array(z.lazy(() => PluginPermissionSchema)),
+  schemaVersion: z.string(),
+  ui: z.array(z.lazy(() => PluginUIContributionSchema)),
+  version: z.string(),
+});
+export type PluginManifest = z.infer<typeof PluginManifestSchema>;
+
+export const PluginPermissionSchema = z.object({
+  name: z.string(),
+  reason: z.string(),
+  scope: z.string(),
+});
+export type PluginPermission = z.infer<typeof PluginPermissionSchema>;
+
+export const PluginRecordSchema = z.object({
+  author: z.string(),
+  description: z.string(),
+  enabled: z.boolean(),
+  id: z.string(),
+  installedAt: z.string().optional(),
+  manifest: z.lazy(() => PluginManifestSchema),
+  name: z.string(),
+  packagePath: z.string().optional(),
+  status: z.string(),
+  version: z.string(),
+});
+export type PluginRecord = z.infer<typeof PluginRecordSchema>;
+
+export const PluginUIContributionSchema = z.object({
+  component: z.string().optional(),
+  label: z.string(),
+  route: z.string().optional(),
+  zone: z.string(),
+});
+export type PluginUIContribution = z.infer<typeof PluginUIContributionSchema>;
+
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),
   error: z.string(),

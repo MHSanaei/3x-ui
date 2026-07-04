@@ -479,6 +479,224 @@ export const EXAMPLES: Record<string, unknown> = {
     "runId": "1735689600123456789",
     "state": "success"
   },
+  "PluginCapabilities": {
+    "hooks": "panel.started",
+    "permissions": "inbounds:read",
+    "runtimes": "wasm",
+    "uiZones": "plugins.page"
+  },
+  "PluginCatalog": {
+    "capabilities": {
+      "hooks": "panel.started",
+      "permissions": "inbounds:read",
+      "runtimes": "wasm",
+      "uiZones": "plugins.page"
+    },
+    "installed": [
+      {
+        "author": "Your name or team",
+        "description": "Describe what this plugin adds to 3x-ui.",
+        "enabled": false,
+        "id": "example.plugin",
+        "installedAt": "2026-07-04T15:00:00Z",
+        "manifest": {
+          "author": "Your name or team",
+          "config": {},
+          "description": "Describe what this plugin adds to 3x-ui.",
+          "entry": {
+            "args": "--verbose",
+            "command": "./plugin",
+            "env": {},
+            "path": "./plugin.wasm",
+            "runtime": "wasm"
+          },
+          "homepage": "https://example.com",
+          "hooks": [
+            {
+              "handler": "onPanelStarted",
+              "name": "panel.started",
+              "priority": 100
+            }
+          ],
+          "id": "example.plugin",
+          "name": "Example Plugin",
+          "permissions": [
+            {
+              "name": "inbounds:read",
+              "reason": "Read inbound data needed by the plugin.",
+              "scope": "panel"
+            }
+          ],
+          "schemaVersion": "3x.plugin.v1",
+          "ui": [
+            {
+              "component": "ExamplePanel",
+              "label": "Example",
+              "route": "/plugins/example",
+              "zone": "plugins.page"
+            }
+          ],
+          "version": "0.1.0"
+        },
+        "name": "Example Plugin",
+        "packagePath": "/etc/x-ui/plugins/example.plugin",
+        "status": "installed",
+        "version": "0.1.0"
+      }
+    ],
+    "manifestVersion": "3x.plugin.v1",
+    "template": {
+      "author": "Your name or team",
+      "config": {},
+      "description": "Describe what this plugin adds to 3x-ui.",
+      "entry": {
+        "args": "--verbose",
+        "command": "./plugin",
+        "env": {},
+        "path": "./plugin.wasm",
+        "runtime": "wasm"
+      },
+      "homepage": "https://example.com",
+      "hooks": [
+        {
+          "handler": "onPanelStarted",
+          "name": "panel.started",
+          "priority": 100
+        }
+      ],
+      "id": "example.plugin",
+      "name": "Example Plugin",
+      "permissions": [
+        {
+          "name": "inbounds:read",
+          "reason": "Read inbound data needed by the plugin.",
+          "scope": "panel"
+        }
+      ],
+      "schemaVersion": "3x.plugin.v1",
+      "ui": [
+        {
+          "component": "ExamplePanel",
+          "label": "Example",
+          "route": "/plugins/example",
+          "zone": "plugins.page"
+        }
+      ],
+      "version": "0.1.0"
+    }
+  },
+  "PluginEntry": {
+    "args": "--verbose",
+    "command": "./plugin",
+    "env": {},
+    "path": "./plugin.wasm",
+    "runtime": "wasm"
+  },
+  "PluginHook": {
+    "handler": "onPanelStarted",
+    "name": "panel.started",
+    "priority": 100
+  },
+  "PluginManifest": {
+    "author": "Your name or team",
+    "config": {},
+    "description": "Describe what this plugin adds to 3x-ui.",
+    "entry": {
+      "args": "--verbose",
+      "command": "./plugin",
+      "env": {},
+      "path": "./plugin.wasm",
+      "runtime": "wasm"
+    },
+    "homepage": "https://example.com",
+    "hooks": [
+      {
+        "handler": "onPanelStarted",
+        "name": "panel.started",
+        "priority": 100
+      }
+    ],
+    "id": "example.plugin",
+    "name": "Example Plugin",
+    "permissions": [
+      {
+        "name": "inbounds:read",
+        "reason": "Read inbound data needed by the plugin.",
+        "scope": "panel"
+      }
+    ],
+    "schemaVersion": "3x.plugin.v1",
+    "ui": [
+      {
+        "component": "ExamplePanel",
+        "label": "Example",
+        "route": "/plugins/example",
+        "zone": "plugins.page"
+      }
+    ],
+    "version": "0.1.0"
+  },
+  "PluginPermission": {
+    "name": "inbounds:read",
+    "reason": "Read inbound data needed by the plugin.",
+    "scope": "panel"
+  },
+  "PluginRecord": {
+    "author": "Your name or team",
+    "description": "Describe what this plugin adds to 3x-ui.",
+    "enabled": false,
+    "id": "example.plugin",
+    "installedAt": "2026-07-04T15:00:00Z",
+    "manifest": {
+      "author": "Your name or team",
+      "config": {},
+      "description": "Describe what this plugin adds to 3x-ui.",
+      "entry": {
+        "args": "--verbose",
+        "command": "./plugin",
+        "env": {},
+        "path": "./plugin.wasm",
+        "runtime": "wasm"
+      },
+      "homepage": "https://example.com",
+      "hooks": [
+        {
+          "handler": "onPanelStarted",
+          "name": "panel.started",
+          "priority": 100
+        }
+      ],
+      "id": "example.plugin",
+      "name": "Example Plugin",
+      "permissions": [
+        {
+          "name": "inbounds:read",
+          "reason": "Read inbound data needed by the plugin.",
+          "scope": "panel"
+        }
+      ],
+      "schemaVersion": "3x.plugin.v1",
+      "ui": [
+        {
+          "component": "ExamplePanel",
+          "label": "Example",
+          "route": "/plugins/example",
+          "zone": "plugins.page"
+        }
+      ],
+      "version": "0.1.0"
+    },
+    "name": "Example Plugin",
+    "packagePath": "/etc/x-ui/plugins/example.plugin",
+    "status": "installed",
+    "version": "0.1.0"
+  },
+  "PluginUIContribution": {
+    "component": "ExamplePanel",
+    "label": "Example",
+    "route": "/plugins/example",
+    "zone": "plugins.page"
+  },
   "ProbeResultUI": {
     "cpuPct": 12.5,
     "error": "",

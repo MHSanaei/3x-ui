@@ -1113,6 +1113,36 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'plugins',
+    title: 'Plugins',
+    description:
+      'Initial plugin contract for this fork. These endpoints do not execute third-party code yet; they expose the manifest schema, supported hook names, permissions, runtimes, and UI contribution zones that future plugin installation/runtime work can use.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/plugins/list',
+        summary: 'Return the plugin catalog: manifest version, installed plugins, supported capabilities, and an example manifest template.',
+        responseSchema: 'PluginCatalog',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/plugins/template',
+        summary: 'Return only the starter manifest template plugin authors can copy and adapt.',
+        responseSchema: 'PluginManifest',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/plugins/install',
+        summary: 'Upload and install a plugin ZIP package. The archive must include 3x-plugin.json at its root. The panel validates the manifest and extracts the package under the panel data folder plugins directory; runtime execution remains disabled until the plugin runtime is wired.',
+        params: [
+          { name: 'plugin', in: 'body (multipart)', type: 'file', desc: 'Plugin .zip package, max 10 MiB.' },
+        ],
+        responseSchema: 'PluginRecord',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

@@ -117,6 +117,7 @@
     "xray": "پیکربندی Xray",
     "routing": "مسیریابی",
     "outbounds": "خروجی‌ها",
+    "plugins": "پلاگین‌ها",
     "apiDocs": "مستندات API",
     "logout": "خروج",
     "link": "مدیریت",
@@ -126,6 +127,45 @@
     "openMenu": "باز کردن منو"
   },
   "pages": {
+    "plugins": {
+      "manage": "مدیریت پلاگین‌ها",
+      "addNew": "اضافه کردن پلاگین‌های جدید",
+      "guide": "راهنمای پلاگین‌ها",
+      "empty": "هنوز پلاگینی نصب نشده است",
+      "contractTitle": "قرارداد پلاگین آماده است",
+      "contractHint": "در این نسخه ساختار manifest، hookها، permissionها، runtimeها و جایگاه‌های UI تعریف شده‌اند. نصب و اجرای واقعی پلاگین بعدا پشت همین قرارداد قابل اتصال است.",
+      "manifestTemplate": "نمونه manifest",
+      "upload": {
+        "title": "نصب بسته پلاگین",
+        "file": "فایل ZIP پلاگین",
+        "hint": "فایل ZIP باید در ریشه خودش manifest با نام 3x-plugin.json داشته باشد.",
+        "dropTitle": "فایل ZIP پلاگین را اینجا رها کنید یا برای انتخاب کلیک کنید",
+        "dropHint": "فقط بسته‌های .zip پذیرفته می‌شوند. حداکثر حجم ۱۰ مگابایت است.",
+        "zipOnly": "لطفاً یک فایل .zip انتخاب کنید.",
+        "selectFile": "ابتدا فایل ZIP پلاگین را انتخاب کنید.",
+        "install": "نصب پلاگین"
+      },
+      "summary": {
+        "installed": "نصب‌شده",
+        "hooks": "هوک‌ها",
+        "permissions": "مجوزها"
+      },
+      "fields": {
+        "name": "نام",
+        "version": "نسخه",
+        "author": "نویسنده"
+      },
+      "capabilities": {
+        "runtimes": "Runtimeها",
+        "hooks": "هوک‌های قابل استفاده",
+        "permissions": "مجوزها"
+      },
+      "toasts": {
+        "readZip": "خواندن بسته پلاگین ناموفق بود",
+        "install": "نصب پلاگین ناموفق بود",
+        "installed": "پلاگین نصب شد"
+      }
+    },
     "login": {
       "hello": "سلام",
       "title": "خوش‌آمدید",

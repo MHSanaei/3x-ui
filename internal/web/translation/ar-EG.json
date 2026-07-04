@@ -123,7 +123,8 @@
     "donate": "تبرع",
     "hosts": "المضيفات",
     "docs": "التوثيق",
-    "openMenu": "فتح القائمة"
+    "openMenu": "فتح القائمة",
+    "plugins": "Plugins"
   },
   "pages": {
     "login": {
@@ -1966,6 +1967,45 @@
         "delete": "حذف المضيف",
         "badTag": "وسم غير صالح",
         "badVlessRoute": "أدخل رقماً واحداً بين 0 و65535"
+      }
+    },
+    "plugins": {
+      "manage": "Manage Plugins",
+      "addNew": "Add New Plugins",
+      "guide": "Plugin Guide",
+      "empty": "No plugins are installed yet",
+      "contractTitle": "Plugin contract is ready",
+      "contractHint": "This version defines the manifest, hooks, permissions, runtimes, and UI contribution zones. Runtime installation and execution can be wired behind this contract later.",
+      "manifestTemplate": "Manifest template",
+      "upload": {
+        "title": "Install plugin package",
+        "file": "Plugin ZIP file",
+        "hint": "The ZIP must include a 3x-plugin.json manifest at the package root.",
+        "dropTitle": "Drop the plugin ZIP here or click to choose",
+        "dropHint": "Only .zip packages are accepted. Maximum size is 10 MiB.",
+        "zipOnly": "Please select a .zip file.",
+        "selectFile": "Select a plugin ZIP first.",
+        "install": "Install Plugin"
+      },
+      "summary": {
+        "installed": "Installed",
+        "hooks": "Hooks",
+        "permissions": "Permissions"
+      },
+      "fields": {
+        "name": "Name",
+        "version": "Version",
+        "author": "Author"
+      },
+      "capabilities": {
+        "runtimes": "Runtimes",
+        "hooks": "Available hooks",
+        "permissions": "Permissions"
+      },
+      "toasts": {
+        "readZip": "Failed to read plugin package",
+        "install": "Plugin installation failed",
+        "installed": "Plugin installed"
       }
     }
   },
