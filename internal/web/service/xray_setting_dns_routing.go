@@ -359,7 +359,11 @@ func rebuildDnsAllowRules(rules []map[string]any, groups []dnsAllowPortGroup) []
 		})
 	}
 
-	out := make([]map[string]any, 0, len(clean)+len(managed))
+	// Capacity hint uses len(clean) alone (not len(clean)+len(managed)):
+	// summing two independent lengths for a make() size risks overflow on
+	// pathological input per static analysis, and clean's length already
+	// covers most of the eventual size on its own.
+	out := make([]map[string]any, 0, len(clean))
 	out = append(out, clean[:blockIdx]...)
 	out = append(out, managed...)
 	out = append(out, clean[blockIdx:]...)
