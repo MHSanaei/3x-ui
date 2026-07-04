@@ -1489,15 +1489,26 @@ install_x-ui() {
 
     # Etckeeper compatibility
     if [ -d "/etc/.git" ]; then
+        xui_db_ignore_entries="x-ui/x-ui.db x-ui/x-ui.db-wal x-ui/x-ui.db-shm"
         if [ -f "/etc/.gitignore" ]; then
-            if ! grep -q "x-ui/x-ui.db" "/etc/.gitignore"; then
-                echo "" >> "/etc/.gitignore"
-                echo "x-ui/x-ui.db" >> "/etc/.gitignore"
-                echo -e "${green}Added x-ui.db to /etc/.gitignore for etckeeper${plain}"
+            added_db_ignore=0
+            for entry in ${xui_db_ignore_entries}; do
+                if ! grep -Fxq "${entry}" "/etc/.gitignore"; then
+                    if [ ${added_db_ignore} -eq 0 ]; then
+                        echo "" >> "/etc/.gitignore"
+                    fi
+                    echo "${entry}" >> "/etc/.gitignore"
+                    added_db_ignore=1
+                fi
+            done
+            if [ ${added_db_ignore} -eq 1 ]; then
+                echo -e "${green}Added x-ui database files to /etc/.gitignore for etckeeper${plain}"
             fi
         else
-            echo "x-ui/x-ui.db" > "/etc/.gitignore"
-            echo -e "${green}Created /etc/.gitignore and added x-ui.db for etckeeper${plain}"
+            for entry in ${xui_db_ignore_entries}; do
+                echo "${entry}" >> "/etc/.gitignore"
+            done
+            echo -e "${green}Created /etc/.gitignore and added x-ui database files for etckeeper${plain}"
         fi
     fi
 

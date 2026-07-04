@@ -1,7 +1,11 @@
 package database
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -82,5 +86,92 @@ func TestCastBigintDialect(t *testing.T) {
 	t.Setenv("XUI_DB_TYPE", "postgres")
 	if got := CastBigint("?"); got != "CAST(? AS BIGINT)" {
 		t.Fatalf("postgres CastBigint = %q, want CAST(? AS BIGINT)", got)
+	}
+}
+
+func TestPostgresBatchTrafficAndIndexesOptIn(t *testing.T) {
+	if os.Getenv("XUI_DB_TYPE") != "postgres" || strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" {
+		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres traffic/index test")
+	}
+
+	oldDB := db
+	if err := InitDB(""); err != nil {
+		t.Fatalf("InitDB(postgres): %v", err)
+	}
+	t.Cleanup(func() {
+		_ = CloseDB()
+		db = oldDB
+	})
+
+	suffix := fmt.Sprintf("pg-batch-%d", time.Now().UnixNano())
+	tag := suffix + "-in"
+	email := suffix + "@example.test"
+	inbound := model.Inbound{UserId: 1, Tag: tag, Enable: true, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if err := db.Create(&inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	t.Cleanup(func() { db.Where("tag = ?", tag).Delete(&model.Inbound{}) })
+	if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: email, LastOnline: 10}).Error; err != nil {
+		t.Fatalf("seed client traffic: %v", err)
+	}
+	t.Cleanup(func() { db.Where("email = ?", email).Delete(&xray.ClientTraffic{}) })
+
+	if err := BatchIncrementInboundTraffic(db, []TrafficDelta{{Tag: tag, Up: 7, Down: 11}}); err != nil {
+		t.Fatalf("increment inbound: %v", err)
+	}
+	if err := BatchIncrementClientTraffic(db, []ClientTrafficDelta{{Email: email, Up: 13, Down: 17, LastOnline: 9}}); err != nil {
+		t.Fatalf("increment client: %v", err)
+	}
+
+	var gotInbound model.Inbound
+	if err := db.Where("tag = ?", tag).First(&gotInbound).Error; err != nil {
+		t.Fatalf("read inbound: %v", err)
+	}
+	if gotInbound.Up != 7 || gotInbound.Down != 11 {
+		t.Fatalf("inbound traffic = %d/%d, want 7/11", gotInbound.Up, gotInbound.Down)
+	}
+	var gotTraffic xray.ClientTraffic
+	if err := db.Where("email = ?", email).First(&gotTraffic).Error; err != nil {
+		t.Fatalf("read client traffic: %v", err)
+	}
+	if gotTraffic.Up != 13 || gotTraffic.Down != 17 || gotTraffic.LastOnline != 10 {
+		t.Fatalf("client traffic = up:%d down:%d last:%d, want 13/17/10", gotTraffic.Up, gotTraffic.Down, gotTraffic.LastOnline)
+	}
+
+	for _, name := range []string{"idx_client_traffics_email_up_down", "idx_clients_uuid"} {
+		var exists bool
+		if err := db.Raw(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM pg_index i
+				JOIN pg_class c ON c.oid = i.indexrelid
+				JOIN pg_namespace n ON n.oid = c.relnamespace
+				WHERE c.relname = ?
+				  AND n.nspname = ANY (current_schemas(false))
+				  AND i.indisvalid
+			)`, name).Scan(&exists).Error; err != nil {
+			t.Fatalf("check index %s: %v", name, err)
+		}
+		if !exists {
+			t.Fatalf("missing valid postgres index %s", name)
+		}
+	}
+
+	var hasPartialTgID bool
+	if err := db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM pg_index i
+			JOIN pg_class c ON c.oid = i.indexrelid
+			JOIN pg_namespace n ON n.oid = c.relnamespace
+			WHERE c.relname = 'idx_clients_tg_id'
+			  AND n.nspname = ANY (current_schemas(false))
+			  AND i.indisvalid
+			  AND i.indpred IS NOT NULL
+		)`).Scan(&hasPartialTgID).Error; err != nil {
+		t.Fatalf("check idx_clients_tg_id: %v", err)
+	}
+	if !hasPartialTgID {
+		t.Fatal("missing valid partial postgres index idx_clients_tg_id")
 	}
 }

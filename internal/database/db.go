@@ -1531,13 +1531,18 @@ func Checkpoint() error {
 		return err
 	}
 	var busy, logFrames, checkpointedFrames int
-	if err := sqlDB.QueryRowContext(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &checkpointedFrames); err != nil {
-		return err
+	for attempt := 0; attempt < 5; attempt++ {
+		if err := sqlDB.QueryRowContext(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &checkpointedFrames); err != nil {
+			return err
+		}
+		if busy == 0 {
+			return nil
+		}
+		if attempt < 4 {
+			time.Sleep(200 * time.Millisecond)
+		}
 	}
-	if busy != 0 {
-		return fmt.Errorf("sqlite WAL checkpoint busy: log=%d checkpointed=%d", logFrames, checkpointedFrames)
-	}
-	return nil
+	return fmt.Errorf("sqlite WAL checkpoint busy: log=%d checkpointed=%d", logFrames, checkpointedFrames)
 }
 
 // ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection
