@@ -153,7 +153,7 @@
         "rawEnv": "Raw .env",
         "botToken": "Bot token",
         "adminIds": "Admin IDs",
-        "envSaved": "Settings saved. Restart the bot to apply."
+        "envSaved": "Settings saved. Restart the bot to apply.",
         "installTitle": "Bot installation",
         "installSource": "Installing from",
         "installButton": "Install bot",
