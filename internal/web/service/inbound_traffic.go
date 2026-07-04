@@ -888,6 +888,12 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		logger.Errorf("Error retrieving clients with tgId %d: %v", tgId, err)
 		return nil, err
 	}
+	if len(emails) == 0 {
+		emails, err = s.legacyClientEmailsByTgID(db, tgId)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
 	// account owns thousands of clients across inbounds.
@@ -919,6 +925,34 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	}
 
 	return traffics, nil
+}
+
+func (s *InboundService) legacyClientEmailsByTgID(db *gorm.DB, tgId int64) ([]string, error) {
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).
+		Where("settings LIKE ? OR settings LIKE ?",
+			fmt.Sprintf(`%%"tgId": %d%%`, tgId),
+			fmt.Sprintf(`%%"tgId":%d%%`, tgId)).
+		Find(&inbounds).Error
+	if err != nil {
+		logger.Errorf("Error retrieving legacy inbounds with tgId %d: %v", tgId, err)
+		return nil, err
+	}
+
+	emails := make([]string, 0)
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			logger.Errorf("Error retrieving clients for inbound %d: %v", inbound.Id, err)
+			continue
+		}
+		for _, client := range clients {
+			if client.TgID == tgId {
+				emails = append(emails, client.Email)
+			}
+		}
+	}
+	return emails, nil
 }
 
 // BumpClientsLastOnline sets client_traffics.last_online to now for the given

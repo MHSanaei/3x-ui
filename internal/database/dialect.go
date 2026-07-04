@@ -56,7 +56,11 @@ type ClientTrafficDelta struct {
 	LastOnline int64
 }
 
-const sqliteMaxVars = 999
+const (
+	sqliteMaxVars                  = 999
+	sqliteInboundTrafficVarsPerRow = 5
+	sqliteClientTrafficVarsPerRow  = 7
+)
 
 func BatchIncrementInboundTraffic(tx *gorm.DB, deltas []TrafficDelta) error {
 	if len(deltas) == 0 {
@@ -83,10 +87,10 @@ func batchIncrementInboundTrafficPG(tx *gorm.DB, deltas []TrafficDelta) error {
 	return tx.Exec(sb.String(), args...).Error
 }
 
-// ponytail: 3 vars per row, chunks at 333 rows (~999 vars). Upgrade to temp-table
-// approach if inbound count exceeds this.
+// ponytail: 5 vars per row (2 CASE blocks + IN), chunks at ~199 rows. Upgrade
+// to temp-table if inbound count per tick exceeds this.
 func batchIncrementInboundTrafficSQLite(tx *gorm.DB, deltas []TrafficDelta) error {
-	const varsPerRow = 3
+	const varsPerRow = sqliteInboundTrafficVarsPerRow
 	chunkSize := sqliteMaxVars / varsPerRow
 	for start := 0; start < len(deltas); start += chunkSize {
 		end := start + chunkSize
@@ -149,10 +153,10 @@ func batchIncrementClientTrafficPG(tx *gorm.DB, deltas []ClientTrafficDelta) err
 	return tx.Exec(sb.String(), args...).Error
 }
 
-// ponytail: 4 vars per row + 1 for IN clause = 5 effective per row; chunks at
-// ~199 rows. Upgrade to temp-table if client count per tick exceeds this.
+// ponytail: 7 vars per row (3 CASE blocks + IN), chunks at ~142 rows. Upgrade
+// to temp-table if client count per tick exceeds this.
 func batchIncrementClientTrafficSQLite(tx *gorm.DB, deltas []ClientTrafficDelta) error {
-	const varsPerRow = 5
+	const varsPerRow = sqliteClientTrafficVarsPerRow
 	chunkSize := sqliteMaxVars / varsPerRow
 	for start := 0; start < len(deltas); start += chunkSize {
 		end := start + chunkSize
