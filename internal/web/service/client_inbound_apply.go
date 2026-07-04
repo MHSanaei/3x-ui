@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"reflect"
 	"strings"
 	"time"
 
@@ -25,7 +24,9 @@ func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {
 	bb := maps.Clone(b)
 	delete(aa, "updated_at")
 	delete(bb, "updated_at")
-	return reflect.DeepEqual(aa, bb)
+	an, aerr := json.Marshal(aa)
+	bn, berr := json.Marshal(bb)
+	return aerr == nil && berr == nil && string(an) == string(bn)
 }
 
 // delInboundClients removes several clients from a single inbound in one pass:
@@ -213,6 +214,8 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		} else if nodePush {
 			if err1 := nodeRt.DeleteUser(context.Background(), oldInbound, t.email); err1 != nil {
 				logger.Warning("Error in deleting client on", nodeRt.Name(), ":", err1)
+			} else if r, ok := nodeRt.(interface{ RecordPushedInbound(*model.Inbound) }); ok {
+				r.RecordPushedInbound(oldInbound)
 			}
 		}
 	}
@@ -572,10 +575,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
-	var oldSettingsBefore map[string]any
-	if err := json.Unmarshal([]byte(oldInbound.Settings), &oldSettingsBefore); err != nil {
-		return false, err
-	}
 	settingsClients, _ := oldSettings["clients"].([]any)
 	var preservedCreated any
 	var preservedUpdated any
@@ -653,13 +652,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 
-	if reflect.DeepEqual(oldSettingsBefore, oldSettings) {
-		return false, nil
-	}
-
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
 		return false, err
+	}
+
+	if string(newSettings) == oldInbound.Settings {
+		return false, nil
 	}
 
 	oldInbound.Settings = string(newSettings)
@@ -800,6 +799,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		} else if push {
 			if err1 := rt.UpdateUser(context.Background(), oldInbound, oldEmail, clients[0]); err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+			} else if r, ok := rt.(interface{ RecordPushedInbound(*model.Inbound) }); ok {
+				r.RecordPushedInbound(oldInbound)
 			}
 		}
 	} else {
@@ -954,6 +955,8 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 			if push {
 				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
+				} else if r, ok := rt.(interface{ RecordPushedInbound(*model.Inbound) }); ok {
+					r.RecordPushedInbound(oldInbound)
 				}
 			}
 		}

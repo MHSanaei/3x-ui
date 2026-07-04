@@ -407,7 +407,7 @@ func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
 			r.cacheSet(created.Tag, created.Id)
 		}
 	}
-	r.rememberPushedInbound(ib)
+	r.RecordPushedInbound(ib)
 	return nil
 }
 
@@ -437,7 +437,7 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 		r.cacheDel(oldIb.Tag)
 	}
 	r.cacheSet(newIb.Tag, id)
-	r.rememberPushedInbound(newIb)
+	r.RecordPushedInbound(newIb)
 	return nil
 }
 
@@ -459,10 +459,15 @@ func (r *Remote) ReconcileInbound(ctx context.Context, ib *model.Inbound, exists
 	if err := r.UpdateInbound(ctx, ib, ib); err != nil {
 		return false, err
 	}
+	r.mu.Lock()
+	r.pushedFP[ib.Tag] = fp
+	r.mu.Unlock()
 	return true, nil
 }
 
-func (r *Remote) rememberPushedInbound(ib *model.Inbound) {
+// RecordPushedInbound explicitly stamps the inbound fingerprint after a multi-client
+// edit or bulk operation.
+func (r *Remote) RecordPushedInbound(ib *model.Inbound) {
 	r.mu.Lock()
 	r.pushedFP[ib.Tag] = wireFingerprint(wireInbound(ib, r.node.Id))
 	r.mu.Unlock()
@@ -494,7 +499,7 @@ func (r *Remote) AddClient(ctx context.Context, ib *model.Inbound, client model.
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/clients/add", payload); err != nil {
 		return err
 	}
-	r.rememberPushedInbound(ib)
+	r.RecordPushedInbound(ib)
 	return nil
 }
 
@@ -513,11 +518,11 @@ func (r *Remote) DeleteUser(ctx context.Context, ib *model.Inbound, email string
 	_, err = r.do(ctx, http.MethodPost,
 		"panel/api/clients/"+url.PathEscape(email)+"/detach", body)
 	if err == nil {
-		r.rememberPushedInbound(ib)
+		r.RecordPushedInbound(ib)
 		return nil
 	}
 	if strings.Contains(strings.ToLower(err.Error()), "not found") {
-		r.rememberPushedInbound(ib)
+		r.RecordPushedInbound(ib)
 		return nil
 	}
 	return err
@@ -536,7 +541,7 @@ func (r *Remote) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail str
 	if _, err := r.do(ctx, http.MethodPost, path, payload); err != nil {
 		return err
 	}
-	r.rememberPushedInbound(ib)
+	r.RecordPushedInbound(ib)
 	return nil
 }
 

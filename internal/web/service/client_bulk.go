@@ -682,6 +682,8 @@ func (s *ClientService) bulkAdjustInboundClients(
 					updated.UpdatedAt = nowMs
 					if err1 := rt.UpdateUser(context.Background(), oldInbound, email, updated); err1 != nil {
 						logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+					} else if r, ok := rt.(interface{ RecordPushedInbound(*model.Inbound) }); ok {
+						r.RecordPushedInbound(oldInbound)
 					}
 				}
 			}
@@ -1630,6 +1632,8 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 			updated.UpdatedAt = nowMs
 			if err1 := rt.UpdateUser(context.Background(), oldInbound, ch.email, updated); err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+			} else if r, ok := rt.(interface{ RecordPushedInbound(*model.Inbound) }); ok {
+				r.RecordPushedInbound(oldInbound)
 			}
 		}
 	}
