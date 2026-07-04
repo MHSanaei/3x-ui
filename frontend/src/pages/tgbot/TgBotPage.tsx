@@ -1,10 +1,39 @@
-import { useMemo } from 'react';
-import { ConfigProvider, Layout } from 'antd';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Badge, Button, Card, Col, ConfigProvider, Form, Input,
+  Layout, Row, Space, Spin, Switch, Tabs, message,
+} from 'antd';
+import {
+  KeyOutlined, PauseCircleOutlined, PlayCircleOutlined,
+  ReloadOutlined, RobotOutlined, SafetyOutlined,
+} from '@ant-design/icons';
+
 import { useTheme } from '@/hooks/useTheme';
+import { useTgBot } from '@/hooks/useTgBot';
 import AppSidebar from '@/layouts/AppSidebar';
+import './TgBotPage.css';
+
+// Известные поля, для которых делаем удобные формы вместо "сырого" редактора.
+// Ключи должны совпадать с тем, что реально лежит в .env бота.
+const KNOWN_FIELDS: { key: string; labelKey: string; icon: React.ReactNode; secret?: boolean }[] = [
+  { key: 'BOT_TOKEN', labelKey: 'pages.tgbot.botToken', icon: <KeyOutlined />, secret: true },
+  { key: 'ADMIN_IDS', labelKey: 'pages.tgbot.adminIds', icon: <SafetyOutlined /> },
+];
 
 export default function TgBotPage() {
+  const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
+  const {
+    running, statusLoading, envData, envLoading, actionLoading,
+    start, stop, restart, saveEnvValues, getEnvRaw, saveEnvRaw,
+  } = useTgBot();
+
+  const [form] = Form.useForm();
+  const [savingFields, setSavingFields] = useState(false);
+  const [rawContent, setRawContent] = useState('');
+  const [rawLoaded, setRawLoaded] = useState(false);
+  const [savingRaw, setSavingRaw] = useState(false);
 
   const pageClass = useMemo(() => {
     const classes = ['tgbot-page'];
@@ -13,13 +42,173 @@ export default function TgBotPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
+  const initialValues = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const f of KNOWN_FIELDS) out[f.key] = envData.values[f.key] ?? '';
+    return out;
+  }, [envData]);
+
+  async function onSaveFields() {
+    const values = await form.validateFields();
+    setSavingFields(true);
+    try {
+      const res = await saveEnvValues(values);
+      if (res?.success) {
+        message.success(t('pages.tgbot.envSaved'));
+      } else {
+        message.error(res?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setSavingFields(false);
+    }
+  }
+
+  async function onOpenRawTab() {
+    if (rawLoaded) return;
+    const content = await getEnvRaw();
+    setRawContent(content);
+    setRawLoaded(true);
+  }
+
+  async function onSaveRaw() {
+    setSavingRaw(true);
+    try {
+      const res = await saveEnvRaw(rawContent);
+      if (res?.success) {
+        message.success(t('pages.tgbot.envSaved'));
+      } else {
+        message.error(res?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setSavingRaw(false);
+    }
+  }
+
+  async function onAction(action: 'start' | 'stop' | 'restart') {
+    const fn = action === 'start' ? start : action === 'stop' ? stop : restart;
+    const res = await fn();
+    if (res?.success) {
+      message.success(t(`pages.tgbot.${action}Success`));
+    } else {
+      message.error(res?.msg || t('somethingWentWrong'));
+    }
+  }
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       <Layout className={pageClass}>
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content className="content-area">
-            <h1>Telegram Bot</h1>
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Card size="small" hoverable className="summary-card">
+                  <Row align="middle" gutter={16}>
+                    <Col flex="none">
+                      <RobotOutlined style={{ fontSize: 28 }} />
+                    </Col>
+                    <Col flex="auto">
+                      <Space direction="vertical" size={0}>
+                        <span className="tgbot-title">{t('pages.tgbot.title')}</span>
+                        {statusLoading ? (
+                          <Spin size="small" />
+                        ) : (
+                          <Badge
+                            status={running ? 'success' : 'error'}
+                            text={running ? t('pages.tgbot.running') : t('pages.tgbot.stopped')}
+                          />
+                        )}
+                      </Space>
+                    </Col>
+                    <Col flex="none">
+                      <Space>
+                        <Button
+                          icon={<PlayCircleOutlined />}
+                          type="primary"
+                          disabled={!!running}
+                          loading={actionLoading === 'start'}
+                          onClick={() => onAction('start')}
+                        >
+                          {t('pages.tgbot.start')}
+                        </Button>
+                        <Button
+                          icon={<PauseCircleOutlined />}
+                          danger
+                          disabled={!running}
+                          loading={actionLoading === 'stop'}
+                          onClick={() => onAction('stop')}
+                        >
+                          {t('pages.tgbot.stop')}
+                        </Button>
+                        <Button
+                          icon={<ReloadOutlined />}
+                          loading={actionLoading === 'restart'}
+                          onClick={() => onAction('restart')}
+                        >
+                          {t('pages.tgbot.restart')}
+                        </Button>
+                      </Space>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+
+              <Col span={24}>
+                <Card size="small" hoverable title={t('pages.tgbot.envSettings')}>
+                  <Tabs
+                    defaultActiveKey="fields"
+                    onChange={(key) => { if (key === 'raw') onOpenRawTab(); }}
+                    items={[
+                      {
+                        key: 'fields',
+                        label: t('pages.tgbot.basicSettings'),
+                        children: (
+                          <Spin spinning={envLoading}>
+                            <Form
+                              form={form}
+                              layout="vertical"
+                              initialValues={initialValues}
+                              key={JSON.stringify(initialValues)}
+                            >
+                              {KNOWN_FIELDS.map((f) => (
+                                <Form.Item key={f.key} name={f.key} label={t(f.labelKey)}>
+                                  <Input
+                                    prefix={f.icon}
+                                    type={f.secret ? 'password' : 'text'}
+                                    placeholder={t(f.labelKey)}
+                                  />
+                                </Form.Item>
+                              ))}
+                              <Button type="primary" loading={savingFields} onClick={onSaveFields}>
+                                {t('save')}
+                              </Button>
+                            </Form>
+                          </Spin>
+                        ),
+                      },
+                      {
+                        key: 'raw',
+                        label: t('pages.tgbot.rawEnv'),
+                        children: (
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <Input.TextArea
+                              value={rawContent}
+                              onChange={(e) => setRawContent(e.target.value)}
+                              autoSize={{ minRows: 12, maxRows: 24 }}
+                              spellCheck={false}
+                              className="tgbot-raw-editor"
+                            />
+                            <Button type="primary" loading={savingRaw} onClick={onSaveRaw}>
+                              {t('save')}
+                            </Button>
+                          </Space>
+                        ),
+                      },
+                    ]}
+                  />
+                </Card>
+              </Col>
+            </Row>
           </Layout.Content>
         </Layout>
       </Layout>
