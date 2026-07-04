@@ -1,12 +1,28 @@
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Badge, Button, Card, Col, ConfigProvider, Form, Input,
-  Layout, Row, Space, Spin, Switch, Tabs, message,
+  Badge,
+  Button,
+  Card,
+  Col,
+  ConfigProvider,
+  Form,
+  Input,
+  Layout,
+  Row,
+  Space,
+  Spin,
+  Tabs,
+  message,
 } from 'antd';
 import {
-  KeyOutlined, PauseCircleOutlined, PlayCircleOutlined,
-  ReloadOutlined, RobotOutlined, SafetyOutlined,
+  KeyOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  ReloadOutlined,
+  RobotOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -14,9 +30,9 @@ import { useTgBot } from '@/hooks/useTgBot';
 import AppSidebar from '@/layouts/AppSidebar';
 import './TgBotPage.css';
 
-// Известные поля, для которых делаем удобные формы вместо "сырого" редактора.
-// Ключи должны совпадать с тем, что реально лежит в .env бота.
-const KNOWN_FIELDS: { key: string; labelKey: string; icon: React.ReactNode; secret?: boolean }[] = [
+// Известные поля .env, для которых делаем удобные формы вместо "сырого" редактора.
+// Ключи должны совпадать 1:1 с тем, что реально лежит в .env бота.
+const KNOWN_FIELDS: { key: string; labelKey: string; icon: ReactNode; secret?: boolean }[] = [
   { key: 'BOT_TOKEN', labelKey: 'pages.tgbot.botToken', icon: <KeyOutlined />, secret: true },
   { key: 'ADMIN_IDS', labelKey: 'pages.tgbot.adminIds', icon: <SafetyOutlined /> },
 ];
@@ -25,8 +41,23 @@ export default function TgBotPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const {
-    running, statusLoading, envData, envLoading, actionLoading,
-    start, stop, restart, saveEnvValues, getEnvRaw, saveEnvRaw,
+    running,
+    statusLoading,
+    actionLoading,
+    start,
+    stop,
+    restart,
+    envData,
+    envLoading,
+    saveEnvValues,
+    getEnvRaw,
+    saveEnvRaw,
+    dependencies,
+    depsLoading,
+    installed,
+    installing,
+    installLog,
+    installBot,
   } = useTgBot();
 
   const [form] = Form.useForm();
@@ -94,6 +125,17 @@ export default function TgBotPage() {
     }
   }
 
+  async function onInstall() {
+    const res = await installBot();
+    if (res?.success) {
+      message.success(t('pages.tgbot.installSuccess'));
+    } else {
+      message.error(t('pages.tgbot.installFailed'));
+    }
+  }
+
+  const depsSatisfied = dependencies.length > 0 && dependencies.every((d) => d.available);
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       <Layout className={pageClass}>
@@ -101,6 +143,7 @@ export default function TgBotPage() {
         <Layout className="content-shell">
           <Layout.Content className="content-area">
             <Row gutter={[16, 16]}>
+              {/* --- Статус и управление службой --- */}
               <Col span={24}>
                 <Card size="small" hoverable className="summary-card">
                   <Row align="middle" gutter={16}>
@@ -112,6 +155,8 @@ export default function TgBotPage() {
                         <span className="tgbot-title">{t('pages.tgbot.title')}</span>
                         {statusLoading ? (
                           <Spin size="small" />
+                        ) : installed === false ? (
+                          <Badge status="default" text={t('pages.tgbot.notInstalled')} />
                         ) : (
                           <Badge
                             status={running ? 'success' : 'error'}
@@ -125,7 +170,7 @@ export default function TgBotPage() {
                         <Button
                           icon={<PlayCircleOutlined />}
                           type="primary"
-                          disabled={!!running}
+                          disabled={!!running || installed === false}
                           loading={actionLoading === 'start'}
                           onClick={() => onAction('start')}
                         >
@@ -142,6 +187,7 @@ export default function TgBotPage() {
                         </Button>
                         <Button
                           icon={<ReloadOutlined />}
+                          disabled={installed === false}
                           loading={actionLoading === 'restart'}
                           onClick={() => onAction('restart')}
                         >
@@ -153,11 +199,59 @@ export default function TgBotPage() {
                 </Card>
               </Col>
 
+              {/* --- Установка (показывается только если бот не установлен) --- */}
+              {installed === false && (
+                <Col span={24}>
+                  <Card size="small" hoverable title={t('pages.tgbot.installTitle')}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <div className="tgbot-deps-list">
+                        {depsLoading ? (
+                          <Spin size="small" />
+                        ) : (
+                          dependencies.map((d) => (
+                            <div key={d.name} className="tgbot-dep-row">
+                              <Badge status={d.available ? 'success' : 'error'} />
+                              <span className="dep-name">{d.name}</span>
+                              {d.detail && <span className="dep-detail">{d.detail}</span>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <span className="tgbot-source-note">
+                        {t('pages.tgbot.installSource')}: github.com/KimaruBs/3x-ui
+                      </span>
+
+                      <Button
+                        type="primary"
+                        loading={installing}
+                        disabled={!depsSatisfied}
+                        onClick={onInstall}
+                      >
+                        {t('pages.tgbot.installButton')}
+                      </Button>
+
+                      {installLog && (
+                        <Input.TextArea
+                          value={installLog}
+                          readOnly
+                          autoSize={{ minRows: 6, maxRows: 16 }}
+                          className="tgbot-raw-editor"
+                        />
+                      )}
+                    </Space>
+                  </Card>
+                </Col>
+              )}
+
+              {/* --- Настройки .env --- */}
               <Col span={24}>
                 <Card size="small" hoverable title={t('pages.tgbot.envSettings')}>
                   <Tabs
                     defaultActiveKey="fields"
-                    onChange={(key) => { if (key === 'raw') onOpenRawTab(); }}
+                    onChange={(key) => {
+                      if (key === 'raw') onOpenRawTab();
+                    }}
                     items={[
                       {
                         key: 'fields',
