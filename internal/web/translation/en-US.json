@@ -154,6 +154,11 @@
         "botToken": "Bot token",
         "adminIds": "Admin IDs",
         "envSaved": "Settings saved. Restart the bot to apply."
+        "installTitle": "Bot installation",
+        "installSource": "Installing from",
+        "installButton": "Install bot",
+        "installSuccess": "Bot installed successfully",
+        "installFailed": "Installation failed, check the log below"
       }
     },
     "index": {
