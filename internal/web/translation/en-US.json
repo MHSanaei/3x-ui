@@ -123,7 +123,8 @@
     "link": "Manage",
     "donate": "Donate",
     "docs": "Documentation",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "tgBot": "Telegram bot"
   },
   "pages": {
     "login": {
