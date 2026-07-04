@@ -564,7 +564,9 @@ root → `go build ./...` / `go run main.go`.
 - **SQLite vs Postgres.** Default is SQLite at `{XUI_DB_FOLDER}/x-ui.db`. Postgres via
   `XUI_DB_TYPE=postgres` + `XUI_DB_DSN`. Some SQL paths are dialect-aware (`database/dialect.go`);
   test both when touching raw queries (there are `*_scale_postgres_test.go` suites). SQLite runs
-  in WAL mode; DB-specific post-migrate indexes live in `internal/database/db.go`.
+  in WAL mode; DB-specific post-migrate indexes live in `internal/database/db.go`. PostgreSQL
+  index checks run at startup and can take time on the first upgrade for large databases; startup
+  logs name each index before it is checked or built.
 - **`Inbound.Settings` / `StreamSettings` / `Sniffing` are raw JSON strings**, not structured
   columns. Parsing/validation happens in services and the `xray` package, not in GORM.
 - **Hot-reload is the default; full restart is the fallback.** Changes that look config-only

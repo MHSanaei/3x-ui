@@ -57,9 +57,12 @@ type ClientTrafficDelta struct {
 }
 
 const (
-	sqliteMaxVars                  = 999
+	sqliteMaxVars                  = 900
 	sqliteInboundTrafficVarsPerRow = 5
 	sqliteClientTrafficVarsPerRow  = 7
+	postgresMaxVars                = 60000
+	postgresInboundTrafficVarsRow  = 3
+	postgresClientTrafficVarsRow   = 4
 )
 
 func BatchIncrementInboundTraffic(tx *gorm.DB, deltas []TrafficDelta) error {
@@ -73,6 +76,21 @@ func BatchIncrementInboundTraffic(tx *gorm.DB, deltas []TrafficDelta) error {
 }
 
 func batchIncrementInboundTrafficPG(tx *gorm.DB, deltas []TrafficDelta) error {
+	const varsPerRow = postgresInboundTrafficVarsRow
+	chunkSize := postgresMaxVars / varsPerRow
+	for start := 0; start < len(deltas); start += chunkSize {
+		end := start + chunkSize
+		if end > len(deltas) {
+			end = len(deltas)
+		}
+		if err := execBatchIncrementInboundTrafficPG(tx, deltas[start:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func execBatchIncrementInboundTrafficPG(tx *gorm.DB, deltas []TrafficDelta) error {
 	var sb strings.Builder
 	args := make([]any, 0, len(deltas)*3)
 	sb.WriteString("UPDATE inbounds SET up = inbounds.up + v.delta_up, down = inbounds.down + v.delta_down FROM (VALUES ")
@@ -87,7 +105,7 @@ func batchIncrementInboundTrafficPG(tx *gorm.DB, deltas []TrafficDelta) error {
 	return tx.Exec(sb.String(), args...).Error
 }
 
-// ponytail: 5 vars per row (2 CASE blocks + IN), chunks at ~199 rows. Upgrade
+// ponytail: 5 vars per row (2 CASE blocks + IN), chunks at 180 rows. Upgrade
 // to temp-table if inbound count per tick exceeds this.
 func batchIncrementInboundTrafficSQLite(tx *gorm.DB, deltas []TrafficDelta) error {
 	const varsPerRow = sqliteInboundTrafficVarsPerRow
@@ -139,6 +157,21 @@ func BatchIncrementClientTraffic(tx *gorm.DB, deltas []ClientTrafficDelta) error
 }
 
 func batchIncrementClientTrafficPG(tx *gorm.DB, deltas []ClientTrafficDelta) error {
+	const varsPerRow = postgresClientTrafficVarsRow
+	chunkSize := postgresMaxVars / varsPerRow
+	for start := 0; start < len(deltas); start += chunkSize {
+		end := start + chunkSize
+		if end > len(deltas) {
+			end = len(deltas)
+		}
+		if err := execBatchIncrementClientTrafficPG(tx, deltas[start:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func execBatchIncrementClientTrafficPG(tx *gorm.DB, deltas []ClientTrafficDelta) error {
 	var sb strings.Builder
 	args := make([]any, 0, len(deltas)*4)
 	sb.WriteString("UPDATE client_traffics SET up = client_traffics.up + v.delta_up, down = client_traffics.down + v.delta_down, last_online = GREATEST(client_traffics.last_online, v.last_online) FROM (VALUES ")
@@ -153,7 +186,7 @@ func batchIncrementClientTrafficPG(tx *gorm.DB, deltas []ClientTrafficDelta) err
 	return tx.Exec(sb.String(), args...).Error
 }
 
-// ponytail: 7 vars per row (3 CASE blocks + IN), chunks at ~142 rows. Upgrade
+// ponytail: 7 vars per row (3 CASE blocks + IN), chunks at 128 rows. Upgrade
 // to temp-table if client count per tick exceeds this.
 func batchIncrementClientTrafficSQLite(tx *gorm.DB, deltas []ClientTrafficDelta) error {
 	const varsPerRow = sqliteClientTrafficVarsPerRow

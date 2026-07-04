@@ -150,15 +150,25 @@ func initPostgresIndexes() error {
 		return err
 	}
 	ctx := context.Background()
-	if err := replacePostgresNonPartialClientsTgIDIndex(ctx, sqlDB); err != nil {
-		return err
+	log.Print("Ensuring PostgreSQL performance indexes; first run on large databases can take a while")
+	indexes := []struct {
+		name string
+		stmt string
+	}{
+		{"idx_client_traffics_email_up_down", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_client_traffics_email_up_down ON client_traffics (email) INCLUDE (up, down, last_online)"},
+		{"idx_clients_tg_id", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_tg_id ON clients (tg_id) WHERE tg_id != 0"},
+		{"idx_clients_uuid", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_uuid ON clients (uuid) WHERE uuid != ''"},
 	}
-	for _, stmt := range []string{
-		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_client_traffics_email_up_down ON client_traffics (email) INCLUDE (up, down, last_online)",
-		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_tg_id ON clients (tg_id) WHERE tg_id != 0",
-		"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_uuid ON clients (uuid) WHERE uuid != ''",
-	} {
-		if _, err := sqlDB.ExecContext(ctx, stmt); err != nil {
+	for _, idx := range indexes {
+		if idx.name == "idx_clients_tg_id" {
+			if err := replacePostgresNonPartialClientsTgIDIndex(ctx, sqlDB); err != nil {
+				return err
+			}
+		} else if err := dropInvalidPostgresIndex(ctx, sqlDB, idx.name); err != nil {
+			return err
+		}
+		log.Printf("Ensuring PostgreSQL index %s", idx.name)
+		if _, err := sqlDB.ExecContext(ctx, idx.stmt); err != nil {
 			return err
 		}
 	}
@@ -167,6 +177,10 @@ func initPostgresIndexes() error {
 		return err
 	}
 	if hasTrgm {
+		if err := dropInvalidPostgresIndex(ctx, sqlDB, "idx_inbounds_remark_trgm"); err != nil {
+			return err
+		}
+		log.Print("Ensuring PostgreSQL index idx_inbounds_remark_trgm")
 		_, err = sqlDB.ExecContext(ctx, "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inbounds_remark_trgm ON inbounds USING gin (remark gin_trgm_ops)")
 	}
 	return err
@@ -174,24 +188,61 @@ func initPostgresIndexes() error {
 
 func replacePostgresNonPartialClientsTgIDIndex(ctx context.Context, sqlDB *sql.DB) error {
 	var predicate sql.NullString
+	var valid bool
 	err := sqlDB.QueryRowContext(ctx, `
-		SELECT pg_get_expr(i.indpred, i.indrelid)
+		SELECT pg_get_expr(i.indpred, i.indrelid), i.indisvalid
 		FROM pg_index i
 		JOIN pg_class c ON c.oid = i.indexrelid
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		WHERE c.relname = 'idx_clients_tg_id'
 		  AND n.nspname = ANY (current_schemas(false))
-	`).Scan(&predicate)
+	`).Scan(&predicate, &valid)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	if predicate.Valid {
+	if predicate.Valid && valid {
 		return nil
 	}
+	log.Print("Dropping non-partial or invalid PostgreSQL index idx_clients_tg_id before rebuild")
 	_, err = sqlDB.ExecContext(ctx, "DROP INDEX CONCURRENTLY IF EXISTS idx_clients_tg_id")
+	return err
+}
+
+func dropInvalidPostgresIndex(ctx context.Context, sqlDB *sql.DB, name string) error {
+	var invalid bool
+	err := sqlDB.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM pg_index i
+			JOIN pg_class c ON c.oid = i.indexrelid
+			JOIN pg_namespace n ON n.oid = c.relnamespace
+			WHERE c.relname = $1
+			  AND n.nspname = ANY (current_schemas(false))
+			  AND NOT i.indisvalid
+		)
+	`, name).Scan(&invalid)
+	if err != nil {
+		return err
+	}
+	if !invalid {
+		return nil
+	}
+	dropStmt := ""
+	switch name {
+	case "idx_client_traffics_email_up_down":
+		dropStmt = "DROP INDEX CONCURRENTLY IF EXISTS idx_client_traffics_email_up_down"
+	case "idx_clients_uuid":
+		dropStmt = "DROP INDEX CONCURRENTLY IF EXISTS idx_clients_uuid"
+	case "idx_inbounds_remark_trgm":
+		dropStmt = "DROP INDEX CONCURRENTLY IF EXISTS idx_inbounds_remark_trgm"
+	default:
+		return fmt.Errorf("unexpected PostgreSQL index name %q", name)
+	}
+	log.Printf("Dropping invalid PostgreSQL index %s before rebuild", name)
+	_, err = sqlDB.ExecContext(ctx, dropStmt)
 	return err
 }
 
@@ -1469,13 +1520,24 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-// Checkpoint performs a WAL checkpoint on the SQLite database to ensure data consistency.
-// No-op on PostgreSQL (WAL there is managed by the server).
+// Checkpoint fully drains SQLite WAL frames into the main DB file before raw
+// file backups read it. No-op on PostgreSQL (WAL there is managed by the server).
 func Checkpoint() error {
 	if IsPostgres() {
 		return nil
 	}
-	return db.Exec("PRAGMA wal_checkpoint;").Error
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	var busy, logFrames, checkpointedFrames int
+	if err := sqlDB.QueryRowContext(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &checkpointedFrames); err != nil {
+		return err
+	}
+	if busy != 0 {
+		return fmt.Errorf("sqlite WAL checkpoint busy: log=%d checkpointed=%d", logFrames, checkpointedFrames)
+	}
+	return nil
 }
 
 // ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection

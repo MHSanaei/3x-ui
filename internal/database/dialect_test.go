@@ -55,11 +55,17 @@ func TestBatchIncrementTrafficSQLite(t *testing.T) {
 }
 
 func TestBatchIncrementTrafficSQLiteChunkSizes(t *testing.T) {
-	if got := sqliteMaxVars / sqliteInboundTrafficVarsPerRow; got != 199 {
-		t.Fatalf("inbound traffic chunk size = %d, want 199", got)
+	if got := sqliteMaxVars / sqliteInboundTrafficVarsPerRow; got != 180 {
+		t.Fatalf("sqlite inbound traffic chunk size = %d, want 180", got)
 	}
-	if got := sqliteMaxVars / sqliteClientTrafficVarsPerRow; got != 142 {
-		t.Fatalf("client traffic chunk size = %d, want 142", got)
+	if got := sqliteMaxVars / sqliteClientTrafficVarsPerRow; got != 128 {
+		t.Fatalf("sqlite client traffic chunk size = %d, want 128", got)
+	}
+	if got := postgresMaxVars / postgresInboundTrafficVarsRow; got != 20000 {
+		t.Fatalf("postgres inbound traffic chunk size = %d, want 20000", got)
+	}
+	if got := postgresMaxVars / postgresClientTrafficVarsRow; got != 15000 {
+		t.Fatalf("postgres client traffic chunk size = %d, want 15000", got)
 	}
 }
 
