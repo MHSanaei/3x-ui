@@ -112,6 +112,8 @@ zero prompts, generating random credentials and writing them to
 - **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
 - **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
 
+PostgreSQL startup ensures several performance indexes. The first restart after an upgrade can take longer on large databases; progress is logged before each index is checked or built.
+
 At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/x-ui` for you):
 
 ```

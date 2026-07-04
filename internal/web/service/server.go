@@ -1292,7 +1292,7 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	if database.IsPostgres() {
 		return s.exportPostgresDB()
 	}
-	// Update by manually trigger a checkpoint operation
+	// Force WAL frames into the main .db before reading the raw file bytes.
 	err := database.Checkpoint()
 	if err != nil {
 		return nil, err
@@ -1410,7 +1410,7 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 		return data, "x-ui.db", nil
 	}
 
-	// SQLite panel: checkpoint so the .db reflects the latest writes, then dump.
+	// SQLite panel: checkpoint so the dump sees the latest writes.
 	if err := database.Checkpoint(); err != nil {
 		return nil, "", err
 	}
