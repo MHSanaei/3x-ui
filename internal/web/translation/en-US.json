@@ -137,6 +137,23 @@
         "emptyPassword": "Password is required",
         "wrongUsernameOrPassword": "Invalid username or password or two-factor code.",
         "successLogin": "You have successfully logged into your account."
+      },
+      "tgbot": {
+        "title": "Telegram Bot",
+        "running": "Running",
+        "stopped": "Stopped",
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart",
+        "startSuccess": "Bot started",
+        "stopSuccess": "Bot stopped",
+        "restartSuccess": "Bot restarted",
+        "envSettings": "Bot settings",
+        "basicSettings": "Basic",
+        "rawEnv": "Raw .env",
+        "botToken": "Bot token",
+        "adminIds": "Admin IDs",
+        "envSaved": "Settings saved. Restart the bot to apply."
       }
     },
     "index": {
