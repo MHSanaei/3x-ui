@@ -158,7 +158,8 @@
       "installSource": "Installing from",
       "installButton": "Install bot",
       "installSuccess": "Bot installed successfully",
-      "installFailed": "Installation failed, check the log below"
+      "installFailed": "Installation failed, check the log below",
+      "logs": "Logs"
       },
     "index": {
       "title": "Overview",
