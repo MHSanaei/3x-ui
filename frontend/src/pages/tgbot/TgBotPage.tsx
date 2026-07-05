@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -13,6 +13,7 @@ import {
   Row,
   Space,
   Spin,
+  Switch,
   Tabs,
   message,
 } from 'antd';
@@ -37,6 +38,12 @@ const KNOWN_FIELDS: { key: string; labelKey: string; icon: ReactNode; secret?: b
   { key: 'ADMIN_IDS', labelKey: 'pages.tgbot.adminIds', icon: <SafetyOutlined /> },
 ];
 
+// Маленький живой индикатор рядом с переключателем "Live" —
+// просто пульсирующая точка, чистый CSS, без лишней библиотеки.
+function LiveDot() {
+  return <span className="tgbot-live-dot" />;
+}
+
 export default function TgBotPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -58,6 +65,13 @@ export default function TgBotPage() {
     installing,
     installLog,
     installBot,
+    logs,
+    logsLoading,
+    refreshLogs,
+    liveLines,
+    streaming,
+    startLogStream,
+    stopLogStream,
   } = useTgBot();
 
   const [form] = Form.useForm();
@@ -65,6 +79,8 @@ export default function TgBotPage() {
   const [rawContent, setRawContent] = useState('');
   const [rawLoaded, setRawLoaded] = useState(false);
   const [savingRaw, setSavingRaw] = useState(false);
+  const [logsLoaded, setLogsLoaded] = useState(false);
+  const logsBoxRef = useRef<HTMLDivElement | null>(null);
 
   const pageClass = useMemo(() => {
     const classes = ['tgbot-page'];
@@ -78,6 +94,17 @@ export default function TgBotPage() {
     for (const f of KNOWN_FIELDS) out[f.key] = envData.values[f.key] ?? '';
     return out;
   }, [envData]);
+
+  // Автоскролл живых логов к последней строке.
+  useEffect(() => {
+    if (logsBoxRef.current) {
+      logsBoxRef.current.scrollTop = logsBoxRef.current.scrollHeight;
+    }
+  }, [liveLines]);
+
+  // Останавливаем стрим, если пользователь ушёл со страницы
+  // (доп. защита сверх unmount-очистки внутри самого хука).
+  useEffect(() => () => stopLogStream(), [stopLogStream]);
 
   async function onSaveFields() {
     const values = await form.validateFields();
@@ -132,6 +159,24 @@ export default function TgBotPage() {
     } else {
       message.error(t('pages.tgbot.installFailed'));
     }
+  }
+
+  function onSettingsTabChange(key: string) {
+    if (key === 'raw') onOpenRawTab();
+    if (key === 'logs' && !logsLoaded) {
+      refreshLogs();
+      setLogsLoaded(true);
+    }
+    // Ушли со вкладки логов — гасим живой стрим, чтобы не висело
+    // открытое SSE-соединение впустую.
+    if (key !== 'logs' && streaming) {
+      stopLogStream();
+    }
+  }
+
+  function onToggleLive(checked: boolean) {
+    if (checked) startLogStream();
+    else stopLogStream();
   }
 
   const depsSatisfied = dependencies.length > 0 && dependencies.every((d) => d.available);
@@ -244,14 +289,12 @@ export default function TgBotPage() {
                 </Col>
               )}
 
-              {/* --- Настройки .env --- */}
+              {/* --- Настройки бота: базовые поля / сырой .env / логи --- */}
               <Col span={24}>
                 <Card size="small" hoverable title={t('pages.tgbot.envSettings')}>
                   <Tabs
                     defaultActiveKey="fields"
-                    onChange={(key) => {
-                      if (key === 'raw') onOpenRawTab();
-                    }}
+                    onChange={onSettingsTabChange}
                     items={[
                       {
                         key: 'fields',
@@ -295,6 +338,49 @@ export default function TgBotPage() {
                             <Button type="primary" loading={savingRaw} onClick={onSaveRaw}>
                               {t('save')}
                             </Button>
+                          </Space>
+                        ),
+                      },
+                      {
+                        key: 'logs',
+                        label: t('pages.tgbot.logs'),
+                        children: (
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <div className="tgbot-logs-toolbar">
+                              <Space>
+                                <Switch
+                                  checked={streaming}
+                                  onChange={onToggleLive}
+                                  disabled={installed === false}
+                                />
+                                <span>{t('pages.tgbot.liveLogs')}</span>
+                                {streaming && <LiveDot />}
+                              </Space>
+                              {!streaming && (
+                                <Button onClick={refreshLogs} loading={logsLoading}>
+                                  {t('refresh')}
+                                </Button>
+                              )}
+                            </div>
+
+                            {streaming ? (
+                              <div ref={logsBoxRef} className="tgbot-logs-live">
+                                {liveLines.length === 0 ? (
+                                  <div className="tgbot-logs-waiting">{t('pages.tgbot.waitingForLogs')}</div>
+                                ) : (
+                                  liveLines.map((line, idx) => (
+                                    <div key={idx} className="tgbot-log-line">{line}</div>
+                                  ))
+                                )}
+                              </div>
+                            ) : (
+                              <Input.TextArea
+                                value={logs}
+                                readOnly
+                                autoSize={{ minRows: 12, maxRows: 24 }}
+                                className="tgbot-raw-editor"
+                              />
+                            )}
                           </Space>
                         ),
                       },
