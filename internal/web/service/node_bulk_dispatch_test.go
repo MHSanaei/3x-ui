@@ -141,6 +141,81 @@ func TestNodeBulk_SmallAddPushesLive(t *testing.T) {
 	}
 }
 
+func TestNodeUpdateInboundClientNoopSkipsRuntimeAndDirty(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{
+		ID:        uuid.NewString(),
+		Email:     "noop@x",
+		SubID:     "sub-noop",
+		Enable:    true,
+		CreatedAt: 111,
+		UpdatedAt: 222,
+	}
+	ib := nodeInbound(t, nodeID, 30020, []model.Client{client})
+
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+	if _, err := svc.UpdateInboundClient(inboundSvc, &model.Inbound{
+		Id:       ib.Id,
+		Protocol: model.VLESS,
+		Settings: clientsSettings(t, []model.Client{client}),
+	}, client.Email); err != nil {
+		t.Fatalf("UpdateInboundClient: %v", err)
+	}
+
+	if got := fake.updateUser.Load(); got != 0 {
+		t.Fatalf("no-op update streamed %d UpdateUser RPCs, want 0", got)
+	}
+	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(nodeID); err != nil {
+		t.Fatalf("NodeSyncState: %v", err)
+	} else if dirty {
+		t.Fatal("no-op update must not mark the node dirty")
+	}
+	reloaded, err := inboundSvc.GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	if reloaded.Settings != ib.Settings {
+		t.Fatal("no-op update rewrote inbound settings")
+	}
+}
+
+func TestNodeUpdateInboundClientLivePushKeepsDirtyBackup(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{
+		ID:        uuid.NewString(),
+		Email:     "edit@x",
+		SubID:     "sub-edit",
+		Enable:    true,
+		CreatedAt: 111,
+		UpdatedAt: 222,
+	}
+	ib := nodeInbound(t, nodeID, 30021, []model.Client{client})
+
+	edited := client
+	edited.Comment = "changed"
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+	if _, err := svc.UpdateInboundClient(inboundSvc, &model.Inbound{
+		Id:       ib.Id,
+		Protocol: model.VLESS,
+		Settings: clientsSettings(t, []model.Client{edited}),
+	}, client.Email); err != nil {
+		t.Fatalf("UpdateInboundClient: %v", err)
+	}
+
+	if got := fake.updateUser.Load(); got != 1 {
+		t.Fatalf("edit streamed %d UpdateUser RPCs, want 1", got)
+	}
+	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(nodeID); err != nil {
+		t.Fatalf("NodeSyncState: %v", err)
+	} else if !dirty {
+		t.Fatal("successful live update should keep node dirty as reconcile backup")
+	}
+}
+
 // TestNodeBulk_LargeDeleteFoldsToDirty: deleting more than the threshold from an
 // online node inbound must fold into a reconcile rather than per-client deletes.
 func TestNodeBulk_LargeDeleteFoldsToDirty(t *testing.T) {
