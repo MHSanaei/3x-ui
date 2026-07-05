@@ -1967,7 +1967,9 @@
         "edit": "Edit Fake DNS",
         "ipPool": "IP Pool Subnet",
         "poolSize": "Pool Size"
-      }
+      },
+      "defaultOutbound": "Default Outbound",
+      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list)."
     }
   },
   "tgbot": {

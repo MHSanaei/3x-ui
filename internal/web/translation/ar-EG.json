@@ -1851,7 +1851,9 @@
         "edit": "عدل Fake DNS",
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
-      }
+      },
+      "defaultOutbound": "الصادر الافتراضي",
+      "defaultOutboundDesc": "الحركة التي لا تطابق أي قاعدة توجيه تستخدم هذا الصادر (الأول في القائمة)."
     },
     "hosts": {
       "addHost": "إضافة مضيف",

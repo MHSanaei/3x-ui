@@ -1851,7 +1851,9 @@
         "edit": "编辑假 DNS",
         "ipPool": "IP 池子网",
         "poolSize": "池大小"
-      }
+      },
+      "defaultOutbound": "默认出站",
+      "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。"
     },
     "hosts": {
       "addHost": "添加主机",

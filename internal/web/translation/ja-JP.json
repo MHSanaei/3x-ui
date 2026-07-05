@@ -1851,7 +1851,9 @@
         "edit": "フェイクDNS編集",
         "ipPool": "IPプールサブネット",
         "poolSize": "プールサイズ"
-      }
+      },
+      "defaultOutbound": "デフォルトアウトバウンド",
+      "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。"
     },
     "hosts": {
       "addHost": "ホストを追加",
