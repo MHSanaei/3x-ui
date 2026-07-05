@@ -34,3 +34,48 @@
   opacity: 0.7;
   font-size: 13px;
 }
+
+.tgbot-logs-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tgbot-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #52c41a;
+  display: inline-block;
+  animation: tgbot-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tgbot-pulse {
+  0% { opacity: 1; box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.5); }
+  70% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(82, 196, 26, 0); }
+  100% { opacity: 1; box-shadow: 0 0 0 0 rgba(82, 196, 26, 0); }
+}
+
+.tgbot-logs-live {
+  height: 400px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tgbot-logs-waiting {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.tgbot-log-line + .tgbot-log-line {
+  margin-top: 1px;
+}
