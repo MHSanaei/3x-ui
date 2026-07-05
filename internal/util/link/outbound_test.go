@@ -57,13 +57,13 @@ func TestParseVlessLink_FinalMaskQuicParamsSanitized(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing quicParams: %v", finalmask)
 	}
-	if got := qp["keepAlivePeriod"]; got != float64(10) {
+	if got := qp["keepAlivePeriod"]; got != int64(10) {
 		t.Errorf("keepAlivePeriod: expected 10, got %v (%T)", got, got)
 	}
-	if got := qp["maxIdleTimeout"]; got != float64(30) {
+	if got := qp["maxIdleTimeout"]; got != int64(30) {
 		t.Errorf("maxIdleTimeout: expected 30, got %v (%T)", got, got)
 	}
-	if got := qp["initStreamReceiveWindow"]; got != float64(524288) {
+	if got := qp["initStreamReceiveWindow"]; got != int64(524288) {
 		t.Errorf("initStreamReceiveWindow: expected 524288, got %v (%T)", got, got)
 	}
 	if _, exists := qp["maxIncomingStreams"]; exists {
@@ -71,6 +71,45 @@ func TestParseVlessLink_FinalMaskQuicParamsSanitized(t *testing.T) {
 	}
 	if got := qp["brutalUp"]; got != "100 mbps" {
 		t.Errorf("brutalUp should stay a string, got %v (%T)", got, got)
+	}
+}
+
+func TestSanitizeFinalMaskQuicParams_ClampsAndRejects(t *testing.T) {
+	cases := []struct {
+		name string
+		key  string
+		in   any
+		want any
+	}{
+		{"infinite string dropped", "keepAlivePeriod", "inf", nil},
+		{"nan string dropped", "keepAlivePeriod", "NaN", nil},
+		{"negative dropped", "maxStreamReceiveWindow", float64(-5), nil},
+		{"negative duration dropped", "keepAlivePeriod", "-10s", nil},
+		{"absurd magnitude dropped", "initConnectionReceiveWindow", float64(1e30), nil},
+		{"keepAlive clamped up", "keepAlivePeriod", "1s", int64(2)},
+		{"keepAlive clamped down", "keepAlivePeriod", "90s", int64(60)},
+		{"idle clamped up", "maxIdleTimeout", float64(1), int64(4)},
+		{"idle clamped down", "maxIdleTimeout", "10m", int64(120)},
+		{"streams clamped up", "maxIncomingStreams", float64(4), int64(8)},
+		{"zero means unset and survives", "maxIdleTimeout", float64(0), int64(0)},
+		{"window passes through", "initStreamReceiveWindow", float64(524288), int64(524288)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			parsed := map[string]any{"quicParams": map[string]any{c.key: c.in}}
+			sanitizeFinalMaskQuicParams(parsed)
+			qp := parsed["quicParams"].(map[string]any)
+			got, exists := qp[c.key]
+			if c.want == nil {
+				if exists {
+					t.Fatalf("%s: expected key dropped, got %v (%T)", c.key, got, got)
+				}
+				return
+			}
+			if !exists || got != c.want {
+				t.Fatalf("%s: expected %v, got %v (%T)", c.key, c.want, got, got)
+			}
+		})
 	}
 }
 
