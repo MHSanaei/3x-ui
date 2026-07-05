@@ -105,6 +105,8 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	a.settingController = NewSettingController(api)
 	a.xraySettingController = NewXraySettingController(api)
 
+	a.tgBotController = NewTgBotController(api)
+	
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)
 }
