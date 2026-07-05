@@ -115,6 +115,19 @@ export function useTgBot() {
     if (res?.success) setInstalled(!!res.obj?.installed);
   }, []);
 
+  const [logs, setLogs] = useState('');
+  const [logsLoading, setLogsLoading] = useState(false);
+  
+  const refreshLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const res: ActionResult = await HttpUtil.get('/panel/api/tgbot/logs?lines=200');
+      if (res?.success) setLogs(res.obj?.logs ?? '');
+    } finally {
+      setLogsLoading(false);
+    }
+  }, []);
+  
   const installBot = useCallback(async () => {
     setInstalling(true);
     setInstallLog('');
