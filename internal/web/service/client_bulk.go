@@ -847,6 +847,9 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
 					return e
 				}
+				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientHwid{}).Error; e != nil {
+					return e
+				}
 			}
 			if !keepTraffic && len(successEmails) > 0 {
 				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
@@ -1142,6 +1145,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	type prepared struct {
 		client     model.Client
 		inboundIds []int
+		limitHwid  int
 	}
 	prep := make([]prepared, 0, len(payloads))
 	emails := make([]string, 0, len(payloads))
@@ -1194,7 +1198,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		seenEmail[le] = struct{}{}
 		seenSubID[client.SubID] = le
 
-		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
+		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds, limitHwid: payloads[i].LimitHwid})
 		emails = append(emails, email)
 		subIDs = append(subIDs, client.SubID)
 	}
@@ -1313,6 +1317,9 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		if failed[idx] {
 			skip(prep[idx].client.Email, reason[idx])
 		} else {
+			if err := s.setClientLimitHwidByEmail(nil, prep[idx].client.Email, prep[idx].limitHwid); err != nil {
+				return result, needRestart, err
+			}
 			result.Created++
 		}
 	}

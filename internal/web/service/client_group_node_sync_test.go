@@ -171,7 +171,7 @@ func TestClientUpdate_ClearsGroup(t *testing.T) {
 	// Edit the client and remove the group.
 	updated := *rec.ToClient()
 	updated.Group = ""
-	if _, err := svc.Update(inboundSvc, rec.Id, updated); err != nil {
+	if _, err := svc.Update(inboundSvc, rec.Id, updated, 0); err != nil {
 		t.Fatalf("Update (clear group): %v", err)
 	}
 

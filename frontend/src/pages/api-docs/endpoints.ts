@@ -570,7 +570,7 @@ export const sections: readonly Section[] = [
           { name: 'order', in: 'query', type: 'string', desc: 'ascend or descend.' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "items": [\n      {\n        "email": "alice@example.com",\n        "subId": "abcd1234",\n        "enable": true,\n        "totalGB": 53687091200,\n        "expiryTime": 1735689600000,\n        "limitIp": 0,\n        "reset": 0,\n        "inboundIds": [3, 5],\n        "traffic": { "up": 1024, "down": 4096, "enable": true },\n        "createdAt": 1735000000000,\n        "updatedAt": 1735100000000\n      }\n    ],\n    "total": 2000,\n    "filtered": 47,\n    "page": 1,\n    "pageSize": 25,\n    "summary": {\n      "total": 2000,\n      "active": 1850,\n      "online": ["alice@example.com"],\n      "depleted": [],\n      "expiring": [],\n      "deactive": []\n    }\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "items": [\n      {\n        "email": "alice@example.com",\n        "subId": "abcd1234",\n        "enable": true,\n        "totalGB": 53687091200,\n        "expiryTime": 1735689600000,\n        "limitIp": 0,\n        "limitHwid": 0,\n        "reset": 0,\n        "inboundIds": [3, 5],\n        "traffic": { "up": 1024, "down": 4096, "enable": true },\n        "createdAt": 1735000000000,\n        "updatedAt": 1735100000000\n      }\n    ],\n    "total": 2000,\n    "filtered": 47,\n    "page": 1,\n    "pageSize": 25,\n    "summary": {\n      "total": 2000,\n      "active": 1850,\n      "online": ["alice@example.com"],\n      "depleted": [],\n      "expiring": [],\n      "deactive": []\n    }\n  }\n}',
       },
       {
         method: 'GET',
@@ -587,10 +587,10 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/add',
         summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.',
         params: [
-          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
+          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, limitHwid, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
         ],
-        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "limitHwid": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
         response: '{\n  "success": true,\n  "msg": "Client added"\n}',
       },
       {
@@ -600,7 +600,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Current client email (unique identifier).' },
         ],
-        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "tgId": 123456789,\n  "enable": true\n}',
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "limitHwid": 2,\n  "tgId": 123456789,\n  "enable": true\n}',
         response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
       },
       {
@@ -661,14 +661,14 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/delOrphans',
-        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
+        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, HWID devices, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
         response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/clients/export',
         summary: 'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
       },
       {
         method: 'POST',
@@ -709,7 +709,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkCreate',
         summary: 'Create many clients in one call. Body is a JSON array of {client, inboundIds} payloads — the same shape /add accepts. Items are processed sequentially; per-email skip reasons are returned for items that fail (e.g., duplicate email). Triggers a single Xray restart at the end if any inbound was running.',
-        body: '[\n  {\n    "client": {\n      "email": "alice@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7]\n  },\n  {\n    "client": {\n      "email": "bob@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7, 9]\n  }\n]',
+        body: '[\n  {\n    "client": {\n      "email": "alice@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "limitHwid": 2,\n      "enable": true\n    },\n    "inboundIds": [7]\n  },\n  {\n    "client": {\n      "email": "bob@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "limitHwid": 0,\n      "enable": true\n    },\n    "inboundIds": [7, 9]\n  }\n]',
         response: '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use" }\n    ]\n  }\n}',
       },
       {
@@ -827,6 +827,23 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/clearIps/:email',
         summary: 'Reset the recorded IP list for a client.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/hwids/:email',
+        summary: 'List registered HWID devices for a client. Hashes are not exposed.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9"\n    }\n  ]\n}',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/clients/hwids/:email',
+        summary: 'Clear all registered HWID devices for a client so new devices can register again.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
         ],

@@ -42,6 +42,7 @@ function emptyForm(): FormState {
     comment: '',
     flow: '',
     limitIp: 0,
+    limitHwid: 0,
     totalGB: 0,
     expiryTime: 0,
     reset: 0,
@@ -174,6 +175,7 @@ export default function ClientBulkAddModal({
           expiryTime: form.expiryTime,
           reset: Number(form.reset) || 0,
           limitIp: Number(form.limitIp) || 0,
+          limitHwid: Number(form.limitHwid) || 0,
           group: form.group,
           comment: form.comment,
           enable: true,
@@ -323,6 +325,10 @@ export default function ClientBulkAddModal({
                   onChange={(v) => update('limitIp', Number(v) || 0)} />
               </span>
             </Tooltip>
+          </Form.Item>
+
+          <Form.Item label={t('pages.clients.limitHwid')} tooltip={t('pages.clients.limitHwidDesc')}>
+            <InputNumber value={form.limitHwid} min={0} onChange={(v) => update('limitHwid', Number(v) || 0)} />
           </Form.Item>
 
           <Form.Item label={t('pages.clients.totalGB')}>

@@ -1260,6 +1260,9 @@
           "keepAlive": {
             "type": "integer"
           },
+          "limitHwid": {
+            "type": "integer"
+          },
           "limitIp": {
             "type": "integer"
           },
@@ -1310,6 +1313,7 @@
           "group",
           "id",
           "keepAlive",
+          "limitHwid",
           "limitIp",
           "password",
           "preSharedKey",
@@ -5295,6 +5299,7 @@
                         "totalGB": 53687091200,
                         "expiryTime": 1735689600000,
                         "limitIp": 0,
+                        "limitHwid": 0,
                         "reset": 0,
                         "inboundIds": [
                           3,
@@ -5393,6 +5398,7 @@
                   "expiryTime": 1735689600000,
                   "tgId": 0,
                   "limitIp": 0,
+                  "limitHwid": 0,
                   "enable": true
                 },
                 "inboundIds": [
@@ -5459,6 +5465,7 @@
                 "email": "alice@example.com",
                 "totalGB": 107374182400,
                 "expiryTime": 1767225600000,
+                "limitHwid": 2,
                 "tgId": 123456789,
                 "enable": true
               }
@@ -5807,7 +5814,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
+        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, HWID devices, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
         "operationId": "post_panel_api_clients_delOrphans",
         "responses": {
           "200": {
@@ -5871,6 +5878,7 @@
                         "id": "...",
                         "totalGB": 53687091200,
                         "expiryTime": 0,
+                        "limitHwid": 2,
                         "enable": true,
                         "subId": "..."
                       },
@@ -6198,6 +6206,7 @@
                     "email": "alice@example.com",
                     "totalGB": 53687091200,
                     "expiryTime": 0,
+                    "limitHwid": 2,
                     "enable": true
                   },
                   "inboundIds": [
@@ -6209,6 +6218,7 @@
                     "email": "bob@example.com",
                     "totalGB": 53687091200,
                     "expiryTime": 0,
+                    "limitHwid": 0,
                     "enable": true
                   },
                   "inboundIds": [
@@ -6969,6 +6979,100 @@
         ],
         "summary": "Reset the recorded IP list for a client.",
         "operationId": "post_panel_api_clients_clearIps_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "operationId": "post_panel_api_clients_hwids_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "firstSeen": 1735000000000,
+                      "lastSeen": 1735100000000,
+                      "userAgent": "Happ/1.0",
+                      "deviceOs": "android",
+                      "osVersion": "15",
+                      "deviceModel": "Pixel 9"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Clear all registered HWID devices for a client so new devices can register again.",
+        "operationId": "delete_panel_api_clients_hwids_email",
         "parameters": [
           {
             "name": "email",
