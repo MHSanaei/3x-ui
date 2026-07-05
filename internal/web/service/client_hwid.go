@@ -31,6 +31,8 @@ type HwidGateResult struct {
 	Registered        int
 }
 
+const minHwidLength = 6
+
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
 	FirstSeen   int64  `json:"firstSeen"`
@@ -65,6 +67,29 @@ func normalizeHwidRequest(req HwidRequest) HwidRequest {
 	}
 }
 
+
+func hwidAnchorClientID(tx *gorm.DB, subID string) (int, error) {
+	var id int
+	err := tx.Model(&model.ClientRecord{}).
+		Where("sub_id = ? AND enable = ?", subID, true).
+		Order("id ASC").
+		Limit(1).
+		Pluck("id", &id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) || id == 0 {
+		return 0, gorm.ErrRecordNotFound
+	}
+	return id, err
+}
+
+func effectiveHwidLimitForSubID(tx *gorm.DB, subID string) (int, error) {
+	var limit int
+	err := tx.Model(&model.ClientRecord{}).
+		Where("sub_id = ? AND enable = ?", subID, true).
+		Select("COALESCE(MAX(limit_hwid), 0)").
+		Scan(&limit).Error
+	return limit, err
+}
+
 func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (HwidGateResult, error) {
 	var res HwidGateResult
 	subID = strings.TrimSpace(subID)
@@ -74,100 +99,67 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	}
 
 	db := database.GetDB()
-	var rec model.ClientRecord
-	err := db.Where("sub_id = ? AND enable = ?", subID, true).Order("id ASC").First(&rec).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		res.Allowed = true
-		return res, nil
-	}
+	limit, err := effectiveHwidLimitForSubID(db, subID)
 	if err != nil {
 		return res, err
 	}
-	if rec.LimitHwid <= 0 {
+	if limit <= 0 {
 		res.Allowed = true
 		return res, nil
 	}
 
 	req = normalizeHwidRequest(req)
 	res.Active = true
-	res.Limit = rec.LimitHwid
-	if len(req.Hwid) < 6 {
+	res.Limit = limit
+	if len(req.Hwid) < minHwidLength {
 		res.NotSupported = true
 		return res, nil
 	}
 	hwidHash := hashHwid(req.Hwid)
 
 	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&model.ClientRecord{}).
-			Where("id = ?", rec.Id).
-			UpdateColumn("updated_at", gorm.Expr("updated_at")).Error; err != nil {
+		limit, err := effectiveHwidLimitForSubID(tx, subID)
+		if err != nil {
 			return err
 		}
-		if err := tx.Where("id = ? AND enable = ?", rec.Id, true).First(&rec).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				res = HwidGateResult{Allowed: true}
-				return nil
-			}
-			return err
-		}
-		if rec.LimitHwid <= 0 {
+		if limit <= 0 {
 			res = HwidGateResult{Allowed: true}
 			return nil
 		}
 		res.Active = true
-		res.Limit = rec.LimitHwid
+		res.Limit = limit
+		anchorID, err := hwidAnchorClientID(tx, subID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			res = HwidGateResult{Allowed: true}
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 
 		now := time.Now().UnixMilli()
 		var existing model.ClientHwid
-		err := tx.Where("client_id = ? AND hwid_hash = ?", rec.Id, hwidHash).First(&existing).Error
+		err = tx.Where("client_id = ? AND hwid_hash = ?", anchorID, hwidHash).First(&existing).Error
 		if err == nil {
 			if err := tx.Model(&model.ClientHwid{}).Where("id = ?", existing.Id).Updates(map[string]any{
-				"last_seen":    now,
-				"user_agent":   req.UserAgent,
-				"device_os":    req.DeviceOS,
-				"os_version":   req.OsVersion,
-				"device_model": req.DeviceModel,
-			}).Error; err != nil {
-				return err
-			}
+				"last_seen": now, "user_agent": req.UserAgent, "device_os": req.DeviceOS, "os_version": req.OsVersion, "device_model": req.DeviceModel,
+			}).Error; err != nil { return err }
 			var count int64
-			if err := tx.Model(&model.ClientHwid{}).Where("client_id = ?", rec.Id).Count(&count).Error; err != nil {
-				return err
-			}
+			if err := tx.Model(&model.ClientHwid{}).Where("client_id = ?", anchorID).Count(&count).Error; err != nil { return err }
 			res.Allowed = true
 			res.Registered = int(count)
-			res.LimitReached = count >= int64(rec.LimitHwid)
+			res.LimitReached = count >= int64(limit)
 			return nil
 		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-
+		if !errors.Is(err, gorm.ErrRecordNotFound) { return err }
 		var count int64
-		if err := tx.Model(&model.ClientHwid{}).Where("client_id = ?", rec.Id).Count(&count).Error; err != nil {
-			return err
-		}
+		if err := tx.Model(&model.ClientHwid{}).Where("client_id = ?", anchorID).Count(&count).Error; err != nil { return err }
 		res.Registered = int(count)
-		if count >= int64(rec.LimitHwid) {
-			res.MaxDevicesReached = true
-			res.LimitReached = true
-			return nil
-		}
-		if err := tx.Create(&model.ClientHwid{
-			ClientId:    rec.Id,
-			HwidHash:    hwidHash,
-			FirstSeen:   now,
-			LastSeen:    now,
-			UserAgent:   req.UserAgent,
-			DeviceOS:    req.DeviceOS,
-			OsVersion:   req.OsVersion,
-			DeviceModel: req.DeviceModel,
-		}).Error; err != nil {
-			return err
-		}
+		if count >= int64(limit) { res.MaxDevicesReached = true; res.LimitReached = true; return nil }
+		if err := tx.Create(&model.ClientHwid{ClientId: anchorID, HwidHash: hwidHash, FirstSeen: now, LastSeen: now, UserAgent: req.UserAgent, DeviceOS: req.DeviceOS, OsVersion: req.OsVersion, DeviceModel: req.DeviceModel}).Error; err != nil { return err }
 		res.Allowed = true
 		res.Registered = int(count) + 1
-		res.LimitReached = res.Registered >= rec.LimitHwid
+		res.LimitReached = res.Registered >= limit
 		return nil
 	})
 	return res, err
@@ -178,9 +170,13 @@ func (s *ClientService) ListClientHwids(email string) ([]ClientHwidInfo, error) 
 	if err != nil {
 		return nil, err
 	}
+	clientID := rec.Id
+	if strings.TrimSpace(rec.SubID) != "" {
+		if anchorID, err := hwidAnchorClientID(database.GetDB(), rec.SubID); err == nil { clientID = anchorID }
+	}
 	var rows []model.ClientHwid
 	if err := database.GetDB().
-		Where("client_id = ?", rec.Id).
+		Where("client_id = ?", clientID).
 		Order("last_seen DESC").
 		Order("id DESC").
 		Find(&rows).Error; err != nil {
@@ -206,7 +202,11 @@ func (s *ClientService) ClearClientHwids(email string) error {
 	if err != nil {
 		return err
 	}
-	return database.GetDB().Where("client_id = ?", rec.Id).Delete(&model.ClientHwid{}).Error
+	clientID := rec.Id
+	if strings.TrimSpace(rec.SubID) != "" {
+		if anchorID, err := hwidAnchorClientID(database.GetDB(), rec.SubID); err == nil { clientID = anchorID }
+	}
+	return database.GetDB().Where("client_id = ?", clientID).Delete(&model.ClientHwid{}).Error
 }
 
 func (s *ClientService) setClientLimitHwidByEmail(tx *gorm.DB, email string, limit int) error {
@@ -223,7 +223,14 @@ func (s *ClientService) setClientLimitHwidByEmail(tx *gorm.DB, email string, lim
 	if err := tx.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).UpdateColumn("limit_hwid", limit).Error; err != nil {
 		return err
 	}
-	return trimClientHwids(tx, rec.Id, limit)
+	subID := strings.TrimSpace(rec.SubID)
+	if subID == "" { return trimClientHwids(tx, rec.Id, limit) }
+	effective, err := effectiveHwidLimitForSubID(tx, subID)
+	if err != nil { return err }
+	anchorID, err := hwidAnchorClientID(tx, subID)
+	if errors.Is(err, gorm.ErrRecordNotFound) { return nil }
+	if err != nil { return err }
+	return trimClientHwids(tx, anchorID, effective)
 }
 
 func trimClientHwids(tx *gorm.DB, clientID int, limit int) error {
