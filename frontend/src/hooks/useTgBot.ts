@@ -19,9 +19,13 @@ interface ActionResult {
 }
 
 const POLL_INTERVAL_MS = 3000;
-// Установка (git clone + venv + pip install) может занимать долго —
-// если HttpUtil поддерживает опции запроса, используем повышенный timeout.
 const INSTALL_TIMEOUT_MS = 180000;
+const MAX_LIVE_LOG_LINES = 500;
+
+function apiBasePath(): string {
+  const raw = (typeof window !== 'undefined' && (window as any).X_UI_BASE_PATH) || '/';
+  return raw.replace(/\/+$/, '');
+}
 
 export function useTgBot() {
   // --- статус службы ---
@@ -115,25 +119,10 @@ export function useTgBot() {
     if (res?.success) setInstalled(!!res.obj?.installed);
   }, []);
 
-  const [logs, setLogs] = useState('');
-  const [logsLoading, setLogsLoading] = useState(false);
-  
-  const refreshLogs = useCallback(async () => {
-    setLogsLoading(true);
-    try {
-      const res: ActionResult = await HttpUtil.get('/panel/api/tgbot/logs?lines=200');
-      if (res?.success) setLogs(res.obj?.logs ?? '');
-    } finally {
-      setLogsLoading(false);
-    }
-  }, []);
-  
   const installBot = useCallback(async () => {
     setInstalling(true);
     setInstallLog('');
     try {
-      // Если HttpUtil.post не поддерживает третий аргумент с опциями —
-      // убери его; тогда таймаут будет глобальным (проверь, что он >= 3 мин).
       const res: ActionResult = await HttpUtil.post(
         '/panel/api/tgbot/install',
         {},
@@ -149,6 +138,58 @@ export function useTgBot() {
       setInstalling(false);
     }
   }, [refreshInstalled, refreshStatus]);
+
+  // --- логи: разовая выгрузка (fallback / первичная подгрузка) ---
+  const [logs, setLogs] = useState('');
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const refreshLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const res: ActionResult = await HttpUtil.get('/panel/api/tgbot/logs?lines=200');
+      if (res?.success) setLogs(res.obj?.logs ?? '');
+      else setLogs(res?.msg || '');
+    } finally {
+      setLogsLoading(false);
+    }
+  }, []);
+
+  // --- логи: живой стрим через SSE ---
+  const [liveLines, setLiveLines] = useState<string[]>([]);
+  const [streaming, setStreaming] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const stopLogStream = useCallback(() => {
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
+    setStreaming(false);
+  }, []);
+
+  const startLogStream = useCallback(() => {
+    if (eventSourceRef.current) return; // уже запущен
+    setLiveLines([]);
+    const url = `${apiBasePath()}/panel/api/tgbot/logs/stream`;
+    const es = new EventSource(url, { withCredentials: true });
+
+    es.onmessage = (event) => {
+      setLiveLines((prev) => {
+        const next = [...prev, event.data];
+        return next.length > MAX_LIVE_LOG_LINES ? next.slice(-MAX_LIVE_LOG_LINES) : next;
+      });
+    };
+
+    es.onerror = () => {
+      // Сервер закрыл соединение или сеть моргнула — не пытаемся
+      // бесконечно реконнектиться сами, просто гасим стрим.
+      stopLogStream();
+    };
+
+    eventSourceRef.current = es;
+    setStreaming(true);
+  }, [stopLogStream]);
+
+  // Не оставляем открытое соединение, если страница/компонент размонтируется.
+  useEffect(() => () => stopLogStream(), [stopLogStream]);
 
   // --- начальная загрузка + поллинг статуса в реальном времени ---
   useEffect(() => {
@@ -190,5 +231,14 @@ export function useTgBot() {
     installLog,
     installBot,
     refreshInstalled,
+    // логи: разовая выгрузка
+    logs,
+    logsLoading,
+    refreshLogs,
+    // логи: живой стрим
+    liveLines,
+    streaming,
+    startLogStream,
+    stopLogStream,
   };
 }
