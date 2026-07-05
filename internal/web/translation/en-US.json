@@ -160,6 +160,7 @@
       "installSuccess": "Bot installed successfully",
       "installFailed": "Installation failed, check the log below",
       "logs": "Logs"
+      "liveLogs": "Live logs"
       },
     "index": {
       "title": "Overview",
