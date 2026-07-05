@@ -1,5 +1,3 @@
-[English](/docs/self-steal-reality.md) | [Русский](/docs/self-steal-reality.ru_RU.md)
-
 # Self-Steal Setup for VLESS+Reality
 
 ## Why
@@ -184,7 +182,7 @@ Inbounds → the VLESS inbound → **Security** tab:
   the old dest);
 - **Xver** → `1` (enables PROXY protocol v1 — without it nginx only ever sees `127.0.0.1`, never
   the real client IP);
-- if mldsa65 was generated at some point (the "Get New Cert" button does this too), clear both
+- if mldsa65 was generated at some point (the "Get New Seed" button does this), clear both
   **mldsa65 Seed** / **mldsa65 Verify** fields right away — see the known bug below.
 
 Save. **You don't need to restart Xray by hand** — the panel runs its own background job that
