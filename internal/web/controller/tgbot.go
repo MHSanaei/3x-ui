@@ -2,12 +2,11 @@ package controller
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -208,15 +207,28 @@ type setEnvRequest struct {
 	Values map[string]string `json:"values"`
 }
 
-func (a *TgBotController) setEnv(c *gin.Context) {
-	rawBody, _ := c.GetRawData()
-	fmt.Printf("TGBOT DEBUG /env raw body: %q | Content-Type: %s\n", string(rawBody), c.GetHeader("Content-Type"))
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+// bracketKeyPattern достаёт имя переменной из полей вида "values[BOT_TOKEN]",
+// которые присылает фронтенд при form-urlencoded кодировании вложенного объекта.
+var bracketKeyPattern = regexp.MustCompile(`^values\[(.+)\]$`)
 
-	var req setEnvRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("TGBOT DEBUG /env bind error: %v\n", err)
-		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "invalid payload"})
+func (a *TgBotController) setEnv(c *gin.Context) {
+	if err := c.Request.ParseForm(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "не удалось разобрать данные формы: " + err.Error()})
+		return
+	}
+
+	values := map[string]string{}
+	for key, vals := range c.Request.PostForm {
+		if len(vals) == 0 {
+			continue
+		}
+		if m := bracketKeyPattern.FindStringSubmatch(key); m != nil {
+			values[m[1]] = vals[0]
+		}
+	}
+
+	if len(values) == 0 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "не получено ни одного значения"})
 		return
 	}
 
@@ -229,7 +241,7 @@ func (a *TgBotController) setEnv(c *gin.Context) {
 	lines := strings.Split(string(raw), "\n")
 	rejected := []string{}
 
-	for key, newVal := range req.Values {
+	for key, newVal := range values {
 		found := false
 		for i, line := range lines {
 			trimmed := strings.TrimSpace(line)
@@ -287,17 +299,12 @@ type setEnvRawRequest struct {
 }
 
 func (a *TgBotController) setEnvRaw(c *gin.Context) {
-	rawBody, _ := c.GetRawData()
-	fmt.Printf("TGBOT DEBUG /env/raw raw body: %q | Content-Type: %s\n", string(rawBody), c.GetHeader("Content-Type"))
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
-
-	var req setEnvRawRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("TGBOT DEBUG /env/raw bind error: %v\n", err)
-		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "invalid payload"})
+	if err := c.Request.ParseForm(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "не удалось разобрать данные формы: " + err.Error()})
 		return
 	}
-	if err := os.WriteFile(tgBotEnvPath, []byte(req.Content), 0600); err != nil {
+	content := c.Request.PostForm.Get("content")
+	if err := os.WriteFile(tgBotEnvPath, []byte(content), 0600); err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
