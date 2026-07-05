@@ -79,7 +79,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
-              <InputNumber value={allSetting.subUpdates} min={1} style={{ width: '100%' }}
+              <InputNumber value={allSetting.subUpdates} min={0} max={525600} style={{ width: '100%' }}
                 onChange={(v) => updateSetting({ subUpdates: Number(v) || 0 })} />
             </SettingListItem>
           </>
