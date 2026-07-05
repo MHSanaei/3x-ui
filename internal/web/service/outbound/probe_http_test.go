@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -399,7 +400,12 @@ func TestTestOutboundsTCPLane(t *testing.T) {
 }
 
 func TestTestOutboundsHTTPBatchThroughStubSocks(t *testing.T) {
+	var mu sync.Mutex
+	requestsPerConn := make(map[string]int)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requestsPerConn[r.RemoteAddr]++
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
@@ -442,6 +448,19 @@ func TestTestOutboundsHTTPBatchThroughStubSocks(t *testing.T) {
 	}
 	if proc.IsRunning() {
 		t.Error("temp process not stopped after batch")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	totalRequests := 0
+	for addr, n := range requestsPerConn {
+		totalRequests += n
+		if n != 2 {
+			t.Errorf("connection %s served %d requests, want 2 (warm delay request must reuse the cold request's connection)", addr, n)
+		}
+	}
+	if totalRequests != 4 {
+		t.Errorf("test URL served %d requests, want 4 (cold + warm per probe)", totalRequests)
 	}
 }
 

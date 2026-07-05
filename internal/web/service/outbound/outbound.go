@@ -111,8 +111,9 @@ func (s *OutboundService) ResetOutboundTraffic(tag string) error {
 
 // TestOutboundResult represents the result of testing an outbound.
 // Delay is in milliseconds. Endpoints is only populated for TCP-mode
-// probes; HTTP mode reports the time of a real HTTP request routed
-// through the outbound, with an optional timing breakdown.
+// probes; HTTP mode reports the round-trip of a real HTTP request on an
+// established connection through the outbound (the cold first request
+// supplies the timing breakdown).
 type TestOutboundResult struct {
 	Tag     string `json:"tag,omitempty"`
 	Success bool   `json:"success"`
