@@ -289,6 +289,7 @@ export interface ClientRecord {
   group: string;
   id: number;
   keepAlive: number;
+  limitHwid: number;
   limitIp: number;
   password: string;
   preSharedKey: string;

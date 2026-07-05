@@ -140,6 +140,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			needRestart = true
 		}
 	}
+	if err := s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid); err != nil {
+		return needRestart, err
+	}
 	return needRestart, nil
 }
 
@@ -309,7 +312,7 @@ func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	}
 }
 
-func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, inboundFilter ...int) (bool, error) {
+func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, limitHwid int, inboundFilter ...int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -507,6 +510,10 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
+	if err := s.setClientLimitHwidByEmail(nil, updated.Email, limitHwid); err != nil {
+		return needRestart, err
+	}
+
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
@@ -579,6 +586,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 			return err
 		}
 		if err := tx.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("client_id = ?", id).Delete(&model.ClientHwid{}).Error; err != nil {
 			return err
 		}
 		if !keepTraffic && existing.Email != "" {
@@ -755,7 +765,7 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	return needRestart, nil
 }
 
-func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client, inboundFilter ...int) (bool, error) {
+func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client, limitHwid int, inboundFilter ...int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -763,7 +773,7 @@ func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, 
 	if err != nil {
 		return false, err
 	}
-	return s.Update(inboundSvc, rec.Id, updated, inboundFilter...)
+	return s.Update(inboundSvc, rec.Id, updated, limitHwid, inboundFilter...)
 }
 
 func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
