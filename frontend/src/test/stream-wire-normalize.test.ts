@@ -213,6 +213,14 @@ describe('normalizeSockoptForWire', () => {
 
     expect(out?.happyEyeballs).toEqual({ tryDelayMs: 250 });
   });
+
+  it('keeps an explicit tryDelayMs of 0 so it cannot rehydrate as the 250 default', () => {
+    const out = normalizeSockoptForWire({
+      happyEyeballs: { tryDelayMs: 0, prioritizeIPv6: true, interleave: 1, maxConcurrentTry: 4 },
+    });
+
+    expect(out?.happyEyeballs).toEqual({ tryDelayMs: 0, prioritizeIPv6: true });
+  });
 });
 
 describe('normalizeStreamSettingsForWire reality', () => {
