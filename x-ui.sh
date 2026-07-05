@@ -2297,7 +2297,7 @@ setup_fail2ban_iplimit() {
                 fi
                 ;;
             arch | manjaro | parch)
-                pacman -Syu --noconfirm fail2ban nftables
+                pacman -Sy --noconfirm fail2ban nftables
                 ;;
             alpine)
                 apk add fail2ban nftables
@@ -2874,7 +2874,7 @@ pg_install_local() {
             [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
             ;;
         arch | manjaro | parch)
-            pacman -Syu --noconfirm postgresql >&2 || return 1
+            pacman -Sy --noconfirm postgresql >&2 || return 1
             if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
                 sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
             fi
