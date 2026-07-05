@@ -267,7 +267,6 @@ export function normalizeSockoptForWire(
   const he = out.happyEyeballs;
   if (isRecord(he)) {
     const heOut: Record<string, unknown> = { ...he };
-    if (heOut.tryDelayMs === 0) delete heOut.tryDelayMs;
     if (heOut.prioritizeIPv6 === false) delete heOut.prioritizeIPv6;
     if (heOut.interleave === 1) delete heOut.interleave;
     if (heOut.maxConcurrentTry === 4) delete heOut.maxConcurrentTry;

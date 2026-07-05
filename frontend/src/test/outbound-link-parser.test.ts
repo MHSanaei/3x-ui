@@ -308,6 +308,52 @@ describe('parseHysteria2Link', () => {
     expect(settings.packetSize).toBe('100-200');
   });
 
+  it('coerces string quicParams numerics under fm to integers — #5783', () => {
+    const fm = encodeURIComponent(JSON.stringify({
+      quicParams: {
+        keepAlivePeriod: '10s',
+        maxIdleTimeout: '30',
+        initStreamReceiveWindow: 524288,
+        maxIncomingStreams: true,
+        brutalUp: '100 mbps',
+      },
+    }));
+    const link = `hysteria2://78e7795a209c4c099f896a816fc8448f@news.domain.org:8443?security=tls&sni=news.domain.org&fm=${fm}#hy2-quic`;
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const quic = finalmask.quicParams as Record<string, unknown>;
+    expect(quic.keepAlivePeriod).toBe(10);
+    expect(quic.maxIdleTimeout).toBe(30);
+    expect(quic.initStreamReceiveWindow).toBe(524288);
+    expect('maxIncomingStreams' in quic).toBe(false);
+    expect(quic.brutalUp).toBe('100 mbps');
+  });
+
+  it('clamps quicParams to the ranges xray accepts and drops junk — #5783', () => {
+    const fm = encodeURIComponent(JSON.stringify({
+      quicParams: {
+        keepAlivePeriod: '1s',
+        maxIdleTimeout: '10m',
+        maxIncomingStreams: 4,
+        initStreamReceiveWindow: 'inf',
+        maxStreamReceiveWindow: -5,
+        initConnectionReceiveWindow: 1e30,
+      },
+    }));
+    const link = `hysteria2://78e7795a209c4c099f896a816fc8448f@news.domain.org:8443?security=tls&sni=news.domain.org&fm=${fm}#hy2-clamp`;
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const quic = finalmask.quicParams as Record<string, unknown>;
+    expect(quic.keepAlivePeriod).toBe(2);
+    expect(quic.maxIdleTimeout).toBe(120);
+    expect(quic.maxIncomingStreams).toBe(8);
+    expect('initStreamReceiveWindow' in quic).toBe(false);
+    expect('maxStreamReceiveWindow' in quic).toBe(false);
+    expect('initConnectionReceiveWindow' in quic).toBe(false);
+  });
+
   it('round-trips the realm tlsConfig under fm', () => {
     const fm = encodeURIComponent(JSON.stringify({
       udp: [{

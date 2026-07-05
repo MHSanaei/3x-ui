@@ -111,7 +111,7 @@ install_base() {
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
+            pacman -Sy --noconfirm cronie curl tar tzdata socat ca-certificates openssl
             ;;
         opensuse-tumbleweed | opensuse-leap)
             zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
@@ -180,6 +180,36 @@ write_install_result() {
     echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
 }
 
+# RHEL-family initdb writes pg_hba.conf host rules with ident auth, which
+# compares the OS username against the Postgres role and always rejects the
+# randomly generated panel role over TCP (#5806). Prepend password-auth rules
+# scoped to the panel database; first match wins, and md5 also accepts
+# scram-sha-256-stored verifiers, so this works on every supported distro.
+pg_ensure_hba_password_auth() {
+    local pg_db="$1"
+    local hba_file
+    hba_file=$(sudo -u postgres psql -tAc 'SHOW hba_file' 2> /dev/null | tr -d '[:space:]')
+    [[ -n "${hba_file}" && -f "${hba_file}" ]] || return 0
+    grep -Eq "^host[[:space:]]+${pg_db}[[:space:]]" "${hba_file}" && return 0
+    local tmp
+    tmp=$(mktemp) || return 1
+    {
+        echo "# Added by 3x-ui: allow password logins for the panel database."
+        echo "host    ${pg_db}    all    127.0.0.1/32    md5"
+        echo "host    ${pg_db}    all    ::1/128         md5"
+        cat "${hba_file}"
+    } > "${tmp}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    cat "${tmp}" > "${hba_file}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    rm -f "${tmp}"
+    sudo -u postgres psql -tAc 'SELECT pg_reload_conf()' > /dev/null 2>&1 || true
+}
+
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -204,7 +234,7 @@ install_postgres_local() {
             [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
             ;;
         arch | manjaro | parch)
-            pacman -Syu --noconfirm postgresql >&2 || return 1
+            pacman -Sy --noconfirm postgresql >&2 || return 1
             if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
                 sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
             fi
@@ -262,6 +292,9 @@ install_postgres_local() {
         || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
 
     sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
+
+    pg_ensure_hba_password_auth "${pg_db}" \
+        || echo -e "${yellow}Warning: could not update pg_hba.conf; PostgreSQL may reject the panel's TCP login (ident auth).${plain}" >&2
 
     local pg_pass_enc
     pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
@@ -1460,10 +1493,12 @@ install_x-ui() {
     chmod +x x-ui
     chmod +x x-ui.sh
 
-    # Check the system's architecture and rename the file accordingly
+    # Check the system's architecture and rename the file accordingly.
+    # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
+    # so the Xray binary must be named xray-linux-arm32; mtg keeps plain "arm".
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
+        chmod +x bin/xray-linux-arm32
         if [[ -f bin/mtg-linux-$(arch) ]]; then
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm

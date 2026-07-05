@@ -17,8 +17,9 @@ import {
 const DIRTY_POLL_MS = 1000;
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
 // One HTTP-mode batch request tests this many outbounds through a single
-// shared temp xray instance; chunking keeps responses bounded (~15s worst
-// case) and lands Test All results progressively.
+// shared temp xray instance; chunking keeps responses bounded (~30s worst
+// case — each probe is a cold plus a warm request) and lands Test All
+// results progressively.
 const HTTP_BATCH_CHUNK = 16;
 
 export function isUdpOutbound(outbound: unknown): boolean {

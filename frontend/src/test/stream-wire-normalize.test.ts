@@ -10,6 +10,7 @@ import {
   validateRealityTarget,
 } from '@/lib/xray/stream-wire-normalize';
 import { InboundFormSchema } from '@/schemas/forms/inbound-form';
+import { HappyEyeballsSchema } from '@/schemas/protocols/stream/sockopt';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 
@@ -203,6 +204,22 @@ describe('normalizeSockoptForWire', () => {
       prioritizeIPv6: true,
     });
     expect(out?.domainStrategy).toBe('UseIP');
+  });
+
+  it('keeps a freshly toggled happyEyeballs (schema defaults) across the wire round trip', () => {
+    const out = normalizeSockoptForWire({
+      happyEyeballs: HappyEyeballsSchema.parse({}),
+    });
+
+    expect(out?.happyEyeballs).toEqual({ tryDelayMs: 250 });
+  });
+
+  it('keeps an explicit tryDelayMs of 0 so it cannot rehydrate as the 250 default', () => {
+    const out = normalizeSockoptForWire({
+      happyEyeballs: { tryDelayMs: 0, prioritizeIPv6: true, interleave: 1, maxConcurrentTry: 4 },
+    });
+
+    expect(out?.happyEyeballs).toEqual({ tryDelayMs: 0, prioritizeIPv6: true });
   });
 });
 

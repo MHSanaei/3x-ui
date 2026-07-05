@@ -809,6 +809,7 @@
       "groupPlaceholder": "例: customer-a",
       "comment": "コメント",
       "traffic": "トラフィック",
+      "speed": "速度",
       "offline": "オフライン",
       "addClient": "クライアントを追加",
       "qrCode": "QR コード",
