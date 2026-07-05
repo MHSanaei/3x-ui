@@ -831,7 +831,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
+func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool, fullDelete bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -972,9 +972,17 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		} else {
 			// Node inbound: propagate the delete regardless of the enable flag —
 			// the node's own DB still carries a disabled client and would
-			// resurrect it on the next snapshot otherwise.
+			// resurrect it on the next snapshot otherwise. A full client delete
+			// must remove the node's client record too, not just detach it from
+			// this inbound (#5797).
 			if push {
-				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+				var err1 error
+				if fullDelete {
+					err1 = rt.DeleteClient(context.Background(), email)
+				} else {
+					err1 = rt.DeleteUser(context.Background(), oldInbound, email)
+				}
+				if err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 				} else {
 					advancePushedInbound(rt, prevSettings, oldInbound)

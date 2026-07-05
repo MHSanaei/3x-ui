@@ -451,7 +451,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false, true)
 		if delErr != nil {
 			// The client is already absent from this inbound (data drift or a
 			// retried delete). Skip it — deletion stays idempotent.
@@ -609,7 +609,7 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	}
 	needRestart := false
 	for _, ibId := range inboundIds {
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false, true)
 		if delErr != nil {
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
@@ -672,7 +672,7 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, true)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, true, false)
 		if delErr != nil {
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
