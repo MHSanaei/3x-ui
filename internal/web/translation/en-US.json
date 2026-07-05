@@ -161,6 +161,10 @@
       "installFailed": "Installation failed, check the log below",
       "logs": "Logs"
       "liveLogs": "Live logs"
+      "envFields": {
+        "BOT_TOKEN": "Bot token",
+        "ADMIN_IDS": "Admin IDs"
+        }
       },
     "index": {
       "title": "Overview",
