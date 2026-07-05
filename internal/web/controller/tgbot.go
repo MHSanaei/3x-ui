@@ -37,6 +37,7 @@ func (a *TgBotController) initRouter(g *gin.RouterGroup) {
 	gg := g.Group("/tgbot")
 
 	gg.GET("/status", a.getStatus)
+	gg.GET("/logs", a.getLogs)
 	gg.POST("/start", a.start)
 	gg.POST("/stop", a.stop)
 	gg.POST("/restart", a.restart)
