@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,7 +22,6 @@ import {
   PlayCircleOutlined,
   ReloadOutlined,
   RobotOutlined,
-  SafetyOutlined,
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -31,21 +29,31 @@ import { useTgBot } from '@/hooks/useTgBot';
 import AppSidebar from '@/layouts/AppSidebar';
 import './TgBotPage.css';
 
-// Известные поля .env, для которых делаем удобные формы вместо "сырого" редактора.
-// Ключи должны совпадать 1:1 с тем, что реально лежит в .env бота.
-const KNOWN_FIELDS: { key: string; labelKey: string; icon: ReactNode; secret?: boolean }[] = [
-  { key: 'BOT_TOKEN', labelKey: 'pages.tgbot.botToken', icon: <KeyOutlined />, secret: true },
-  { key: 'ADMIN_IDS', labelKey: 'pages.tgbot.adminIds', icon: <SafetyOutlined /> },
-];
+// Поля, чьи имена содержат одно из этих слов, показываем как password —
+// не нужно вручную перечислять каждый секретный ключ, работает по смыслу имени.
+const SECRET_HINTS = ['TOKEN', 'SECRET', 'KEY', 'PASSWORD', 'PASS'];
 
-// Маленький живой индикатор рядом с переключателем "Live" —
-// просто пульсирующая точка, чистый CSS, без лишней библиотеки.
+function isSecretField(key: string): boolean {
+  const upper = key.toUpperCase();
+  return SECRET_HINTS.some((hint) => upper.includes(hint));
+}
+
+// Человекочитаемая подпись из SNAKE_CASE, если для ключа нет отдельного перевода.
+function prettyLabel(key: string): string {
+  return key
+    .toLowerCase()
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Маленький живой индикатор рядом с переключателем "Live".
 function LiveDot() {
   return <span className="tgbot-live-dot" />;
 }
 
 export default function TgBotPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const {
     running,
@@ -89,11 +97,30 @@ export default function TgBotPage() {
     return classes.join(' ');
   }, [isDark, isUltra]);
 
+  // Список полей строим из того, что реально пришло с бэка (envData.order),
+  // а не из жёстко забитого списка — так поля всегда совпадают с .env на диске.
+  const fieldKeys = envData.order;
+
   const initialValues = useMemo(() => {
     const out: Record<string, string> = {};
-    for (const f of KNOWN_FIELDS) out[f.key] = envData.values[f.key] ?? '';
+    for (const key of fieldKeys) out[key] = envData.values[key] ?? '';
     return out;
-  }, [envData]);
+  }, [fieldKeys, envData.values]);
+
+  // Форма создаётся один раз (через useForm), поэтому обновляем значения
+  // через setFieldsValue при каждой свежей загрузке .env, а не через
+  // пересоздание initialValues — это надёжнее, чем трюк с key={...}.
+  useEffect(() => {
+    form.setFieldsValue(initialValues);
+  }, [form, initialValues]);
+
+  function labelFor(key: string): string {
+    // Если в словаре объявлен перевод для конкретного ключа — используем его,
+    // иначе строим читаемую подпись прямо из имени переменной.
+    const translationKey = `pages.tgbot.envFields.${key}`;
+    const translated = t(translationKey);
+    return translated === translationKey ? prettyLabel(key) : translated;
+  }
 
   // Автоскролл живых логов к последней строке.
   useEffect(() => {
@@ -102,8 +129,7 @@ export default function TgBotPage() {
     }
   }, [liveLines]);
 
-  // Останавливаем стрим, если пользователь ушёл со страницы
-  // (доп. защита сверх unmount-очистки внутри самого хука).
+  // Останавливаем стрим при уходе со страницы.
   useEffect(() => () => stopLogStream(), [stopLogStream]);
 
   async function onSaveFields() {
@@ -167,8 +193,6 @@ export default function TgBotPage() {
       refreshLogs();
       setLogsLoaded(true);
     }
-    // Ушли со вкладки логов — гасим живой стрим, чтобы не висело
-    // открытое SSE-соединение впустую.
     if (key !== 'logs' && streaming) {
       stopLogStream();
     }
@@ -301,25 +325,24 @@ export default function TgBotPage() {
                         label: t('pages.tgbot.basicSettings'),
                         children: (
                           <Spin spinning={envLoading}>
-                            <Form
-                              form={form}
-                              layout="vertical"
-                              initialValues={initialValues}
-                              key={JSON.stringify(initialValues)}
-                            >
-                              {KNOWN_FIELDS.map((f) => (
-                                <Form.Item key={f.key} name={f.key} label={t(f.labelKey)}>
-                                  <Input
-                                    prefix={f.icon}
-                                    type={f.secret ? 'password' : 'text'}
-                                    placeholder={t(f.labelKey)}
-                                  />
-                                </Form.Item>
-                              ))}
-                              <Button type="primary" loading={savingFields} onClick={onSaveFields}>
-                                {t('save')}
-                              </Button>
-                            </Form>
+                            {!envLoading && fieldKeys.length === 0 ? (
+                              <div className="tgbot-env-empty">{t('pages.tgbot.envEmpty')}</div>
+                            ) : (
+                              <Form form={form} layout="vertical" initialValues={initialValues}>
+                                {fieldKeys.map((key) => (
+                                  <Form.Item key={key} name={key} label={labelFor(key)}>
+                                    <Input
+                                      prefix={isSecretField(key) ? <KeyOutlined /> : undefined}
+                                      type={isSecretField(key) ? 'password' : 'text'}
+                                      placeholder={labelFor(key)}
+                                    />
+                                  </Form.Item>
+                                ))}
+                                <Button type="primary" loading={savingFields} onClick={onSaveFields}>
+                                  {t('save')}
+                                </Button>
+                              </Form>
+                            )}
                           </Spin>
                         ),
                       },
