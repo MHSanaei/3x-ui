@@ -1316,12 +1316,13 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	for idx := range prep {
 		if failed[idx] {
 			skip(prep[idx].client.Email, reason[idx])
-		} else {
-			if err := s.setClientLimitHwidByEmail(nil, prep[idx].client.Email, prep[idx].limitHwid); err != nil {
-				return result, needRestart, err
-			}
-			result.Created++
+			continue
 		}
+		if err := s.setClientLimitHwidByEmail(nil, prep[idx].client.Email, prep[idx].limitHwid); err != nil {
+			skip(prep[idx].client.Email, err.Error())
+			continue
+		}
+		result.Created++
 	}
 	return result, needRestart, nil
 }

@@ -150,3 +150,23 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 		t.Fatalf("clear should remove all HWIDs, got %d", count)
 	}
 }
+
+func TestClientHwidGateSharedSubIdUsesMaxLimit(t *testing.T) {
+	initClientHwidTestDB(t)
+	svc := &ClientService{}
+	db := database.GetDB()
+	subID := "shared-sub"
+	if err := db.Create(&model.ClientRecord{Email: "a@ex.com", SubID: subID, UUID: "11111111-2222-4333-8444-555555555555", Enable: true, LimitHwid: 0}).Error; err != nil {
+		t.Fatalf("seed anchor: %v", err)
+	}
+	if err := db.Create(&model.ClientRecord{Email: "b@ex.com", SubID: subID, UUID: "22222222-2222-4333-8444-555555555555", Enable: true, LimitHwid: 2}).Error; err != nil {
+		t.Fatalf("seed second: %v", err)
+	}
+	res, err := svc.EnforceHwidForSubID(subID, HwidRequest{})
+	if err != nil || !res.Active || res.Limit != 2 {
+		t.Fatalf("expected active gate limit 2 from max row, err=%v res=%+v", err, res)
+	}
+	if res.Allowed || !res.NotSupported {
+		t.Fatalf("missing HWID should be denied: %+v", res)
+	}
+}
