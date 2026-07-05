@@ -1,6 +1,7 @@
 package link
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -32,6 +33,44 @@ func TestParseVlessLink(t *testing.T) {
 	}
 	if res.Outbound["tag"] != "node1" {
 		t.Errorf("tag mismatch: %v", res.Outbound["tag"])
+	}
+}
+
+func TestParseVlessLink_FinalMaskQuicParamsSanitized(t *testing.T) {
+	fm := url.QueryEscape(`{"mask":"dtls","quicParams":{"keepAlivePeriod":"10s","maxIdleTimeout":"30","initStreamReceiveWindow":524288,"maxIncomingStreams":true,"brutalUp":"100 mbps"}}`)
+	res, err := ParseLink("vless://uuid@1.2.3.4:443?type=tcp&security=none&fm=" + fm + "#node1")
+	if err != nil {
+		t.Fatalf("parse vless with fm: %v", err)
+	}
+	stream, ok := res.Outbound["streamSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing streamSettings: %v", res.Outbound)
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing finalmask: %v", stream)
+	}
+	if finalmask["mask"] != "dtls" {
+		t.Errorf("mask changed: %v", finalmask["mask"])
+	}
+	qp, ok := finalmask["quicParams"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing quicParams: %v", finalmask)
+	}
+	if got := qp["keepAlivePeriod"]; got != float64(10) {
+		t.Errorf("keepAlivePeriod: expected 10, got %v (%T)", got, got)
+	}
+	if got := qp["maxIdleTimeout"]; got != float64(30) {
+		t.Errorf("maxIdleTimeout: expected 30, got %v (%T)", got, got)
+	}
+	if got := qp["initStreamReceiveWindow"]; got != float64(524288) {
+		t.Errorf("initStreamReceiveWindow: expected 524288, got %v (%T)", got, got)
+	}
+	if _, exists := qp["maxIncomingStreams"]; exists {
+		t.Errorf("maxIncomingStreams should be dropped, got %v", qp["maxIncomingStreams"])
+	}
+	if got := qp["brutalUp"]; got != "100 mbps" {
+		t.Errorf("brutalUp should stay a string, got %v (%T)", got, got)
 	}
 }
 

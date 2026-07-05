@@ -8,10 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Outbound is the minimal shape we emit for each parsed link.
@@ -657,7 +659,50 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 	if fm := p.Get("fm"); fm != "" {
 		var parsed any
 		if json.Unmarshal([]byte(fm), &parsed) == nil {
+			sanitizeFinalMaskQuicParams(parsed)
 			stream["finalmask"] = parsed
+		}
+	}
+}
+
+// sanitizeFinalMaskQuicParams coerces the strictly numeric quicParams fields
+// of a finalmask blob taken verbatim from a share link's fm= parameter.
+// Xray-core rejects the whole config at startup when e.g. keepAlivePeriod
+// arrives as a duration string like "10s", so numeric strings are parsed,
+// duration strings are converted to whole seconds, and anything else is
+// dropped rather than passed through (#5783).
+func sanitizeFinalMaskQuicParams(parsed any) {
+	fm, ok := parsed.(map[string]any)
+	if !ok {
+		return
+	}
+	qp, ok := fm["quicParams"].(map[string]any)
+	if !ok {
+		return
+	}
+	numericKeys := []string{
+		"initStreamReceiveWindow", "maxStreamReceiveWindow",
+		"initConnectionReceiveWindow", "maxConnectionReceiveWindow",
+		"maxIdleTimeout", "keepAlivePeriod", "maxIncomingStreams",
+	}
+	for _, key := range numericKeys {
+		raw, exists := qp[key]
+		if !exists {
+			continue
+		}
+		switch v := raw.(type) {
+		case float64:
+			qp[key] = math.Trunc(v)
+		case string:
+			if n, err := strconv.ParseFloat(v, 64); err == nil {
+				qp[key] = math.Trunc(n)
+			} else if d, err := time.ParseDuration(v); err == nil {
+				qp[key] = math.Trunc(d.Seconds())
+			} else {
+				delete(qp, key)
+			}
+		default:
+			delete(qp, key)
 		}
 	}
 }

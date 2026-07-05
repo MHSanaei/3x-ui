@@ -218,10 +218,53 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   try {
     const parsed = JSON.parse(fm) as Record<string, unknown>;
     if (parsed && typeof parsed === 'object') {
+      sanitizeFinalMaskQuicParams(parsed);
       stream.finalmask = parsed;
     }
   } catch {
     // malformed fm — leave streamSettings.finalmask absent
+  }
+}
+
+const QUIC_PARAMS_NUMERIC_KEYS = [
+  'initStreamReceiveWindow',
+  'maxStreamReceiveWindow',
+  'initConnectionReceiveWindow',
+  'maxConnectionReceiveWindow',
+  'maxIdleTimeout',
+  'keepAlivePeriod',
+  'maxIncomingStreams',
+] as const;
+
+const DURATION_SECONDS: Record<string, number> = { ms: 0.001, s: 1, m: 60, h: 3600 };
+
+// xray-core rejects the whole config when these quicParams fields are not
+// plain integers (e.g. keepAlivePeriod "10s" from a foreign provider), so
+// coerce numeric/duration strings and drop anything unparseable (#5783).
+function sanitizeFinalMaskQuicParams(parsed: Record<string, unknown>): void {
+  const raw = parsed.quicParams;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+  const quic = raw as Record<string, unknown>;
+  for (const key of QUIC_PARAMS_NUMERIC_KEYS) {
+    if (!(key in quic)) continue;
+    const value = quic[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      quic[key] = Math.trunc(value);
+      continue;
+    }
+    if (typeof value === 'string') {
+      const asNumber = Number(value);
+      if (value.trim() !== '' && Number.isFinite(asNumber)) {
+        quic[key] = Math.trunc(asNumber);
+        continue;
+      }
+      const duration = /^(\d+(?:\.\d+)?)(ms|s|m|h)$/.exec(value.trim());
+      if (duration) {
+        quic[key] = Math.trunc(Number(duration[1]) * DURATION_SECONDS[duration[2]]);
+        continue;
+      }
+    }
+    delete quic[key];
   }
 }
 
