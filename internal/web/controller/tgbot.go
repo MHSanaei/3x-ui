@@ -61,6 +61,16 @@ func isServiceActive(name string) bool {
 	return cmd.Run() == nil
 }
 
+func (a *TgBotController) getLogs(c *gin.Context) {
+	lines := c.DefaultQuery("lines", "200")
+	out, err := runCmd("journalctl", "-u", tgBotServiceName, "-n", lines, "--no-pager", "-o", "cat")
+	if err != nil && out == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "obj": gin.H{"logs": out}})
+}
+
 func (a *TgBotController) getStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
