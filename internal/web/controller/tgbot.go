@@ -37,7 +37,6 @@ func (a *TgBotController) initRouter(g *gin.RouterGroup) {
 	gg := g.Group("/tgbot")
 
 	gg.GET("/status", a.getStatus)
-	gg.GET("/logs", a.getLogs)
 	gg.POST("/start", a.start)
 	gg.POST("/stop", a.stop)
 	gg.POST("/restart", a.restart)
@@ -50,16 +49,14 @@ func (a *TgBotController) initRouter(g *gin.RouterGroup) {
 	gg.GET("/dependencies", a.checkDependencies)
 	gg.GET("/installed", a.checkInstalled)
 	gg.POST("/install", a.installBot)
+
+	gg.GET("/logs", a.getLogs)
+	gg.GET("/logs/stream", a.streamLogs)
 }
 
 // ---------------------------------------------------------------------------
-// Статус службы
+// Логи службы (через journalctl)
 // ---------------------------------------------------------------------------
-
-func isServiceActive(name string) bool {
-	cmd := exec.Command("systemctl", "is-active", "--quiet", name)
-	return cmd.Run() == nil
-}
 
 func (a *TgBotController) getLogs(c *gin.Context) {
 	lines := c.DefaultQuery("lines", "200")
@@ -69,6 +66,53 @@ func (a *TgBotController) getLogs(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "obj": gin.H{"logs": out}})
+}
+
+// streamLogs держит соединение открытым и пушит новые строки лога через SSE,
+// пока клиент не закроет вкладку/переключится с вкладки логов (тогда браузер
+// сам обрывает EventSource, и context у нас отменяется).
+func (a *TgBotController) streamLogs(c *gin.Context) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no") // на случай nginx-проксирования перед панелью
+
+	ctx := c.Request.Context()
+	cmd := exec.CommandContext(ctx, "journalctl", "-u", tgBotServiceName, "-n", "200", "-f", "-o", "cat")
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		c.String(http.StatusInternalServerError, "data: %s\n\n", err.Error())
+		return
+	}
+	if err := cmd.Start(); err != nil {
+		c.String(http.StatusInternalServerError, "data: %s\n\n", err.Error())
+		return
+	}
+	defer cmd.Process.Kill()
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		line := scanner.Text()
+		if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", line); err != nil {
+			return
+		}
+		c.Writer.Flush()
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Статус службы
+// ---------------------------------------------------------------------------
+
+func isServiceActive(name string) bool {
+	cmd := exec.Command("systemctl", "is-active", "--quiet", name)
+	return cmd.Run() == nil
 }
 
 func (a *TgBotController) getStatus(c *gin.Context) {
