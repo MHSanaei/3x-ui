@@ -331,11 +331,15 @@ export default function TgBotPage() {
                               <Form form={form} layout="vertical" initialValues={initialValues}>
                                 {fieldKeys.map((key) => (
                                   <Form.Item key={key} name={key} label={labelFor(key)}>
-                                    <Input
-                                      prefix={isSecretField(key) ? <KeyOutlined /> : undefined}
-                                      type={isSecretField(key) ? 'password' : 'text'}
-                                      placeholder={labelFor(key)}
-                                    />
+                                    {isSecretField(key) ? (
+                                      <Input.Password
+                                        prefix={<KeyOutlined />}
+                                        placeholder={labelFor(key)}
+                                        autoComplete="new-password"
+                                      />
+                                    ) : (
+                                      <Input placeholder={labelFor(key)} />
+                                    )}
                                   </Form.Item>
                                 ))}
                                 <Button type="primary" loading={savingFields} onClick={onSaveFields}>
