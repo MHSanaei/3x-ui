@@ -837,26 +837,17 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-
-	// Retrieve inbounds where settings contain the given tgId
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
-		return nil, err
-	}
 
 	var emails []string
-	for _, inbound := range inbounds {
-		clients, err := s.GetClients(inbound)
+	err := db.Model(&model.ClientRecord{}).Where("tg_id = ?", tgId).Pluck("email", &emails).Error
+	if err != nil {
+		logger.Errorf("Error retrieving clients with tgId %d: %v", tgId, err)
+		return nil, err
+	}
+	if len(emails) == 0 {
+		emails, err = s.legacyClientEmailsByTgID(db, tgId)
 		if err != nil {
-			logger.Errorf("Error retrieving clients for inbound %d: %v", inbound.Id, err)
-			continue
-		}
-		for _, client := range clients {
-			if client.TgID == tgId {
-				emails = append(emails, client.Email)
-			}
+			return nil, err
 		}
 	}
 
@@ -890,6 +881,34 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	}
 
 	return traffics, nil
+}
+
+func (s *InboundService) legacyClientEmailsByTgID(db *gorm.DB, tgId int64) ([]string, error) {
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).
+		Where("settings LIKE ? OR settings LIKE ?",
+			fmt.Sprintf(`%%"tgId": %d%%`, tgId),
+			fmt.Sprintf(`%%"tgId":%d%%`, tgId)).
+		Find(&inbounds).Error
+	if err != nil {
+		logger.Errorf("Error retrieving legacy inbounds with tgId %d: %v", tgId, err)
+		return nil, err
+	}
+
+	emails := make([]string, 0)
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			logger.Errorf("Error retrieving clients for inbound %d: %v", inbound.Id, err)
+			continue
+		}
+		for _, client := range clients {
+			if client.TgID == tgId {
+				emails = append(emails, client.Email)
+			}
+		}
+	}
+	return emails, nil
 }
 
 // BumpClientsLastOnline sets client_traffics.last_online to now for the given
