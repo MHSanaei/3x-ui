@@ -2,7 +2,9 @@ package controller
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -207,8 +209,13 @@ type setEnvRequest struct {
 }
 
 func (a *TgBotController) setEnv(c *gin.Context) {
+	rawBody, _ := c.GetRawData()
+	fmt.Printf("TGBOT DEBUG /env raw body: %q | Content-Type: %s\n", string(rawBody), c.GetHeader("Content-Type"))
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+
 	var req setEnvRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("TGBOT DEBUG /env bind error: %v\n", err)
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "invalid payload"})
 		return
 	}
@@ -280,8 +287,13 @@ type setEnvRawRequest struct {
 }
 
 func (a *TgBotController) setEnvRaw(c *gin.Context) {
+	rawBody, _ := c.GetRawData()
+	fmt.Printf("TGBOT DEBUG /env/raw raw body: %q | Content-Type: %s\n", string(rawBody), c.GetHeader("Content-Type"))
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+
 	var req setEnvRawRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("TGBOT DEBUG /env/raw bind error: %v\n", err)
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "invalid payload"})
 		return
 	}
