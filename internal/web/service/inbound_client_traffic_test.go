@@ -304,3 +304,78 @@ func TestGetClientTrafficTgBotLegacyCompactJSON(t *testing.T) {
 		t.Fatalf("traffic emails = %#v, want %q", got, email)
 	}
 }
+
+func TestGetClientTrafficTgBotNormalizedFastPath(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	const email = "norm-fast@example.test"
+	const tgID int64 = 313131313
+
+	if err := db.Create(&model.ClientRecord{Email: email, TgID: tgID, Enable: true}).Error; err != nil {
+		t.Fatalf("create client record: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{Email: email, Enable: true}).Error; err != nil {
+		t.Fatalf("create traffic: %v", err)
+	}
+
+	got, err := (&InboundService{}).GetClientTrafficTgBot(tgID)
+	if err != nil {
+		t.Fatalf("GetClientTrafficTgBot: %v", err)
+	}
+	if len(got) != 1 || got[0].Email != email {
+		t.Fatalf("traffic emails = %#v, want %q", got, email)
+	}
+}
+
+func TestGetClientTrafficTgBotMergesNormalizedAndLegacy(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	const tgID int64 = 424242424
+	const emailNorm = "norm@example.test"
+	const emailLegacy = "legacy-sibling@example.test"
+
+	if err := db.Create(&model.ClientRecord{Email: emailNorm, TgID: tgID, Enable: true}).Error; err != nil {
+		t.Fatalf("create normalized client: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{Email: emailNorm, Enable: true}).Error; err != nil {
+		t.Fatalf("create norm traffic: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "legacy-sibling", Enable: true, Port: 46004, Protocol: model.VLESS,
+		Settings: `{"clients":[{"id":"ce8d33df-3a64-4f10-8f9b-91c3a8e0d004","email":"legacy-sibling@example.test","enable":true,"tgId":424242424}],"decryption":"none"}`,
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: emailLegacy, Enable: true}).Error; err != nil {
+		t.Fatalf("create legacy traffic: %v", err)
+	}
+
+	got, err := (&InboundService{}).GetClientTrafficTgBot(tgID)
+	if err != nil {
+		t.Fatalf("GetClientTrafficTgBot: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("want 2 traffic rows, got %#v", got)
+	}
+	seen := map[string]bool{}
+	for _, tr := range got {
+		seen[tr.Email] = true
+	}
+	if !seen[emailNorm] || !seen[emailLegacy] {
+		t.Fatalf("emails = %#v, want %q and %q", got, emailNorm, emailLegacy)
+	}
+}

@@ -844,12 +844,11 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		logger.Errorf("Error retrieving clients with tgId %d: %v", tgId, err)
 		return nil, err
 	}
-	if len(emails) == 0 {
-		emails, err = s.legacyClientEmailsByTgID(db, tgId)
-		if err != nil {
-			return nil, err
-		}
+	legacyEmails, err := s.legacyClientEmailsByTgID(db, tgId)
+	if err != nil {
+		return nil, err
 	}
+	emails = append(emails, legacyEmails...)
 
 	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
 	// account owns thousands of clients across inbounds.
