@@ -133,7 +133,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 		t.Fatalf("lower limit: %v", err)
 	}
 	var count int64
-	if err := database.GetDB().Model(&model.ClientHwid{}).Where("client_id = ?", rec.Id).Count(&count).Error; err != nil {
+	if err := database.GetDB().Model(&model.ClientHwid{}).Where("sub_id = ?", rec.SubID).Count(&count).Error; err != nil {
 		t.Fatalf("count after trim: %v", err)
 	}
 	if count != 1 {
@@ -143,7 +143,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	if err := svc.ClearClientHwids(rec.Email); err != nil {
 		t.Fatalf("clear HWIDs: %v", err)
 	}
-	if err := database.GetDB().Model(&model.ClientHwid{}).Where("client_id = ?", rec.Id).Count(&count).Error; err != nil {
+	if err := database.GetDB().Model(&model.ClientHwid{}).Where("sub_id = ?", rec.SubID).Count(&count).Error; err != nil {
 		t.Fatalf("count after clear: %v", err)
 	}
 	if count != 0 {
