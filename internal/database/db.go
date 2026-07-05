@@ -113,6 +113,9 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := repairOverflowedTrafficCounters(); err != nil {
+		return err
+	}
 	if err := migrateLegacySocksInboundsToMixed(); err != nil {
 		return err
 	}
@@ -514,6 +517,51 @@ func normalizeInboundSubSortIndex() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// repairOverflowedTrafficCounters heals traffic counters that historic
+// compounding bugs pushed past int64: on SQLite an overflowing INTEGER is
+// silently promoted to REAL, after which the column no longer scans into the
+// Go int64 field and every reader of the table fails (#5762). REAL cells are
+// cast back to INTEGER (SQLite caps the cast at math.MaxInt64), then values
+// are clamped into [0, TrafficMax] on both backends so the next delta cannot
+// overflow again.
+func repairOverflowedTrafficCounters() error {
+	targets := []struct {
+		table   string
+		columns []string
+	}{
+		{"client_traffics", []string{"up", "down"}},
+		{"inbounds", []string{"up", "down"}},
+		{"outbound_traffics", []string{"up", "down", "total"}},
+		{"node_client_traffics", []string{"up", "down"}},
+	}
+	for _, target := range targets {
+		for _, col := range target.columns {
+			statements := []string{
+				fmt.Sprintf("UPDATE %s SET %s = %d WHERE %s > %d", target.table, col, TrafficMax, col, TrafficMax),
+				fmt.Sprintf("UPDATE %s SET %s = 0 WHERE %s < 0", target.table, col, col),
+			}
+			if !IsPostgres() {
+				statements = append([]string{
+					fmt.Sprintf("UPDATE %s SET %s = CAST(%s AS INTEGER) WHERE typeof(%s) = 'real'", target.table, col, col, col),
+				}, statements...)
+			}
+			var repaired int64
+			for _, statement := range statements {
+				res := db.Exec(statement)
+				if res.Error != nil {
+					log.Printf("Error repairing %s.%s: %v", target.table, col, res.Error)
+					return res.Error
+				}
+				repaired += res.RowsAffected
+			}
+			if repaired > 0 {
+				log.Printf("Repaired %d overflowed %s.%s value(s)", repaired, target.table, col)
+			}
+		}
 	}
 	return nil
 }
