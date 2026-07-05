@@ -35,6 +35,12 @@
   font-size: 13px;
 }
 
+.tgbot-env-empty {
+  opacity: 0.6;
+  padding: 24px 0;
+  text-align: center;
+}
+
 .tgbot-logs-toolbar {
   display: flex;
   align-items: center;
