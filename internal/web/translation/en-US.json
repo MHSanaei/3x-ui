@@ -159,8 +159,8 @@
       "installButton": "Install bot",
       "installSuccess": "Bot installed successfully",
       "installFailed": "Installation failed, check the log below",
-      "logs": "Logs"
-      "liveLogs": "Live logs"
+      "logs": "Logs",
+      "liveLogs": "Live logs",
       "envFields": {
         "BOT_TOKEN": "Bot token",
         "ADMIN_IDS": "Admin IDs"
