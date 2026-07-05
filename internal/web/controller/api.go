@@ -21,6 +21,7 @@ type APIController struct {
 	hostController        *HostController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
+	tgBotController       *TgBotController
 	userService           panel.UserService
 	apiTokenService       panel.ApiTokenService
 	Tgbot                 tgbot.Tgbot
