@@ -1493,10 +1493,12 @@ install_x-ui() {
     chmod +x x-ui
     chmod +x x-ui.sh
 
-    # Check the system's architecture and rename the file accordingly
+    # Check the system's architecture and rename the file accordingly.
+    # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
+    # so the Xray binary must be named xray-linux-arm32; mtg keeps plain "arm".
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm
-        chmod +x bin/xray-linux-arm
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
+        chmod +x bin/xray-linux-arm32
         if [[ -f bin/mtg-linux-$(arch) ]]; then
             mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
             chmod +x bin/mtg-linux-arm
