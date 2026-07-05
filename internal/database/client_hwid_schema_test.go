@@ -21,12 +21,12 @@ func assertClientHwidSchema(t *testing.T, db *gorm.DB) {
 	if !db.Migrator().HasTable(&model.ClientHwid{}) {
 		t.Fatalf("client_hwids table missing")
 	}
-	for _, col := range []string{"client_id", "hwid_hash", "first_seen", "last_seen", "user_agent", "device_os", "os_version", "device_model"} {
+	for _, col := range []string{"sub_id", "hwid_hash", "first_seen", "last_seen", "user_agent", "device_os", "os_version", "device_model"} {
 		if !db.Migrator().HasColumn(&model.ClientHwid{}, col) {
 			t.Fatalf("client_hwids.%s missing", col)
 		}
 	}
-	if !db.Migrator().HasIndex(&model.ClientHwid{}, "idx_client_hwids_client_hash") {
+	if !db.Migrator().HasIndex(&model.ClientHwid{}, "idx_client_hwids_sub_hash") {
 		t.Fatalf("client_hwids unique hash index missing")
 	}
 }

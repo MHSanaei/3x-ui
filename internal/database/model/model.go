@@ -700,8 +700,8 @@ func (ClientInbound) TableName() string { return "client_inbounds" }
 
 type ClientHwid struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	ClientId    int    `json:"clientId" gorm:"column:client_id;not null;index;uniqueIndex:idx_client_hwids_client_hash,priority:1"`
-	HwidHash    string `json:"-" gorm:"column:hwid_hash;size:64;not null;uniqueIndex:idx_client_hwids_client_hash,priority:2"`
+	SubID       string `json:"subId" gorm:"column:sub_id;not null;index;uniqueIndex:idx_client_hwids_sub_hash,priority:1"`
+	HwidHash    string `json:"-" gorm:"column:hwid_hash;size:64;not null;uniqueIndex:idx_client_hwids_sub_hash,priority:2"`
 	FirstSeen   int64  `json:"firstSeen" gorm:"column:first_seen;not null"`
 	LastSeen    int64  `json:"lastSeen" gorm:"column:last_seen;not null;index"`
 	UserAgent   string `json:"userAgent" gorm:"column:user_agent"`

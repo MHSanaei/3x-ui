@@ -181,11 +181,13 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 
 	ids := make([]int, 0, len(rows))
 	emails := make([]string, 0, len(rows))
+	subIDs := make([]string, 0, len(rows))
 	for i := range rows {
 		ids = append(ids, rows[i].Id)
 		if rows[i].Email != "" {
 			emails = append(emails, rows[i].Email)
 		}
+		subIDs = append(subIDs, rows[i].SubID)
 	}
 	tombstoneClientEmails(emails)
 
@@ -193,14 +195,14 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 		if e := adjustGroupBaselinesForRemovedTraffic(tx, emails); e != nil {
 			return e
 		}
+		if e := clearClientHwidsBySubIDTx(tx, subIDs...); e != nil {
+			return e
+		}
 		for _, batch := range chunkInts(ids, sqlInChunk) {
 			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
 				return e
 			}
 			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientExternalLink{}).Error; e != nil {
-				return e
-			}
-			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientHwid{}).Error; e != nil {
 				return e
 			}
 		}

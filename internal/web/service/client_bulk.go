@@ -828,12 +828,14 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	successEmails := make([]string, 0, len(recordsByEmail))
 	successIds := make([]int, 0, len(recordsByEmail))
+	successSubIDs := make([]string, 0, len(recordsByEmail))
 	for email, rec := range recordsByEmail {
 		if _, skipped := skippedReasons[email]; skipped {
 			continue
 		}
 		successEmails = append(successEmails, email)
 		successIds = append(successIds, rec.Id)
+		successSubIDs = append(successSubIDs, rec.SubID)
 	}
 
 	if len(successIds) > 0 {
@@ -843,11 +845,11 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 			if e := adjustGroupBaselinesForRemovedTraffic(tx, successEmails); e != nil {
 				return e
 			}
+			if e := clearClientHwidsBySubIDTx(tx, successSubIDs...); e != nil {
+				return e
+			}
 			for _, batch := range chunkInts(successIds, sqlInChunk) {
 				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
-					return e
-				}
-				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientHwid{}).Error; e != nil {
 					return e
 				}
 			}
