@@ -116,6 +116,9 @@ func initModels() error {
 	if err := repairOverflowedTrafficCounters(); err != nil {
 		return err
 	}
+	if err := dedupeInboundSettingsClients(); err != nil {
+		return err
+	}
 	if err := migrateLegacySocksInboundsToMixed(); err != nil {
 		return err
 	}
@@ -562,6 +565,66 @@ func repairOverflowedTrafficCounters() error {
 				log.Printf("Repaired %d overflowed %s.%s value(s)", repaired, target.table, col)
 			}
 		}
+	}
+	return nil
+}
+
+// dedupeInboundSettingsClients collapses duplicate same-email entries inside
+// every inbound's settings.clients array, keeping the first occurrence.
+// Retried or raced multi-node client adds on older builds appended the same
+// client several times (#5770), which the client lists then rendered as
+// phantom duplicates. Runs on every start (idempotent, writes only changed
+// rows) because a restored backup or a not-yet-upgraded node's snapshot can
+// reintroduce duplicates.
+func dedupeInboundSettingsClients() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+	repaired := int64(0)
+	for _, inbound := range inbounds {
+		if strings.TrimSpace(inbound.Settings) == "" {
+			continue
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		clients, _ := settings["clients"].([]any)
+		if len(clients) < 2 {
+			continue
+		}
+		seen := make(map[string]struct{}, len(clients))
+		kept := make([]any, 0, len(clients))
+		for _, c := range clients {
+			if cm, ok := c.(map[string]any); ok {
+				if email, _ := cm["email"].(string); email != "" {
+					key := strings.ToLower(email)
+					if _, dup := seen[key]; dup {
+						continue
+					}
+					seen[key] = struct{}{}
+				}
+			}
+			kept = append(kept, c)
+		}
+		if len(kept) == len(clients) {
+			continue
+		}
+		settings["clients"] = kept
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			log.Printf("dedupeInboundSettingsClients: skip inbound %d (marshal failed): %v", inbound.Id, err)
+			continue
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		repaired++
+	}
+	if repaired > 0 {
+		log.Printf("Removed duplicate client entries from %d inbound(s)", repaired)
 	}
 	return nil
 }

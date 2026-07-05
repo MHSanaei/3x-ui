@@ -319,12 +319,46 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		return false, err
 	}
 
-	if oldInbound.Protocol == model.WireGuard {
-		existing, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return false, gcErr
+	existingClients, err := inboundSvc.GetClients(oldInbound)
+	if err != nil {
+		return false, err
+	}
+
+	// A client already on this inbound is skipped instead of appended again:
+	// checkEmailsExistForClients exempts a matching subId so one identity can
+	// live on several inbounds, which let retried or raced adds duplicate the
+	// same email inside a single settings array (#5770). clients and
+	// interfaceClients are parsed from the same data.Settings array, so they
+	// stay index-aligned while filtering.
+	if len(existingClients) > 0 && len(clients) > 0 {
+		existingEmails := make(map[string]struct{}, len(existingClients))
+		for _, c := range existingClients {
+			if c.Email != "" {
+				existingEmails[strings.ToLower(c.Email)] = struct{}{}
+			}
 		}
-		if dErr := defaultWireguardClients(existing, clients, interfaceClients); dErr != nil {
+		keptClients := make([]model.Client, 0, len(clients))
+		keptWire := make([]any, 0, len(interfaceClients))
+		for i, c := range clients {
+			if c.Email != "" {
+				if _, dup := existingEmails[strings.ToLower(c.Email)]; dup {
+					continue
+				}
+			}
+			keptClients = append(keptClients, c)
+			if i < len(interfaceClients) {
+				keptWire = append(keptWire, interfaceClients[i])
+			}
+		}
+		if len(keptClients) == 0 {
+			return false, nil
+		}
+		clients = keptClients
+		interfaceClients = keptWire
+	}
+
+	if oldInbound.Protocol == model.WireGuard {
+		if dErr := defaultWireguardClients(existingClients, clients, interfaceClients); dErr != nil {
 			return false, dErr
 		}
 	}
