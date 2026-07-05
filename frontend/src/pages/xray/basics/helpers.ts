@@ -1,5 +1,5 @@
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
-import { blockedSettings, directSettings, ipv4Settings } from './constants';
+import { blockedSettings, directSettings } from './constants';
 
 export function ruleGetter(t: XraySettingsValue | null, outboundTag: string, property: string): string[] {
   if (!t?.routing?.rules) return [];
@@ -77,9 +77,6 @@ export function setDefaultOutboundTag(t: XraySettingsValue, tag: string): void {
     const [moved] = t.outbounds.splice(idx, 1);
     t.outbounds.unshift(moved);
   }
-  syncOutbound(t, 'direct', directSettings);
-  syncOutbound(t, 'blocked', blockedSettings);
-  syncOutbound(t, 'IPv4', ipv4Settings);
 }
 
 export function propagateOutboundTagRename(
