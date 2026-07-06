@@ -832,14 +832,26 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
-				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
-			} else {
-				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
-				if inbound.NodeID != nil {
-					markDirty = true
+			payload := inbound
+			pushable := true
+			if inbound.NodeID == nil && inbound.Protocol == model.MTProto {
+				if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+					payload = built
 				} else {
-					needRestart = true
+					logger.Debug("Unable to prepare runtime inbound config:", bErr)
+					pushable = false
+				}
+			}
+			if pushable {
+				if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
+					logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
+				} else {
+					logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+					if inbound.NodeID != nil {
+						markDirty = true
+					} else if inbound.Protocol != model.MTProto {
+						needRestart = true
+					}
 				}
 			}
 		}
