@@ -165,15 +165,27 @@ BUILD_OUT_DIR="$(pwd)/build"
 mkdir -p "$BUILD_OUT_DIR"
 
 # 4. Сборка фронтенда
-# 4. Сборка фронтенда
 if [ -d "$BASE_DIR/frontend" ]; then
     echo "📦 Шаг 1: Сборка фронтенда панели..."
     pushd "$BASE_DIR/frontend" > /dev/null
     rm -rf node_modules package-lock.json || true
-    npm install && npm run build
+    
+    # Проверяем, передан ли флаг 'weak' вторым аргументом ($2)
+    if [ "$2" = "weak" ]; then
+        echo "⚙️ Обнаружен режим weak. Ограничиваем ресурсы для Node.js..."
+        
+        # Запускаем NPM с жесткими лимитами
+        export NODE_OPTIONS="--max-old-space-size=1024"
+        export UV_THREADPOOL_SIZE=1
+        
+        npm install --no-audit --no-fund --prefer-offline --loglevel error
+        npm run build
+    else
+        # Обычная сборка для стандартных систем
+        npm install && npm run build
+    fi
     popd > /dev/null
 fi
-
 
 # Функция компиляции
 compile_target() {
