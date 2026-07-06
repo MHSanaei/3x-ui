@@ -671,7 +671,7 @@ type Client struct {
 	AllowedIPs   []string       `json:"allowedIPs,omitempty"`
 	PreSharedKey string         `json:"preSharedKey,omitempty"`
 	KeepAlive    int            `json:"keepAlive,omitempty"`
-	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"` // MTProto FakeTLS secret
+	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	Email        string         `json:"email"`                        // Client email identifier
 	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
 	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
