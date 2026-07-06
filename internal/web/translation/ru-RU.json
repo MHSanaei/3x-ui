@@ -162,6 +162,8 @@
       "installFailed": "Установка не удалась, проверьте журнал ниже.",
       "logs": "Логи",
       "liveLogs": "Логи в реальном времени",
+      "envEmpty": "Env файл пуст",
+      "notInstalled": "Не установлено",
       "envFields": {
         "BOT_TOKEN": "Токен бота",
         "ADMIN_IDS": "ID администраторов"
