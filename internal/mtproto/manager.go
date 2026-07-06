@@ -1,12 +1,14 @@
 package mtproto
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +49,16 @@ type Instance struct {
 	// fair-share algorithm; zero disables throttling.
 	ThrottleMaxConnections int
 
+	// AdTag is a 32-hex Telegram advertising tag; when set, mtg routes clients
+	// through Telegram middle proxies so a sponsored channel shows in their chat
+	// list. It is part of the reloadable secret config, so a change is applied
+	// via /reload without dropping connections. PublicIPv4/PublicIPv6 pin the
+	// proxy's reachable address the middle proxy needs; they are omitted when
+	// empty so mtg auto-detects, and a change forces a restart.
+	AdTag      string
+	PublicIPv4 string
+	PublicIPv6 string
+
 	// When RouteThroughXray is set, mtg dials Telegram through the loopback
 	// SOCKS bridge the panel injects into the Xray config at XrayRoutePort, so
 	// the egress obeys the core's routing rules instead of going out directly.
@@ -62,10 +74,11 @@ func (inst Instance) bindTo() string {
 	return fmt.Sprintf("%s:%d", listen, inst.Port)
 }
 
-// fingerprint changes whenever any value that ends up in the generated TOML
-// changes, so ensureLocked restarts mtg when the operator edits a setting or a
-// client is added, removed, disabled, or re-keyed.
-func (inst Instance) fingerprint() string {
+// structuralFingerprint changes whenever a value outside the [secrets] section
+// of the generated TOML changes. Such a change can only be applied by
+// restarting mtg, unlike a secrets-only change, which a reload-capable mtg can
+// absorb in place.
+func (inst Instance) structuralFingerprint() string {
 	parts := []string{
 		inst.bindTo(),
 		strconv.FormatBool(inst.Debug),
@@ -77,11 +90,24 @@ func (inst Instance) fingerprint() string {
 		strconv.Itoa(inst.ThrottleMaxConnections),
 		strconv.FormatBool(inst.RouteThroughXray),
 		strconv.Itoa(inst.XrayRoutePort),
-	}
-	for _, e := range inst.Secrets {
-		parts = append(parts, e.Name+"="+e.Secret)
+		inst.PublicIPv4,
+		inst.PublicIPv6,
 	}
 	return strings.Join(parts, "|")
+}
+
+// secretsFingerprint identifies the reloadable secret config regardless of
+// client order, so a reordered clients array in the stored settings does not
+// read as a change. It moves whenever a client is added, removed, disabled, or
+// re-keyed, or the advertising tag changes — all of which mtg applies through
+// /reload without dropping connections.
+func (inst Instance) secretsFingerprint() string {
+	pairs := make([]string, 0, len(inst.Secrets))
+	for _, e := range inst.Secrets {
+		pairs = append(pairs, e.Name+"="+e.Secret)
+	}
+	slices.Sort(pairs)
+	return "adtag=" + inst.AdTag + "|" + strings.Join(pairs, "|")
 }
 
 // Traffic is a per-client traffic delta scraped from an mtg /stats endpoint. Tag
@@ -99,11 +125,12 @@ type clientCounters struct {
 }
 
 type managed struct {
-	proc        *Process
-	tag         string
-	fingerprint string
-	apiPort     int
-	last        map[string]clientCounters
+	proc         *Process
+	tag          string
+	structuralFP string
+	secretsFP    string
+	apiPort      int
+	last         map[string]clientCounters
 }
 
 // Manager owns the set of running mtg processes keyed by inbound id.
@@ -150,6 +177,9 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections int    `json:"throttleMaxConnections"`
 		RouteThroughXray       bool   `json:"routeThroughXray"`
 		RouteXrayPort          int    `json:"routeXrayPort"`
+		AdTag                  string `json:"adTag"`
+		PublicIPv4             string `json:"publicIpv4"`
+		PublicIPv6             string `json:"publicIpv6"`
 		Clients                []struct {
 			Email  string `json:"email"`
 			Secret string `json:"secret"`
@@ -184,6 +214,9 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections: parsed.ThrottleMaxConnections,
 		RouteThroughXray:       parsed.RouteThroughXray,
 		XrayRoutePort:          parsed.RouteXrayPort,
+		AdTag:                  strings.TrimSpace(parsed.AdTag),
+		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
+		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
 	}, true
 }
 
@@ -210,15 +243,55 @@ func (m *Manager) sweepOrphansLocked() {
 	}
 }
 
+// ensureAction is what ensureLocked must do to move a running mtg process to a
+// desired instance: leave it alone, hot-reload only its secrets, or fully
+// restart it.
+type ensureAction int
+
+const (
+	ensureNoop ensureAction = iota
+	ensureReload
+	ensureRestart
+)
+
+// ensureActionFor decides how to apply a desired instance to the currently
+// managed process. A structural change (or a dead process) forces a restart; a
+// secrets-only change is a candidate for an in-place reload; identical
+// fingerprints on a live process need nothing.
+func ensureActionFor(running bool, curStructFP, curSecretsFP, newStructFP, newSecretsFP string) ensureAction {
+	if !running || curStructFP != newStructFP {
+		return ensureRestart
+	}
+	if curSecretsFP != newSecretsFP {
+		return ensureReload
+	}
+	return ensureNoop
+}
+
 func (m *Manager) ensureLocked(inst Instance) error {
-	fp := inst.fingerprint()
+	structFP := inst.structuralFingerprint()
+	secFP := inst.secretsFingerprint()
 	if cur, ok := m.procs[inst.Id]; ok {
-		if cur.fingerprint == fp && cur.proc.IsRunning() {
+		switch ensureActionFor(cur.proc.IsRunning(), cur.structuralFP, cur.secretsFP, structFP, secFP) {
+		case ensureNoop:
 			cur.tag = inst.Tag
 			return nil
+		case ensureReload:
+			if err := writeConfig(configPathForID(inst.Id), inst, cur.apiPort); err != nil {
+				return err
+			}
+			if applySecrets(cur.apiPort, inst) {
+				cur.tag = inst.Tag
+				cur.secretsFP = secFP
+				logger.Infof("mtproto: applied secret update to inbound %d in place", inst.Id)
+				return nil
+			}
+			logger.Warningf("mtproto: live secret update unavailable for inbound %d, restarting", inst.Id)
+			fallthrough
+		case ensureRestart:
+			_ = cur.proc.Stop()
+			delete(m.procs, inst.Id)
 		}
-		_ = cur.proc.Stop()
-		delete(m.procs, inst.Id)
 	}
 	apiPort, err := FreeLocalPort()
 	if err != nil {
@@ -233,11 +306,12 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		return err
 	}
 	m.procs[inst.Id] = &managed{
-		proc:        proc,
-		tag:         inst.Tag,
-		fingerprint: fp,
-		apiPort:     apiPort,
-		last:        map[string]clientCounters{},
+		proc:         proc,
+		tag:          inst.Tag,
+		structuralFP: structFP,
+		secretsFP:    secFP,
+		apiPort:      apiPort,
+		last:         map[string]clientCounters{},
 	}
 	logger.Infof("mtproto: started mtg for inbound %d on %s", inst.Id, inst.bindTo())
 	return nil
@@ -386,6 +460,15 @@ func renderConfig(inst Instance, apiPort int) string {
 		fmt.Fprintf(&b, "prefer-ip = %q\n", inst.PreferIP)
 	}
 	fmt.Fprintf(&b, "api-bind-to = \"127.0.0.1:%d\"\n", apiPort)
+	if inst.AdTag != "" {
+		fmt.Fprintf(&b, "ad-tag = %q\n", inst.AdTag)
+	}
+	if inst.PublicIPv4 != "" {
+		fmt.Fprintf(&b, "public-ipv4 = %q\n", inst.PublicIPv4)
+	}
+	if inst.PublicIPv6 != "" {
+		fmt.Fprintf(&b, "public-ipv6 = %q\n", inst.PublicIPv6)
+	}
 	if inst.FrontingIP != "" || inst.FrontingPort > 0 || inst.FrontingProxyProtocol {
 		b.WriteString("\n[domain-fronting]\n")
 		if inst.FrontingIP != "" {
@@ -428,6 +511,49 @@ type statsUser struct {
 	Connections int64 `json:"connections"`
 	BytesIn     int64 `json:"bytes_in"`
 	BytesOut    int64 `json:"bytes_out"`
+}
+
+type secretPutEntry struct {
+	Secret string `json:"secret"`
+}
+
+type secretsPutBody struct {
+	Secrets map[string]secretPutEntry `json:"secrets"`
+	AdTag   string                    `json:"ad_tag,omitempty"`
+}
+
+func secretsPayload(inst Instance) secretsPutBody {
+	secrets := make(map[string]secretPutEntry, len(inst.Secrets))
+	for _, e := range inst.Secrets {
+		secrets[e.Name] = secretPutEntry{Secret: e.Secret}
+	}
+	return secretsPutBody{Secrets: secrets, AdTag: inst.AdTag}
+}
+
+// applySecrets pushes the desired secret set and advertising tag to a running
+// mtg-multi through its management API (PUT /secrets on the same loopback port
+// that serves /stats), so a client add, removal, re-key, or ad-tag change is
+// applied in place. mtg keeps every connection whose secret is unchanged and
+// closes only the removed or re-keyed ones. It returns true only on a 200: an
+// older binary without the endpoint (404), a refused connection, or any other
+// status yields false, so the caller falls back to a full restart.
+func applySecrets(port int, inst Instance) bool {
+	body, err := json.Marshal(secretsPayload(inst))
+	if err != nil {
+		return false
+	}
+	client := http.Client{Timeout: 3 * time.Second}
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPut, fmt.Sprintf("http://127.0.0.1:%d/secrets", port), bytes.NewReader(body))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }
 
 // scrapeStats reads the mtg-multi /stats JSON API and returns the per-user
