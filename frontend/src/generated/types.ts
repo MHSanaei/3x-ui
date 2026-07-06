@@ -242,6 +242,7 @@ export interface Client {
   publicKey?: string;
   reset: number;
   reverse?: ClientReverse | null;
+  secret?: string;
   security: string;
   subId: string;
   tgId: number;
@@ -275,6 +276,7 @@ export interface ClientRecord {
   publicKey: string;
   reset: number;
   reverse: unknown;
+  secret: string;
   security: string;
   subId: string;
   tgId: number;
@@ -396,6 +398,7 @@ export interface InboundOption {
   enable: boolean;
   id: number;
   listen?: string;
+  mtprotoDomain?: string;
   nodeAddress?: string;
   nodeId?: number | null;
   port: number;

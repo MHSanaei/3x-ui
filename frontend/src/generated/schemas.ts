@@ -1141,6 +1141,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "VLESS simple reverse proxy settings",
         "nullable": true
       },
+      "secret": {
+        "description": "MTProto FakeTLS secret",
+        "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
+        "type": "string"
+      },
       "security": {
         "description": "Security method (e.g., \"auto\", \"aes-128-gcm\")",
         "type": "string"
@@ -1253,6 +1258,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "reverse": {},
+      "secret": {
+        "type": "string"
+      },
       "security": {
         "type": "string"
       },
@@ -1291,6 +1299,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey",
       "reset",
       "reverse",
+      "secret",
       "security",
       "subId",
       "tgId",
@@ -1807,6 +1816,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "listen": {
+        "type": "string"
+      },
+      "mtprotoDomain": {
         "type": "string"
       },
       "nodeAddress": {

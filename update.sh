@@ -1053,9 +1053,18 @@ update_x-ui() {
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
         mv bin/xray-linux-$(arch) bin/xray-linux-arm32 > /dev/null 2>&1
         chmod +x bin/xray-linux-arm32 > /dev/null 2>&1
+        if [[ -f bin/mtg-linux-$(arch) ]]; then
+            mv bin/mtg-linux-$(arch) bin/mtg-linux-arm > /dev/null 2>&1
+            chmod +x bin/mtg-linux-arm > /dev/null 2>&1
+        fi
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
+    if [[ -f bin/mtg-linux-arm ]]; then
+        chmod +x bin/mtg-linux-arm > /dev/null 2>&1
+    elif [[ -f bin/mtg-linux-$(arch) ]]; then
+        chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
+    fi
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
