@@ -1,8 +1,11 @@
 package service
 
 import (
+	"context"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -70,4 +73,33 @@ func (s *InboundService) DesiredMtprotoInstances() ([]mtproto.Instance, error) {
 		instances = append(instances, inst)
 	}
 	return instances, nil
+}
+
+// applyLocalMtproto pushes a single local mtproto inbound's current client set
+// to its mtg sidecar right after a client edit commits, so an add, removal,
+// re-key or enable-toggle takes effect immediately instead of waiting up to
+// 10s for the reconcile job. With a reload-capable mtg the change is applied in
+// place without dropping other clients; older binaries fall back to a restart
+// inside the manager. It re-reads the inbound so it sees the committed settings,
+// filters depleted clients exactly like the reconcile job, and is a no-op for
+// node-owned or non-mtproto inbounds. Failures are logged and swallowed: the
+// reconcile job is the backstop, and an xray restart cannot help the sidecar.
+func (s *InboundService) applyLocalMtproto(inboundId int) {
+	inbound, err := s.GetInbound(inboundId)
+	if err != nil || inbound == nil || inbound.Protocol != model.MTProto || inbound.NodeID != nil {
+		return
+	}
+	rt, err := s.runtimeFor(inbound)
+	if err != nil {
+		return
+	}
+	payload := inbound
+	if inbound.Enable {
+		if built, bErr := s.buildRuntimeInboundForAPI(database.GetDB(), inbound); bErr == nil {
+			payload = built
+		}
+	}
+	if err := rt.UpdateInbound(context.Background(), inbound, payload); err != nil {
+		logger.Debug("mtproto: immediate client apply failed for inbound", inboundId, ":", err)
+	}
 }
