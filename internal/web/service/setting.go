@@ -1201,8 +1201,11 @@ func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, er
 		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
 	}
 	if _, err := regexp.Compile(effectivePattern); err != nil {
-		return "", common.NewError(name+" User-Agent regex is invalid:", err)
+		return "", common.NewErrorf("%s User-Agent regex is invalid: %v", name, err)
 	}
+	// Return the original pattern (empty string if cleared) so the caller
+	// can distinguish "user explicitly set empty" from "user set a value".
+	// The empty value is stored in the DB and inherited as runtime default.
 	return pattern, nil
 }
 
