@@ -32,7 +32,8 @@ import (
 // spawn per batch instead of one per outbound. The reported delay comes from
 // a second request on the kept-alive connection, so it reflects the tunnel's
 // real per-request round-trip rather than the stacked SOCKS/proxy/TLS
-// handshakes of connection establishment.
+// handshakes of connection establishment. Mode "real" instead reports the
+// cold request's full elapsed time and skips the warm request.
 
 const (
 	// httpProbeTimeout bounds each probe request end-to-end (a probe makes
@@ -84,6 +85,15 @@ type httpBatchItem struct {
 	result   *TestOutboundResult
 }
 
+func probeModeLabel(mode string) string {
+	switch mode {
+	case "tcp", "real":
+		return mode
+	default:
+		return "http"
+	}
+}
+
 // TestOutbound probes a single outbound; legacy single-test API kept for the
 // /testOutbound endpoint. Dispatch matches TestOutbounds: mode "tcp" dials
 // the outbound's endpoints directly, anything else routes a real HTTP request
@@ -92,11 +102,7 @@ type httpBatchItem struct {
 func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
-		m := "http"
-		if mode == "tcp" {
-			m = "tcp"
-		}
-		return &TestOutboundResult{Mode: m, Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
+		return &TestOutboundResult{Mode: probeModeLabel(mode), Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
 	}
 	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode)
 	return results[0], nil
@@ -130,10 +136,12 @@ func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, al
 func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string) []*TestOutboundResult {
 	results := make([]*TestOutboundResult, len(items))
 
-	modeLabel := "http"
-	if mode == "tcp" {
-		modeLabel = "tcp"
+	modeLabel := probeModeLabel(mode)
+	probeLabel := modeLabel
+	if probeLabel == "tcp" {
+		probeLabel = "http"
 	}
+	realDelay := mode == "real"
 
 	type tcpEntry struct {
 		idx int
@@ -158,7 +166,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 		}
 
 		tag, _ := ob["tag"].(string)
-		r := &TestOutboundResult{Tag: tag, Mode: "http"}
+		r := &TestOutboundResult{Tag: tag, Mode: probeLabel}
 		results[i] = r
 		protocol, _ := ob["protocol"].(string)
 		switch {
@@ -231,7 +239,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	}
 	defer httpTestSemaphore.Unlock()
 
-	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL)
+	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay)
 	if err == nil {
 		return results
 	}
@@ -244,7 +252,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	// instance so the broken outbound reports xray's real error and the
 	// rest still get tested. Serial: the poisoned case fails fast (~1s).
 	for _, it := range httpItems {
-		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL); ferr != nil {
+		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay); ferr != nil {
 			it.result.Success = false
 			it.result.Error = ferr.Error()
 		}
@@ -258,7 +266,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 // whether splitting the batch into per-item instances could help (true for
 // start failures / early exits that a poisoned config would explain, false
 // for environmental failures like a missing binary or no free ports).
-func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string) (retryPerItem bool, err error) {
+func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool) (retryPerItem bool, err error) {
 	ports, release, err := reserveLoopbackPorts(len(items))
 	if err != nil {
 		return false, fmt.Errorf("Failed to reserve test ports: %w", err)
@@ -304,7 +312,7 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			probeThroughSocks(port, testURL, httpProbeTimeout, it.result)
+			probeThroughSocks(port, testURL, httpProbeTimeout, realDelay, it.result)
 		}(items[i], ports[i])
 	}
 	wg.Wait()
@@ -444,7 +452,7 @@ func outboundsContainTag(outbounds []any, tag string) bool {
 // the established tunnel — falling back to the cold total if the warm request
 // fails. The test URL's hostname is resolved by xray (Go's SOCKS5 client
 // sends the domain to the proxy), so DNS goes through the outbound too.
-func probeThroughSocks(port int, testURL string, timeout time.Duration, result *TestOutboundResult) {
+func probeThroughSocks(port int, testURL string, timeout time.Duration, realDelay bool, result *TestOutboundResult) {
 	proxyURL := &url.URL{Scheme: "socks5", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
 	tr := &http.Transport{
 		Proxy:               http.ProxyURL(proxyURL),
@@ -528,8 +536,10 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, result *
 	}
 
 	delay := coldDelay
-	if warmDelay, ok := timedWarmGet(client, testURL); ok {
-		delay = warmDelay
+	if !realDelay {
+		if warmDelay, ok := timedWarmGet(client, testURL); ok {
+			delay = warmDelay
+		}
 	}
 	result.Delay = max(delay, 1)
 }

@@ -5,6 +5,8 @@ import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
 
 import type { OutboundTestResult } from '@/hooks/useXraySetting';
 
+import { testModeLabel } from './outbounds-tab-helpers';
+
 interface TestResultPopoverProps {
   result: OutboundTestResult;
   // Custom trigger element; defaults to the ok/fail latency pill.
@@ -39,7 +41,7 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
         <div className="timing-breakdown">
           <div className={`td-head ${r.success ? 'ok' : 'fail'}`}>
             {r.success ? <span>{r.delay} ms</span> : <span>{r.error || 'failed'}</span>}
-            {r.mode && <span className="mode-badge">{String(r.mode).toUpperCase()}</span>}
+            {r.mode && <span className="mode-badge">{testModeLabel(String(r.mode), t)}</span>}
           </div>
           {(r.endpoints || []).map((ep) => (
             <div key={ep.address} className="endpoint-row">
