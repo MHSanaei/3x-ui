@@ -12,9 +12,11 @@ file locations when it can answer in one hop.
   Runs Xray-core as a managed child process (`internal/xray/process.go`) and
   imports `github.com/xtls/xray-core` for config types + gRPC stats/handler/router
   API. MTProto inbounds run a second managed child — the `mtg-multi` binary
-  (`github.com/dolonet/mtg-multi`, a multi-secret fork built from source;
+  (`github.com/mhsanaei/mtg-multi`, a multi-secret fork built from source;
   `internal/mtproto/`) — outside Xray, one process per inbound serving each
-  client's FakeTLS secret via the fork's `[secrets]` section.
+  client's FakeTLS secret via the fork's `[secrets]` section. Client edits are
+  hot-applied through the fork's `POST /reload` so connections survive; the
+  manager falls back to a process restart on older binaries.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux; the executable dir on
   Windows), PostgreSQL optional (`XUI_DB_TYPE` / `XUI_DB_DSN`). The CGo SQLite
   driver (`mattn/go-sqlite3`) needs a C compiler — `CGO_ENABLED=0` builds fail.
