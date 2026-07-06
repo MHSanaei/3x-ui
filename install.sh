@@ -18,6 +18,15 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 MODE="git"          
 INSTALL_BOT=0       
 
+# Проверка наличия аргумента 'weak'
+WEAK_BUILD=0
+for arg in "$@"; do
+    if [[ "$arg" == "weak" ]]; then
+        WEAK_BUILD=1
+        echo -e "${yellow}ℹ️ Активирован режим для слабых устройств (weak build mode)${plain}"
+    fi
+done
+
 # Проверка прав root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
@@ -178,11 +187,6 @@ install_build_deps() {
     esac
 }
 
-# RHEL-family initdb writes pg_hba.conf host rules with ident auth, which
-# compares the OS username against the Postgres role and always rejects the
-# randomly generated panel role over TCP (#5806). Prepend password-auth rules
-# scoped to the panel database; first match wins, and md5 also accepts
-# scram-sha-256-stored verifiers, so this works on every supported distro.
 pg_ensure_hba_password_auth() {
     local pg_db="$1"
     local hba_file
@@ -208,8 +212,6 @@ pg_ensure_hba_password_auth() {
     sudo -u postgres psql -tAc 'SELECT pg_reload_conf()' > /dev/null 2>&1 || true
 }
 
-# env-файл с переменными окружения для systemd/OpenRC у разных дистрибутивов
-# традиционно лежит в разных местах — берём подходящий, а не хардкодим один путь.
 xui_env_file_path() {
     case "${release}" in
         ubuntu | debian | armbian) echo "/etc/default/x-ui" ;;
@@ -347,9 +349,6 @@ setup_ip_certificate() {
     ~/.acme.sh/acme.sh --installcert --force -d ${ipv4} --key-file "${certDir}/privkey.pem" --fullchain-file "${certDir}/fullchain.pem" --reloadcmd "${reloadCmd}" 2>&1 || true
     chmod 600 ${certDir}/privkey.pem 2> /dev/null; chmod 644 ${certDir}/fullchain.pem 2> /dev/null
 
-    # acme.sh может вернуть ненулевой код из-за сбоя reloadcmd, даже если сам
-    # сертификат выпущен и записан нормально — поэтому проверяем файлы напрямую,
-    # а не полагаемся только на код возврата предыдущей команды.
     if [[ ! -s "${certDir}/fullchain.pem" || ! -s "${certDir}/privkey.pem" ]]; then
         echo -e "${red}Certificate files were not created, IP certificate setup failed.${plain}" >&2
         return 1
@@ -380,8 +379,6 @@ ssl_cert_issue() {
 
     local certPath="/root/cert/${domain}"; mkdir -p "$certPath"
 
-    # Уже есть валидный (не пустой) сертификат для этого домена — не выпускаем
-    # заново, просто переиспользуем то, что уже лежит на диске.
     if [[ -s "$certPath/fullchain.pem" && -s "$certPath/privkey.pem" ]]; then
         echo -e "${yellow}Найден существующий сертификат для ${domain}, переиспользуем его.${plain}"
         ${xui_folder}/x-ui cert -webCert "$certPath/fullchain.pem" -webCertKey "$certPath/privkey.pem" > /dev/null 2>&1
@@ -465,9 +462,6 @@ prompt_and_setup_ssl() {
     esac
 }
 
-# Пробуем несколько источников определения внешнего IP по очереди — один
-# недоступный сервис не должен приводить к тихому падению на 127.0.0.1
-# (иначе итоговый Access URL в конце установки будет бесполезен).
 detect_server_ip() {
     local ip=""
     local sources=(
@@ -625,13 +619,6 @@ EOF
     fi
 }
 
-# ---------------------------------------------------------------------------
-# Обёртки над управлением сервисами: systemd везде, кроме Alpine (OpenRC).
-# Всё остальное содержимое скрипта дёргает только эти функции и никогда не
-# вызывает systemctl/rc-service напрямую — это единственное место, которое
-# знает про разницу между init-системами.
-# ---------------------------------------------------------------------------
-
 svc_stop_x_ui() {
     if [[ "$release" == "alpine" ]]; then
         rc-service x-ui stop
@@ -666,11 +653,6 @@ svc_enable_now() {
     fi
 }
 
-# Убиваем зависшие mtg (MTProto)-сайдкары перед стопом/переустановкой панели.
-# x-ui запускает их отдельно от своего жизненного цикла, поэтому при жёстком
-# рестарте панели старый процесс может выжить и продолжать держать порт со
-# старым секретом, из-за чего у клиентов молча перестаёт работать инбаунд.
-# Свежий x-ui сам поднимет чистый mtg на каждый инбаунд при старте.
 kill_stale_mtg() {
     pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
 }
@@ -689,7 +671,46 @@ start_installation() {
     if [[ "$MODE" == "build" ]]; then
         install_build_deps
         cd "$cur_dir"
+
+        # === ЛОГИКА ДЛЯ WEAK БИЛДА ФРОНТЕНДА ===
+        if [[ "$WEAK_BUILD" == "1" ]]; then
+            echo -e "${yellow}⚙️ Выполняем оптимизированную сборку фронтенда для слабых систем...${plain}"
+            
+            cd frontend || exit 1
+            
+            # Сносим проблемные файлы от рута
+            rm -rf node_modules package-lock.json
+            npm cache clean --force
+            
+            # Забираем права обратно у рута, чтобы npm не крашился
+            local real_user="${SUDO_USER:-root}"
+            chown -R "$real_user:$real_user" "$cur_dir"
+            
+            # Запускаем NPM под обычным пользователем и с лимитами
+            sudo -u "$real_user" bash -c "
+                cd '$cur_dir/frontend' || exit 1
+                export NODE_OPTIONS='--max-old-space-size=1024'
+                export UV_THREADPOOL_SIZE=1
+                echo -e 'Установка зависимостей (npm install)...'
+                npm install --no-audit --no-fund --prefer-offline --loglevel error
+                echo -e 'Сборка интерфейса (npm run build)...'
+                npm run build
+            "
+            
+            cd "$cur_dir"
+            
+            # Вырезаем шаги компиляции NodeJS из build.sh, так как мы их уже сделали!
+            sed -i 's/npm install/echo "Пропуск npm install (уже выполнено в weak режиме)"/g' build.sh
+            sed -i 's/npm run build/echo "Пропуск npm run build (уже выполнено в weak режиме)"/g' build.sh
+        fi
+
         chmod +x build.sh && ./build.sh "$current_arch"
+
+        # Восстанавливаем build.sh в исходное состояние
+        if [[ "$WEAK_BUILD" == "1" ]]; then
+            git checkout build.sh 2>/dev/null || true
+        fi
+
         cp "build/x-ui-linux-${current_arch}" "${xui_folder}/x-ui"
         cp x-ui.sh /usr/bin/x-ui
     else
