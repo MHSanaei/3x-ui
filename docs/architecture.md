@@ -20,7 +20,9 @@ WebSocket API. A React SPA (built by Vite, embedded into the Go binary) is the U
 separate HTTP server serves **subscription links** to end users.
 
 The panel supervises **two managed child processes**: Xray-core itself and — when MTProto
-inbounds exist — the `mtg` Telegram-proxy binary (`internal/mtproto/`).
+inbounds exist — the `mtg-multi` Telegram-proxy binary (`github.com/dolonet/mtg-multi`, a
+multi-secret fork built from source; `internal/mtproto/`). One process per inbound serves
+every attached client's FakeTLS secret through the fork's `[secrets]` section.
 
 Servers and processes, all launched from `main.go`:
 
@@ -29,7 +31,7 @@ Servers and processes, all launched from `main.go`:
 | **Panel** | `internal/web` | Admin REST/WS API + serves the embedded SPA | 2053 |
 | **Subscription** | `internal/sub` | Public endpoint that hands out client configs (raw / JSON / Clash) | `subPort` setting |
 | **Xray-core** | supervised via `internal/xray` | The actual proxy engine; a child process, not Go code | `inbounds[].port` |
-| **mtg** | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds | per inbound |
+| **mtg-multi** | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds (multi-secret) | per inbound |
 
 Two key ideas that explain most of the complexity:
 

@@ -465,7 +465,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','mtproto')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -662,27 +662,24 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 
-// genMtprotoLink builds a Telegram proxy deep link for an mtproto inbound:
-func (s *SubService) genMtprotoLink(inbound *model.Inbound, _ string) string {
+// genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto
+// inbound: the server/port pair plus the client's own FakeTLS secret. The link
+// carries no remark fragment — Telegram proxy deep links have no name field, and
+// a trailing "#remark" is appended to the last query value by lenient parsers,
+// corrupting the server address. The remark is shown separately in the panel UI.
+// Returns "" when the client has no secret.
+func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
 	}
-	settings := map[string]any{}
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	secret, _ := settings["secret"].(string)
-	if secret == "" {
-		if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
-			_ = json.Unmarshal([]byte(healed), &settings)
-			secret, _ = settings["secret"].(string)
-		}
-	}
-	if secret == "" {
+	resolved, ok := s.clientForLink(inbound, email)
+	if !ok || resolved.Secret == "" {
 		return ""
 	}
 	params := map[string]string{
 		"server": s.resolveInboundAddress(inbound),
 		"port":   fmt.Sprintf("%d", inbound.Port),
-		"secret": secret,
+		"secret": resolved.Secret,
 	}
 	return buildLinkWithParams("tg://proxy", params, "")
 }

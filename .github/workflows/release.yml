@@ -156,14 +156,19 @@ jobs:
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
-          # mtg (MTProto sidecar) - only for arches mtg publishes
-          MTG_VER="2.2.8"
+          # mtg-multi (MTProto sidecar) is pure Go, so build it from source for the
+          # target arch (GOOS/GOARCH/GOARM are already exported above). Its release
+          # binaries only cover linux/darwin amd64/arm64; skip s390x/armv5 as before.
+          # go install rejects GOBIN for cross-compiled targets, so let it install
+          # into GOPATH/bin (a GOOS_GOARCH subdir when cross-compiling) and fetch
+          # the binary from there.
+          MTG_MULTI_VER="v1.11.0"
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
-              wget -q "https://github.com/9seconds/mtg/releases/download/v${MTG_VER}/mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
-              tar -xzf "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
-              mv "mtg-${MTG_VER}-linux-${{ matrix.platform }}/mtg" "mtg-linux-${{ matrix.platform }}" 2>/dev/null || mv mtg "mtg-linux-${{ matrix.platform }}"
-              rm -rf "mtg-${MTG_VER}-linux-${{ matrix.platform }}" "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
+              CGO_ENABLED=0 go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@${MTG_MULTI_VER}"
+              MTG_BIN=$(find "$(go env GOPATH)/bin" -type f -name mtg-multi | head -n1)
+              [ -n "$MTG_BIN" ] || { echo "mtg-multi binary not found under $(go env GOPATH)/bin" >&2; exit 1; }
+              mv "$MTG_BIN" "mtg-linux-${{ matrix.platform }}"
               ;;
           esac
           cd ../..
@@ -280,13 +285,15 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
 
-          # Download mtg (MTProto sidecar) for Windows
-          $MTG_VER = "2.2.8"
-          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip"
-          Expand-Archive -Path "mtg-windows-amd64.zip" -DestinationPath "mtg-tmp"
-          $mtgExe = Get-ChildItem -Path "mtg-tmp" -Recurse -Filter "mtg.exe" | Select-Object -First 1
-          Move-Item $mtgExe.FullName "mtg-windows-amd64.exe"
-          Remove-Item "mtg-windows-amd64.zip", "mtg-tmp" -Recurse -Force
+          # mtg-multi (MTProto sidecar) is pure Go; build it from source since the
+          # fork publishes no Windows release binary.
+          $MTG_MULTI_VER = "v1.11.0"
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          $env:GOBIN = (Get-Location).Path
+          go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@$MTG_MULTI_VER"
+          Move-Item "mtg-multi.exe" "mtg-windows-amd64.exe"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse

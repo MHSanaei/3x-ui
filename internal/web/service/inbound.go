@@ -303,6 +303,7 @@ type InboundOption struct {
 	WgPublicKey    string `json:"wgPublicKey,omitempty"`
 	WgMtu          int    `json:"wgMtu,omitempty"`
 	WgDns          string `json:"wgDns,omitempty"`
+	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -363,6 +364,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgPublicKey:       wgPublicKey,
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
+			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -397,6 +399,22 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 		}
 	}
 	return publicKey, parsed.MTU, parsed.DNS
+}
+
+// inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
+// the clients UI to seed a new mtproto client's secret with the right fronting
+// hostname.
+func inboundMtprotoDomain(protocol string, settings string) string {
+	if protocol != string(model.MTProto) || strings.TrimSpace(settings) == "" {
+		return ""
+	}
+	var parsed struct {
+		FakeTLSDomain string `json:"fakeTlsDomain"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(parsed.FakeTLSDomain)
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -512,13 +530,19 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
-// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
-// always valid and matches the configured domain before the row is persisted.
+// normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
+// always valid before the row is persisted, and drops the vestigial inbound-level
+// secret: MTProto is multi-client, so mtg and every share link read only the
+// per-client secrets. Leaving an inbound-level secret behind is what produced
+// stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
-	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
 		inbound.Settings = healed
 	}
 }
@@ -710,6 +734,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		case "mtproto":
+			if client.Secret == "" {
+				return inbound, false, common.NewError("mtproto client requires a secret")
 			}
 		default:
 			if client.ID == "" {
