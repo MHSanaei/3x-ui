@@ -1142,7 +1142,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "nullable": true
       },
       "secret": {
-        "description": "MTProto FakeTLS secret",
         "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
         "type": "string"
       },
