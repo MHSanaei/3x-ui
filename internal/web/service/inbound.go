@@ -531,14 +531,16 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 }
 
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
-// always valid before the row is persisted. It also heals a legacy inbound-level
-// secret for any inbound that predates the multi-client migration.
+// always valid before the row is persisted, and drops the vestigial inbound-level
+// secret: MTProto is multi-client, so mtg and every share link read only the
+// per-client secrets. Leaving an inbound-level secret behind is what produced
+// stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
-	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
-		inbound.Settings = healed
+	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
 	}
 	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
 		inbound.Settings = healed

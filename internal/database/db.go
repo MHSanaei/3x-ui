@@ -477,6 +477,42 @@ func seedMtprotoSecretsToClients() error {
 	})
 }
 
+// stripMtprotoInboundSecrets removes the vestigial inbound-level `secret` from
+// every mtproto inbound. seedMtprotoSecretsToClients already drops it while
+// converting legacy single-secret inbounds, but inbounds that already had clients
+// kept the dead field, and the old HealMtprotoSecret regenerated it on every
+// save. mtg and every share link read only per-client secrets, so the
+// inbound-level value is dead data that once leaked into stale, unusable links.
+// One-time, self-gated on the "StripMtprotoInboundSecrets" seeder row.
+func stripMtprotoInboundSecrets() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "StripMtprotoInboundSecrets") {
+		return nil
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", string(model.MTProto)).Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings)
+			if !ok {
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", stripped).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "StripMtprotoInboundSecrets"}).Error
+	})
+}
+
 // mtprotoInboundClientEmail derives a stable, unique client email for a migrated
 // mtproto inbound from its remark.
 func mtprotoInboundClientEmail(remark string, used map[string]struct{}) string {
@@ -922,6 +958,14 @@ func runSeeders(isUsersEmpty bool) error {
 
 	// Self-gated on the "MtprotoSecretsToClients" row.
 	if err := seedMtprotoSecretsToClients(); err != nil {
+		return err
+	}
+
+	// Self-gated on the "StripMtprotoInboundSecrets" row. Must run after the
+	// seeder above so legacy single-secret inbounds are first converted to a
+	// client (which preserves the secret) before the inbound-level copy is
+	// dropped from every mtproto inbound.
+	if err := stripMtprotoInboundSecrets(); err != nil {
 		return err
 	}
 

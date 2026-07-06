@@ -128,12 +128,15 @@ func TestFillProtocolDefaultsMtproto(t *testing.T) {
 
 func TestNormalizeMtprotoSecretHealsClients(t *testing.T) {
 	s := &InboundService{}
-	ib := &model.Inbound{Protocol: model.MTProto, Settings: `{"fakeTlsDomain":"a.com","clients":[{"email":"x","secret":""}]}`}
+	ib := &model.Inbound{Protocol: model.MTProto, Settings: `{"fakeTlsDomain":"a.com","secret":"eedeadbeef","clients":[{"email":"x","secret":""}]}`}
 	s.normalizeMtprotoSecret(ib)
 
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(ib.Settings), &parsed); err != nil {
 		t.Fatalf("healed settings not valid json: %v", err)
+	}
+	if _, ok := parsed["secret"]; ok {
+		t.Fatalf("the vestigial inbound-level secret must be stripped, got %q", ib.Settings)
 	}
 	clients := parsed["clients"].([]any)
 	got := clients[0].(map[string]any)["secret"].(string)

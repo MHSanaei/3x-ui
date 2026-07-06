@@ -425,7 +425,8 @@ func HealShadowsocksClientMethods(settings string) (string, bool) {
 
 // GenerateFakeTLSSecret builds an MTProto FakeTLS secret for the given domain:
 // the "ee" FakeTLS marker, 16 random bytes, then the domain encoded as hex.
-// This single value is what mtg's config and the client tg:// link both use.
+// MTProto is multi-client, so this value belongs to one client: mtg's [secrets]
+// config and that client's tg:// link both read it per client.
 func GenerateFakeTLSSecret(domain string) string {
 	return "ee" + mtprotoRandomMiddle() + hex.EncodeToString([]byte(domain))
 }
@@ -455,13 +456,13 @@ func mtprotoSecretMiddle(secret string) string {
 	return mtprotoRandomMiddle()
 }
 
-// HealMtprotoSecret normalises an mtproto inbound's settings JSON before the
-// value leaves for the mtg sidecar or a share link: it rebuilds `secret` so it
-// is always a valid FakeTLS secret whose trailing domain matches
-// `fakeTlsDomain`, generating the random middle when one is missing and
-// rewriting the domain suffix when the domain changed. Returns the rewritten
-// settings and true when anything changed.
-func HealMtprotoSecret(settings string) (string, bool) {
+// StripMtprotoInboundSecret removes the vestigial inbound-level `secret` from an
+// mtproto inbound's settings JSON. MTProto is multi-client: every secret lives on
+// a client, and mtg's [secrets] config plus every share link read only the
+// per-client secrets. A lingering inbound-level secret is dead data — it once
+// leaked into stale links that mtg rejected as "incorrect client random". Returns
+// the rewritten settings and true when a `secret` key was removed.
+func StripMtprotoInboundSecret(settings string) (string, bool) {
 	if settings == "" {
 		return settings, false
 	}
@@ -469,17 +470,10 @@ func HealMtprotoSecret(settings string) (string, bool) {
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return settings, false
 	}
-	domain, _ := parsed["fakeTlsDomain"].(string)
-	domain = strings.TrimSpace(domain)
-	if domain == "" {
+	if _, ok := parsed["secret"]; !ok {
 		return settings, false
 	}
-	secret, _ := parsed["secret"].(string)
-	expected := "ee" + mtprotoSecretMiddle(secret) + hex.EncodeToString([]byte(domain))
-	if secret == expected {
-		return settings, false
-	}
-	parsed["secret"] = expected
+	delete(parsed, "secret")
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false

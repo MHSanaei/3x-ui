@@ -25,48 +25,38 @@ func TestGenerateFakeTLSSecret(t *testing.T) {
 	}
 }
 
-func TestHealMtprotoSecret(t *testing.T) {
-	domain := "example.com"
-	suffix := hex.EncodeToString([]byte(domain))
-
-	in := `{"fakeTlsDomain":"example.com","secret":""}`
-	out, changed := HealMtprotoSecret(in)
+func TestStripMtprotoInboundSecret(t *testing.T) {
+	// A multi-client inbound that still carries a dead inbound-level secret has
+	// it removed while the clients (and every other key) survive untouched.
+	in := `{"fakeTlsDomain":"a.com","secret":"eedeadbeef","clients":[{"email":"x","secret":"eeaaaa"}]}`
+	out, changed := StripMtprotoInboundSecret(in)
 	if !changed {
-		t.Fatal("expected heal to populate an empty secret")
+		t.Fatal("expected the inbound-level secret to be stripped")
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
-		t.Fatalf("healed settings not valid json: %v", err)
+		t.Fatalf("stripped settings not valid json: %v", err)
 	}
-	got, _ := parsed["secret"].(string)
-	if !strings.HasPrefix(got, "ee") || !strings.HasSuffix(got, suffix) {
-		t.Fatalf("healed secret malformed: %q", got)
+	if _, ok := parsed["secret"]; ok {
+		t.Fatalf("inbound-level secret should be gone, got %q", out)
 	}
-
-	if _, changed2 := HealMtprotoSecret(out); changed2 {
-		t.Fatal("expected no change for an already-valid secret")
+	if parsed["fakeTlsDomain"] != "a.com" {
+		t.Fatalf("fakeTlsDomain must survive, got %q", out)
 	}
-
-	mid := got[2:34]
-	newDomain := "telegram.org"
-	in3 := `{"fakeTlsDomain":"telegram.org","secret":"` + got + `"}`
-	out3, changed3 := HealMtprotoSecret(in3)
-	if !changed3 {
-		t.Fatal("expected heal to rewrite the domain suffix")
+	clients, ok := parsed["clients"].([]any)
+	if !ok || len(clients) != 1 {
+		t.Fatalf("clients must survive untouched, got %q", out)
 	}
-	if err := json.Unmarshal([]byte(out3), &parsed); err != nil {
-		t.Fatalf("healed settings not valid json: %v", err)
-	}
-	got3, _ := parsed["secret"].(string)
-	if got3[2:34] != mid {
-		t.Fatalf("random middle should be preserved on domain change: %q vs %q", got3[2:34], mid)
-	}
-	if !strings.HasSuffix(got3, hex.EncodeToString([]byte(newDomain))) {
-		t.Fatalf("suffix not updated for new domain: %q", got3)
+	if clients[0].(map[string]any)["secret"] != "eeaaaa" {
+		t.Fatalf("client secret must survive untouched, got %q", out)
 	}
 
-	if _, changed4 := HealMtprotoSecret(`{"secret":"ee"}`); changed4 {
-		t.Fatal("expected no change when fakeTlsDomain is missing")
+	// Nothing to strip when there is no inbound-level secret.
+	if _, changed2 := StripMtprotoInboundSecret(out); changed2 {
+		t.Fatal("expected no change when there is no inbound-level secret")
+	}
+	if _, changed3 := StripMtprotoInboundSecret(`{"clients":[]}`); changed3 {
+		t.Fatal("expected no change for settings without a secret key")
 	}
 }
 
