@@ -153,8 +153,9 @@ func TestRenderConfigXrayEgress(t *testing.T) {
 	}
 }
 
-func TestFingerprintReactsToOptions(t *testing.T) {
+func TestFingerprintSplit(t *testing.T) {
 	base := Instance{Secrets: []SecretEntry{{Name: "a", Secret: "ee"}}, Listen: "0.0.0.0", Port: 443}
+
 	for name, mutate := range map[string]func(*Instance){
 		"debug":         func(i *Instance) { i.Debug = true },
 		"listener":      func(i *Instance) { i.ProxyProtocolListener = true },
@@ -165,16 +166,48 @@ func TestFingerprintReactsToOptions(t *testing.T) {
 		"throttle":      func(i *Instance) { i.ThrottleMaxConnections = 5000 },
 		"routeXray":     func(i *Instance) { i.RouteThroughXray = true },
 		"routeXrayPort": func(i *Instance) { i.XrayRoutePort = 50000 },
-		"addSecret":     func(i *Instance) { i.Secrets = append(i.Secrets, SecretEntry{Name: "b", Secret: "ff"}) },
-		"changeSecret":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
+		"port":          func(i *Instance) { i.Port = 8443 },
+		"listen":        func(i *Instance) { i.Listen = "127.0.0.1" },
 	} {
-		changed := base
-		if strings.HasPrefix(name, "addSecret") || strings.HasPrefix(name, "changeSecret") {
-			changed.Secrets = append([]SecretEntry(nil), base.Secrets...)
-		}
-		mutate(&changed)
-		if base.fingerprint() == changed.fingerprint() {
-			t.Fatalf("fingerprint must change when %s changes", name)
-		}
+		t.Run("structural/"+name, func(t *testing.T) {
+			changed := base
+			mutate(&changed)
+			if base.structuralFingerprint() == changed.structuralFingerprint() {
+				t.Fatalf("structural fingerprint must change when %s changes", name)
+			}
+			if base.secretsFingerprint() != changed.secretsFingerprint() {
+				t.Fatalf("secrets fingerprint must stay put when %s changes", name)
+			}
+		})
 	}
+
+	for name, mutate := range map[string]func(*Instance){
+		"add":    func(i *Instance) { i.Secrets = append(i.Secrets, SecretEntry{Name: "b", Secret: "ff"}) },
+		"rekey":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
+		"remove": func(i *Instance) { i.Secrets = nil },
+		"rename": func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a2", Secret: "ee"}} },
+	} {
+		t.Run("secrets/"+name, func(t *testing.T) {
+			changed := base
+			changed.Secrets = append([]SecretEntry(nil), base.Secrets...)
+			mutate(&changed)
+			if base.secretsFingerprint() == changed.secretsFingerprint() {
+				t.Fatalf("secrets fingerprint must change on a %s", name)
+			}
+			if base.structuralFingerprint() != changed.structuralFingerprint() {
+				t.Fatalf("structural fingerprint must stay put on a %s", name)
+			}
+		})
+	}
+
+	t.Run("orderInsensitive", func(t *testing.T) {
+		forward := Instance{Secrets: []SecretEntry{{Name: "alice", Secret: "ee11"}, {Name: "bob", Secret: "ee22"}}}
+		reversed := Instance{Secrets: []SecretEntry{{Name: "bob", Secret: "ee22"}, {Name: "alice", Secret: "ee11"}}}
+		if got, want := forward.secretsFingerprint(), "alice=ee11|bob=ee22"; got != want {
+			t.Fatalf("secrets fingerprint must join sorted pairs: got %q, want %q", got, want)
+		}
+		if forward.secretsFingerprint() != reversed.secretsFingerprint() {
+			t.Fatal("secrets fingerprint must not depend on client order")
+		}
+	})
 }

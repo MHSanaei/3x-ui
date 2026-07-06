@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,10 +63,11 @@ func (inst Instance) bindTo() string {
 	return fmt.Sprintf("%s:%d", listen, inst.Port)
 }
 
-// fingerprint changes whenever any value that ends up in the generated TOML
-// changes, so ensureLocked restarts mtg when the operator edits a setting or a
-// client is added, removed, disabled, or re-keyed.
-func (inst Instance) fingerprint() string {
+// structuralFingerprint changes whenever a value outside the [secrets] section
+// of the generated TOML changes. Such a change can only be applied by
+// restarting mtg, unlike a secrets-only change, which a reload-capable mtg can
+// absorb in place.
+func (inst Instance) structuralFingerprint() string {
 	parts := []string{
 		inst.bindTo(),
 		strconv.FormatBool(inst.Debug),
@@ -78,10 +80,19 @@ func (inst Instance) fingerprint() string {
 		strconv.FormatBool(inst.RouteThroughXray),
 		strconv.Itoa(inst.XrayRoutePort),
 	}
-	for _, e := range inst.Secrets {
-		parts = append(parts, e.Name+"="+e.Secret)
-	}
 	return strings.Join(parts, "|")
+}
+
+// secretsFingerprint identifies the served secret set regardless of order, so
+// a reordered clients array in the stored settings does not read as a config
+// change. It moves whenever a client is added, removed, disabled, or re-keyed.
+func (inst Instance) secretsFingerprint() string {
+	pairs := make([]string, 0, len(inst.Secrets))
+	for _, e := range inst.Secrets {
+		pairs = append(pairs, e.Name+"="+e.Secret)
+	}
+	slices.Sort(pairs)
+	return strings.Join(pairs, "|")
 }
 
 // Traffic is a per-client traffic delta scraped from an mtg /stats endpoint. Tag
@@ -99,11 +110,12 @@ type clientCounters struct {
 }
 
 type managed struct {
-	proc        *Process
-	tag         string
-	fingerprint string
-	apiPort     int
-	last        map[string]clientCounters
+	proc         *Process
+	tag          string
+	structuralFP string
+	secretsFP    string
+	apiPort      int
+	last         map[string]clientCounters
 }
 
 // Manager owns the set of running mtg processes keyed by inbound id.
@@ -211,9 +223,10 @@ func (m *Manager) sweepOrphansLocked() {
 }
 
 func (m *Manager) ensureLocked(inst Instance) error {
-	fp := inst.fingerprint()
+	structFP := inst.structuralFingerprint()
+	secFP := inst.secretsFingerprint()
 	if cur, ok := m.procs[inst.Id]; ok {
-		if cur.fingerprint == fp && cur.proc.IsRunning() {
+		if cur.structuralFP == structFP && cur.secretsFP == secFP && cur.proc.IsRunning() {
 			cur.tag = inst.Tag
 			return nil
 		}
@@ -233,11 +246,12 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		return err
 	}
 	m.procs[inst.Id] = &managed{
-		proc:        proc,
-		tag:         inst.Tag,
-		fingerprint: fp,
-		apiPort:     apiPort,
-		last:        map[string]clientCounters{},
+		proc:         proc,
+		tag:          inst.Tag,
+		structuralFP: structFP,
+		secretsFP:    secFP,
+		apiPort:      apiPort,
+		last:         map[string]clientCounters{},
 	}
 	logger.Infof("mtproto: started mtg for inbound %d on %s", inst.Id, inst.bindTo())
 	return nil
