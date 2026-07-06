@@ -159,11 +159,16 @@ jobs:
           # mtg-multi (MTProto sidecar) is pure Go, so build it from source for the
           # target arch (GOOS/GOARCH/GOARM are already exported above). Its release
           # binaries only cover linux/darwin amd64/arm64; skip s390x/armv5 as before.
+          # go install rejects GOBIN for cross-compiled targets, so let it install
+          # into GOPATH/bin (a GOOS_GOARCH subdir when cross-compiling) and fetch
+          # the binary from there.
           MTG_MULTI_VER="v1.11.0"
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
-              CGO_ENABLED=0 GOBIN="$(pwd)" go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@${MTG_MULTI_VER}"
-              mv mtg-multi "mtg-linux-${{ matrix.platform }}"
+              CGO_ENABLED=0 go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@${MTG_MULTI_VER}"
+              MTG_BIN=$(find "$(go env GOPATH)/bin" -type f -name mtg-multi | head -n1)
+              [ -n "$MTG_BIN" ] || { echo "mtg-multi binary not found under $(go env GOPATH)/bin" >&2; exit 1; }
+              mv "$MTG_BIN" "mtg-linux-${{ matrix.platform }}"
               ;;
           esac
           cd ../..
