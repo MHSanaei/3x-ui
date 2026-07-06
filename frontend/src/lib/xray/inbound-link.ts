@@ -779,20 +779,21 @@ export interface GenMtprotoLinkInput {
   address: string;
   port?: number;
   clientSecret?: string;
-  remark?: string;
 }
 
 // Builds a per-client Telegram proxy deep link for an mtproto inbound from the
-// client's own FakeTLS secret.
+// client's own FakeTLS secret. No remark fragment is added: Telegram proxy deep
+// links have no name field, and a trailing "#remark" gets folded into the last
+// query value by lenient parsers, breaking the server address. The panel shows
+// the remark separately from the link.
 export function genMtprotoLink(input: GenMtprotoLinkInput): string {
-  const { inbound, address, port = inbound.port, clientSecret = '', remark = '' } = input;
+  const { inbound, address, port = inbound.port, clientSecret = '' } = input;
   if (inbound.protocol !== 'mtproto') return '';
   if (clientSecret.length === 0) return '';
   const url = new URL('tg://proxy');
   url.searchParams.set('server', address);
   url.searchParams.set('port', String(port));
   url.searchParams.set('secret', clientSecret);
-  if (remark) url.hash = encodeURIComponent(remark);
   return url.toString();
 }
 
@@ -1130,7 +1131,7 @@ export function genLink(input: GenLinkInput): string {
         externalProxy,
       });
     case 'mtproto':
-      return genMtprotoLink({ inbound, address, port, clientSecret: client.secret ?? '', remark });
+      return genMtprotoLink({ inbound, address, port, clientSecret: client.secret ?? '' });
     default:
       return '';
   }

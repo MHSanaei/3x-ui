@@ -663,8 +663,11 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 }
 
 // genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto
-// inbound: the server/port pair plus the client's own FakeTLS secret. Returns ""
-// when the client has no secret.
+// inbound: the server/port pair plus the client's own FakeTLS secret. The link
+// carries no remark fragment — Telegram proxy deep links have no name field, and
+// a trailing "#remark" is appended to the last query value by lenient parsers,
+// corrupting the server address. The remark is shown separately in the panel UI.
+// Returns "" when the client has no secret.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
@@ -678,7 +681,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 		"port":   fmt.Sprintf("%d", inbound.Port),
 		"secret": resolved.Secret,
 	}
-	return buildLinkWithParams("tg://proxy", params, s.genRemark(inbound, email, "", ""))
+	return buildLinkWithParams("tg://proxy", params, "")
 }
 
 // Protocol link generators are intentionally ordered as:

@@ -37,5 +37,7 @@ describe('mtproto multi-client link fan-out', () => {
     expect(links[0]).toContain('tg://proxy');
     expect(links[0]).toContain('secret=ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d');
     expect(links[1]).toContain('secret=eeabcdefabcdefabcdefabcdefabcdef01676f6f676c652e636f6d');
+    expect(links[0]).not.toContain('#');
+    expect(links[1]).not.toContain('#');
   });
 });

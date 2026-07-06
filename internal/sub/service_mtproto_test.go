@@ -40,6 +40,9 @@ func TestGenMtprotoLinkFields(t *testing.T) {
 	if q.Get("secret") != mtprotoTestSecret {
 		t.Fatalf("secret = %q, want the client's FakeTLS secret", q.Get("secret"))
 	}
+	if u.Fragment != "" {
+		t.Fatalf("link carries a #%s fragment; tg://proxy links must have no remark fragment", u.Fragment)
+	}
 }
 
 func TestGenMtprotoLinkWrongProtocol(t *testing.T) {
