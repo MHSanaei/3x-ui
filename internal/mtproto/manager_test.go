@@ -94,11 +94,17 @@ func TestRenderConfig(t *testing.T) {
 		Debug: true, ProxyProtocolListener: true, PreferIP: "only-ipv6",
 		FrontingIP: "127.0.0.1", FrontingPort: 9443, FrontingProxyProtocol: true,
 		ThrottleMaxConnections: 5000,
+		AdTag:                  "0123456789abcdef0123456789abcdef",
+		PublicIPv4:             "1.2.3.4",
+		PublicIPv6:             "2001:db8::1",
 	}, 6000)
 	for _, want := range []string{
 		"debug = true\n",
 		"proxy-protocol-listener = true\n",
 		`prefer-ip = "only-ipv6"`,
+		`ad-tag = "0123456789abcdef0123456789abcdef"`,
+		`public-ipv4 = "1.2.3.4"`,
+		`public-ipv6 = "2001:db8::1"`,
 		"[domain-fronting]",
 		`host = "127.0.0.1"`,
 		"port = 9443",
@@ -168,6 +174,8 @@ func TestFingerprintSplit(t *testing.T) {
 		"routeXrayPort": func(i *Instance) { i.XrayRoutePort = 50000 },
 		"port":          func(i *Instance) { i.Port = 8443 },
 		"listen":        func(i *Instance) { i.Listen = "127.0.0.1" },
+		"publicIpv4":    func(i *Instance) { i.PublicIPv4 = "1.2.3.4" },
+		"publicIpv6":    func(i *Instance) { i.PublicIPv6 = "2001:db8::1" },
 	} {
 		t.Run("structural/"+name, func(t *testing.T) {
 			changed := base
@@ -186,6 +194,7 @@ func TestFingerprintSplit(t *testing.T) {
 		"rekey":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
 		"remove": func(i *Instance) { i.Secrets = nil },
 		"rename": func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a2", Secret: "ee"}} },
+		"adTag":  func(i *Instance) { i.AdTag = "0123456789abcdef0123456789abcdef" },
 	} {
 		t.Run("secrets/"+name, func(t *testing.T) {
 			changed := base
@@ -203,7 +212,7 @@ func TestFingerprintSplit(t *testing.T) {
 	t.Run("orderInsensitive", func(t *testing.T) {
 		forward := Instance{Secrets: []SecretEntry{{Name: "alice", Secret: "ee11"}, {Name: "bob", Secret: "ee22"}}}
 		reversed := Instance{Secrets: []SecretEntry{{Name: "bob", Secret: "ee22"}, {Name: "alice", Secret: "ee11"}}}
-		if got, want := forward.secretsFingerprint(), "alice=ee11|bob=ee22"; got != want {
+		if got, want := forward.secretsFingerprint(), "adtag=|alice=ee11|bob=ee22"; got != want {
 			t.Fatalf("secrets fingerprint must join sorted pairs: got %q, want %q", got, want)
 		}
 		if forward.secretsFingerprint() != reversed.secretsFingerprint() {

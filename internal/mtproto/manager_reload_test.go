@@ -1,6 +1,7 @@
 package mtproto
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -102,7 +103,7 @@ func TestEnsureActionFor(t *testing.T) {
 	}
 }
 
-func TestRequestReload(t *testing.T) {
+func TestApplySecrets(t *testing.T) {
 	cases := []struct {
 		name   string
 		status int
@@ -110,23 +111,30 @@ func TestRequestReload(t *testing.T) {
 	}{
 		{"ok", http.StatusOK, true},
 		{"not found on old binary", http.StatusNotFound, false},
-		{"server error", http.StatusInternalServerError, false},
+		{"bad request", http.StatusBadRequest, false},
 		{"unavailable", http.StatusServiceUnavailable, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var gotMethod, gotPath string
+			var gotBody secretsPutBody
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				gotMethod, gotPath = r.Method, r.URL.Path
+				_ = json.NewDecoder(r.Body).Decode(&gotBody)
 				w.WriteHeader(tc.status)
 			}))
 			defer srv.Close()
 
-			if got := requestReload(serverPort(t, srv)); got != tc.want {
-				t.Fatalf("requestReload = %v, want %v", got, tc.want)
+			inst := mtgInst(1, SecretEntry{Name: "alice", Secret: "ee01"})
+			inst.AdTag = "0123456789abcdef0123456789abcdef"
+			if got := applySecrets(serverPort(t, srv), inst); got != tc.want {
+				t.Fatalf("applySecrets = %v, want %v", got, tc.want)
 			}
-			if gotMethod != http.MethodPost || gotPath != "/reload" {
-				t.Fatalf("expected POST /reload, got %s %s", gotMethod, gotPath)
+			if gotMethod != http.MethodPut || gotPath != "/secrets" {
+				t.Fatalf("expected PUT /secrets, got %s %s", gotMethod, gotPath)
+			}
+			if gotBody.Secrets["alice"].Secret != "ee01" || gotBody.AdTag != "0123456789abcdef0123456789abcdef" {
+				t.Fatalf("payload must carry the secret and ad-tag: %+v", gotBody)
 			}
 		})
 	}
@@ -135,7 +143,7 @@ func TestRequestReload(t *testing.T) {
 		srv := httptest.NewServer(http.NotFoundHandler())
 		port := serverPort(t, srv)
 		srv.Close()
-		if requestReload(port) {
+		if applySecrets(port, mtgInst(1, SecretEntry{Name: "a", Secret: "ee"})) {
 			t.Fatal("a refused connection must yield false")
 		}
 	})
@@ -154,7 +162,7 @@ func TestEnsureHotReloadKeepsProcess(t *testing.T) {
 
 	reloaded := make(chan struct{}, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/reload" {
+		if r.Method == http.MethodPut && r.URL.Path == "/secrets" {
 			reloaded <- struct{}{}
 			w.WriteHeader(http.StatusOK)
 			return
@@ -172,7 +180,7 @@ func TestEnsureHotReloadKeepsProcess(t *testing.T) {
 	select {
 	case <-reloaded:
 	case <-time.After(3 * time.Second):
-		t.Fatal("expected a /reload request")
+		t.Fatal("expected a PUT /secrets request")
 	}
 	if got := spawnCount(t, pidFile); got != 1 {
 		t.Fatalf("hot reload must not spawn a new process, got %d", got)
