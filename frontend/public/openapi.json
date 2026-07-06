@@ -195,6 +195,10 @@
             "description": "SSL certificate file for subscription server",
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+            "type": "boolean"
+          },
           "subClashEnable": {
             "description": "Enable Clash/Mihomo subscription endpoint",
             "type": "boolean"
@@ -213,6 +217,10 @@
           },
           "subClashURI": {
             "description": "Clash/Mihomo subscription server URI",
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
+            "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
             "type": "string"
           },
           "subDomain": {
@@ -243,6 +251,14 @@
             "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "description": "Always return JSON subscriptions as an array, including single-profile responses",
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -264,6 +280,10 @@
           },
           "subJsonURI": {
             "description": "JSON subscription server URI",
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
+            "description": "Go RE2 regular expression used to recognize Xray JSON subscription clients",
             "type": "string"
           },
           "subKeyFile": {
@@ -459,11 +479,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -471,12 +493,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -704,6 +729,10 @@
             "description": "SSL certificate file for subscription server",
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "description": "Opt in to serving Clash YAML from the standard subscription URL for recognized Clash/Mihomo/Stash User-Agents; browsers and other clients keep existing responses",
+            "type": "boolean"
+          },
           "subClashEnable": {
             "description": "Enable Clash/Mihomo subscription endpoint",
             "type": "boolean"
@@ -722,6 +751,10 @@
           },
           "subClashURI": {
             "description": "Clash/Mihomo subscription server URI",
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
+            "description": "Go RE2 regular expression used to recognize Clash/Mihomo clients on the standard subscription URL",
             "type": "string"
           },
           "subDomain": {
@@ -752,6 +785,14 @@
             "description": "Incy routing deep-link injected into the subscription body (Only for Incy)",
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "description": "Always return JSON subscriptions as an array, including single-profile responses",
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "description": "Opt in to serving Xray JSON from the standard subscription URL for recognized compatible User-Agents",
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "description": "Enable JSON subscription endpoint",
             "type": "boolean"
@@ -773,6 +814,10 @@
           },
           "subJsonURI": {
             "description": "JSON subscription server URI",
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
+            "description": "Go RE2 regular expression used to recognize Xray JSON subscription clients",
             "type": "string"
           },
           "subKeyFile": {
@@ -975,11 +1020,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -987,12 +1034,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -9037,6 +9087,53 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/validateRegex": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Validate any regular expression with the backend Go RE2 compiler without saving it.",
+        "operationId": "post_panel_api_setting_validateRegex",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "regex": "(?m)^general-purpose$"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": ""
                 }
               }
             }
