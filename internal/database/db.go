@@ -109,6 +109,15 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := repairOverflowedTrafficCounters(); err != nil {
+		return err
+	}
+	if err := dedupeInboundSettingsClients(); err != nil {
+		return err
+	}
+	if err := migrateLegacySocksInboundsToMixed(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -332,6 +341,174 @@ func wireguardPeerEmail(remark string, peer map[string]any, index int, used map[
 	}
 }
 
+// seedMtprotoSecretsToClients converts each legacy single-secret mtproto inbound
+// into a one-client inbound so MTProto joins the shared multi-client model: the
+// inbound-level secret becomes the first client's FakeTLS secret, and a
+// ClientRecord + client_inbounds link are created so per-client traffic, limits,
+// and share links work exactly like every other protocol. One-time, self-gated
+// on the "MtprotoSecretsToClients" seeder row. Mirrors seedWireguardPeersToClients.
+func seedMtprotoSecretsToClients() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "MtprotoSecretsToClients") {
+		return nil
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", string(model.MTProto)).Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		usedEmails := map[string]struct{}{}
+		var existingEmails []string
+		if err := tx.Model(&model.ClientRecord{}).Pluck("email", &existingEmails).Error; err != nil {
+			return err
+		}
+		for _, e := range existingEmails {
+			usedEmails[e] = struct{}{}
+		}
+
+		for _, inbound := range inbounds {
+			if strings.TrimSpace(inbound.Settings) == "" {
+				continue
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				log.Printf("MtprotoSecretsToClients: skip inbound %d (invalid settings json): %v", inbound.Id, err)
+				continue
+			}
+			if clients, ok := settings["clients"].([]any); ok && len(clients) > 0 {
+				continue
+			}
+
+			var linkCount int64
+			if err := tx.Model(&model.ClientInbound{}).Where("inbound_id = ?", inbound.Id).Count(&linkCount).Error; err != nil {
+				return err
+			}
+			if linkCount > 0 {
+				continue
+			}
+
+			secret, _ := settings["secret"].(string)
+			secret = strings.TrimSpace(secret)
+			if secret == "" {
+				domain, _ := settings["fakeTlsDomain"].(string)
+				secret = model.GenerateFakeTLSSecret(strings.TrimSpace(domain))
+			}
+
+			email := mtprotoInboundClientEmail(inbound.Remark, usedEmails)
+			usedEmails[email] = struct{}{}
+
+			obj := map[string]any{
+				"email":  email,
+				"secret": secret,
+				"enable": true,
+				"subId":  random.NumLower(16),
+			}
+			c := model.Client{Email: email, Secret: secret, Enable: true, SubID: obj["subId"].(string)}
+
+			incoming := c.ToRecord()
+			var row model.ClientRecord
+			err := tx.Where("email = ?", email).First(&row).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(incoming).Error; err != nil {
+					return err
+				}
+				row = *incoming
+			} else if err != nil {
+				return err
+			} else {
+				model.MergeClientRecord(&row, incoming)
+				if err := tx.Save(&row).Error; err != nil {
+					return err
+				}
+			}
+
+			link := model.ClientInbound{ClientId: row.Id, InboundId: inbound.Id}
+			if err := tx.Where("client_id = ? AND inbound_id = ?", row.Id, inbound.Id).
+				FirstOrCreate(&link).Error; err != nil {
+				return err
+			}
+
+			delete(settings, "secret")
+			settings["clients"] = []any{obj}
+			newSettings, err := json.Marshal(settings)
+			if err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", string(newSettings)).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "MtprotoSecretsToClients"}).Error
+	})
+}
+
+// stripMtprotoInboundSecrets removes the vestigial inbound-level `secret` from
+// every mtproto inbound. seedMtprotoSecretsToClients already drops it while
+// converting legacy single-secret inbounds, but inbounds that already had clients
+// kept the dead field, and the old HealMtprotoSecret regenerated it on every
+// save. mtg and every share link read only per-client secrets, so the
+// inbound-level value is dead data that once leaked into stale, unusable links.
+// One-time, self-gated on the "StripMtprotoInboundSecrets" seeder row.
+func stripMtprotoInboundSecrets() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "StripMtprotoInboundSecrets") {
+		return nil
+	}
+
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", string(model.MTProto)).Find(&inbounds).Error; err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, inbound := range inbounds {
+			stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings)
+			if !ok {
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+				Update("settings", stripped).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "StripMtprotoInboundSecrets"}).Error
+	})
+}
+
+// mtprotoInboundClientEmail derives a stable, unique client email for a migrated
+// mtproto inbound from its remark.
+func mtprotoInboundClientEmail(remark string, used map[string]struct{}) string {
+	base := strings.TrimSpace(remark)
+	if base == "" {
+		base = "mtproto"
+	}
+	email := strings.ReplaceAll(base, " ", "-")
+	candidate := email
+	for n := 2; ; n++ {
+		if _, taken := used[candidate]; !taken {
+			return candidate
+		}
+		candidate = email + "-" + strconv.Itoa(n)
+	}
+}
+
+// CreateHostsFromExternalProxy parses a legacy streamSettings.externalProxy array
+// and inserts one Host row per entry on tx, returning the number of rows created.
+// It is the shared core of both the one-time seedHostsFromExternalProxy startup
+// migration and the inbound-import path: an inbound exported from a build that
+// predated the hosts table carries its external proxies inline in
+// streamSettings.externalProxy, and the startup migration is gated off after its
+// first run, so a freshly imported inbound must be converted here instead. Blank
+// or malformed streamSettings, or one without externalProxy entries, is a no-op.
 func CreateHostsFromExternalProxy(tx *gorm.DB, inboundId int, streamSettings string) (int, error) {
 	if strings.TrimSpace(streamSettings) == "" {
 		return 0, nil
@@ -442,6 +619,26 @@ func pruneOrphanedClientInbounds() error {
 	return nil
 }
 
+// migrateLegacySocksInboundsToMixed renames legacy socks inbounds to mixed.
+// The protocol enum dropped socks in favor of mixed (identical settings shape,
+// same behavior plus HTTP on the shared port), so rows predating the rename
+// fail model validation — most visibly when pushed to a node, where one legacy
+// inbound stalled the entire node's config and traffic sync (#5685).
+func migrateLegacySocksInboundsToMixed() error {
+	res := db.Exec("UPDATE inbounds SET protocol = 'mixed' WHERE protocol = 'socks'")
+	if res.Error != nil {
+		log.Printf("Error migrating legacy socks inbounds to mixed: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Migrated %d legacy socks inbound(s) to mixed", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
+// minimum (rows written by builds that defaulted the column to 0, or by nodes
+// predating the field) so they cannot sort ahead of explicitly ranked inbounds.
 func normalizeInboundSubSortIndex() error {
 	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index < 1")
 	if res.Error != nil {
@@ -450,6 +647,111 @@ func normalizeInboundSubSortIndex() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// repairOverflowedTrafficCounters heals traffic counters that historic
+// compounding bugs pushed past int64: on SQLite an overflowing INTEGER is
+// silently promoted to REAL, after which the column no longer scans into the
+// Go int64 field and every reader of the table fails (#5762). REAL cells are
+// cast back to INTEGER (SQLite caps the cast at math.MaxInt64), then values
+// are clamped into [0, TrafficMax] on both backends so the next delta cannot
+// overflow again.
+func repairOverflowedTrafficCounters() error {
+	targets := []struct {
+		table   string
+		columns []string
+	}{
+		{"client_traffics", []string{"up", "down"}},
+		{"inbounds", []string{"up", "down"}},
+		{"outbound_traffics", []string{"up", "down", "total"}},
+		{"node_client_traffics", []string{"up", "down"}},
+	}
+	for _, target := range targets {
+		for _, col := range target.columns {
+			statements := []string{
+				fmt.Sprintf("UPDATE %s SET %s = %d WHERE %s > %d", target.table, col, TrafficMax, col, TrafficMax),
+				fmt.Sprintf("UPDATE %s SET %s = 0 WHERE %s < 0", target.table, col, col),
+			}
+			if !IsPostgres() {
+				statements = append([]string{
+					fmt.Sprintf("UPDATE %s SET %s = CAST(%s AS INTEGER) WHERE typeof(%s) = 'real'", target.table, col, col, col),
+				}, statements...)
+			}
+			var repaired int64
+			for _, statement := range statements {
+				res := db.Exec(statement)
+				if res.Error != nil {
+					log.Printf("Error repairing %s.%s: %v", target.table, col, res.Error)
+					return res.Error
+				}
+				repaired += res.RowsAffected
+			}
+			if repaired > 0 {
+				log.Printf("Repaired %d overflowed %s.%s value(s)", repaired, target.table, col)
+			}
+		}
+	}
+	return nil
+}
+
+// dedupeInboundSettingsClients collapses duplicate same-email entries inside
+// every inbound's settings.clients array, keeping the first occurrence.
+// Retried or raced multi-node client adds on older builds appended the same
+// client several times (#5770), which the client lists then rendered as
+// phantom duplicates. Runs on every start (idempotent, writes only changed
+// rows) because a restored backup or a not-yet-upgraded node's snapshot can
+// reintroduce duplicates.
+func dedupeInboundSettingsClients() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+	repaired := int64(0)
+	for _, inbound := range inbounds {
+		if strings.TrimSpace(inbound.Settings) == "" {
+			continue
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		clients, _ := settings["clients"].([]any)
+		if len(clients) < 2 {
+			continue
+		}
+		seen := make(map[string]struct{}, len(clients))
+		kept := make([]any, 0, len(clients))
+		for _, c := range clients {
+			if cm, ok := c.(map[string]any); ok {
+				if email, _ := cm["email"].(string); email != "" {
+					key := strings.ToLower(email)
+					if _, dup := seen[key]; dup {
+						continue
+					}
+					seen[key] = struct{}{}
+				}
+			}
+			kept = append(kept, c)
+		}
+		if len(kept) == len(clients) {
+			continue
+		}
+		settings["clients"] = kept
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			log.Printf("dedupeInboundSettingsClients: skip inbound %d (marshal failed): %v", inbound.Id, err)
+			continue
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		repaired++
+	}
+	if repaired > 0 {
+		log.Printf("Removed duplicate client entries from %d inbound(s)", repaired)
 	}
 	return nil
 }
@@ -509,7 +811,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -618,6 +920,21 @@ func runSeeders(isUsersEmpty bool) error {
 		return err
 	}
 
+	// Self-gated on the "MtprotoSecretsToClients" row.
+	if err := seedMtprotoSecretsToClients(); err != nil {
+		return err
+	}
+
+	// Self-gated on the "StripMtprotoInboundSecrets" row. Must run after the
+	// seeder above so legacy single-secret inbounds are first converted to a
+	// client (which preserves the secret) before the inbound-level copy is
+	// dropped from every mtproto inbound.
+	if err := stripMtprotoInboundSecrets(); err != nil {
+		return err
+	}
+
+	// Idempotent, not seeder-gated: bad values can re-enter via a restored
+	// backup, so re-check on every start.
 	return normalizeSettingPaths()
 }
 

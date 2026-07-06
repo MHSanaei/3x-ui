@@ -82,6 +82,10 @@ func (s *InboundService) AnyNodePending(inboundIds []int) bool {
 	return false
 }
 
+// ReconcileNode pushes every inbound and sweeps undesired remote tags even when
+// individual operations fail, returning the failures joined: one inbound the
+// node rejects (e.g. a legacy protocol failing validation, #5685) must not
+// stall the rest of the node's config — or, via syncOne, its traffic sync.
 func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, n *model.Node) error {
 	if rt == nil || n == nil || n.Id <= 0 {
 		return nil
@@ -102,6 +106,7 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	}
 	prefix := nodeTagPrefix(&nodeID)
 	desiredTags := make(map[string]struct{}, len(inbounds)*2)
+	var errs []error
 	for _, ib := range inbounds {
 		desiredTags[ib.Tag] = struct{}{}
 		// existsOnNode: does the node already report this inbound under any of the
@@ -121,7 +126,7 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			}
 		}
 		if _, err := rt.ReconcileInbound(ctx, ib, existsOnNode); err != nil {
-			return fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err)
+			errs = append(errs, fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err))
 		}
 	}
 	// In "selected" sync mode the panel only manages the selected tags: the
@@ -145,10 +150,10 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			}
 		}
 		if err := rt.DelInbound(ctx, &model.Inbound{Tag: tag}); err != nil {
-			return fmt.Errorf("reconcile delete %q: %w", tag, err)
+			errs = append(errs, fmt.Errorf("reconcile delete %q: %w", tag, err))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 const resetGracePeriodMs int64 = 30000
@@ -233,6 +238,40 @@ func (s *InboundService) GetNodeInboundTrafficTotals() (map[string][2]int64, err
 		out[r.Tag] = [2]int64{r.Up, r.Down}
 	}
 	return out, nil
+}
+
+func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
+	return c.Settings != adoptedSettings ||
+		c.Enable != snapIb.Enable ||
+		c.Remark != snapIb.Remark ||
+		c.SubSortIndex != normalizeSubSortIndex(snapIb.SubSortIndex) ||
+		c.Listen != snapIb.Listen ||
+		c.Port != snapIb.Port ||
+		c.Protocol != snapIb.Protocol ||
+		c.Total != snapIb.Total ||
+		c.ExpiryTime != snapIb.ExpiryTime ||
+		c.StreamSettings != snapIb.StreamSettings ||
+		c.Sniffing != snapIb.Sniffing ||
+		c.TrafficReset != snapIb.TrafficReset
+}
+
+// adoptedWireInbound is the central inbound as it reads after adopting the
+// node-reported wire fields — the payload the reconcile fingerprint must track.
+func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model.Inbound {
+	a := *c
+	a.Enable = snapIb.Enable
+	a.Remark = snapIb.Remark
+	a.SubSortIndex = normalizeSubSortIndex(snapIb.SubSortIndex)
+	a.Listen = snapIb.Listen
+	a.Port = snapIb.Port
+	a.Protocol = snapIb.Protocol
+	a.Total = snapIb.Total
+	a.ExpiryTime = snapIb.ExpiryTime
+	a.Settings = adoptedSettings
+	a.StreamSettings = snapIb.StreamSettings
+	a.Sniffing = snapIb.Sniffing
+	a.TrafficReset = snapIb.TrafficReset
+	return &a
 }
 
 func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
@@ -391,6 +430,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	structuralChange := false
 
+	var adoptedInbounds []*model.Inbound
+
 	newInboundIDs := make(map[int]struct{})
 
 	snapTags := make(map[string]struct{}, len(snap.Inbounds))
@@ -493,6 +534,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if stripped, changed := stripTombstonedClients(adoptedSettings); changed {
 			adoptedSettings = stripped
 		}
+		if deduped, changed := dedupeSettingsClients(adoptedSettings); changed {
+			adoptedSettings = deduped
+		}
 
 		updates := map[string]any{}
 		if !dirty {
@@ -509,6 +553,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
+			if adoptedWireChanged(c, snapIb, adoptedSettings) {
+				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, adoptedSettings))
+			}
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
 			updates["up"] = snapIb.Up
@@ -700,10 +747,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = up + ?, down = down + ?, enable = %s, total = ?,
+					 SET up = %s, down = %s, enable = %s, total = ?,
 					     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
 					     reset = ?, last_online = %s
 					 WHERE email = ?`,
+					database.ClampedAddExpr("up"),
+					database.ClampedAddExpr("down"),
 					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),
@@ -883,6 +932,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	committed = true
+
+	if len(adoptedInbounds) > 0 {
+		if mgr := runtime.GetManager(); mgr != nil {
+			if rt, rtErr := mgr.RuntimeFor(&nodeID); rtErr == nil {
+				if rem, ok := rt.(*runtime.Remote); ok {
+					for _, ib := range adoptedInbounds {
+						rem.RecordAdoptedInbound(ib)
+					}
+				}
+			}
+		}
+	}
 
 	if p != nil {
 		tree := snap.OnlineTree

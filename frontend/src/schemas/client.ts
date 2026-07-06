@@ -37,6 +37,7 @@ export const ClientRecordSchema = z.object({
   allowedIPs: z.string().optional(),
   preSharedKey: z.string().optional(),
   keepAlive: z.number().optional(),
+  secret: z.string().optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
 }).loose();
@@ -52,6 +53,7 @@ export const InboundOptionSchema = z.object({
   wgPublicKey: z.string().optional(),
   wgMtu: z.number().optional(),
   wgDns: z.string().optional(),
+  mtprotoDomain: z.string().optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
   // Share-host resolution inputs, mirroring the backend resolveInboundAddress so

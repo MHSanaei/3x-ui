@@ -25,6 +25,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   hysteria: 'Hysteria',
   wireguard: 'WireGuard',
   wg: 'WireGuard',
+  tg: 'MTProto',
 };
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -35,12 +36,14 @@ const PROTOCOL_COLORS: Record<string, string> = {
   Hysteria: 'magenta',
   Hysteria2: 'magenta',
   WireGuard: 'cyan',
+  MTProto: 'blue',
 };
 
 const SECURITY_COLORS: Record<string, string> = {
   TLS: 'green',
   XTLS: 'green',
   REALITY: 'purple',
+  FAKETLS: 'green',
 };
 
 const TRANSPORT_COLOR = 'gold';
@@ -83,10 +86,13 @@ export function parseLinkParts(link: string): LinkParts | null {
       const url = new URL(trimmed);
       network = url.searchParams.get('type') ?? '';
       security = url.searchParams.get('security') ?? '';
-      port = url.port;
+      /* tg://proxy links (mtproto) carry the port in a `port` query param, not
+         the URL authority, so fall back to it when there is no authority port. */
+      port = url.port || (url.searchParams.get('port') ?? '');
       const hash = url.hash.replace(/^#/, '');
       try { remark = decodeURIComponent(hash); } catch { remark = hash; }
     } catch { /* not URL-shaped, fall back to protocol only */ }
+    if (scheme === 'tg') security = 'FakeTLS';
   }
   if (security === 'none') security = '';
   return {

@@ -55,14 +55,8 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	}
 	out := make([]GroupSummary, 0, len(merged))
 	for name, agg := range merged {
-		up := agg.up - baseUp[name]
-		if up < 0 {
-			up = 0
-		}
-		down := agg.down - baseDown[name]
-		if down < 0 {
-			down = 0
-		}
+		up := max(agg.up-baseUp[name], 0)
+		down := max(agg.down-baseDown[name], 0)
 		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: up + down, Up: up, Down: down})
 	}
 	sort.Slice(out, func(i, j int) bool {

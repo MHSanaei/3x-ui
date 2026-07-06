@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,8 +87,8 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 		if traffic.IsInbound {
 			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
-					"up":   gorm.Expr("up + ?", traffic.Up),
-					"down": gorm.Expr("down + ?", traffic.Down),
+					"up":   gorm.Expr(database.ClampedAddExpr("up"), traffic.Up),
+					"down": gorm.Expr(database.ClampedAddExpr("down"), traffic.Down),
 				}).Error
 			if err != nil {
 				return err
@@ -152,7 +153,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		}
 		if err = tx.Exec(
 			fmt.Sprintf(
-				`UPDATE client_traffics SET up = up + ?, down = down + ?, last_online = %s WHERE email = ?`,
+				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s WHERE email = ?`,
+				database.ClampedAddExpr("up"),
+				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
 			),
 			t.Up, t.Down, now, ct.Email,
@@ -837,13 +840,25 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
 
-	// Retrieve inbounds where settings contain the given tgId
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	idQuery := fmt.Sprintf(
+		"SELECT DISTINCT inbounds.id %s WHERE %s = ?",
+		database.JSONClientsFromInbound(),
+		database.JSONFieldText("client.value", "tgId"),
+	)
+	var inboundIds []int
+	if err := db.Raw(idQuery, strconv.FormatInt(tgId, 10)).Scan(&inboundIds).Error; err != nil {
 		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
 		return nil, err
+	}
+
+	var inbounds []*model.Inbound
+	if len(inboundIds) > 0 {
+		err := db.Model(model.Inbound{}).Where("id IN ?", inboundIds).Find(&inbounds).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
+			return nil, err
+		}
 	}
 
 	var emails []string
@@ -866,7 +881,7 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
 	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
 		var page []*xray.ClientTraffic
-		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			}

@@ -32,6 +32,7 @@ import {
   type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
+import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
 export type ExternalLinkInput = { kind: 'link' | 'subscription'; value: string; remark: string };
@@ -74,6 +75,11 @@ const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
 const DEFAULT_SUMMARY: ClientsSummary = {
   total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
 };
+
+export interface ClientSpeedEntry {
+  up: number;
+  down: number;
+}
 
 type ClientStatRow = ClientTraffic & { email?: string };
 
@@ -264,6 +270,7 @@ export function useClients() {
   // back to the server-computed summary until the first event lands, and keeps
   // the server's authoritative total for the headline count.
   const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
+  const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
   const summary = useMemo<ClientsSummary>(() => {
     const serverSummary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
     if (allClientStats.length === 0) return serverSummary;
@@ -543,9 +550,23 @@ export function useClients() {
 
   const applyTrafficEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { onlineClients?: string[] };
+    const p = payload as {
+      onlineClients?: string[];
+      clientTraffics?: { email: string; up: number; down: number }[];
+    };
     if (Array.isArray(p.onlineClients)) {
       queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
+    }
+    if (Array.isArray(p.clientTraffics)) {
+      const next: Record<string, ClientSpeedEntry> = {};
+      for (const ct of p.clientTraffics) {
+        if (!ct || !ct.email) continue;
+        next[ct.email] = {
+          up: (ct.up || 0) / TRAFFIC_POLL_INTERVAL_S,
+          down: (ct.down || 0) / TRAFFIC_POLL_INTERVAL_S,
+        };
+      }
+      setClientSpeed(next);
     }
   }, [queryClient]);
 
@@ -629,6 +650,7 @@ export function useClients() {
     exportClients,
     importClients,
     setEnable,
+    clientSpeed,
     applyTrafficEvent,
     applyClientStatsEvent,
   };

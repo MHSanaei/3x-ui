@@ -130,6 +130,10 @@ func (l *Local) DeleteUser(ctx context.Context, ib *model.Inbound, email string)
 	return nil
 }
 
+func (l *Local) DeleteClient(context.Context, string) error {
+	return nil
+}
+
 func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
 	if oldEmail != "" {
 		if err := l.RemoveUser(ctx, ib, oldEmail); err != nil && !strings.Contains(err.Error(), "not found") {

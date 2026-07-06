@@ -467,12 +467,12 @@ check_config() {
                 start 0 > /dev/null 2>&1
             else
                 LOGE "IP certificate setup failed."
-                echo -e "${yellow}You can try again via option 19 (SSL Certificate Management).${plain}"
+                echo -e "${yellow}You can try again via main menu option 20 (SSL Certificate Management).${plain}"
                 start 0 > /dev/null 2>&1
             fi
         else
             echo -e "${yellow}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
-            echo -e "${yellow}For security, please configure SSL certificate using option 19 (SSL Certificate Management)${plain}"
+            echo -e "${yellow}For security, please configure SSL certificate using main menu option 20 (SSL Certificate Management)${plain}"
         fi
     fi
 }
@@ -1838,7 +1838,9 @@ ssl_cert_issue() {
     # get the port number for the standalone server
     local WebPort=80
     read -rp "Please choose which port to use (default is 80): " WebPort
-    if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
+    if [[ -z ${WebPort} ]]; then
+        WebPort=80
+    elif [[ ! ${WebPort} =~ ^[1-9][0-9]*$ || ${WebPort} -gt 65535 ]]; then
         LOGE "Your input ${WebPort} is invalid, will use default port 80."
         WebPort=80
     fi
@@ -2286,6 +2288,11 @@ setup_fail2ban_iplimit() {
                 apt-get update && apt-get install fail2ban nftables -y
                 ;;
             fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+                if [[ "${release}" != "fedora" ]] && ! dnf repolist enabled 2> /dev/null | grep -qiw epel; then
+                    dnf install -y epel-release \
+                        || dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm" \
+                        || echo -e "${yellow}Could not enable the EPEL repository; fail2ban is only available from EPEL on this distro.${plain}"
+                fi
                 dnf makecache -y && dnf -y install fail2ban nftables
                 ;;
             centos)
@@ -2297,7 +2304,7 @@ setup_fail2ban_iplimit() {
                 fi
                 ;;
             arch | manjaro | parch)
-                pacman -Syu --noconfirm fail2ban nftables
+                pacman -Sy --noconfirm fail2ban nftables
                 ;;
             alpine)
                 apk add fail2ban nftables
@@ -2846,6 +2853,37 @@ purge_postgresql() {
     LOGI "PostgreSQL has been purged."
 }
 
+# RHEL-family initdb writes pg_hba.conf host rules with ident auth, which
+# compares the OS username against the Postgres role and always rejects the
+# randomly generated panel role over TCP (#5806). Prepend password-auth rules
+# scoped to the panel database; first match wins, and md5 also accepts
+# scram-sha-256-stored verifiers, so this works on every supported distro.
+# Mirrors pg_ensure_hba_password_auth() from install.sh.
+pg_ensure_hba_password_auth() {
+    local pg_db="$1"
+    local hba_file
+    hba_file=$(sudo -u postgres psql -tAc 'SHOW hba_file' 2> /dev/null | tr -d '[:space:]')
+    [[ -n "${hba_file}" && -f "${hba_file}" ]] || return 0
+    grep -Eq "^host[[:space:]]+${pg_db}[[:space:]]" "${hba_file}" && return 0
+    local tmp
+    tmp=$(mktemp) || return 1
+    {
+        echo "# Added by 3x-ui: allow password logins for the panel database."
+        echo "host    ${pg_db}    all    127.0.0.1/32    md5"
+        echo "host    ${pg_db}    all    ::1/128         md5"
+        cat "${hba_file}"
+    } > "${tmp}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    cat "${tmp}" > "${hba_file}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    rm -f "${tmp}"
+    sudo -u postgres psql -tAc 'SELECT pg_reload_conf()' > /dev/null 2>&1 || true
+}
+
 # Installs a local PostgreSQL server and creates a dedicated xui user/database.
 # Progress goes to stderr; on success the connection DSN is printed to stdout so
 # callers can capture it. Mirrors install_postgres_local() from install.sh, so the
@@ -2874,7 +2912,7 @@ pg_install_local() {
             [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
             ;;
         arch | manjaro | parch)
-            pacman -Syu --noconfirm postgresql >&2 || return 1
+            pacman -Sy --noconfirm postgresql >&2 || return 1
             if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
                 sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
             fi
@@ -2930,6 +2968,9 @@ pg_install_local() {
 
     sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
 
+    pg_ensure_hba_password_auth "${pg_db}" \
+        || echo -e "${yellow}Warning: could not update pg_hba.conf; PostgreSQL may reject the panel's TCP login (ident auth).${plain}" >&2
+
     local pg_pass_enc
     pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
 
@@ -2971,6 +3012,104 @@ pg_ensure_client() {
             ;;
     esac
     command -v pg_dump > /dev/null 2>&1 && command -v pg_restore > /dev/null 2>&1
+}
+
+# Prints the major version of the installed pg_restore, or nothing when absent.
+pg_client_major() {
+    command -v pg_restore > /dev/null 2>&1 || return 1
+    pg_restore --version 2> /dev/null | grep -oE '[0-9]+' | head -n 1
+}
+
+# Installs or upgrades the PostgreSQL client tools (pg_dump/pg_restore) so their
+# major version is at least $1 (e.g. 17); with no argument any installed version
+# is accepted. Falls back to the official PostgreSQL package repository when the
+# distribution one is too old. Restoring a panel backup made by a newer pg_dump
+# needs this:   x-ui pgclient <major>
+pg_upgrade_client() {
+    local want="$1" have
+    if [[ -n "$want" && ! "$want" =~ ^[0-9]+$ ]]; then
+        LOGE "Invalid PostgreSQL major version '${want}' (expected a number like 17)."
+        return 1
+    fi
+    have=$(pg_client_major)
+    if [[ -n "$have" ]]; then
+        if [[ -z "$want" || "$have" -ge "$want" ]]; then
+            LOGI "PostgreSQL client tools are already installed (version ${have})."
+            return 0
+        fi
+        LOGI "Installed PostgreSQL client tools are version ${have}; version ${want} or newer is required."
+    fi
+    if [[ "${running_in_docker}" == "true" ]]; then
+        LOGI "Note: packages installed inside the container are lost when the container is recreated."
+    fi
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get update >&2 || return 1
+            if [[ -z "$want" ]]; then
+                apt-get install -y -q postgresql-client >&2 || return 1
+            elif ! apt-get install -y -q "postgresql-client-${want}" >&2; then
+                LOGI "postgresql-client-${want} is not in the distribution repositories; adding the official PostgreSQL apt repository..."
+                apt-get install -y -q postgresql-common ca-certificates >&2 || return 1
+                /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >&2 || return 1
+                apt-get install -y -q "postgresql-client-${want}" >&2 || return 1
+            fi
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos)
+            local pkg_mgr="dnf"
+            command -v dnf > /dev/null 2>&1 || pkg_mgr="yum"
+            if [[ -z "$want" ]]; then
+                "$pkg_mgr" install -y -q postgresql >&2 || return 1
+            elif ! "$pkg_mgr" install -y -q "postgresql${want}" >&2; then
+                local elver
+                elver=$(rpm -E %rhel 2> /dev/null)
+                if [[ ! "$elver" =~ ^[0-9]+$ ]]; then
+                    LOGE "Could not determine the Enterprise Linux release; install the PostgreSQL ${want} client tools manually."
+                    return 1
+                fi
+                LOGI "postgresql${want} is not in the enabled repositories; adding the official PostgreSQL yum repository..."
+                "$pkg_mgr" install -y "https://download.postgresql.org/pub/repos/yum/reporpms/EL-${elver}-$(uname -m)/pgdg-redhat-repo-latest.noarch.rpm" >&2 || return 1
+                if [[ "$pkg_mgr" == "dnf" ]]; then
+                    dnf -qy module disable postgresql >&2 || true
+                fi
+                "$pkg_mgr" install -y -q "postgresql${want}" >&2 || return 1
+            fi
+            ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm postgresql >&2 || return 1
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            if [[ -z "$want" ]] || ! zypper -q install -y "postgresql${want}" >&2; then
+                zypper -q install -y postgresql >&2 || return 1
+            fi
+            ;;
+        alpine)
+            if [[ -z "$want" ]] || ! apk add --no-cache "postgresql${want}-client" >&2; then
+                apk add --no-cache postgresql-client >&2 || return 1
+            fi
+            ;;
+        *)
+            LOGE "Unsupported OS '${release}'; install the PostgreSQL client tools manually."
+            return 1
+            ;;
+    esac
+    hash -r 2> /dev/null
+    have=$(pg_client_major)
+    if [[ -n "$want" && ( -z "$have" || "$have" -lt "$want" ) && -x "/usr/pgsql-${want}/bin/pg_restore" ]]; then
+        ln -sf "/usr/pgsql-${want}/bin/pg_dump" /usr/local/bin/pg_dump
+        ln -sf "/usr/pgsql-${want}/bin/pg_restore" /usr/local/bin/pg_restore
+        hash -r 2> /dev/null
+        have=$(pg_client_major)
+    fi
+    if [[ -z "$have" ]]; then
+        LOGE "pg_dump/pg_restore are still unavailable after installation."
+        return 1
+    fi
+    if [[ -n "$want" && "$have" -lt "$want" ]]; then
+        LOGE "PostgreSQL client tools are version ${have} after installation but ${want} or newer is required; install them manually."
+        return 1
+    fi
+    LOGI "PostgreSQL client tools are ready (version ${have})."
+    return 0
 }
 
 # Writes XUI_DB_TYPE/XUI_DB_DSN into the service env file, preserving other entries.
@@ -3069,7 +3208,7 @@ migrate_to_postgres() {
     if check_status; then
         LOGI "Migration complete. The panel is now running on PostgreSQL."
     else
-        LOGE "Panel did not come up. Check logs (option 16). Your SQLite data is left intact."
+        LOGE "Panel did not come up. Check logs (main menu option 17). Your SQLite data is left intact."
     fi
 }
 
@@ -3083,6 +3222,7 @@ postgresql_menu() {
     echo -e "${green}\t7.${plain} ${green}Enable${plain} Autostart on boot"
     echo -e "${green}\t8.${plain} View PostgreSQL Log"
     echo -e "${green}\t9.${plain} Convert SQLite ${green}.db <-> .dump${plain}"
+    echo -e "${green}\t10.${plain} Install/Upgrade client tools (pg_dump/pg_restore)"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
     case "$choice" in
@@ -3123,6 +3263,11 @@ postgresql_menu() {
             ;;
         9)
             migrate_db_prompt
+            postgresql_menu
+            ;;
+        10)
+            read -rp "Required PostgreSQL major version (empty = any): " pg_client_ver
+            pg_upgrade_client "$pg_client_ver"
             postgresql_menu
             ;;
         *)
@@ -3244,6 +3389,7 @@ show_usage() {
 │  ${blue}x-ui update-dev${plain}            - Update to Dev channel (latest)   │
 │  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
 │  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
+│  ${blue}x-ui pgclient [ver]${plain}        - Upgrade pg_dump/pg_restore tools │
 │  ${blue}x-ui legacy${plain}                - Legacy version                   │
 │  ${blue}x-ui install${plain}               - Install                          │
 │  ${blue}x-ui uninstall${plain}             - Uninstall                        │
@@ -3446,6 +3592,9 @@ if [[ $# > 0 ]]; then
             ;;
         "migrateDB")
             migrate_db "$2" "$3"
+            ;;
+        "pgclient")
+            pg_upgrade_client "$2"
             ;;
         *) show_usage ;;
     esac

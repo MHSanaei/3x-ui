@@ -7,35 +7,51 @@
 #   * /etc/x-ui/install-result.env exists (mode 600) with random, non-default creds
 #   * the panel reports hasDefaultCredential: false (no admin/admin remains)
 #   * the panel HTTP server actually serves on the generated port/base path
+#   * with a [version] argument: the installed binary reports exactly that version
 #
 # Requires Docker and network access (install.sh downloads the released binary).
-# Usage: bash deploy/test/smoke-noninteractive.sh
+# Usage: bash deploy/test/smoke-noninteractive.sh [version]
+#   With no argument install.sh resolves releases/latest. Pass an explicit tag
+#   (e.g. v3.4.2) to verify that exact release — the tag-triggered CI run does
+#   this so it cannot silently validate the previous release (#5756).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IMAGE="${SMOKE_IMAGE:-ubuntu:24.04}"
+XUI_SMOKE_VERSION="${1:-}"
 
 if ! command -v docker > /dev/null 2>&1; then
     echo "ERROR: docker is required for this smoke test." >&2
     exit 1
 fi
 
-echo "== non-interactive install smoke test (image: $IMAGE) =="
+echo "== non-interactive install smoke test (image: $IMAGE, version: ${XUI_SMOKE_VERSION:-latest}) =="
 
 docker run --rm \
     -v "${REPO_ROOT}/install.sh:/root/install.sh:ro" \
     -e XUI_NONINTERACTIVE=1 \
     -e XUI_SSL_MODE=none \
+    -e XUI_SMOKE_VERSION="$XUI_SMOKE_VERSION" \
     -e DEBIAN_FRONTEND=noninteractive \
     "$IMAGE" bash -euo pipefail -c '
         apt-get update -qq
         apt-get install -y -qq curl tar openssl ca-certificates > /dev/null
 
-        echo "--- running install.sh piped (no TTY) ---"
+        echo "--- running install.sh piped (no TTY), version: ${XUI_SMOKE_VERSION:-latest} ---"
         # Piping guarantees stdin is not a TTY, exercising the auto non-interactive path.
-        cat /root/install.sh | bash
+        if [ -n "${XUI_SMOKE_VERSION:-}" ]; then
+            cat /root/install.sh | bash -s -- "$XUI_SMOKE_VERSION"
+        else
+            cat /root/install.sh | bash
+        fi
 
         echo "--- assertions ---"
+        if [ -n "${XUI_SMOKE_VERSION:-}" ]; then
+            installed=$(/usr/local/x-ui/x-ui -v)
+            [ "$installed" = "${XUI_SMOKE_VERSION#v}" ] \
+                || { echo "FAIL: installed version $installed, want ${XUI_SMOKE_VERSION#v}"; exit 1; }
+        fi
+
         RESULT=/etc/x-ui/install-result.env
         test -f "$RESULT" || { echo "FAIL: $RESULT missing"; exit 1; }
 
