@@ -161,6 +161,8 @@
       "installFailed": "Installation failed, check the log below",
       "logs": "Logs",
       "liveLogs": "Live logs",
+      "envEmpty": "Env file empty",
+      "notInstalled": "Not installed",
       "envFields": {
         "BOT_TOKEN": "Bot token",
         "ADMIN_IDS": "Admin IDs"
