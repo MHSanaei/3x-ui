@@ -141,6 +141,15 @@ install_base() {
                 dnf makecache -y && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl unzip git wget python3 python3-pip zip
             fi
             ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm cronie curl tar tzdata socat ca-certificates openssl unzip git wget python python-pip zip
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl unzip git wget python3 python3-pip zip
+            ;;
+        alpine)
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl unzip git wget python3 py3-pip py3-virtualenv zip bash sudo
+            ;;
         *)
             apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl unzip git wget python3 python3-pip zip
             ;;
@@ -153,6 +162,15 @@ install_build_deps() {
         ubuntu | debian | armbian)
             apt-get install -y -q nodejs golang-go
             ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm nodejs npm go
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q install -y nodejs go
+            ;;
+        alpine)
+            apk add nodejs npm go
+            ;;
         *)
             echo "Попытка установить nodejs и golang через пакетный менеджер по умолчанию..."
             if command -v dnf &>/dev/null; then dnf install -y nodejs golang; else apt-get install -y nodejs golang; fi
@@ -160,9 +178,52 @@ install_build_deps() {
     esac
 }
 
+# RHEL-family initdb writes pg_hba.conf host rules with ident auth, which
+# compares the OS username against the Postgres role and always rejects the
+# randomly generated panel role over TCP (#5806). Prepend password-auth rules
+# scoped to the panel database; first match wins, and md5 also accepts
+# scram-sha-256-stored verifiers, so this works on every supported distro.
+pg_ensure_hba_password_auth() {
+    local pg_db="$1"
+    local hba_file
+    hba_file=$(sudo -u postgres psql -tAc 'SHOW hba_file' 2> /dev/null | tr -d '[:space:]')
+    [[ -n "${hba_file}" && -f "${hba_file}" ]] || return 0
+    grep -Eq "^host[[:space:]]+${pg_db}[[:space:]]" "${hba_file}" && return 0
+    local tmp
+    tmp=$(mktemp) || return 1
+    {
+        echo "# Added by 3x-ui: allow password logins for the panel database."
+        echo "host    ${pg_db}    all    127.0.0.1/32    md5"
+        echo "host    ${pg_db}    all    ::1/128         md5"
+        cat "${hba_file}"
+    } > "${tmp}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    cat "${tmp}" > "${hba_file}" || {
+        rm -f "${tmp}"
+        return 1
+    }
+    rm -f "${tmp}"
+    sudo -u postgres psql -tAc 'SELECT pg_reload_conf()' > /dev/null 2>&1 || true
+}
+
+# env-файл с переменными окружения для systemd/OpenRC у разных дистрибутивов
+# традиционно лежит в разных местах — берём подходящий, а не хардкодим один путь.
+xui_env_file_path() {
+    case "${release}" in
+        ubuntu | debian | armbian) echo "/etc/default/x-ui" ;;
+        arch | manjaro | parch | alpine) echo "/etc/conf.d/x-ui" ;;
+        *) echo "/etc/sysconfig/x-ui" ;;
+    esac
+}
+
 install_postgres_local() {
-    local pg_user pg_pass; pg_pass=$(gen_random_string 24)
-    local pg_db="xui"; local pg_host="127.0.0.1"; local pg_port="5432"
+    local pg_user pg_pass
+    pg_pass=$(gen_random_string 24)
+    local pg_db="xui"
+    local pg_host="127.0.0.1"
+    local pg_port="5432"
 
     echo -e "${green}Installing PostgreSQL locally...${plain}"
     case "${release}" in
@@ -173,13 +234,27 @@ install_postgres_local() {
             if command -v dnf &>/dev/null; then dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1; else yum install -y postgresql-server postgresql-contrib >&2 || return 1; fi
             [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
             ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm postgresql >&2 || return 1
+            if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
+                sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
+            fi
+            ;;
+        opensuse-tumbleweed | opensuse-leap)
+            zypper -q install -y postgresql postgresql-server postgresql-contrib >&2 || return 1
+            [[ -f /var/lib/pgsql/data/PG_VERSION ]] || { sudo -u postgres initdb -D /var/lib/pgsql/data >&2 || return 1; }
+            ;;
+        alpine)
+            apk add postgresql postgresql-contrib >&2 || return 1
+            [[ -f /var/lib/postgresql/data/PG_VERSION ]] || { sudo -u postgres initdb -D /var/lib/postgresql/data >&2 || return 1; }
+            ;;
         *)
             echo -e "${red}Unsupported distro for automatic PostgreSQL install: ${release}${plain}" >&2
             return 1
             ;;
     esac
 
-    systemctl enable --now postgresql >&2 || return 1
+    svc_enable_now postgresql >&2 || return 1
 
     for i in 1 2 3 4 5; do
         sudo -u postgres psql -tAc 'SELECT 1' > /dev/null 2>&1 && break
@@ -194,7 +269,11 @@ install_postgres_local() {
     sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}'" 2> /dev/null | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE \"${pg_db}\" OWNER \"${pg_user}\";" >&2 || return 1
     sudo -u postgres psql -c "ALTER USER \"${pg_user}\" WITH PASSWORD '${pg_pass}';" >&2 || return 1
 
-    local pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
+    pg_ensure_hba_password_auth "${pg_db}" \
+        || echo -e "${yellow}Warning: could not update pg_hba.conf; PostgreSQL may reject the panel's TCP login (ident auth).${plain}" >&2
+
+    local pg_pass_enc
+    pg_pass_enc=$(printf '%s' "${pg_pass}" | sed -e 's/%/%25/g' -e 's/:/%3A/g' -e 's/@/%40/g' -e 's|/|%2F|g' -e 's/?/%3F/g' -e 's/#/%23/g')
 
     if [[ -n "${PG_CRED_FILE:-}" ]]; then
         local prev_umask=$(umask); umask 077
@@ -217,6 +296,9 @@ ensure_pg_client() {
     echo -e "${yellow}Installing PostgreSQL client tools (pg_dump/pg_restore)...${plain}" >&2
     case "${release}" in
         ubuntu | debian | armbian) apt-get update >&2 && apt-get install -y -q postgresql-client >&2 || return 1 ;;
+        arch | manjaro | parch) pacman -Sy --noconfirm postgresql >&2 || return 1 ;;
+        opensuse-tumbleweed | opensuse-leap) zypper -q install -y postgresql >&2 || return 1 ;;
+        alpine) apk add postgresql-client >&2 || return 1 ;;
         *) if command -v dnf &>/dev/null; then dnf install -y -q postgresql >&2; else yum install -y postgresql >&2; fi || return 1 ;;
     esac
 }
@@ -237,7 +319,12 @@ setup_ip_certificate() {
     local domain_args="-d ${ipv4}"
     if [[ -n "$ipv6" ]] && is_ipv6 "$ipv6"; then domain_args="${domain_args} -d ${ipv6}"; fi
 
-    local reloadCmd="systemctl restart x-ui 2>/dev/null || true"
+    local reloadCmd
+    if [[ "$release" == "alpine" ]]; then
+        reloadCmd="rc-service x-ui restart 2>/dev/null || true"
+    else
+        reloadCmd="systemctl restart x-ui 2>/dev/null || true"
+    fi
     local WebPort="80"
     prompt_or_default WebPort "Port for ACME HTTP-01 (default 80): " "80" XUI_ACME_HTTP_PORT
 
@@ -259,6 +346,14 @@ setup_ip_certificate() {
 
     ~/.acme.sh/acme.sh --installcert --force -d ${ipv4} --key-file "${certDir}/privkey.pem" --fullchain-file "${certDir}/fullchain.pem" --reloadcmd "${reloadCmd}" 2>&1 || true
     chmod 600 ${certDir}/privkey.pem 2> /dev/null; chmod 644 ${certDir}/fullchain.pem 2> /dev/null
+
+    # acme.sh может вернуть ненулевой код из-за сбоя reloadcmd, даже если сам
+    # сертификат выпущен и записан нормально — поэтому проверяем файлы напрямую,
+    # а не полагаемся только на код возврата предыдущей команды.
+    if [[ ! -s "${certDir}/fullchain.pem" || ! -s "${certDir}/privkey.pem" ]]; then
+        echo -e "${red}Certificate files were not created, IP certificate setup failed.${plain}" >&2
+        return 1
+    fi
 
     ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" > /dev/null 2>&1
     return 0
@@ -284,19 +379,38 @@ ssl_cert_issue() {
     SSL_ISSUED_DOMAIN="${domain}"
 
     local certPath="/root/cert/${domain}"; mkdir -p "$certPath"
+
+    # Уже есть валидный (не пустой) сертификат для этого домена — не выпускаем
+    # заново, просто переиспользуем то, что уже лежит на диске.
+    if [[ -s "$certPath/fullchain.pem" && -s "$certPath/privkey.pem" ]]; then
+        echo -e "${yellow}Найден существующий сертификат для ${domain}, переиспользуем его.${plain}"
+        ${xui_folder}/x-ui cert -webCert "$certPath/fullchain.pem" -webCertKey "$certPath/privkey.pem" > /dev/null 2>&1
+        return 0
+    fi
+
     local WebPort=80
     prompt_or_default WebPort "Please choose ACME port (default 80): " "80" XUI_ACME_HTTP_PORT
 
-    systemctl stop x-ui 2> /dev/null || true
+    svc_stop_x_ui 2> /dev/null || true
 
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
     ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
 
-    local reloadCmd="systemctl restart x-ui"
+    local reloadCmd
+    if [[ "$release" == "alpine" ]]; then
+        reloadCmd="rc-service x-ui restart"
+    else
+        reloadCmd="systemctl restart x-ui"
+    fi
     ~/.acme.sh/acme.sh --installcert --force -d ${domain} --key-file "$certPath/privkey.pem" --fullchain-file "$certPath/fullchain.pem" --reloadcmd "${reloadCmd}" > /dev/null 2>&1
     chmod 600 $certPath/privkey.pem 2> /dev/null; chmod 644 $certPath/fullchain.pem 2> /dev/null
 
-    systemctl start x-ui 2> /dev/null || true
+    svc_start_x_ui 2> /dev/null || true
+
+    if [[ ! -s "$certPath/fullchain.pem" || ! -s "$certPath/privkey.pem" ]]; then
+        echo -e "${red}Certificate files were not created, domain certificate setup failed.${plain}" >&2
+        return 1
+    fi
 
     ${xui_folder}/x-ui cert -webCert "$certPath/fullchain.pem" -webCertKey "$certPath/privkey.pem" > /dev/null 2>&1
     return 0
@@ -309,7 +423,7 @@ prompt_and_setup_ssl() {
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
     echo -e "1. Let's Encrypt for Domain\n2. Let's Encrypt for IP Address\n3. Custom SSL Paths\n4. Skip SSL (HTTP)"
-    
+
     if [[ "$NONINTERACTIVE" == "1" ]]; then
         ssl_choice="4"
     else
@@ -320,20 +434,61 @@ prompt_and_setup_ssl() {
 
     case "$ssl_choice" in
         1) ssl_cert_issue && SSL_HOST="${SSL_ISSUED_DOMAIN}" || SSL_HOST="${server_ip}" ;;
-        2) 
+        2)
             local ipv6_addr=""
             read -rp "Optional IPv6: " ipv6_addr
             setup_ip_certificate "${server_ip}" "${ipv6_addr}" && SSL_HOST="${server_ip}" || SSL_HOST="${server_ip}"
             ;;
         3)
-            read -rp "Cert Path: " c_cert; read -rp "Key Path: " c_key
+            local c_cert c_key
+            while true; do
+                read -rp "Cert Path: " c_cert
+                read -rp "Key Path: " c_key
+                if [[ -s "$c_cert" && -s "$c_key" ]]; then break; fi
+                if [[ "$NONINTERACTIVE" == "1" ]]; then
+                    echo -e "${red}Cert/key path not found or empty, skipping custom SSL.${plain}" >&2
+                    SSL_SCHEME="http"; SSL_HOST="${server_ip}"
+                    return
+                fi
+                echo -e "${red}Файл сертификата или ключа не найден/пуст, попробуй снова.${plain}"
+            done
             ${xui_folder}/x-ui cert -webCert "$c_cert" -webCertKey "$c_key" > /dev/null 2>&1
             SSL_HOST="${server_ip}"
             ;;
         *)
             SSL_SCHEME="http"; SSL_HOST="${server_ip}"
+            if [[ "$NONINTERACTIVE" != "1" ]]; then
+                echo -e "${yellow}Внимание: панель будет доступна по HTTP без шифрования. Для внешнего доступа настоятельно рекомендуется SSL, либо ограничь панель на 127.0.0.1 и заходи через SSH-тоннель:${plain}"
+                echo -e "${yellow}  ssh -L ${panel_port}:127.0.0.1:${panel_port} user@${server_ip}${plain}"
+            fi
             ;;
     esac
+}
+
+# Пробуем несколько источников определения внешнего IP по очереди — один
+# недоступный сервис не должен приводить к тихому падению на 127.0.0.1
+# (иначе итоговый Access URL в конце установки будет бесполезен).
+detect_server_ip() {
+    local ip=""
+    local sources=(
+        "https://v4.api.ipinfo.io/ip"
+        "https://api.ipify.org"
+        "https://ifconfig.me"
+        "https://icanhazip.com"
+        "https://ipinfo.io/ip"
+        "https://checkip.amazonaws.com"
+    )
+    for src in "${sources[@]}"; do
+        ip=$(curl -s --max-time 3 "$src" 2> /dev/null | tr -d '[:space:]')
+        if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+    if [[ "$NONINTERACTIVE" != "1" ]]; then
+        read -rp "Не удалось определить внешний IP автоматически. Введи его вручную (или Enter для 127.0.0.1): " ip
+    fi
+    [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$ip" || echo "127.0.0.1"
 }
 
 config_after_install() {
@@ -342,8 +497,8 @@ config_after_install() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##' || echo "")
     local existing_port=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'port: .+' | awk '{print $2}' || echo "54321")
 
-    local server_ip=$(curl -s --max-time 3 "https://v4.api.ipinfo.io/ip" || echo "127.0.0.1")
-    if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then server_ip="127.0.0.1"; fi
+    local server_ip
+    server_ip=$(detect_server_ip)
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
@@ -358,10 +513,13 @@ config_after_install() {
             if [[ "$db_choice" == "2" ]]; then
                 local xui_dsn=$(install_postgres_local || echo "")
                 if [[ -n "$xui_dsn" ]]; then
-                    local xui_env_file="/etc/default/x-ui"
+                    local xui_env_file
+                    xui_env_file=$(xui_env_file_path)
                     mkdir -p "$(dirname "$xui_env_file")"
                     echo -e "XUI_DB_TYPE=postgres\nXUI_DB_DSN=${xui_dsn}" > "$xui_env_file"
                     db_label="PostgreSQL"
+                else
+                    echo -e "${yellow}PostgreSQL install failed, falling back to SQLite.${plain}" >&2
                 fi
             fi
 
@@ -369,15 +527,16 @@ config_after_install() {
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
 
             local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken true 2>/dev/null | grep -Eo 'apiToken: .+' | awk '{print $2}' || echo "")
-            
+
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "Username:    ${config_username}"
             echo -e "Password:    ${config_password}"
             echo -e "Port:        ${config_port}"
             echo -e "WebBasePath: ${config_webBasePath}"
+            echo -e "Database:    ${db_label}"
             echo -e "Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
-            write_install_result "${config_username}" "${config_password}" "${config_port}" "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "sqlite"
+            write_install_result "${config_username}" "${config_password}" "${config_port}" "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "$([[ "$db_label" == "PostgreSQL" ]] && echo postgres || echo sqlite)"
         fi
     fi
     ${xui_folder}/x-ui migrate > /dev/null 2>&1
@@ -403,9 +562,9 @@ install_xray() {
 install_xray_bot() {
     local bot_dir="${xui_folder}/xray-bot"
     echo -e "${green}🤖 Installing Xray Bot...${plain}"
-    
+
     rm -f /usr/bin/xray-bot; mkdir -p "$bot_dir"
-    
+
     if [[ "$MODE" == "build" ]]; then
         [[ -d "${cur_dir}/xray-bot" ]] && cp -r "${cur_dir}/xray-bot/"* "$bot_dir/"
         [[ -f "${cur_dir}/xray-bot.sh" ]] && cp "${cur_dir}/xray-bot.sh" /usr/bin/xray-bot
@@ -415,7 +574,7 @@ install_xray_bot() {
         wget -N --no-check-certificate -O /usr/bin/xray-bot "https://raw.githubusercontent.com/KimaruBs/3x-ui/main/xray-bot.sh"
         rm -rf "${bot_dir}_tmp"
     fi
-    
+
     [[ ! -f /usr/bin/xray-bot && -f "${bot_dir}/xray-bot.sh" ]] && cp "${bot_dir}/xray-bot.sh" /usr/bin/xray-bot
     chmod +x /usr/bin/xray-bot
 
@@ -425,7 +584,28 @@ install_xray_bot() {
         "${bot_dir}/venv/bin/pip" install -r "${bot_dir}/requirements.txt" -q
     fi
 
-    cat > /etc/systemd/system/xray-bot.service <<EOF
+    if [[ "$release" == "alpine" ]]; then
+        cat > /etc/init.d/xray-bot <<EOF
+#!/sbin/openrc-run
+name="xray-bot"
+description="3x-ui Xray Telegram Bot"
+command="${bot_dir}/venv/bin/python3"
+command_args="app.py"
+command_background="yes"
+directory="${bot_dir}/src"
+pidfile="/run/\${RC_SVCNAME}.pid"
+output_log="/var/log/xray-bot.log"
+error_log="/var/log/xray-bot.log"
+
+depend() {
+    need net
+}
+EOF
+        chmod +x /etc/init.d/xray-bot
+        rc-update add xray-bot default
+        rc-service xray-bot restart || rc-service xray-bot start
+    else
+        cat > /etc/systemd/system/xray-bot.service <<EOF
 [Unit]
 Description=3x-ui Xray Telegram Bot
 After=network.target
@@ -441,14 +621,66 @@ RestartSec=3s
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload && systemctl enable xray-bot && systemctl restart xray-bot || true
+        systemctl daemon-reload && systemctl enable xray-bot && systemctl restart xray-bot || true
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Обёртки над управлением сервисами: systemd везде, кроме Alpine (OpenRC).
+# Всё остальное содержимое скрипта дёргает только эти функции и никогда не
+# вызывает systemctl/rc-service напрямую — это единственное место, которое
+# знает про разницу между init-системами.
+# ---------------------------------------------------------------------------
+
+svc_stop_x_ui() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui stop
+    else
+        systemctl stop x-ui
+    fi
+}
+
+svc_start_x_ui() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui start
+    else
+        systemctl start x-ui
+    fi
+}
+
+svc_restart_x_ui() {
+    if [[ "$release" == "alpine" ]]; then
+        rc-service x-ui restart
+    else
+        systemctl restart x-ui
+    fi
+}
+
+svc_enable_now() {
+    local name="$1"
+    if [[ "$release" == "alpine" ]]; then
+        rc-update add "$name" default
+        rc-service "$name" start
+    else
+        systemctl enable --now "$name"
+    fi
+}
+
+# Убиваем зависшие mtg (MTProto)-сайдкары перед стопом/переустановкой панели.
+# x-ui запускает их отдельно от своего жизненного цикла, поэтому при жёстком
+# рестарте панели старый процесс может выжить и продолжать держать порт со
+# старым секретом, из-за чего у клиентов молча перестаёт работать инбаунд.
+# Свежий x-ui сам поднимет чистый mtg на каждый инбаунд при старте.
+kill_stale_mtg() {
+    pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
 }
 
 start_installation() {
     install_base
 
     if [[ -e ${xui_folder}/ ]]; then
-        systemctl stop x-ui > /dev/null 2>&1 || true
+        kill_stale_mtg
+        svc_stop_x_ui > /dev/null 2>&1 || true
         find "${xui_folder}" -mindepth 1 -maxdepth 1 ! -name 'bin' ! -name 'xray-bot' -exec rm -rf {} +
     fi
 
@@ -470,7 +702,30 @@ start_installation() {
 
     [[ "$INSTALL_BOT" == "1" ]] && install_xray_bot
 
-    cat > /etc/systemd/system/x-ui.service <<EOF
+    if [[ "$release" == "alpine" ]]; then
+        cat > /etc/init.d/x-ui <<EOF
+#!/sbin/openrc-run
+name="x-ui"
+description="3x-ui customized panel"
+command="/usr/local/x-ui/x-ui"
+command_background="yes"
+directory="/usr/local/x-ui"
+pidfile="/run/\${RC_SVCNAME}.pid"
+output_log="/var/log/x-ui.log"
+error_log="/var/log/x-ui.log"
+
+depend() {
+    need net
+}
+
+start_post() {
+    /usr/bin/x-ui restart-xray
+}
+EOF
+        chmod +x /etc/init.d/x-ui
+        rc-update add x-ui default
+    else
+        cat > /etc/systemd/system/x-ui.service <<EOF
 [Unit]
 Description=3x-ui customized panel
 After=network.target network-online.target
@@ -486,10 +741,11 @@ ExecStartPost=/usr/bin/x-ui restart-xray
 [Install]
 WantedBy=multi-user.target
 EOF
+        systemctl daemon-reload && systemctl enable x-ui
+    fi
 
-    systemctl daemon-reload && systemctl enable x-ui
     config_after_install
-    systemctl restart x-ui || true
+    svc_restart_x_ui || true
 
     echo -e "${green}🎉 Установка завершена!${plain}"
     exec /usr/bin/x-ui

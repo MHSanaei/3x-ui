@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -28,11 +29,18 @@ import (
 // client-side (instead of polling xray's observatory) returns the moment the
 // response lands, yields the actual HTTP status, and allows an httptrace
 // timing breakdown — while the shared process keeps "Test All" at one xray
-// spawn per batch instead of one per outbound.
+// spawn per batch instead of one per outbound. The reported delay comes from
+// a second request on the kept-alive connection, so it reflects the tunnel's
+// real per-request round-trip rather than the stacked SOCKS/proxy/TLS
+// handshakes of connection establishment.
 
 const (
-	// httpProbeTimeout bounds one probe request end-to-end.
+	// httpProbeTimeout bounds each probe request end-to-end (a probe makes
+	// two: a cold one for the breakdown, a warm one for the delay).
 	httpProbeTimeout = 10 * time.Second
+	// probeDrainLimit caps how much response body a probe reads back to keep
+	// the connection reusable for the warm request.
+	probeDrainLimit = 256 << 10
 	// httpProbeConcurrency caps parallel probe requests within a batch —
 	// enough to keep a batch fast, low enough not to spike CPU with TLS
 	// handshakes on small VPSes.
@@ -427,18 +435,22 @@ func outboundsContainTag(outbounds []any, tag string) bool {
 	return false
 }
 
-// probeThroughSocks issues one timed GET through the local SOCKS inbound at
-// the given port and fills result. Any HTTP response — including 4xx/5xx and
-// unfollowed redirects — counts as reachable; only transport-level failures
-// (refused, reset, timeout, proxy errors) are failures. Delay is request
-// start → response headers; the test URL's hostname is resolved by xray
-// (Go's SOCKS5 client sends the domain to the proxy), so DNS goes through
-// the outbound too.
+// probeThroughSocks probes the local SOCKS inbound at the given port and
+// fills result. A first, cold GET proves reachability and carries the
+// httptrace breakdown: any HTTP response — including 4xx/5xx and unfollowed
+// redirects — counts as reachable; only transport-level failures (refused,
+// reset, timeout, proxy errors) are failures. Delay is then re-measured on a
+// warm request over the kept-alive connection — the real round-trip through
+// the established tunnel — falling back to the cold total if the warm request
+// fails. The test URL's hostname is resolved by xray (Go's SOCKS5 client
+// sends the domain to the proxy), so DNS goes through the outbound too.
 func probeThroughSocks(port int, testURL string, timeout time.Duration, result *TestOutboundResult) {
 	proxyURL := &url.URL{Scheme: "socks5", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
 	tr := &http.Transport{
-		Proxy:             http.ProxyURL(proxyURL),
-		DisableKeepAlives: true,
+		Proxy:               http.ProxyURL(proxyURL),
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		IdleConnTimeout:     timeout,
 	}
 	defer tr.CloseIdleConnections()
 	client := &http.Client{
@@ -496,15 +508,14 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, result *
 		return
 	}
 	resp, err := client.Do(req)
-	delay := time.Since(start).Milliseconds()
+	coldDelay := time.Since(start).Milliseconds()
 	if err != nil {
 		result.Error = err.Error()
 		return
 	}
-	resp.Body.Close()
+	drainAndClose(resp)
 
 	result.Success = true
-	result.Delay = max(delay, 1)
 	result.HTTPStatus = resp.StatusCode
 	if connDone {
 		result.ConnectMs = max(connDur.Milliseconds(), 1)
@@ -515,6 +526,36 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, result *
 	if gotFirstRB {
 		result.TTFBMs = max(ttfbDur.Milliseconds(), 1)
 	}
+
+	delay := coldDelay
+	if warmDelay, ok := timedWarmGet(client, testURL); ok {
+		delay = warmDelay
+	}
+	result.Delay = max(delay, 1)
+}
+
+// timedWarmGet re-issues the probe request over the transport's kept-alive
+// connection and returns its duration — the tunnel's per-request round-trip.
+func timedWarmGet(client *http.Client, testURL string) (int64, bool) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testURL, nil)
+	if err != nil {
+		return 0, false
+	}
+	start := time.Now()
+	resp, err := client.Do(req)
+	delay := time.Since(start).Milliseconds()
+	if err != nil {
+		return 0, false
+	}
+	drainAndClose(resp)
+	return delay, true
+}
+
+// drainAndClose consumes the body (bounded by probeDrainLimit) so the
+// connection returns to the keep-alive pool for the warm request.
+func drainAndClose(resp *http.Response) {
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, probeDrainLimit))
+	resp.Body.Close()
 }
 
 // reserveLoopbackPorts grabs n free loopback ports and keeps the listeners

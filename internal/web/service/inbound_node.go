@@ -534,6 +534,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if stripped, changed := stripTombstonedClients(adoptedSettings); changed {
 			adoptedSettings = stripped
 		}
+		if deduped, changed := dedupeSettingsClients(adoptedSettings); changed {
+			adoptedSettings = deduped
+		}
 
 		updates := map[string]any{}
 		if !dirty {
@@ -744,10 +747,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
-					 SET up = up + ?, down = down + ?, enable = %s, total = ?,
+					 SET up = %s, down = %s, enable = %s, total = ?,
 					     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
 					     reset = ?, last_online = %s
 					 WHERE email = ?`,
+					database.ClampedAddExpr("up"),
+					database.ClampedAddExpr("down"),
 					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),

@@ -218,10 +218,73 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   try {
     const parsed = JSON.parse(fm) as Record<string, unknown>;
     if (parsed && typeof parsed === 'object') {
+      sanitizeFinalMaskQuicParams(parsed);
       stream.finalmask = parsed;
     }
   } catch {
     // malformed fm — leave streamSettings.finalmask absent
+  }
+}
+
+const QUIC_PARAMS_NUMERIC_KEYS = [
+  'initStreamReceiveWindow',
+  'maxStreamReceiveWindow',
+  'initConnectionReceiveWindow',
+  'maxConnectionReceiveWindow',
+  'maxIdleTimeout',
+  'keepAlivePeriod',
+  'maxIncomingStreams',
+] as const;
+
+const DURATION_SECONDS: Record<string, number> = { ms: 0.001, s: 1, m: 60, h: 3600 };
+
+const QUIC_NUMERIC_MAX = 1e15;
+
+function coerceQuicNumeric(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === 'string') {
+    const asNumber = Number(value);
+    if (value.trim() !== '' && Number.isFinite(asNumber)) {
+      return Math.trunc(asNumber);
+    }
+    const duration = /^(-?\d+(?:\.\d+)?)(ms|s|m|h)$/.exec(value.trim());
+    if (duration) {
+      return Math.trunc(Number(duration[1]) * DURATION_SECONDS[duration[2]]);
+    }
+  }
+  return null;
+}
+
+function clampQuicNumeric(key: string, n: number): number | null {
+  if (n < 0 || n > QUIC_NUMERIC_MAX) return null;
+  if (n === 0) return 0;
+  if (key === 'keepAlivePeriod') return Math.min(Math.max(n, 2), 60);
+  if (key === 'maxIdleTimeout') return Math.min(Math.max(n, 4), 120);
+  if (key === 'maxIncomingStreams') return Math.max(n, 8);
+  return n;
+}
+
+// xray-core rejects the whole config when these quicParams fields are not
+// plain integers within its accepted ranges (keepAlivePeriod 0 or 2-60,
+// maxIdleTimeout 0 or 4-120, maxIncomingStreams 0 or >= 8), so coerce
+// numeric/duration strings, clamp the ranged fields, and drop anything
+// unparseable, negative, or absurdly large (#5783). Mirrors the Go parser in
+// internal/util/link/outbound.go.
+function sanitizeFinalMaskQuicParams(parsed: Record<string, unknown>): void {
+  const raw = parsed.quicParams;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+  const quic = raw as Record<string, unknown>;
+  for (const key of QUIC_PARAMS_NUMERIC_KEYS) {
+    if (!(key in quic)) continue;
+    const coerced = coerceQuicNumeric(quic[key]);
+    const clamped = coerced === null ? null : clampQuicNumeric(key, coerced);
+    if (clamped === null) {
+      delete quic[key];
+      continue;
+    }
+    quic[key] = clamped;
   }
 }
 

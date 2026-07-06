@@ -113,6 +113,12 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := repairOverflowedTrafficCounters(); err != nil {
+		return err
+	}
+	if err := dedupeInboundSettingsClients(); err != nil {
+		return err
+	}
 	if err := migrateLegacySocksInboundsToMixed(); err != nil {
 		return err
 	}
@@ -514,6 +520,111 @@ func normalizeInboundSubSortIndex() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// repairOverflowedTrafficCounters heals traffic counters that historic
+// compounding bugs pushed past int64: on SQLite an overflowing INTEGER is
+// silently promoted to REAL, after which the column no longer scans into the
+// Go int64 field and every reader of the table fails (#5762). REAL cells are
+// cast back to INTEGER (SQLite caps the cast at math.MaxInt64), then values
+// are clamped into [0, TrafficMax] on both backends so the next delta cannot
+// overflow again.
+func repairOverflowedTrafficCounters() error {
+	targets := []struct {
+		table   string
+		columns []string
+	}{
+		{"client_traffics", []string{"up", "down"}},
+		{"inbounds", []string{"up", "down"}},
+		{"outbound_traffics", []string{"up", "down", "total"}},
+		{"node_client_traffics", []string{"up", "down"}},
+	}
+	for _, target := range targets {
+		for _, col := range target.columns {
+			statements := []string{
+				fmt.Sprintf("UPDATE %s SET %s = %d WHERE %s > %d", target.table, col, TrafficMax, col, TrafficMax),
+				fmt.Sprintf("UPDATE %s SET %s = 0 WHERE %s < 0", target.table, col, col),
+			}
+			if !IsPostgres() {
+				statements = append([]string{
+					fmt.Sprintf("UPDATE %s SET %s = CAST(%s AS INTEGER) WHERE typeof(%s) = 'real'", target.table, col, col, col),
+				}, statements...)
+			}
+			var repaired int64
+			for _, statement := range statements {
+				res := db.Exec(statement)
+				if res.Error != nil {
+					log.Printf("Error repairing %s.%s: %v", target.table, col, res.Error)
+					return res.Error
+				}
+				repaired += res.RowsAffected
+			}
+			if repaired > 0 {
+				log.Printf("Repaired %d overflowed %s.%s value(s)", repaired, target.table, col)
+			}
+		}
+	}
+	return nil
+}
+
+// dedupeInboundSettingsClients collapses duplicate same-email entries inside
+// every inbound's settings.clients array, keeping the first occurrence.
+// Retried or raced multi-node client adds on older builds appended the same
+// client several times (#5770), which the client lists then rendered as
+// phantom duplicates. Runs on every start (idempotent, writes only changed
+// rows) because a restored backup or a not-yet-upgraded node's snapshot can
+// reintroduce duplicates.
+func dedupeInboundSettingsClients() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+	repaired := int64(0)
+	for _, inbound := range inbounds {
+		if strings.TrimSpace(inbound.Settings) == "" {
+			continue
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		clients, _ := settings["clients"].([]any)
+		if len(clients) < 2 {
+			continue
+		}
+		seen := make(map[string]struct{}, len(clients))
+		kept := make([]any, 0, len(clients))
+		for _, c := range clients {
+			if cm, ok := c.(map[string]any); ok {
+				if email, _ := cm["email"].(string); email != "" {
+					key := strings.ToLower(email)
+					if _, dup := seen[key]; dup {
+						continue
+					}
+					seen[key] = struct{}{}
+				}
+			}
+			kept = append(kept, c)
+		}
+		if len(kept) == len(clients) {
+			continue
+		}
+		settings["clients"] = kept
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			log.Printf("dedupeInboundSettingsClients: skip inbound %d (marshal failed): %v", inbound.Id, err)
+			continue
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		repaired++
+	}
+	if repaired > 0 {
+		log.Printf("Removed duplicate client entries from %d inbound(s)", repaired)
 	}
 	return nil
 }

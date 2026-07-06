@@ -80,7 +80,7 @@ func TestWireGuardClientAddUpdateDeleteRoundTrip(t *testing.T) {
 		t.Fatalf("settings lost wg fields after metadata edit: %+v", listAfter)
 	}
 
-	if _, err := svc.DelInboundClientByEmail(inboundSvc, ib.Id, "alice@wg", false); err != nil {
+	if _, err := svc.DelInboundClientByEmail(inboundSvc, ib.Id, "alice@wg", false, false); err != nil {
 		t.Fatalf("DelInboundClientByEmail: %v", err)
 	}
 	final, err := svc.ListForInbound(nil, ib.Id)
