@@ -25,7 +25,7 @@ case $1 in
         FNAME="amd64"
         ;;
 esac
-MTG_MULTI_VER="v1.11.0"
+MTG_MULTI_VER="v1.13.3"
 mkdir -p build/bin
 cd build/bin
 curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.6.27/Xray-linux-${ARCH}.zip"
@@ -34,7 +34,7 @@ rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"
 # mtg-multi (MTProto sidecar) is pure Go, so build it from source for the target
 # arch — its release binaries only cover linux/darwin amd64/arm64.
-CGO_ENABLED=0 GOBIN="$(pwd)" go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@${MTG_MULTI_VER}"
+CGO_ENABLED=0 GOBIN="$(pwd)" go install -trimpath -ldflags "-s -w" "github.com/mhsanaei/mtg-multi@${MTG_MULTI_VER}"
 mv mtg-multi "mtg-linux-${FNAME}"
 chmod +x "mtg-linux-${FNAME}"
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
