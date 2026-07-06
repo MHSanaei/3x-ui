@@ -222,16 +222,55 @@ func (m *Manager) sweepOrphansLocked() {
 	}
 }
 
+// ensureAction is what ensureLocked must do to move a running mtg process to a
+// desired instance: leave it alone, hot-reload only its secrets, or fully
+// restart it.
+type ensureAction int
+
+const (
+	ensureNoop ensureAction = iota
+	ensureReload
+	ensureRestart
+)
+
+// ensureActionFor decides how to apply a desired instance to the currently
+// managed process. A structural change (or a dead process) forces a restart; a
+// secrets-only change is a candidate for an in-place reload; identical
+// fingerprints on a live process need nothing.
+func ensureActionFor(running bool, curStructFP, curSecretsFP, newStructFP, newSecretsFP string) ensureAction {
+	if !running || curStructFP != newStructFP {
+		return ensureRestart
+	}
+	if curSecretsFP != newSecretsFP {
+		return ensureReload
+	}
+	return ensureNoop
+}
+
 func (m *Manager) ensureLocked(inst Instance) error {
 	structFP := inst.structuralFingerprint()
 	secFP := inst.secretsFingerprint()
 	if cur, ok := m.procs[inst.Id]; ok {
-		if cur.structuralFP == structFP && cur.secretsFP == secFP && cur.proc.IsRunning() {
+		switch ensureActionFor(cur.proc.IsRunning(), cur.structuralFP, cur.secretsFP, structFP, secFP) {
+		case ensureNoop:
 			cur.tag = inst.Tag
 			return nil
+		case ensureReload:
+			if err := writeConfig(configPathForID(inst.Id), inst, cur.apiPort); err != nil {
+				return err
+			}
+			if requestReload(cur.apiPort) {
+				cur.tag = inst.Tag
+				cur.secretsFP = secFP
+				logger.Infof("mtproto: hot-reloaded secrets for inbound %d", inst.Id)
+				return nil
+			}
+			logger.Warningf("mtproto: reload unavailable for inbound %d, restarting", inst.Id)
+			fallthrough
+		case ensureRestart:
+			_ = cur.proc.Stop()
+			delete(m.procs, inst.Id)
 		}
-		_ = cur.proc.Stop()
-		delete(m.procs, inst.Id)
 	}
 	apiPort, err := FreeLocalPort()
 	if err != nil {
@@ -442,6 +481,25 @@ type statsUser struct {
 	Connections int64 `json:"connections"`
 	BytesIn     int64 `json:"bytes_in"`
 	BytesOut    int64 `json:"bytes_out"`
+}
+
+// requestReload asks a running mtg-multi to re-read its config file and swap the
+// [secrets] set in place (POST /reload on the same loopback API port that serves
+// /stats). It returns true only on a 200: an older binary without the endpoint
+// (404), a refused connection, or any other status yields false, so the caller
+// falls back to a full restart.
+func requestReload(port int) bool {
+	client := http.Client{Timeout: 3 * time.Second}
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, fmt.Sprintf("http://127.0.0.1:%d/reload", port), nil)
+	if err != nil {
+		return false
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }
 
 // scrapeStats reads the mtg-multi /stats JSON API and returns the per-user
