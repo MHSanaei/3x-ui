@@ -1966,7 +1966,8 @@
         "dnsPresetFamily": "Family",
         "clearAll": "Delete All",
         "clearAllTitle": "Delete all DNS servers?",
-        "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone."
+        "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone.",
+        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters."
       },
       "fakedns": {
         "add": "Add Fake DNS",

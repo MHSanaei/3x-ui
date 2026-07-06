@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "家庭",
         "clearAll": "全部刪除",
         "clearAllTitle": "刪除所有 DNS 伺服器？",
-        "clearAllConfirm": "此操作將從清單中刪除所有 DNS 伺服器，無法復原。"
+        "clearAllConfirm": "此操作將從清單中刪除所有 DNS 伺服器，無法復原。",
+        "dnsLeakWarning": "DNS 可能透過 localhost、明文 UDP/TCP、本機模式 DoH/DoQ、回退查詢或 EDNS client IP 洩漏。重視隱私時請使用經路由的 DoH、在 hosts 固定解析器，並停用回退。"
       },
       "fakedns": {
         "add": "新增假 DNS",

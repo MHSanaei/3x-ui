@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "Gia đình",
         "clearAll": "Xóa tất cả",
         "clearAllTitle": "Xóa tất cả máy chủ DNS?",
-        "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác."
+        "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác.",
+        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư."
       },
       "fakedns": {
         "add": "Thêm DNS giả",

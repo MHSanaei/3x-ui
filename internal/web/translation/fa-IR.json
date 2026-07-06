@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "خانوادگی",
         "clearAll": "حذف همه",
         "clearAllTitle": "حذف همه سرورهای DNS؟",
-        "clearAllConfirm": "این کار همه سرورهای DNS را از لیست حذف می‌کند و قابل بازگشت نیست."
+        "clearAllConfirm": "این کار همه سرورهای DNS را از لیست حذف می‌کند و قابل بازگشت نیست.",
+        "dnsLeakWarning": "DNS ممکن است از طریق localhost، UDP/TCP ساده، حالت محلی DoH/DoQ، درخواست‌های fallback یا EDNS client IP نشت کند. برای حریم خصوصی از DoH مسیریابی‌شده، مقدارهای hosts ثابت و غیرفعال‌سازی fallback استفاده کنید."
       },
       "fakedns": {
         "add": "افزودن دی‌ان‌اس جعلی",

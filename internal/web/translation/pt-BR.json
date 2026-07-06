@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "Familiar",
         "clearAll": "Remover Todos",
         "clearAllTitle": "Remover todos os servidores DNS?",
-        "clearAllConfirm": "Isso remove todos os servidores DNS da lista. Não pode ser desfeito."
+        "clearAllConfirm": "Isso remove todos os servidores DNS da lista. Não pode ser desfeito.",
+        "dnsLeakWarning": "DNS pode vazar por localhost, UDP/TCP sem criptografia, DoH/DoQ em modo local, consultas de fallback ou EDNS client IP. Use DoH roteado, fixe resolvedores em hosts e desative fallback quando privacidade importar."
       },
       "fakedns": {
         "add": "Adicionar Fake DNS",

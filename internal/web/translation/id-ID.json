@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "Keluarga",
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
-        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan."
+        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",

@@ -1850,7 +1850,8 @@
         "dnsPresetFamily": "العائلي",
         "clearAll": "حذف الكل",
         "clearAllTitle": "حذف جميع خوادم DNS؟",
-        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء."
+        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء.",
+        "dnsLeakWarning": "قد يتسرب DNS عبر localhost أو UDP/TCP غير المشفر أو وضع DoH/DoQ المحلي أو استعلامات الرجوع أو EDNS client IP. استخدم DoH عبر التوجيه، وثبت أسماء المحللات في hosts، وعطل الرجوع عندما تكون الخصوصية مهمة."
       },
       "fakedns": {
         "add": "أضف Fake DNS",
