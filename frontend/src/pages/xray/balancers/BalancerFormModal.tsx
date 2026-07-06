@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
-import { GoRegexInput, validateGoRegex } from '@/components/form';
 import { InputAddon } from '@/components/ui';
 import {
   BalancerFormSchema,
@@ -71,17 +70,9 @@ export default function BalancerFormModal({
   const [state, setState] = useState<FormState>(() => initialState(balancer));
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [costErrors, setCostErrors] = useState<Record<number, string>>({});
-  const [validatingCosts, setValidatingCosts] = useState(false);
-  const submissionSequence = useRef(0);
   const isEdit = balancer != null;
 
-  useEffect(() => () => {
-    submissionSequence.current += 1;
-  }, []);
-
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    if (validatingCosts) return;
     setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
     setState((prev) => ({ ...prev, [key]: value }));
   };
@@ -108,27 +99,8 @@ export default function BalancerFormModal({
   const selectorError = showSelectorIssue ? issues.selector : '';
   const showDuplicate = showTagIssue && duplicateTag;
 
-  async function submit() {
+  function submit() {
     if (!parsed.success || duplicateTag) {
-      setSubmitAttempted(true);
-      return;
-    }
-    const submission = ++submissionSequence.current;
-    const nextErrors: Record<number, string> = {};
-    if (state.strategy === 'leastLoad') {
-      setValidatingCosts(true);
-      const validationResults = await Promise.all(costs.map(async (cost, idx) => ({
-        idx,
-        error: cost.regexp ? await validateGoRegex(cost.match) : '',
-      })));
-      if (submission !== submissionSequence.current) return;
-      setValidatingCosts(false);
-      for (const result of validationResults) {
-        if (result.error) nextErrors[result.idx] = result.error;
-      }
-    }
-    setCostErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
       setSubmitAttempted(true);
       return;
     }
@@ -142,7 +114,6 @@ export default function BalancerFormModal({
     key: K,
     value: BalancerStrategySettings[K],
   ) => {
-    if (validatingCosts) return;
     setState((prev) => ({
       ...prev,
       settings: { ...(prev.settings ?? {}), [key]: value },
@@ -170,23 +141,11 @@ export default function BalancerFormModal({
       title={title}
       okText={okText}
       cancelText={t('close')}
-      confirmLoading={validatingCosts}
-      cancelButtonProps={{ disabled: validatingCosts }}
-      closable={!validatingCosts}
-      keyboard={!validatingCosts}
       mask={{ closable: false }}
       onOk={submit}
-      onCancel={() => {
-        if (!validatingCosts) onClose();
-      }}
+      onCancel={onClose}
     >
-      <Form
-        colon={false}
-        disabled={validatingCosts}
-        aria-busy={validatingCosts}
-        labelCol={{ md: { span: 8 } }}
-        wrapperCol={{ md: { span: 14 } }}
-      >
+      <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 14 } }}>
         <Form.Item
           label={t('pages.xray.balancer.tag')}
           required
@@ -299,32 +258,12 @@ export default function BalancerFormModal({
                     unCheckedChildren="lit"
                     onChange={(v) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)))}
                   />
-                  {c.regexp ? (
-                    <GoRegexInput
-                      value={c.match}
-                      ariaLabel={t('pages.xray.balancer.costMatch')}
-                      placeholder="tag pattern"
-                      externalError={costErrors[idx]}
-                      onChange={(value) => {
-                        if (costErrors[idx]) {
-                          setCostErrors((prev) => {
-                            if (!(idx in prev)) return prev;
-                            const next = { ...prev };
-                            delete next[idx];
-                            return next;
-                          });
-                        }
-                        updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: value } : x)));
-                      }}
-                    />
-                  ) : (
-                    <Input
-                      value={c.match}
-                      aria-label={t('pages.xray.balancer.costMatch')}
-                      placeholder="tag pattern"
-                      onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
-                    />
-                  )}
+                  <Input
+                    value={c.match}
+                    aria-label={t('pages.xray.balancer.costMatch')}
+                    placeholder="tag pattern"
+                    onChange={(e) => updateCosts(costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
+                  />
                   <InputNumber
                     value={c.value}
                     aria-label={t('pages.xray.balancer.costValue')}
