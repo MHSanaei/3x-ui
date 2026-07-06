@@ -13,13 +13,13 @@ func TestPgRestoreReadFailureError(t *testing.T) {
 			name:         "dump from postgres 17 on older client",
 			probeOutput:  "pg_restore: error: unsupported version (1.16) in file header",
 			localVersion: "16.4",
-			want:         "This backup was created by pg_dump from PostgreSQL 17 or newer, but the server's pg_restore is version 16.4 and cannot read it; upgrade the postgresql-client package to version 17 or newer and retry the import",
+			want:         "This backup was created by pg_dump from PostgreSQL 17 or newer, but the server's pg_restore is version 16.4 and cannot read it; run 'x-ui pgclient 17' on the server (or upgrade the postgresql-client package to version 17 or newer), then retry the import",
 		},
 		{
 			name:         "dump from postgres 16 on older client",
 			probeOutput:  "pg_restore: error: unsupported version (1.15) in file header",
 			localVersion: "15.8",
-			want:         "This backup was created by pg_dump from PostgreSQL 16 or newer, but the server's pg_restore is version 15.8 and cannot read it; upgrade the postgresql-client package to version 16 or newer and retry the import",
+			want:         "This backup was created by pg_dump from PostgreSQL 16 or newer, but the server's pg_restore is version 15.8 and cannot read it; run 'x-ui pgclient 16' on the server (or upgrade the postgresql-client package to version 16 or newer), then retry the import",
 		},
 		{
 			name:         "archive version newer than any known mapping",
@@ -31,7 +31,7 @@ func TestPgRestoreReadFailureError(t *testing.T) {
 			name:         "local version could not be determined",
 			probeOutput:  "pg_restore: error: unsupported version (1.16) in file header",
 			localVersion: "",
-			want:         "This backup was created by pg_dump from PostgreSQL 17 or newer, but the server's pg_restore is version unknown and cannot read it; upgrade the postgresql-client package to version 17 or newer and retry the import",
+			want:         "This backup was created by pg_dump from PostgreSQL 17 or newer, but the server's pg_restore is version unknown and cannot read it; run 'x-ui pgclient 17' on the server (or upgrade the postgresql-client package to version 17 or newer), then retry the import",
 		},
 		{
 			name:         "unrelated read failure passes through",

@@ -1640,7 +1640,7 @@ func pgRestoreReadFailureError(probeOutput, localVersion string) error {
 		localVersion = "unknown"
 	}
 	if major, known := pgArchiveVersionIntroducedIn[m[1]]; known {
-		return common.NewErrorf("This backup was created by pg_dump from PostgreSQL %d or newer, but the server's pg_restore is version %s and cannot read it; upgrade the postgresql-client package to version %d or newer and retry the import", major, localVersion, major)
+		return common.NewErrorf("This backup was created by pg_dump from PostgreSQL %d or newer, but the server's pg_restore is version %s and cannot read it; run 'x-ui pgclient %d' on the server (or upgrade the postgresql-client package to version %d or newer), then retry the import", major, localVersion, major, major)
 	}
 	return common.NewErrorf("This backup was created by a newer pg_dump than the server's pg_restore (version %s) can read; upgrade the postgresql-client package and retry the import", localVersion)
 }
