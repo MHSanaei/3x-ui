@@ -791,7 +791,7 @@ export default function ClientFormModal({
                       </Space.Compact>
                     </Form.Item>
 
-                    <Form.Item label={t('pages.clients.password')}>
+                    <Form.Item label={t('pages.clients.password')} tooltip={t('pages.clients.passwordDesc')}>
                       <Space.Compact style={{ display: 'flex' }}>
                         <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
                         <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regeneratePassword} />
@@ -805,7 +805,7 @@ export default function ClientFormModal({
                       </Space.Compact>
                     </Form.Item>
 
-                    <Form.Item label={t('pages.clients.hysteriaAuth')}>
+                    <Form.Item label={t('pages.clients.hysteriaAuth')} tooltip={t('pages.clients.hysteriaAuthDesc')}>
                       <Space.Compact style={{ display: 'flex' }}>
                         <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
                         <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
