@@ -94,11 +94,17 @@ func TestRenderConfig(t *testing.T) {
 		Debug: true, ProxyProtocolListener: true, PreferIP: "only-ipv6",
 		FrontingIP: "127.0.0.1", FrontingPort: 9443, FrontingProxyProtocol: true,
 		ThrottleMaxConnections: 5000,
+		AdTag:                  "0123456789abcdef0123456789abcdef",
+		PublicIPv4:             "1.2.3.4",
+		PublicIPv6:             "2001:db8::1",
 	}, 6000)
 	for _, want := range []string{
 		"debug = true\n",
 		"proxy-protocol-listener = true\n",
 		`prefer-ip = "only-ipv6"`,
+		`ad-tag = "0123456789abcdef0123456789abcdef"`,
+		`public-ipv4 = "1.2.3.4"`,
+		`public-ipv6 = "2001:db8::1"`,
 		"[domain-fronting]",
 		`host = "127.0.0.1"`,
 		"port = 9443",
@@ -153,8 +159,9 @@ func TestRenderConfigXrayEgress(t *testing.T) {
 	}
 }
 
-func TestFingerprintReactsToOptions(t *testing.T) {
+func TestFingerprintSplit(t *testing.T) {
 	base := Instance{Secrets: []SecretEntry{{Name: "a", Secret: "ee"}}, Listen: "0.0.0.0", Port: 443}
+
 	for name, mutate := range map[string]func(*Instance){
 		"debug":         func(i *Instance) { i.Debug = true },
 		"listener":      func(i *Instance) { i.ProxyProtocolListener = true },
@@ -165,16 +172,51 @@ func TestFingerprintReactsToOptions(t *testing.T) {
 		"throttle":      func(i *Instance) { i.ThrottleMaxConnections = 5000 },
 		"routeXray":     func(i *Instance) { i.RouteThroughXray = true },
 		"routeXrayPort": func(i *Instance) { i.XrayRoutePort = 50000 },
-		"addSecret":     func(i *Instance) { i.Secrets = append(i.Secrets, SecretEntry{Name: "b", Secret: "ff"}) },
-		"changeSecret":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
+		"port":          func(i *Instance) { i.Port = 8443 },
+		"listen":        func(i *Instance) { i.Listen = "127.0.0.1" },
+		"publicIpv4":    func(i *Instance) { i.PublicIPv4 = "1.2.3.4" },
+		"publicIpv6":    func(i *Instance) { i.PublicIPv6 = "2001:db8::1" },
 	} {
-		changed := base
-		if strings.HasPrefix(name, "addSecret") || strings.HasPrefix(name, "changeSecret") {
-			changed.Secrets = append([]SecretEntry(nil), base.Secrets...)
-		}
-		mutate(&changed)
-		if base.fingerprint() == changed.fingerprint() {
-			t.Fatalf("fingerprint must change when %s changes", name)
-		}
+		t.Run("structural/"+name, func(t *testing.T) {
+			changed := base
+			mutate(&changed)
+			if base.structuralFingerprint() == changed.structuralFingerprint() {
+				t.Fatalf("structural fingerprint must change when %s changes", name)
+			}
+			if base.secretsFingerprint() != changed.secretsFingerprint() {
+				t.Fatalf("secrets fingerprint must stay put when %s changes", name)
+			}
+		})
 	}
+
+	for name, mutate := range map[string]func(*Instance){
+		"add":    func(i *Instance) { i.Secrets = append(i.Secrets, SecretEntry{Name: "b", Secret: "ff"}) },
+		"rekey":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
+		"remove": func(i *Instance) { i.Secrets = nil },
+		"rename": func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a2", Secret: "ee"}} },
+		"adTag":  func(i *Instance) { i.AdTag = "0123456789abcdef0123456789abcdef" },
+	} {
+		t.Run("secrets/"+name, func(t *testing.T) {
+			changed := base
+			changed.Secrets = append([]SecretEntry(nil), base.Secrets...)
+			mutate(&changed)
+			if base.secretsFingerprint() == changed.secretsFingerprint() {
+				t.Fatalf("secrets fingerprint must change on a %s", name)
+			}
+			if base.structuralFingerprint() != changed.structuralFingerprint() {
+				t.Fatalf("structural fingerprint must stay put on a %s", name)
+			}
+		})
+	}
+
+	t.Run("orderInsensitive", func(t *testing.T) {
+		forward := Instance{Secrets: []SecretEntry{{Name: "alice", Secret: "ee11"}, {Name: "bob", Secret: "ee22"}}}
+		reversed := Instance{Secrets: []SecretEntry{{Name: "bob", Secret: "ee22"}, {Name: "alice", Secret: "ee11"}}}
+		if got, want := forward.secretsFingerprint(), "adtag=|alice=ee11|bob=ee22"; got != want {
+			t.Fatalf("secrets fingerprint must join sorted pairs: got %q, want %q", got, want)
+		}
+		if forward.secretsFingerprint() != reversed.secretsFingerprint() {
+			t.Fatal("secrets fingerprint must not depend on client order")
+		}
+	})
 }

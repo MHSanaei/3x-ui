@@ -52,5 +52,16 @@ export const MtprotoInboundSettingsSchema = z.object({
   routeThroughXray: z.boolean().optional(),
   outboundTag: z.string().optional(),
   routeXrayPort: z.number().int().min(0).max(65535).optional(),
+  // A 32-hex Telegram advertising tag: when set, mtg routes clients through
+  // Telegram middle proxies so a sponsored channel appears in their chat list.
+  // publicIpv4/publicIpv6 pin this server's reachable address the middle proxy
+  // needs; leave them blank to let mtg auto-detect it.
+  adTag: z
+    .string()
+    .regex(/^[0-9a-fA-F]{32}$/, 'pages.inbounds.form.mtgAdTagInvalid')
+    .or(z.literal(''))
+    .optional(),
+  publicIpv4: z.string().optional(),
+  publicIpv6: z.string().optional(),
 });
 export type MtprotoInboundSettings = z.infer<typeof MtprotoInboundSettingsSchema>;
