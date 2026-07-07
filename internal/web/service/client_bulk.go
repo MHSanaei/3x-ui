@@ -1067,9 +1067,12 @@ func (s *ClientService) bulkDelInboundClients(
 				push = false
 			}
 			if push {
+				// bulkDelInboundClients only runs for full client deletion
+				// (BulkDelete), so the node must drop its client record too,
+				// not just detach from this inbound (#5797).
 				pushFailed := false
 				for email := range foundEmails {
-					if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+					if err1 := rt.DeleteClient(context.Background(), email); err1 != nil {
 						logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 						pushFailed = true
 					}

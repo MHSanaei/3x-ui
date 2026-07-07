@@ -425,7 +425,8 @@ func HealShadowsocksClientMethods(settings string) (string, bool) {
 
 // GenerateFakeTLSSecret builds an MTProto FakeTLS secret for the given domain:
 // the "ee" FakeTLS marker, 16 random bytes, then the domain encoded as hex.
-// This single value is what mtg's config and the client tg:// link both use.
+// MTProto is multi-client, so this value belongs to one client: mtg's [secrets]
+// config and that client's tg:// link both read it per client.
 func GenerateFakeTLSSecret(domain string) string {
 	return "ee" + mtprotoRandomMiddle() + hex.EncodeToString([]byte(domain))
 }
@@ -455,13 +456,13 @@ func mtprotoSecretMiddle(secret string) string {
 	return mtprotoRandomMiddle()
 }
 
-// HealMtprotoSecret normalises an mtproto inbound's settings JSON before the
-// value leaves for the mtg sidecar or a share link: it rebuilds `secret` so it
-// is always a valid FakeTLS secret whose trailing domain matches
-// `fakeTlsDomain`, generating the random middle when one is missing and
-// rewriting the domain suffix when the domain changed. Returns the rewritten
-// settings and true when anything changed.
-func HealMtprotoSecret(settings string) (string, bool) {
+// StripMtprotoInboundSecret removes the vestigial inbound-level `secret` from an
+// mtproto inbound's settings JSON. MTProto is multi-client: every secret lives on
+// a client, and mtg's [secrets] config plus every share link read only the
+// per-client secrets. A lingering inbound-level secret is dead data — it once
+// leaked into stale links that mtg rejected as "incorrect client random". Returns
+// the rewritten settings and true when a `secret` key was removed.
+func StripMtprotoInboundSecret(settings string) (string, bool) {
 	if settings == "" {
 		return settings, false
 	}
@@ -469,17 +470,78 @@ func HealMtprotoSecret(settings string) (string, bool) {
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return settings, false
 	}
-	domain, _ := parsed["fakeTlsDomain"].(string)
-	domain = strings.TrimSpace(domain)
-	if domain == "" {
+	if _, ok := parsed["secret"]; !ok {
 		return settings, false
 	}
-	secret, _ := parsed["secret"].(string)
-	expected := "ee" + mtprotoSecretMiddle(secret) + hex.EncodeToString([]byte(domain))
-	if secret == expected {
+	delete(parsed, "secret")
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
 		return settings, false
 	}
-	parsed["secret"] = expected
+	return string(out), true
+}
+
+// mtprotoSecretDomain extracts the FakeTLS domain embedded in the tail of a
+// secret, returning an empty string when the secret is malformed. Each mtproto
+// client carries its own domain inside its secret, so healing preserves it
+// instead of forcing every client onto the inbound-level default.
+func mtprotoSecretDomain(secret string) string {
+	s := secret
+	if strings.HasPrefix(s, "ee") || strings.HasPrefix(s, "dd") {
+		s = s[2:]
+	}
+	if len(s) <= 32 {
+		return ""
+	}
+	decoded, err := hex.DecodeString(s[32:])
+	if err != nil || len(decoded) == 0 {
+		return ""
+	}
+	return string(decoded)
+}
+
+// HealMtprotoClientSecrets normalises every client's FakeTLS secret in an
+// mtproto inbound's settings JSON: each secret is rebuilt so it stays a valid
+// FakeTLS value, keeping the client's own embedded domain when present and
+// falling back to the inbound-level fakeTlsDomain otherwise. Returns the
+// rewritten settings and true when anything changed.
+func HealMtprotoClientSecrets(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok || len(clients) == 0 {
+		return settings, false
+	}
+	defaultDomain, _ := parsed["fakeTlsDomain"].(string)
+	defaultDomain = strings.TrimSpace(defaultDomain)
+	changed := false
+	for _, raw := range clients {
+		client, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		secret, _ := client["secret"].(string)
+		domain := mtprotoSecretDomain(secret)
+		if domain == "" {
+			domain = defaultDomain
+		}
+		if domain == "" {
+			continue
+		}
+		expected := "ee" + mtprotoSecretMiddle(secret) + hex.EncodeToString([]byte(domain))
+		if secret != expected {
+			client["secret"] = expected
+			changed = true
+		}
+	}
+	if !changed {
+		return settings, false
+	}
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false
@@ -603,6 +665,7 @@ type Client struct {
 	AllowedIPs   []string       `json:"allowedIPs,omitempty"`
 	PreSharedKey string         `json:"preSharedKey,omitempty"`
 	KeepAlive    int            `json:"keepAlive,omitempty"`
+	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	Email        string         `json:"email"`                        // Client email identifier
 	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
 	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
@@ -632,6 +695,7 @@ type ClientRecord struct {
 	AllowedIPs   string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
 	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
 	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	Secret       string `json:"secret" gorm:"column:secret"`
 	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
 	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
@@ -815,6 +879,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		AllowedIPs:   strings.Join(c.AllowedIPs, ","),
 		PreSharedKey: c.PreSharedKey,
 		KeepAlive:    c.KeepAlive,
+		Secret:       c.Secret,
 	}
 	if c.Reverse != nil {
 		if b, err := json.Marshal(c.Reverse); err == nil {
@@ -866,6 +931,7 @@ func (r *ClientRecord) ToClient() *Client {
 		AllowedIPs:   splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey: r.PreSharedKey,
 		KeepAlive:    r.KeepAlive,
+		Secret:       r.Secret,
 	}
 	if r.Reverse != "" {
 		var rev ClientReverse
@@ -1015,6 +1081,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.PreSharedKey == "" {
 			existing.PreSharedKey = incoming.PreSharedKey
 			keepSecret("preSharedKey")
+		}
+	}
+	if existing.Secret != incoming.Secret && incoming.Secret != "" {
+		if incomingNewer || existing.Secret == "" {
+			existing.Secret = incoming.Secret
+			keepSecret("secret")
 		}
 	}
 	if existing.AllowedIPs != incoming.AllowedIPs && incoming.AllowedIPs != "" {
