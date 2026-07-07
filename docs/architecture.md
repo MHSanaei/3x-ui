@@ -366,8 +366,9 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 10s` | `check_client_ip_job` | Enforce per-client IP limits |
 | `@every 10s` | `mtproto_job` | Reconcile `mtg` sidecars against enabled MTProto inbounds |
 | `@every 5m` | `outbound_subscription_job` | Refresh outbound provider configs |
+| `@every 10m` | `clear_logs_job` (`PruneXrayLogsJob`) | Truncate Xray access/error logs once either exceeds 64 MiB |
 | `@hourly` | `warp_ip_job`, `periodic_traffic_reset_job("hourly")` | WARP IP rotation; traffic resets |
-| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")` | Log cleanup; resets |
+| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")` | IP-limit and Xray access/error log cleanup; traffic resets |
 | `@weekly` / `@monthly` | `periodic_traffic_reset_job(...)` | Weekly/monthly traffic resets |
 | default `@every 1m` | `ldap_sync_job` | Only if LDAP enabled; schedule configurable |
 | default `@daily` | `stats_notify_job` | Only if TG bot enabled; schedule configurable |
