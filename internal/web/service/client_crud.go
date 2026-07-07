@@ -523,6 +523,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 			if err := tx.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
 				return err
 			}
+			if err := tx.Where("email = ?", existing.Email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				return err
+			}
 		}
 		return tx.Delete(&model.ClientRecord{}, id).Error
 	}); err != nil {
@@ -664,6 +667,9 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 			return needRestart, err
 		}
 		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {
+			return needRestart, err
+		}
+		if err := db.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return needRestart, err
 		}
 	}
