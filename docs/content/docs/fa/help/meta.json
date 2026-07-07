@@ -1,0 +1,5 @@
+{
+  "title": "راهنما",
+  "icon": "LifeBuoy",
+  "pages": ["troubleshooting", "faq", "migration", "contributing"]
+}

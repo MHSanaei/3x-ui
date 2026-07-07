@@ -1,0 +1,120 @@
+---
+title: REALITY
+description: 在 3x-ui 中配合 XTLS-Vision 搭建 VLESS + REALITY 入站——密钥、short ID、SNI、指纹以及常见陷阱。
+icon: ShieldCheck
+---
+
+**REALITY** 是 Xray 的一种传输安全机制，它将你的代理流量伪装成发往某个真实、热门网站的普通流量。
+与传统 TLS 不同，你的服务器**无需拥有自己的证书**——它会借用目标站点（`dest`）的 TLS 握手。
+再结合 **XTLS-Vision** 流控，它既快速又能抵抗深度包检测（DPI）。
+
+REALITY 配合 **VLESS**（以及 Trojan）使用，推荐的流控为 `xtls-rprx-vision`。
+
+## 关键设置
+
+当你在某个 VLESS 入站上将安全模式选为 **REALITY** 时，3x-ui 会暴露以下字段：
+
+| 字段                     | 含义                                                               |
+| ------------------------ | ------------------------------------------------------------------ |
+| **Dest (target)**        | 要伪装成的真实 TLS 站点，例如 `www.microsoft.com:443`。            |
+| **SNI / Server Names**   | 客户端发送的主机名；必须与目标站点的证书匹配。                     |
+| **Public / Private key** | 一对 **x25519** 密钥。私钥保留在服务器上。                         |
+| **Short IDs**            | 用于验证客户端的十六进制字符串（可以设置多个）。                   |
+| **Flow**                 | 设为 `xtls-rprx-vision`。                                          |
+| **Fingerprint (uTLS)**   | 要模仿的客户端 TLS 指纹，例如 `chrome`。                           |
+
+私钥由 Xray 的 `x25519` 工具生成（面板可以为你生成这对密钥）：
+
+```bash title="generate an x25519 keypair"
+xray x25519
+```
+
+## 在面板中配置
+
+<Steps>
+
+<Step>
+### 创建 VLESS 入站
+
+添加一个新入站，协议选择 **VLESS**，并将 **Security** 设为 **reality**。
+</Step>
+
+<Step>
+### 选择目标（dest）和 SNI
+
+选一个支持 TLS 1.3 和 HTTP/2、且你的服务器与客户端都能访问的可信站点
+（例如 `www.microsoft.com:443`）。将 server names / SNI 设为与该站点证书匹配。
+</Step>
+
+<Step>
+### 生成密钥和 short ID
+
+生成 x25519 密钥对以及一个或多个 short ID。请妥善保管**私钥**；客户端永远只会收到**公钥**。
+</Step>
+
+<Step>
+### 设置流控和指纹
+
+使用 `xtls-rprx-vision` 流控，以及一个常见的 uTLS 指纹（例如 `chrome`）。
+</Step>
+
+<Step>
+### 添加客户端并分享链接
+
+创建一个客户端，然后在兼容的应用（v2rayNG、Hiddify、Mihomo 等）中使用它的分享链接或二维码。
+</Step>
+
+</Steps>
+
+## 配置长什么样
+
+在服务器端，一个 REALITY 入站的 `streamSettings` 大致如下：
+
+```json title="server inbound (excerpt)"
+{
+  "network": "tcp",
+  "security": "reality",
+  "realitySettings": {
+    "dest": "www.microsoft.com:443",
+    "serverNames": ["www.microsoft.com"],
+    "privateKey": "<x25519 private key>",
+    "shortIds": ["<hex short id>"],
+    "fingerprint": "chrome"
+  }
+}
+```
+
+与之匹配的客户端分享链接携带的是**公开**参数：
+
+```text title="vless:// (excerpt)"
+vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni=www.microsoft.com&fp=chrome&spx=%2F&flow=xtls-rprx-vision#my-reality
+```
+
+- `pbk` —— REALITY **公**钥
+- `sid` —— short ID（与服务器上的某一个匹配）
+- `sni` —— server name（与目标站点的证书匹配）
+- `fp` —— 客户端指纹
+- `spx` —— spiderX 路径
+- `flow` —— `xtls-rprx-vision`
+
+## 常见陷阱
+
+<Callout type="warn">
+
+- **目标选得不好。** `dest` 必须是一个真实站点，支持 **TLS 1.3** 和 **HTTP/2**、可访问，且在你所在地区未被封锁。请选一个你并不拥有、且访问量很大的站点。
+- **SNI 不匹配。** SNI / server names 必须与目标站点的真实证书匹配，否则握手会暴露伪装。
+- **私钥泄露。** 永远只把**公钥**分发给客户端。
+- **流控设置错误。** REALITY + XTLS-Vision 要求在入站的客户端条目和分享链接上都设置 `flow = xtls-rprx-vision`。
+
+</Callout>
+
+## 生成配置
+
+使用下面的生成器创建一对全新的 X25519 密钥、UUID 和 short ID，然后复制服务器入站 JSON 和客户端分享链接。
+所有内容都在**你的浏览器中**计算——不会有任何密钥或链接被发送到任何地方。
+
+<RealityConfigGenerator />
+
+<Callout type="info">
+  **私钥**只应留在你的服务器上。请把生成的 `vless://` 链接（其中包含**公钥**）分享给客户端。
+</Callout>

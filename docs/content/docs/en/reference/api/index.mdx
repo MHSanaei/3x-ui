@@ -1,0 +1,40 @@
+---
+title: API Reference
+description: The 3x-ui panel REST API — authentication, inbounds, clients, server stats, and more, generated from the OpenAPI spec.
+icon: Webhook
+---
+
+The 3x-ui panel exposes a REST API for automation. These pages are generated from
+the panel's OpenAPI specification, so they always match the documented schema.
+
+## Authentication
+
+Requests authenticate with either a **session cookie** (from `POST /login`) or a
+**Bearer token**:
+
+```text
+Authorization: Bearer <token>
+```
+
+Create API tokens in the panel; they are full-admin credentials, so store them
+securely. See [API Tokens](/docs/reference/api/api-tokens).
+
+Build an authenticated request for any endpoint below:
+
+<ApiRequestBuilder />
+
+## Browse by area
+
+<Cards>
+  <Card title="Authentication" href="/docs/reference/api/authentication" />
+  <Card title="Inbounds" href="/docs/reference/api/inbounds" />
+  <Card title="Clients" href="/docs/reference/api/clients" />
+  <Card title="Server" href="/docs/reference/api/server" />
+  <Card title="Settings" href="/docs/reference/api/settings" />
+  <Card title="Xray Settings" href="/docs/reference/api/xray-settings" />
+</Cards>
+
+<Callout type="info">
+  This reference is regenerated from `public/openapi.json` with `pnpm gen:api`.
+  Don't edit the generated tag pages by hand.
+</Callout>

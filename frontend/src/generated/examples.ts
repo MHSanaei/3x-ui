@@ -214,6 +214,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "token": "new-token-string"
   },
   "Client": {
+    "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
       ""
     ],
@@ -248,6 +249,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "inboundId": 0
   },
   "ClientRecord": {
+    "adTag": "",
     "allowedIPs": "",
     "auth": "",
     "comment": "",

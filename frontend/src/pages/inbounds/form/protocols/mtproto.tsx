@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Select, Switch } from 'antd';
 
 import { useOutboundTags } from '@/api/queries/useOutboundTags';
-import { MtprotoInboundSettingsSchema } from '@/schemas/protocols/inbound/mtproto';
-import { antdRule } from '@/utils/zodForm';
 
 export default function MtprotoFields() {
   const { t } = useTranslation();
@@ -87,14 +85,6 @@ export default function MtprotoFields() {
           />
         </Form.Item>
       )}
-      <Form.Item
-        name={['settings', 'adTag']}
-        label={t('pages.inbounds.form.mtgAdTag')}
-        tooltip={t('pages.inbounds.form.mtgAdTagHint')}
-        rules={[antdRule(MtprotoInboundSettingsSchema.shape.adTag, t)]}
-      >
-        <Input allowClear placeholder="0123456789abcdef0123456789abcdef" />
-      </Form.Item>
       <Form.Item
         name={['settings', 'publicIpv4']}
         label={t('pages.inbounds.form.mtgPublicIpv4')}

@@ -1,0 +1,79 @@
+---
+title: 多节点与受管主机
+description: 通过 API 令牌或 mTLS 信任、心跳检测以及针对每个入站的主机覆盖，从一个主控面板统一管理多个 3x-ui 面板并定制订阅。
+icon: Boxes
+---
+
+3x-ui 可以从单个主控面板管理**多台服务器**，并借助**受管主机**覆盖每个入站在订阅中的通告方式。
+
+## 节点
+
+**节点**是另一个由你的主控面板通过其 API 管理的 3x-ui 面板。主控会轮询每个节点，并在一处集中展示其状态、版本、CPU/内存、运行时间和流量。
+
+### 添加节点
+
+提供节点的连接信息：
+
+| 字段              | 说明                                                                  |
+| ----------------- | --------------------------------------------------------------------- |
+| **Name**          | 唯一标签（例如 `de-fra-1`）。                                          |
+| **Scheme**        | `https`（默认）或 `http`。                                            |
+| **Address / Port**| 节点面板的主机和端口。                                                |
+| **Base path**     | 节点的 Web 基础路径。                                                  |
+| **API token**     | 在节点上创建的 Bearer 令牌（mTLS 模式下不需要）。                      |
+| **TLS verify**    | `verify`（默认）、`skip`、`pin`（固定证书 SHA-256）或 `mtls`。        |
+| **Inbound sync**  | `all` 入站，或按标签 `selected`。                                     |
+| **Outbound tag**  | 可选地**通过**指定的出站到达节点（出口桥接）。                        |
+
+当你添加或测试节点时，主控会验证其可达性。随后它每隔几秒发送一次**心跳**，更新节点的状态（`online` / `offline`）并发出 `node.up` / `node.down` 事件（参见 [Telegram 机器人](/docs/operations/telegram-bot)）。
+
+<Callout type="info">
+  节点通过每个面板稳定的 GUID 来标识，因此节点在重启后仍能保持其身份。节点本身也可以管理更多节点——主控会将这些以只读的**传递性**子节点形式呈现（Node 1 → Node 2 → Node 3）。
+</Callout>
+
+### 主控与节点之间的双向 TLS（mTLS）
+
+若要获得最强的信任，请使用 `tlsVerifyMode = mtls`（需要 `https`）：
+
+<Steps>
+
+<Step>
+### 获取主控的 CA
+
+在主控上获取其节点认证 CA 证书（CA 私钥永远不会离开面板）。
+</Step>
+
+<Step>
+### 在节点上信任该 CA
+
+将该 CA 粘贴到节点的“受信任 CA”设置中。它会在节点下次重启时生效。
+</Step>
+
+<Step>
+### 将节点切换到 mTLS
+
+将节点的 TLS 验证模式设置为 `mtls`。现在主控将出示客户端证书而非 API 令牌。
+</Step>
+
+</Steps>
+
+## 受管主机
+
+**受管主机**是附加到入站上的覆盖端点。在订阅时，每个启用的主机会以其自己的地址、端口、TLS、SNI、主机头、路径等渲染出一条额外的分享链接 / 代理——取代旧的“外部代理”列表。可用于：
+
+- 通过 **CDN**（Cloudflare）以不同的地址/SNI 为入站做前置，
+- 为单个入站通告**多个域名**或按地区划分的端点，
+- 为每个端点调整 ALPN、指纹、ECH 或 mux。
+
+每个主机都有一个备注（支持相同的[模板变量](/docs/config/share-links#remark-template-variables)）、一个启用开关、一个排序顺序，并且可以**从特定订阅格式中排除**或**限定到特定节点**。
+
+<Callout type="info">
+  将地址/端口指向 CDN 的主机让你能够在客户端通过 CDN 边缘连接的同时，保持真实服务器地址的私密性。
+</Callout>
+
+## 相关内容
+
+<Cards>
+  <Card title="出站与路由" href="/docs/operations/outbounds-routing" description="WARP、NordVPN、出站订阅以及路由。" />
+  <Card title="订阅" href="/docs/config/subscription" description="主机如何塑造订阅输出。" />
+</Cards>

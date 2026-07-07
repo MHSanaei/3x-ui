@@ -1,0 +1,157 @@
+---
+title: Outbounds & Routing
+description: Shape egress in 3x-ui — WARP and NordVPN outbounds, outbound subscriptions (server pools), routing rules, and load balancers.
+icon: Route
+---
+
+Inbounds accept clients; **outbounds** decide where their traffic goes next.
+3x-ui can route traffic through Cloudflare WARP, NordVPN, or arbitrary outbound
+pools imported from a subscription, and select between them with routing rules
+and balancers.
+
+## Editing outbounds & routing
+
+Outbounds, routing rules, balancers, DNS, and logging all live in the **Xray
+configuration** (the config template you edit under Xray Settings). There's no
+separate per-rule UI — you edit the JSON, and the panel reloads Xray. The panel
+also offers an **outbound connectivity test** and a **route test** (ask the
+running core which outbound a given destination would use).
+
+## Build an outbound
+
+Every outbound is a JSON object with up to four parts: a **`tag`** (referenced by
+routing rules and balancers), a **`protocol`**, protocol-specific **`settings`**,
+and — for proxy protocols — **`streamSettings`** that must match the remote
+inbound's transport and security. Two outbounds are almost always present:
+
+- **`freedom`** sends traffic straight to its destination — the default egress.
+  Optionally set a `domainStrategy` (e.g. `UseIP`) to control how hostnames resolve.
+- **`blackhole`** drops traffic. Route unwanted destinations (ads, torrents) here.
+
+```json title="freedom + blackhole"
+{
+  "outbounds": [
+    { "tag": "direct", "protocol": "freedom", "settings": {} },
+    { "tag": "block", "protocol": "blackhole", "settings": {} }
+  ]
+}
+```
+
+A **proxy** outbound (VLESS, VMess, Trojan, Shadowsocks) forwards to another
+server — handy for chaining or sending select traffic abroad. Mind the wire
+shapes 3x-ui uses: **VLESS is the flat form** (`address`/`port`/`id`/`flow`/
+`encryption`), **VMess uses `settings.vnext[]`**, and **Trojan/Shadowsocks use
+`settings.servers[]`**. The `streamSettings` must mirror the destination's
+[transport and security](/docs/config/transports).
+
+Assemble any outbound below and paste the JSON into **Xray Settings → Outbounds**:
+
+<OutboundGenerator />
+
+## Cloudflare WARP
+
+WARP lets your server egress through Cloudflare's network. 3x-ui can register a
+WARP account for you and wire it into a WireGuard outbound tagged **`warp`**:
+
+<Steps>
+
+<Step>
+### Add a `warp`-tagged outbound
+
+Create a WireGuard outbound with the tag `warp` in your Xray config.
+</Step>
+
+<Step>
+### Register WARP
+
+From the panel's WARP controls, register an account. 3x-ui fills the outbound's
+keys, addresses, reserved bytes, and peer endpoint automatically.
+</Step>
+
+<Step>
+### (Optional) auto-rotate the IP
+
+Set a WARP update interval (in **days**) to periodically rotate the WARP IP. A
+free license can also be applied.
+</Step>
+
+</Steps>
+
+Route the traffic you want (for example specific domains) to the `warp` outbound
+with a routing rule.
+
+## NordVPN
+
+3x-ui can fetch NordVPN (NordLynx/WireGuard) credentials from an access token (or
+accept a private key directly) and list countries/servers, so you can build a
+NordVPN outbound.
+
+## Outbound subscriptions (server pools)
+
+An **outbound subscription** imports a remote share-link subscription and injects
+its servers as **outbounds** into the running Xray config — without touching your
+saved template. This is the recommended way to subscribe to a *pool* of servers.
+
+| Field            | Default | Meaning                                                        |
+| ---------------- | ------- | -------------------------------------------------------------- |
+| `url`            | —       | The remote subscription URL (SSRF-guarded).                    |
+| `tagPrefix`      | auto    | Prefix for generated outbound tags (e.g. `hk-`); blank = `subN-`. |
+| `updateInterval` | `600`   | Refresh interval in **seconds**.                               |
+| `prepend`        | `false` | Place these outbounds before your manual ones.                 |
+| `priority`       | `0`     | Merge order (lower first).                                     |
+
+Imported outbounds get **stable tags**: the same server keeps the same tag across
+refreshes, so exact-tag routing/balancer selectors stay pinned — while
+prefix/wildcard selectors (e.g. `hk-*`) automatically pick up new servers as the
+pool changes. Supported link schemes: `vmess`, `vless`, `trojan`, `ss`,
+`hysteria2` (`hy2`), and `wireguard` (`wg`). The panel refreshes enabled
+subscriptions on a timer and reloads Xray when something changes.
+
+## Routing rules
+
+**Routing rules** decide which outbound (or balancer) each connection uses. Each
+rule is a `field`-type matcher: set any of `domain`, `ip`, `port`, `network`,
+`protocol`, `inboundTag`, `sourceIP`, … and point it at an **`outboundTag`** or a
+**`balancerTag`**. Rules are evaluated **top-to-bottom — the first match wins**, so
+put specific rules above general ones.
+
+```json title="route ads to blackhole, private IPs direct"
+{
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      { "type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block" },
+      { "type": "field", "ip": ["geoip:private"], "outboundTag": "direct" }
+    ]
+  }
+}
+```
+
+## Balancers
+
+A **balancer** groups outbounds by a **selector** (tag prefixes, including the
+wildcard pools from outbound subscriptions) and spreads or fails traffic over them
+with a **strategy**:
+
+| Strategy      | Picks…                                          | Needs a monitor          |
+| ------------- | ----------------------------------------------- | ------------------------ |
+| `random`      | a random member per connection                  | no                       |
+| `roundRobin`  | members in rotation                             | no                       |
+| `leastPing`   | the lowest-latency member                       | **`observatory`**        |
+| `leastLoad`   | the most stable member by sampled load          | **`burstObservatory`**   |
+
+Reference a balancer from a rule via `balancerTag`. `leastPing` and `leastLoad`
+need a health monitor, which Xray places at the **top level** of the config
+(`observatory` / `burstObservatory`, **not** inside `routing`). The panel can
+report balancer status and **override** a balancer to a specific outbound for
+testing.
+
+Build the routing block — rules, balancers, and the matching observatory — here:
+
+<RoutingBuilder />
+
+<Callout type="warn">
+  Outbounds that reach external services are fetched with SSRF protection — by
+  default private/internal addresses are blocked unless you explicitly allow them
+  per source.
+</Callout>

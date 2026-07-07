@@ -130,6 +130,7 @@ interface FormState {
   wgPreSharedKey: string;
   wgAllowedIPs: string;
   secret: string;
+  adTag: string;
 }
 
 function emptyForm(): FormState {
@@ -160,6 +161,7 @@ function emptyForm(): FormState {
     wgPreSharedKey: '',
     wgAllowedIPs: '',
     secret: '',
+    adTag: '',
   };
 }
 
@@ -271,6 +273,7 @@ export default function ClientFormModal({
         wgPreSharedKey: client.preSharedKey || '',
         wgAllowedIPs: client.allowedIPs || '',
         secret: client.secret || '',
+        adTag: client.adTag || '',
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -587,7 +590,13 @@ export default function ClientFormModal({
     }
 
     if (showMtproto) {
+      const adTag = form.adTag.trim();
+      if (adTag !== '' && !/^[0-9a-fA-F]{32}$/.test(adTag)) {
+        messageApi.error(t('pages.inbounds.form.mtgAdTagInvalid'));
+        return;
+      }
       clientPayload.secret = form.secret;
+      clientPayload.adTag = adTag;
     }
 
     const externalLinks: ExternalLinkInput[] = form.externalLinks
@@ -846,7 +855,7 @@ export default function ClientFormModal({
                       </Space.Compact>
                     </Form.Item>
 
-                    <Form.Item label={t('pages.clients.password')}>
+                    <Form.Item label={t('pages.clients.password')} tooltip={t('pages.clients.passwordDesc')}>
                       <Space.Compact style={{ display: 'flex' }}>
                         <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
                         <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regeneratePassword} />
@@ -860,7 +869,7 @@ export default function ClientFormModal({
                       </Space.Compact>
                     </Form.Item>
 
-                    <Form.Item label={t('pages.clients.hysteriaAuth')}>
+                    <Form.Item label={t('pages.clients.hysteriaAuth')} tooltip={t('pages.clients.hysteriaAuthDesc')}>
                       <Space.Compact style={{ display: 'flex' }}>
                         <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
                         <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
@@ -926,12 +935,22 @@ export default function ClientFormModal({
                       </>
                     )}
                     {showMtproto && (
-                      <Form.Item label={t('pages.clients.mtprotoSecret')} extra={t('pages.clients.mtprotoSecretHint')}>
-                        <Space.Compact style={{ display: 'flex' }}>
-                          <Input value={form.secret} style={{ flex: 1 }} onChange={(e) => update('secret', e.target.value)} />
-                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateMtprotoSecret} />
-                        </Space.Compact>
-                      </Form.Item>
+                      <>
+                        <Form.Item label={t('pages.clients.mtprotoSecret')} extra={t('pages.clients.mtprotoSecretHint')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <Input value={form.secret} style={{ flex: 1 }} onChange={(e) => update('secret', e.target.value)} />
+                            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateMtprotoSecret} />
+                          </Space.Compact>
+                        </Form.Item>
+                        <Form.Item label={t('pages.clients.mtprotoAdTag')} extra={t('pages.clients.mtprotoAdTagHint')}>
+                          <Input
+                            value={form.adTag}
+                            allowClear
+                            placeholder="0123456789abcdef0123456789abcdef"
+                            onChange={(e) => update('adTag', e.target.value)}
+                          />
+                        </Form.Item>
+                      </>
                     )}
                   </>
                 ),

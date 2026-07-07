@@ -1,0 +1,77 @@
+---
+title: Panel Settings
+description: Every 3x-ui panel setting — web server, TLS, display, security, and notifications — with defaults from the source.
+icon: SlidersHorizontal
+---
+
+**Panel Settings** controls how the panel itself is served and secured (separate
+from your inbounds and clients). Settings are stored as key/value pairs; the
+defaults below come straight from the panel source. Secrets (tokens, passwords)
+are shown only as a "set / not set" indicator and are never returned to the
+browser in full.
+
+## Web server
+
+| Setting             | Default                 | Meaning                                                                 |
+| ------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `webPort`           | `2053`                  | Panel port (1–65535). The `XUI_PORT` env var overrides it at runtime.   |
+| `webListen`         | _(all interfaces)_      | Bind the panel to a specific IP.                                        |
+| `webBasePath`       | `/`                     | URL path the panel is served under (always normalized to `/…/`).        |
+| `webCertFile` / `webKeyFile` | _(none)_       | TLS certificate + key. When both are set, the panel serves **HTTPS**.   |
+| `sessionMaxAge`     | `360`                   | Session lifetime in **minutes** (default 6 hours).                      |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | IPs/CIDRs whose forwarded headers (real client IP) are trusted.         |
+| `panelOutbound`     | _(none)_                | Route the panel's own egress (update checks, Telegram, geo/sub fetches) through a named Xray outbound. |
+
+After changing the port or base path, the panel URL becomes
+`http(s)://<server>:<port><web-base-path>`. You can preset the base path on first
+launch with [`XUI_INIT_WEB_BASE_PATH`](/docs/reference/env-vars).
+
+### TLS
+
+Serving the panel over HTTPS protects your credentials in transit. Either set
+`webCertFile` + `webKeyFile` — the [`x-ui` SSL menu](/docs/config/ssl-certificates)
+can obtain a Let's Encrypt certificate for you — or terminate TLS at a
+[reverse proxy](/docs/operations/reverse-proxy).
+
+<Callout type="warn">
+  Never expose the panel over plain HTTP on the public internet. Use TLS, a
+  non-default port, and a long random web base path.
+</Callout>
+
+## Display
+
+| Setting          | Default                                          | Meaning                                                       |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| `pageSize`       | `25`                                             | Rows per page in lists (`0` disables pagination).             |
+| `expireDiff`     | `0`                                              | Days before expiry to start warning.                          |
+| `trafficDiff`    | `0`                                              | Percent of quota remaining at which to start warning.         |
+| `remarkTemplate` | `{{INBOUND}}-{{EMAIL}}\|📊{{TRAFFIC_LEFT}}\|⏳{{DAYS_LEFT}}D` | Default client remark template (see [Share links](/docs/config/share-links#remark-template-variables)). |
+| `timeLocation`   | `Local`                                          | Time zone for stats and expiry.                               |
+| `datepicker`     | `gregorian`                                      | Calendar for date inputs (Gregorian or Jalali/Persian).       |
+
+## Security & authentication
+
+Credentials, two-factor auth, the brute-force limiter, sessions, and LDAP are
+covered in [First login](/docs/guide/first-login) and
+[Security](/docs/operations/security). In short:
+
+- Passwords are stored as **bcrypt** hashes; changing them logs out all sessions.
+- **2FA (TOTP)** can be required at login.
+- An **LDAP** fallback can authenticate users when the local password check fails.
+- API access uses **API tokens** managed under Panel Settings (see the
+  [API reference](/docs/reference/api/api-tokens)).
+
+## Notifications & subscription
+
+These have their own settings groups and pages:
+
+<Cards>
+  <Card title="Telegram bot" href="/docs/operations/telegram-bot" description="Token, chat IDs, alerts, and reports." />
+  <Card title="Subscription" href="/docs/config/subscription" description="Subscription server, formats, and paths." />
+  <Card title="Security" href="/docs/operations/security" description="2FA, IP limits, and hardening." />
+</Cards>
+
+<Callout type="info">
+  Email (SMTP) notifications are also configurable (host, port, encryption,
+  recipients) with the same event types as the Telegram bot.
+</Callout>

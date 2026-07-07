@@ -25,7 +25,7 @@ case $1 in
         FNAME="amd64"
         ;;
 esac
-MTG_MULTI_VER="v1.13.3"
+MTG_MULTI_VER="v1.14.0"
 mkdir -p build/bin
 cd build/bin
 curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.6.27/Xray-linux-${ARCH}.zip"

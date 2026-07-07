@@ -532,14 +532,17 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
-// secret: MTProto is multi-client, so mtg and every share link read only the
-// per-client secrets. Leaving an inbound-level secret behind is what produced
-// stale links that failed with "incorrect client random".
+// secret and adTag: MTProto is multi-client, so mtg and every share link read
+// only the per-client values. Leaving an inbound-level secret behind is what
+// produced stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
 	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if stripped, ok := model.StripMtprotoInboundAdTag(inbound.Settings); ok {
 		inbound.Settings = stripped
 	}
 	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
@@ -738,6 +741,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "mtproto":
 			if client.Secret == "" {
 				return inbound, false, common.NewError("mtproto client requires a secret")
+			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
 			}
 		default:
 			if client.ID == "" {
