@@ -159,7 +159,7 @@ jobs:
           # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
           # platform labels match our matrix, so download and unpack the matching
           # archive. Only the platforms the fork publishes are packaged.
-          MTG_MULTI_VER="v1.13.3"
+          MTG_MULTI_VER="v1.14.0"
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
               MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
@@ -285,7 +285,7 @@ jobs:
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
           # download and unpack it instead of compiling.
-          $MTG_MULTI_VER = "v1.13.3"
+          $MTG_MULTI_VER = "v1.14.0"
           $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
           curl.exe -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
