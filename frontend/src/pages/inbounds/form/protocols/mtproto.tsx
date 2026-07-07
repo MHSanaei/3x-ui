@@ -85,6 +85,20 @@ export default function MtprotoFields() {
           />
         </Form.Item>
       )}
+      <Form.Item
+        name={['settings', 'publicIpv4']}
+        label={t('pages.inbounds.form.mtgPublicIpv4')}
+        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+      >
+        <Input allowClear placeholder="1.2.3.4" />
+      </Form.Item>
+      <Form.Item
+        name={['settings', 'publicIpv6']}
+        label={t('pages.inbounds.form.mtgPublicIpv6')}
+        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+      >
+        <Input allowClear placeholder="2001:db8::1" />
+      </Form.Item>
     </>
   );
 }

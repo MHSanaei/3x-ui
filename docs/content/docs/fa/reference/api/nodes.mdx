@@ -1,0 +1,183 @@
+---
+title: نودها
+description: >-
+  مدیریت پنل‌های راه‌دور 3x-ui که به‌عنوان نود برای یک پنل مرکزی عمل می‌کنند. همهٔ
+  اندپوینت‌ها زیر مسیر /panel/api/nodes.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        List every configured node with its connection details, health, and last
+        heartbeat patch.
+      url: >-
+        #list-every-configured-node-with-its-connection-details-health-and-last-heartbeat-patch
+    - depth: 2
+      title: >-
+        This panel's node-auth CA certificate (public, PEM) to paste into a
+        node's mTLS trust setting. Lazily mints the CA and the master client
+        cert on first call. Pair with setting tlsVerifyMode=mtls on the node.
+      url: >-
+        #this-panels-node-auth-ca-certificate-public-pem-to-paste-into-a-nodes-mtls-trust-setting-lazily-mints-the-ca-and-the-master-client-cert-on-first-call-pair-with-setting-tlsverifymodemtls-on-the-node
+    - depth: 2
+      title: >-
+        Set the CA certificate this panel trusts for incoming node-API client
+        certificates (this panel acting as a node). Paste the managing panel's
+        CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty value
+        must be a PEM certificate. Applied on the next panel restart.
+      url: >-
+        #set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart
+    - depth: 2
+      title: Fetch a single node by ID.
+      url: '#fetch-a-single-node-by-id'
+    - depth: 2
+      title: >-
+        Fetch a node's own web TLS certificate/key file paths (proxied to the
+        node). Used by the inbound form's "Set Cert from Panel" so a
+        node-assigned inbound gets paths that exist on the node, not the central
+        panel.
+      url: >-
+        #fetch-a-nodes-own-web-tls-certificatekey-file-paths-proxied-to-the-node-used-by-the-inbound-forms-set-cert-from-panel-so-a-node-assigned-inbound-gets-paths-that-exist-on-the-node-not-the-central-panel
+    - depth: 2
+      title: >-
+        Register a new remote node. Provide its URL, apiToken, and optional
+        remark / allowPrivateAddress flag.
+      url: >-
+        #register-a-new-remote-node-provide-its-url-apitoken-and-optional-remark--allowprivateaddress-flag
+    - depth: 2
+      title: Replace a node’s connection details. Same body shape as /add.
+      url: '#replace-a-nodes-connection-details-same-body-shape-as-add'
+    - depth: 2
+      title: Delete a node. Inbounds bound to it are not auto-migrated.
+      url: '#delete-a-node-inbounds-bound-to-it-are-not-auto-migrated'
+    - depth: 2
+      title: Pause or resume traffic sync with this node.
+      url: '#pause-or-resume-traffic-sync-with-this-node'
+    - depth: 2
+      title: >-
+        Probe a node without saving it. Uses the body as connection details and
+        returns the same heartbeat snapshot a registered node would have.
+      url: >-
+        #probe-a-node-without-saving-it-uses-the-body-as-connection-details-and-returns-the-same-heartbeat-snapshot-a-registered-node-would-have
+    - depth: 2
+      title: >-
+        Connect to the node over HTTPS without verifying its certificate and
+        return the leaf certificate's SHA-256 (base64). Used by the Add/Edit
+        Node dialog to fetch and pin a self-signed certificate. Uses the same
+        body as /test.
+      url: >-
+        #connect-to-the-node-over-https-without-verifying-its-certificate-and-return-the-leaf-certificates-sha-256-base64-used-by-the-addedit-node-dialog-to-fetch-and-pin-a-self-signed-certificate-uses-the-same-body-as-test
+    - depth: 2
+      title: >-
+        Use unsaved node connection details to list the remote inbounds
+        available for selective import.
+      url: >-
+        #use-unsaved-node-connection-details-to-list-the-remote-inbounds-available-for-selective-import
+    - depth: 2
+      title: Probe an existing node, updating its cached health state.
+      url: '#probe-an-existing-node-updating-its-cached-health-state'
+    - depth: 2
+      title: >-
+        Trigger the official panel self-updater on each given node (downloads
+        the latest release and restarts). Only enabled, online nodes are
+        updated; offline/disabled ones are reported as skipped. Set "dev": true
+        to move the nodes to the rolling per-commit dev channel instead of the
+        latest stable release. Returns a per-node result list.
+      url: >-
+        #trigger-the-official-panel-self-updater-on-each-given-node-downloads-the-latest-release-and-restarts-only-enabled-online-nodes-are-updated-offlinedisabled-ones-are-reported-as-skipped-set-dev-true-to-move-the-nodes-to-the-rolling-per-commit-dev-channel-instead-of-the-latest-stable-release-returns-a-per-node-result-list
+    - depth: 2
+      title: >-
+        Aggregated metric history for a node — same shape as /server/history,
+        scoped to one node.
+      url: >-
+        #aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node
+  structuredData:
+    headings:
+      - content: >-
+          List every configured node with its connection details, health, and
+          last heartbeat patch.
+        id: >-
+          list-every-configured-node-with-its-connection-details-health-and-last-heartbeat-patch
+      - content: >-
+          This panel's node-auth CA certificate (public, PEM) to paste into a
+          node's mTLS trust setting. Lazily mints the CA and the master client
+          cert on first call. Pair with setting tlsVerifyMode=mtls on the node.
+        id: >-
+          this-panels-node-auth-ca-certificate-public-pem-to-paste-into-a-nodes-mtls-trust-setting-lazily-mints-the-ca-and-the-master-client-cert-on-first-call-pair-with-setting-tlsverifymodemtls-on-the-node
+      - content: >-
+          Set the CA certificate this panel trusts for incoming node-API client
+          certificates (this panel acting as a node). Paste the managing panel's
+          CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty
+          value must be a PEM certificate. Applied on the next panel restart.
+        id: >-
+          set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart
+      - content: Fetch a single node by ID.
+        id: fetch-a-single-node-by-id
+      - content: >-
+          Fetch a node's own web TLS certificate/key file paths (proxied to the
+          node). Used by the inbound form's "Set Cert from Panel" so a
+          node-assigned inbound gets paths that exist on the node, not the
+          central panel.
+        id: >-
+          fetch-a-nodes-own-web-tls-certificatekey-file-paths-proxied-to-the-node-used-by-the-inbound-forms-set-cert-from-panel-so-a-node-assigned-inbound-gets-paths-that-exist-on-the-node-not-the-central-panel
+      - content: >-
+          Register a new remote node. Provide its URL, apiToken, and optional
+          remark / allowPrivateAddress flag.
+        id: >-
+          register-a-new-remote-node-provide-its-url-apitoken-and-optional-remark--allowprivateaddress-flag
+      - content: Replace a node’s connection details. Same body shape as /add.
+        id: replace-a-nodes-connection-details-same-body-shape-as-add
+      - content: Delete a node. Inbounds bound to it are not auto-migrated.
+        id: delete-a-node-inbounds-bound-to-it-are-not-auto-migrated
+      - content: Pause or resume traffic sync with this node.
+        id: pause-or-resume-traffic-sync-with-this-node
+      - content: >-
+          Probe a node without saving it. Uses the body as connection details
+          and returns the same heartbeat snapshot a registered node would have.
+        id: >-
+          probe-a-node-without-saving-it-uses-the-body-as-connection-details-and-returns-the-same-heartbeat-snapshot-a-registered-node-would-have
+      - content: >-
+          Connect to the node over HTTPS without verifying its certificate and
+          return the leaf certificate's SHA-256 (base64). Used by the Add/Edit
+          Node dialog to fetch and pin a self-signed certificate. Uses the same
+          body as /test.
+        id: >-
+          connect-to-the-node-over-https-without-verifying-its-certificate-and-return-the-leaf-certificates-sha-256-base64-used-by-the-addedit-node-dialog-to-fetch-and-pin-a-self-signed-certificate-uses-the-same-body-as-test
+      - content: >-
+          Use unsaved node connection details to list the remote inbounds
+          available for selective import.
+        id: >-
+          use-unsaved-node-connection-details-to-list-the-remote-inbounds-available-for-selective-import
+      - content: Probe an existing node, updating its cached health state.
+        id: probe-an-existing-node-updating-its-cached-health-state
+      - content: >-
+          Trigger the official panel self-updater on each given node (downloads
+          the latest release and restarts). Only enabled, online nodes are
+          updated; offline/disabled ones are reported as skipped. Set "dev":
+          true to move the nodes to the rolling per-commit dev channel instead
+          of the latest stable release. Returns a per-node result list.
+        id: >-
+          trigger-the-official-panel-self-updater-on-each-given-node-downloads-the-latest-release-and-restarts-only-enabled-online-nodes-are-updated-offlinedisabled-ones-are-reported-as-skipped-set-dev-true-to-move-the-nodes-to-the-rolling-per-commit-dev-channel-instead-of-the-latest-stable-release-returns-a-per-node-result-list
+      - content: >-
+          Aggregated metric history for a node — same shape as /server/history,
+          scoped to one node.
+        id: >-
+          aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"}]} showTitle />
+    </>
+  );
+}

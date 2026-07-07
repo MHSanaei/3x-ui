@@ -1,0 +1,66 @@
+---
+title: 订阅
+description: 运行 3x-ui 订阅服务器 —— base64/JSON/Clash 格式、端口与路径、TLS、响应头以及自定义模板。
+icon: Rss
+---
+
+**订阅**是一个返回客户端全部配置的单一 URL。客户端应用会定期刷新它，因此当你修改某个入站时，客户端会自动获取这些变更。订阅服务器作为一个**独立于**面板的服务器运行。
+
+## 启用与配置
+
+订阅服务器**默认开启**（`subEnable`）。在面板的订阅设置中进行配置：
+
+| 设置          | 默认值  | 含义                                                            |
+| ------------- | ------- | --------------------------------------------------------------- |
+| `subPort`     | `2096`  | 监听端口（与面板分开）。                                        |
+| `subListen`   | _(全部)_ | 绑定地址。                                                      |
+| `subPath`     | `/sub/` | 原始订阅 URL 的基础路径。                                       |
+| `subDomain`   | _(无)_  | 公开主机名；若设置，服务器仅响应该 Host。                       |
+| `subCertFile` / `subKeyFile` | _(无)_ | TLS 证书 + 密钥 —— 设置后，服务器以 **HTTPS** 提供服务。 |
+| `subEncrypt`  | `true`  | 对原始订阅内容进行 base64 编码。                               |
+| `subUpdates`  | `12`    | 发送给客户端的建议刷新间隔（小时）。                           |
+
+一个订阅 URL 形如：
+
+```text
+https://<sub-host>:<sub-port>/sub/<sub-id>
+```
+
+其中 `<sub-id>` 是客户端的 **Sub ID**。
+
+同一个 Sub ID 会在不同路径上以多种格式提供 —— `subPath` 上的 **Base64** 列表和 JSON 路径上的 **JSON**（Xray-json）配置。在此构建这些 URL 并预览两种内容：
+
+<SubscriptionBuilder />
+
+## 输出格式
+
+**格式由路径决定**，每种格式都有各自的启用开关：
+
+| 格式                  | 路径      | 启用方式         | 输出                                                |
+| --------------------- | --------- | ---------------- | --------------------------------------------------- |
+| **原始链接**          | `/sub/`   | 始终（若已开启） | 一组 `vless://`、`vmess://` 等链接的列表（当 `subEncrypt` 开启时进行 base64 编码）。 |
+| **JSON**              | `/json/`  | `subJsonEnable`  | 完整的 Xray 客户端配置。                            |
+| **Clash / Mihomo**    | `/clash/` | `subClashEnable` | YAML 配置文件。                                     |
+
+只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `/sub/` 会返回一个人类可读的信息页面，而非原始内容。
+
+### Base64 与 JSON
+
+**Base64** 内容只是用换行符连接的分享链接，经标准 base64 编码（通过 `subEncrypt` 开关控制）。**JSON** 内容则将每个客户端包装为一份完整的 Xray 客户端配置 —— 一套固定的骨架（本地 mixed/HTTP 入站、DNS、路由、策略）加上一个指向该入站的 `proxy` 出站。3x-ui **对单个客户端输出单个配置对象，对多个客户端输出数组**，使用扁平的出站 `settings` 形式（`address`/`port`/`id`，`level: 8`），并从 `streamSettings` 中剥离 `sockopt`。
+
+## 响应头
+
+订阅会返回兼容应用可读取的标准响应头：
+
+- **`Subscription-Userinfo`** —— `upload`、`download`、`total`（字节；`total=0` 表示无限制）以及 `expire`（Unix 秒）。
+- **`Profile-Update-Interval`** —— 刷新间隔，以小时为单位（`subUpdates`）。
+- **`Profile-Title`**、**`Support-Url`**、**`Profile-Web-Page-Url`**、**`Announce`** —— 部分客户端会显示的可选品牌信息。
+
+## 自定义页面模板
+
+将 `subThemeDir` 指向一个包含自定义信息页模板的文件夹，即可为 HTML 订阅页面定制品牌。每条链接上的客户端备注完全支持模板化 —— 参见[分享链接 → 备注变量](/docs/config/share-links#remark-template-variables)。
+
+<Callout type="info">
+  将订阅服务器置于 TLS 之后（设置 `subCertFile`/`subKeyFile`，或使用
+  [反向代理](/docs/operations/reverse-proxy)），以免订阅内容在传输过程中被暴露。
+</Callout>

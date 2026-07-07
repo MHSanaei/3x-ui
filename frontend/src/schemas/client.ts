@@ -38,6 +38,7 @@ export const ClientRecordSchema = z.object({
   preSharedKey: z.string().optional(),
   keepAlive: z.number().optional(),
   secret: z.string().optional(),
+  adTag: z.string().optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
 }).loose();

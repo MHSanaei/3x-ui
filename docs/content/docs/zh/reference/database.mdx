@@ -1,0 +1,62 @@
+---
+title: 数据库
+description: 3x-ui 的存储后端——SQLite（默认）与 PostgreSQL——涵盖数据库路径、连接池以及从 SQLite 到 PostgreSQL 的迁移。
+icon: Database
+---
+
+3x-ui 将所有内容——入站、客户端、设置——都存储在数据库中。你在安装时
+选择后端；两者都是一等支持。
+
+## SQLite（默认）
+
+位于 `/etc/x-ui/x-ui.db` 的单个文件。无需任何配置，适合中小型
+部署。该文件夹可通过
+[`XUI_DB_FOLDER`](/docs/reference/env-vars#database) 配置（在 Windows 上默认
+紧挨着二进制文件存放）。
+
+## PostgreSQL
+
+推荐用于客户端数量庞大或多节点的部署。安装程序既可以为你在本地
+安装 PostgreSQL，也可以接受指向现有服务器的 DSN。运行时通过环境变量
+选择后端，安装程序会将这些变量写入 `/etc/default/x-ui`：
+
+```bash title="/etc/default/x-ui"
+XUI_DB_TYPE=postgres
+XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+```
+
+使用 `XUI_DB_MAX_OPEN_CONNS` 和 `XUI_DB_MAX_IDLE_CONNS` 调优连接池。
+
+### Docker
+
+`docker compose up -d` 仍然使用 SQLite。若要配合内置的 PostgreSQL
+服务运行，请取消 `docker-compose.yml` 中两行 `XUI_DB_*` 的注释，并使用
+对应的 profile 启动：
+
+```bash
+docker compose --profile postgres up -d
+```
+
+## 从 SQLite 迁移到 PostgreSQL
+
+使用内置命令将现有的 SQLite 安装迁移到 PostgreSQL：
+
+```bash
+x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+```
+
+然后在 `/etc/default/x-ui` 中设置 `XUI_DB_TYPE` 和 `XUI_DB_DSN` 并重启：
+
+```bash
+systemctl restart x-ui
+```
+
+<Callout type="info">
+  源 SQLite 文件不会被改动——只有在你确认新后端正常工作后，才手动
+  将其删除。
+</Callout>
+
+## 备份
+
+无论使用哪种后端，都要定期备份——参见
+[备份与恢复](/docs/operations/backup-restore)。

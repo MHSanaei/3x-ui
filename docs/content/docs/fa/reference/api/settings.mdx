@@ -1,0 +1,122 @@
+---
+title: تنظیمات
+description: >-
+  پیکربندی پنل و اطلاعات ورود کاربر. همه‌ی نقاط پایانی زیر /panel/api/setting
+  قرار دارند و به یک نشست واردشده یا توکن Bearer نیاز دارند.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        Return every panel setting: web server, Telegram bot, subscription,
+        security, LDAP. The full JSON blob that the Settings page edits.
+      url: >-
+        #return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits
+    - depth: 2
+      title: >-
+        Return the computed default settings based on the request host. Useful
+        to preview what a fresh install would use.
+      url: >-
+        #return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
+    - depth: 2
+      title: >-
+        Persist every setting at once. The body mirrors the shape returned by
+        /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected
+        before write.
+      url: >-
+        #persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
+    - depth: 2
+      title: >-
+        Change the panel admin username and password. Requires the current
+        credentials for verification. The session is refreshed with the new
+        values on success.
+      url: >-
+        #change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success
+    - depth: 2
+      title: >-
+        Restart the entire 3x-ui process after a 3-second grace period. The
+        connection drops immediately; the panel comes back online ~5-10 seconds
+        later.
+      url: >-
+        #restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later
+    - depth: 2
+      title: >-
+        Test SMTP connection with stage-by-stage reporting (connect, auth,
+        send). Returns structured result with stage and message.
+      url: >-
+        #test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message
+    - depth: 2
+      title: >-
+        Test Telegram bot connection by sending a test message to the configured
+        chat.
+      url: >-
+        #test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
+    - depth: 2
+      title: >-
+        Return the built-in default Xray JSON config template that ships with
+        this panel version.
+      url: >-
+        #return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
+  structuredData:
+    headings:
+      - content: >-
+          Return every panel setting: web server, Telegram bot, subscription,
+          security, LDAP. The full JSON blob that the Settings page edits.
+        id: >-
+          return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits
+      - content: >-
+          Return the computed default settings based on the request host. Useful
+          to preview what a fresh install would use.
+        id: >-
+          return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
+      - content: >-
+          Persist every setting at once. The body mirrors the shape returned by
+          /all. Invalid values (bad ports, missing cert pairs, etc.) are
+          rejected before write.
+        id: >-
+          persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
+      - content: >-
+          Change the panel admin username and password. Requires the current
+          credentials for verification. The session is refreshed with the new
+          values on success.
+        id: >-
+          change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success
+      - content: >-
+          Restart the entire 3x-ui process after a 3-second grace period. The
+          connection drops immediately; the panel comes back online ~5-10
+          seconds later.
+        id: >-
+          restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later
+      - content: >-
+          Test SMTP connection with stage-by-stage reporting (connect, auth,
+          send). Returns structured result with stage and message.
+        id: >-
+          test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message
+      - content: >-
+          Test Telegram bot connection by sending a test message to the
+          configured chat.
+        id: >-
+          test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
+      - content: >-
+          Return the built-in default Xray JSON config template that ships with
+          this panel version.
+        id: >-
+          return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
+    </>
+  );
+}

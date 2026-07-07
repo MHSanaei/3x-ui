@@ -1,0 +1,199 @@
+---
+title: Transports & Security
+description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
+icon: Network
+---
+
+A **transport** decides how packets are carried between client and server, a
+**security** layer decides how they're encrypted and disguised, and **FinalMask**
+can obfuscate what's left. The panel only offers valid combinations; this page
+lists every transport's settings and the rules the panel enforces.
+
+## Transports
+
+Pick the transport (the inbound's `network`) in the inbound/outbound form. Each
+network writes its own settings key on the wire (`tcpSettings`, `kcpSettings`, …).
+
+| Transport       | Settings key          | When to use it                                                         |
+| --------------- | --------------------- | ---------------------------------------------------------------------- |
+| **TCP (Raw)**   | `tcpSettings`         | Lowest overhead. The basis for REALITY + XTLS-Vision and fallbacks; optional HTTP/1.1 header camouflage. |
+| **mKCP**        | `kcpSettings`         | Reliable protocol over **UDP** — trades bandwidth for lower latency on lossy links. Carries no TLS/REALITY. |
+| **WebSocket**   | `wsSettings`          | Works through CDNs and HTTP reverse proxies; very compatible.          |
+| **gRPC**        | `grpcSettings`        | HTTP/2-based; multiplexes well and proxies cleanly through Nginx.      |
+| **HTTPUpgrade** | `httpupgradeSettings` | CDN-friendly HTTP/1.1 `Upgrade`; lighter than full WebSocket.          |
+| **XHTTP**       | `xhttpSettings`       | Modern stream-multiplexed HTTP transport; CDN-friendly and REALITY-capable. |
+| **Hysteria**    | `hysteriaSettings`    | QUIC-based transport — only for the **Hysteria2** protocol.            |
+
+<Callout type="info">
+  **WireGuard** and **Tunnel** (dokodemo-door) inbounds expose no transport
+  selector — their stream carries only security/sockopt. Earlier panels also
+  exposed a raw **HTTP/2 (`http`)** transport; it has been superseded by **XHTTP**
+  and is no longer selectable.
+</Callout>
+
+### TCP (Raw) — `tcpSettings`
+
+| Field                          | Default | Meaning                                                                 |
+| ------------------------------ | ------- | ----------------------------------------------------------------------- |
+| `acceptProxyProtocol`          | `false` | Accept the PROXY protocol from an upstream proxy so the real client IP is preserved. |
+| `header.type`                  | `none`  | `none`, or `http` for HTTP/1.1 camouflage.                              |
+| `header.request` / `response`  | —       | When `type: http`: method, path, version and a header map that mimic a normal HTTP exchange. |
+
+### mKCP — `kcpSettings`
+
+| Field              | Default     | Meaning                                                          |
+| ------------------ | ----------- | ---------------------------------------------------------------- |
+| `mtu`              | `1350`      | Maximum transmission unit, in bytes (576–1460).                  |
+| `tti`              | `20`        | Transmission time interval, in ms (10–100). Lower = more responsive, more overhead. |
+| `uplinkCapacity`   | `5`         | Upload bandwidth budget, in **MB/s**.                            |
+| `downlinkCapacity` | `20`        | Download bandwidth budget, in **MB/s**.                          |
+| `cwndMultiplier`   | `1`         | Congestion-window multiplier; raise to push harder on good links. |
+| `maxSendingWindow` | `2097152`   | Upper bound on in-flight packets.                               |
+
+<Callout type="info">
+  mKCP can't carry TLS or REALITY. To disguise it, add a **FinalMask** UDP mask —
+  the `mkcp-legacy` mask reproduces the classic header obfuscation that older Xray
+  stored in `kcpSettings.header`/`seed` (those fields no longer exist here).
+</Callout>
+
+### WebSocket — `wsSettings`
+
+| Field                 | Default | Meaning                                                          |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| `path`                | `/`     | Request path — route on it when several services share one host. |
+| `host`                | _(none)_| `Host` header override (useful behind a CDN).                    |
+| `headers`             | `{}`    | Extra request headers.                                           |
+| `heartbeatPeriod`     | `0`     | Seconds between keepalive pings; `0` disables them.              |
+| `acceptProxyProtocol` | `false` | Accept the PROXY protocol from an upstream.                      |
+
+### gRPC — `grpcSettings`
+
+| Field         | Default | Meaning                                                   |
+| ------------- | ------- | --------------------------------------------------------- |
+| `serviceName` | _(none)_| gRPC service path; acts like a secret route.              |
+| `authority`   | _(none)_| `:authority` pseudo-header override.                      |
+| `multiMode`   | `false` | Multiplex several streams over one connection.            |
+
+### HTTPUpgrade — `httpupgradeSettings`
+
+| Field                 | Default | Meaning                                       |
+| --------------------- | ------- | --------------------------------------------- |
+| `path`                | `/`     | Request path.                                 |
+| `host`                | _(none)_| `Host` header override.                       |
+| `headers`             | `{}`    | Extra request headers.                        |
+| `acceptProxyProtocol` | `false` | Accept the PROXY protocol from an upstream.   |
+
+HTTPUpgrade is a one-shot HTTP/1.1 `Upgrade` with no WebSocket framing — there's
+no heartbeat field.
+
+### XHTTP — `xhttpSettings`
+
+XHTTP (SplitHTTP) has a large field set; the panel fills sensible defaults. The
+ones you'll usually touch:
+
+| Field                  | Default     | Meaning                                                                |
+| ---------------------- | ----------- | ---------------------------------------------------------------------- |
+| `path`                 | `/`         | Request path.                                                          |
+| `host`                 | _(none)_    | `Host` header override.                                                |
+| `mode`                 | `auto`      | `auto`, `packet-up`, `stream-up`, or `stream-one`. `packet-up` is the most CDN-compatible; `stream-*` are lower latency. |
+| `xPaddingBytes`        | `100-1000`  | Random padding range that blurs packet sizes.                          |
+| `scMaxBufferedPosts`   | `30`        | Server-side buffer for uploaded POSTs.                                 |
+| `scStreamUpServerSecs` | `20-80`     | Stream-up server window (dash range).                                  |
+| `xmux` (`enableXmux`)  | _(off)_     | Connection multiplexing — `maxConcurrency` `16-32`, `maxConnections` `6`, … Turn on for high concurrency. |
+
+Session-ID fields (`sessionIDPlacement`, `sessionIDKey`, `sessionIDTable`,
+`sessionIDLength`) and the `scMin/MaxEachPostBytes` knobs are advanced; leave them
+empty unless you're matching a specific upstream.
+
+### Hysteria — `hysteriaSettings`
+
+Only valid when the protocol is **Hysteria2**.
+
+| Field            | Default | Meaning                                                                 |
+| ---------------- | ------- | ----------------------------------------------------------------------- |
+| `version`        | `2`     | Hysteria protocol version.                                              |
+| `auth`           | _(none)_| Shared authentication string.                                           |
+| `udpIdleTimeout` | `60`    | Seconds (2–600) before idle UDP sessions are dropped.                   |
+| `masquerade`     | —       | Disguise as an HTTP/3 server: `type` `proxy`/`file`/`string` with `url`/`dir`/`content`, plus `headers` and `statusCode`. |
+
+## FinalMask — late-layer obfuscation
+
+**FinalMask** wraps traffic **after** the transport and security layers, so it can
+disguise transports that don't carry TLS (like mKCP) or add a second skin on top of
+TLS. Masks are configured per direction:
+
+- **TCP masks** — `fragment`, `sudoku`, `header-custom`.
+- **UDP masks** — `salamander`, `mkcp-legacy`, `header-custom`, `xdns`, `xicmp`,
+  `noise`, `sudoku`, `realm`. (`mkcp-legacy` reproduces the old mKCP header
+  obfuscation.)
+- **QUIC params** — congestion control (`reno`, `bbr`, `brutal`, `force-brutal`),
+  Brutal up/down rates, `udpHop` (rotate the QUIC port across a range to dodge
+  port blocking), and receive-window tuning.
+
+FinalMask replaces the per-transport `header`/`seed` obfuscation that older Xray
+builds exposed.
+
+## sockopt — low-level socket options
+
+`sockopt` rides alongside any transport and tunes the underlying socket. The most
+useful fields:
+
+| Field                 | Default | Meaning                                                          |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| `tcpFastOpen`         | `false` | Enable TCP Fast Open.                                            |
+| `tcpcongestion`       | `bbr`   | Congestion control: `bbr`, `cubic`, or `reno`.                  |
+| `tproxy`              | `off`   | Transparent proxy mode: `off`, `redirect`, or `tproxy`.          |
+| `domainStrategy`      | `AsIs`  | How addresses resolve (`UseIP`, `ForceIPv4`, …).                 |
+| `dialerProxy`         | _(none)_| Chain this outbound's dialing through another outbound tag.      |
+| `interface`           | _(none)_| Bind to a specific network interface.                           |
+| `mark`                | `0`     | SO_MARK for policy routing (`0` = unset).                        |
+
+Numeric fields left at `0` are omitted on the wire so Xray keeps OS defaults.
+Advanced entries (`happyEyeballs`, `customSockopt[]`, keepalive timers) are
+available for special cases.
+
+## Security
+
+The security layer is one of **`none`**, **`tls`**, or **`reality`**, with these
+eligibility rules:
+
+| Security    | Eligible transports                          | Eligible protocols                                  |
+| ----------- | -------------------------------------------- | --------------------------------------------------- |
+| **TLS**     | `tcp`, `ws`, `grpc`, `httpupgrade`, `xhttp`  | VLESS, VMess, Trojan, Shadowsocks (Hysteria2 is always TLS) |
+| **REALITY** | `tcp`, `grpc`, `xhttp`                       | VLESS, Trojan                                       |
+
+mKCP and Hysteria don't take a separate TLS/REALITY layer — mKCP runs plaintext
+(obfuscate with FinalMask), and Hysteria is QUIC/TLS by design. REALITY disguises
+your server as a real TLS site and needs no certificate — see
+[REALITY](/docs/config/reality).
+
+## XTLS-Vision flow
+
+The `xtls-rprx-vision` flow is fast and DPI-resistant. It's available for
+**VLESS** when either:
+
+- the transport is raw **TCP** with **TLS** or **REALITY** security (classic
+  XTLS-Vision), or
+- the transport is **XHTTP** with VLESS encryption enabled (see below).
+
+Set the flow on the VLESS **client**, not the inbound. With classic Vision on
+TCP, the panel can also offer a **Vision seed** once a client uses the flow.
+
+## VLESS encryption (ML-KEM)
+
+VLESS supports post-quantum **encryption** (ML-KEM / `mlkem768x25519`), stored in
+the inbound's `decryption` (server) and clients' `encryption` (for link
+generation). When enabled, it unlocks the Vision flow over XHTTP. Generate the
+keys from the panel's VLESS settings.
+
+## Shadowsocks ciphers
+
+Shadowsocks inbounds support both classic ciphers and **Shadowsocks-2022**
+(method names starting with `2022-blake3-`). Most ciphers are multi-user;
+`2022-blake3-chacha20-poly1305` is single-user.
+
+<Callout type="info">
+  Transports and security must match on both ends. The client's share link
+  encodes them (`type=ws`, `security=reality`, `flow=xtls-rprx-vision`, …) —
+  decode any link with the [share-link inspector](/docs/config/share-links).
+</Callout>

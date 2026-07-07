@@ -30,6 +30,10 @@ func TestScrapeStats(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
+		if r.Header.Get("Authorization") != "Bearer sesame" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		_, _ = io.WriteString(w, `{"started_at":"2026-01-01T00:00:00Z","total_connections":2,`+
 			`"users":{`+
 			`"alice":{"connections":2,"bytes_in":100,"bytes_out":200,"last_seen":"2026-01-01T00:01:00Z"},`+
@@ -37,7 +41,7 @@ func TestScrapeStats(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	users, ok := scrapeStats(serverPort(t, srv))
+	users, ok := scrapeStats(serverPort(t, srv), "sesame")
 	if !ok {
 		t.Fatal("scrapeStats should succeed against a valid /stats endpoint")
 	}
@@ -59,7 +63,7 @@ func TestScrapeStatsUnreachable(t *testing.T) {
 	port := serverPort(t, srv)
 	srv.Close()
 
-	if _, ok := scrapeStats(port); ok {
+	if _, ok := scrapeStats(port, ""); ok {
 		t.Fatal("scrapeStats must report ok=false when the endpoint is unreachable")
 	}
 }

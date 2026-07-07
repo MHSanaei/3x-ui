@@ -1,0 +1,381 @@
+---
+title: 服务器
+description: >-
+  系统状态、日志获取、证书生成器、Xray 二进制文件管理以及备份/恢复。所有接口均位于
+  /panel/api/server 下。
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        Real-time machine snapshot: CPU, memory, swap, disk, network IO, load
+        averages, open connections, Xray state. Cached and refreshed every 2
+        seconds in the background.
+      url: >-
+        #real-time-machine-snapshot-cpu-memory-swap-disk-network-io-load-averages-open-connections-xray-state-cached-and-refreshed-every-2-seconds-in-the-background
+    - depth: 2
+      title: >-
+        Reports whether per-client IP limits can be enforced on this host. The
+        panel uses it to gate the "IP Limit" field, since enforcement depends on
+        Fail2ban being installed.
+      url: >-
+        #reports-whether-per-client-ip-limits-can-be-enforced-on-this-host-the-panel-uses-it-to-gate-the-ip-limit-field-since-enforcement-depends-on-fail2ban-being-installed
+    - depth: 2
+      title: >-
+        Legacy: aggregated CPU history. Use /history/cpu/:bucket instead — same
+        data with a uniform {t, v} shape.
+      url: >-
+        #legacy-aggregated-cpu-history-use-historycpubucket-instead--same-data-with-a-uniform-t-v-shape
+    - depth: 2
+      title: >-
+        Aggregated time-series for one metric. Returns an array of {t, v}
+        samples covering the last ~6 hours.
+      url: >-
+        #aggregated-time-series-for-one-metric-returns-an-array-of-t-v-samples-covering-the-last-6-hours
+    - depth: 2
+      title: >-
+        Xray runtime metrics state — whether the xray config has a `metrics`
+        block, which expvar keys are flowing, and the current snapshot values
+        for each. Returns an empty state when metrics are not configured.
+      url: >-
+        #xray-runtime-metrics-state--whether-the-xray-config-has-a-metrics-block-which-expvar-keys-are-flowing-and-the-current-snapshot-values-for-each-returns-an-empty-state-when-metrics-are-not-configured
+    - depth: 2
+      title: >-
+        Time-series history for one Xray runtime metric over the last ~6 hours.
+        Same {t, v} shape as /history/:metric/:bucket.
+      url: >-
+        #time-series-history-for-one-xray-runtime-metric-over-the-last-6-hours-same-t-v-shape-as-historymetricbucket
+    - depth: 2
+      title: >-
+        Latest snapshot from the Xray observatory — per-outbound latency, health
+        status, and last-probe time. Only populated when the Xray config has an
+        observatory configured.
+      url: >-
+        #latest-snapshot-from-the-xray-observatory--per-outbound-latency-health-status-and-last-probe-time-only-populated-when-the-xray-config-has-an-observatory-configured
+    - depth: 2
+      title: >-
+        Time-series of observatory probe results for one outbound tag. Same {t,
+        v} shape as the other history endpoints.
+      url: >-
+        #time-series-of-observatory-probe-results-for-one-outbound-tag-same-t-v-shape-as-the-other-history-endpoints
+    - depth: 2
+      title: List Xray binary versions available for install on this host.
+      url: '#list-xray-binary-versions-available-for-install-on-this-host'
+    - depth: 2
+      title: Check whether a newer 3x-ui release is available on GitHub.
+      url: '#check-whether-a-newer-3x-ui-release-is-available-on-github'
+    - depth: 2
+      title: Return the assembled Xray config that’s currently running on this host.
+      url: '#return-the-assembled-xray-config-thats-currently-running-on-this-host'
+    - depth: 2
+      title: >-
+        Stream the SQLite database file as an attachment. Use as a manual
+        backup.
+      url: '#stream-the-sqlite-database-file-as-an-attachment-use-as-a-manual-backup'
+    - depth: 2
+      title: >-
+        Stream a cross-engine migration file as an attachment: a .dump (SQL
+        text) on SQLite, or a .db SQLite database built from the live data on
+        PostgreSQL.
+      url: >-
+        #stream-a-cross-engine-migration-file-as-an-attachment-a-dump-sql-text-on-sqlite-or-a-db-sqlite-database-built-from-the-live-data-on-postgresql
+    - depth: 2
+      title: Generate a fresh UUID v4. Convenience helper for client IDs.
+      url: '#generate-a-fresh-uuid-v4-convenience-helper-for-client-ids'
+    - depth: 2
+      title: >-
+        Return this panel's own web TLS certificate and key file paths. The
+        central panel calls it on a node (via the node API token) so "Set Cert
+        from Panel" fills a node-assigned inbound with paths that exist on the
+        node.
+      url: >-
+        #return-this-panels-own-web-tls-certificate-and-key-file-paths-the-central-panel-calls-it-on-a-node-via-the-node-api-token-so-set-cert-from-panel-fills-a-node-assigned-inbound-with-paths-that-exist-on-the-node
+    - depth: 2
+      title: >-
+        Read-only summaries (guid, parentGuid, name, address, status, versions)
+        of the nodes this panel manages. A parent panel calls it on a node (via
+        the node API token) to surface transitive sub-nodes in a chained
+        topology. Counts are computed by the parent, not returned here.
+      url: >-
+        #read-only-summaries-guid-parentguid-name-address-status-versions-of-the-nodes-this-panel-manages-a-parent-panel-calls-it-on-a-node-via-the-node-api-token-to-surface-transitive-sub-nodes-in-a-chained-topology-counts-are-computed-by-the-parent-not-returned-here
+    - depth: 2
+      title: Generate a new X25519 keypair for Reality.
+      url: '#generate-a-new-x25519-keypair-for-reality'
+    - depth: 2
+      title: >-
+        Generate a new ML-DSA-65 keypair (post-quantum signature). Returns
+        {privateKey, publicKey, seed}.
+      url: >-
+        #generate-a-new-ml-dsa-65-keypair-post-quantum-signature-returns-privatekey-publickey-seed
+    - depth: 2
+      title: >-
+        Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns
+        {clientKey, serverKey}.
+      url: >-
+        #generate-a-new-ml-kem-768-keypair-post-quantum-kem-returns-clientkey-serverkey
+    - depth: 2
+      title: >-
+        Generate VLESS encryption auth options. Returns an auths array each with
+        id, label, encryption, and decryption fields.
+      url: >-
+        #generate-vless-encryption-auth-options-returns-an-auths-array-each-with-id-label-encryption-and-decryption-fields
+    - depth: 2
+      title: Stop the Xray binary. All proxies go offline immediately.
+      url: '#stop-the-xray-binary-all-proxies-go-offline-immediately'
+    - depth: 2
+      title: >-
+        Reload Xray with the current config. Typically required after structural
+        inbound or routing changes.
+      url: >-
+        #reload-xray-with-the-current-config-typically-required-after-structural-inbound-or-routing-changes
+    - depth: 2
+      title: >-
+        Download and install the specified Xray version. Pass "latest" for the
+        newest release.
+      url: >-
+        #download-and-install-the-specified-xray-version-pass-latest-for-the-newest-release
+    - depth: 2
+      title: >-
+        Self-update the panel to the latest version. The server restarts on
+        success.
+      url: >-
+        #self-update-the-panel-to-the-latest-version-the-server-restarts-on-success
+    - depth: 2
+      title: >-
+        Toggle the panel update channel between stable and the rolling
+        per-commit dev release. Only effective on dev builds.
+      url: >-
+        #toggle-the-panel-update-channel-between-stable-and-the-rolling-per-commit-dev-release-only-effective-on-dev-builds
+    - depth: 2
+      title: >-
+        Refresh the default GeoIP / GeoSite data files. Body can include a
+        fileName, or use the /:fileName variant.
+      url: >-
+        #refresh-the-default-geoip--geosite-data-files-body-can-include-a-filename-or-use-the-filename-variant
+    - depth: 2
+      title: Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).
+      url: '#refresh-a-single-geo-file-by-filename-eg-geoipdat-geositedat'
+    - depth: 2
+      title: Return the last N lines of the panel’s own log.
+      url: '#return-the-last-n-lines-of-the-panels-own-log'
+    - depth: 2
+      title: Return the last N lines of the Xray process log.
+      url: '#return-the-last-n-lines-of-the-xray-process-log'
+    - depth: 2
+      title: >-
+        Restore the panel DB from an uploaded SQLite file (multipart form, field
+        name "db"). The panel restarts after restore. Destructive.
+      url: >-
+        #restore-the-panel-db-from-an-uploaded-sqlite-file-multipart-form-field-name-db-the-panel-restarts-after-restore-destructive
+    - depth: 2
+      title: >-
+        Generate a new ECH (Encrypted Client Hello) keypair and config list for
+        the given SNI.
+      url: >-
+        #generate-a-new-ech-encrypted-client-hello-keypair-and-config-list-for-the-given-sni
+    - depth: 2
+      title: >-
+        Compute the hex SHA-256 of a certificate (DER) for pinning
+        (pinnedPeerCertSha256). Provide either a server file path or inline
+        PEM/DER content.
+      url: >-
+        #compute-the-hex-sha-256-of-a-certificate-der-for-pinning-pinnedpeercertsha256-provide-either-a-server-file-path-or-inline-pemder-content
+    - depth: 2
+      title: >-
+        Run `xray tls ping` against a remote server and return its live
+        leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).
+      url: >-
+        #run-xray-tls-ping-against-a-remote-server-and-return-its-live-leaf-certificate-sha-256-hashes-for-pinning-pinnedpeercertsha256
+    - depth: 2
+      title: >-
+        Fetch the fully aggregated inbound_client_ips database table. Used by
+        nodes to sync recently active IPs across the cluster.
+      url: >-
+        #fetch-the-fully-aggregated-inbound_client_ips-database-table-used-by-nodes-to-sync-recently-active-ips-across-the-cluster
+    - depth: 2
+      title: >-
+        Submit a list of recently active IP timestamps. The panel merges them
+        with the existing database to maintain a unified global IP-limit view.
+      url: >-
+        #submit-a-list-of-recently-active-ip-timestamps-the-panel-merges-them-with-the-existing-database-to-maintain-a-unified-global-ip-limit-view
+  structuredData:
+    headings:
+      - content: >-
+          Real-time machine snapshot: CPU, memory, swap, disk, network IO, load
+          averages, open connections, Xray state. Cached and refreshed every 2
+          seconds in the background.
+        id: >-
+          real-time-machine-snapshot-cpu-memory-swap-disk-network-io-load-averages-open-connections-xray-state-cached-and-refreshed-every-2-seconds-in-the-background
+      - content: >-
+          Reports whether per-client IP limits can be enforced on this host. The
+          panel uses it to gate the "IP Limit" field, since enforcement depends
+          on Fail2ban being installed.
+        id: >-
+          reports-whether-per-client-ip-limits-can-be-enforced-on-this-host-the-panel-uses-it-to-gate-the-ip-limit-field-since-enforcement-depends-on-fail2ban-being-installed
+      - content: >-
+          Legacy: aggregated CPU history. Use /history/cpu/:bucket instead —
+          same data with a uniform {t, v} shape.
+        id: >-
+          legacy-aggregated-cpu-history-use-historycpubucket-instead--same-data-with-a-uniform-t-v-shape
+      - content: >-
+          Aggregated time-series for one metric. Returns an array of {t, v}
+          samples covering the last ~6 hours.
+        id: >-
+          aggregated-time-series-for-one-metric-returns-an-array-of-t-v-samples-covering-the-last-6-hours
+      - content: >-
+          Xray runtime metrics state — whether the xray config has a `metrics`
+          block, which expvar keys are flowing, and the current snapshot values
+          for each. Returns an empty state when metrics are not configured.
+        id: >-
+          xray-runtime-metrics-state--whether-the-xray-config-has-a-metrics-block-which-expvar-keys-are-flowing-and-the-current-snapshot-values-for-each-returns-an-empty-state-when-metrics-are-not-configured
+      - content: >-
+          Time-series history for one Xray runtime metric over the last ~6
+          hours. Same {t, v} shape as /history/:metric/:bucket.
+        id: >-
+          time-series-history-for-one-xray-runtime-metric-over-the-last-6-hours-same-t-v-shape-as-historymetricbucket
+      - content: >-
+          Latest snapshot from the Xray observatory — per-outbound latency,
+          health status, and last-probe time. Only populated when the Xray
+          config has an observatory configured.
+        id: >-
+          latest-snapshot-from-the-xray-observatory--per-outbound-latency-health-status-and-last-probe-time-only-populated-when-the-xray-config-has-an-observatory-configured
+      - content: >-
+          Time-series of observatory probe results for one outbound tag. Same
+          {t, v} shape as the other history endpoints.
+        id: >-
+          time-series-of-observatory-probe-results-for-one-outbound-tag-same-t-v-shape-as-the-other-history-endpoints
+      - content: List Xray binary versions available for install on this host.
+        id: list-xray-binary-versions-available-for-install-on-this-host
+      - content: Check whether a newer 3x-ui release is available on GitHub.
+        id: check-whether-a-newer-3x-ui-release-is-available-on-github
+      - content: >-
+          Return the assembled Xray config that’s currently running on this
+          host.
+        id: return-the-assembled-xray-config-thats-currently-running-on-this-host
+      - content: >-
+          Stream the SQLite database file as an attachment. Use as a manual
+          backup.
+        id: >-
+          stream-the-sqlite-database-file-as-an-attachment-use-as-a-manual-backup
+      - content: >-
+          Stream a cross-engine migration file as an attachment: a .dump (SQL
+          text) on SQLite, or a .db SQLite database built from the live data on
+          PostgreSQL.
+        id: >-
+          stream-a-cross-engine-migration-file-as-an-attachment-a-dump-sql-text-on-sqlite-or-a-db-sqlite-database-built-from-the-live-data-on-postgresql
+      - content: Generate a fresh UUID v4. Convenience helper for client IDs.
+        id: generate-a-fresh-uuid-v4-convenience-helper-for-client-ids
+      - content: >-
+          Return this panel's own web TLS certificate and key file paths. The
+          central panel calls it on a node (via the node API token) so "Set Cert
+          from Panel" fills a node-assigned inbound with paths that exist on the
+          node.
+        id: >-
+          return-this-panels-own-web-tls-certificate-and-key-file-paths-the-central-panel-calls-it-on-a-node-via-the-node-api-token-so-set-cert-from-panel-fills-a-node-assigned-inbound-with-paths-that-exist-on-the-node
+      - content: >-
+          Read-only summaries (guid, parentGuid, name, address, status,
+          versions) of the nodes this panel manages. A parent panel calls it on
+          a node (via the node API token) to surface transitive sub-nodes in a
+          chained topology. Counts are computed by the parent, not returned
+          here.
+        id: >-
+          read-only-summaries-guid-parentguid-name-address-status-versions-of-the-nodes-this-panel-manages-a-parent-panel-calls-it-on-a-node-via-the-node-api-token-to-surface-transitive-sub-nodes-in-a-chained-topology-counts-are-computed-by-the-parent-not-returned-here
+      - content: Generate a new X25519 keypair for Reality.
+        id: generate-a-new-x25519-keypair-for-reality
+      - content: >-
+          Generate a new ML-DSA-65 keypair (post-quantum signature). Returns
+          {privateKey, publicKey, seed}.
+        id: >-
+          generate-a-new-ml-dsa-65-keypair-post-quantum-signature-returns-privatekey-publickey-seed
+      - content: >-
+          Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns
+          {clientKey, serverKey}.
+        id: >-
+          generate-a-new-ml-kem-768-keypair-post-quantum-kem-returns-clientkey-serverkey
+      - content: >-
+          Generate VLESS encryption auth options. Returns an auths array each
+          with id, label, encryption, and decryption fields.
+        id: >-
+          generate-vless-encryption-auth-options-returns-an-auths-array-each-with-id-label-encryption-and-decryption-fields
+      - content: Stop the Xray binary. All proxies go offline immediately.
+        id: stop-the-xray-binary-all-proxies-go-offline-immediately
+      - content: >-
+          Reload Xray with the current config. Typically required after
+          structural inbound or routing changes.
+        id: >-
+          reload-xray-with-the-current-config-typically-required-after-structural-inbound-or-routing-changes
+      - content: >-
+          Download and install the specified Xray version. Pass "latest" for the
+          newest release.
+        id: >-
+          download-and-install-the-specified-xray-version-pass-latest-for-the-newest-release
+      - content: >-
+          Self-update the panel to the latest version. The server restarts on
+          success.
+        id: >-
+          self-update-the-panel-to-the-latest-version-the-server-restarts-on-success
+      - content: >-
+          Toggle the panel update channel between stable and the rolling
+          per-commit dev release. Only effective on dev builds.
+        id: >-
+          toggle-the-panel-update-channel-between-stable-and-the-rolling-per-commit-dev-release-only-effective-on-dev-builds
+      - content: >-
+          Refresh the default GeoIP / GeoSite data files. Body can include a
+          fileName, or use the /:fileName variant.
+        id: >-
+          refresh-the-default-geoip--geosite-data-files-body-can-include-a-filename-or-use-the-filename-variant
+      - content: Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).
+        id: refresh-a-single-geo-file-by-filename-eg-geoipdat-geositedat
+      - content: Return the last N lines of the panel’s own log.
+        id: return-the-last-n-lines-of-the-panels-own-log
+      - content: Return the last N lines of the Xray process log.
+        id: return-the-last-n-lines-of-the-xray-process-log
+      - content: >-
+          Restore the panel DB from an uploaded SQLite file (multipart form,
+          field name "db"). The panel restarts after restore. Destructive.
+        id: >-
+          restore-the-panel-db-from-an-uploaded-sqlite-file-multipart-form-field-name-db-the-panel-restarts-after-restore-destructive
+      - content: >-
+          Generate a new ECH (Encrypted Client Hello) keypair and config list
+          for the given SNI.
+        id: >-
+          generate-a-new-ech-encrypted-client-hello-keypair-and-config-list-for-the-given-sni
+      - content: >-
+          Compute the hex SHA-256 of a certificate (DER) for pinning
+          (pinnedPeerCertSha256). Provide either a server file path or inline
+          PEM/DER content.
+        id: >-
+          compute-the-hex-sha-256-of-a-certificate-der-for-pinning-pinnedpeercertsha256-provide-either-a-server-file-path-or-inline-pemder-content
+      - content: >-
+          Run `xray tls ping` against a remote server and return its live
+          leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).
+        id: >-
+          run-xray-tls-ping-against-a-remote-server-and-return-its-live-leaf-certificate-sha-256-hashes-for-pinning-pinnedpeercertsha256
+      - content: >-
+          Fetch the fully aggregated inbound_client_ips database table. Used by
+          nodes to sync recently active IPs across the cluster.
+        id: >-
+          fetch-the-fully-aggregated-inbound_client_ips-database-table-used-by-nodes-to-sync-recently-active-ips-across-the-cluster
+      - content: >-
+          Submit a list of recently active IP timestamps. The panel merges them
+          with the existing database to maintain a unified global IP-limit view.
+        id: >-
+          submit-a-list-of-recently-active-ip-timestamps-the-panel-merges-them-with-the-existing-database-to-maintain-a-unified-global-ip-limit-view
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/server/status","method":"get"},{"path":"/panel/api/server/fail2banStatus","method":"get"},{"path":"/panel/api/server/cpuHistory/{bucket}","method":"get"},{"path":"/panel/api/server/history/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayMetricsState","method":"get"},{"path":"/panel/api/server/xrayMetricsHistory/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayObservatory","method":"get"},{"path":"/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}","method":"get"},{"path":"/panel/api/server/getXrayVersion","method":"get"},{"path":"/panel/api/server/getPanelUpdateInfo","method":"get"},{"path":"/panel/api/server/getConfigJson","method":"get"},{"path":"/panel/api/server/getDb","method":"get"},{"path":"/panel/api/server/getMigration","method":"get"},{"path":"/panel/api/server/getNewUUID","method":"get"},{"path":"/panel/api/server/getWebCertFiles","method":"get"},{"path":"/panel/api/server/descendants","method":"get"},{"path":"/panel/api/server/getNewX25519Cert","method":"get"},{"path":"/panel/api/server/getNewmldsa65","method":"get"},{"path":"/panel/api/server/getNewmlkem768","method":"get"},{"path":"/panel/api/server/getNewVlessEnc","method":"get"},{"path":"/panel/api/server/stopXrayService","method":"post"},{"path":"/panel/api/server/restartXrayService","method":"post"},{"path":"/panel/api/server/installXray/{version}","method":"post"},{"path":"/panel/api/server/updatePanel","method":"post"},{"path":"/panel/api/server/setUpdateChannel","method":"post"},{"path":"/panel/api/server/updateGeofile","method":"post"},{"path":"/panel/api/server/updateGeofile/{fileName}","method":"post"},{"path":"/panel/api/server/logs/{count}","method":"post"},{"path":"/panel/api/server/xraylogs/{count}","method":"post"},{"path":"/panel/api/server/importDB","method":"post"},{"path":"/panel/api/server/getNewEchCert","method":"post"},{"path":"/panel/api/server/getCertHash","method":"post"},{"path":"/panel/api/server/getRemoteCertHash","method":"post"},{"path":"/panel/api/server/clientIps","method":"get"},{"path":"/panel/api/server/clientIps","method":"post"}]} showTitle />
+    </>
+  );
+}

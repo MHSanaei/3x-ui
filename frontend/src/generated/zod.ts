@@ -240,6 +240,7 @@ export const ApiTokenViewSchema = z.object({
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
   comment: z.string(),
@@ -276,6 +277,7 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  adTag: z.string(),
   allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),

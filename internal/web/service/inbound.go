@@ -532,14 +532,17 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
-// secret: MTProto is multi-client, so mtg and every share link read only the
-// per-client secrets. Leaving an inbound-level secret behind is what produced
-// stale links that failed with "incorrect client random".
+// secret and adTag: MTProto is multi-client, so mtg and every share link read
+// only the per-client values. Leaving an inbound-level secret behind is what
+// produced stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
 	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if stripped, ok := model.StripMtprotoInboundAdTag(inbound.Settings); ok {
 		inbound.Settings = stripped
 	}
 	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
@@ -739,6 +742,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Secret == "" {
 				return inbound, false, common.NewError("mtproto client requires a secret")
 			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -832,14 +838,26 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
-				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
-			} else {
-				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
-				if inbound.NodeID != nil {
-					markDirty = true
+			payload := inbound
+			pushable := true
+			if inbound.NodeID == nil && inbound.Protocol == model.MTProto {
+				if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+					payload = built
 				} else {
-					needRestart = true
+					logger.Debug("Unable to prepare runtime inbound config:", bErr)
+					pushable = false
+				}
+			}
+			if pushable {
+				if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
+					logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
+				} else {
+					logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+					if inbound.NodeID != nil {
+						markDirty = true
+					} else if inbound.Protocol != model.MTProto {
+						needRestart = true
+					}
 				}
 			}
 		}
@@ -1080,9 +1098,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
-	// Capture the pre-edit routing state before oldInbound.Settings is replaced
-	// with the new settings further down, then ensure a routed inbound keeps a
-	// stable egress port (reusing the one already stored).
+	// Capture the pre-edit protocol and routing state before oldInbound is
+	// overwritten with the new values further down, then ensure a routed
+	// inbound keeps a stable egress port (reusing the one already stored).
+	oldProtocol := oldInbound.Protocol
 	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
@@ -1225,6 +1244,30 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if oldInbound.NodeID == nil {
 			if !push {
 				needRestart = true
+			} else if oldProtocol == model.MTProto || oldInbound.Protocol == model.MTProto {
+				oldSnapshot := *oldInbound
+				oldSnapshot.Tag = tag
+				oldSnapshot.Protocol = oldProtocol
+				payload := oldInbound
+				pushable := true
+				if inbound.Enable {
+					if built, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound); err2 == nil {
+						payload = built
+					} else {
+						logger.Debug("Unable to prepare runtime inbound config:", err2)
+						pushable = false
+					}
+				}
+				if pushable {
+					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+					} else {
+						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+						if oldInbound.Protocol != model.MTProto {
+							needRestart = true
+						}
+					}
+				}
 			} else {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag

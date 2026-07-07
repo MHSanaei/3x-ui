@@ -1,0 +1,107 @@
+---
+title: 首次登录
+description: 找到自动生成的 3x-ui 登录凭据，进入面板，启用双因素认证，并在对外暴露任何内容之前完成安全加固。
+icon: KeyRound
+---
+
+安装完成后，你的第一项任务就是登录并**保护好面板**，然后再对外暴露其他任何内容。
+
+## 进入面板
+
+面板的访问地址为：
+
+```text
+http://<your-server-ip>:<port>/<web-base-path>
+```
+
+默认端口为 **2053**，默认根路径为 `/`——但脚本安装会**随机生成**用户名、密码、**端口**和 Web 根路径，因此请以你的实际值为准。
+
+### 找到你的登录凭据
+
+脚本安装在完成时会打印一份凭据摘要，同时也会将其写入一个仅 root 可读的文件：
+
+```bash title="/etc/x-ui/install-result.env (mode 600)"
+XUI_USERNAME=...
+XUI_PASSWORD=...
+XUI_PANEL_PORT=...
+XUI_WEB_BASE_PATH=...
+XUI_ACCESS_URL=...
+XUI_API_TOKEN=...
+XUI_DB_TYPE=sqlite
+```
+
+如果你错过了这些信息，可以使用管理工具：
+
+```bash
+x-ui              # menu → 11 (View Current Settings)
+x-ui settings     # or the one-shot form
+```
+
+对于 **Docker**，请从容器日志中读取生成的凭据，或运行 `docker exec -it <container> x-ui setting -show`。
+
+<Callout type="warn">
+  如果你的面板仍在使用默认的 `admin` / `admin`（面板会就此发出警告），请立即修改——在创建任何入站之前。
+</Callout>
+
+## 修改凭据、端口和路径
+
+使用非默认端口和一个长而随机的 **Web 根路径**，能让面板更难被发现。你可以在 UI 的**面板设置**中修改，或通过 `x-ui` 菜单修改：
+
+- **7 — Reset Username & Password**（可同时禁用 2FA）
+- **8 — Reset Web Base Path**（将其随机化）
+- **10 — Change Port**
+
+修改用户名或密码会**注销所有现有会话**；如果当时启用了双因素认证，还会将其禁用。
+
+## 双因素认证（2FA）
+
+3x-ui 支持 TOTP 双因素认证（兼容 Google Authenticator、Aegis 等）。在**面板设置**中启用即可——启用后，登录页面除了密码外还会要求输入一个 6 位验证码，并且开启该功能会强制所有人重新登录。你可以通过菜单的 **Reset Username & Password** 步骤，或使用 `x-ui setting -resetTwoFactor` 来禁用它。
+
+## 内置登录保护
+
+- **暴力破解限制：** 同一 IP/用户名在 5 分钟内登录失败 **5** 次后，该组合将被封锁 **15 分钟**。
+- **通用错误提示：** 无论是凭据错误还是 2FA 验证码错误，登录页面都只提示 "wrong username or password"，因此不会泄露任何信息。
+- **会话**有效期为 `sessionMaxAge` 分钟（默认 **360** = 6 小时），并在你修改凭据时失效。
+- 可在面板设置中启用 **LDAP** 作为认证回退方案。
+
+## 必备加固清单
+
+<Steps>
+
+<Step>
+### 设置高强度且唯一的凭据
+
+将生成的（或 `admin/admin`）用户名和密码替换为高强度的值。
+</Step>
+
+<Step>
+### 使用非默认端口和随机根路径
+
+将面板从 `2053` 端口移走，并将其置于一个长而随机的路径下提供服务。
+</Step>
+
+<Step>
+### 启用双因素认证
+
+开启 2FA，这样即便密码泄露，单凭密码也无法获得访问权限。
+</Step>
+
+<Step>
+### 将面板置于 TLS 之后
+
+使用有效的证书（通过 `x-ui` 菜单的 SSL 管理，或通过反向代理），使面板仅能通过 HTTPS 访问。
+</Step>
+
+<Step>
+### 用防火墙限制访问
+
+只开放你确实需要的端口，并考虑按 IP 限制面板访问。
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  想让面板运行在一个干净的域名上并自动启用 HTTPS？请参阅
+  [反向代理](/docs/operations/reverse-proxy)。如需更深入的加固，请参阅
+  [安全](/docs/operations/security)。
+</Callout>

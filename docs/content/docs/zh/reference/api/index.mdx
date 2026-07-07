@@ -1,0 +1,37 @@
+---
+title: API 参考
+description: 3x-ui 面板的 REST API —— 涵盖认证、入站、客户端、服务器状态等，依据 OpenAPI 规范自动生成。
+icon: Webhook
+---
+
+3x-ui 面板提供了一套用于自动化的 REST API。以下页面根据面板的 OpenAPI 规范自动生成，因此始终与所记录的 schema 保持一致。
+
+## 认证
+
+请求可使用 **会话 Cookie**（来自 `POST /login`）或 **Bearer token** 进行认证：
+
+```text
+Authorization: Bearer <token>
+```
+
+在面板中创建 API token；它们拥有完整的管理员权限，因此请妥善保管。参见 [API Tokens](/docs/reference/api/api-tokens)。
+
+为下方任意端点构建一个已认证的请求：
+
+<ApiRequestBuilder />
+
+## 按领域浏览
+
+<Cards>
+  <Card title="认证" href="/docs/reference/api/authentication" />
+  <Card title="入站" href="/docs/reference/api/inbounds" />
+  <Card title="客户端" href="/docs/reference/api/clients" />
+  <Card title="服务器" href="/docs/reference/api/server" />
+  <Card title="设置" href="/docs/reference/api/settings" />
+  <Card title="Xray 设置" href="/docs/reference/api/xray-settings" />
+</Cards>
+
+<Callout type="info">
+  本参考文档由 `public/openapi.json` 通过 `pnpm gen:api` 重新生成。
+  请勿手动编辑自动生成的标签页面。
+</Callout>

@@ -1066,6 +1066,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
+      "adTag": {
+        "example": "0123456789abcdef0123456789abcdef",
+        "type": "string"
+      },
       "allowedIPs": {
         "items": {
           "type": "string"
@@ -1205,6 +1209,9 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "ClientRecord": {
     "properties": {
+      "adTag": {
+        "type": "string"
+      },
       "allowedIPs": {
         "type": "string"
       },
@@ -1280,6 +1287,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "adTag",
       "allowedIPs",
       "auth",
       "comment",

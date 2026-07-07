@@ -1,0 +1,147 @@
+---
+title: 出站与路由
+description: 在 3x-ui 中调整出口流量——WARP 与 NordVPN 出站、出站订阅（服务器池）、路由规则以及负载均衡器。
+icon: Route
+---
+
+入站负责接受客户端；**出站**则决定客户端的流量接下来发往何处。
+3x-ui 可以让流量经由 Cloudflare WARP、NordVPN，或从订阅导入的任意出站池转发，
+并通过路由规则和均衡器在它们之间进行选择。
+
+## 编辑出站与路由
+
+出站、路由规则、均衡器、DNS 和日志全部都位于 **Xray
+配置**中（即你在 Xray 设置下编辑的配置模板）。这里没有单独的逐条规则界面——你直接编辑
+JSON，面板随后会重载 Xray。面板同时还提供**出站连通性测试**以及**路由测试**（向正在运行的核心查询某个目标地址将会使用哪个出站）。
+
+## 构建出站
+
+每个出站都是一个 JSON 对象，最多包含四个部分：一个 **`tag`**（供路由规则和均衡器引用）、
+一个 **`protocol`**、协议专属的 **`settings`**，以及——对于代理协议而言——必须与远程入站的
+传输方式和安全设置相匹配的 **`streamSettings`**。有两个出站几乎总是会存在：
+
+- **`freedom`** 会将流量直接发往其目标地址——这是默认出口。
+  可选地设置一个 `domainStrategy`（例如 `UseIP`）来控制主机名的解析方式。
+- **`blackhole`** 会丢弃流量。将不需要的目标地址（广告、种子下载）路由到这里。
+
+```json title="freedom + blackhole"
+{
+  "outbounds": [
+    { "tag": "direct", "protocol": "freedom", "settings": {} },
+    { "tag": "block", "protocol": "blackhole", "settings": {} }
+  ]
+}
+```
+
+**代理**出站（VLESS、VMess、Trojan、Shadowsocks）会转发到另一台
+服务器——便于进行链式代理或将部分流量发往境外。注意 3x-ui 所使用的各种线路
+结构：**VLESS 采用扁平形式**（`address`/`port`/`id`/`flow`/
+`encryption`），**VMess 使用 `settings.vnext[]`**，而 **Trojan/Shadowsocks 使用
+`settings.servers[]`**。`streamSettings` 必须与目标的
+[传输方式和安全设置](/docs/config/transports)保持一致。
+
+在下方组装任意出站，并将生成的 JSON 粘贴到 **Xray 设置 → Outbounds** 中：
+
+<OutboundGenerator />
+
+## Cloudflare WARP
+
+WARP 让你的服务器经由 Cloudflare 的网络出口。3x-ui 可以为你注册一个
+WARP 账户，并将其接入一个标签为 **`warp`** 的 WireGuard 出站：
+
+<Steps>
+
+<Step>
+### 添加一个标签为 `warp` 的出站
+
+在你的 Xray 配置中创建一个标签为 `warp` 的 WireGuard 出站。
+</Step>
+
+<Step>
+### 注册 WARP
+
+在面板的 WARP 控制项中注册一个账户。3x-ui 会自动填入该出站的
+密钥、地址、保留字节以及对端端点。
+</Step>
+
+<Step>
+### （可选）自动轮换 IP
+
+设置一个 WARP 更新间隔（以**天**为单位），即可定期轮换 WARP IP。也可以
+应用一个免费许可证。
+</Step>
+
+</Steps>
+
+通过路由规则，将你希望的流量（例如特定域名）路由到 `warp` 出站。
+
+## NordVPN
+
+3x-ui 可以根据访问令牌获取 NordVPN（NordLynx/WireGuard）凭据（或
+直接接受一个私钥），并列出国家/服务器，从而让你构建一个
+NordVPN 出站。
+
+## 出站订阅（服务器池）
+
+**出站订阅**会导入一个远程分享链接订阅，并将其中的服务器作为**出站**注入到正在运行的
+Xray 配置中——而不会改动你已保存的模板。这是订阅一*池*服务器的推荐方式。
+
+| 字段             | 默认值  | 含义                                                            |
+| ---------------- | ------- | -------------------------------------------------------------- |
+| `url`            | —       | 远程订阅 URL（受 SSRF 防护）。                                  |
+| `tagPrefix`      | auto    | 生成的出站标签的前缀（例如 `hk-`）；留空 = `subN-`。            |
+| `updateInterval` | `600`   | 刷新间隔，以**秒**为单位。                                      |
+| `prepend`        | `false` | 将这些出站放在你的手动出站之前。                               |
+| `priority`       | `0`     | 合并顺序（数值越小越靠前）。                                    |
+
+导入的出站会获得**稳定的标签**：同一台服务器在多次刷新之间始终保持同一个标签，
+因此精确标签的路由/均衡器选择器会保持固定——而前缀/通配符选择器（例如 `hk-*`）
+则会随着服务器池的变化自动纳入新的服务器。支持的链接协议：`vmess`、`vless`、`trojan`、`ss`、
+`hysteria2`（`hy2`）以及 `wireguard`（`wg`）。面板会按定时器刷新已启用的
+订阅，并在内容发生变化时重载 Xray。
+
+## 路由规则
+
+**路由规则**决定每个连接使用哪个出站（或均衡器）。每条
+规则都是一个 `field` 类型的匹配器：设置 `domain`、`ip`、`port`、`network`、
+`protocol`、`inboundTag`、`sourceIP` 等中的任意项，并将其指向一个 **`outboundTag`** 或
+**`balancerTag`**。规则会**自上而下**逐条求值——**第一个匹配者胜出**，因此请
+将具体的规则放在通用规则之上。
+
+```json title="route ads to blackhole, private IPs direct"
+{
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      { "type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block" },
+      { "type": "field", "ip": ["geoip:private"], "outboundTag": "direct" }
+    ]
+  }
+}
+```
+
+## 均衡器
+
+**均衡器**通过一个**选择器**（标签前缀，包括来自出站订阅的通配符池）将出站分组，
+并以某种**策略**在它们之间分散流量或进行故障转移：
+
+| 策略          | 选取……                                          | 是否需要监视器           |
+| ------------- | ----------------------------------------------- | ------------------------ |
+| `random`      | 每个连接随机选取一个成员                         | 否                       |
+| `roundRobin`  | 轮流选取各个成员                                | 否                       |
+| `leastPing`   | 延迟最低的成员                                  | **`observatory`**        |
+| `leastLoad`   | 按采样负载最稳定的成员                          | **`burstObservatory`**   |
+
+通过 `balancerTag` 从规则中引用某个均衡器。`leastPing` 和 `leastLoad`
+需要一个健康监视器，Xray 会将其放置在配置的**顶层**
+（`observatory` / `burstObservatory`，**而不是**放在 `routing` 内部）。面板可以
+报告均衡器状态，并允许你为测试目的将某个均衡器**覆盖**为特定的出站。
+
+在此构建路由块——规则、均衡器以及配套的 observatory：
+
+<RoutingBuilder />
+
+<Callout type="warn">
+  访问外部服务的出站在获取时会受到 SSRF 防护——默认情况下，私有/内部地址会被
+  阻止，除非你按来源明确允许它们。
+</Callout>

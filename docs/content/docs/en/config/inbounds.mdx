@@ -1,0 +1,97 @@
+---
+title: Inbounds & Protocols
+description: Create inbounds in 3x-ui — protocols, transports, traffic reset and expiry, and fallbacks that serve multiple protocols on one port.
+icon: ArrowDownToLine
+---
+
+An **inbound** is a listener that accepts client connections on a port using a
+particular protocol and transport. Most of your day-to-day work is creating and
+managing inbounds and the clients inside them.
+
+## Create an inbound
+
+<Steps>
+
+<Step>
+### Add an inbound
+
+Open **Inbounds → Add**, give it a remark, pick a **protocol**, and choose a
+**port** and listen address.
+</Step>
+
+<Step>
+### Choose a transport and security
+
+Pick the transport (TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, …) and the security
+layer (none, TLS, or REALITY). See [Transports](/docs/config/transports) and
+[REALITY](/docs/config/reality).
+</Step>
+
+<Step>
+### Add clients
+
+Add one or more clients, each with its own credential, limits, and share link.
+See [Clients](/docs/config/clients).
+</Step>
+
+<Step>
+### Set traffic limit, expiry, and reset
+
+Optionally cap total traffic and set an expiry date for the inbound, and choose a
+periodic **traffic reset** schedule: `never` (default), `hourly`, `daily`,
+`weekly`, or `monthly`.
+</Step>
+
+</Steps>
+
+## Supported protocols
+
+The inbound editor accepts these protocols:
+
+| Protocol               | Notes                                                                    |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **VLESS**              | Lightweight; the basis for REALITY + XTLS-Vision. Recommended.           |
+| **VMess**              | Older but very widely supported by clients.                              |
+| **Trojan**             | TLS-based; supports XTLS and fallbacks.                                   |
+| **Shadowsocks**        | Includes Shadowsocks-2022 (`2022-blake3-*`) ciphers.                      |
+| **WireGuard**          | Modern tunnel.                                                           |
+| **Hysteria2**          | Selected as `hysteria`; the panel emits `hysteria2://` links.             |
+| **HTTP**               | HTTP proxy.                                                             |
+| **Mixed (SOCKS/HTTP)** | A combined SOCKS + HTTP listener.                                        |
+| **Dokodemo-door / Tunnel** | Port forwarding / traffic redirect.                                 |
+| **MTProto**            | Telegram MTProto proxy, served by a bundled `mtg` process (not Xray).    |
+
+<Callout type="info">
+  Hysteria2 isn't a separate protocol internally — it's the `hysteria` protocol
+  with the transport version set to 2, and the panel generates `hysteria2://`
+  share links for it.
+</Callout>
+
+## Fallbacks — multiple protocols on one port
+
+Fallbacks let a single TLS port (e.g. `443`) serve more than one protocol — for
+example VLESS **and** Trojan — by routing unmatched handshakes to a child
+inbound. In 3x-ui, fallbacks are managed in the panel (a master inbound's
+**Fallbacks** list) rather than hand-written into JSON.
+
+Fallbacks are available only when the master inbound is:
+
+- **VLESS** or **Trojan**,
+- on the raw **TCP** transport,
+- with **TLS** or **REALITY** security.
+
+Each fallback rule targets a child inbound and can match on `path`, `alpn`, and
+`dest`. Client share links for a fallback child are automatically rewritten to
+advertise the master's address, port, and TLS.
+
+## Not sure which to pick?
+
+Use the wizard to get a recommendation based on your goals and clients:
+
+<ProtocolWizard />
+
+<Callout type="info">
+  For censorship resistance with modern clients, **VLESS + REALITY +
+  XTLS-Vision** is the usual best choice — continue to
+  [REALITY](/docs/config/reality).
+</Callout>

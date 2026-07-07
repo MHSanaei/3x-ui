@@ -1,0 +1,40 @@
+---
+title: مرجع API
+description: REST API پنل 3x-ui — احراز هویت، inboundها، کلاینت‌ها، آمار سرور و موارد دیگر، تولیدشده از مشخصات OpenAPI.
+icon: Webhook
+---
+
+پنل 3x-ui یک REST API برای خودکارسازی در اختیار می‌گذارد. این صفحات از مشخصات
+OpenAPI پنل تولید شده‌اند، بنابراین همواره با اسکیمای مستندشده هماهنگ هستند.
+
+## احراز هویت
+
+درخواست‌ها یا با یک **کوکی نشست** (از `POST /login`) یا با یک
+**توکن Bearer** احراز هویت می‌شوند:
+
+```text
+Authorization: Bearer <token>
+```
+
+توکن‌های API را در پنل بسازید؛ این توکن‌ها اعتبارنامه‌های ادمین کامل هستند، پس آن‌ها را
+به‌صورت ایمن نگهداری کنید. به [توکن‌های API](/docs/reference/api/api-tokens) مراجعه کنید.
+
+برای هر یک از endpointهای زیر یک درخواست احرازهویت‌شده بسازید:
+
+<ApiRequestBuilder />
+
+## مرور بر اساس حوزه
+
+<Cards>
+  <Card title="احراز هویت" href="/docs/reference/api/authentication" />
+  <Card title="Inboundها" href="/docs/reference/api/inbounds" />
+  <Card title="کلاینت‌ها" href="/docs/reference/api/clients" />
+  <Card title="سرور" href="/docs/reference/api/server" />
+  <Card title="تنظیمات" href="/docs/reference/api/settings" />
+  <Card title="تنظیمات Xray" href="/docs/reference/api/xray-settings" />
+</Cards>
+
+<Callout type="info">
+  این مرجع با اجرای `pnpm gen:api` از `public/openapi.json` بازتولید می‌شود.
+  صفحات تگ تولیدشده را به‌صورت دستی ویرایش نکنید.
+</Callout>

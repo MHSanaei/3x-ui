@@ -20,9 +20,12 @@ WebSocket API. A React SPA (built by Vite, embedded into the Go binary) is the U
 separate HTTP server serves **subscription links** to end users.
 
 The panel supervises **two managed child processes**: Xray-core itself and — when MTProto
-inbounds exist — the `mtg-multi` Telegram-proxy binary (`github.com/dolonet/mtg-multi`, a
+inbounds exist — the `mtg-multi` Telegram-proxy binary (`github.com/mhsanaei/mtg-multi`, a
 multi-secret fork built from source; `internal/mtproto/`). One process per inbound serves
-every attached client's FakeTLS secret through the fork's `[secrets]` section.
+every attached client's FakeTLS secret through the fork's `[secrets]` section, plus optional
+per-client sponsored-channel ad-tags via `[secret-ad-tags]`. A client or ad-tag edit is
+hot-applied via the fork's management API (`PUT /secrets`, guarded by a per-process bearer
+token), with a process restart as the fallback on older binaries.
 
 Servers and processes, all launched from `main.go`:
 

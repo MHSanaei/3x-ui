@@ -1,0 +1,151 @@
+---
+title: Установка
+description: Установите 3x-ui с помощью официального скрипта (стабильная, фиксированная или dev-сборка), в автоматическом режиме / через cloud-init либо в Docker — и выберите SQLite или PostgreSQL.
+icon: Download
+---
+
+3x-ui работает на широком спектре дистрибутивов Linux — Ubuntu, Debian, Armbian,
+Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux,
+Virtuozzo, Arch, Manjaro, openSUSE (Tumbleweed/Leap), Alpine — а также в Windows,
+на архитектурах `amd64`, `386`, `arm64`, `armv7`, `armv6`, `armv5` и `s390x`.
+
+<Callout type="warn">
+  Запускайте установочный скрипт от имени **root** (или через `sudo`). Он
+  устанавливает службу, настраивает команду управления `x-ui` и включает
+  автозапуск панели при загрузке.
+</Callout>
+
+<Tabs items={['Script', 'Docker', 'Manual']}>
+
+<Tab value="Script">
+
+Официальный скрипт — рекомендуемый способ. В процессе установки он генерирует
+**случайные** имя пользователя, пароль и путь доступа (базовый веб-путь),
+настраивает службу и устанавливает команду управления `x-ui`.
+
+```bash title="latest stable"
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+```
+
+Чтобы установить **конкретную версию**, добавьте её тег:
+
+```bash title="pinned version"
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+```
+
+Чтобы установить скользящую **dev**-сборку (последний предварительный релиз по
+каждому коммиту из `main` — не стабильный релиз), передайте `dev-latest`:
+
+```bash title="rolling dev build"
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+```
+
+По завершении запишите выведенные данные для входа и выполните `x-ui`, чтобы
+открыть [меню управления](/docs/guide/update-uninstall#the-x-ui-management-menu),
+а затем переходите к разделу [Первый вход](/docs/guide/first-login).
+
+</Tab>
+
+<Tab value="Docker">
+
+В конфигурации Compose по умолчанию используется SQLite. Клонируйте репозиторий
+(или скопируйте его файлы `docker-compose.yml` и `Dockerfile`) и запустите:
+
+```bash
+docker compose up -d
+```
+
+Чтобы запустить со встроенной службой **PostgreSQL**, раскомментируйте две
+строки `XUI_DB_*` в `docker-compose.yml` и запустите с соответствующим профилем:
+
+```bash
+docker compose --profile postgres up -d
+```
+
+Предпочитаете готовый образ? Он публикуется в GitHub Container Registry. Образ
+включает Fail2ban (для [ограничений по IP](/docs/operations/security)), который
+блокирует через `iptables` и поэтому требует `NET_ADMIN` (а для IPv6 — ещё и
+`NET_RAW`); в противном случае блокировки логируются, но никогда не применяются:
+
+```bash title="docker run"
+docker run -d \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -e XUI_ENABLE_FAIL2BAN=true \
+  -v $PWD/db/:/etc/x-ui/ \
+  -v $PWD/cert/:/root/cert/ \
+  --network=host \
+  --restart=unless-stopped \
+  --name 3x-ui \
+  ghcr.io/mhsanaei/3x-ui:latest
+```
+
+Том `db/` хранит базу данных SQLite (`/etc/x-ui/x-ui.db`), а `cert/` — TLS-сертификаты,
+поэтому ваши данные сохраняются при обновлениях.
+
+</Tab>
+
+<Tab value="Manual">
+
+Опытные пользователи могут скачать архив релиза для своей архитектуры со
+[страницы релизов](https://github.com/MHSanaei/3x-ui/releases), распаковать его и
+запустить бинарный файл как службу systemd. Установочный скрипт автоматизирует
+ровно эти шаги, поэтому он предпочтительнее, если только у вас нет особой причины
+устанавливать вручную.
+
+</Tab>
+
+</Tabs>
+
+## Сформируйте команду установки
+
+Подстройте команду под свою конфигурацию:
+
+<InstallCommandBuilder />
+
+## Выберите базу данных
+
+Хранилище выбирается на этапе установки:
+
+- **SQLite** (по умолчанию) — единственный файл по пути `/etc/x-ui/x-ui.db`. Без
+  какой-либо настройки.
+- **PostgreSQL** — для большого числа клиентов или конфигураций с несколькими
+  узлами. Установщик может развернуть её локально либо использовать
+  предоставленный вами DSN.
+
+Подробности и миграцию SQLite→PostgreSQL см. в разделе [База данных](/docs/reference/database).
+
+## Автоматическая установка / cloud-init
+
+Установщик также работает **в неинтерактивном режиме** для автоматизации.
+Задайте `XUI_NONINTERACTIVE=1` (или запустите без TTY), и он выполнит установку
+от начала до конца без единого запроса, сгенерировав случайные учётные данные и
+записав их в `/etc/x-ui/install-result.env`:
+
+```bash
+XUI_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+```
+
+В каталоге [`deploy/`](https://github.com/MHSanaei/3x-ui/tree/main/deploy)
+репозитория есть готовые **cloud-init** user-data для автоматической установки в
+любом облаке (Hetzner, AWS, DigitalOcean, Vultr, GCP, Azure, Oracle).
+
+## Дальнейшие шаги
+
+<Cards>
+  <Card
+    title="Первый вход"
+    href="/docs/guide/first-login"
+    description="Откройте панель и защитите её."
+  />
+  <Card
+    title="Обновление и удаление"
+    href="/docs/guide/update-uninstall"
+    description="Меню x-ui, обновления и удаление."
+  />
+  <Card
+    title="REALITY"
+    href="/docs/config/reality"
+    description="Настройте своё первое скрытное входящее подключение."
+  />
+</Cards>
