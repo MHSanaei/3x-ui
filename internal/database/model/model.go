@@ -493,6 +493,26 @@ func StripMtprotoInboundSecret(settings string) (string, bool) {
 	return string(out), true
 }
 
+// StripMtprotoInboundAdTag drops the dead inbound-level `adTag` — tags live on clients.
+func StripMtprotoInboundAdTag(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	if _, ok := parsed["adTag"]; !ok {
+		return settings, false
+	}
+	delete(parsed, "adTag")
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
 // mtprotoSecretDomain extracts the FakeTLS domain embedded in the tail of a
 // secret, returning an empty string when the secret is malformed. Each mtproto
 // client carries its own domain inside its secret, so healing preserves it

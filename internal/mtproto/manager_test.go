@@ -40,10 +40,7 @@ func TestInstanceFromInbound(t *testing.T) {
 		t.Fatalf("a valid secret must be preserved, got %q", inst.Secrets[0].Secret)
 	}
 	if inst.Secrets[0].AdTag != "fedcba9876543210fedcba9876543210" {
-		t.Fatalf("the client ad-tag override must be parsed, got %q", inst.Secrets[0].AdTag)
-	}
-	if inst.AdTag != "0123456789abcdef0123456789abcdef" {
-		t.Fatalf("the inbound ad-tag must be trimmed and kept, got %q", inst.AdTag)
+		t.Fatalf("the client ad-tag must be parsed, got %q", inst.Secrets[0].AdTag)
 	}
 	if inst.Port != 8443 || inst.Id != 3 {
 		t.Fatalf("bad instance %+v", inst)
@@ -70,15 +67,13 @@ func TestInstanceFromInbound(t *testing.T) {
 		t.Fatal("an inbound with no active secret should not produce an instance")
 	}
 
-	badTags := &model.Inbound{Protocol: model.MTProto, Settings: `{"adTag":"nope",` +
-		`"clients":[{"email":"x","secret":"ee00","adTag":"deadbeef","enable":true}]}`}
+	badTags := &model.Inbound{Protocol: model.MTProto, Settings: `{"clients":[{"email":"x","secret":"ee00","adTag":"deadbeef","enable":true}]}`}
 	badInst, ok := InstanceFromInbound(badTags)
 	if !ok {
-		t.Fatal("expected a usable instance despite malformed ad tags")
+		t.Fatal("expected a usable instance despite a malformed ad tag")
 	}
-	if badInst.AdTag != "" || badInst.Secrets[0].AdTag != "" {
-		t.Fatalf("malformed ad tags must be dropped so the generated config stays valid, got global=%q client=%q",
-			badInst.AdTag, badInst.Secrets[0].AdTag)
+	if badInst.Secrets[0].AdTag != "" {
+		t.Fatalf("a malformed ad tag must be dropped so the generated config stays valid, got %q", badInst.Secrets[0].AdTag)
 	}
 }
 
@@ -116,7 +111,6 @@ func TestRenderConfig(t *testing.T) {
 		Debug: true, ProxyProtocolListener: true, PreferIP: "only-ipv6",
 		FrontingIP: "127.0.0.1", FrontingPort: 9443, FrontingProxyProtocol: true,
 		ThrottleMaxConnections: 5000,
-		AdTag:                  "0123456789abcdef0123456789abcdef",
 		PublicIPv4:             "1.2.3.4",
 		PublicIPv6:             "2001:db8::1",
 	}, 6000, "sesame")
@@ -125,7 +119,6 @@ func TestRenderConfig(t *testing.T) {
 		"proxy-protocol-listener = true\n",
 		`prefer-ip = "only-ipv6"`,
 		`api-token = "sesame"`,
-		`ad-tag = "0123456789abcdef0123456789abcdef"`,
 		`public-ipv4 = "1.2.3.4"`,
 		`public-ipv6 = "2001:db8::1"`,
 		"[domain-fronting]",
@@ -144,8 +137,11 @@ func TestRenderConfig(t *testing.T) {
 	if strings.Contains(full, `ip = "127.0.0.1"`) {
 		t.Fatalf("domain-fronting must use host, not the deprecated ip key:\n%s", full)
 	}
+	if strings.Contains(full, "ad-tag =") {
+		t.Fatalf("no global ad-tag must be emitted, tags are per client:\n%s", full)
+	}
 	if strings.Contains(full, `"alice" = "0123456789abcdef0123456789abcdef"`) || strings.Contains(full, `"alice" = ""`) {
-		t.Fatalf("a client without an override must not appear in [secret-ad-tags]:\n%s", full)
+		t.Fatalf("a client without a tag must not appear in [secret-ad-tags]:\n%s", full)
 	}
 	// TOML requires top-level keys before any [section] header, and [secrets]
 	// must be the final section so trailing keys are not swallowed by a table.
@@ -225,7 +221,6 @@ func TestFingerprintSplit(t *testing.T) {
 		"rekey":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee99"}} },
 		"remove": func(i *Instance) { i.Secrets = nil },
 		"rename": func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a2", Secret: "ee"}} },
-		"adTag":  func(i *Instance) { i.AdTag = "0123456789abcdef0123456789abcdef" },
 		"clientAdTag": func(i *Instance) {
 			i.Secrets = []SecretEntry{{Name: "a", Secret: "ee", AdTag: "0123456789abcdef0123456789abcdef"}}
 		},
@@ -246,7 +241,7 @@ func TestFingerprintSplit(t *testing.T) {
 	t.Run("orderInsensitive", func(t *testing.T) {
 		forward := Instance{Secrets: []SecretEntry{{Name: "alice", Secret: "ee11"}, {Name: "bob", Secret: "ee22"}}}
 		reversed := Instance{Secrets: []SecretEntry{{Name: "bob", Secret: "ee22"}, {Name: "alice", Secret: "ee11"}}}
-		if got, want := forward.secretsFingerprint(), "adtag=|alice=ee11;tag=|bob=ee22;tag="; got != want {
+		if got, want := forward.secretsFingerprint(), "alice=ee11;tag=|bob=ee22;tag="; got != want {
 			t.Fatalf("secrets fingerprint must join sorted pairs: got %q, want %q", got, want)
 		}
 		if forward.secretsFingerprint() != reversed.secretsFingerprint() {

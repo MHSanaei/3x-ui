@@ -128,7 +128,6 @@ func TestApplySecrets(t *testing.T) {
 			inst := mtgInst(1,
 				SecretEntry{Name: "alice", Secret: "ee01"},
 				SecretEntry{Name: "bob", Secret: "ee02", AdTag: "fedcba9876543210fedcba9876543210"})
-			inst.AdTag = "0123456789abcdef0123456789abcdef"
 			if got := applySecrets(serverPort(t, srv), "sesame", inst); got != tc.want {
 				t.Fatalf("applySecrets = %v, want %v", got, tc.want)
 			}
@@ -138,11 +137,11 @@ func TestApplySecrets(t *testing.T) {
 			if gotAuth != "Bearer sesame" {
 				t.Fatalf("expected the bearer token on the request, got %q", gotAuth)
 			}
-			if gotBody.Secrets["alice"].Secret != "ee01" || gotBody.AdTag != "0123456789abcdef0123456789abcdef" {
-				t.Fatalf("payload must carry the secret and ad-tag: %+v", gotBody)
+			if gotBody.Secrets["alice"].Secret != "ee01" {
+				t.Fatalf("payload must carry the secret: %+v", gotBody)
 			}
 			if gotBody.Secrets["alice"].AdTag != "" || gotBody.Secrets["bob"].AdTag != "fedcba9876543210fedcba9876543210" {
-				t.Fatalf("payload must carry per-client ad-tag overrides only where set: %+v", gotBody)
+				t.Fatalf("payload must carry per-client ad-tags only where set: %+v", gotBody)
 			}
 		})
 	}

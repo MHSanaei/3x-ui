@@ -54,13 +54,9 @@ type Instance struct {
 	// fair-share algorithm; zero disables throttling.
 	ThrottleMaxConnections int
 
-	// AdTag is a 32-hex Telegram advertising tag; when set, mtg routes clients
-	// through Telegram middle proxies so a sponsored channel shows in their chat
-	// list. It is part of the reloadable secret config, so a change is applied
-	// via /reload without dropping connections. PublicIPv4/PublicIPv6 pin the
-	// proxy's reachable address the middle proxy needs; they are omitted when
-	// empty so mtg auto-detects, and a change forces a restart.
-	AdTag      string
+	// PublicIPv4/PublicIPv6 pin the proxy's reachable address the Telegram
+	// middle proxy needs when clients carry advertising tags; they are omitted
+	// when empty so mtg auto-detects, and a change forces a restart.
 	PublicIPv4 string
 	PublicIPv6 string
 
@@ -104,15 +100,15 @@ func (inst Instance) structuralFingerprint() string {
 // secretsFingerprint identifies the reloadable secret config regardless of
 // client order, so a reordered clients array in the stored settings does not
 // read as a change. It moves whenever a client is added, removed, disabled,
-// re-keyed, or re-tagged, or the global advertising tag changes — all of which
-// mtg applies in place without dropping connections.
+// re-keyed, or re-tagged — all of which mtg applies in place without dropping
+// connections.
 func (inst Instance) secretsFingerprint() string {
 	pairs := make([]string, 0, len(inst.Secrets))
 	for _, e := range inst.Secrets {
 		pairs = append(pairs, e.Name+"="+e.Secret+";tag="+e.AdTag)
 	}
 	slices.Sort(pairs)
-	return "adtag=" + inst.AdTag + "|" + strings.Join(pairs, "|")
+	return strings.Join(pairs, "|")
 }
 
 // Traffic is a per-client traffic delta scraped from an mtg /stats endpoint. Tag
@@ -183,7 +179,6 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections int    `json:"throttleMaxConnections"`
 		RouteThroughXray       bool   `json:"routeThroughXray"`
 		RouteXrayPort          int    `json:"routeXrayPort"`
-		AdTag                  string `json:"adTag"`
 		PublicIPv4             string `json:"publicIpv4"`
 		PublicIPv6             string `json:"publicIpv6"`
 		Clients                []struct {
@@ -221,7 +216,6 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections: parsed.ThrottleMaxConnections,
 		RouteThroughXray:       parsed.RouteThroughXray,
 		XrayRoutePort:          parsed.RouteXrayPort,
-		AdTag:                  usableAdTag(parsed.AdTag),
 		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
 		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
 	}, true
@@ -490,9 +484,6 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	if apiToken != "" {
 		fmt.Fprintf(&b, "api-token = %q\n", apiToken)
 	}
-	if inst.AdTag != "" {
-		fmt.Fprintf(&b, "ad-tag = %q\n", inst.AdTag)
-	}
 	if inst.PublicIPv4 != "" {
 		fmt.Fprintf(&b, "public-ipv4 = %q\n", inst.PublicIPv4)
 	}
@@ -564,7 +555,6 @@ type secretPutEntry struct {
 
 type secretsPutBody struct {
 	Secrets map[string]secretPutEntry `json:"secrets"`
-	AdTag   string                    `json:"ad_tag,omitempty"`
 }
 
 func secretsPayload(inst Instance) secretsPutBody {
@@ -572,7 +562,7 @@ func secretsPayload(inst Instance) secretsPutBody {
 	for _, e := range inst.Secrets {
 		secrets[e.Name] = secretPutEntry{Secret: e.Secret, AdTag: e.AdTag}
 	}
-	return secretsPutBody{Secrets: secrets, AdTag: inst.AdTag}
+	return secretsPutBody{Secrets: secrets}
 }
 
 // newAPIToken mints the bearer token one mtg process and its manager share for
