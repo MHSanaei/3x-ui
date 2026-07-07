@@ -94,8 +94,9 @@ func GetAccessLogPath() (string, error) {
 }
 
 // GetErrorLogPath reads the Xray config and returns the error log file path.
+// GetErrorLogPath reads the Xray config and returns the error log file path.
 func GetErrorLogPath() (string, error) {
-	return getLogPath("error")
+    return getLogPath("error")
 }
 
 // stopProcess calls Stop on the given Process instance.
