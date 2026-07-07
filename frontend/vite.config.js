@@ -255,7 +255,6 @@ export default defineConfig({
             || id.includes('/node_modules/d3-')
           ) return 'vendor-recharts';
           if (id.includes('dayjs')) return 'vendor-dayjs';
-          if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';
         },
       },
