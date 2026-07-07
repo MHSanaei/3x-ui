@@ -189,7 +189,7 @@ func (j *LdapSyncJob) buildClient(email string, defGB, defExpiryDays, defLimitIP
 		Email:   email,
 		Enable:  true,
 		LimitIP: defLimitIP,
-		TotalGB: int64(defGB),
+		TotalGB: int64(defGB) * 1024 * 1024 * 1024,
 	}
 	if defExpiryDays > 0 {
 		c.ExpiryTime = time.Now().Add(time.Duration(defExpiryDays) * 24 * time.Hour).UnixMilli()
