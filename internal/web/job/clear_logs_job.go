@@ -17,6 +17,7 @@ var maxXrayLogBytes = defaultMaxXrayLogBytes
 type ClearLogsJob struct{}
 
 // PruneXrayLogsJob truncates oversized Xray access and error logs.
+// PruneXrayLogsJob truncates the Xray access and error logs once either exceeds maxXrayLogBytes.
 type PruneXrayLogsJob struct{}
 
 // NewClearLogsJob creates a new log cleanup job instance.
