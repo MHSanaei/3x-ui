@@ -156,14 +156,17 @@ jobs:
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
-          # mtg (MTProto sidecar) - only for arches mtg publishes
-          MTG_VER="2.2.8"
+          # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
+          # platform labels match our matrix, so download and unpack the matching
+          # archive. Only the platforms the fork publishes are packaged.
+          MTG_MULTI_VER="v1.13.3"
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
-              wget -q "https://github.com/9seconds/mtg/releases/download/v${MTG_VER}/mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
-              tar -xzf "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
-              mv "mtg-${MTG_VER}-linux-${{ matrix.platform }}/mtg" "mtg-linux-${{ matrix.platform }}" 2>/dev/null || mv mtg "mtg-linux-${{ matrix.platform }}"
-              rm -rf "mtg-${MTG_VER}-linux-${{ matrix.platform }}" "mtg-${MTG_VER}-linux-${{ matrix.platform }}.tar.gz"
+              MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
+              curl -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
+              tar -xzf "${MTG_PKG}.tar.gz"
+              mv "${MTG_PKG}/mtg-multi" "mtg-linux-${{ matrix.platform }}"
+              rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
               ;;
           esac
           cd ../..
@@ -280,13 +283,14 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
 
-          # Download mtg (MTProto sidecar) for Windows
-          $MTG_VER = "2.2.8"
-          Invoke-WebRequest -Uri "https://github.com/9seconds/mtg/releases/download/v$MTG_VER/mtg-$MTG_VER-windows-amd64.zip" -OutFile "mtg-windows-amd64.zip"
-          Expand-Archive -Path "mtg-windows-amd64.zip" -DestinationPath "mtg-tmp"
-          $mtgExe = Get-ChildItem -Path "mtg-tmp" -Recurse -Filter "mtg.exe" | Select-Object -First 1
-          Move-Item $mtgExe.FullName "mtg-windows-amd64.exe"
-          Remove-Item "mtg-windows-amd64.zip", "mtg-tmp" -Recurse -Force
+          # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
+          # download and unpack it instead of compiling.
+          $MTG_MULTI_VER = "v1.13.3"
+          $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
+          curl.exe -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
+          Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
+          Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
+          Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse

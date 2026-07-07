@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
@@ -35,7 +36,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -128,6 +129,7 @@ interface FormState {
   wgPublicKey: string;
   wgPreSharedKey: string;
   wgAllowedIPs: string;
+  secret: string;
 }
 
 function emptyForm(): FormState {
@@ -157,6 +159,7 @@ function emptyForm(): FormState {
     wgPublicKey: '',
     wgPreSharedKey: '',
     wgAllowedIPs: '',
+    secret: '',
   };
 }
 
@@ -267,6 +270,7 @@ export default function ClientFormModal({
         wgPublicKey: client.publicKey || '',
         wgPreSharedKey: client.preSharedKey || '',
         wgAllowedIPs: client.allowedIPs || '',
+        secret: client.secret || '',
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -329,6 +333,22 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const mtprotoIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'mtproto') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const mtprotoDomain = useMemo(() => {
+    for (const id of form.inboundIds || []) {
+      const ib = (inbounds || []).find((row) => row.id === id);
+      if (ib?.protocol === 'mtproto' && ib.mtprotoDomain) return ib.mtprotoDomain;
+    }
+    return 'www.cloudflare.com';
+  }, [form.inboundIds, inbounds]);
+
   const ss2022Method = useMemo(() => {
     for (const id of form.inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
@@ -364,9 +384,18 @@ export default function ClientFormModal({
     [form.inboundIds, wireguardIds],
   );
 
+  const showMtproto = useMemo(
+    () => (form.inboundIds || []).some((id) => mtprotoIds.has(id)),
+    [form.inboundIds, mtprotoIds],
+  );
+
   function regenerateWireguardKeys() {
     const kp = Wireguard.generateKeypair();
     setForm((prev) => ({ ...prev, wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey }));
+  }
+
+  function regenerateMtprotoSecret() {
+    update('secret', generateMtprotoSecret(mtprotoDomain));
   }
 
   useEffect(() => {
@@ -391,6 +420,12 @@ export default function ClientFormModal({
         : { ...prev, password: RandomUtil.randomShadowsocksPassword(ss2022Method) }
     ));
   }, [ss2022Method]);
+
+  useEffect(() => {
+    if (showMtproto && !form.secret) {
+      update('secret', generateMtprotoSecret(mtprotoDomain));
+    }
+  }, [showMtproto, form.secret, mtprotoDomain]);
 
   const inboundOptions = useMemo(
     () => (inbounds || [])
@@ -549,6 +584,10 @@ export default function ClientFormModal({
       if (allowedIPs.length > 0) {
         clientPayload.allowedIPs = allowedIPs;
       }
+    }
+
+    if (showMtproto) {
+      clientPayload.secret = form.secret;
     }
 
     const externalLinks: ExternalLinkInput[] = form.externalLinks
@@ -885,6 +924,14 @@ export default function ClientFormModal({
                           />
                         </Form.Item>
                       </>
+                    )}
+                    {showMtproto && (
+                      <Form.Item label={t('pages.clients.mtprotoSecret')} extra={t('pages.clients.mtprotoSecretHint')}>
+                        <Space.Compact style={{ display: 'flex' }}>
+                          <Input value={form.secret} style={{ flex: 1 }} onChange={(e) => update('secret', e.target.value)} />
+                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateMtprotoSecret} />
+                        </Space.Compact>
+                      </Form.Item>
                     )}
                   </>
                 ),

@@ -11,8 +11,12 @@ file locations when it can answer in one hop.
 - Backend: Go 1.26 (`module github.com/mhsanaei/3x-ui/v3`), Gin, GORM.
   Runs Xray-core as a managed child process (`internal/xray/process.go`) and
   imports `github.com/xtls/xray-core` for config types + gRPC stats/handler/router
-  API. MTProto inbounds run a second managed child — the `mtg` binary
-  (`internal/mtproto/`) — outside Xray.
+  API. MTProto inbounds run a second managed child — the `mtg-multi` binary
+  (`github.com/mhsanaei/mtg-multi`, a multi-secret fork built from source;
+  `internal/mtproto/`) — outside Xray, one process per inbound serving each
+  client's FakeTLS secret via the fork's `[secrets]` section. Client edits are
+  hot-applied through the fork's `POST /reload` so connections survive; the
+  manager falls back to a process restart on older binaries.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux; the executable dir on
   Windows), PostgreSQL optional (`XUI_DB_TYPE` / `XUI_DB_DSN`). The CGo SQLite
   driver (`mattn/go-sqlite3`) needs a C compiler — `CGO_ENABLED=0` builds fail.
@@ -27,7 +31,7 @@ file locations when it can answer in one hop.
   Client, Setting, User), inbound Protocol enum, AutoMigrate + hand-written
   migrations in `db.go`.
 - `internal/xray/` — Xray child-process lifecycle, config generation, gRPC API.
-- `internal/mtproto/` — MTProto inbounds via the bundled `mtg` binary.
+- `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
 - `internal/sub/` — subscription server (raw / JSON / Clash).
 - `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,
   cpu.high, memory.high, login.attempt).

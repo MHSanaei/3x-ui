@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Form, Input, InputNumber, Select, Switch } from 'antd';
 
-import { generateMtprotoSecret, mtprotoSecretForDomain } from '@/lib/xray/inbound-defaults';
 import { useOutboundTags } from '@/api/queries/useOutboundTags';
+import { MtprotoInboundSettingsSchema } from '@/schemas/protocols/inbound/mtproto';
+import { antdRule } from '@/utils/zodForm';
 
 export default function MtprotoFields() {
   const { t } = useTranslation();
@@ -12,29 +12,12 @@ export default function MtprotoFields() {
   const { data: outboundTags } = useOutboundTags();
   return (
     <>
-      <Form.Item name={['settings', 'fakeTlsDomain']} label={t('pages.inbounds.form.fakeTlsDomain')}>
-        <Input
-          placeholder="www.cloudflare.com"
-          onChange={(e) => {
-            const current = (form.getFieldValue(['settings', 'secret']) as string) ?? '';
-            form.setFieldValue(['settings', 'secret'], mtprotoSecretForDomain(current, e.target.value));
-          }}
-        />
-      </Form.Item>
-      <Form.Item label={t('pages.inbounds.form.mtprotoSecret')}>
-        <Space.Compact block>
-          <Form.Item name={['settings', 'secret']} noStyle>
-            <Input readOnly style={{ width: 'calc(100% - 32px)' }} />
-          </Form.Item>
-          <Button
-            aria-label={t('regenerate')}
-            icon={<ReloadOutlined />}
-            onClick={() => {
-              const domain = form.getFieldValue(['settings', 'fakeTlsDomain']);
-              form.setFieldValue(['settings', 'secret'], generateMtprotoSecret(domain as string));
-            }}
-          />
-        </Space.Compact>
+      <Form.Item
+        name={['settings', 'fakeTlsDomain']}
+        label={t('pages.inbounds.form.fakeTlsDomain')}
+        tooltip={t('pages.inbounds.form.mtprotoFakeTlsDomainHint')}
+      >
+        <Input placeholder="www.cloudflare.com" />
       </Form.Item>
       <Form.Item
         name={['settings', 'domainFronting', 'ip']}
@@ -76,6 +59,13 @@ export default function MtprotoFields() {
         <Switch />
       </Form.Item>
       <Form.Item
+        name={['settings', 'throttleMaxConnections']}
+        label={t('pages.inbounds.form.mtgThrottleMaxConnections')}
+        tooltip={t('pages.inbounds.form.mtgThrottleMaxConnectionsHint')}
+      >
+        <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item
         name={['settings', 'routeThroughXray']}
         label={t('pages.inbounds.form.mtgRouteThroughXray')}
         tooltip={t('pages.inbounds.form.mtgRouteThroughXrayHint')}
@@ -97,6 +87,28 @@ export default function MtprotoFields() {
           />
         </Form.Item>
       )}
+      <Form.Item
+        name={['settings', 'adTag']}
+        label={t('pages.inbounds.form.mtgAdTag')}
+        tooltip={t('pages.inbounds.form.mtgAdTagHint')}
+        rules={[antdRule(MtprotoInboundSettingsSchema.shape.adTag, t)]}
+      >
+        <Input allowClear placeholder="0123456789abcdef0123456789abcdef" />
+      </Form.Item>
+      <Form.Item
+        name={['settings', 'publicIpv4']}
+        label={t('pages.inbounds.form.mtgPublicIpv4')}
+        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+      >
+        <Input allowClear placeholder="1.2.3.4" />
+      </Form.Item>
+      <Form.Item
+        name={['settings', 'publicIpv6']}
+        label={t('pages.inbounds.form.mtgPublicIpv6')}
+        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+      >
+        <Input allowClear placeholder="2001:db8::1" />
+      </Form.Item>
     </>
   );
 }

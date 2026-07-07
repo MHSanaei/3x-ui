@@ -193,7 +193,7 @@ install_base() {
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu > /dev/null 2>&1 && pacman -Syu --noconfirm cronie curl tar tzdata socat openssl > /dev/null 2>&1
+            pacman -Sy --noconfirm cronie curl tar tzdata socat openssl > /dev/null 2>&1
             ;;
         opensuse-tumbleweed | opensuse-leap)
             zypper refresh > /dev/null 2>&1 && zypper -q install -y cron curl tar timezone socat openssl > /dev/null 2>&1
@@ -498,7 +498,9 @@ ssl_cert_issue() {
     # get the port number for the standalone server
     local WebPort=80
     read -rp "Please choose which port to use (default is 80): " WebPort
-    if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
+    if [[ -z ${WebPort} ]]; then
+        WebPort=80
+    elif [[ ! ${WebPort} =~ ^[1-9][0-9]*$ || ${WebPort} -gt 65535 ]]; then
         echo -e "${yellow}Your input ${WebPort} is invalid, will use default port 80.${plain}"
         WebPort=80
     fi
@@ -1023,6 +1025,7 @@ update_x-ui() {
         rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
         rm ${xui_folder}/bin/xray-linux-amd64 -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/xray-linux-arm -f > /dev/null 2>&1
         echo -e "${green}Removing old README and LICENSE file...${plain}"
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
@@ -1044,13 +1047,24 @@ update_x-ui() {
     fi
     chmod +x x-ui > /dev/null 2>&1
 
-    # Check the system's architecture and rename the file accordingly
+    # Check the system's architecture and rename the file accordingly.
+    # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
+    # so the Xray binary must be named xray-linux-arm32; mtg keeps plain "arm".
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm > /dev/null 2>&1
-        chmod +x bin/xray-linux-arm > /dev/null 2>&1
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm32 > /dev/null 2>&1
+        chmod +x bin/xray-linux-arm32 > /dev/null 2>&1
+        if [[ -f bin/mtg-linux-$(arch) ]]; then
+            mv bin/mtg-linux-$(arch) bin/mtg-linux-arm > /dev/null 2>&1
+            chmod +x bin/mtg-linux-arm > /dev/null 2>&1
+        fi
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch) > /dev/null 2>&1
+    if [[ -f bin/mtg-linux-arm ]]; then
+        chmod +x bin/mtg-linux-arm > /dev/null 2>&1
+    elif [[ -f bin/mtg-linux-$(arch) ]]; then
+        chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
+    fi
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"

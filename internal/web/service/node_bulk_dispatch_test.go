@@ -16,9 +16,10 @@ import (
 // fakeNodeRuntime is a runtime.Runtime stub that counts the per-client dispatch
 // calls so a test can assert a bulk op does NOT stream one RPC per client.
 type fakeNodeRuntime struct {
-	addClient  atomic.Int32
-	deleteUser atomic.Int32
-	updateUser atomic.Int32
+	addClient    atomic.Int32
+	deleteUser   atomic.Int32
+	deleteClient atomic.Int32
+	updateUser   atomic.Int32
 }
 
 func (f *fakeNodeRuntime) Name() string { return "fake-node" }
@@ -37,6 +38,11 @@ func (f *fakeNodeRuntime) UpdateUser(context.Context, *model.Inbound, string, mo
 
 func (f *fakeNodeRuntime) DeleteUser(context.Context, *model.Inbound, string) error {
 	f.deleteUser.Add(1)
+	return nil
+}
+
+func (f *fakeNodeRuntime) DeleteClient(context.Context, string) error {
+	f.deleteClient.Add(1)
 	return nil
 }
 

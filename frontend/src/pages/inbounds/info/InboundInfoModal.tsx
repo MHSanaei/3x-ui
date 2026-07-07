@@ -633,15 +633,6 @@ export default function InboundInfoModal({
             <dt>{t('pages.inbounds.form.fakeTlsDomain')}</dt>
             <dd><Tag color="green" className="value-tag">{inbound.settings.fakeTlsDomain as string}</Tag></dd>
           </div>
-          <div className="info-row">
-            <dt>{t('pages.inbounds.form.mtprotoSecret')}</dt>
-            <dd className="value-block">
-              <code className="value-code">{inbound.settings.secret as string}</code>
-              <Tooltip title={t('copy')}>
-                <Button size="small" className="value-copy" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(inbound.settings.secret as string, t)} />
-              </Tooltip>
-            </dd>
-          </div>
           {(() => {
             const s = inbound.settings;
             const df = s.domainFronting as { ip?: string; port?: number; proxyProtocol?: boolean } | undefined;
@@ -683,17 +674,6 @@ export default function InboundInfoModal({
               </>
             );
           })()}
-          {links.length > 0 && (
-            <div className="info-row">
-              <dt>{t('pages.inbounds.copyLink')}</dt>
-              <dd className="value-block">
-                <code className="value-code">{links[0].link}</code>
-                <Tooltip title={t('copy')}>
-                  <Button size="small" className="value-copy" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(links[0].link, t)} />
-                </Tooltip>
-              </dd>
-            </div>
-          )}
         </dl>
       )}
 
