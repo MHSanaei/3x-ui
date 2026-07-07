@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "Biarkan kosong untuk penetapan otomatis; pisahkan entri dengan koma",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
+      "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
+      "mtprotoAdTagHint": "Tag heksadesimal 32 karakter opsional yang hanya berlaku untuk klien ini, menggantikan ad-tag bersama. Biarkan kosong untuk memakai tag bersama.",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag opsional",
       "telegramId": "ID pengguna Telegram",

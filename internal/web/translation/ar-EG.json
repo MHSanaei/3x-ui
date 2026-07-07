@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "اتركه فارغًا للتعيين التلقائي؛ افصل بين الإدخالات بفواصل",
       "mtprotoSecret": "سر MTProto",
       "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
+      "mtprotoAdTag": "علامة إعلانية (قناة مموّلة)",
+      "mtprotoAdTagHint": "علامة اختيارية مكوّنة من 32 حرفًا ست عشريًا تُطبَّق على هذا العميل فقط بدلًا من العلامة الإعلانية المشتركة. اتركها فارغة لاستخدام العلامة المشتركة.",
       "reverseTag": "وسم عكسي",
       "reverseTagPlaceholder": "Reverse tag اختياري",
       "telegramId": "معرّف مستخدم تلغرام",

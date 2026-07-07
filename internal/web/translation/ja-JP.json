@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "空欄で自動割り当て。複数指定はカンマ区切り",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
+      "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",
+      "mtprotoAdTagHint": "このクライアントにのみ適用される任意の 32 文字の 16 進数タグで、共有の広告タグを上書きします。空欄にすると共有タグが使われます。",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "任意の Reverse tag",
       "telegramId": "Telegram ユーザー ID",

@@ -435,6 +435,15 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
+	// Same shape as the group write above: SyncInbound keeps a stored ad-tag
+	// when the incoming settings carry none, so clearing the override must be
+	// applied here, where the editor always round-trips the field.
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		UpdateColumn("ad_tag", updated.AdTag).Error; err != nil {
+		return needRestart, err
+	}
+
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("enable", updated.Enable).Error; err != nil {

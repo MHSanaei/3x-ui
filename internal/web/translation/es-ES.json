@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "Déjalo vacío para asignar automáticamente; separa las entradas con comas",
       "mtprotoSecret": "Secreto MTProto",
       "mtprotoSecretHint": "El secreto FakeTLS del cliente. Vuelve a generarlo para cambiarlo.",
+      "mtprotoAdTag": "Ad-tag (canal patrocinado)",
+      "mtprotoAdTagHint": "Etiqueta hexadecimal opcional de 32 caracteres aplicada solo a este cliente, en lugar del ad-tag compartido. Déjala vacía para usar la etiqueta compartida.",
       "reverseTag": "Etiqueta inversa",
       "reverseTagPlaceholder": "Reverse tag opcional",
       "telegramId": "ID de usuario de Telegram",

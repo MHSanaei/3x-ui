@@ -17,6 +17,11 @@ export type MtprotoDomainFronting = z.infer<typeof MtprotoDomainFrontingSchema>;
 // default domain used when generating a new client's secret.
 export const MtprotoClientSchema = z.object({
   secret: z.string().default(''),
+  adTag: z
+    .string()
+    .regex(/^[0-9a-fA-F]{32}$/, 'pages.inbounds.form.mtgAdTagInvalid')
+    .or(z.literal(''))
+    .optional(),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),
   totalGB: z.number().int().min(0).default(0),

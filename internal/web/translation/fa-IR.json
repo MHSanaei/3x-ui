@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "برای تخصیص خودکار خالی بگذارید؛ ورودی‌ها را با کاما جدا کنید",
       "mtprotoSecret": "سکرت MTProto",
       "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
+      "mtprotoAdTag": "برچسب تبلیغاتی (کانال حامی)",
+      "mtprotoAdTagHint": "برچسب هگزادسیمال اختیاری ۳۲ کاراکتری که فقط برای این کلاینت به‌جای برچسب تبلیغاتی مشترک اعمال می‌شود. برای استفاده از برچسب مشترک خالی بگذارید.",
       "reverseTag": "تگ معکوس",
       "reverseTagPlaceholder": "Reverse tag اختیاری",
       "telegramId": "شناسه کاربر تلگرام",

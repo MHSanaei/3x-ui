@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "Otomatik atama için boş bırakın; girişleri virgülle ayırın",
       "mtprotoSecret": "MTProto sırrı",
       "mtprotoSecretHint": "İstemcinin FakeTLS sırrı. Değiştirmek için yeniden oluşturun.",
+      "mtprotoAdTag": "Reklam etiketi (sponsorlu kanal)",
+      "mtprotoAdTagHint": "Yalnızca bu istemciye uygulanan ve ortak reklam etiketinin yerine geçen isteğe bağlı 32 karakterlik onaltılık etiket. Ortak etiketi kullanmak için boş bırakın.",
       "reverseTag": "Reverse Tag",
       "reverseTagPlaceholder": "İsteğe Bağlı Reverse Tag",
       "telegramId": "Telegram Kullanıcı ID'si",

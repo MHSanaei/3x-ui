@@ -388,6 +388,9 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if client.Secret == "" {
 				return false, common.NewError("mtproto client requires a secret")
 			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return false, common.NewError("mtproto client ad tag must be 32 hex characters")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -578,6 +581,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	if strings.TrimSpace(clients[0].Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if oldInbound.Protocol == model.MTProto && clients[0].AdTag != "" && !model.ValidMtprotoAdTag(clients[0].AdTag) {
+		return false, common.NewError("mtproto client ad tag must be 32 hex characters")
 	}
 
 	if clients[0].Email != oldEmail {

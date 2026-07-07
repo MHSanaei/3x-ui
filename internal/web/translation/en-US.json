@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "Leave empty to auto-assign; separate entries with commas",
       "mtprotoSecret": "MTProto secret",
       "mtprotoSecretHint": "The client's FakeTLS secret. Regenerate to rotate it.",
+      "mtprotoAdTag": "Ad-tag (sponsored channel)",
+      "mtprotoAdTagHint": "Optional 32-character hex tag applied to this client only, overriding the shared ad-tag. Leave empty to use the shared tag.",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Optional reverse tag",
       "telegramId": "Telegram user ID",

@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "留空則自動分配；多個條目用逗號分隔",
       "mtprotoSecret": "MTProto 金鑰",
       "mtprotoSecretHint": "該用戶端的 FakeTLS 金鑰。重新產生即可更換。",
+      "mtprotoAdTag": "廣告標籤（贊助頻道）",
+      "mtprotoAdTagHint": "選填的 32 位十六進位標籤，僅對該用戶端生效，覆蓋共用廣告標籤。留空則使用共用標籤。",
       "reverseTag": "反向標籤",
       "reverseTagPlaceholder": "選用 Reverse tag",
       "telegramId": "Telegram 使用者 ID",

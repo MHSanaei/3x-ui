@@ -918,6 +918,8 @@
       "wireguardAllowedIPsHint": "Để trống để tự động gán; phân tách các mục bằng dấu phẩy",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS của client. Tạo lại để thay đổi.",
+      "mtprotoAdTag": "Ad-tag (kênh tài trợ)",
+      "mtprotoAdTagHint": "Thẻ thập lục phân 32 ký tự tùy chọn chỉ áp dụng cho client này, thay cho ad-tag dùng chung. Để trống để dùng thẻ chung.",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag tùy chọn",
       "telegramId": "ID người dùng Telegram",
