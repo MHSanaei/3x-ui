@@ -1,0 +1,181 @@
+---
+title: SSL Certificates
+description: Get and renew TLS certificates for the 3x-ui panel and inbounds — with the x-ui ACME menu (domain or bare IP), a Cloudflare DNS-01 wildcard, or manual Certbot.
+icon: ShieldCheck
+---
+
+A TLS certificate lets you serve the **panel** over HTTPS (so your login and API
+traffic are encrypted) and terminate TLS on **inbounds** (VLESS-TLS, Trojan,
+Shadowsocks-TLS, and friends). There are three ways to obtain one:
+
+- **The `x-ui` menu** — built-in [ACME](https://en.wikipedia.org/wiki/Automatic_Certificate_Management_Environment)
+  client. Easiest for a single domain or a bare IP.
+- **Cloudflare DNS-01** — also from the menu; needed for **wildcard** certs or
+  when port 80 is blocked / the server sits behind Cloudflare's proxy.
+- **Manual Certbot** — if you'd rather manage `acme.sh`/Certbot yourself.
+
+<Callout type="info">
+  If you put the panel behind Nginx or Caddy, let the proxy handle the
+  certificate instead — see [Reverse proxy](/docs/operations/reverse-proxy).
+  [REALITY](/docs/config/reality) inbounds need **no** certificate at all; they
+  borrow a real site's TLS. This page is for the panel and for classic TLS
+  inbounds.
+</Callout>
+
+## The `x-ui` SSL menu (Let's Encrypt)
+
+Run `x-ui` and choose **`20` — SSL Certificate Management**. It drives
+[acme.sh](https://github.com/acmesh-official/acme.sh) and offers:
+
+| Option                         | What it does                                                        |
+| ------------------------------ | ------------------------------------------------------------------- |
+| Get SSL (Domain)               | Issue a certificate for a domain via HTTP validation.               |
+| Get SSL for IP Address         | Issue a short-lived (6-day, auto-renewing) cert for a **bare IP**.  |
+| Revoke                         | Revoke an existing certificate.                                     |
+| Force Renew                    | Renew now, before expiry.                                           |
+| Show Existing Domains          | List certificates already on the server.                           |
+| Set Cert paths for the panel   | Point the panel's TLS at an issued cert (sets the fields for you).  |
+
+### Issue a certificate for a domain
+
+<Steps>
+
+<Step>
+### Point the domain at the server
+
+Create an `A` (and/or `AAAA`) record for your domain that resolves to this
+server's public IP. Validation fails until DNS has propagated.
+</Step>
+
+<Step>
+### Free up port 80
+
+HTTP validation needs **port 80** reachable from the internet and not already in
+use. Stop anything bound to it for the duration, and allow it through the
+[firewall](/docs/reference/ports-firewall).
+</Step>
+
+<Step>
+### Run the issuer
+
+`x-ui` → `20` → **Get SSL (Domain)**, then enter the domain. acme.sh requests
+the certificate and saves it under `/root/cert/<domain>/` as `fullchain.pem`
+(the certificate chain) and `privkey.pem` (the private key).
+</Step>
+
+<Step>
+### Wire it into the panel
+
+Choose **Set Cert paths for the panel** to fill in `webCertFile` and
+`webKeyFile` and restart the panel, or set them yourself in
+[Panel Settings](/docs/config/panel#tls). The panel serves HTTPS as soon as both
+are set.
+</Step>
+
+</Steps>
+
+### Issue a certificate for a bare IP
+
+No domain? Choose **Get SSL for IP Address** to obtain a short-lived
+certificate (valid ~6 days, renewed automatically) bound to the server's IP.
+Useful for reaching the panel over HTTPS before you've set up a domain.
+
+## Cloudflare (DNS-01 wildcard)
+
+DNS validation proves you control the domain by creating a TXT record instead of
+answering on port 80 — so it works **behind Cloudflare's proxy**, on servers
+where port 80 is blocked, and for **wildcard** certificates (`*.example.com`).
+
+Your domain's DNS must be managed by Cloudflare, and you need one of:
+
+- a **scoped API token** with the `Zone:DNS:Edit` permission (recommended), or
+- your account **email + Global API Key**.
+
+<Steps>
+
+<Step>
+### Create a scoped API token
+
+In the Cloudflare dashboard go to **My Profile → API Tokens →
+[Create Token](https://dash.cloudflare.com/profile/api-tokens)**, pick the
+**Edit zone DNS** template, scope it to the zone you're issuing for, and create
+it. Copy the token — it's shown only once.
+</Step>
+
+<Step>
+### Run the Cloudflare issuer
+
+`x-ui` → **`21` — Cloudflare SSL Certificate**. When asked, choose **`t`** for an
+API token (the default) or **`g`** for the Global API Key, then enter your
+domain (and, for the Global API Key, your account email and key). acme.sh creates
+the TXT record, validates, and cleans it up.
+</Step>
+
+<Step>
+### Point the panel at it
+
+As with the domain flow, use **Set Cert paths for the panel** (menu `20`) or set
+`webCertFile` / `webKeyFile` in [Panel Settings](/docs/config/panel#tls).
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Prefer a scoped token over the Global API Key — it only grants DNS edits on the
+  zone you choose, so a leak can't touch the rest of your Cloudflare account.
+</Callout>
+
+## Manual (Certbot)
+
+If you'd rather not use the menu, issue a certificate with Certbot's standalone
+plugin (again, this needs port 80 free and the domain resolving to the server):
+
+```bash
+apt-get install certbot -y
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
+certbot renew --dry-run
+```
+
+Certbot writes the certificate to `/etc/letsencrypt/live/yourdomain.com/`
+(`fullchain.pem` and `privkey.pem`). Point the panel at those two files in
+[Panel Settings](/docs/config/panel#tls), and set up renewal — `certbot renew`
+runs on a systemd timer by default.
+
+## Using the certificate
+
+- **Panel** — set `webCertFile` (the full chain) and `webKeyFile` (the private
+  key) in [Panel Settings](/docs/config/panel#tls). Both must be set for the
+  panel to switch to HTTPS. Menu option **`11` — View Current Settings** prints
+  the paths currently in use.
+- **Inbounds** — when you enable TLS on an inbound, reference the same
+  certificate and key files (or paste their contents) in the inbound's TLS
+  settings. See [Inbounds](/docs/config/inbounds) and
+  [Transports](/docs/config/transports).
+
+<Callout type="warn">
+  Certificates expire (Let's Encrypt: 90 days; IP certs: ~6 days). The menu and
+  Certbot both renew automatically, but the panel keeps reading the **files** at
+  their fixed paths — so renew **in place** rather than moving the files, and the
+  panel picks up the new cert on its next restart. **Force Renew** (menu `20`)
+  triggers a renewal on demand.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Panel Settings"
+    href="/docs/config/panel#tls"
+    description="webCertFile / webKeyFile and the rest of the web-server settings."
+  />
+  <Card
+    title="Reverse proxy"
+    href="/docs/operations/reverse-proxy"
+    description="Let Nginx or Caddy terminate TLS for you instead."
+  />
+  <Card
+    title="REALITY"
+    href="/docs/config/reality"
+    description="Stealth TLS for inbounds — no certificate required."
+  />
+</Cards>

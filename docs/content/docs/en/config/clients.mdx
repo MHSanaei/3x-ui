@@ -1,0 +1,67 @@
+---
+title: Clients
+description: Manage 3x-ui clients — credentials, traffic and expiry limits, IP limits, groups, bulk actions, external links, and online status.
+icon: Users
+---
+
+A **client** is a single user, identified by a unique **email**. In the current
+panel, clients are first-class records that can be attached to **multiple
+inbounds** at once, with per-client traffic accounting.
+
+## Client fields
+
+| Field          | Applies to            | Meaning                                                            |
+| -------------- | --------------------- | ------------------------------------------------------------------ |
+| **Email**      | all                   | Unique identifier used for accounting and lookups.                 |
+| **ID (UUID)**  | VLESS, VMess          | The client credential.                                             |
+| **Password**   | Trojan, Shadowsocks   | The client credential.                                             |
+| **Auth**       | Hysteria2             | The client credential.                                             |
+| **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
+| **Limit IP**   | all                   | Max simultaneous source IPs (enforced via Fail2ban).               |
+| **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
+| **Expiry**     | all                   | Date after which the client stops working.                        |
+| **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |
+| **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
+| **Sub ID**     | all                   | Subscription identifier grouping this client's links.             |
+| **Group**      | all                   | Optional client group for organization and bulk filtering.        |
+| **Comment**    | all                   | Free-text note.                                                   |
+
+<Callout type="info">
+  Reaching the **traffic** or **expiry** limit disables the client; the panel can
+  restart Xray automatically when clients are auto-disabled
+  (`restartXrayOnClientDisable`, on by default).
+</Callout>
+
+## Limits and IP control
+
+- **Traffic / expiry** caps disable the client when hit; a **Reset** period
+  auto-renews the quota.
+- **Limit IP** caps simultaneous source IPs. Enforcement relies on Fail2ban —
+  see [Security](/docs/operations/security). You can view a client's recent IPs
+  and clear them from the client's actions.
+- **Online status** and **last-online** times are tracked per client (and per
+  node in multi-node setups).
+
+## Share links and external links
+
+Every client has share links and a QR code for its inbounds, plus a combined
+[subscription](/docs/config/subscription). You can also attach **external
+links** to a client — extra `vless://`, `vmess://`, `trojan://`, `ss://`,
+`hysteria2://`, or `wireguard://` links, or a remote subscription URL — so they
+appear alongside the panel-generated ones in the client's subscription.
+
+To inspect exactly what a link contains, paste it into the
+[share-link inspector](/docs/config/share-links).
+
+## Bulk actions
+
+For managing many clients at once, the panel supports bulk **create, enable,
+disable, delete, attach/detach** (to inbounds), **reset traffic**, and
+**adjust** (add days / add bytes / set flow). Maintenance actions also let you
+delete **depleted** clients (quota/expiry exhausted) and **orphaned** clients
+(not attached to any inbound).
+
+<Callout type="warn">
+  A client's share link contains its credential. Treat links and QR codes like
+  passwords, and rotate the credential if one leaks.
+</Callout>

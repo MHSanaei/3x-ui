@@ -1,0 +1,81 @@
+---
+title: لینک‌های اشتراک‌گذاری
+description: قالب‌های لینک اشتراک‌گذاری 3x-ui (vless، vmess، trojan، ss، hysteria2، mtproto)، متغیرهای قالب توضیحات، و بازرس لینک درون‌مرورگری.
+icon: Link
+---
+
+3x-ui برای هر کلاینت یک **لینک اشتراک‌گذاری** (و کد QR) تولید می‌کند. برنامه‌های کلاینت
+مانند v2rayNG، Hiddify و Mihomo این لینک‌ها را برای پیکربندی خودشان وارد می‌کنند.
+
+## قالب‌های لینک
+
+| Scheme         | ساختار                                                          |
+| -------------- | --------------------------------------------------------------- |
+| `vless://`     | `vless://<uuid>@<host>:<port>?<params>#<remark>`                |
+| `vmess://`     | `vmess://<base64-json>` (یک شیء JSON کدشده با base64)           |
+| `trojan://`    | `trojan://<password>@<host>:<port>?<params>#<remark>`           |
+| `ss://`        | `ss://<userinfo>@<host>:<port>?<params>#<remark>` (SIP002؛ Shadowsocks-2022 از userinfo کدگذاری‌شده با درصد استفاده می‌کند) |
+| `hysteria2://` | `hysteria2://<auth>@<host>:<port>?<params>#<remark>`            |
+| `tg://proxy`   | `tg://proxy?server=…&port=…&secret=…` (MTProto)                 |
+
+پارامترهای کوئری تنظیمات انتقال و امنیت را حمل می‌کنند — `security`،
+`sni`، `fp`، `pbk`، `sid`، `spx`، `flow`، `type`، `path`، `host`، `alpn` و
+بیشتر.
+
+## بازرسی یک لینک
+
+هر لینک اشتراک‌گذاری را بچسبانید تا تک‌تک فیلدها رمزگشایی شوند. تجزیه **به‌طور کامل در
+مرورگر شما** انجام می‌شود — لینک هرگز روی شبکه ارسال نمی‌شود.
+
+<ShareLinkInspector />
+
+<Callout type="warn">
+  لینک‌های اشتراک‌گذاری همه‌ی آنچه را برای اتصال به‌عنوان یک کلاینت لازم است در بر دارند، از جمله
+  اعتبارنامه‌ی کلاینت. با آن‌ها مانند رمز عبور رفتار کنید.
+</Callout>
+
+## متغیرهای قالب توضیحات
+
+متنی که در هر لینک پس از `#` می‌آید (**توضیحات** یا remark) از یک قالب تولید می‌شود
+که شما در تنظیمات پنل کنترل می‌کنید (`remarkTemplate`). مقدار پیش‌فرض این است:
+
+```text
+{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D
+```
+
+توکن‌ها از نحو `{{UPPER_CASE}}` استفاده می‌کنند. قالب بر اساس `|` به بخش‌هایی تقسیم می‌شود؛
+بخشی که تنها مقدارش نشانگر نامحدود `∞` باشد (برای `TRAFFIC_LEFT`،
+`TRAFFIC_TOTAL`، `DAYS_LEFT` یا `TIME_LEFT`) حذف می‌شود، تا کلاینت‌های نامحدود
+تزئینات خالی نشان ندهند.
+
+### توکن‌های در دسترس
+
+| توکن | مقدار |
+| ----- | ----- |
+| `{{EMAIL}}` / `{{USERNAME}}` | ایمیل کلاینت (شناسه) |
+| `{{INBOUND}}` | توضیحات اینباند |
+| `{{HOST}}` | توضیحات ردیف هاست (هاست‌های مدیریت‌شده) |
+| `{{ID}}` / `{{SHORT_ID}}` | UUID کلاینت / ۸ کاراکتر نخست آن |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | شناسه Telegram، شناسه اشتراک، توضیح |
+| `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled` (یا ✅⏳🚫) |
+| `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | روزهای باقی‌مانده، یا `Xd Xh Xm` (`∞` در صورت نامحدود بودن) |
+| `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | تاریخ انقضا به‌صورت میلادی / شمسی / ثانیه‌های Unix |
+| `{{CREATED_UNIX}}` | زمان ایجاد (ثانیه‌های Unix) |
+| `{{TRAFFIC_USED}}` / `{{TRAFFIC_LEFT}}` / `{{TRAFFIC_TOTAL}}` | مصرف خوانا برای انسان (`∞` در صورت نامحدود بودن) |
+| `{{TRAFFIC_USED_BYTES}}` / `{{TRAFFIC_LEFT_BYTES}}` / `{{TRAFFIC_TOTAL_BYTES}}` | همان، بر حسب بایت |
+| `{{UP}}` / `{{DOWN}}` | آپلود / دانلود (خوانا برای انسان) |
+| `{{RESET_DAYS}}` · `{{USAGE_PERCENTAGE}}` | دوره بازنشانی (روز) · درصد مصرف‌شده |
+| `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | مثلاً `VLESS` / `ws` / `REALITY` |
+
+<Callout type="info">
+  توکن‌های مصرف (ترافیک، روزها، وضعیت) در **بدنه**ی اشتراک ظاهر می‌شوند اما
+  از نمای نمایش/QR حذف می‌گردند، تا یک QR اشتراک‌گذاری‌شده سهمیه‌ی باقی‌مانده‌ی یک کلاینت
+  را افشا نکند. توکن‌های تاریخ از تنظیم `datepicker` پیروی می‌کنند (میلادی یا شمسی).
+</Callout>
+
+## مرتبط
+
+<Cards>
+  <Card title="REALITY" href="/docs/config/reality" description="یک پیکربندی و لینک VLESS + REALITY بسازید." />
+  <Card title="اشتراک" href="/docs/config/subscription" description="همه‌ی لینک‌های یک کلاینت را از یک URL ارائه دهید." />
+</Cards>
