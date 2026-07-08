@@ -1,0 +1,64 @@
+---
+title: Contributing
+description: How to contribute to 3x-ui and to translate this documentation.
+icon: GitPullRequestArrow
+---
+
+3x-ui is community-driven. Contributions to the panel and to these docs are
+welcome.
+
+## Support the developer
+
+3x-ui is free and open source, built and maintained in the open. If it's useful
+to you, consider supporting continued development:
+
+- **Donate** at [donate.sanaei.dev](https://donate.sanaei.dev/) — the page shows
+  current funding **goals and targets** you can help reach.
+- **Star** the [repository](https://github.com/MHSanaei/3x-ui) and share the
+  project.
+- **Join** the Telegram channel [@XrayUI](https://t.me/XrayUI) to follow news and
+  help others.
+
+## Contribute to 3x-ui
+
+- Read the project's `CONTRIBUTING.md` in the
+  [repository](https://github.com/MHSanaei/3x-ui).
+- Open issues for bugs and feature requests with clear reproduction steps.
+- Use Conventional Commits and keep pull requests focused.
+
+## Translate the documentation
+
+This site is built for translation. Content lives under `content/docs/<locale>/`
+(`en`, `fa`, `ru`, `zh`), and untranslated pages **fall back to English**, so you
+can translate incrementally.
+
+<Steps>
+
+<Step>
+### Copy a page
+
+Copy a page from `content/docs/en/...` to the same path under your locale, e.g.
+`content/docs/fa/guide/installation.mdx`.
+</Step>
+
+<Step>
+### Translate the prose only
+
+Translate the body and the frontmatter `title`/`description`. **Do not** translate
+code, commands, environment variable names, protocol names, or share links.
+</Step>
+
+<Step>
+### Mind direction
+
+Persian (`fa`) renders right-to-left. Keep code blocks and links left-to-right
+(the layout already handles this), and check the page in both directions.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Missing a page in your locale is fine — it falls back to English rather than
+  404ing. Translate the highest-traffic pages first (installation, first login,
+  REALITY).
+</Callout>

@@ -1392,7 +1392,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/xray/outbound-subs/:id/del',
-        summary: 'Delete an outbound subscription by id (POST alias of DELETE for axios-friendly clients).',
+        summary: 'Delete an outbound subscription by id (POST alias of DELETE for clients that cannot send DELETE).',
         params: [
           { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
         ],

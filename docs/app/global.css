@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* 3x-ui brand: cyan / turquoise accent (matches the panel logo). */
+:root {
+  --color-fd-primary: hsl(190, 95%, 39%);
+  --color-fd-primary-foreground: hsl(0, 0%, 100%);
+  --color-fd-ring: hsl(190, 95%, 39%);
+}
+
+.dark {
+  --color-fd-primary: hsl(187, 90%, 55%);
+  --color-fd-primary-foreground: hsl(190, 80%, 8%);
+  --color-fd-ring: hsl(187, 90%, 55%);
+}
+
+/* Expose the brand color as Tailwind utilities (bg-brand, text-brand, ...). */
+@theme {
+  --color-brand: hsl(190, 95%, 39%);
+  --color-brand-foreground: hsl(0, 0%, 100%);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* In RTL the scroll-lock padding must be applied to the logical inline-end. */
+html > body[data-scroll-locked] {
+  margin-inline-end: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

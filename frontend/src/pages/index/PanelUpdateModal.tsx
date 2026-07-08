@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Modal, Switch, Tag } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
@@ -53,8 +52,12 @@ export default function PanelUpdateModal({
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       try {
-        const r = await axios.get('/panel/api/server/getUpdateStatus', { timeout: 2000 });
-        const status = r?.data?.obj as PanelUpdateStatus | undefined;
+        const msg = await HttpUtil.get<PanelUpdateStatus>(
+          '/panel/api/server/getUpdateStatus',
+          undefined,
+          { silent: true, timeout: 2000 },
+        );
+        const status = msg?.obj ?? undefined;
         if (status?.runId === expectedRunId) {
           if (status.state === 'success') return 'success';
           if (status.state === 'failed') return 'failed';

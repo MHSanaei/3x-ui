@@ -25,6 +25,28 @@ func TestGenerateFakeTLSSecret(t *testing.T) {
 	}
 }
 
+func TestStripMtprotoInboundAdTag(t *testing.T) {
+	in := `{"adTag":"0123456789abcdef0123456789abcdef","clients":[{"email":"a","adTag":"fedcba9876543210fedcba9876543210"}]}`
+	out, changed := StripMtprotoInboundAdTag(in)
+	if !changed {
+		t.Fatal("expected the inbound-level adTag to be stripped")
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := parsed["adTag"]; ok {
+		t.Fatalf("adTag key must be removed, got %s", out)
+	}
+	clients := parsed["clients"].([]any)
+	if clients[0].(map[string]any)["adTag"] != "fedcba9876543210fedcba9876543210" {
+		t.Fatalf("client adTag must be preserved, got %s", out)
+	}
+	if _, changed2 := StripMtprotoInboundAdTag(out); changed2 {
+		t.Fatal("second strip must be a no-op")
+	}
+}
+
 func TestStripMtprotoInboundSecret(t *testing.T) {
 	// A multi-client inbound that still carries a dead inbound-level secret has
 	// it removed while the clients (and every other key) survive untouched.

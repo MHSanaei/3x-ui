@@ -2,8 +2,13 @@ name: Deploy Smoke Tests
 
 # Container smoke test for the unattended (cloud-init) install path.
 # Runs when the install/deploy assets change on a branch push or PR, and
-# again after a release-tag build finishes uploading its assets — pinned to
-# that tag, so the green result verifies the release actually being shipped.
+# again after a release-tag build finishes uploading its assets — passing the
+# tag as an explicit version, so the green result verifies the release
+# actually being shipped. That job deliberately runs the script from the
+# default branch rather than checking out the tag: workflow_run executes in
+# main's cache scope, so executing checked-out code there is a cache-poisoning
+# surface (CodeQL actions/cache-poisoning/poisonable-step), and users pipe
+# main's install.sh anyway.
 # Tag pushes must NOT trigger the unpinned job directly: at that moment
 # releases/latest still points at the previous release (#5756), and a `paths`
 # filter alone cannot exclude them because a brand-new tag ref has no diff
@@ -58,8 +63,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Pinned release install smoke test
         env:
           XUI_SMOKE_VERSION: ${{ github.event.workflow_run.head_branch }}

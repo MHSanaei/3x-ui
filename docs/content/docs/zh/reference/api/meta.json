@@ -1,0 +1,19 @@
+{
+  "title": "API 参考",
+  "icon": "Webhook",
+  "pages": [
+    "index",
+    "authentication",
+    "api-tokens",
+    "inbounds",
+    "clients",
+    "server",
+    "settings",
+    "xray-settings",
+    "subscription-server",
+    "hosts",
+    "nodes",
+    "backup",
+    "websocket"
+  ]
+}

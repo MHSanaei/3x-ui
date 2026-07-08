@@ -1,7 +1,6 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -24,25 +23,18 @@ func NewMtprotoJob() *MtprotoJob {
 // Run reconciles desired mtproto inbounds with running mtg processes and records
 // per-client traffic deltas and online status.
 func (j *MtprotoJob) Run() {
-	inbounds, err := j.inboundService.GetAllInbounds()
+	desired, err := j.inboundService.DesiredMtprotoInstances()
 	if err != nil {
-		logger.Warning("mtproto job: get inbounds failed:", err)
+		logger.Warning("mtproto job: get desired instances failed:", err)
 		return
 	}
 
-	var desired []mtproto.Instance
 	routedTags := make(map[string]bool)
-	activeTags := make([]string, 0)
-	for _, ib := range inbounds {
-		if ib.Protocol != model.MTProto || !ib.Enable || ib.NodeID != nil {
-			continue
-		}
-		if inst, ok := mtproto.InstanceFromInbound(ib); ok {
-			desired = append(desired, inst)
-			activeTags = append(activeTags, inst.Tag)
-			if inst.RouteThroughXray {
-				routedTags[inst.Tag] = true
-			}
+	activeTags := make([]string, 0, len(desired))
+	for _, inst := range desired {
+		activeTags = append(activeTags, inst.Tag)
+		if inst.RouteThroughXray {
+			routedTags[inst.Tag] = true
 		}
 	}
 

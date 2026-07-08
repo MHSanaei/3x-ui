@@ -1,0 +1,84 @@
+---
+title: Environment Variables
+description: Complete reference for 3x-ui's XUI_* environment variables — database, panel, logging, memory, and the tunnel health monitor.
+icon: Variable
+---
+
+3x-ui reads its runtime configuration from `XUI_*` environment variables. On a
+script install the installer writes them to the service environment file
+(`/etc/default/x-ui`, or `/etc/conf.d/x-ui` / `/etc/sysconfig/x-ui` depending on
+the distro); for Docker you set them in `docker-compose.yml` or `docker run -e`.
+Defaults are sensible — set only what you need to change, then restart:
+`systemctl restart x-ui`.
+
+## Database
+
+| Variable                 | Default     | Description                                                          |
+| ------------------------ | ----------- | -------------------------------------------------------------------- |
+| `XUI_DB_TYPE`            | `sqlite`    | Backend: `sqlite`, or `postgres` (also accepts `postgresql` / `pg`). |
+| `XUI_DB_FOLDER`          | `/etc/x-ui` | Folder for the SQLite database file (`x-ui.db`).                     |
+| `XUI_DB_DSN`             | —           | PostgreSQL connection string (used when `XUI_DB_TYPE=postgres`).     |
+| `XUI_DB_MAX_OPEN_CONNS`  | —           | Max open connections in the PostgreSQL pool.                         |
+| `XUI_DB_MAX_IDLE_CONNS`  | —           | Max idle connections in the PostgreSQL pool.                         |
+
+The default SQLite database path is `/etc/x-ui/x-ui.db`. See
+[Database](/docs/reference/database) for the SQLite ↔ PostgreSQL details.
+
+## Panel
+
+| Variable                 | Default | Description                                                              |
+| ------------------------ | ------- | ------------------------------------------------------------------------ |
+| `XUI_PORT`               | —       | Override the panel port (1–65535). Takes precedence over the stored setting. |
+| `XUI_INIT_WEB_BASE_PATH` | `/`     | Initial web base path on **first** launch (e.g. `/panel`).               |
+| `XUI_ENABLE_FAIL2BAN`    | `true`  | Enable Fail2ban-based IP-limit enforcement.                              |
+| `XUI_SKIP_HSTS`          | `false` | Skip the HSTS header — set `true` when TLS is terminated by a reverse proxy. |
+
+## Logging & binaries
+
+| Variable         | Default          | Description                                                 |
+| ---------------- | ---------------- | ----------------------------------------------------------- |
+| `XUI_LOG_LEVEL`  | `info`           | `debug`, `info`, `notice`, `warning`, or `error`.           |
+| `XUI_DEBUG`      | `false`          | Debug mode (forces log level to `debug`).                   |
+| `XUI_LOG_FOLDER` | `/var/log/x-ui`  | Log output directory.                                       |
+| `XUI_BIN_FOLDER` | `bin`            | Folder for the Xray-core binary and geosite/geoip files.    |
+
+## Memory & profiling
+
+The panel keeps memory low via `GOGC` and periodic releases. These are advanced
+knobs — leave them unset unless you're tuning a constrained host.
+
+| Variable                      | Default | Description                                                       |
+| ----------------------------- | ------- | ----------------------------------------------------------------- |
+| `XUI_GOGC`                    | —       | Go GC target percentage; lower = less RAM, slightly more CPU.     |
+| `XUI_MEMORY_RELEASE_INTERVAL` | —       | Minutes between `FreeOSMemory` calls; `0` disables.               |
+| `XUI_MEMORY_LIMIT`            | —       | Go soft memory limit in **MiB**.                                  |
+| `GOMEMLIMIT`                  | —       | Go-syntax soft limit (e.g. `400MiB`); takes precedence over above.|
+| `XUI_PPROF`                   | `false` | Expose pprof profiling on `127.0.0.1:6060`.                       |
+
+## Xray
+
+| Variable                 | Default | Description           |
+| ------------------------ | ------- | --------------------- |
+| `XRAY_VMESS_AEAD_FORCED` | `false` | Force VMess AEAD.     |
+
+## Tunnel health monitor
+
+Optional watchdog: it probes a URL (optionally **through** a local Xray inbound)
+and restarts Xray after repeated failures. A restart drops all connected
+clients, so enable it deliberately.
+
+| Variable                      | Default                                      | Description                                                       |
+| ----------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| `XUI_TUNNEL_HEALTH_MONITOR`   | `false`                                      | Enable the monitor.                                               |
+| `XUI_TUNNEL_HEALTH_PROXY`     | —                                            | Proxy to send the probe through, e.g. `socks5://127.0.0.1:1080`. Empty = only checks host connectivity. |
+| `XUI_TUNNEL_HEALTH_URL`       | `https://www.cloudflare.com/cdn-cgi/trace`   | URL to probe.                                                     |
+| `XUI_TUNNEL_HEALTH_INTERVAL`  | `30s`                                        | Interval between probes.                                         |
+| `XUI_TUNNEL_HEALTH_TIMEOUT`   | `10s`                                        | Per-probe timeout.                                               |
+| `XUI_TUNNEL_HEALTH_FAILURES`  | `3`                                          | Consecutive failures before a restart.                          |
+| `XUI_TUNNEL_HEALTH_COOLDOWN`  | `5m`                                         | Minimum delay between restarts.                                 |
+
+## Unattended install
+
+| Variable             | Description                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| `XUI_NONINTERACTIVE` | Set to `1` (or run with no TTY) to install with zero prompts; generated credentials are written to `/etc/x-ui/install-result.env`. See [Installation](/docs/guide/installation#unattended--cloud-init). |

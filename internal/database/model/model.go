@@ -456,6 +456,18 @@ func mtprotoSecretMiddle(secret string) string {
 	return mtprotoRandomMiddle()
 }
 
+// ValidMtprotoAdTag reports whether a Telegram advertising tag from
+// @MTProxybot is well-formed: exactly 16 bytes as 32 hex characters. mtg
+// refuses to start (or rejects a live update) on a malformed tag, so every
+// write path validates before the tag can reach a generated config.
+func ValidMtprotoAdTag(tag string) bool {
+	if len(tag) != 32 {
+		return false
+	}
+	_, err := hex.DecodeString(tag)
+	return err == nil
+}
+
 // StripMtprotoInboundSecret removes the vestigial inbound-level `secret` from an
 // mtproto inbound's settings JSON. MTProto is multi-client: every secret lives on
 // a client, and mtg's [secrets] config plus every share link read only the
@@ -474,6 +486,26 @@ func StripMtprotoInboundSecret(settings string) (string, bool) {
 		return settings, false
 	}
 	delete(parsed, "secret")
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+// StripMtprotoInboundAdTag drops the dead inbound-level `adTag` — tags live on clients.
+func StripMtprotoInboundAdTag(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	if _, ok := parsed["adTag"]; !ok {
+		return settings, false
+	}
+	delete(parsed, "adTag")
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false
@@ -666,6 +698,7 @@ type Client struct {
 	PreSharedKey string         `json:"preSharedKey,omitempty"`
 	KeepAlive    int            `json:"keepAlive,omitempty"`
 	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
+	AdTag        string         `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
 	Email        string         `json:"email"`                        // Client email identifier
 	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
 	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
@@ -696,6 +729,7 @@ type ClientRecord struct {
 	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
 	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
 	Secret       string `json:"secret" gorm:"column:secret"`
+	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
 	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
 	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
@@ -880,6 +914,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PreSharedKey: c.PreSharedKey,
 		KeepAlive:    c.KeepAlive,
 		Secret:       c.Secret,
+		AdTag:        c.AdTag,
 	}
 	if c.Reverse != nil {
 		if b, err := json.Marshal(c.Reverse); err == nil {
@@ -932,6 +967,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PreSharedKey: r.PreSharedKey,
 		KeepAlive:    r.KeepAlive,
 		Secret:       r.Secret,
+		AdTag:        r.AdTag,
 	}
 	if r.Reverse != "" {
 		var rev ClientReverse

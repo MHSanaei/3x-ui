@@ -156,19 +156,20 @@ jobs:
           wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
-          # mtg-multi (MTProto sidecar) is pure Go, so build it from source for the
-          # target arch (GOOS/GOARCH/GOARM are already exported above). Its release
-          # binaries only cover linux/darwin amd64/arm64; skip s390x/armv5 as before.
-          # go install rejects GOBIN for cross-compiled targets, so let it install
-          # into GOPATH/bin (a GOOS_GOARCH subdir when cross-compiling) and fetch
-          # the binary from there.
-          MTG_MULTI_VER="v1.11.0"
+          # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
+          # platform labels match our matrix, so download and unpack the matching
+          # archive. Only the platforms the fork publishes are packaged. The tag
+          # is resolved from the fork's latest release so it never needs bumping
+          # here; the token only lifts the API rate limit for a public read.
+          MTG_MULTI_VER=$(curl -sfL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+          if [ -z "$MTG_MULTI_VER" ]; then echo "could not resolve the latest mtg-multi release tag"; exit 1; fi
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
-              CGO_ENABLED=0 go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@${MTG_MULTI_VER}"
-              MTG_BIN=$(find "$(go env GOPATH)/bin" -type f -name mtg-multi | head -n1)
-              [ -n "$MTG_BIN" ] || { echo "mtg-multi binary not found under $(go env GOPATH)/bin" >&2; exit 1; }
-              mv "$MTG_BIN" "mtg-linux-${{ matrix.platform }}"
+              MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
+              curl -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
+              tar -xzf "${MTG_PKG}.tar.gz"
+              mv "${MTG_PKG}/mtg-multi" "mtg-linux-${{ matrix.platform }}"
+              rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
               ;;
           esac
           cd ../..
@@ -285,15 +286,16 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
 
-          # mtg-multi (MTProto sidecar) is pure Go; build it from source since the
-          # fork publishes no Windows release binary.
-          $MTG_MULTI_VER = "v1.11.0"
-          $env:CGO_ENABLED = "0"
-          $env:GOOS = "windows"
-          $env:GOARCH = "amd64"
-          $env:GOBIN = (Get-Location).Path
-          go install -trimpath -ldflags "-s -w" "github.com/dolonet/mtg-multi@$MTG_MULTI_VER"
-          Move-Item "mtg-multi.exe" "mtg-windows-amd64.exe"
+          # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
+          # download and unpack it instead of compiling. The tag tracks the
+          # fork's latest release so it never needs bumping here.
+          $MTG_MULTI_VER = (Invoke-RestMethod -Uri "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "User-Agent" = "x-ui-release" }).tag_name
+          if (-not $MTG_MULTI_VER) { throw "could not resolve the latest mtg-multi release tag" }
+          $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
+          curl.exe -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
+          Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
+          Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
+          Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse

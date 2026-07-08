@@ -91,7 +91,7 @@ frontend/
     ├── layouts/         # AdminLayout (sidebar + header + outlet)
     ├── components/      # Cross-page React components
     ├── hooks/           # useClients, useTheme, useWebSocket, …
-    ├── api/             # Axios + CSRF interceptor, TanStack Query bridge,
+    ├── api/             # fetch client + CSRF handling, TanStack Query bridge,
     │                    #   WebSocket client + queryClient.ts
     ├── i18n/            # react-i18next init (locales in internal/web/translation/)
     ├── lib/xray/        # Pure functions: link generation, defaults,

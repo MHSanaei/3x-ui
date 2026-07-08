@@ -1,0 +1,124 @@
+---
+title: First Login
+description: Find your generated 3x-ui credentials, reach the panel, enable two-factor auth, and harden it before exposing anything.
+icon: KeyRound
+---
+
+After installation, your first job is to log in and **secure the panel** before
+exposing anything else.
+
+## Reach the panel
+
+The panel is served at:
+
+```text
+http://<your-server-ip>:<port>/<web-base-path>
+```
+
+The default port is **2053** and the default base path is `/` — but a script
+install **randomly generates** the username, password, **port**, and web base
+path, so check your actual values.
+
+### Find your credentials
+
+A script install prints a credential summary when it finishes and also writes it
+to a root-only file:
+
+```bash title="/etc/x-ui/install-result.env (mode 600)"
+XUI_USERNAME=...
+XUI_PASSWORD=...
+XUI_PANEL_PORT=...
+XUI_WEB_BASE_PATH=...
+XUI_ACCESS_URL=...
+XUI_API_TOKEN=...
+XUI_DB_TYPE=sqlite
+```
+
+If you missed them, use the management tools:
+
+```bash
+x-ui              # menu → 11 (View Current Settings)
+x-ui settings     # or the one-shot form
+```
+
+For **Docker**, read the generated credentials from the container logs, or run
+`docker exec -it <container> x-ui setting -show`.
+
+<Callout type="warn">
+  If your panel still uses the default `admin` / `admin` (the panel warns when it
+  does), change it immediately — before creating any inbounds.
+</Callout>
+
+## Change credentials, port, and path
+
+A non-default port and a long, random **web base path** make the panel much
+harder to find. Change them from **Panel Settings** in the UI, or from the
+`x-ui` menu:
+
+- **7 — Reset Username & Password** (optionally disabling 2FA at the same time)
+- **8 — Reset Web Base Path** (randomizes it)
+- **10 — Change Port**
+
+Changing your username or password **logs out all existing sessions** and, if
+two-factor auth was on, disables it.
+
+## Two-factor authentication (2FA)
+
+3x-ui supports TOTP two-factor auth (compatible with Google Authenticator, Aegis,
+etc.). Enable it in **Panel Settings** — once enabled, the login page asks for a
+6-digit code in addition to your password, and turning it on forces everyone to
+log in again. You can disable it from the menu's **Reset Username & Password**
+step or with `x-ui setting -resetTwoFactor`.
+
+## Built-in login protection
+
+- **Brute-force limiter:** after **5** failed logins from the same IP/username
+  within 5 minutes, that combination is blocked for **15 minutes**.
+- **Generic errors:** the login page reports "wrong username or password" for
+  both bad credentials and bad 2FA codes, so it leaks nothing.
+- **Sessions** last `sessionMaxAge` minutes (default **360** = 6 hours) and are
+  invalidated when you change credentials.
+- **LDAP** can be enabled as an auth fallback in Panel Settings.
+
+## Essential hardening checklist
+
+<Steps>
+
+<Step>
+### Set strong, unique credentials
+
+Replace the generated (or `admin/admin`) username and password with strong values.
+</Step>
+
+<Step>
+### Use a non-default port and random base path
+
+Move the panel off `2053` and serve it under a long random path.
+</Step>
+
+<Step>
+### Enable two-factor authentication
+
+Turn on 2FA so a leaked password alone can't grant access.
+</Step>
+
+<Step>
+### Put the panel behind TLS
+
+Use a valid certificate (via the `x-ui` menu's SSL management, or a reverse
+proxy) so the panel is only reachable over HTTPS.
+</Step>
+
+<Step>
+### Restrict access with a firewall
+
+Open only the ports you actually need, and consider limiting panel access by IP.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Want the panel on a clean domain with automatic HTTPS? See
+  [Reverse proxy](/docs/operations/reverse-proxy). For deeper hardening, see
+  [Security](/docs/operations/security).
+</Callout>

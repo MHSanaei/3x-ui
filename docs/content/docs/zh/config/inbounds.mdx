@@ -1,0 +1,90 @@
+---
+title: 入站与协议
+description: 在 3x-ui 中创建入站——协议、传输方式、流量重置与到期，以及在同一端口上服务多种协议的回落（fallback）。
+icon: ArrowDownToLine
+---
+
+**入站**（inbound）是一个监听器，它使用特定的协议和传输方式在某个端口上接受客户端连接。
+你的日常工作大多是创建和管理入站，以及其中的客户端。
+
+## 创建入站
+
+<Steps>
+
+<Step>
+### 添加入站
+
+打开 **Inbounds → Add**，填写备注，选择一个**协议**，再选择**端口**和监听地址。
+</Step>
+
+<Step>
+### 选择传输方式和安全层
+
+选择传输方式（TCP、WebSocket、gRPC、HTTPUpgrade、XHTTP……）和安全层
+（none、TLS 或 REALITY）。参见 [传输方式](/docs/config/transports) 和
+[REALITY](/docs/config/reality)。
+</Step>
+
+<Step>
+### 添加客户端
+
+添加一个或多个客户端，每个客户端都有各自的凭据、限额和分享链接。
+参见 [客户端](/docs/config/clients)。
+</Step>
+
+<Step>
+### 设置流量限制、到期和重置
+
+可选地为入站设置总流量上限和到期日期，并选择一个周期性的**流量重置**计划：
+`never`（默认）、`hourly`、`daily`、`weekly` 或 `monthly`。
+</Step>
+
+</Steps>
+
+## 支持的协议
+
+入站编辑器接受以下协议：
+
+| Protocol               | Notes                                                                    |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **VLESS**              | 轻量级；是 REALITY + XTLS-Vision 的基础。推荐使用。                       |
+| **VMess**              | 较老，但客户端支持极为广泛。                                              |
+| **Trojan**             | 基于 TLS；支持 XTLS 和回落。                                              |
+| **Shadowsocks**        | 包含 Shadowsocks-2022（`2022-blake3-*`）加密方式。                        |
+| **WireGuard**          | 现代隧道协议。                                                            |
+| **Hysteria2**          | 选择为 `hysteria`；面板生成 `hysteria2://` 链接。                         |
+| **HTTP**               | HTTP 代理。                                                               |
+| **Mixed (SOCKS/HTTP)** | SOCKS + HTTP 的组合监听器。                                               |
+| **Dokodemo-door / Tunnel** | 端口转发 / 流量重定向。                                               |
+| **MTProto**            | Telegram MTProto 代理，由内置的 `mtg` 进程提供（而非 Xray）。             |
+
+<Callout type="info">
+  在内部，Hysteria2 并不是一个独立的协议——它是把传输版本设为 2 的 `hysteria`
+  协议，面板会为它生成 `hysteria2://` 分享链接。
+</Callout>
+
+## 回落——在同一端口上服务多种协议
+
+回落（fallback）让单个 TLS 端口（例如 `443`）可以服务不止一种协议——例如同时服务
+VLESS **和** Trojan——方法是将无法匹配的握手路由到子入站。在 3x-ui 中，回落是在
+面板里管理的（主入站的 **Fallbacks** 列表），而不是手写进 JSON。
+
+只有当主入站满足以下条件时，回落才可用：
+
+- 协议为 **VLESS** 或 **Trojan**，
+- 使用裸 **TCP** 传输，
+- 安全层为 **TLS** 或 **REALITY**。
+
+每条回落规则都指向一个子入站，并可按 `path`、`alpn` 和 `dest` 进行匹配。
+回落子入站的客户端分享链接会被自动改写，以公布主入站的地址、端口和 TLS。
+
+## 不确定该选哪个？
+
+使用向导，根据你的目标和客户端获取推荐：
+
+<ProtocolWizard />
+
+<Callout type="info">
+  若要在现代客户端上实现抗审查能力，**VLESS + REALITY + XTLS-Vision** 通常是最佳选择
+  ——继续阅读 [REALITY](/docs/config/reality)。
+</Callout>
