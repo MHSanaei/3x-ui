@@ -1069,14 +1069,12 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 
 	traffic.InboundId = inbound.Id
 
-	// Unmarshal settings to get clients
-	settings := map[string][]model.Client{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+	clients, err := ParseInboundSettingsClients(inbound.Settings)
+	if err != nil {
 		logger.Errorf("Error unmarshalling inbound settings for inbound ID %d: %v", inbound.Id, err)
 		return nil, err
 	}
 
-	clients := settings["clients"]
 	for _, client := range clients {
 		if (client.ID == query || client.Password == query) && client.Email != "" {
 			traffic.Email = client.Email
