@@ -158,8 +158,11 @@ jobs:
           mv xray xray-linux-${{ matrix.platform }}
           # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
           # platform labels match our matrix, so download and unpack the matching
-          # archive. Only the platforms the fork publishes are packaged.
-          MTG_MULTI_VER="v1.14.0"
+          # archive. Only the platforms the fork publishes are packaged. The tag
+          # is resolved from the fork's latest release so it never needs bumping
+          # here; the token only lifts the API rate limit for a public read.
+          MTG_MULTI_VER=$(curl -sfL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+          if [ -z "$MTG_MULTI_VER" ]; then echo "could not resolve the latest mtg-multi release tag"; exit 1; fi
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
               MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
@@ -284,8 +287,10 @@ jobs:
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
-          # download and unpack it instead of compiling.
-          $MTG_MULTI_VER = "v1.14.0"
+          # download and unpack it instead of compiling. The tag tracks the
+          # fork's latest release so it never needs bumping here.
+          $MTG_MULTI_VER = (Invoke-RestMethod -Uri "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "User-Agent" = "x-ui-release" }).tag_name
+          if (-not $MTG_MULTI_VER) { throw "could not resolve the latest mtg-multi release tag" }
           $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
           curl.exe -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
