@@ -48,6 +48,20 @@ func TestParseInboundSettingsClientsIgnoresProtocolScalarFields(t *testing.T) {
 	}
 }
 
+func TestParseInboundSettingsClientsRejectsEmptyOrNullSettings(t *testing.T) {
+	for _, settings := range []string{"", "   ", "null", " \n null \t "} {
+		t.Run(settings, func(t *testing.T) {
+			clients, err := ParseInboundSettingsClients(settings)
+			if err == nil {
+				t.Fatalf("ParseInboundSettingsClients(%q) error = nil, want error", settings)
+			}
+			if clients != nil {
+				t.Fatalf("clients = %+v, want nil", clients)
+			}
+		})
+	}
+}
+
 func TestGetClientsIgnoresProtocolScalarFields(t *testing.T) {
 	inbound := &model.Inbound{
 		Settings: `{
