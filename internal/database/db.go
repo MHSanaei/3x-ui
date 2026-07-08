@@ -769,7 +769,6 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 		return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
 	}
 	if strings.Contains(errMsg, "already exists") && strings.Contains(errMsg, "column ") {
-
 		if _, after, ok := strings.Cut(errMsg, "column \""); ok {
 			rest := after
 			if e := strings.Index(rest, "\""); e > 0 {
