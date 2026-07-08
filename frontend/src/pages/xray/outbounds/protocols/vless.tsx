@@ -1,33 +1,33 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input } from 'antd';
+import { Input } from 'antd';
 
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import {
   VlessOutboundFormSettingsSchema,
   VmessOutboundFormSettingsSchema,
 } from '@/schemas/forms/outbound-form';
-import { antdRule } from '@/utils/zodForm';
 
 export default function VlessFields() {
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item
+      <FormField
         label="ID"
         name={['settings', 'id']}
-        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.id, t)]}
+        rules={{ validate: rhfZodValidate(VmessOutboundFormSettingsSchema.shape.id) }}
       >
         <Input placeholder="UUID" />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         label={t('encryption')}
         name={['settings', 'encryption']}
-        rules={[antdRule(VlessOutboundFormSettingsSchema.shape.encryption, t)]}
+        rules={{ validate: rhfZodValidate(VlessOutboundFormSettingsSchema.shape.encryption) }}
       >
         <Input />
-      </Form.Item>
-      <Form.Item label={t('pages.clients.reverseTag')} name={['settings', 'reverseTag']}>
+      </FormField>
+      <FormField label={t('pages.clients.reverseTag')} name={['settings', 'reverseTag']}>
         <Input placeholder={t('pages.xray.outboundForm.optional')} />
-      </Form.Item>
+      </FormField>
     </>
   );
 }

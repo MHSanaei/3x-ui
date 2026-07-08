@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select } from 'antd';
+import { Input, Select } from 'antd';
 
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { VmessOutboundFormSettingsSchema } from '@/schemas/forms/outbound-form';
-import { antdRule } from '@/utils/zodForm';
 
 import { SECURITY_OPTIONS } from '../outbound-form-constants';
 
@@ -10,20 +10,20 @@ export default function VmessFields() {
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item
+      <FormField
         label="ID"
         name={['settings', 'id']}
-        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.id, t)]}
+        rules={{ validate: rhfZodValidate(VmessOutboundFormSettingsSchema.shape.id) }}
       >
         <Input placeholder="UUID" />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         label={t('security')}
         name={['settings', 'security']}
-        rules={[antdRule(VmessOutboundFormSettingsSchema.shape.security, t)]}
+        rules={{ validate: rhfZodValidate(VmessOutboundFormSettingsSchema.shape.security) }}
       >
         <Select options={SECURITY_OPTIONS} />
-      </Form.Item>
+      </FormField>
     </>
   );
 }
