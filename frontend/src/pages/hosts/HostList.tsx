@@ -68,21 +68,12 @@ export default function HostList(props: HostListProps) {
 
   const sorted = useMemo(() => sortHosts(hosts), [hosts]);
 
-  const movable = useMemo(() => {
-    const idxMap = new Map<string, number>();
-    for (let i = 0; i < sorted.length; i++) {
-      idxMap.set(sorted[i].groupId, i);
-    }
-    return idxMap;
-  }, [sorted]);
-
   const columns: ColumnsType<HostRecord> = [
     {
       title: t('pages.hosts.fields.actions'),
       key: 'actions',
       width: 168,
-      render: (_, h) => {
-        const idx = movable.get(h.groupId) ?? 0;
+      render: (_, h, idx) => {
         const count = sorted.length;
         return (
           <Space size={2}>

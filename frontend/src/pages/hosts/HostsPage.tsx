@@ -43,11 +43,11 @@ export default function HostsPage() {
     setFormOpen(true);
   }, []);
 
-  const onSave = useCallback(async (payload: Partial<BulkAddHostValues> | BulkAddHostValues) => {
+  const onSave = useCallback(async (payload: BulkAddHostValues) => {
     if (formMode === 'edit' && formHost?.groupId) {
-      return update(formHost.groupId, payload as BulkAddHostValues);
+      return update(formHost.groupId, payload);
     }
-    return bulkCreate(payload as BulkAddHostValues);
+    return bulkCreate(payload);
   }, [formMode, formHost, update, bulkCreate]);
 
   const onDelete = useCallback((host: HostRecord) => {

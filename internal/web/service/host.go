@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,9 +11,57 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+
+	"gorm.io/gorm"
 )
 
 type HostService struct{}
+
+func formatHostAddr(addr string, port int) string {
+	if port <= 0 {
+		return addr
+	}
+	if strings.Contains(addr, ":") {
+		return "[" + addr + "]:" + strconv.Itoa(port)
+	}
+	return addr + ":" + strconv.Itoa(port)
+}
+
+func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
+	return &entity.HostGroup{
+		GroupId:                groupId,
+		InboundIds:             []int{},
+		Hosts:                  []string{},
+		SortOrder:              h.SortOrder,
+		Remark:                 h.Remark,
+		ServerDescription:      h.ServerDescription,
+		IsDisabled:             h.IsDisabled,
+		IsHidden:               h.IsHidden,
+		Tags:                   h.Tags,
+		Port:                   h.Port,
+		Security:               h.Security,
+		Sni:                    h.Sni,
+		HostHeader:             h.HostHeader,
+		Path:                   h.Path,
+		Alpn:                   h.Alpn,
+		Fingerprint:            h.Fingerprint,
+		OverrideSniFromAddress: h.OverrideSniFromAddress,
+		KeepSniBlank:           h.KeepSniBlank,
+		PinnedPeerCertSha256:   h.PinnedPeerCertSha256,
+		VerifyPeerCertByName:   h.VerifyPeerCertByName,
+		AllowInsecure:          h.AllowInsecure,
+		EchConfigList:          h.EchConfigList,
+		MuxParams:              h.MuxParams,
+		SockoptParams:          h.SockoptParams,
+		FinalMask:              h.FinalMask,
+		VlessRoute:             h.VlessRoute,
+		ExcludeFromSubTypes:    h.ExcludeFromSubTypes,
+		NodeGuids:              h.NodeGuids,
+		MihomoIpVersion:        h.MihomoIpVersion,
+		MihomoX25519:           h.MihomoX25519,
+		ShuffleHost:            h.ShuffleHost,
+	}
+}
 
 func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 	groupsMap := make(map[string]*entity.HostGroup)
@@ -26,89 +75,20 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 
 		g, exists := groupsMap[gId]
 		if !exists {
-			var hostStr string
-			if h.Port > 0 {
-				if strings.Contains(h.Address, ":") {
-					hostStr = "[" + h.Address + "]:" + strconv.Itoa(h.Port)
-				} else {
-					hostStr = h.Address + ":" + strconv.Itoa(h.Port)
-				}
-			} else {
-				hostStr = h.Address
-			}
-
-			g = &entity.HostGroup{
-				GroupId:                gId,
-				InboundIds:             []int{h.InboundId},
-				Hosts:                  []string{hostStr},
-				SortOrder:              h.SortOrder,
-				Remark:                 h.Remark,
-				ServerDescription:      h.ServerDescription,
-				IsDisabled:             h.IsDisabled,
-				IsHidden:               h.IsHidden,
-				Tags:                   h.Tags,
-				Port:                   h.Port,
-				Security:               h.Security,
-				Sni:                    h.Sni,
-				HostHeader:             h.HostHeader,
-				Path:                   h.Path,
-				Alpn:                   h.Alpn,
-				Fingerprint:            h.Fingerprint,
-				OverrideSniFromAddress: h.OverrideSniFromAddress,
-				KeepSniBlank:           h.KeepSniBlank,
-				PinnedPeerCertSha256:   h.PinnedPeerCertSha256,
-				VerifyPeerCertByName:   h.VerifyPeerCertByName,
-				AllowInsecure:          h.AllowInsecure,
-				EchConfigList:          h.EchConfigList,
-				MuxParams:              h.MuxParams,
-				SockoptParams:          h.SockoptParams,
-				FinalMask:              h.FinalMask,
-				VlessRoute:             h.VlessRoute,
-				ExcludeFromSubTypes:    h.ExcludeFromSubTypes,
-				NodeGuids:              h.NodeGuids,
-				MihomoIpVersion:        h.MihomoIpVersion,
-				MihomoX25519:           h.MihomoX25519,
-				ShuffleHost:            h.ShuffleHost,
-			}
+			g = newHostGroup(h, gId)
 			groupsMap[gId] = g
 			orderedGroupIds = append(orderedGroupIds, gId)
-		} else {
-			foundInbound := false
-			for _, ibId := range g.InboundIds {
-				if ibId == h.InboundId {
-					foundInbound = true
-					break
-				}
-			}
-			if !foundInbound {
-				g.InboundIds = append(g.InboundIds, h.InboundId)
-			}
+		}
 
-			var hostStr string
-			if h.Port > 0 {
-				if strings.Contains(h.Address, ":") {
-					hostStr = "[" + h.Address + "]:" + strconv.Itoa(h.Port)
-				} else {
-					hostStr = h.Address + ":" + strconv.Itoa(h.Port)
-				}
-			} else {
-				hostStr = h.Address
-			}
-
-			foundHost := false
-			for _, hs := range g.Hosts {
-				if hs == hostStr {
-					foundHost = true
-					break
-				}
-			}
-			if !foundHost {
-				g.Hosts = append(g.Hosts, hostStr)
-			}
-
-			if h.SortOrder < g.SortOrder {
-				g.SortOrder = h.SortOrder
-			}
+		if !slices.Contains(g.InboundIds, h.InboundId) {
+			g.InboundIds = append(g.InboundIds, h.InboundId)
+		}
+		hostStr := formatHostAddr(h.Address, h.Port)
+		if !slices.Contains(g.Hosts, hostStr) {
+			g.Hosts = append(g.Hosts, hostStr)
+		}
+		if h.SortOrder < g.SortOrder {
+			g.SortOrder = h.SortOrder
 		}
 	}
 
@@ -125,6 +105,66 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 	})
 
 	return res
+}
+
+func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
+	hostsToProcess := req.Hosts
+	if len(hostsToProcess) == 0 {
+		hostsToProcess = []string{""}
+	}
+	var rows []*model.Host
+	for _, hostStr := range hostsToProcess {
+		addr, port := parseHostAndPort(hostStr, req.Port)
+		for _, inboundId := range req.InboundIds {
+			rows = append(rows, &model.Host{
+				GroupId:                groupId,
+				InboundId:              inboundId,
+				SortOrder:              req.SortOrder,
+				Remark:                 req.Remark,
+				ServerDescription:      req.ServerDescription,
+				IsDisabled:             req.IsDisabled,
+				IsHidden:               req.IsHidden,
+				Tags:                   req.Tags,
+				Address:                addr,
+				Port:                   port,
+				Security:               req.Security,
+				Sni:                    req.Sni,
+				HostHeader:             req.HostHeader,
+				Path:                   req.Path,
+				Alpn:                   req.Alpn,
+				Fingerprint:            req.Fingerprint,
+				OverrideSniFromAddress: req.OverrideSniFromAddress,
+				KeepSniBlank:           req.KeepSniBlank,
+				PinnedPeerCertSha256:   req.PinnedPeerCertSha256,
+				VerifyPeerCertByName:   req.VerifyPeerCertByName,
+				AllowInsecure:          req.AllowInsecure,
+				EchConfigList:          req.EchConfigList,
+				MuxParams:              req.MuxParams,
+				SockoptParams:          req.SockoptParams,
+				FinalMask:              req.FinalMask,
+				VlessRoute:             req.VlessRoute,
+				ExcludeFromSubTypes:    req.ExcludeFromSubTypes,
+				NodeGuids:              req.NodeGuids,
+				MihomoIpVersion:        req.MihomoIpVersion,
+				MihomoX25519:           req.MihomoX25519,
+				ShuffleHost:            req.ShuffleHost,
+			})
+		}
+	}
+	return rows
+}
+
+func validateInboundsExist(tx *gorm.DB, inboundIds []int) error {
+	for _, inboundId := range inboundIds {
+		var count int64
+		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return common.NewError("inbound not found")
+		}
+	}
+	return nil
 }
 
 func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
@@ -168,181 +208,52 @@ func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 }
 
 func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error) {
-	db := database.GetDB()
-	tx := db.Begin()
-	var committed bool
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if !committed {
-			tx.Rollback()
-		}
-	}()
-
-	var created []*model.Host
-
-	for _, inboundId := range req.InboundIds {
-		var count int64
-		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&count).Error; err != nil {
-			return nil, err
-		}
-		if count == 0 {
-			return nil, common.NewError("inbound not found")
-		}
-	}
-
 	groupId := req.GroupId
 	if groupId == "" {
 		groupId = random.NumLower(16)
 	}
+	created := buildHostRows(groupId, req)
 
-	hostsToProcess := req.Hosts
-	if len(hostsToProcess) == 0 {
-		hostsToProcess = []string{""}
-	}
-	for _, hostStr := range hostsToProcess {
-		addr, port := parseHostAndPort(hostStr, req.Port)
-		for _, inboundId := range req.InboundIds {
-			h := &model.Host{
-				GroupId:                groupId,
-				InboundId:              inboundId,
-				SortOrder:              req.SortOrder,
-				Remark:                 req.Remark,
-				ServerDescription:      req.ServerDescription,
-				IsDisabled:             req.IsDisabled,
-				IsHidden:               req.IsHidden,
-				Tags:                   req.Tags,
-				Address:                addr,
-				Port:                   port,
-				Security:               req.Security,
-				Sni:                    req.Sni,
-				HostHeader:             req.HostHeader,
-				Path:                   req.Path,
-				Alpn:                   req.Alpn,
-				Fingerprint:            req.Fingerprint,
-				OverrideSniFromAddress: req.OverrideSniFromAddress,
-				KeepSniBlank:           req.KeepSniBlank,
-				PinnedPeerCertSha256:   req.PinnedPeerCertSha256,
-				VerifyPeerCertByName:   req.VerifyPeerCertByName,
-				AllowInsecure:          req.AllowInsecure,
-				EchConfigList:          req.EchConfigList,
-				MuxParams:              req.MuxParams,
-				SockoptParams:          req.SockoptParams,
-				FinalMask:              req.FinalMask,
-				VlessRoute:             req.VlessRoute,
-				ExcludeFromSubTypes:    req.ExcludeFromSubTypes,
-				NodeGuids:              req.NodeGuids,
-				MihomoIpVersion:        req.MihomoIpVersion,
-				MihomoX25519:           req.MihomoX25519,
-				ShuffleHost:            req.ShuffleHost,
-			}
-			created = append(created, h)
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
+			return err
 		}
-	}
-
-	if len(created) > 0 {
-		if err := tx.Create(&created).Error; err != nil {
-			return nil, err
+		if len(created) > 0 {
+			return tx.Create(&created).Error
 		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	committed = true
 	return created, nil
 }
 
 func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]*model.Host, error) {
-	db := database.GetDB()
-	tx := db.Begin()
-	var committed bool
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if !committed {
-			tx.Rollback()
-		}
-	}()
+	created := buildHostRows(groupId, req)
 
-	var count int64
-	if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Count(&count).Error; err != nil {
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return common.NewError("host group not found")
+		}
+		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
+			return err
+		}
+		if err := tx.Where("group_id = ?", groupId).Delete(&model.Host{}).Error; err != nil {
+			return err
+		}
+		if len(created) > 0 {
+			return tx.Create(&created).Error
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	if count == 0 {
-		return nil, common.NewError("host group not found")
-	}
-	for _, inboundId := range req.InboundIds {
-		var ibCount int64
-		if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundId).Count(&ibCount).Error; err != nil {
-			return nil, err
-		}
-		if ibCount == 0 {
-			return nil, common.NewError("inbound not found")
-		}
-	}
-
-	if err := tx.Where("group_id = ?", groupId).Delete(&model.Host{}).Error; err != nil {
-		return nil, err
-	}
-
-	var created []*model.Host
-	hostsToProcess := req.Hosts
-	if len(hostsToProcess) == 0 {
-		hostsToProcess = []string{""}
-	}
-	for _, hostStr := range hostsToProcess {
-		addr, port := parseHostAndPort(hostStr, req.Port)
-		for _, inboundId := range req.InboundIds {
-			h := &model.Host{
-				GroupId:                groupId,
-				InboundId:              inboundId,
-				SortOrder:              req.SortOrder,
-				Remark:                 req.Remark,
-				ServerDescription:      req.ServerDescription,
-				IsDisabled:             req.IsDisabled,
-				IsHidden:               req.IsHidden,
-				Tags:                   req.Tags,
-				Address:                addr,
-				Port:                   port,
-				Security:               req.Security,
-				Sni:                    req.Sni,
-				HostHeader:             req.HostHeader,
-				Path:                   req.Path,
-				Alpn:                   req.Alpn,
-				Fingerprint:            req.Fingerprint,
-				OverrideSniFromAddress: req.OverrideSniFromAddress,
-				KeepSniBlank:           req.KeepSniBlank,
-				PinnedPeerCertSha256:   req.PinnedPeerCertSha256,
-				VerifyPeerCertByName:   req.VerifyPeerCertByName,
-				AllowInsecure:          req.AllowInsecure,
-				EchConfigList:          req.EchConfigList,
-				MuxParams:              req.MuxParams,
-				SockoptParams:          req.SockoptParams,
-				FinalMask:              req.FinalMask,
-				VlessRoute:             req.VlessRoute,
-				ExcludeFromSubTypes:    req.ExcludeFromSubTypes,
-				NodeGuids:              req.NodeGuids,
-				MihomoIpVersion:        req.MihomoIpVersion,
-				MihomoX25519:           req.MihomoX25519,
-				ShuffleHost:            req.ShuffleHost,
-			}
-			created = append(created, h)
-		}
-	}
-
-	if len(created) > 0 {
-		if err := tx.Create(&created).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return nil, err
-	}
-	committed = true
 	return created, nil
 }
 
@@ -372,14 +283,14 @@ func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
-	tx := database.GetDB().Begin()
-	for i, groupId := range groupIds {
-		if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Update("sort_order", i).Error; err != nil {
-			tx.Rollback()
-			return err
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		for i, groupId := range groupIds {
+			if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Update("sort_order", i).Error; err != nil {
+				return err
+			}
 		}
-	}
-	return tx.Commit().Error
+		return nil
+	})
 }
 
 func (s *HostService) GetAllTags() ([]string, error) {
