@@ -22,15 +22,18 @@ import {
 import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
+
 import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
+import { FormField } from '@/components/form/rhf';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
-import { ClientFormSchema, ClientCreateFormSchema } from '@/schemas/client';
+import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
@@ -42,9 +45,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
 const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 
-// One editable row in the Links tab. `key` is a stable client-side id for React.
 interface ExternalLinkRow {
-  key: number;
   kind: 'link' | 'subscription';
   value: string;
 }
@@ -93,26 +94,8 @@ interface ClientFormModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface FormState {
-  email: string;
-  subId: string;
-  uuid: string;
-  password: string;
-  auth: string;
-  flow: string;
-  security: string;
-  reverseTag: string;
-  totalGB: number;
-  expiryDate: Dayjs | null;
-  delayedStart: boolean;
-  delayedDays: number;
-  reset: number;
-  limitIp: number;
-  tgId: number;
-  group: string;
-  comment: string;
-  enable: boolean;
-  inboundIds: number[];
+type Values = ClientFormValues & {
+  expiryDate: number;
   externalLinks: ExternalLinkRow[];
   wgPrivateKey: string;
   wgPublicKey: string;
@@ -120,43 +103,39 @@ interface FormState {
   wgAllowedIPs: string;
   secret: string;
   adTag: string;
-}
+};
 
-function emptyForm(): FormState {
-  return {
-    email: '',
-    subId: '',
-    uuid: '',
-    password: '',
-    auth: '',
-    flow: '',
-    security: 'auto',
-    reverseTag: '',
-    totalGB: 0,
-    expiryDate: null,
-    delayedStart: false,
-    delayedDays: 0,
-    reset: 0,
-    limitIp: 0,
-    tgId: 0,
-    group: '',
-    comment: '',
-    enable: true,
-    inboundIds: [],
-    externalLinks: [],
-    wgPrivateKey: '',
-    wgPublicKey: '',
-    wgPreSharedKey: '',
-    wgAllowedIPs: '',
-    secret: '',
-    adTag: '',
-  };
-}
+const EMPTY: Values = {
+  email: '',
+  subId: '',
+  uuid: '',
+  password: '',
+  auth: '',
+  flow: '',
+  security: 'auto',
+  reverseTag: '',
+  totalGB: 0,
+  expiryDate: 0,
+  delayedStart: false,
+  delayedDays: 0,
+  reset: 0,
+  limitIp: 0,
+  tgId: 0,
+  group: '',
+  comment: '',
+  enable: true,
+  inboundIds: [],
+  externalLinks: [],
+  wgPrivateKey: '',
+  wgPublicKey: '',
+  wgPreSharedKey: '',
+  wgAllowedIPs: '',
+  secret: '',
+  adTag: '',
+};
 
-let externalLinkRowSeq = 0;
 function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[] {
   return (links || []).map((l) => ({
-    key: (externalLinkRowSeq += 1),
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
   }));
@@ -189,7 +168,27 @@ export default function ClientFormModal({
   const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
 
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const methods = useForm<Values>({ defaultValues: EMPTY });
+  const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
+  const delayedStart = useWatch({ control: methods.control, name: 'delayedStart' });
+  const expiryDate = useWatch({ control: methods.control, name: 'expiryDate' });
+  const enable = useWatch({ control: methods.control, name: 'enable' });
+  const flow = useWatch({ control: methods.control, name: 'flow' });
+  const reverseTag = useWatch({ control: methods.control, name: 'reverseTag' });
+  const secret = useWatch({ control: methods.control, name: 'secret' });
+  const email = useWatch({ control: methods.control, name: 'email' });
+  const uuid = useWatch({ control: methods.control, name: 'uuid' });
+  const password = useWatch({ control: methods.control, name: 'password' });
+  const subId = useWatch({ control: methods.control, name: 'subId' });
+  const auth = useWatch({ control: methods.control, name: 'auth' });
+  const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
+  const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
+  const {
+    fields: externalLinkFields,
+    append: appendExternalLink,
+    remove: removeExternalLink,
+  } = useFieldArray({ control: methods.control, name: 'externalLinks' });
+
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
@@ -200,29 +199,8 @@ export default function ClientFormModal({
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
   function addExternalLinkRow(kind: 'link' | 'subscription') {
-    setForm((prev) => ({
-      ...prev,
-      externalLinks: [...prev.externalLinks, { key: (externalLinkRowSeq += 1), kind, value: '' }],
-    }));
-  }
-
-  function updateExternalLinkRow(key: number, value: string) {
-    setForm((prev) => ({
-      ...prev,
-      externalLinks: prev.externalLinks.map((r) => (r.key === key ? { ...r, value } : r)),
-    }));
-  }
-
-  function removeExternalLinkRow(key: number) {
-    setForm((prev) => ({
-      ...prev,
-      externalLinks: prev.externalLinks.filter((r) => r.key !== key),
-    }));
+    appendExternalLink({ kind, value: '' });
   }
 
   useEffect(() => {
@@ -231,8 +209,8 @@ export default function ClientFormModal({
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
-      const next: FormState = {
-        ...emptyForm(),
+      const seed: Values = {
+        ...EMPTY,
         email: client.email || '',
         subId: client.subId || '',
         uuid: client.uuid || '',
@@ -258,20 +236,20 @@ export default function ClientFormModal({
         adTag: client.adTag || '',
       };
       if (et < 0) {
-        next.delayedStart = true;
-        next.delayedDays = Math.round(et / -86400000);
-        next.expiryDate = null;
+        seed.delayedStart = true;
+        seed.delayedDays = Math.round(et / -86400000);
+        seed.expiryDate = 0;
       } else {
-        next.delayedStart = false;
-        next.delayedDays = 0;
-        next.expiryDate = et > 0 ? dayjs(et) : null;
+        seed.delayedStart = false;
+        seed.delayedDays = 0;
+        seed.expiryDate = et > 0 ? et : 0;
       }
-      setForm(next);
+      methods.reset(seed);
       void loadIps();
     } else {
       const wgKeypair = Wireguard.generateKeypair();
-      setForm({
-        ...emptyForm(),
+      methods.reset({
+        ...EMPTY,
         email: RandomUtil.randomLowerAndNum(10),
         uuid: RandomUtil.randomUUID(),
         subId: RandomUtil.randomLowerAndNum(16),
@@ -326,105 +304,112 @@ export default function ClientFormModal({
   }, [inbounds]);
 
   const mtprotoDomain = useMemo(() => {
-    for (const id of form.inboundIds || []) {
+    for (const id of inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
       if (ib?.protocol === 'mtproto' && ib.mtprotoDomain) return ib.mtprotoDomain;
     }
     return 'www.cloudflare.com';
-  }, [form.inboundIds, inbounds]);
+  }, [inboundIds, inbounds]);
 
   const ss2022Method = useMemo(() => {
-    for (const id of form.inboundIds || []) {
+    for (const id of inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
       const method = ib?.ssMethod;
       if (method && method.substring(0, 4) === '2022') return method;
     }
     return '';
-  }, [form.inboundIds, inbounds]);
+  }, [inboundIds, inbounds]);
 
   function regeneratePassword() {
-    update('password', ss2022Method
+    methods.setValue('password', ss2022Method
       ? RandomUtil.randomShadowsocksPassword(ss2022Method)
       : RandomUtil.randomLowerAndNum(16));
   }
 
   const showFlow = useMemo(
-    () => (form.inboundIds || []).some((id) => flowCapableIds.has(id)),
-    [form.inboundIds, flowCapableIds],
+    () => (inboundIds || []).some((id) => flowCapableIds.has(id)),
+    [inboundIds, flowCapableIds],
   );
 
   const showReverseTag = useMemo(
-    () => (form.inboundIds || []).some((id) => vlessLikeIds.has(id)),
-    [form.inboundIds, vlessLikeIds],
+    () => (inboundIds || []).some((id) => vlessLikeIds.has(id)),
+    [inboundIds, vlessLikeIds],
   );
 
   const showSecurity = useMemo(
-    () => (form.inboundIds || []).some((id) => vmessIds.has(id)),
-    [form.inboundIds, vmessIds],
+    () => (inboundIds || []).some((id) => vmessIds.has(id)),
+    [inboundIds, vmessIds],
   );
 
   const showWireguard = useMemo(
-    () => (form.inboundIds || []).some((id) => wireguardIds.has(id)),
-    [form.inboundIds, wireguardIds],
+    () => (inboundIds || []).some((id) => wireguardIds.has(id)),
+    [inboundIds, wireguardIds],
   );
 
   const showMtproto = useMemo(
-    () => (form.inboundIds || []).some((id) => mtprotoIds.has(id)),
-    [form.inboundIds, mtprotoIds],
+    () => (inboundIds || []).some((id) => mtprotoIds.has(id)),
+    [inboundIds, mtprotoIds],
   );
 
   function regenerateWireguardKeys() {
     const kp = Wireguard.generateKeypair();
-    setForm((prev) => ({ ...prev, wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey }));
+    methods.setValue('wgPrivateKey', kp.privateKey);
+    methods.setValue('wgPublicKey', kp.publicKey);
   }
 
   function regenerateMtprotoSecret() {
-    update('secret', generateMtprotoSecret(mtprotoDomain));
+    methods.setValue('secret', generateMtprotoSecret(mtprotoDomain));
   }
 
   useEffect(() => {
-    if (!showFlow && form.flow) {
-
-      update('flow', '');
+    if (!showFlow && flow) {
+      methods.setValue('flow', '');
     }
-  }, [showFlow, form.flow]);
+  }, [showFlow, flow, methods]);
 
   useEffect(() => {
-    if (!showReverseTag && form.reverseTag) {
-
-      update('reverseTag', '');
+    if (!showReverseTag && reverseTag) {
+      methods.setValue('reverseTag', '');
     }
-  }, [showReverseTag, form.reverseTag]);
+  }, [showReverseTag, reverseTag, methods]);
 
   useEffect(() => {
     if (!ss2022Method) return;
-    setForm((prev) => (
-      RandomUtil.isShadowsocks2022Password(prev.password, ss2022Method)
-        ? prev
-        : { ...prev, password: RandomUtil.randomShadowsocksPassword(ss2022Method) }
-    ));
-  }, [ss2022Method]);
+    const current = methods.getValues('password');
+    if (!RandomUtil.isShadowsocks2022Password(current, ss2022Method)) {
+      methods.setValue('password', RandomUtil.randomShadowsocksPassword(ss2022Method));
+    }
+  }, [ss2022Method, methods]);
 
   useEffect(() => {
-    if (showMtproto && !form.secret) {
-      update('secret', generateMtprotoSecret(mtprotoDomain));
+    if (showMtproto && !secret) {
+      methods.setValue('secret', generateMtprotoSecret(mtprotoDomain));
     }
-  }, [showMtproto, form.secret, mtprotoDomain]);
+  }, [showMtproto, secret, mtprotoDomain, methods]);
 
   const inboundOptions = useMemo(
     () => (inbounds || [])
       .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
-      .filter((ib) => ib.enable || (form.inboundIds || []).includes(ib.id))
+      .filter((ib) => ib.enable || (inboundIds || []).includes(ib.id))
       .map((ib) => ({
         label: formatInboundLabel(ib.tag, ib.remark),
         value: ib.id,
         title: formatInboundLabel(ib.tag, ib.remark),
       })),
-    [inbounds, form.inboundIds],
+    [inbounds, inboundIds],
   );
 
-  const linkRows = useMemo(() => form.externalLinks.filter((r) => r.kind === 'link'), [form.externalLinks]);
-  const subscriptionRows = useMemo(() => form.externalLinks.filter((r) => r.kind === 'subscription'), [form.externalLinks]);
+  const expiryDayjs = useMemo<Dayjs | null>(
+    () => (expiryDate > 0 ? dayjs(expiryDate) : null),
+    [expiryDate],
+  );
+
+  const linkRows = externalLinkFields
+    .map((field, index) => ({ field, index }))
+    .filter((row) => row.field.kind === 'link');
+  const subscriptionRows = externalLinkFields
+    .map((field, index) => ({ field, index }))
+    .filter((row) => row.field.kind === 'subscription');
 
   async function loadIps() {
     if (!isEdit || !client?.email) return;
@@ -474,64 +459,65 @@ export default function ClientFormModal({
   }
 
   async function onSubmit() {
+    const values = methods.getValues();
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
-      email: form.email,
-      subId: form.subId,
-      uuid: form.uuid,
-      password: form.password,
-      auth: form.auth,
-      flow: form.flow,
-      security: form.security,
-      reverseTag: form.reverseTag,
-      totalGB: form.totalGB,
-      delayedStart: form.delayedStart,
-      delayedDays: form.delayedDays,
-      reset: form.reset,
-      limitIp: form.limitIp,
-      tgId: form.tgId,
-      group: form.group,
-      comment: form.comment,
-      enable: form.enable,
-      inboundIds: form.inboundIds,
+      email: values.email,
+      subId: values.subId,
+      uuid: values.uuid,
+      password: values.password,
+      auth: values.auth,
+      flow: values.flow,
+      security: values.security,
+      reverseTag: values.reverseTag,
+      totalGB: values.totalGB,
+      delayedStart: values.delayedStart,
+      delayedDays: values.delayedDays,
+      reset: values.reset,
+      limitIp: values.limitIp,
+      tgId: values.tgId,
+      group: values.group,
+      comment: values.comment,
+      enable: values.enable,
+      inboundIds: values.inboundIds,
     });
     if (!validated.success) {
       const issue = validated.error.issues[0];
       messageApi.error(t(issue?.message ?? 'somethingWentWrong'));
       return;
     }
-    const expiryTime = form.delayedStart
-      ? -86400000 * (Number(form.delayedDays) || 0)
-      : (form.expiryDate ? form.expiryDate.valueOf() : 0);
+    const expiryTime = values.delayedStart
+      ? -86400000 * (Number(values.delayedDays) || 0)
+      : (values.expiryDate || 0);
     const clientPayload: Record<string, unknown> = {
-      email: form.email.trim(),
-      subId: form.subId,
-      id: form.uuid,
-      password: form.password,
-      auth: form.auth,
-      flow: showFlow ? (form.flow || '') : '',
-      security: showSecurity ? (form.security || 'auto') : 'auto',
-      totalGB: gbToBytes(form.totalGB),
+      email: values.email.trim(),
+      subId: values.subId,
+      id: values.uuid,
+      password: values.password,
+      auth: values.auth,
+      flow: showFlow ? (values.flow || '') : '',
+      security: showSecurity ? (values.security || 'auto') : 'auto',
+      totalGB: gbToBytes(values.totalGB),
       expiryTime,
-      reset: Number(form.reset) || 0,
-      limitIp: Number(form.limitIp) || 0,
-      tgId: Number(form.tgId) || 0,
-      group: form.group,
-      comment: form.comment,
-      enable: !!form.enable,
+      reset: Number(values.reset) || 0,
+      limitIp: Number(values.limitIp) || 0,
+      tgId: Number(values.tgId) || 0,
+      group: values.group,
+      comment: values.comment,
+      enable: !!values.enable,
     };
-    const reverseTag = showReverseTag ? (form.reverseTag || '').trim() : '';
-    if (reverseTag) {
-      clientPayload.reverse = { tag: reverseTag };
+    const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
+    if (reverseTagValue) {
+      clientPayload.reverse = { tag: reverseTagValue };
     }
 
     if (showWireguard) {
-      clientPayload.privateKey = form.wgPrivateKey;
-      clientPayload.publicKey = form.wgPublicKey;
-      if (form.wgPreSharedKey) {
-        clientPayload.preSharedKey = form.wgPreSharedKey;
+      clientPayload.privateKey = values.wgPrivateKey;
+      clientPayload.publicKey = values.wgPublicKey;
+      if (values.wgPreSharedKey) {
+        clientPayload.preSharedKey = values.wgPreSharedKey;
       }
-      const allowedIPs = form.wgAllowedIPs
+      const allowedIPs = values.wgAllowedIPs
         .split(',')
         .map((s) => s.trim())
         .filter((s) => s !== '');
@@ -541,16 +527,16 @@ export default function ClientFormModal({
     }
 
     if (showMtproto) {
-      const adTag = form.adTag.trim();
+      const adTag = values.adTag.trim();
       if (adTag !== '' && !/^[0-9a-fA-F]{32}$/.test(adTag)) {
         messageApi.error(t('pages.inbounds.form.mtgAdTagInvalid'));
         return;
       }
-      clientPayload.secret = form.secret;
+      clientPayload.secret = values.secret;
       clientPayload.adTag = adTag;
     }
 
-    const externalLinks: ExternalLinkInput[] = form.externalLinks
+    const externalLinks: ExternalLinkInput[] = values.externalLinks
       .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
       .filter((r) => r.value !== '');
 
@@ -559,7 +545,7 @@ export default function ClientFormModal({
       let msg;
       if (isEdit && client) {
         const original = new Set(attachedIds || []);
-        const next = new Set(form.inboundIds || []);
+        const next = new Set(values.inboundIds || []);
         const toAttach = [...next].filter((id) => !original.has(id));
         const toDetach = [...original].filter((id) => !next.has(id));
         msg = await save(clientPayload, {
@@ -571,7 +557,7 @@ export default function ClientFormModal({
         });
       } else {
         msg = await save(
-          { client: clientPayload, inboundIds: form.inboundIds },
+          { client: clientPayload, inboundIds: values.inboundIds },
           { isEdit: false, email: clientPayload.email as string, externalLinks },
         );
       }
@@ -618,335 +604,344 @@ export default function ClientFormModal({
           </div>
         }
       >
-        <Form layout="vertical">
-          <Tabs
-            defaultActiveKey="basic"
-            items={[
-              {
-                key: 'basic',
-                label: t('pages.clients.tabBasics'),
-                children: (
-                  <>
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.email')} required>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input
-                              value={form.email}
-                              placeholder={t('pages.clients.email')}
-                              style={{ flex: 1 }}
-                              onChange={(e) => update('email', e.target.value)}
-                            />
-                            {!isEdit && (
-                              <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('email', RandomUtil.randomLowerAndNum(12))} />
-                            )}
-                          </Space.Compact>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
-                          <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
-                            onChange={(v) => update('totalGB', Number(v) || 0)} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
-                          <Tooltip title={limitIpNotice || undefined}>
-                            <span style={{ display: 'flex', width: '100%' }}>
-                              <Space.Compact style={{ display: 'flex', flex: 1 }}>
-                                <InputNumber value={form.limitIp} min={0} disabled={limitIpDisabled}
-                                  style={{ flex: 1, ...(limitIpDisabled ? { pointerEvents: 'none' } : null) }}
-                                  onChange={(v) => update('limitIp', Number(v) || 0)} />
-                                {isEdit && (
-                                  <Tooltip title={t('pages.clients.ipLog')}>
-                                    <Button aria-label={t('pages.clients.ipLog')} icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                                      {clientIps.length > 0 ? clientIps.length : ''}
-                                    </Button>
-                                  </Tooltip>
-                                )}
-                              </Space.Compact>
-                            </span>
-                          </Tooltip>
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        {form.delayedStart ? (
-                          <Form.Item label={t('pages.clients.expireDays')}>
-                            <InputNumber value={form.delayedDays} min={0} style={{ width: '100%' }}
-                              onChange={(v) => update('delayedDays', Number(v) || 0)} />
-                          </Form.Item>
-                        ) : (
-                          <Form.Item label={t('pages.clients.expiryTime')}>
-                            <DateTimePicker
-                              value={form.expiryDate}
-                              onChange={(d) => update('expiryDate', d || null)}
-                            />
-                          </Form.Item>
-                        )}
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Form.Item label={t('pages.clients.delayedStart')}>
-                          <Switch
-                            checked={form.delayedStart}
-                            onChange={(v) => {
-                              update('delayedStart', v);
-                              if (v) update('expiryDate', null);
-                              else update('delayedDays', 0);
-                            }}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <Form.Item
-                          label={t('pages.clients.renewDays')}
-                          tooltip={t('pages.clients.renewDesc')}
-                        >
-                          <InputNumber value={form.reset} min={0} style={{ width: '100%' }}
-                            onChange={(v) => update('reset', Number(v) || 0)} />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.comment')}>
-                          <Input value={form.comment} onChange={(e) => update('comment', e.target.value)} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label={t('pages.clients.group')} tooltip={t('pages.clients.groupDesc')}>
-                          <AutoComplete
-                            value={form.group}
-                            placeholder={t('pages.clients.groupPlaceholder')}
-                            options={groups.map((g) => ({ value: g }))}
-                            onChange={(v) => update('group', v ?? '')}
-                            allowClear
-                          />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    {(tgBotEnable || showReverseTag) && (
+        <FormProvider {...methods}>
+          <Form layout="vertical">
+            <Tabs
+              defaultActiveKey="basic"
+              items={[
+                {
+                  key: 'basic',
+                  label: t('pages.clients.tabBasics'),
+                  children: (
+                    <>
                       <Row gutter={16}>
-                        {tgBotEnable && (
-                          <Col xs={24} md={12}>
-                            <Form.Item label={t('pages.clients.telegramId')}>
-                              <InputNumber value={form.tgId} min={0} controls={false}
-                                placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }}
-                                onChange={(v) => update('tgId', Number(v) || 0)} />
-                            </Form.Item>
-                          </Col>
-                        )}
-                        {showReverseTag && (
-                          <Col xs={24} md={12}>
-                            <Form.Item label={t('pages.clients.reverseTag')}>
-                              <Input value={form.reverseTag} placeholder={t('pages.clients.reverseTagPlaceholder')}
-                                onChange={(e) => update('reverseTag', e.target.value)} />
-                            </Form.Item>
-                          </Col>
-                        )}
+                        <Col xs={24} md={12}>
+                          <Form.Item label={t('pages.clients.email')} required>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <Input
+                                value={email}
+                                placeholder={t('pages.clients.email')}
+                                style={{ flex: 1 }}
+                                onChange={(e) => methods.setValue('email', e.target.value)}
+                              />
+                              {!isEdit && (
+                                <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => methods.setValue('email', RandomUtil.randomLowerAndNum(12))} />
+                              )}
+                            </Space.Compact>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <FormField
+                            name="totalGB"
+                            label={t('pages.clients.totalGB')}
+                            tooltip={t('pages.clients.totalGBDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} step={1} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
+                            <Tooltip title={limitIpNotice || undefined}>
+                              <span style={{ display: 'flex', width: '100%' }}>
+                                <Space.Compact style={{ display: 'flex', flex: 1 }}>
+                                  <InputNumber value={limitIp} min={0} disabled={limitIpDisabled}
+                                    style={{ flex: 1, ...(limitIpDisabled ? { pointerEvents: 'none' } : null) }}
+                                    onChange={(v) => methods.setValue('limitIp', Number(v) || 0)} />
+                                  {isEdit && (
+                                    <Tooltip title={t('pages.clients.ipLog')}>
+                                      <Button aria-label={t('pages.clients.ipLog')} icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                                        {clientIps.length > 0 ? clientIps.length : ''}
+                                      </Button>
+                                    </Tooltip>
+                                  )}
+                                </Space.Compact>
+                              </span>
+                            </Tooltip>
+                          </Form.Item>
+                        </Col>
                       </Row>
-                    )}
 
-                    <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
-                      <SelectAllClearButtons
-                        options={inboundOptions}
-                        value={form.inboundIds}
-                        onChange={(v) => update('inboundIds', v)}
-                      />
-                      <Select
-                        mode="multiple"
-                        value={form.inboundIds}
-                        onChange={(v) => update('inboundIds', v)}
-                        options={inboundOptions}
-                        placeholder={t('pages.clients.selectInbound')}
-                        maxTagCount="responsive"
-                        placement="topLeft"
-                        listHeight={220}
-                        showSearch={{
-                          filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
-                        }}
-                      />
-                    </Form.Item>
-
-                    <Form.Item>
-                      <Switch aria-label={t('enable')} checked={form.enable} onChange={(v) => update('enable', v)} />
-                      <span style={{ marginLeft: 8 }}>{t('enable')}</span>
-                    </Form.Item>
-                  </>
-                ),
-              },
-              {
-                key: 'config',
-                label: t('pages.clients.tabCredentials'),
-                children: (
-                  <>
-                    <Form.Item label={t('pages.clients.uuid')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.uuid} style={{ flex: 1 }} onChange={(e) => update('uuid', e.target.value)} />
-                        <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('uuid', RandomUtil.randomUUID())} />
-                      </Space.Compact>
-                    </Form.Item>
-
-                    <Form.Item label={t('pages.clients.password')} tooltip={t('pages.clients.passwordDesc')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.password} style={{ flex: 1 }} onChange={(e) => update('password', e.target.value)} />
-                        <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regeneratePassword} />
-                      </Space.Compact>
-                    </Form.Item>
-
-                    <Form.Item label={t('pages.clients.subId')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.subId} style={{ flex: 1 }} onChange={(e) => update('subId', e.target.value)} />
-                        <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('subId', RandomUtil.randomLowerAndNum(16))} />
-                      </Space.Compact>
-                    </Form.Item>
-
-                    <Form.Item label={t('pages.clients.hysteriaAuth')} tooltip={t('pages.clients.hysteriaAuthDesc')}>
-                      <Space.Compact style={{ display: 'flex' }}>
-                        <Input value={form.auth} style={{ flex: 1 }} onChange={(e) => update('auth', e.target.value)} />
-                        <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => update('auth', RandomUtil.randomLowerAndNum(16))} />
-                      </Space.Compact>
-                    </Form.Item>
-
-                    {showFlow && (
-                      <Form.Item label={t('pages.clients.flow')}>
-                        <Select
-                          value={form.flow}
-                          onChange={(v) => update('flow', v)}
-                          options={[
-                            { value: '', label: t('none') },
-                            ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
-                          ]}
-                        />
-                      </Form.Item>
-                    )}
-                    {showSecurity && (
-                      <Form.Item label={t('pages.clients.vmessSecurity')}>
-                        <Select
-                          value={form.security}
-                          onChange={(v) => update('security', v)}
-                          options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
-                        />
-                      </Form.Item>
-                    )}
-                    {showWireguard && (
-                      <>
-                        <Form.Item label={t('pages.clients.wireguardPrivateKey')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input
-                              value={form.wgPrivateKey}
-                              style={{ flex: 1 }}
-                              onChange={(e) => {
-                                const priv = e.target.value;
-                                update('wgPrivateKey', priv);
-                                update('wgPublicKey', priv ? Wireguard.generateKeypair(priv).publicKey : '');
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          {delayedStart ? (
+                            <FormField
+                              name="delayedDays"
+                              label={t('pages.clients.expireDays')}
+                              transform={{ output: (v) => Number(v) || 0 }}
+                            >
+                              <InputNumber min={0} style={{ width: '100%' }} />
+                            </FormField>
+                          ) : (
+                            <Form.Item label={t('pages.clients.expiryTime')}>
+                              <DateTimePicker
+                                value={expiryDayjs}
+                                onChange={(d) => methods.setValue('expiryDate', d ? d.valueOf() : 0)}
+                              />
+                            </Form.Item>
+                          )}
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <Form.Item label={t('pages.clients.delayedStart')}>
+                            <Switch
+                              checked={delayedStart}
+                              onChange={(v) => {
+                                methods.setValue('delayedStart', v);
+                                if (v) methods.setValue('expiryDate', 0);
+                                else methods.setValue('delayedDays', 0);
                               }}
                             />
-                            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateWireguardKeys} />
-                          </Space.Compact>
-                        </Form.Item>
-                        <Form.Item label={t('pages.clients.wireguardPublicKey')}>
-                          <Input value={form.wgPublicKey} disabled />
-                        </Form.Item>
-                        <Form.Item label={t('pages.clients.wireguardPreSharedKey')}>
-                          <Input
-                            value={form.wgPreSharedKey}
-                            onChange={(e) => update('wgPreSharedKey', e.target.value)}
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          label={t('pages.clients.wireguardAllowedIPs')}
-                          extra={t('pages.clients.wireguardAllowedIPsHint')}
-                        >
-                          <Input
-                            value={form.wgAllowedIPs}
-                            placeholder="10.0.0.2/32"
-                            onChange={(e) => update('wgAllowedIPs', e.target.value)}
-                          />
-                        </Form.Item>
-                      </>
-                    )}
-                    {showMtproto && (
-                      <>
-                        <Form.Item label={t('pages.clients.mtprotoSecret')} extra={t('pages.clients.mtprotoSecretHint')}>
-                          <Space.Compact style={{ display: 'flex' }}>
-                            <Input value={form.secret} style={{ flex: 1 }} onChange={(e) => update('secret', e.target.value)} />
-                            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateMtprotoSecret} />
-                          </Space.Compact>
-                        </Form.Item>
-                        <Form.Item label={t('pages.clients.mtprotoAdTag')} extra={t('pages.clients.mtprotoAdTagHint')}>
-                          <Input
-                            value={form.adTag}
-                            allowClear
-                            placeholder="0123456789abcdef0123456789abcdef"
-                            onChange={(e) => update('adTag', e.target.value)}
-                          />
-                        </Form.Item>
-                      </>
-                    )}
-                  </>
-                ),
-              },
-              {
-                key: 'links',
-                label: t('pages.clients.tabLinks'),
-                children: (
-                  <>
-                    <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
-                      {t('pages.clients.linksHint')}
-                    </Typography.Paragraph>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="reset"
+                            label={t('pages.clients.renewDays')}
+                            tooltip={t('pages.clients.renewDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                      </Row>
 
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('link')}>
-                      {t('pages.clients.addExternalLink')}
-                    </Button>
-                    <div style={{ marginTop: 12, marginBottom: 24 }}>
-                      {linkRows.length === 0 ? (
-                        <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
-                      ) : linkRows.map((row) => (
-                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                          <Input
-                            value={row.value}
-                            aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
-                            placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                          />
-                          <Tooltip title={t('delete')}>
-                            <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
-                          </Tooltip>
-                        </div>
-                      ))}
-                    </div>
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <FormField name="comment" label={t('pages.clients.comment')}>
+                            <Input />
+                          </FormField>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <FormField
+                            name="group"
+                            label={t('pages.clients.group')}
+                            tooltip={t('pages.clients.groupDesc')}
+                            transform={{ output: (v) => v ?? '' }}
+                          >
+                            <AutoComplete
+                              placeholder={t('pages.clients.groupPlaceholder')}
+                              options={groups.map((g) => ({ value: g }))}
+                              allowClear
+                            />
+                          </FormField>
+                        </Col>
+                      </Row>
 
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('subscription')}>
-                      {t('pages.clients.addExternalSubscription')}
-                    </Button>
-                    <div style={{ marginTop: 12 }}>
-                      {subscriptionRows.length === 0 ? (
-                        <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
-                      ) : subscriptionRows.map((row) => (
-                        <div key={row.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                          <Input
-                            value={row.value}
-                            aria-label="https://provider.example/sub/…"
-                            onChange={(e) => updateExternalLinkRow(row.key, e.target.value)}
-                            placeholder="https://provider.example/sub/…"
+                      {(tgBotEnable || showReverseTag) && (
+                        <Row gutter={16}>
+                          {tgBotEnable && (
+                            <Col xs={24} md={12}>
+                              <FormField
+                                name="tgId"
+                                label={t('pages.clients.telegramId')}
+                                transform={{ output: (v) => Number(v) || 0 }}
+                              >
+                                <InputNumber min={0} controls={false}
+                                  placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }} />
+                              </FormField>
+                            </Col>
+                          )}
+                          {showReverseTag && (
+                            <Col xs={24} md={12}>
+                              <FormField name="reverseTag" label={t('pages.clients.reverseTag')}>
+                                <Input placeholder={t('pages.clients.reverseTagPlaceholder')} />
+                              </FormField>
+                            </Col>
+                          )}
+                        </Row>
+                      )}
+
+                      <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
+                        <SelectAllClearButtons
+                          options={inboundOptions}
+                          value={inboundIds}
+                          onChange={(v) => methods.setValue('inboundIds', v)}
+                        />
+                        <Select
+                          mode="multiple"
+                          value={inboundIds}
+                          onChange={(v) => methods.setValue('inboundIds', v)}
+                          options={inboundOptions}
+                          placeholder={t('pages.clients.selectInbound')}
+                          maxTagCount="responsive"
+                          placement="topLeft"
+                          listHeight={220}
+                          showSearch={{
+                            filterOption: (input, option) => ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase()),
+                          }}
+                        />
+                      </Form.Item>
+
+                      <Form.Item>
+                        <Switch aria-label={t('enable')} checked={enable} onChange={(v) => methods.setValue('enable', v)} />
+                        <span style={{ marginLeft: 8 }}>{t('enable')}</span>
+                      </Form.Item>
+                    </>
+                  ),
+                },
+                {
+                  key: 'config',
+                  label: t('pages.clients.tabCredentials'),
+                  children: (
+                    <>
+                      <Form.Item label={t('pages.clients.uuid')}>
+                        <Space.Compact style={{ display: 'flex' }}>
+                          <Input value={uuid} style={{ flex: 1 }} onChange={(e) => methods.setValue('uuid', e.target.value)} />
+                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => methods.setValue('uuid', RandomUtil.randomUUID())} />
+                        </Space.Compact>
+                      </Form.Item>
+
+                      <Form.Item label={t('pages.clients.password')} tooltip={t('pages.clients.passwordDesc')}>
+                        <Space.Compact style={{ display: 'flex' }}>
+                          <Input value={password} style={{ flex: 1 }} onChange={(e) => methods.setValue('password', e.target.value)} />
+                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regeneratePassword} />
+                        </Space.Compact>
+                      </Form.Item>
+
+                      <Form.Item label={t('pages.clients.subId')}>
+                        <Space.Compact style={{ display: 'flex' }}>
+                          <Input value={subId} style={{ flex: 1 }} onChange={(e) => methods.setValue('subId', e.target.value)} />
+                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => methods.setValue('subId', RandomUtil.randomLowerAndNum(16))} />
+                        </Space.Compact>
+                      </Form.Item>
+
+                      <Form.Item label={t('pages.clients.hysteriaAuth')} tooltip={t('pages.clients.hysteriaAuthDesc')}>
+                        <Space.Compact style={{ display: 'flex' }}>
+                          <Input value={auth} style={{ flex: 1 }} onChange={(e) => methods.setValue('auth', e.target.value)} />
+                          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => methods.setValue('auth', RandomUtil.randomLowerAndNum(16))} />
+                        </Space.Compact>
+                      </Form.Item>
+
+                      {showFlow && (
+                        <FormField name="flow" label={t('pages.clients.flow')}>
+                          <Select
+                            options={[
+                              { value: '', label: t('none') },
+                              ...FLOW_OPTIONS.map((k) => ({ value: k, label: k })),
+                            ]}
                           />
-                          <Tooltip title={t('delete')}>
-                            <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(row.key)} />
-                          </Tooltip>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ),
-              },
-            ]}
-          />
-        </Form>
+                        </FormField>
+                      )}
+                      {showSecurity && (
+                        <FormField name="security" label={t('pages.clients.vmessSecurity')}>
+                          <Select
+                            options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
+                          />
+                        </FormField>
+                      )}
+                      {showWireguard && (
+                        <>
+                          <Form.Item label={t('pages.clients.wireguardPrivateKey')}>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <Input
+                                value={wgPrivateKey}
+                                style={{ flex: 1 }}
+                                onChange={(e) => {
+                                  const priv = e.target.value;
+                                  methods.setValue('wgPrivateKey', priv);
+                                  methods.setValue('wgPublicKey', priv ? Wireguard.generateKeypair(priv).publicKey : '');
+                                }}
+                              />
+                              <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateWireguardKeys} />
+                            </Space.Compact>
+                          </Form.Item>
+                          <FormField name="wgPublicKey" label={t('pages.clients.wireguardPublicKey')}>
+                            <Input disabled />
+                          </FormField>
+                          <FormField name="wgPreSharedKey" label={t('pages.clients.wireguardPreSharedKey')}>
+                            <Input />
+                          </FormField>
+                          <FormField
+                            name="wgAllowedIPs"
+                            label={t('pages.clients.wireguardAllowedIPs')}
+                            extra={t('pages.clients.wireguardAllowedIPsHint')}
+                          >
+                            <Input placeholder="10.0.0.2/32" />
+                          </FormField>
+                        </>
+                      )}
+                      {showMtproto && (
+                        <>
+                          <Form.Item label={t('pages.clients.mtprotoSecret')} extra={t('pages.clients.mtprotoSecretHint')}>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <Input value={secret} style={{ flex: 1 }} onChange={(e) => methods.setValue('secret', e.target.value)} />
+                              <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateMtprotoSecret} />
+                            </Space.Compact>
+                          </Form.Item>
+                          <FormField
+                            name="adTag"
+                            label={t('pages.clients.mtprotoAdTag')}
+                            extra={t('pages.clients.mtprotoAdTagHint')}
+                          >
+                            <Input
+                              allowClear
+                              placeholder="0123456789abcdef0123456789abcdef"
+                            />
+                          </FormField>
+                        </>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'links',
+                  label: t('pages.clients.tabLinks'),
+                  children: (
+                    <>
+                      <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+                        {t('pages.clients.linksHint')}
+                      </Typography.Paragraph>
+
+                      <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('link')}>
+                        {t('pages.clients.addExternalLink')}
+                      </Button>
+                      <div style={{ marginTop: 12, marginBottom: 24 }}>
+                        {linkRows.length === 0 ? (
+                          <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
+                        ) : linkRows.map(({ field, index }) => (
+                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                            <FormField name={`externalLinks.${index}.value`} noStyle>
+                              <Input
+                                style={{ flex: 1 }}
+                                aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                              />
+                            </FormField>
+                            <Tooltip title={t('delete')}>
+                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                            </Tooltip>
+                          </div>
+                        ))}
+                      </div>
+
+                      <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('subscription')}>
+                        {t('pages.clients.addExternalSubscription')}
+                      </Button>
+                      <div style={{ marginTop: 12 }}>
+                        {subscriptionRows.length === 0 ? (
+                          <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
+                        ) : subscriptionRows.map(({ field, index }) => (
+                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                            <FormField name={`externalLinks.${index}.value`} noStyle>
+                              <Input
+                                style={{ flex: 1 }}
+                                aria-label="https://provider.example/sub/…"
+                                placeholder="https://provider.example/sub/…"
+                              />
+                            </FormField>
+                            <Tooltip title={t('delete')}>
+                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                            </Tooltip>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+            />
+          </Form>
+        </FormProvider>
       </Modal>
 
       <Modal

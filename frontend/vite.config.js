@@ -77,45 +77,6 @@ function injectBasePathPlugin() {
   };
 }
 
-// es-toolkit's `./compat/*` exports map only declares a CJS condition, so deep
-// imports like `es-toolkit/compat/get` resolve to a CJS shim. That shim uses a
-// `require_X.Y` pattern that Vite's optimizer and Rolldown both mishandle
-// (TypeError: require_isUnsafeProperty is not a function). The ESM build at
-// `dist/compat/<category>/<name>.mjs` is fine but only carries a named export,
-// while consumers like recharts use default imports — so emit a virtual module
-// that re-exports the named symbol as default.
-const ES_TOOLKIT_COMPAT_DIRS = ['array', 'function', 'math', 'object', 'predicate', 'string', 'util'];
-const ES_TOOLKIT_SHIM_PREFIX = '\0es-toolkit-compat:';
-
-function findEsToolkitCompatMjs(name) {
-  for (const sub of ES_TOOLKIT_COMPAT_DIRS) {
-    const candidate = path.resolve(__dirname, 'node_modules/es-toolkit/dist/compat', sub, `${name}.mjs`);
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return null;
-}
-
-function esToolkitCompatEsmResolver() {
-  return {
-    name: 'es-toolkit-compat-esm',
-    enforce: 'pre',
-    resolveId(id) {
-      const m = id.match(/^es-toolkit\/compat\/(.+)$/);
-      if (!m) return null;
-      if (!findEsToolkitCompatMjs(m[1])) return null;
-      return ES_TOOLKIT_SHIM_PREFIX + m[1];
-    },
-    load(id) {
-      if (!id.startsWith(ES_TOOLKIT_SHIM_PREFIX)) return null;
-      const name = id.slice(ES_TOOLKIT_SHIM_PREFIX.length);
-      const target = findEsToolkitCompatMjs(name);
-      if (!target) return null;
-      const url = target.replace(/\\/g, '/');
-      return `import { ${name} } from ${JSON.stringify(url)};\nexport { ${name} };\nexport default ${name};\n`;
-    },
-  };
-}
-
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
@@ -179,15 +140,10 @@ function makeBackendProxy(target) {
 }
 
 export default defineConfig({
-  plugins: [esToolkitCompatEsmResolver(), react(), injectBasePathPlugin()],
+  plugins: [react(), injectBasePathPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-    },
-  },
-  optimizeDeps: {
-    rolldownOptions: {
-      plugins: [esToolkitCompatEsmResolver()],
     },
   },
   experimental: {
@@ -249,13 +205,8 @@ export default defineConfig({
             || id.includes('/node_modules/swagger-ui/')
             || id.includes('/node_modules/swagger-client/')
           ) return 'vendor-swagger';
-          if (
-            id.includes('/node_modules/recharts/')
-            || id.includes('/node_modules/victory-vendor/')
-            || id.includes('/node_modules/d3-')
-          ) return 'vendor-recharts';
+          if (id.includes('/node_modules/uplot/')) return 'vendor-uplot';
           if (id.includes('dayjs')) return 'vendor-dayjs';
-          if (id.includes('axios')) return 'vendor-axios';
           return 'vendor';
         },
       },

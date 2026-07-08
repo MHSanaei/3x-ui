@@ -1,6 +1,6 @@
-import axios from 'axios';
-import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import i18next from 'i18next';
+import { httpRequest } from '@/api/http-init';
+import type { HttpResponse } from '@/api/http-init';
 import { getMessage } from './messageBus';
 
 type RespEnvelope = { success?: unknown; msg?: unknown; obj?: unknown };
@@ -17,7 +17,11 @@ export class Msg<T = unknown> {
   }
 }
 
-export interface HttpOptions extends AxiosRequestConfig {
+export interface HttpOptions {
+  headers?: Record<string, string> | Headers;
+  params?: unknown;
+  timeout?: number;
+  signal?: AbortSignal;
   silent?: boolean;
   silentSuccess?: boolean;
 }
@@ -48,7 +52,7 @@ export class HttpUtil {
     getMessage().error(msg.msg);
   }
 
-  static _respToMsg(resp: AxiosResponse | undefined): Msg {
+  static _respToMsg(resp: HttpResponse | undefined): Msg {
     if (!resp || !resp.data) {
       return new Msg(false, 'No response data');
     }
@@ -64,15 +68,15 @@ export class HttpUtil {
   }
 
   static async get<T = unknown>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
-    const { silent, silentSuccess, ...axiosOpts } = options;
+    const { silent, silentSuccess, ...rest } = options;
     try {
-      const resp = await axios.get(url, { params, ...axiosOpts });
+      const resp = await httpRequest('GET', url, undefined, { ...rest, params });
       const msg = this._respToMsg(resp) as Msg<T>;
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
       console.error('GET request failed:', error);
-      const err = error as AxiosError<{ message?: string }>;
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
       const errorMsg = new Msg<T>(false, err.response?.data?.message || err.message || 'Request failed');
       if (!silent) this._handleMsg(errorMsg);
       return errorMsg;
@@ -80,15 +84,15 @@ export class HttpUtil {
   }
 
   static async post<T = unknown>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
-    const { silent, silentSuccess, ...axiosOpts } = options;
+    const { silent, silentSuccess, ...rest } = options;
     try {
-      const resp = await axios.post(url, data, axiosOpts);
+      const resp = await httpRequest('POST', url, data, rest);
       const msg = this._respToMsg(resp) as Msg<T>;
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
       console.error('POST request failed:', error);
-      const err = error as AxiosError<{ message?: string }>;
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
       const errorMsg = new Msg<T>(false, err.response?.data?.message || err.message || 'Request failed');
       if (!silent) this._handleMsg(errorMsg);
       return errorMsg;

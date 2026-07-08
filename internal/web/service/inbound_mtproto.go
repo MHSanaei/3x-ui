@@ -103,3 +103,55 @@ func (s *InboundService) applyLocalMtproto(inboundId int) {
 		logger.Debug("mtproto: immediate client apply failed for inbound", inboundId, ":", err)
 	}
 }
+
+func (s *InboundService) resetMtprotoClientQuota(email string) {
+	mgr := mtproto.GetManager()
+	if !mgr.HasRunning() {
+		return
+	}
+	id, ok := s.localMtprotoInboundIdForEmail(email)
+	if !ok {
+		return
+	}
+	s.applyLocalMtproto(id)
+	mgr.ResetQuota(email)
+}
+
+func (s *InboundService) resetAllMtprotoQuotas() {
+	mgr := mtproto.GetManager()
+	if !mgr.HasRunning() {
+		return
+	}
+	desired, err := s.DesiredMtprotoInstances()
+	if err != nil {
+		return
+	}
+	mgr.Reconcile(desired)
+	for _, inst := range desired {
+		for _, sec := range inst.Secrets {
+			mgr.ResetQuota(sec.Name)
+		}
+	}
+}
+
+func (s *InboundService) localMtprotoInboundIdForEmail(email string) (int, bool) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("protocol = ? AND node_id IS NULL", model.MTProto).
+		Find(&inbounds).Error; err != nil {
+		return 0, false
+	}
+	for _, ib := range inbounds {
+		inst, ok := mtproto.InstanceFromInbound(ib)
+		if !ok {
+			continue
+		}
+		for _, sec := range inst.Secrets {
+			if sec.Name == email {
+				return ib.Id, true
+			}
+		}
+	}
+	return 0, false
+}

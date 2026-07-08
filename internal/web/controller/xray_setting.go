@@ -60,7 +60,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/outbound-subs/:id/move", a.moveOutboundSub)
 	g.POST("/outbound-subs/:id", a.updateOutboundSub)
 	g.DELETE("/outbound-subs/:id", a.deleteOutboundSub)
-	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // axios-friendly alias
+	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // POST alias for clients that can't send DELETE
 	g.POST("/outbound-subs/parse", a.parseOutboundSubURL) // preview without saving
 }
 

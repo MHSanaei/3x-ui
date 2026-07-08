@@ -13,11 +13,12 @@ import {
   Switch,
   message,
 } from 'antd';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import type { RemoteInboundOption } from '@/api/queries/useNodeMutations';
 import type { Msg } from '@/utils';
 import { NodeFormSchema, type NodeFormValues, type ProbeResult } from '@/schemas/node';
-import { antdRule } from '@/utils/zodForm';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useOutboundTagGroups } from '@/api/queries/useOutboundTags';
 import './NodeFormModal.css';
 
@@ -65,7 +66,7 @@ export default function NodeFormModal({
   onOpenChange,
 }: NodeFormModalProps) {
   const { t } = useTranslation();
-  const [form] = Form.useForm<NodeFormValues>();
+  const methods = useForm<NodeFormValues>({ defaultValues: defaultValues() });
   const [messageApi, messageContextHolder] = message.useMessage();
 
   const [submitting, setSubmitting] = useState(false);
@@ -74,9 +75,9 @@ export default function NodeFormModal({
   const [fetchingInbounds, setFetchingInbounds] = useState(false);
   const [inboundOptions, setInboundOptions] = useState<RemoteInboundOption[]>([]);
   const [testResult, setTestResult] = useState<ProbeResult | null>(null);
-  const scheme = Form.useWatch('scheme', form) ?? 'https';
-  const tlsVerifyMode = Form.useWatch('tlsVerifyMode', form) ?? 'verify';
-  const inboundSyncMode = Form.useWatch('inboundSyncMode', form) ?? 'all';
+  const scheme = useWatch({ control: methods.control, name: 'scheme' }) ?? 'https';
+  const tlsVerifyMode = useWatch({ control: methods.control, name: 'tlsVerifyMode' }) ?? 'verify';
+  const inboundSyncMode = useWatch({ control: methods.control, name: 'inboundSyncMode' }) ?? 'all';
   const { data: outboundGroups } = useOutboundTagGroups({ excludeBlackhole: true });
 
   // Outbounds and balancers share one picker (like the panel-outbound selector);
@@ -109,11 +110,10 @@ export default function NodeFormModal({
       }
       : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
-    form.resetFields();
-    form.setFieldsValue(next);
+    methods.reset(next);
     setInboundOptions((next.inboundTags || []).map((tag) => ({ tag })));
     setTestResult(null);
-  }, [open, mode, node, form]);
+  }, [open, mode, node, methods]);
 
   const title = useMemo(
     () => (mode === 'edit' ? t('pages.nodes.editNode') : t('pages.nodes.addNode')),
@@ -141,15 +141,11 @@ export default function NodeFormModal({
   }
 
   async function onTest() {
-    try {
-      await form.validateFields(['address', 'port']);
-    } catch {
-      return;
-    }
+    if (!(await methods.trigger(['address', 'port']))) return;
     setTesting(true);
     setTestResult(null);
     try {
-      const payload = buildPayload(form.getFieldsValue(true));
+      const payload = buildPayload(methods.getValues());
       const msg = await testConnection(payload);
       if (msg?.success && msg.obj) {
         setTestResult(msg.obj);
@@ -162,17 +158,13 @@ export default function NodeFormModal({
   }
 
   async function onFetchPin() {
-    try {
-      await form.validateFields(['address', 'port']);
-    } catch {
-      return;
-    }
+    if (!(await methods.trigger(['address', 'port']))) return;
     setFetchingPin(true);
     try {
-      const payload = buildPayload(form.getFieldsValue(true));
+      const payload = buildPayload(methods.getValues());
       const msg = await fetchFingerprint(payload);
       if (msg?.success && msg.obj) {
-        form.setFieldValue('pinnedCertSha256', msg.obj);
+        methods.setValue('pinnedCertSha256', msg.obj);
         messageApi.success(t('pages.nodes.pinFetched'));
       } else {
         messageApi.error(msg?.msg || t('pages.nodes.pinFetchFailed'));
@@ -183,14 +175,10 @@ export default function NodeFormModal({
   }
 
   async function onFetchInbounds() {
-    try {
-      await form.validateFields(['name', 'address', 'port', 'apiToken']);
-    } catch {
-      return;
-    }
+    if (!(await methods.trigger(['name', 'address', 'port', 'apiToken']))) return;
     setFetchingInbounds(true);
     try {
-      const msg = await fetchInbounds(buildPayload(form.getFieldsValue(true)));
+      const msg = await fetchInbounds(buildPayload(methods.getValues()));
       if (msg?.success && Array.isArray(msg.obj)) {
         setInboundOptions(msg.obj);
         messageApi.success(t('pages.nodes.inboundsLoaded', { count: msg.obj.length }));
@@ -242,229 +230,229 @@ export default function NodeFormModal({
         cancelText={t('cancel')}
         mask={{ closable: false }}
         width="640px"
-        onOk={() => form.submit()}
+        onOk={methods.handleSubmit(onFinish)}
         onCancel={close}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={defaultValues()}
-          onFinish={onFinish}
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={t('pages.nodes.name')}
-                name="name"
-                rules={[antdRule(NodeFormSchema.shape.name, t)]}
-              >
-                <Input placeholder={t('pages.nodes.namePlaceholder')} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label={t('pages.nodes.remark')} name="remark">
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
+        <FormProvider {...methods}>
+          <Form layout="vertical">
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <FormField
+                  label={t('pages.nodes.name')}
+                  name="name"
+                  rules={{ validate: rhfZodValidate(NodeFormSchema.shape.name) }}
+                >
+                  <Input placeholder={t('pages.nodes.namePlaceholder')} />
+                </FormField>
+              </Col>
+              <Col xs={24} md={12}>
+                <FormField label={t('pages.nodes.remark')} name="remark">
+                  <Input />
+                </FormField>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col xs={24} md={6}>
-              <Form.Item label={t('pages.nodes.scheme')} name="scheme">
-                <Select
-                  options={[
-                    { value: 'https', label: 'https' },
-                    { value: 'http', label: 'http' },
-                  ]}
-                  onChange={(value) => {
-                    if (value === 'http') form.setFieldValue('tlsVerifyMode', 'skip');
+            <Row gutter={16}>
+              <Col xs={24} md={6}>
+                <FormField
+                  label={t('pages.nodes.scheme')}
+                  name="scheme"
+                  onAfterChange={(value) => {
+                    if (value === 'http') methods.setValue('tlsVerifyMode', 'skip');
                   }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={t('pages.nodes.address')}
-                name="address"
-                rules={[antdRule(NodeFormSchema.shape.address, t)]}
-              >
-                <Input placeholder={t('pages.nodes.addressPlaceholder')} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item
-                label={t('pages.nodes.port')}
-                name="port"
-                rules={[antdRule(NodeFormSchema.shape.port, t)]}
-              >
-                <InputNumber min={1} max={65535} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
+                >
+                  <Select
+                    options={[
+                      { value: 'https', label: 'https' },
+                      { value: 'http', label: 'http' },
+                    ]}
+                  />
+                </FormField>
+              </Col>
+              <Col xs={24} md={12}>
+                <FormField
+                  label={t('pages.nodes.address')}
+                  name="address"
+                  rules={{ validate: rhfZodValidate(NodeFormSchema.shape.address) }}
+                >
+                  <Input placeholder={t('pages.nodes.addressPlaceholder')} />
+                </FormField>
+              </Col>
+              <Col xs={24} md={6}>
+                <FormField
+                  label={t('pages.nodes.port')}
+                  name="port"
+                  rules={{ validate: rhfZodValidate(NodeFormSchema.shape.port) }}
+                >
+                  <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+                </FormField>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item label={t('pages.nodes.basePath')} name="basePath">
-                <Input placeholder="/" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={t('pages.nodes.enable')}
-                name="enable"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <FormField label={t('pages.nodes.basePath')} name="basePath">
+                  <Input placeholder="/" />
+                </FormField>
+              </Col>
+              <Col xs={24} md={12}>
+                <FormField
+                  label={t('pages.nodes.enable')}
+                  name="enable"
+                  valueProp="checked"
+                >
+                  <Switch />
+                </FormField>
+              </Col>
+            </Row>
 
-          <Form.Item
-            label={t('pages.nodes.allowPrivateAddress')}
-            name="allowPrivateAddress"
-            valuePropName="checked"
-            tooltip={t('pages.nodes.allowPrivateAddressHint')}
-          >
-            <Switch />
-          </Form.Item>
-
-          <Form.Item
-            label={t('pages.nodes.tlsVerifyMode')}
-            name="tlsVerifyMode"
-            tooltip={t('pages.nodes.tlsVerifyModeHint')}
-          >
-            <Select
-              disabled={scheme === 'http'}
-              options={[
-                { value: 'verify', label: t('pages.nodes.tlsVerify') },
-                { value: 'pin', label: t('pages.nodes.tlsPin') },
-                { value: 'skip', label: t('pages.nodes.tlsSkip') },
-                { value: 'mtls', label: t('pages.nodes.tlsMtls') },
-              ]}
-            />
-          </Form.Item>
-
-          {tlsVerifyMode === 'skip' && (
-            <Alert
-              type="warning"
-              showIcon
-              style={{ marginBottom: 16 }}
-              title={t('pages.nodes.tlsSkipWarning')}
-            />
-          )}
-
-          {tlsVerifyMode === 'mtls' && (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-              title={t('pages.nodes.mtlsFormHint')}
-            />
-          )}
-
-          {tlsVerifyMode === 'pin' && (
-            <Form.Item
-              label={t('pages.nodes.pinnedCert')}
-              name="pinnedCertSha256"
-              tooltip={t('pages.nodes.pinnedCertHint')}
+            <FormField
+              label={t('pages.nodes.allowPrivateAddress')}
+              name="allowPrivateAddress"
+              valueProp="checked"
+              tooltip={t('pages.nodes.allowPrivateAddressHint')}
             >
-              <Input.Search
-                placeholder={t('pages.nodes.pinnedCertPlaceholder')}
-                enterButton={t('pages.nodes.fetchPin')}
-                loading={fetchingPin}
-                onSearch={onFetchPin}
-              />
-            </Form.Item>
-          )}
+              <Switch />
+            </FormField>
 
-          <Form.Item
-            label={t('pages.nodes.apiToken')}
-            name="apiToken"
-            rules={[antdRule(NodeFormSchema.shape.apiToken, t)]}
-            tooltip={t('pages.nodes.apiTokenHint')}
-          >
-            <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
-          </Form.Item>
-
-          <Form.Item
-            label={t('pages.nodes.outboundTag')}
-            name="outboundTag"
-            tooltip={t('pages.nodes.outboundTagHint')}
-            getValueProps={(v) => ({ value: (v as string) || undefined })}
-          >
-            <Select
-              allowClear
-              showSearch
-              placeholder={t('pages.nodes.outboundTagPlaceholder')}
-              options={outboundOptions}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={t('pages.nodes.inboundSyncMode')}
-            name="inboundSyncMode"
-            tooltip={t('pages.nodes.inboundSyncModeHint')}
-          >
-            <Select
-              options={[
-                { value: 'all', label: t('pages.nodes.allInbounds') },
-                { value: 'selected', label: t('pages.nodes.selectedInbounds') },
-              ]}
-            />
-          </Form.Item>
-
-          {inboundSyncMode === 'selected' && (
-            <Form.Item
-              label={t('pages.nodes.inboundTags')}
-              name="inboundTags"
-              tooltip={t('pages.nodes.inboundTagsHint')}
+            <FormField
+              label={t('pages.nodes.tlsVerifyMode')}
+              name="tlsVerifyMode"
+              tooltip={t('pages.nodes.tlsVerifyModeHint')}
             >
               <Select
-                mode="multiple"
-                allowClear
-                loading={fetchingInbounds}
-                placeholder={t('pages.nodes.inboundTagsPlaceholder')}
-                popupRender={(menu) => (
-                  <>
-                    <Button type="text" block loading={fetchingInbounds} onClick={onFetchInbounds}>
-                      {t('pages.nodes.loadInbounds')}
-                    </Button>
-                    {menu}
-                  </>
-                )}
-                options={inboundOptions.map((inbound) => ({
-                  value: inbound.tag,
-                  label: `${inbound.remark || inbound.tag}${inbound.protocol ? ` (${inbound.protocol}:${inbound.port || 0})` : ''}`,
-                }))}
+                disabled={scheme === 'http'}
+                options={[
+                  { value: 'verify', label: t('pages.nodes.tlsVerify') },
+                  { value: 'pin', label: t('pages.nodes.tlsPin') },
+                  { value: 'skip', label: t('pages.nodes.tlsSkip') },
+                  { value: 'mtls', label: t('pages.nodes.tlsMtls') },
+                ]}
               />
-            </Form.Item>
-          )}
+            </FormField>
 
-          <div className="test-row">
-            <Button type="default" loading={testing} onClick={onTest}>
-              {t('pages.nodes.testConnection')}
-            </Button>
-            {testResult && (
-              <div className="test-result">
-                {testResult.status === 'online' ? (
-                  <Alert
-                    type="success"
-                    showIcon
-                    title={t('pages.nodes.connectionOk', { ms: testResult.latencyMs })}
-                    description={testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined}
-                  />
-                ) : (
-                  <Alert
-                    type="error"
-                    showIcon
-                    title={t('pages.nodes.connectionFailed')}
-                    description={testResult.error}
-                  />
-                )}
-              </div>
+            {tlsVerifyMode === 'skip' && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                title={t('pages.nodes.tlsSkipWarning')}
+              />
             )}
-          </div>
-        </Form>
+
+            {tlsVerifyMode === 'mtls' && (
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                title={t('pages.nodes.mtlsFormHint')}
+              />
+            )}
+
+            {tlsVerifyMode === 'pin' && (
+              <FormField
+                label={t('pages.nodes.pinnedCert')}
+                name="pinnedCertSha256"
+                tooltip={t('pages.nodes.pinnedCertHint')}
+              >
+                <Input.Search
+                  placeholder={t('pages.nodes.pinnedCertPlaceholder')}
+                  enterButton={t('pages.nodes.fetchPin')}
+                  loading={fetchingPin}
+                  onSearch={onFetchPin}
+                />
+              </FormField>
+            )}
+
+            <FormField
+              label={t('pages.nodes.apiToken')}
+              name="apiToken"
+              rules={{ validate: rhfZodValidate(NodeFormSchema.shape.apiToken) }}
+              tooltip={t('pages.nodes.apiTokenHint')}
+            >
+              <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
+            </FormField>
+
+            <FormField
+              label={t('pages.nodes.outboundTag')}
+              name="outboundTag"
+              tooltip={t('pages.nodes.outboundTagHint')}
+              transform={{ input: (v) => (v as string) || undefined }}
+            >
+              <Select
+                allowClear
+                showSearch
+                placeholder={t('pages.nodes.outboundTagPlaceholder')}
+                options={outboundOptions}
+              />
+            </FormField>
+
+            <FormField
+              label={t('pages.nodes.inboundSyncMode')}
+              name="inboundSyncMode"
+              tooltip={t('pages.nodes.inboundSyncModeHint')}
+            >
+              <Select
+                options={[
+                  { value: 'all', label: t('pages.nodes.allInbounds') },
+                  { value: 'selected', label: t('pages.nodes.selectedInbounds') },
+                ]}
+              />
+            </FormField>
+
+            {inboundSyncMode === 'selected' && (
+              <FormField
+                label={t('pages.nodes.inboundTags')}
+                name="inboundTags"
+                tooltip={t('pages.nodes.inboundTagsHint')}
+              >
+                <Select
+                  mode="multiple"
+                  allowClear
+                  loading={fetchingInbounds}
+                  placeholder={t('pages.nodes.inboundTagsPlaceholder')}
+                  popupRender={(menu) => (
+                    <>
+                      <Button type="text" block loading={fetchingInbounds} onClick={onFetchInbounds}>
+                        {t('pages.nodes.loadInbounds')}
+                      </Button>
+                      {menu}
+                    </>
+                  )}
+                  options={inboundOptions.map((inbound) => ({
+                    value: inbound.tag,
+                    label: `${inbound.remark || inbound.tag}${inbound.protocol ? ` (${inbound.protocol}:${inbound.port || 0})` : ''}`,
+                  }))}
+                />
+              </FormField>
+            )}
+
+            <div className="test-row">
+              <Button type="default" loading={testing} onClick={onTest}>
+                {t('pages.nodes.testConnection')}
+              </Button>
+              {testResult && (
+                <div className="test-result">
+                  {testResult.status === 'online' ? (
+                    <Alert
+                      type="success"
+                      showIcon
+                      title={t('pages.nodes.connectionOk', { ms: testResult.latencyMs })}
+                      description={testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined}
+                    />
+                  ) : (
+                    <Alert
+                      type="error"
+                      showIcon
+                      title={t('pages.nodes.connectionFailed')}
+                      description={testResult.error}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </Form>
+        </FormProvider>
       </Modal>
     </>
   );

@@ -10428,7 +10428,7 @@
         "tags": [
           "Xray Settings"
         ],
-        "summary": "Delete an outbound subscription by id (POST alias of DELETE for axios-friendly clients).",
+        "summary": "Delete an outbound subscription by id (POST alias of DELETE for clients that cannot send DELETE).",
         "operationId": "post_panel_api_xray_outbound_subs_id_del",
         "parameters": [
           {

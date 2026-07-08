@@ -122,9 +122,13 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 }
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
-	return submitTrafficWrite(func() error {
+	err := submitTrafficWrite(func() error {
 		return s.resetAllClientTrafficsLocked(id)
 	})
+	if err == nil {
+		inboundSvc.resetAllMtprotoQuotas()
+	}
+	return err
 }
 
 func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
