@@ -440,17 +440,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 }
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
-	settings := map[string][]model.Client{}
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if settings == nil {
-		return nil, fmt.Errorf("setting is null")
-	}
-
-	clients := settings["clients"]
-	if clients == nil {
-		return nil, nil
-	}
-	return clients, nil
+	return ParseInboundSettingsClients(inbound.Settings)
 }
 
 // GetClientsBySubId returns the inbound's clients with the given subscription
