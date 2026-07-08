@@ -96,10 +96,10 @@ func TestShouldAutoServeClash(t *testing.T) {
 	}{
 		{name: "clash verge", autoDetect: true, clashEnabled: true, userAgent: "Clash-Verge/v2.4.2", want: true},
 		{name: "mihomo", autoDetect: true, clashEnabled: true, userAgent: "mihomo/1.19.12", want: true},
-		{name: "stash case insensitive", autoDetect: true, clashEnabled: true, userAgent: "STASH/2.6.0", want: true},
+		{name: "clash case insensitive", autoDetect: true, clashEnabled: true, userAgent: "CLASH-META/1.0", want: true},
 		{name: "flclash covered by clash", autoDetect: true, clashEnabled: true, userAgent: "FlClash/0.8.91", want: true},
-		{name: "xray raw fallback", autoDetect: true, clashEnabled: true, userAgent: "v2rayNG/1.10.0"},
-		{name: "v2raya raw fallback", autoDetect: true, clashEnabled: true, userAgent: "v2rayA/2.2"},
+		{name: "generic client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "GenericClient/1.10.0"},
+		{name: "other client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "OtherClient/2.2"},
 		{name: "unknown raw fallback", autoDetect: true, clashEnabled: true, userAgent: "CustomClient/1.0"},
 		{name: "empty raw fallback", autoDetect: true, clashEnabled: true},
 		{name: "browser HTML wins", autoDetect: true, clashEnabled: true, wantsHTML: true, userAgent: "Clash-Verge/v2.4.2"},
@@ -128,25 +128,33 @@ func TestShouldAutoServeClashUsesConfiguredRegex(t *testing.T) {
 }
 
 func TestShouldAutoServeJson(t *testing.T) {
-	configured := compileUserAgentRegex("Xray JSON", "", service.DefaultSubJsonUserAgentRegex)
-	for _, userAgent := range []string{"Streisand/1.6.32", "streisand 1.6.32"} {
+	configured := compileUserAgentRegex("Xray JSON", `(?i)^jsonclient([ /]|$)`, service.DefaultSubJsonUserAgentRegex)
+	for _, userAgent := range []string{"JsonClient/1.6.32", "jsonclient 1.6.32"} {
 		if !shouldAutoServeJson(true, true, false, userAgent, configured) {
-			t.Errorf("default Xray JSON regex did not match %q", userAgent)
+			t.Errorf("configured Xray JSON regex did not match %q", userAgent)
 		}
 	}
-	for _, userAgent := range []string{"v2rayNG/1.10.0", "v2rayA/2.2", "v2rayN/7.0", "Happ/2.0", "ktor-client/3.0", "CustomClient/1.0"} {
+	for _, userAgent := range []string{"GenericClient/1.10.0", "OtherClient/2.2", "ThirdClient/7.0", "CustomClient/1.0"} {
 		if shouldAutoServeJson(true, true, false, userAgent, configured) {
-			t.Errorf("default Xray JSON regex unexpectedly matched %q", userAgent)
+			t.Errorf("configured Xray JSON regex unexpectedly matched %q", userAgent)
 		}
 	}
-	if shouldAutoServeJson(false, true, false, "Streisand/1.6.32", configured) {
+	if shouldAutoServeJson(false, true, false, "JsonClient/1.6.32", configured) {
 		t.Fatal("disabled Xray JSON auto-detection matched")
 	}
-	if shouldAutoServeJson(true, false, false, "Streisand/1.6.32", configured) {
+	if shouldAutoServeJson(true, false, false, "JsonClient/1.6.32", configured) {
 		t.Fatal("disabled JSON endpoint matched")
 	}
-	if shouldAutoServeJson(true, true, true, "Streisand/1.6.32", configured) {
+	if shouldAutoServeJson(true, true, true, "JsonClient/1.6.32", configured) {
 		t.Fatal("browser HTML request matched Xray JSON")
+	}
+
+	empty := compileUserAgentRegex("Xray JSON", "", service.DefaultSubJsonUserAgentRegex)
+	if empty != nil {
+		t.Fatal("empty Xray JSON default should not compile to a matcher")
+	}
+	if shouldAutoServeJson(true, true, false, "JsonClient/1.6.32", empty) {
+		t.Fatal("empty Xray JSON default should not auto-serve")
 	}
 }
 
@@ -155,8 +163,8 @@ func TestShouldAutoServeJsonUsesConfiguredRegex(t *testing.T) {
 	if !shouldAutoServeJson(true, true, false, "Custom-JSON/1.0", configured) {
 		t.Fatal("configured Xray JSON User-Agent regex did not match")
 	}
-	if shouldAutoServeJson(true, true, false, "v2rayNG/1.10.0", configured) {
-		t.Fatal("default Xray JSON User-Agent matched after a custom regex replaced it")
+	if shouldAutoServeJson(true, true, false, "OtherClient/1.10.0", configured) {
+		t.Fatal("unrelated User-Agent matched after a custom regex was configured")
 	}
 }
 
@@ -257,9 +265,9 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 		}
 	})
 
-	t.Run("v2rayNG preserves raw base64", func(t *testing.T) {
+	t.Run("unrecognized client preserves raw base64", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
-		req.Header.Set("User-Agent", "v2rayNG/1.10.0")
+		req.Header.Set("User-Agent", "GenericClient/1.10.0")
 		resp := httptest.NewRecorder()
 
 		newSubscriptionTestRouter(subscriptionTestRouterConfig{
@@ -281,10 +289,13 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 
 	t.Run("recognized Xray JSON client receives configuration array", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
-		req.Header.Set("User-Agent", "Streisand/1.6.32")
+		req.Header.Set("User-Agent", "JsonClient/1.6.32")
 		resp := httptest.NewRecorder()
 
-		newSubscriptionTestRouter(subscriptionTestRouterConfig{jsonAutoDetect: true}).ServeHTTP(resp, req)
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			jsonAutoDetect:     true,
+			jsonUserAgentRegex: `(?i)^jsonclient([ /]|$)`,
+		}).ServeHTTP(resp, req)
 
 		if resp.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())

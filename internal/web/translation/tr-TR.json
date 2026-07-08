@@ -1200,11 +1200,11 @@
       "subJsonAlwaysArray": "Her zaman JSON dizisi döndür",
       "subJsonAlwaysArrayDesc": "Açık JSON abonelik uç noktasını tek profil olsa bile XTLS standardına uygun bir dizi olarak döndürür. Otomatik algılanan JSON yanıtları her zaman dizi kullanır. Eski tek nesne yanıtını korumak için devre dışı bırakın.",
       "subJsonUserAgentRegex": "Xray JSON User-Agent düzenli ifadesi",
-      "subJsonUserAgentRegexDesc": "Xray JSON abonelik istemcilerini tanımak için Go RE2 düzenli ifadesi. Muhafazakâr varsayılan desen yalnızca Streisand ile eşleşir; doğrulanmış diğer istemcileri açıkça ekleyin. v2rayNG, v2rayN ve v2rayA varsayılan olarak ham aboneliği almaya devam eder. Varsayılan deseni geri yüklemek için boş bırakın. Değişiklikten sonra paneli yeniden başlatın.",
+      "subJsonUserAgentRegexDesc": "Standart abonelik URL'sinde Xray JSON biçimini otomatik seçmek için istemcinin User-Agent değeriyle eşleştirilen Go RE2 düzenli ifadesi. Varsayılan olarak boştur; bu nedenle hizmet vermek istediğiniz istemciler için bir desen belirleyene kadar otomatik algılama kapalı kalır. Diğer istemciler ham/Base64 yanıtını almaya devam eder. Değişiklikten sonra paneli yeniden başlatın.",
       "subClashAutoDetect": "Clash/Mihomo istemcilerini otomatik algıla",
-      "subClashAutoDetectDesc": "Etkinleştirildiğinde, standart abonelik URL'sini isteyen tanınmış Clash, Mihomo ve Stash istemcileri otomatik olarak Clash YAML alır. Tarayıcılar abonelik sayfasını göstermeye devam eder, diğer istemciler ham/Base64 yanıtını almaya devam eder ve açık JSON ile Clash URL'leri kullanılabilir kalır. Uygulanması için Clash/Mihomo aboneliğinin etkinleştirilmesi ve panelin yeniden başlatılması gerekir.",
+      "subClashAutoDetectDesc": "Etkinleştirildiğinde, standart abonelik URL'sini isteyen tanınmış Clash/Mihomo istemcileri otomatik olarak Clash YAML alır. Tarayıcılar abonelik sayfasını göstermeye devam eder, diğer istemciler ham/Base64 yanıtını almaya devam eder ve açık JSON ile Clash URL'leri kullanılabilir kalır. Uygulanması için Clash/Mihomo aboneliğinin etkinleştirilmesi ve panelin yeniden başlatılması gerekir.",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent düzenli ifadesi",
-      "subClashUserAgentRegexDesc": "Standart abonelik URL'sindeki Clash, Mihomo ve Stash istemcilerini tanımak için Go RE2 düzenli ifadesi. Varsayılan deseni kullanmak için boş bırakın. Değişiklikten sonra paneli yeniden başlatın.",
+      "subClashUserAgentRegexDesc": "Standart abonelik URL'sinde Clash/Mihomo istemcilerini tanımak için istemcinin User-Agent değeriyle eşleştirilen Go RE2 düzenli ifadesi. Varsayılan deseni kullanmak için boş bırakın. Değişiklikten sonra paneli yeniden başlatın.",
       "subTitle": "Abonelik Başlığı",
       "subTitleDesc": "VPN istemcisinde gösterilen başlık.",
       "subSupportUrl": "Destek URL'si",
@@ -1871,7 +1871,8 @@
         "dnsPresetFamily": "Aile",
         "clearAll": "Tümünü Sil",
         "clearAllTitle": "Tüm DNS sunucularını sil?",
-        "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz."
+        "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz.",
+        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın."
       },
       "fakedns": {
         "add": "Sahte DNS Ekle",
@@ -1907,7 +1908,7 @@
       "fields": {
         "remark": "Açıklama",
         "serverDescription": "Tanım",
-        "inbound": "Gelen Bağlantı",
+        "inbound": "Gelen Bağlantılar",
         "address": "Adres",
         "port": "Port",
         "endpoint": "Uç Nokta",
@@ -1934,7 +1935,8 @@
         "tags": "Etiketler",
         "nodeGuids": "Düğümler",
         "excludeFromSubTypes": "Formatlardan hariç tut",
-        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula"
+        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula",
+        "inheritAddress": "Adresi devralır"
       },
       "hints": {
         "address": "Gelen bağlantının kendi adresini devralmak için boş bırakın.",

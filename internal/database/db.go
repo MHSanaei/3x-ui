@@ -1,5 +1,3 @@
-// Package database provides database initialization, migration, and management utilities
-// for the 3x-ui panel using GORM with SQLite or PostgreSQL.
 package database
 
 import (
@@ -39,7 +37,6 @@ const (
 	DialectPostgres = "postgres"
 )
 
-// IsPostgres reports whether the active connection is a PostgreSQL backend.
 func IsPostgres() bool {
 	if db == nil {
 		return config.GetDBKind() == "postgres"
@@ -47,7 +44,6 @@ func IsPostgres() bool {
 	return db.Name() == "postgres"
 }
 
-// Dialect returns the active GORM dialect name, or "" if the DB is not open.
 func Dialect() string {
 	if db == nil {
 		return ""
@@ -131,8 +127,6 @@ func initModels() error {
 	return nil
 }
 
-// postgresModelSettled skips AutoMigrate when table, columns, and indexes all exist:
-// its catalog-filtered column probe misdetects on some setups and re-ADDs columns forever (#5665).
 func postgresModelSettled(mdl any) bool {
 	migrator := db.Migrator()
 	if !migrator.HasTable(mdl) {
@@ -166,21 +160,12 @@ func dropLegacyForeignKeys() error {
 	return nil
 }
 
-// migrateHostVerifyPeerCertByNameColumn converts hosts.verify_peer_cert_by_name
-// from its original boolean shape to the comma-separated string xray-core's
-// verifyPeerCertByName (vcn) actually expects. The legacy boolean was dead
-// (never emitted into links), so its value carries no meaning and is discarded.
-// Idempotent by construction (no HistoryOfSeeders row — writing one here would
-// flip the fresh-DB detection in runSeeders). Runs right after AutoMigrate,
-// before anything reads or writes Host rows (critical on Postgres, where the
-// column stays boolean-typed until the ALTER below).
 func migrateHostVerifyPeerCertByNameColumn() error {
 	if !db.Migrator().HasColumn(&model.Host{}, "verify_peer_cert_by_name") {
 		return nil
 	}
 	if IsPostgres() {
-		// Only convert a still-boolean column; once it is text this is a no-op,
-		// so a user-set name is never wiped on a later restart.
+
 		var dataType string
 		if err := db.Raw(
 			`SELECT data_type FROM information_schema.columns WHERE table_name = 'hosts' AND column_name = 'verify_peer_cert_by_name'`,
@@ -195,15 +180,10 @@ func migrateHostVerifyPeerCertByNameColumn() error {
 		}
 		return db.Exec(`ALTER TABLE hosts ALTER COLUMN verify_peer_cert_by_name TYPE text USING ''`).Error
 	}
-	// SQLite keeps the original numeric-affinity column; blank any legacy
-	// integer/null value so it doesn't read back as "0"/"1". After conversion
-	// every value is text, so re-running touches nothing.
+
 	return db.Exec(`UPDATE hosts SET verify_peer_cert_by_name = '' WHERE verify_peer_cert_by_name IS NULL OR typeof(verify_peer_cert_by_name) <> 'text'`).Error
 }
 
-// seedHostsFromExternalProxy is a one-time, self-gated migration that creates a
-// Host row for every legacy externalProxy entry on every inbound. Additive: the
-// externalProxy arrays are left intact in StreamSettings.
 func seedHostsFromExternalProxy() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -228,13 +208,6 @@ func seedHostsFromExternalProxy() error {
 	})
 }
 
-// seedWireguardPeersToClients is a one-time, self-gated migration that converts
-// legacy single-config WireGuard inbounds into the multi-client model: each
-// settings.peers[] entry becomes a managed client in the clients table attached
-// to the inbound, and the inbound settings are rewritten so peers becomes a
-// clients[] array (GetXrayConfig re-projects clients back to peers for xray).
-// Idempotent: gated on the history row and skipped per-inbound once it already
-// has client links.
 func seedWireguardPeersToClients() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -349,8 +322,6 @@ func seedWireguardPeersToClients() error {
 	})
 }
 
-// wireguardPeerEmail derives a stable, unique client email for a migrated peer
-// from the inbound remark plus the peer's comment (or its 1-based index).
 func wireguardPeerEmail(remark string, peer map[string]any, index int, used map[string]struct{}) string {
 	base := strings.TrimSpace(remark)
 	if base == "" {
@@ -564,10 +535,6 @@ func CreateHostsFromExternalProxy(tx *gorm.DB, inboundId int, streamSettings str
 	return created, nil
 }
 
-// externalProxyEntryToHost maps one legacy externalProxy entry onto a Host.
-// forceTls (same|tls|none) maps straight to Security; an unknown value falls back
-// to "same" (inherit). An empty remark gets a stable generated label so the row
-// stays valid/editable, and the remark is capped at the model's 256-char limit.
 func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Host {
 	security, _ := ep["forceTls"].(string)
 	switch security {
@@ -794,8 +761,7 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 		return false
 	}
 	errMsg := strings.ToLower(err.Error())
-	// SQLite: "duplicate column name: foo"
-	// Postgres: `pq: column "foo" of relation "bar" already exists` / `sqlstate 42701`
+
 	const sqlitePrefix = "duplicate column name:"
 	if _, after, ok := strings.Cut(errMsg, sqlitePrefix); ok {
 		col := strings.TrimSpace(after)
@@ -803,7 +769,6 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 		return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
 	}
 	if strings.Contains(errMsg, "already exists") && strings.Contains(errMsg, "column ") {
-		// Best effort: extract the column name between the first pair of double quotes.
 		if _, after, ok := strings.Cut(errMsg, "column \""); ok {
 			rest := after
 			if e := strings.Index(rest, "\""); e > 0 {
@@ -815,7 +780,6 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 	return false
 }
 
-// initUser creates a default admin user if the users table is empty.
 func initUser() error {
 	empty, err := isTableEmpty("users")
 	if err != nil {
@@ -838,7 +802,6 @@ func initUser() error {
 	return nil
 }
 
-// runSeeders migrates user passwords to bcrypt and records seeder execution to prevent re-running.
 func runSeeders(isUsersEmpty bool) error {
 	empty, err := isTableEmpty("history_of_seeders")
 	if err != nil {
@@ -940,19 +903,19 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
-	// Self-gated on the "HostsFromExternalProxy" row, so it is safe to call
-	// unconditionally here.
 	if err := seedHostsFromExternalProxy(); err != nil {
 		return err
 	}
 
-	// Self-gated on the "ResetIpLimitNoFail2ban" row.
 	if err := resetIpLimitsWithoutFail2ban(); err != nil {
 		return err
 	}
 
-	// Self-gated on the "WireguardPeersToClients" row.
 	if err := seedWireguardPeersToClients(); err != nil {
+		return err
+	}
+
+	if err := seedHostGroupIds(); err != nil {
 		return err
 	}
 
@@ -974,11 +937,38 @@ func runSeeders(isUsersEmpty bool) error {
 	return normalizeSettingPaths()
 }
 
-// resetIpLimitsWithoutFail2ban zeroes every client's IP limit on hosts where
-// fail2ban can't enforce it (not installed, or the integration disabled). The
-// limit silently does nothing there yet kept logging a repeated warning, so a
-// stale value is just misleading — the panel also disables the field on these
-// hosts. One-time, self-gated on the seeder row.
+func seedHostGroupIds() error {
+	var history []string
+	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
+		return err
+	}
+	if slices.Contains(history, "HostGroupIds") {
+		return nil
+	}
+
+	var hosts []*model.Host
+	if err := db.Where("group_id = '' OR group_id IS NULL").Find(&hosts).Error; err != nil {
+		return err
+	}
+
+	if len(hosts) > 0 {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			for _, h := range hosts {
+				h.GroupId = random.NumLower(16)
+				if err := tx.Model(h).Update("group_id", h.GroupId).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return db.Create(&model.HistoryOfSeeders{SeederName: "HostGroupIds"}).Error
+}
+
 func resetIpLimitsWithoutFail2ban() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -1050,10 +1040,6 @@ func resetIpLimitsWithoutFail2ban() error {
 	})
 }
 
-// fail2banCanEnforce reports whether per-client IP limits can actually be
-// enforced on this host: the integration must be enabled (XUI_ENABLE_FAIL2BAN)
-// and fail2ban-client must be present. Mirrors the service-layer check, kept
-// local to avoid an import cycle.
 func fail2banCanEnforce() bool {
 	if v, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); ok && v != "true" {
 		return false
@@ -1064,8 +1050,6 @@ func fail2banCanEnforce() bool {
 	return exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run() == nil
 }
 
-// clearLegacyProxySettings drops the deprecated panelProxy/tgBotProxy rows so a
-// stale tgBotProxy no longer masks the panelOutbound egress fallback.
 func clearLegacyProxySettings() error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("key IN ?", []string{"panelProxy", "tgBotProxy"}).
@@ -1076,12 +1060,6 @@ func clearLegacyProxySettings() error {
 	})
 }
 
-// normalizeSettingPaths repairs URI-path settings persisted before the
-// leading/trailing-slash rules existed (or restored from an old backup),
-// mirroring entity.AllSetting.CheckValid. CheckValid self-heals these on save,
-// but the frontend rejects the whole Settings form on the bad stored value
-// before a save can ever reach it (#5726), so the stored rows themselves must
-// be fixed. Idempotent; runs on every start.
 func normalizeSettingPaths() error {
 	pathKeys := []string{"webBasePath", "subPath", "subJsonPath", "subClashPath"}
 	var rows []model.Setting
@@ -1345,10 +1323,6 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	return true
 }
 
-// normalizeClientJSONFields coerces loosely-typed numeric fields in a raw
-// settings.clients entry so json.Unmarshal into model.Client doesn't fail
-// when older rows wrote tgId/limitIp/totalGB/etc. as strings. Empty strings
-// drop the key so the field falls back to its zero value.
 func normalizeClientJSONFields(obj map[string]any) {
 	normalizeInt := func(key string) {
 		raw, exists := obj[key]
@@ -1462,10 +1436,6 @@ func seedClientsFromInboundJSON() error {
 	})
 }
 
-// seedApiTokens copies the legacy `apiToken` setting into the new
-// api_tokens table as a row named "default" so existing central panels
-// keep working after the upgrade. Idempotent — records itself in
-// history_of_seeders and only runs when api_tokens is empty.
 func seedApiTokens() error {
 	empty, err := isTableEmpty("api_tokens")
 	if err != nil {
@@ -1489,10 +1459,6 @@ func seedApiTokens() error {
 	return db.Create(&model.HistoryOfSeeders{SeederName: "ApiTokensTable"}).Error
 }
 
-// hashExistingApiTokens replaces any plaintext token stored before tokens were
-// hashed at rest with its SHA-256 digest. Callers keep their plaintext copy
-// (used on remote nodes), so existing tokens keep authenticating; the panel
-// just can no longer reveal them. Idempotent — already-hashed rows are skipped.
 func hashExistingApiTokens() error {
 	var rows []*model.ApiToken
 	if err := db.Find(&rows).Error; err != nil {
@@ -1511,15 +1477,12 @@ func hashExistingApiTokens() error {
 	return db.Create(&model.HistoryOfSeeders{SeederName: "ApiTokensHash"}).Error
 }
 
-// isTableEmpty returns true if the named table contains zero rows.
 func isTableEmpty(tableName string) (bool, error) {
 	var count int64
 	err := db.Table(tableName).Count(&count).Error
 	return count == 0, err
 }
 
-// InitDB sets up the database connection, migrates models, and runs seeders.
-// When XUI_DB_TYPE=postgres, dbPath is ignored and XUI_DB_DSN is used instead.
 func InitDB(dbPath string) error {
 	var gormLogger logger.Interface
 	if config.IsDebug() {
@@ -1553,8 +1516,7 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
-		// Keep journal_mode=DELETE so the DB stays a single file (no -wal/-shm
-		// sidecars). synchronous defaults to FULL for durability but is tunable.
+
 		sync := sqliteSynchronous()
 		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
@@ -1565,9 +1527,7 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		// Re-assert the DSN pragmas plus scan-friendly ones for large datasets.
-		// cache_size/mmap_size/temp_store create no extra files, so the single-file
-		// guarantee holds; they just cut disk I/O on the 50k-row hot paths.
+
 		pragmas := []string{
 			"PRAGMA journal_mode=DELETE",
 			"PRAGMA busy_timeout=10000",
@@ -1616,17 +1576,12 @@ func InitDB(dbPath string) error {
 	return runSeeders(isUsersEmpty)
 }
 
-// normalizeApiTokenCreatedAtSeconds repairs rows written while ApiToken used
-// autoCreateTime:milli. The threshold separates modern Unix milliseconds from
-// Unix seconds and makes this safe to run on every startup.
 func normalizeApiTokenCreatedAtSeconds() error {
 	return db.Model(&model.ApiToken{}).
 		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
 }
 
-// sqliteSynchronous returns the SQLite synchronous mode, defaulting to FULL.
-// Whitelisted because the value is interpolated directly into a PRAGMA string.
 func sqliteSynchronous() string {
 	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
 	case "OFF":
@@ -1652,7 +1607,6 @@ func envInt(key string, def int) int {
 	return n
 }
 
-// CloseDB closes the database connection if it exists.
 func CloseDB() error {
 	if db != nil {
 		sqlDB, err := db.DB()
@@ -1664,7 +1618,6 @@ func CloseDB() error {
 	return nil
 }
 
-// GetDB returns the global GORM database instance.
 func GetDB() *gorm.DB {
 	return db
 }
@@ -1673,7 +1626,6 @@ func IsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-// IsSQLiteDB checks if the given file is a valid SQLite database by reading its signature.
 func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	signature := []byte("SQLite format 3\x00")
 	buf := make([]byte, len(signature))
@@ -1684,8 +1636,6 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-// Checkpoint performs a WAL checkpoint on the SQLite database to ensure data consistency.
-// No-op on PostgreSQL (WAL there is managed by the server).
 func Checkpoint() error {
 	if IsPostgres() {
 		return nil
@@ -1693,11 +1643,8 @@ func Checkpoint() error {
 	return db.Exec("PRAGMA wal_checkpoint;").Error
 }
 
-// ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection
-// and runs a PRAGMA integrity_check to ensure the file is structurally sound.
-// It does not mutate global state or run migrations.
 func ValidateSQLiteDB(dbPath string) error {
-	if _, err := os.Stat(dbPath); err != nil { // file must exist
+	if _, err := os.Stat(dbPath); err != nil {
 		return err
 	}
 	gdb, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{Logger: logger.Discard})

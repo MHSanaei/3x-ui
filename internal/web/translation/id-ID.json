@@ -1200,11 +1200,11 @@
       "subJsonAlwaysArray": "Selalu kembalikan larik JSON",
       "subJsonAlwaysArrayDesc": "Mengembalikan endpoint langganan JSON eksplisit sebagai larik meski hanya berisi satu profil, sesuai standar XTLS. Respons JSON yang terdeteksi otomatis selalu menggunakan larik. Nonaktifkan untuk mempertahankan respons objek tunggal lama.",
       "subJsonUserAgentRegex": "Regex User-Agent Xray JSON",
-      "subJsonUserAgentRegexDesc": "Ekspresi reguler Go RE2 untuk mengenali klien langganan Xray JSON. Pola bawaan konservatif hanya cocok dengan Streisand; tambahkan klien terverifikasi lainnya secara eksplisit. v2rayNG, v2rayN, dan v2rayA tetap menerima langganan mentah secara bawaan. Kosongkan untuk memulihkan pola bawaan. Mulai ulang panel setelah mengubahnya.",
+      "subJsonUserAgentRegexDesc": "Ekspresi reguler Go RE2 yang dicocokkan dengan User-Agent klien untuk memilih format Xray JSON secara otomatis pada URL langganan standar. Kosong secara bawaan, sehingga deteksi otomatis tetap nonaktif hingga Anda menetapkan pola untuk klien yang ingin dilayani. Klien lain tetap menerima respons mentah/Base64. Mulai ulang panel setelah mengubahnya.",
       "subClashAutoDetect": "Deteksi otomatis klien Clash/Mihomo",
-      "subClashAutoDetectDesc": "Jika diaktifkan, klien Clash, Mihomo, dan Stash yang dikenali dan meminta URL langganan standar akan otomatis menerima YAML Clash. Browser tetap menampilkan halaman langganan, klien lain tetap menerima respons mentah/Base64, dan URL JSON serta Clash eksplisit tetap tersedia. Langganan Clash/Mihomo harus diaktifkan dan panel harus dimulai ulang agar perubahan diterapkan.",
+      "subClashAutoDetectDesc": "Jika diaktifkan, klien Clash/Mihomo yang dikenali dan meminta URL langganan standar akan otomatis menerima YAML Clash. Browser tetap menampilkan halaman langganan, klien lain tetap menerima respons mentah/Base64, dan URL JSON serta Clash eksplisit tetap tersedia. Langganan Clash/Mihomo harus diaktifkan dan panel harus dimulai ulang agar perubahan diterapkan.",
       "subClashUserAgentRegex": "Regex User-Agent Clash/Mihomo",
-      "subClashUserAgentRegexDesc": "Ekspresi reguler Go RE2 untuk mengenali klien Clash, Mihomo, dan Stash pada URL langganan standar. Kosongkan untuk memakai pola bawaan. Mulai ulang panel setelah mengubahnya.",
+      "subClashUserAgentRegexDesc": "Ekspresi reguler Go RE2 yang dicocokkan dengan User-Agent klien untuk mengenali klien Clash/Mihomo pada URL langganan standar. Kosongkan untuk memakai pola bawaan. Mulai ulang panel setelah mengubahnya.",
       "subTitle": "Judul Langganan",
       "subTitleDesc": "Judul yang ditampilkan di klien VPN",
       "subSupportUrl": "URL Dukungan",
@@ -1871,7 +1871,8 @@
         "dnsPresetFamily": "Keluarga",
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
-        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan."
+        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",
@@ -1934,7 +1935,8 @@
         "tags": "Tag",
         "nodeGuids": "Node",
         "excludeFromSubTypes": "Kecualikan dari format",
-        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama"
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "inheritAddress": "Warisi alamat"
       },
       "hints": {
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",

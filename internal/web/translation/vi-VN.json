@@ -1200,11 +1200,11 @@
       "subJsonAlwaysArray": "Luôn trả về mảng JSON",
       "subJsonAlwaysArrayDesc": "Trả endpoint đăng ký JSON tường minh dưới dạng mảng ngay cả khi chỉ có một hồ sơ, theo tiêu chuẩn XTLS. Phản hồi JSON được tự động nhận diện luôn dùng mảng. Tắt để giữ phản hồi một đối tượng kiểu cũ.",
       "subJsonUserAgentRegex": "Biểu thức User-Agent Xray JSON",
-      "subJsonUserAgentRegexDesc": "Biểu thức chính quy Go RE2 để nhận diện ứng dụng đăng ký Xray JSON. Mẫu mặc định thận trọng chỉ khớp Streisand; hãy thêm rõ ràng các ứng dụng khác đã được xác minh. v2rayNG, v2rayN và v2rayA mặc định tiếp tục nhận đăng ký thô. Để trống để khôi phục mẫu mặc định. Khởi động lại bảng điều khiển sau khi thay đổi.",
+      "subJsonUserAgentRegexDesc": "Biểu thức chính quy Go RE2 được so khớp với User-Agent của ứng dụng để tự động chọn định dạng Xray JSON trên URL đăng ký tiêu chuẩn. Mặc định để trống, nên tính năng tự động nhận diện vẫn tắt cho đến khi bạn đặt mẫu cho các ứng dụng muốn phục vụ. Các ứng dụng khác tiếp tục nhận phản hồi thô/Base64. Khởi động lại bảng điều khiển sau khi thay đổi.",
       "subClashAutoDetect": "Tự động nhận diện ứng dụng Clash/Mihomo",
-      "subClashAutoDetectDesc": "Khi bật, các ứng dụng Clash, Mihomo và Stash được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận cấu hình Clash YAML. Trình duyệt vẫn hiển thị trang đăng ký, các ứng dụng khác tiếp tục nhận phản hồi thô/Base64, còn các URL JSON và Clash riêng vẫn khả dụng. Cần bật đăng ký Clash/Mihomo và khởi động lại bảng điều khiển để áp dụng thay đổi.",
+      "subClashAutoDetectDesc": "Khi bật, các ứng dụng Clash/Mihomo được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận cấu hình Clash YAML. Trình duyệt vẫn hiển thị trang đăng ký, các ứng dụng khác tiếp tục nhận phản hồi thô/Base64, còn các URL JSON và Clash riêng vẫn khả dụng. Cần bật đăng ký Clash/Mihomo và khởi động lại bảng điều khiển để áp dụng thay đổi.",
       "subClashUserAgentRegex": "Biểu thức User-Agent Clash/Mihomo",
-      "subClashUserAgentRegexDesc": "Biểu thức chính quy Go RE2 để nhận diện ứng dụng Clash, Mihomo và Stash trên URL đăng ký tiêu chuẩn. Để trống để dùng mẫu mặc định. Khởi động lại bảng điều khiển sau khi thay đổi.",
+      "subClashUserAgentRegexDesc": "Biểu thức chính quy Go RE2 được so khớp với User-Agent của ứng dụng để nhận diện ứng dụng Clash/Mihomo trên URL đăng ký tiêu chuẩn. Để trống để dùng mẫu mặc định. Khởi động lại bảng điều khiển sau khi thay đổi.",
       "subTitle": "Tiêu đề Đăng ký",
       "subTitleDesc": "Tiêu đề hiển thị trong ứng dụng VPN",
       "subSupportUrl": "URL Hỗ trợ",
@@ -1871,7 +1871,8 @@
         "dnsPresetFamily": "Gia đình",
         "clearAll": "Xóa tất cả",
         "clearAllTitle": "Xóa tất cả máy chủ DNS?",
-        "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác."
+        "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác.",
+        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư."
       },
       "fakedns": {
         "add": "Thêm DNS giả",
@@ -1907,7 +1908,7 @@
       "fields": {
         "remark": "Ghi chú",
         "serverDescription": "Mô tả",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Địa chỉ",
         "port": "Cổng",
         "endpoint": "Endpoint",
@@ -1934,7 +1935,8 @@
         "shuffleHost": "Xáo trộn host",
         "tags": "Tag",
         "nodeGuids": "Nút",
-        "excludeFromSubTypes": "Loại trừ khỏi định dạng"
+        "excludeFromSubTypes": "Loại trừ khỏi định dạng",
+        "inheritAddress": "Kế thừa địa chỉ"
       },
       "hints": {
         "address": "Để trống để kế thừa địa chỉ của chính inbound.",

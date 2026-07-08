@@ -386,10 +386,6 @@ func (a *SUBController) subs(c *gin.Context) {
 	}
 }
 
-// shouldAutoServeClash reports whether the standard subscription endpoint
-// should return Clash/Mihomo YAML for this request. Browser HTML always wins,
-// and disabling either auto-detection or Clash subscriptions preserves the
-// existing raw/base64 behavior.
 func shouldAutoServeClash(autoDetect, clashEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
 	return shouldAutoServeFormat(autoDetect, clashEnabled, wantsHTML, userAgent, userAgentRegex)
 }
@@ -399,8 +395,6 @@ func shouldAutoServeJson(autoDetect, jsonEnabled, wantsHTML bool, userAgent stri
 }
 
 func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent string, userAgentRegex *regexp.Regexp) bool {
-	// NewSUBController normally guarantees a compiled regex. Keep this guard so
-	// direct callers and partially initialized controllers fail closed.
 	if !autoDetect || !formatEnabled || wantsHTML || userAgentRegex == nil {
 		return false
 	}
@@ -428,13 +422,19 @@ func sanitizeUserAgentForLog(userAgent string) string {
 func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
-		pattern = defaultPattern
+		pattern = strings.TrimSpace(defaultPattern)
+	}
+	if pattern == "" {
+		return nil
 	}
 	compiled, err := regexp.Compile(pattern)
 	if err == nil {
 		return compiled
 	}
 	logger.Warningf("Invalid %s User-Agent regex %q; falling back to default %q: %v", name, pattern, defaultPattern, err)
+	if strings.TrimSpace(defaultPattern) == "" {
+		return nil
+	}
 	return regexp.MustCompile(defaultPattern)
 }
 

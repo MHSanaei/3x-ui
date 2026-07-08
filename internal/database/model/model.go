@@ -294,6 +294,10 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		if stripped, ok := StripVlessInboundEncryption(settings); ok {
 			settings = stripped
 		}
+	case WireGuard:
+		if converted, ok := WireguardClientsToPeers(settings); ok {
+			settings = converted
+		}
 	}
 	streamSettings := i.StreamSettings
 	if stripped, ok := StripInboundXhttpClientFields(streamSettings); ok {
@@ -337,6 +341,81 @@ func StripVmessClientSecurity(settings string) (string, bool) {
 	if !changed {
 		return settings, false
 	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
+// WireguardPeerFromClient builds the xray wireguard inbound peer object for one
+// WireGuard client. It is the single definition of the peer shape, shared by the
+// full-config path (XrayService.GetXrayConfig) and the live AddInbound path
+// (WireguardClientsToPeers), so both emit identical peers. The client's
+// privateKey is intentionally omitted — it is the client's secret, not part of
+// the server-side peer.
+func WireguardPeerFromClient(c Client) map[string]any {
+	peer := map[string]any{"email": c.Email, "level": 0}
+	if c.PublicKey != "" {
+		peer["publicKey"] = c.PublicKey
+	}
+	if len(c.AllowedIPs) > 0 {
+		peer["allowedIPs"] = c.AllowedIPs
+	}
+	if c.PreSharedKey != "" {
+		peer["preSharedKey"] = c.PreSharedKey
+	}
+	if c.KeepAlive > 0 {
+		peer["keepAlive"] = c.KeepAlive
+	}
+	return peer
+}
+
+// WireguardClientsToPeers rewrites a WireGuard inbound's settings JSON from the
+// panel's client representation into the peers array xray-core's wireguard
+// inbound expects. The panel stores WireGuard clients under "clients" (the shape
+// every other protocol uses); xray is configured with "peers". GetXrayConfig
+// already does this conversion when it builds the full config, but the live
+// gRPC AddInbound paths (inbound create/edit and node reconcile) go through
+// GenXrayInboundConfig directly — without the conversion they re-add the
+// wireguard inbound with no peers, dropping every connected client until the
+// next full restart. Clients are the source of truth and are always rebuilt
+// into peers (matching GetXrayConfig), so the panel's empty "peers" placeholder
+// never blocks the conversion. Idempotent: converting removes "clients", so a
+// second call is a no-op, as is any inbound that carries no "clients".
+func WireguardClientsToPeers(settings string) (string, bool) {
+	if settings == "" {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok {
+		return settings, false
+	}
+	peers := make([]any, 0, len(clients))
+	for _, raw := range clients {
+		cm, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if enable, ok := cm["enable"].(bool); ok && !enable {
+			continue
+		}
+		encoded, err := json.Marshal(cm)
+		if err != nil {
+			continue
+		}
+		var c Client
+		if err := json.Unmarshal(encoded, &c); err != nil {
+			continue
+		}
+		peers = append(peers, WireguardPeerFromClient(c))
+	}
+	delete(parsed, "clients")
+	parsed["peers"] = peers
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false
@@ -834,12 +913,9 @@ type InboundFallback struct {
 
 func (InboundFallback) TableName() string { return "inbound_fallbacks" }
 
-// Host is an override endpoint attached to an inbound: at subscription time each
-// enabled host renders one share link/proxy with its own address/port/TLS/etc.,
-// superseding the legacy externalProxy array. Free-JSON fields are stored as
-// text and parsed in the sub layer; slice fields use the json serializer.
 type Host struct {
 	Id                int      `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	GroupId           string   `json:"groupId" form:"groupId" gorm:"column:group_id;index"`
 	InboundId         int      `json:"inboundId" form:"inboundId" gorm:"index;not null;column:inbound_id" validate:"required" example:"1"`
 	SortOrder         int      `json:"sortOrder" form:"sortOrder" gorm:"default:0;column:sort_order"`
 	Remark            string   `json:"remark" form:"remark" validate:"required,max=256" example:"cdn-front"`

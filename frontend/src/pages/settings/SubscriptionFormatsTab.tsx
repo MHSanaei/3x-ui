@@ -196,7 +196,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                 >
                   <GoRegexInput
                     value={allSetting.subJsonUserAgentRegex}
-                    placeholder="(?i)^streisand([ /]|$)"
+                    placeholder="(?i)^myclient([ /]|$)"
                     onChange={(value) => updateSetting({ subJsonUserAgentRegex: value })}
                   />
                 </SettingListItem>
@@ -245,7 +245,7 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                 >
                   <GoRegexInput
                     value={allSetting.subClashUserAgentRegex}
-                    placeholder="(?i)(clash|mihomo|stash)"
+                    placeholder="(?i)(clash|mihomo)"
                     onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
                   />
                 </SettingListItem>

@@ -9,7 +9,7 @@ import (
 )
 
 func TestValidateRegex(t *testing.T) {
-	for _, pattern := range []string{"", `(?i)^streisand([ /]|$)`, `(?m)^general-purpose$`} {
+	for _, pattern := range []string{"", `(?i)^jsonclient([ /]|$)`, `(?m)^general-purpose$`} {
 		if err := ValidateRegex(pattern); err != nil {
 			t.Errorf("ValidateRegex(%q) returned %v", pattern, err)
 		}

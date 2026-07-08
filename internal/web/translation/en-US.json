@@ -1016,7 +1016,7 @@
       "fields": {
         "remark": "Remark",
         "serverDescription": "Description",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Address",
         "port": "Port",
         "endpoint": "Endpoint",
@@ -1043,7 +1043,8 @@
         "shuffleHost": "Shuffle host",
         "tags": "Tags",
         "nodeGuids": "Nodes",
-        "excludeFromSubTypes": "Exclude from formats"
+        "excludeFromSubTypes": "Exclude from formats",
+        "inheritAddress": "Inherits"
       },
       "hints": {
         "address": "Leave blank to inherit the inbound's own address.",
@@ -1098,9 +1099,9 @@
       "toasts": {
         "list": "Failed to load hosts",
         "obtain": "Failed to load host",
-        "add": "Add host",
-        "update": "Update host",
-        "delete": "Delete host",
+        "add": "Host added successfully",
+        "update": "Host updated successfully",
+        "delete": "Host deleted successfully",
         "badTag": "Invalid tag",
         "badVlessRoute": "Enter a single number between 0 and 65535"
       }
@@ -1318,11 +1319,11 @@
       "subJsonAlwaysArray": "Always return a JSON array",
       "subJsonAlwaysArrayDesc": "Return the explicit JSON subscription endpoint as an array even when it contains one profile, as required by the XTLS subscription standard. Auto-detected JSON responses always use arrays. Leave disabled to preserve the legacy single-object response.",
       "subJsonUserAgentRegex": "Xray JSON User-Agent regex",
-      "subJsonUserAgentRegexDesc": "Go RE2 regular expression used to recognize Xray JSON subscription clients. The conservative default matches only Streisand; add other verified clients explicitly. v2rayNG, v2rayN, and v2rayA remain on raw subscriptions by default. Leave empty to restore the default pattern. Restart the panel after changes.",
+      "subJsonUserAgentRegexDesc": "Go RE2 regular expression matched against the client's User-Agent to auto-select the Xray JSON format on the standard subscription URL. Empty by default, so auto-detection stays off until you set a pattern for the clients you want to serve. Other clients keep the raw/base64 response. Restart the panel after changes.",
       "subClashAutoDetect": "Auto-detect Clash/Mihomo clients",
-      "subClashAutoDetectDesc": "When enabled, recognized Clash, Mihomo, and Stash clients requesting the standard subscription URL receive Clash YAML automatically. Browsers still show the subscription page, other clients keep the raw/base64 response, and the explicit JSON and Clash URLs remain available. Requires Clash/Mihomo subscription to be enabled and a panel restart to apply.",
+      "subClashAutoDetectDesc": "When enabled, recognized Clash/Mihomo clients requesting the standard subscription URL receive Clash YAML automatically. Browsers still show the subscription page, other clients keep the raw/base64 response, and the explicit JSON and Clash URLs remain available. Requires Clash/Mihomo subscription to be enabled and a panel restart to apply.",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent regex",
-      "subClashUserAgentRegexDesc": "Go RE2 regular expression used to recognize Clash, Mihomo, and Stash clients on the standard subscription URL. Leave empty to use the default pattern. Restart the panel after changes.",
+      "subClashUserAgentRegexDesc": "Go RE2 regular expression matched against the client's User-Agent to recognize Clash/Mihomo clients on the standard subscription URL. Leave empty to use the default pattern. Restart the panel after changes.",
       "subTitle": "Subscription Title",
       "subTitleDesc": "Title shown in VPN client",
       "subSupportUrl": "Support URL",
@@ -1987,7 +1988,8 @@
         "dnsPresetFamily": "Family",
         "clearAll": "Delete All",
         "clearAllTitle": "Delete all DNS servers?",
-        "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone."
+        "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone.",
+        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters."
       },
       "fakedns": {
         "add": "Add Fake DNS",

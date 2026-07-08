@@ -1,3 +1,7 @@
+.preset-warning {
+  margin-bottom: 12px;
+}
+
 .preset-list {
   border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;

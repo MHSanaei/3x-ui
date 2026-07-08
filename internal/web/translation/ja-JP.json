@@ -1200,11 +1200,11 @@
       "subJsonAlwaysArray": "常に JSON 配列を返す",
       "subJsonAlwaysArrayDesc": "プロファイルが 1 件でも、明示的な JSON サブスクリプションを XTLS 標準に従う配列として返します。自動検出された JSON 応答は常に配列です。無効時は従来の単一オブジェクト応答を維持します。",
       "subJsonUserAgentRegex": "Xray JSON User-Agent 正規表現",
-      "subJsonUserAgentRegexDesc": "Xray JSON サブスクリプションクライアントを識別する Go RE2 正規表現です。保守的な既定値は Streisand のみに一致します。その他の検証済みクライアントは明示的に追加してください。v2rayNG、v2rayN、v2rayA は既定で raw サブスクリプションを使用します。空欄にすると既定のパターンへ戻ります。変更後にパネルを再起動してください。",
+      "subJsonUserAgentRegexDesc": "標準サブスクリプション URL で Xray JSON 形式を自動選択するため、クライアントの User-Agent と照合する Go RE2 正規表現です。既定では空欄のため、対象とするクライアント向けのパターンを設定するまで自動判別は無効のままです。その他のクライアントには従来の raw/Base64 応答を返します。変更後にパネルを再起動してください。",
       "subClashAutoDetect": "Clash/Mihomo クライアントを自動検出",
-      "subClashAutoDetectDesc": "有効にすると、標準サブスクリプション URL を要求する既知の Clash、Mihomo、Stash クライアントへ Clash YAML を自動的に返します。ブラウザには引き続きサブスクリプションページを表示し、その他のクライアントには従来の raw/Base64 応答を返します。明示的な JSON および Clash URL も引き続き利用できます。Clash/Mihomo サブスクリプションを有効にし、適用のためにパネルを再起動する必要があります。",
+      "subClashAutoDetectDesc": "有効にすると、標準サブスクリプション URL を要求する既知の Clash/Mihomo クライアントへ Clash YAML を自動的に返します。ブラウザには引き続きサブスクリプションページを表示し、その他のクライアントには従来の raw/Base64 応答を返します。明示的な JSON および Clash URL も引き続き利用できます。Clash/Mihomo サブスクリプションを有効にし、適用のためにパネルを再起動する必要があります。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正規表現",
-      "subClashUserAgentRegexDesc": "標準サブスクリプション URL で Clash、Mihomo、Stash クライアントを識別する Go RE2 正規表現です。空欄の場合は既定のパターンを使用します。変更後にパネルを再起動してください。",
+      "subClashUserAgentRegexDesc": "標準サブスクリプション URL で Clash/Mihomo クライアントを識別するため、クライアントの User-Agent と照合する Go RE2 正規表現です。空欄の場合は既定のパターンを使用します。変更後にパネルを再起動してください。",
       "subTitle": "サブスクリプションタイトル",
       "subTitleDesc": "VPNクライアントに表示されるタイトル",
       "subSupportUrl": "サポートURL",
@@ -1871,7 +1871,8 @@
         "dnsPresetFamily": "ファミリー",
         "clearAll": "すべて削除",
         "clearAllTitle": "すべての DNS サーバを削除しますか？",
-        "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。"
+        "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。",
+        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。"
       },
       "fakedns": {
         "add": "フェイクDNS追加",
@@ -1934,7 +1935,8 @@
         "shuffleHost": "ホストをシャッフル",
         "tags": "タグ",
         "nodeGuids": "ノード",
-        "excludeFromSubTypes": "形式から除外"
+        "excludeFromSubTypes": "形式から除外",
+        "inheritAddress": "アドレス継承"
       },
       "hints": {
         "address": "空欄にするとインバウンド自身のアドレスを継承します。",

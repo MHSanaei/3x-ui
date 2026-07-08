@@ -2,9 +2,11 @@ package sub
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func hasDirectOutOutbound(svc *SubJsonService) bool {
@@ -329,5 +331,78 @@ func TestSubJsonServiceRealityDataSpiderXFallsBackWhenNoClientKey(t *testing.T) 
 	spx, _ := rlty["spiderX"].(string)
 	if len(spx) != 16 || spx[0] != '/' {
 		t.Fatalf("spiderX fallback = %q, want random 16-char /-prefixed value", spx)
+	}
+}
+
+func TestSubJsonServiceWireguard(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.9",
+		Port:     51820,
+		Protocol: model.WireGuard,
+		Settings: `{"secretKey":"` + serverPriv + `","mtu":1420}`,
+	}
+	client := model.Client{
+		Email:        "user",
+		PrivateKey:   clientPriv,
+		PreSharedKey: "psk-value",
+		KeepAlive:    25,
+		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
+	}
+
+	raw := NewSubJsonService("", "", "", nil).genWireguard(inbound, client)
+	if raw == nil {
+		t.Fatal("genWireguard returned nil for a valid wireguard client")
+	}
+	settings := outboundSettings(t, raw)
+
+	if settings["secretKey"] != clientPriv {
+		t.Fatalf("secretKey = %v, want client private key", settings["secretKey"])
+	}
+	address, _ := settings["address"].([]any)
+	if len(address) != 2 || address[0] != "10.0.0.2/32" || address[1] != "fd00::2/128" {
+		t.Fatalf("address = %v, want client tunnel addresses", settings["address"])
+	}
+	if settings["mtu"] != float64(1420) {
+		t.Fatalf("mtu = %v, want 1420", settings["mtu"])
+	}
+
+	peers, _ := settings["peers"].([]any)
+	if len(peers) != 1 {
+		t.Fatalf("peers len = %d, want 1", len(peers))
+	}
+	peer, _ := peers[0].(map[string]any)
+	if peer["publicKey"] != serverPub {
+		t.Fatalf("peer publicKey = %v, want %v (derived from inbound secretKey)", peer["publicKey"], serverPub)
+	}
+	if peer["endpoint"] != "203.0.113.9:51820" {
+		t.Fatalf("peer endpoint = %v, want 203.0.113.9:51820", peer["endpoint"])
+	}
+	if peer["preSharedKey"] != "psk-value" {
+		t.Fatalf("peer preSharedKey = %v, want psk-value", peer["preSharedKey"])
+	}
+	if peer["keepAlive"] != float64(25) {
+		t.Fatalf("peer keepAlive = %v, want 25", peer["keepAlive"])
+	}
+	allowed, _ := peer["allowedIPs"].([]any)
+	if !reflect.DeepEqual(allowed, []any{"0.0.0.0/0", "::/0"}) {
+		t.Fatalf("peer allowedIPs = %v, want full tunnel", peer["allowedIPs"])
+	}
+}
+
+func TestSubJsonServiceWireguardNoKey(t *testing.T) {
+	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
+	client := model.Client{Email: "user"}
+
+	if raw := NewSubJsonService("", "", "", nil).genWireguard(inbound, client); raw != nil {
+		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }

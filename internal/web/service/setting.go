@@ -34,8 +34,8 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo|stash)`
-	DefaultSubJsonUserAgentRegex  = `(?i)^streisand([ /]|$)`
+	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
+	DefaultSubJsonUserAgentRegex  = ``
 	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	maxRegexLength                = 2048
 )

@@ -1200,11 +1200,11 @@
       "subJsonAlwaysArray": "Devolver siempre una matriz JSON",
       "subJsonAlwaysArrayDesc": "Devuelve el endpoint JSON explícito como una matriz incluso con un solo perfil, según el estándar XTLS. Las respuestas JSON detectadas automáticamente siempre usan matrices. Desactívalo para conservar la respuesta heredada de un solo objeto.",
       "subJsonUserAgentRegex": "Expresión User-Agent de Xray JSON",
-      "subJsonUserAgentRegexDesc": "Expresión regular Go RE2 para reconocer clientes de suscripción Xray JSON. El patrón conservador predeterminado solo coincide con Streisand; añade explícitamente otros clientes verificados. v2rayNG, v2rayN y v2rayA conservan la suscripción sin procesar de forma predeterminada. Déjala vacía para restaurar el patrón predeterminado. Reinicia el panel después de cambiarla.",
+      "subJsonUserAgentRegexDesc": "Expresión regular Go RE2 que se compara con el User-Agent del cliente para seleccionar automáticamente el formato Xray JSON en la URL de suscripción estándar. Vacía de forma predeterminada, por lo que la detección automática permanece desactivada hasta que definas un patrón para los clientes que quieras atender. Los demás clientes conservan la respuesta sin procesar/Base64. Reinicia el panel después de cambiarla.",
       "subClashAutoDetect": "Detectar automáticamente clientes Clash/Mihomo",
-      "subClashAutoDetectDesc": "Al activarlo, los clientes Clash, Mihomo y Stash reconocidos que soliciten la URL de suscripción estándar recibirán automáticamente YAML de Clash. Los navegadores seguirán mostrando la página de suscripción, los demás clientes conservarán la respuesta sin procesar/Base64 y las URL explícitas de JSON y Clash seguirán disponibles. Requiere activar la suscripción Clash/Mihomo y reiniciar el panel para aplicar el cambio.",
+      "subClashAutoDetectDesc": "Al activarlo, los clientes Clash/Mihomo reconocidos que soliciten la URL de suscripción estándar recibirán automáticamente YAML de Clash. Los navegadores seguirán mostrando la página de suscripción, los demás clientes conservarán la respuesta sin procesar/Base64 y las URL explícitas de JSON y Clash seguirán disponibles. Requiere activar la suscripción Clash/Mihomo y reiniciar el panel para aplicar el cambio.",
       "subClashUserAgentRegex": "Expresión User-Agent de Clash/Mihomo",
-      "subClashUserAgentRegexDesc": "Expresión regular Go RE2 para reconocer clientes Clash, Mihomo y Stash en la URL de suscripción estándar. Déjala vacía para usar el patrón predeterminado. Reinicia el panel después de cambiarla.",
+      "subClashUserAgentRegexDesc": "Expresión regular Go RE2 que se compara con el User-Agent del cliente para reconocer clientes Clash/Mihomo en la URL de suscripción estándar. Déjala vacía para usar el patrón predeterminado. Reinicia el panel después de cambiarla.",
       "subTitle": "Título de la Suscripción",
       "subTitleDesc": "Título mostrado en el cliente VPN",
       "subSupportUrl": "URL de soporte",
@@ -1871,7 +1871,8 @@
         "dnsPresetFamily": "Familiar",
         "clearAll": "Eliminar todos",
         "clearAllTitle": "¿Eliminar todos los servidores DNS?",
-        "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer."
+        "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer.",
+        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe."
       },
       "fakedns": {
         "add": "Agregar DNS Falso",
@@ -1907,7 +1908,7 @@
       "fields": {
         "remark": "Notas",
         "serverDescription": "Descripción",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Dirección",
         "port": "Puerto",
         "endpoint": "Punto final",
@@ -1934,7 +1935,8 @@
         "shuffleHost": "Barajar host",
         "tags": "Etiquetas",
         "nodeGuids": "Nodos",
-        "excludeFromSubTypes": "Excluir de formatos"
+        "excludeFromSubTypes": "Excluir de formatos",
+        "inheritAddress": "Hereda dirección"
       },
       "hints": {
         "address": "Déjalo en blanco para heredar la dirección propia del inbound.",
