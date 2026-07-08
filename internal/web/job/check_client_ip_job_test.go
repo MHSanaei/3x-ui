@@ -7,6 +7,9 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 func TestMergeClientIps_EvictsStaleOldEntries(t *testing.T) {
@@ -188,6 +191,40 @@ func TestPartitionLiveIps_ConcurrentLiveIpsSortedAscending(t *testing.T) {
 	}
 	if len(historical) != 0 {
 		t.Fatalf("no historical ips expected, got %v", historical)
+	}
+}
+
+func TestGetInboundByEmailFallbackIgnoresProtocolScalarFields(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	inbound := &model.Inbound{
+		UserId:   1,
+		Tag:      "vless-limit-fallback",
+		Enable:   true,
+		Port:     43002,
+		Protocol: model.VLESS,
+		Settings: `{
+			"clients": [{"email": "alice@example.test", "id": "11111111-1111-1111-1111-111111111111", "limitIp": 2}],
+			"decryption": "none",
+			"encryption": "none",
+			"fallbacks": []
+		}`,
+	}
+	if err := database.GetDB().Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	got, err := (&CheckClientIpJob{}).getInboundByEmail("alice@example.test")
+	if err != nil {
+		t.Fatalf("getInboundByEmail: %v", err)
+	}
+	if got.Id != inbound.Id {
+		t.Fatalf("inbound id = %d, want %d", got.Id, inbound.Id)
 	}
 }
 
