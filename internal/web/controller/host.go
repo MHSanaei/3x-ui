@@ -3,15 +3,13 @@ package controller
 import (
 	"strconv"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-// HostController exposes CRUD + ordering for Host override endpoints under
-// /panel/api/hosts. Thin HTTP layer over HostService; mirrors NodeController.
 type HostController struct {
 	hostService service.HostService
 }
@@ -24,15 +22,16 @@ func NewHostController(g *gin.RouterGroup) *HostController {
 
 func (a *HostController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
-	g.GET("/get/:id", a.get)
+	g.GET("/get/:groupId", a.get)
 	g.GET("/byInbound/:inboundId", a.byInbound)
 	g.GET("/tags", a.tags)
 
 	g.POST("/add", a.add)
-	g.POST("/update/:id", a.update)
-	g.POST("/del/:id", a.del)
-	g.POST("/setEnable/:id", a.setEnable)
+	g.POST("/update/:groupId", a.update)
+	g.POST("/del/:groupId", a.del)
+	g.POST("/setEnable/:groupId", a.setEnable)
 	g.POST("/reorder", a.reorder)
+	g.POST("/bulk/add", a.add)
 	g.POST("/bulk/setEnable", a.bulkSetEnable)
 	g.POST("/bulk/del", a.bulkDel)
 }
@@ -47,12 +46,8 @@ func (a *HostController) list(c *gin.Context) {
 }
 
 func (a *HostController) get(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
-	h, err := a.hostService.GetHost(id)
+	groupId := c.Param("groupId")
+	h, err := a.hostService.GetHostGroup(groupId)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.obtain"), err)
 		return
@@ -84,11 +79,11 @@ func (a *HostController) tags(c *gin.Context) {
 }
 
 func (a *HostController) add(c *gin.Context) {
-	h, ok := middleware.BindAndValidate[model.Host](c)
+	req, ok := middleware.BindJSONAndValidate[entity.HostGroup](c)
 	if !ok {
 		return
 	}
-	created, err := a.hostService.AddHost(h)
+	created, err := a.hostService.AddHostGroup(req)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.add"), err)
 		return
@@ -97,16 +92,12 @@ func (a *HostController) add(c *gin.Context) {
 }
 
 func (a *HostController) update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
-	h, ok := middleware.BindAndValidate[model.Host](c)
+	groupId := c.Param("groupId")
+	req, ok := middleware.BindJSONAndValidate[entity.HostGroup](c)
 	if !ok {
 		return
 	}
-	updated, err := a.hostService.UpdateHost(id, h)
+	updated, err := a.hostService.UpdateHostGroup(groupId, req)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
@@ -115,12 +106,8 @@ func (a *HostController) update(c *gin.Context) {
 }
 
 func (a *HostController) del(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
-	if err := a.hostService.DeleteHost(id); err != nil {
+	groupId := c.Param("groupId")
+	if err := a.hostService.DeleteHostGroup(groupId); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.delete"), err)
 		return
 	}
@@ -128,11 +115,7 @@ func (a *HostController) del(c *gin.Context) {
 }
 
 func (a *HostController) setEnable(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
-		return
-	}
+	groupId := c.Param("groupId")
 	body := struct {
 		Enable bool `json:"enable" form:"enable"`
 	}{}
@@ -140,7 +123,7 @@ func (a *HostController) setEnable(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
-	if err := a.hostService.SetHostEnable(id, body.Enable); err != nil {
+	if err := a.hostService.SetHostGroupEnable(groupId, body.Enable); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
@@ -149,13 +132,13 @@ func (a *HostController) setEnable(c *gin.Context) {
 
 func (a *HostController) reorder(c *gin.Context) {
 	var req struct {
-		Ids []int `json:"ids" form:"ids"`
+		Ids []string `json:"ids" form:"ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
-	if err := a.hostService.ReorderHosts(req.Ids); err != nil {
+	if err := a.hostService.ReorderHostGroups(req.Ids); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
@@ -164,14 +147,14 @@ func (a *HostController) reorder(c *gin.Context) {
 
 func (a *HostController) bulkSetEnable(c *gin.Context) {
 	var req struct {
-		Ids    []int `json:"ids" form:"ids"`
-		Enable bool  `json:"enable" form:"enable"`
+		Ids    []string `json:"ids" form:"ids"`
+		Enable bool     `json:"enable" form:"enable"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
-	if err := a.hostService.SetHostsEnable(req.Ids, req.Enable); err != nil {
+	if err := a.hostService.SetHostsGroupEnable(req.Ids, req.Enable); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.update"), err)
 		return
 	}
@@ -180,13 +163,13 @@ func (a *HostController) bulkSetEnable(c *gin.Context) {
 
 func (a *HostController) bulkDel(c *gin.Context) {
 	var req struct {
-		Ids []int `json:"ids" form:"ids"`
+		Ids []string `json:"ids" form:"ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.delete"), err)
 		return
 	}
-	if err := a.hostService.DeleteHosts(req.Ids); err != nil {
+	if err := a.hostService.DeleteHostsGroup(req.Ids); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.hosts.toasts.delete"), err)
 		return
 	}

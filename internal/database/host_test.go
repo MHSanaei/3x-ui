@@ -9,10 +9,9 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// hostColumns is the set of columns initModels must create for the hosts table.
 func hostColumns() []string {
 	return []string{
-		"id", "inbound_id", "sort_order", "remark", "server_description", "is_disabled", "is_hidden", "tags",
+		"id", "group_id", "inbound_id", "sort_order", "remark", "server_description", "is_disabled", "is_hidden", "tags",
 		"address", "port",
 		"security", "sni", "host_header", "path", "alpn", "fingerprint",
 		"override_sni_from_address", "keep_sni_blank", "pinned_peer_cert_sha256",

@@ -140,3 +140,67 @@ func TestDefaultWireguardClientsAllocatesDistinctIPs(t *testing.T) {
 		t.Fatalf("two clients got the same address: %v", clients[0].AllowedIPs)
 	}
 }
+
+func TestNormalizeWireguardAllowedIPs(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []string
+		want []string
+		err  bool
+	}{
+		{name: "cidr passes through", in: []string{"10.0.0.5/32"}, want: []string{"10.0.0.5/32"}},
+		{name: "bare ipv4 becomes /32", in: []string{"10.0.0.5"}, want: []string{"10.0.0.5/32"}},
+		{name: "bare ipv6 becomes /128", in: []string{"fd00::5"}, want: []string{"fd00::5/128"}},
+		{name: "trims and drops empties", in: []string{" 10.0.0.5/32 ", "", "  "}, want: []string{"10.0.0.5/32"}},
+		{name: "dedupes", in: []string{"10.0.0.5/32", "10.0.0.5/32"}, want: []string{"10.0.0.5/32"}},
+		{name: "routed subnet allowed", in: []string{"10.0.0.5/32", "192.168.1.0/24"}, want: []string{"10.0.0.5/32", "192.168.1.0/24"}},
+		{name: "garbage rejected", in: []string{"not-an-ip"}, err: true},
+		{name: "bad prefix rejected", in: []string{"10.0.0.5/99"}, err: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeWireguardAllowedIPs(tt.in)
+			if tt.err {
+				if err == nil {
+					t.Fatalf("expected error, got %v", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Fatalf("got %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestDefaultWireguardClientsHonorsAndValidatesSuppliedAllowedIPs(t *testing.T) {
+	existing := []model.Client{{Email: "old@wg", AllowedIPs: []string{"10.0.0.2/32"}}}
+
+	clients := []model.Client{{Email: "c@wg", AllowedIPs: []string{"10.0.0.9"}}}
+	ifaces := []any{map[string]any{"email": "c@wg"}}
+	if err := defaultWireguardClients(existing, clients, ifaces); err != nil {
+		t.Fatalf("defaultWireguardClients: %v", err)
+	}
+	if len(clients[0].AllowedIPs) != 1 || clients[0].AllowedIPs[0] != "10.0.0.9/32" {
+		t.Fatalf("supplied allowedIPs not normalized: %v", clients[0].AllowedIPs)
+	}
+
+	dup := []model.Client{{Email: "d@wg", AllowedIPs: []string{"10.0.0.2/32"}}}
+	err := defaultWireguardClients(existing, dup, []any{map[string]any{"email": "d@wg"}})
+	if err == nil {
+		t.Fatal("duplicate allowedIPs across clients must be rejected")
+	}
+
+	bad := []model.Client{{Email: "e@wg", AllowedIPs: []string{"not-an-ip"}}}
+	if err := defaultWireguardClients(existing, bad, []any{map[string]any{"email": "e@wg"}}); err == nil {
+		t.Fatal("invalid allowedIPs entry must be rejected")
+	}
+}

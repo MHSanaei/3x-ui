@@ -345,6 +345,10 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
 			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
 			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
+			{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
+			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
+			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
+			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
 		},
 	})
 	if err != nil {

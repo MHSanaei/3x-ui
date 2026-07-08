@@ -25,47 +25,96 @@ func TestGenerateFakeTLSSecret(t *testing.T) {
 	}
 }
 
-func TestHealMtprotoSecret(t *testing.T) {
-	domain := "example.com"
-	suffix := hex.EncodeToString([]byte(domain))
-
-	in := `{"fakeTlsDomain":"example.com","secret":""}`
-	out, changed := HealMtprotoSecret(in)
+func TestStripMtprotoInboundAdTag(t *testing.T) {
+	in := `{"adTag":"0123456789abcdef0123456789abcdef","clients":[{"email":"a","adTag":"fedcba9876543210fedcba9876543210"}]}`
+	out, changed := StripMtprotoInboundAdTag(in)
 	if !changed {
-		t.Fatal("expected heal to populate an empty secret")
+		t.Fatal("expected the inbound-level adTag to be stripped")
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := parsed["adTag"]; ok {
+		t.Fatalf("adTag key must be removed, got %s", out)
+	}
+	clients := parsed["clients"].([]any)
+	if clients[0].(map[string]any)["adTag"] != "fedcba9876543210fedcba9876543210" {
+		t.Fatalf("client adTag must be preserved, got %s", out)
+	}
+	if _, changed2 := StripMtprotoInboundAdTag(out); changed2 {
+		t.Fatal("second strip must be a no-op")
+	}
+}
+
+func TestStripMtprotoInboundSecret(t *testing.T) {
+	// A multi-client inbound that still carries a dead inbound-level secret has
+	// it removed while the clients (and every other key) survive untouched.
+	in := `{"fakeTlsDomain":"a.com","secret":"eedeadbeef","clients":[{"email":"x","secret":"eeaaaa"}]}`
+	out, changed := StripMtprotoInboundSecret(in)
+	if !changed {
+		t.Fatal("expected the inbound-level secret to be stripped")
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("stripped settings not valid json: %v", err)
+	}
+	if _, ok := parsed["secret"]; ok {
+		t.Fatalf("inbound-level secret should be gone, got %q", out)
+	}
+	if parsed["fakeTlsDomain"] != "a.com" {
+		t.Fatalf("fakeTlsDomain must survive, got %q", out)
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok || len(clients) != 1 {
+		t.Fatalf("clients must survive untouched, got %q", out)
+	}
+	if clients[0].(map[string]any)["secret"] != "eeaaaa" {
+		t.Fatalf("client secret must survive untouched, got %q", out)
+	}
+
+	// Nothing to strip when there is no inbound-level secret.
+	if _, changed2 := StripMtprotoInboundSecret(out); changed2 {
+		t.Fatal("expected no change when there is no inbound-level secret")
+	}
+	if _, changed3 := StripMtprotoInboundSecret(`{"clients":[]}`); changed3 {
+		t.Fatal("expected no change for settings without a secret key")
+	}
+}
+
+func TestHealMtprotoClientSecrets(t *testing.T) {
+	// An empty client secret is filled from the inbound-level default domain.
+	in := `{"fakeTlsDomain":"a.com","clients":[{"email":"x","secret":""}]}`
+	out, changed := HealMtprotoClientSecrets(in)
+	if !changed {
+		t.Fatal("expected an empty client secret to be filled")
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		t.Fatalf("healed settings not valid json: %v", err)
 	}
-	got, _ := parsed["secret"].(string)
-	if !strings.HasPrefix(got, "ee") || !strings.HasSuffix(got, suffix) {
-		t.Fatalf("healed secret malformed: %q", got)
+	clients := parsed["clients"].([]any)
+	got := clients[0].(map[string]any)["secret"].(string)
+	if !strings.HasPrefix(got, "ee") || !strings.HasSuffix(got, hex.EncodeToString([]byte("a.com"))) {
+		t.Fatalf("filled client secret malformed: %q", got)
 	}
 
-	if _, changed2 := HealMtprotoSecret(out); changed2 {
-		t.Fatal("expected no change for an already-valid secret")
+	// Healing is idempotent once every client secret is valid.
+	if _, changed2 := HealMtprotoClientSecrets(out); changed2 {
+		t.Fatal("expected no change for already-valid client secrets")
 	}
 
-	mid := got[2:34]
-	newDomain := "telegram.org"
-	in3 := `{"fakeTlsDomain":"telegram.org","secret":"` + got + `"}`
-	out3, changed3 := HealMtprotoSecret(in3)
-	if !changed3 {
-		t.Fatal("expected heal to rewrite the domain suffix")
-	}
-	if err := json.Unmarshal([]byte(out3), &parsed); err != nil {
-		t.Fatalf("healed settings not valid json: %v", err)
-	}
-	got3, _ := parsed["secret"].(string)
-	if got3[2:34] != mid {
-		t.Fatalf("random middle should be preserved on domain change: %q vs %q", got3[2:34], mid)
-	}
-	if !strings.HasSuffix(got3, hex.EncodeToString([]byte(newDomain))) {
-		t.Fatalf("suffix not updated for new domain: %q", got3)
+	// A client's own embedded domain is preserved even when it differs from the
+	// inbound-level default (per-client domain fronting).
+	own := "ee00112233445566778899aabbccddeeff" + hex.EncodeToString([]byte("b.com"))
+	in3 := `{"fakeTlsDomain":"a.com","clients":[{"email":"y","secret":"` + own + `"}]}`
+	out3, changed3 := HealMtprotoClientSecrets(in3)
+	if changed3 {
+		t.Fatalf("a valid per-client secret must be left untouched, got %q", out3)
 	}
 
-	if _, changed4 := HealMtprotoSecret(`{"secret":"ee"}`); changed4 {
-		t.Fatal("expected no change when fakeTlsDomain is missing")
+	// No clients array — nothing to heal.
+	if _, changed4 := HealMtprotoClientSecrets(`{"fakeTlsDomain":"a.com"}`); changed4 {
+		t.Fatal("expected no change when there are no clients")
 	}
 }

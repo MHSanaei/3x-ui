@@ -1,0 +1,62 @@
+---
+title: 参与贡献
+description: 如何为 3x-ui 贡献代码并翻译本文档。
+icon: GitPullRequestArrow
+---
+
+3x-ui 由社区驱动。我们欢迎你为面板和这些文档做出贡献。
+
+## 支持开发者
+
+3x-ui 是免费且开源的，完全在公开环境中构建与维护。如果它对你有帮助，欢迎
+考虑支持其持续开发：
+
+- 前往 [donate.sanaei.dev](https://donate.sanaei.dev/) **捐赠**——该页面会展示
+  当前的资金**目标与进度**，你可以一同助力达成。
+- 为[仓库](https://github.com/MHSanaei/3x-ui)点 **Star**，并分享这个
+  项目。
+- **加入** Telegram 频道 [@XrayUI](https://t.me/XrayUI)，关注最新动态并
+  帮助其他用户。
+
+## 为 3x-ui 贡献
+
+- 阅读[仓库](https://github.com/MHSanaei/3x-ui)中项目的 `CONTRIBUTING.md`。
+- 为 bug 和功能请求提交 issue，并附上清晰的复现步骤。
+- 使用 Conventional Commits，并保持 pull request 聚焦单一主题。
+
+## 翻译文档
+
+本站点专为翻译而设计。内容位于 `content/docs/<locale>/` 目录下
+（`en`、`fa`、`ru`、`zh`），未翻译的页面会**回退到英文**，因此你
+可以逐步翻译。
+
+<Steps>
+
+<Step>
+### 复制页面
+
+将 `content/docs/en/...` 中的某个页面复制到你所用语言下的相同路径，例如
+`content/docs/fa/guide/installation.mdx`。
+</Step>
+
+<Step>
+### 只翻译正文文字
+
+翻译正文以及 frontmatter 中的 `title`/`description`。**不要**翻译
+代码、命令、环境变量名、协议名或分享链接。
+</Step>
+
+<Step>
+### 注意文字方向
+
+波斯语（`fa`）从右到左渲染。请保持代码块和链接从左到右
+（布局已自动处理这一点），并在两种方向下检查页面。
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  你所用语言缺少某个页面没有关系——它会回退到英文，而不会出现
+  404。请优先翻译访问量最高的页面（安装、首次登录、
+  REALITY）。
+</Callout>

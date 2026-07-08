@@ -1,7 +1,6 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -10,8 +9,8 @@ import (
 
 // MtprotoJob reconciles the running mtg sidecar processes against the enabled
 // mtproto inbounds in the database, restarts any that crashed, and folds the
-// per-inbound traffic scraped from each mtg metrics endpoint into the usual
-// inbound traffic accounting.
+// per-client traffic scraped from each mtg /stats endpoint into the usual client
+// and inbound traffic accounting.
 type MtprotoJob struct {
 	inboundService service.InboundService
 }
@@ -21,55 +20,62 @@ func NewMtprotoJob() *MtprotoJob {
 	return new(MtprotoJob)
 }
 
-// Run reconciles desired mtproto inbounds with running mtg processes and
-// records traffic deltas.
+// Run reconciles desired mtproto inbounds with running mtg processes and records
+// per-client traffic deltas and online status.
 func (j *MtprotoJob) Run() {
-	inbounds, err := j.inboundService.GetAllInbounds()
+	desired, err := j.inboundService.DesiredMtprotoInstances()
 	if err != nil {
-		logger.Warning("mtproto job: get inbounds failed:", err)
+		logger.Warning("mtproto job: get desired instances failed:", err)
 		return
 	}
 
-	var desired []mtproto.Instance
 	routedTags := make(map[string]bool)
-	for _, ib := range inbounds {
-		if ib.Protocol != model.MTProto || !ib.Enable || ib.NodeID != nil {
-			continue
-		}
-		if inst, ok := mtproto.InstanceFromInbound(ib); ok {
-			desired = append(desired, inst)
-			if inst.RouteThroughXray {
-				routedTags[inst.Tag] = true
-			}
+	activeTags := make([]string, 0, len(desired))
+	for _, inst := range desired {
+		activeTags = append(activeTags, inst.Tag)
+		if inst.RouteThroughXray {
+			routedTags[inst.Tag] = true
 		}
 	}
 
 	mgr := mtproto.GetManager()
 	mgr.Reconcile(desired)
 
-	deltas := mgr.CollectTraffic()
-	if len(deltas) == 0 {
-		return
-	}
-	traffics := make([]*xray.Traffic, 0, len(deltas))
+	deltas, onlineEmails := mgr.CollectTraffic()
+
+	// A routed inbound's total is already metered through the Xray bridge by
+	// xray_traffic_job, so only non-routed inbounds are rolled up here; per-client
+	// deltas are always kept, since the bridge cannot tell mtproto users apart.
+	clientTraffics := make([]*xray.ClientTraffic, 0, len(deltas))
+	inboundUp := make(map[string]int64)
+	inboundDown := make(map[string]int64)
 	for _, d := range deltas {
-		// Routed inbounds egress through the Xray SOCKS bridge, which carries the
-		// inbound's tag and is metered by xray_traffic_job. Folding mtg's own
-		// metrics in too would double-count, so skip them here.
-		if routedTags[d.Tag] {
-			continue
+		clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+			Email: d.Email,
+			Up:    d.Up,
+			Down:  d.Down,
+		})
+		if !routedTags[d.Tag] {
+			inboundUp[d.Tag] += d.Up
+			inboundDown[d.Tag] += d.Down
 		}
+	}
+
+	traffics := make([]*xray.Traffic, 0, len(inboundUp))
+	for tag, up := range inboundUp {
 		traffics = append(traffics, &xray.Traffic{
 			IsInbound: true,
-			Tag:       d.Tag,
-			Up:        d.Up,
-			Down:      d.Down,
+			Tag:       tag,
+			Up:        up,
+			Down:      inboundDown[tag],
 		})
 	}
-	if len(traffics) == 0 {
-		return
+
+	if len(traffics) > 0 || len(clientTraffics) > 0 {
+		if _, _, err := j.inboundService.AddTraffic(traffics, clientTraffics); err != nil {
+			logger.Warning("mtproto job: add traffic failed:", err)
+		}
 	}
-	if _, _, err := j.inboundService.AddTraffic(traffics, nil); err != nil {
-		logger.Warning("mtproto job: add traffic failed:", err)
-	}
+
+	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
 }

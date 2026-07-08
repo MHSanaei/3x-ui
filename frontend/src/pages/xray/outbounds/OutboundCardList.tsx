@@ -13,7 +13,7 @@ import {
 
 import { SizeFormatter } from '@/utils';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
-import type { OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 import TestResultPopover from './TestResultPopover';
@@ -28,7 +28,7 @@ import {
 
 interface OutboundCardListProps {
   rows: OutboundRow[];
-  testMode: 'tcp' | 'http';
+  testMode: OutboundTestMode;
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
   setFirst: (idx: number) => void;

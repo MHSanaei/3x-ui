@@ -3,13 +3,25 @@
 Operational guide for AI agents working in this repo. Long-form human docs:
 `CONTRIBUTING.md` (setup, testing philosophy) and `frontend/README.md`.
 Read those before large changes. This file is the short, must-follow version.
+For a deep navigation map (request lifecycle, cron-job table, symptom → file
+index, layering rules), read `docs/architecture.md` on demand — do not guess
+file locations when it can answer in one hop.
 
 ## Stack
 - Backend: Go 1.26 (`module github.com/mhsanaei/3x-ui/v3`), Gin, GORM.
   Runs Xray-core as a managed child process (`internal/xray/process.go`) and
   imports `github.com/xtls/xray-core` for config types + gRPC stats/handler/router
-  API. MTProto inbounds run a second managed child — the `mtg` binary
-  (`internal/mtproto/`) — outside Xray.
+  API. MTProto inbounds run a second managed child — the `mtg-multi` binary
+  (`github.com/mhsanaei/mtg-multi`, a multi-secret fork built from source;
+  `internal/mtproto/`) — outside Xray, one process per inbound serving each
+  client's FakeTLS secret via the fork's `[secrets]` section (plus per-client
+  ad-tags via `[secret-ad-tags]` and per-client data quota / expiry via
+  `[secret-limits]`, mapped from the client's `totalGB`/`expiryTime`). Client,
+  ad-tag and quota/expiry edits are hot-applied through the fork's management API
+  (`PUT /secrets`, bearer-token guarded) so connections survive; the manager
+  falls back to a process restart on older binaries. A client's panel-side
+  traffic reset also calls `POST /secrets/{name}/reset-quota` so a renewed client
+  is not re-blocked by the sidecar's quota counter.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux; the executable dir on
   Windows), PostgreSQL optional (`XUI_DB_TYPE` / `XUI_DB_DSN`). The CGo SQLite
   driver (`mattn/go-sqlite3`) needs a C compiler — `CGO_ENABLED=0` builds fail.
@@ -24,7 +36,7 @@ Read those before large changes. This file is the short, must-follow version.
   Client, Setting, User), inbound Protocol enum, AutoMigrate + hand-written
   migrations in `db.go`.
 - `internal/xray/` — Xray child-process lifecycle, config generation, gRPC API.
-- `internal/mtproto/` — MTProto inbounds via the bundled `mtg` binary.
+- `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
 - `internal/sub/` — subscription server (raw / JSON / Clash).
 - `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,
   cpu.high, memory.high, login.attempt).

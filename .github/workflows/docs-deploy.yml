@@ -1,0 +1,67 @@
+name: Docs Deploy (GitHub Pages)
+
+# Static-export deploy of docs/ to GitHub Pages. Pages must be enabled in repo
+# settings (Source: GitHub Actions) and the docs.sanaei.dev custom domain
+# attached to this repository. The site URL defaults to the production domain in
+# docs/lib/shared.ts, so NEXT_PUBLIC_SITE_URL is optional.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: docs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build (static export)
+        env:
+          DEPLOY_TARGET: static
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+        run: pnpm build
+      - name: Mirror default locale (en) to the site root
+        # hideLocale makes most English links unprefixed (/, /docs/...), but the
+        # language switcher still targets /en/... . The export emits pages only
+        # under /en/, and there is no i18n middleware on a static host — so copy
+        # the English build to the root (data files included) while KEEPING /en/
+        # in place. That way both /docs/... and /en/docs/... resolve. Other
+        # locales stay under /fa, /ru, /zh.
+        run: cp -a out/en/. out/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -66,8 +66,7 @@ func GetIPLimitBannedPrevLogPath() string {
 	return config.GetLogFolder() + "/3xipl-banned.prev.log"
 }
 
-// GetAccessLogPath reads the Xray config and returns the access log file path.
-func GetAccessLogPath() (string, error) {
+func getLogPath(key string) (string, error) {
 	config, err := os.ReadFile(GetConfigPath())
 	if err != nil {
 		logger.Warningf("Failed to read configuration file: %s", err)
@@ -81,14 +80,23 @@ func GetAccessLogPath() (string, error) {
 		return "", err
 	}
 
-	if jsonConfig["log"] != nil {
-		jsonLog := jsonConfig["log"].(map[string]any)
-		if jsonLog["access"] != nil {
-			accessLogPath := jsonLog["access"].(string)
-			return accessLogPath, nil
+	if jsonLog, ok := jsonConfig["log"].(map[string]any); ok {
+		if logPath, ok := jsonLog[key].(string); ok {
+			return logPath, nil
 		}
 	}
 	return "", err
+}
+
+// GetAccessLogPath reads the Xray config and returns the access log file path.
+func GetAccessLogPath() (string, error) {
+	return getLogPath("access")
+}
+
+// GetErrorLogPath reads the Xray config and returns the error log file path.
+// GetErrorLogPath reads the Xray config and returns the error log file path.
+func GetErrorLogPath() (string, error) {
+	return getLogPath("error")
 }
 
 // stopProcess calls Stop on the given Process instance.

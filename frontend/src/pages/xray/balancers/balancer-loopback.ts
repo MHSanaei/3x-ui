@@ -107,9 +107,9 @@ export function removeBalancerLoopback(
   }
 
   if (settings.routing && Array.isArray(settings.routing.rules)) {
-    settings.routing.rules = (settings.routing.rules as Array<{ inboundTag?: string[] }>).filter(
+    settings.routing.rules = settings.routing.rules.filter(
       (r) => !(Array.isArray(r.inboundTag) && r.inboundTag.includes(lbTag)),
-    ) as XraySettingsValue['routing'] extends { rules?: infer R } ? R : never;
+    );
   }
 }
 

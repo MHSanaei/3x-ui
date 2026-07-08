@@ -1,16 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input } from 'antd';
+import { Input } from 'antd';
+
+import { FormField } from '@/components/form/rhf';
 
 export default function SocksFields() {
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item label={t('username')} name={['settings', 'user']}>
+      <FormField label={t('username')} name={['settings', 'user']}>
         <Input />
-      </Form.Item>
-      <Form.Item label={t('password')} name={['settings', 'pass']}>
+      </FormField>
+      <FormField label={t('password')} name={['settings', 'pass']}>
         <Input />
-      </Form.Item>
+      </FormField>
     </>
   );
 }

@@ -1,0 +1,75 @@
+---
+title: 分享链接
+description: 3x-ui 的分享链接格式（vless、vmess、trojan、ss、hysteria2、mtproto）、备注模板变量，以及一个浏览器内的链接检查器。
+icon: Link
+---
+
+3x-ui 会为每个客户端生成一个**分享链接**（以及二维码）。v2rayNG、Hiddify、Mihomo
+等客户端应用通过导入这些链接来完成自身配置。
+
+## 链接格式
+
+| Scheme         | Shape                                                           |
+| -------------- | --------------------------------------------------------------- |
+| `vless://`     | `vless://<uuid>@<host>:<port>?<params>#<remark>`                |
+| `vmess://`     | `vmess://<base64-json>` (a base64-encoded JSON object)          |
+| `trojan://`    | `trojan://<password>@<host>:<port>?<params>#<remark>`           |
+| `ss://`        | `ss://<userinfo>@<host>:<port>?<params>#<remark>` (SIP002; Shadowsocks-2022 uses percent-encoded userinfo) |
+| `hysteria2://` | `hysteria2://<auth>@<host>:<port>?<params>#<remark>`            |
+| `tg://proxy`   | `tg://proxy?server=…&port=…&secret=…` (MTProto)                 |
+
+查询参数承载传输和安全设置——`security`、`sni`、`fp`、`pbk`、`sid`、`spx`、`flow`、
+`type`、`path`、`host`、`alpn` 等。
+
+## 检查链接
+
+粘贴任意分享链接即可解码出每一个字段。解析**完全在你的浏览器中**进行——链接绝不会通过网络发送出去。
+
+<ShareLinkInspector />
+
+<Callout type="warn">
+  分享链接包含以客户端身份连接所需的一切信息，其中包括客户端的凭据。请像对待密码一样对待它们。
+</Callout>
+
+## 备注模板变量
+
+每个链接中 `#` 之后的文本（即**备注**）由你在面板设置中控制的模板（`remarkTemplate`）生成。默认值为：
+
+```text
+{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D
+```
+
+占位符使用 `{{UPPER_CASE}}` 语法。模板会按 `|` 拆分成若干段；若某一段的唯一值是无限标记 `∞`
+（用于 `TRAFFIC_LEFT`、`TRAFFIC_TOTAL`、`DAYS_LEFT` 或 `TIME_LEFT`），该段会被丢弃，
+这样不限量的客户端就不会显示空白的修饰内容。
+
+### 可用的占位符
+
+| Token | Value |
+| ----- | ----- |
+| `{{EMAIL}}` / `{{USERNAME}}` | 客户端电子邮箱（标识符） |
+| `{{INBOUND}}` | 入站备注 |
+| `{{HOST}}` | 主机行备注（受管主机） |
+| `{{ID}}` / `{{SHORT_ID}}` | 客户端 UUID / 其前 8 个字符 |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID、订阅 ID、备注 |
+| `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled`（或 ✅⏳🚫） |
+| `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | 剩余天数，或 `Xd Xh Xm`（不限量时为 `∞`） |
+| `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | 到期时间，分别为公历 / 波斯历日期 / Unix 秒数 |
+| `{{CREATED_UNIX}}` | 创建时间（Unix 秒数） |
+| `{{TRAFFIC_USED}}` / `{{TRAFFIC_LEFT}}` / `{{TRAFFIC_TOTAL}}` | 人类可读的用量（不限量时为 `∞`） |
+| `{{TRAFFIC_USED_BYTES}}` / `{{TRAFFIC_LEFT_BYTES}}` / `{{TRAFFIC_TOTAL_BYTES}}` | 同上，以字节为单位 |
+| `{{UP}}` / `{{DOWN}}` | 上传 / 下载（人类可读） |
+| `{{RESET_DAYS}}` · `{{USAGE_PERCENTAGE}}` | 重置周期（天）· 已用百分比 |
+| `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | 例如 `VLESS` / `ws` / `REALITY` |
+
+<Callout type="info">
+  用量类占位符（流量、天数、状态）会出现在订阅**正文**中，但会从显示 / 二维码视图中剥离，
+  这样分享出去的二维码就不会泄露客户端的剩余配额。日期类占位符遵循 `datepicker` 设置（公历或波斯历）。
+</Callout>
+
+## 相关
+
+<Cards>
+  <Card title="REALITY" href="/docs/config/reality" description="生成 VLESS + REALITY 配置和链接。" />
+  <Card title="订阅" href="/docs/config/subscription" description="通过一个 URL 提供某客户端的全部链接。" />
+</Cards>

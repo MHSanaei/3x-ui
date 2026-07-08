@@ -50,7 +50,7 @@ export default function GroupAddClientsModal({
     if (!open) return;
     setSelectedEmails([]);
     setSearch('');
-  }, [open, rows]);
+  }, [open]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();

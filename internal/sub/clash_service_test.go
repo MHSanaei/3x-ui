@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func TestEnsureUniqueProxyNames(t *testing.T) {
@@ -778,4 +779,82 @@ func TestBuildXhttpClashOpts_NoGRPCHeaderFalsey(t *testing.T) {
 			t.Error("no-grpc-header should not appear when absent")
 		}
 	})
+}
+
+func TestBuildWireguardProxyForClash(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.9",
+		Port:     51820,
+		Protocol: model.WireGuard,
+		Remark:   "wg",
+		Settings: `{"secretKey":"` + serverPriv + `","mtu":1420,"dns":"1.1.1.1, 8.8.8.8"}`,
+	}
+	client := model.Client{
+		Email:        "user",
+		PrivateKey:   clientPriv,
+		PreSharedKey: "psk-value",
+		KeepAlive:    25,
+		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid wireguard client")
+	}
+	if proxy["type"] != "wireguard" {
+		t.Fatalf("type = %v, want wireguard", proxy["type"])
+	}
+	if proxy["server"] != "203.0.113.9" {
+		t.Fatalf("server = %v, want 203.0.113.9", proxy["server"])
+	}
+	if proxy["port"] != 51820 {
+		t.Fatalf("port = %v, want 51820", proxy["port"])
+	}
+	if proxy["private-key"] != clientPriv {
+		t.Fatalf("private-key = %v, want %v", proxy["private-key"], clientPriv)
+	}
+	if proxy["public-key"] != serverPub {
+		t.Fatalf("public-key = %v, want %v (derived from inbound secretKey)", proxy["public-key"], serverPub)
+	}
+	if proxy["pre-shared-key"] != "psk-value" {
+		t.Fatalf("pre-shared-key = %v, want psk-value", proxy["pre-shared-key"])
+	}
+	if proxy["persistent-keepalive"] != 25 {
+		t.Fatalf("persistent-keepalive = %v, want 25", proxy["persistent-keepalive"])
+	}
+	if proxy["ip"] != "10.0.0.2" {
+		t.Fatalf("ip = %v, want 10.0.0.2", proxy["ip"])
+	}
+	if proxy["ipv6"] != "fd00::2" {
+		t.Fatalf("ipv6 = %v, want fd00::2", proxy["ipv6"])
+	}
+	if proxy["mtu"] != 1420 {
+		t.Fatalf("mtu = %v, want 1420", proxy["mtu"])
+	}
+	if proxy["udp"] != true {
+		t.Fatalf("udp = %v, want true", proxy["udp"])
+	}
+	if dns, ok := proxy["dns"].([]string); !ok || !reflect.DeepEqual(dns, []string{"1.1.1.1", "8.8.8.8"}) {
+		t.Fatalf("dns = %v, want [1.1.1.1 8.8.8.8]", proxy["dns"])
+	}
+}
+
+func TestBuildWireguardProxyForClashNoKey(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
+	client := model.Client{Email: "user"}
+
+	if proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil); proxy != nil {
+		t.Fatalf("buildProxy = %v, want nil for a keyless wireguard client", proxy)
+	}
 }

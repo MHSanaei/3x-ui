@@ -500,13 +500,19 @@ func (r staticEgressResolver) NodeEgressProxyURL(int) string { return string(r) 
 // reporting the old tag until the remote update lands, and a leftover entry
 // that matches nothing is harmless.
 func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
+	return s.EnsureInboundTagAllowedTx(database.GetDB(), nodeID, tag)
+}
+
+func (s *NodeService) EnsureInboundTagAllowedTx(tx *gorm.DB, nodeID int, tag string) error {
 	tag = strings.TrimSpace(tag)
 	if nodeID <= 0 || tag == "" {
 		return nil
 	}
-	db := database.GetDB()
+	if tx == nil {
+		tx = database.GetDB()
+	}
 	node := &model.Node{}
-	if err := db.Where("id = ?", nodeID).First(node).Error; err != nil {
+	if err := tx.Where("id = ?", nodeID).First(node).Error; err != nil {
 		return err
 	}
 	if node.InboundSyncMode != "selected" {
@@ -519,7 +525,7 @@ func (s *NodeService) EnsureInboundTagAllowed(nodeID int, tag string) error {
 	if err != nil {
 		return err
 	}
-	return db.Model(model.Node{}).Where("id = ?", nodeID).
+	return tx.Model(model.Node{}).Where("id = ?", nodeID).
 		Updates(map[string]any{"inbound_tags": string(buf)}).Error
 }
 

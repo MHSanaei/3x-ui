@@ -459,7 +459,6 @@ export default function BalancersTab({
               <ObservatorySettingsTab
                 templateSettings={templateSettings}
                 mutate={mutate}
-                isMobile={isMobile}
               />
             ),
           },

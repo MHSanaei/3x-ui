@@ -17,8 +17,9 @@ import {
 const DIRTY_POLL_MS = 1000;
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
 // One HTTP-mode batch request tests this many outbounds through a single
-// shared temp xray instance; chunking keeps responses bounded (~15s worst
-// case) and lands Test All results progressively.
+// shared temp xray instance; chunking keeps responses bounded (~30s worst
+// case — each probe is a cold plus a warm request) and lands Test All
+// results progressively.
 const HTTP_BATCH_CHUNK = 16;
 
 export function isUdpOutbound(outbound: unknown): boolean {
@@ -27,6 +28,8 @@ export function isUdpOutbound(outbound: unknown): boolean {
   const n = o?.streamSettings?.network;
   return p === 'wireguard' || p === 'hysteria' || n === 'hysteria' || n === 'kcp' || n === 'quic';
 }
+
+export type OutboundTestMode = 'tcp' | 'http' | 'real';
 
 export type { OutboundTrafficRow, OutboundTestResult };
 
@@ -288,7 +291,7 @@ export function useXraySetting(): UseXraySettingResult {
   const testOutbound = useCallback(
     async (index: number, outbound: unknown, mode = 'tcp'): Promise<OutboundTestResult | null> => {
       if (!outbound) return null;
-      const effMode = isUdpOutbound(outbound) ? 'http' : mode;
+      const effMode = mode === 'tcp' && isUdpOutbound(outbound) ? 'http' : mode;
       setOutboundTestStates((prev) => ({
         ...prev,
         [index]: { testing: true, result: null, mode: effMode },
@@ -305,7 +308,7 @@ export function useXraySetting(): UseXraySettingResult {
   const testSubscriptionOutbound = useCallback(
     async (tag: string, outbound: unknown, mode = 'tcp'): Promise<OutboundTestResult | null> => {
       if (!outbound || !tag) return null;
-      const effMode = isUdpOutbound(outbound) ? 'http' : mode;
+      const effMode = mode === 'tcp' && isUdpOutbound(outbound) ? 'http' : mode;
       setSubscriptionTestStates((prev) => ({
         ...prev,
         [tag]: { testing: true, result: null, mode: effMode },
@@ -333,6 +336,7 @@ export function useXraySetting(): UseXraySettingResult {
       // HTTP batches stay homogeneous (all template or all subscription) so a
       // tag shared between a template and a subscription outbound can't collide
       // inside one batch, and each batch's results route to one state map.
+      const probeMode = mode === 'real' ? 'real' : 'http';
       const httpTplQueue: { index: number; outbound: unknown }[] = [];
       const httpSubQueue: { tag: string; outbound: unknown }[] = [];
       const enqueue = (ob: { tag?: string; protocol?: string }, kind: 'tpl' | 'sub', index: number, tag: string) => {
@@ -341,7 +345,7 @@ export function useXraySetting(): UseXraySettingResult {
         // freedom ("direct") and dns aren't proxies — skip them in every mode.
         if (proto === 'freedom' || proto === 'dns') return;
         if (kind === 'sub' && !tag) return;
-        const toHttp = mode === 'http' || isUdpOutbound(ob);
+        const toHttp = mode !== 'tcp' || isUdpOutbound(ob);
         if (kind === 'tpl') {
           if (toHttp) httpTplQueue.push({ index, outbound: ob });
           else tcpQueue.push({ kind: 'tpl', index, outbound: ob });
@@ -375,10 +379,10 @@ export function useXraySetting(): UseXraySettingResult {
           const chunk = httpTplQueue.slice(at, at + HTTP_BATCH_CHUNK);
           setOutboundTestStates((prev) => {
             const next = { ...prev };
-            for (const item of chunk) next[item.index] = { testing: true, result: null, mode: 'http' };
+            for (const item of chunk) next[item.index] = { testing: true, result: null, mode: probeMode };
             return next;
           });
-          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), 'http');
+          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), probeMode);
           setOutboundTestStates((prev) => {
             const next = { ...prev };
             chunk.forEach((item, i) => {
@@ -393,10 +397,10 @@ export function useXraySetting(): UseXraySettingResult {
           const chunk = httpSubQueue.slice(at, at + HTTP_BATCH_CHUNK);
           setSubscriptionTestStates((prev) => {
             const next = { ...prev };
-            for (const item of chunk) next[item.tag] = { testing: true, result: null, mode: 'http' };
+            for (const item of chunk) next[item.tag] = { testing: true, result: null, mode: probeMode };
             return next;
           });
-          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), 'http');
+          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), probeMode);
           setSubscriptionTestStates((prev) => {
             const next = { ...prev };
             chunk.forEach((item, i) => {

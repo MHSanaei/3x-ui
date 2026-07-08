@@ -63,8 +63,21 @@ exports[`InboundSettingsSchema fixtures > parses mtproto-basic byte-stably 1`] =
 {
   "protocol": "mtproto",
   "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "mtproto-user",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
+        "subId": "",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
     "fakeTlsDomain": "www.cloudflare.com",
-    "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
   },
 }
 `;
@@ -73,6 +86,20 @@ exports[`InboundSettingsSchema fixtures > parses mtproto-domain-fronting byte-st
 {
   "protocol": "mtproto",
   "settings": {
+    "clients": [
+      {
+        "comment": "",
+        "email": "mtproto-user",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
+        "subId": "",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
     "debug": true,
     "domainFronting": {
       "ip": "127.0.0.1",
@@ -82,7 +109,7 @@ exports[`InboundSettingsSchema fixtures > parses mtproto-domain-fronting byte-st
     "fakeTlsDomain": "www.cloudflare.com",
     "preferIp": "prefer-ipv4",
     "proxyProtocolListener": true,
-    "secret": "ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d",
+    "throttleMaxConnections": 5000,
   },
 }
 `;

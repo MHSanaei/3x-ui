@@ -1,0 +1,242 @@
+---
+title: ورودی‌ها
+description: >-
+  مدیریت پیکربندی‌های ورودی و کلاینت‌های آن‌ها. همهٔ endpointها زیر
+  /panel/api/inbounds قرار دارند و به یک نشست واردشده یا توکن Bearer نیاز دارند.
+  endpointهای تولیدکنندهٔ لینک تنها زمانی به هدرهای forwarded اعتنا می‌کنند که
+  درخواست از یک پراکسی مورد اعتماد پیکربندی‌شده برسد.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        List every inbound owned by the authenticated user, including each
+        inbound’s clientStats traffic counters. settings, streamSettings, and
+        sniffing are returned as nested JSON objects (no escaped strings);
+        legacy callers that send them back as JSON-encoded strings are still
+        accepted on write.
+      url: >-
+        #list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write
+    - depth: 2
+      title: >-
+        Same shape as /list but with settings.clients[] stripped down to {email,
+        enable, comment} and ClientStats not enriched with UUID/SubId. Use this
+        for list pages; fetch /get/:id when you need the full per-client payload
+        (uuid, password, flow, ...).
+      url: >-
+        #same-shape-as-list-but-with-settingsclients-stripped-down-to-email-enable-comment-and-clientstats-not-enriched-with-uuidsubid-use-this-for-list-pages-fetch-getid-when-you-need-the-full-per-client-payload-uuid-password-flow-
+    - depth: 2
+      title: >-
+        Lightweight picker projection of the authenticated user’s inbounds.
+        Returns id, remark, tag, protocol, port, a server-computed
+        tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on
+        XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the
+        Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the
+        client UI to generate a valid Shadowsocks 2022 PSK). Use this for
+        dropdowns and attach pickers — it skips settings, streamSettings, and
+        clientStats so the payload stays small even on panels with thousands of
+        clients.
+      url: >-
+        #lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+    - depth: 2
+      title: Fetch a single inbound by numeric ID.
+      url: '#fetch-a-single-inbound-by-numeric-id'
+    - depth: 2
+      title: >-
+        Create a new inbound. Send the full inbound payload (protocol, port,
+        settings, streamSettings, sniffing, remark, expiryTime, total, enable).
+        settings, streamSettings, and sniffing may be sent as nested JSON
+        objects (preferred) or as JSON-encoded strings (legacy).
+      url: >-
+        #create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy
+    - depth: 2
+      title: Delete an inbound by ID. Also removes its associated client stats rows.
+      url: '#delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows'
+    - depth: 2
+      title: >-
+        Delete many inbounds in one call. Processes the list sequentially;
+        failures are reported per id and the rest still proceed. Restarts xray
+        at most once.
+      url: >-
+        #delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once
+    - depth: 2
+      title: >-
+        Replace an inbound’s configuration. Body shape mirrors /add. Heavy on
+        inbounds with thousands of clients — prefer /setEnable for enable-only
+        flips.
+      url: >-
+        #replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
+    - depth: 2
+      title: >-
+        Toggle only the enable flag without serialising the whole settings JSON.
+        Recommended for UI switches on large inbounds.
+      url: >-
+        #toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
+    - depth: 2
+      title: >-
+        Zero out upload + download counters for a single inbound. Does not touch
+        per-client counters.
+      url: >-
+        #zero-out-upload--download-counters-for-a-single-inbound-does-not-touch-per-client-counters
+    - depth: 2
+      title: >-
+        Remove every client attached to a single inbound while keeping the
+        inbound itself. Collects emails from settings.clients[] and feeds them
+        into the optimized bulk-delete path (runtime user removal + traffic-row
+        cleanup + SyncInbound). Destructive and cannot be undone.
+      url: >-
+        #remove-every-client-attached-to-a-single-inbound-while-keeping-the-inbound-itself-collects-emails-from-settingsclients-and-feeds-them-into-the-optimized-bulk-delete-path-runtime-user-removal--traffic-row-cleanup--syncinbound-destructive-and-cannot-be-undone
+    - depth: 2
+      title: >-
+        Reset upload + download counters on every inbound. Destructive —
+        accounting history is lost.
+      url: >-
+        #reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost
+    - depth: 2
+      title: >-
+        Bulk-import an inbound from a JSON blob (e.g. one exported via the UI).
+        The body uses form encoding with a single "data" field.
+      url: >-
+        #bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
+    - depth: 2
+      title: >-
+        Receive a master panel's aggregated per-client usage, keyed by the
+        master's GUID. Stored in a side table used only for the UI display
+        overlay and local quota enforcement — never folded into the local
+        counters that masters poll, so delta accounting stays intact. Called
+        panel-to-panel by the node traffic sync job.
+      url: >-
+        #receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job
+    - depth: 2
+      title: >-
+        List the fallback rules attached to a master VLESS/Trojan TCP-TLS
+        inbound. Each rule links one child inbound (the dest) to optional
+        SNI/ALPN/path/dest/xver match criteria. When dest is empty the child
+        inbound's listen+port is used.
+      url: >-
+        #list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used
+    - depth: 2
+      title: >-
+        Replace the entire fallback list for a master inbound. Body is JSON.
+        Triggers an Xray restart.
+      url: >-
+        #replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
+  structuredData:
+    headings:
+      - content: >-
+          List every inbound owned by the authenticated user, including each
+          inbound’s clientStats traffic counters. settings, streamSettings, and
+          sniffing are returned as nested JSON objects (no escaped strings);
+          legacy callers that send them back as JSON-encoded strings are still
+          accepted on write.
+        id: >-
+          list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write
+      - content: >-
+          Same shape as /list but with settings.clients[] stripped down to
+          {email, enable, comment} and ClientStats not enriched with UUID/SubId.
+          Use this for list pages; fetch /get/:id when you need the full
+          per-client payload (uuid, password, flow, ...).
+        id: >-
+          same-shape-as-list-but-with-settingsclients-stripped-down-to-email-enable-comment-and-clientstats-not-enriched-with-uuidsubid-use-this-for-list-pages-fetch-getid-when-you-need-the-full-per-client-payload-uuid-password-flow-
+      - content: >-
+          Lightweight picker projection of the authenticated user’s inbounds.
+          Returns id, remark, tag, protocol, port, a server-computed
+          tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on
+          XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the
+          Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the
+          client UI to generate a valid Shadowsocks 2022 PSK). Use this for
+          dropdowns and attach pickers — it skips settings, streamSettings, and
+          clientStats so the payload stays small even on panels with thousands
+          of clients.
+        id: >-
+          lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+      - content: Fetch a single inbound by numeric ID.
+        id: fetch-a-single-inbound-by-numeric-id
+      - content: >-
+          Create a new inbound. Send the full inbound payload (protocol, port,
+          settings, streamSettings, sniffing, remark, expiryTime, total,
+          enable). settings, streamSettings, and sniffing may be sent as nested
+          JSON objects (preferred) or as JSON-encoded strings (legacy).
+        id: >-
+          create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy
+      - content: >-
+          Delete an inbound by ID. Also removes its associated client stats
+          rows.
+        id: delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows
+      - content: >-
+          Delete many inbounds in one call. Processes the list sequentially;
+          failures are reported per id and the rest still proceed. Restarts xray
+          at most once.
+        id: >-
+          delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once
+      - content: >-
+          Replace an inbound’s configuration. Body shape mirrors /add. Heavy on
+          inbounds with thousands of clients — prefer /setEnable for enable-only
+          flips.
+        id: >-
+          replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
+      - content: >-
+          Toggle only the enable flag without serialising the whole settings
+          JSON. Recommended for UI switches on large inbounds.
+        id: >-
+          toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
+      - content: >-
+          Zero out upload + download counters for a single inbound. Does not
+          touch per-client counters.
+        id: >-
+          zero-out-upload--download-counters-for-a-single-inbound-does-not-touch-per-client-counters
+      - content: >-
+          Remove every client attached to a single inbound while keeping the
+          inbound itself. Collects emails from settings.clients[] and feeds them
+          into the optimized bulk-delete path (runtime user removal +
+          traffic-row cleanup + SyncInbound). Destructive and cannot be undone.
+        id: >-
+          remove-every-client-attached-to-a-single-inbound-while-keeping-the-inbound-itself-collects-emails-from-settingsclients-and-feeds-them-into-the-optimized-bulk-delete-path-runtime-user-removal--traffic-row-cleanup--syncinbound-destructive-and-cannot-be-undone
+      - content: >-
+          Reset upload + download counters on every inbound. Destructive —
+          accounting history is lost.
+        id: >-
+          reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost
+      - content: >-
+          Bulk-import an inbound from a JSON blob (e.g. one exported via the
+          UI). The body uses form encoding with a single "data" field.
+        id: >-
+          bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
+      - content: >-
+          Receive a master panel's aggregated per-client usage, keyed by the
+          master's GUID. Stored in a side table used only for the UI display
+          overlay and local quota enforcement — never folded into the local
+          counters that masters poll, so delta accounting stays intact. Called
+          panel-to-panel by the node traffic sync job.
+        id: >-
+          receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job
+      - content: >-
+          List the fallback rules attached to a master VLESS/Trojan TCP-TLS
+          inbound. Each rule links one child inbound (the dest) to optional
+          SNI/ALPN/path/dest/xver match criteria. When dest is empty the child
+          inbound's listen+port is used.
+        id: >-
+          list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used
+      - content: >-
+          Replace the entire fallback list for a master inbound. Body is JSON.
+          Triggers an Xray restart.
+        id: >-
+          replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
+    </>
+  );
+}

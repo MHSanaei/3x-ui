@@ -2,6 +2,7 @@ import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schem
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   HysteriaClientSchema,
+  MtprotoClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
   VlessClientSchema,
@@ -13,7 +14,7 @@ import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
-import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { XHttpStreamSettingsSchema, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 
 const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
@@ -164,7 +165,9 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     const streamRecord = streamSettings as unknown as Record<string, unknown>;
     const xh = streamRecord.xhttpSettings;
     if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
-      const xhttp = xh as Record<string, unknown>;
+      const parsed = XHttpStreamSettingsSchema.safeParse(xh);
+      const xhttp = (parsed.success ? parsed.data : xh) as Record<string, unknown>;
+      streamRecord.xhttpSettings = xhttp;
       const xmux = xhttp.xmux;
       if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
         xhttp.enableXmux = true;
@@ -236,6 +239,7 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
     case 'shadowsocks': return ShadowsocksClientSchema;
     case 'hysteria': return HysteriaClientSchema;
     case 'wireguard': return WireguardClientSchema;
+    case 'mtproto': return MtprotoClientSchema;
     default: return null;
   }
 }

@@ -99,7 +99,7 @@ func TestDelInboundClientByEmail_DisabledNodeClientMarksDirty(t *testing.T) {
 
 	inboundSvc := &InboundService{}
 	clientSvc := &ClientService{}
-	if _, err := clientSvc.DelInboundClientByEmail(inboundSvc, central.Id, "a@x", false); err != nil {
+	if _, err := clientSvc.DelInboundClientByEmail(inboundSvc, central.Id, "a@x", false, false); err != nil {
 		t.Fatalf("DelInboundClientByEmail: %v", err)
 	}
 
