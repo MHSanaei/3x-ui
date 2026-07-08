@@ -224,6 +224,7 @@ export interface ApiTokenView {
 }
 
 export interface Client {
+  adTag?: string;
   allowedIPs?: string[];
   auth?: string;
   comment: string;
@@ -258,6 +259,7 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  adTag: string;
   allowedIPs: string;
   auth: string;
   comment: string;

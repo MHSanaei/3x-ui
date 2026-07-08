@@ -22,9 +22,10 @@ separate HTTP server serves **subscription links** to end users.
 The panel supervises **two managed child processes**: Xray-core itself and — when MTProto
 inbounds exist — the `mtg-multi` Telegram-proxy binary (`github.com/mhsanaei/mtg-multi`, a
 multi-secret fork built from source; `internal/mtproto/`). One process per inbound serves
-every attached client's FakeTLS secret through the fork's `[secrets]` section. A client edit
-is hot-applied via the fork's `POST /reload` endpoint (connections survive), with a process
-restart as the fallback on older binaries.
+every attached client's FakeTLS secret through the fork's `[secrets]` section, plus optional
+per-client sponsored-channel ad-tags via `[secret-ad-tags]`. A client or ad-tag edit is
+hot-applied via the fork's management API (`PUT /secrets`, guarded by a per-process bearer
+token), with a process restart as the fallback on older binaries.
 
 Servers and processes, all launched from `main.go`:
 
@@ -61,8 +62,8 @@ Two key ideas that explain most of the complexity:
 
 **Frontend (`frontend/`):**
 - **React 19** + **Ant Design 6** + **Vite 8** + **TypeScript**.
-- Data layer: **TanStack Query** (`@tanstack/react-query`) over **axios**; **Zod 4** schemas.
-- Router: **react-router-dom 7**. Charts: **recharts**. Editor: **CodeMirror 6**.
+- Data layer: **TanStack Query** (`@tanstack/react-query`) over the native **Fetch API**; **Zod 4** schemas.
+- Router: **react-router-dom 7**. Charts: **uPlot** (`frontend/src/components/viz/Sparkline.tsx`). Editor: **CodeMirror 6**.
 - **Build output goes to `internal/web/dist/`** (see `vite.config.js` → `outDir`) and is
   embedded into the Go binary with `go:embed`. Three HTML entries: `index.html` (panel SPA),
   `login.html`, `subpage.html`. The Go server serves the SPA; there is no separate frontend
@@ -78,7 +79,7 @@ from the embedded Vite `dist/`. Don't look for `.html` templates in `internal/we
 ### 3.1 Admin API request (e.g. "add a client")
 
 ```
-Browser (React, axios)
+Browser (React, fetch)
   → POST {basePath}/panel/api/...
     → Gin engine (internal/web/web.go: initRouter)
       → middleware chain: SecurityHeaders → MaxBodyBytes (10 MiB; importDB exempt)
@@ -260,7 +261,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │       │   ├── xray/         #   raw Xray config UI (routing, dns, outbounds, balancers, overrides)
 │       │   ├── index/        #   dashboard/home
 │       │   └── settings/, groups/, sub/, login/, api-docs/
-│       ├── api/              # ⭐ Data layer: axios-init, QueryProvider, queryKeys, websocket bridge
+│       ├── api/              # ⭐ Data layer: http-init, QueryProvider, queryKeys, websocket bridge
 │       │   └── queries/      #   TanStack Query hooks (useNodesQuery, useStatusQuery, …)
 │       ├── schemas/          # Zod schemas: protocols, forms, api, primitives
 │       ├── generated/        # ⚠️ GENERATED from Go (see §5.5): schemas.ts, types.ts, zod.ts, examples.ts
@@ -366,8 +367,9 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 10s` | `check_client_ip_job` | Enforce per-client IP limits |
 | `@every 10s` | `mtproto_job` | Reconcile `mtg` sidecars against enabled MTProto inbounds |
 | `@every 5m` | `outbound_subscription_job` | Refresh outbound provider configs |
+| `@every 10m` | `clear_logs_job` (`PruneXrayLogsJob`) | Truncate Xray access/error logs once either exceeds 64 MiB |
 | `@hourly` | `warp_ip_job`, `periodic_traffic_reset_job("hourly")` | WARP IP rotation; traffic resets |
-| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")` | Log cleanup; resets |
+| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")` | IP-limit and Xray access/error log cleanup; traffic resets |
 | `@weekly` / `@monthly` | `periodic_traffic_reset_job(...)` | Weekly/monthly traffic resets |
 | default `@every 1m` | `ldap_sync_job` | Only if LDAP enabled; schedule configurable |
 | default `@daily` | `stats_notify_job` | Only if TG bot enabled; schedule configurable |

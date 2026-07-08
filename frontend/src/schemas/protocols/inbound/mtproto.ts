@@ -17,6 +17,11 @@ export type MtprotoDomainFronting = z.infer<typeof MtprotoDomainFrontingSchema>;
 // default domain used when generating a new client's secret.
 export const MtprotoClientSchema = z.object({
   secret: z.string().default(''),
+  adTag: z
+    .string()
+    .regex(/^[0-9a-fA-F]{32}$/, 'pages.inbounds.form.mtgAdTagInvalid')
+    .or(z.literal(''))
+    .optional(),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),
   totalGB: z.number().int().min(0).default(0),
@@ -52,15 +57,8 @@ export const MtprotoInboundSettingsSchema = z.object({
   routeThroughXray: z.boolean().optional(),
   outboundTag: z.string().optional(),
   routeXrayPort: z.number().int().min(0).max(65535).optional(),
-  // A 32-hex Telegram advertising tag: when set, mtg routes clients through
-  // Telegram middle proxies so a sponsored channel appears in their chat list.
-  // publicIpv4/publicIpv6 pin this server's reachable address the middle proxy
-  // needs; leave them blank to let mtg auto-detect it.
-  adTag: z
-    .string()
-    .regex(/^[0-9a-fA-F]{32}$/, 'pages.inbounds.form.mtgAdTagInvalid')
-    .or(z.literal(''))
-    .optional(),
+  // publicIpv4/publicIpv6 pin this server's reachable address the Telegram
+  // middle proxy needs when clients carry ad-tags; blank = mtg auto-detects.
   publicIpv4: z.string().optional(),
   publicIpv6: z.string().optional(),
 });

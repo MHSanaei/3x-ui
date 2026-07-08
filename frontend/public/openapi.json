@@ -1092,6 +1092,10 @@
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
+          "adTag": {
+            "example": "0123456789abcdef0123456789abcdef",
+            "type": "string"
+          },
           "allowedIPs": {
             "items": {
               "type": "string"
@@ -1231,6 +1235,9 @@
       },
       "ClientRecord": {
         "properties": {
+          "adTag": {
+            "type": "string"
+          },
           "allowedIPs": {
             "type": "string"
           },
@@ -1306,6 +1313,7 @@
           }
         },
         "required": [
+          "adTag",
           "allowedIPs",
           "auth",
           "comment",
@@ -10116,7 +10124,7 @@
         "tags": [
           "Xray Settings"
         ],
-        "summary": "Delete an outbound subscription by id (POST alias of DELETE for axios-friendly clients).",
+        "summary": "Delete an outbound subscription by id (POST alias of DELETE for clients that cannot send DELETE).",
         "operationId": "post_panel_api_xray_outbound_subs_id_del",
         "parameters": [
           {

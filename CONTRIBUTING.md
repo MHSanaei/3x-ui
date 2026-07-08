@@ -151,7 +151,7 @@ Panel navigation happens client-side through React Router, and per-route code is
 - **Local UI state stays in the page** (`useState`); shared concerns go through contexts and hooks in `src/hooks/` (`useTheme`, `useWebSocket`, `useClients`, `useDatepicker`, …). Prefer extending an existing hook over introducing a new global.
 - **Zod is the single source of truth.** Schemas in `src/schemas/` define the xray config model; every API response is parsed through them, every form field validates against them, and TypeScript types are inferred with `z.infer` — never hand-written. Go-side types are mirrored into `src/generated/` by `npm run gen:zod` (do not hand-edit that folder).
 - **xray domain logic** — link generation, protocol defaults, form ⇄ wire adapters — lives as pure functions in `src/lib/xray/`. `src/models/` keeps only thin legacy types still being migrated onto schemas.
-- **HTTP** goes through `HttpUtil` in `src/utils/index.ts`, a thin Axios wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The Axios setup itself lives in `src/api/axios-init.ts`.
+- **HTTP** goes through `HttpUtil` in `src/utils/index.ts`, a thin `fetch` wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The `fetch` setup itself (base path, CSRF, 401/403 handling) lives in `src/api/http-init.ts`.
 
 ### i18n
 
@@ -210,7 +210,7 @@ frontend/
     ├── pages/             — one folder per route (index, inbounds, clients, groups, nodes, settings, xray, api-docs) plus login, sub
     ├── components/        — cross-page React components
     ├── hooks/             — reusable hooks (useTheme, useWebSocket, useClients, useDatepicker, …)
-    ├── api/               — Axios + CSRF interceptor, TanStack Query provider/keys, WebSocket client
+    ├── api/               — fetch client + CSRF handling, TanStack Query provider/keys, WebSocket client
     ├── i18n/              — react-i18next bootstrap (JSON lives in internal/web/translation/)
     ├── lib/xray/          — pure xray logic: link generation, defaults, form ⇄ wire adapters
     ├── schemas/           — Zod source of truth for the xray config model

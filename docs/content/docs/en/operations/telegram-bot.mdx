@@ -1,0 +1,112 @@
+---
+title: Telegram Bot
+description: Connect a Telegram bot to 3x-ui for commands, periodic reports, event alerts (login, CPU, node up/down), backups, and client self-service.
+icon: Send
+---
+
+3x-ui can drive a Telegram bot for monitoring, alerts, backups, and remote
+management. Admins get full control; regular users (linked by Telegram ID) can
+check their own usage and links.
+
+<Callout type="info">
+  Looking for news and community support? Join the official Telegram channel
+  [@XrayUI](https://t.me/XrayUI). That's separate from the bot below, which you
+  run yourself to manage your own panel.
+</Callout>
+
+## Set it up
+
+<Steps>
+
+<Step>
+### Create a bot
+
+Message [@BotFather](https://t.me/BotFather), send `/newbot`, and copy the **bot
+token**.
+</Step>
+
+<Step>
+### Find your Telegram ID
+
+Get your numeric Telegram user ID (the bot's own `/id` command reports it once
+connected). This is your **admin** ID.
+</Step>
+
+<Step>
+### Configure the panel
+
+In Panel Settings, enable the Telegram bot and set the **token** and **admin chat
+ID(s)** (comma-separated). Save, then message your bot.
+</Step>
+
+</Steps>
+
+Validate your token, admin IDs, and report schedule before pasting them into the
+panel:
+
+<TelegramSetupHelper />
+
+## Commands
+
+These appear in the Telegram command menu: `/start`, `/help`, `/status`, `/id`.
+Additional commands:
+
+| Command            | Who    | Action                                                       |
+| ------------------ | ------ | ------------------------------------------------------------ |
+| `/start`, `/help`  | anyone | Greeting and the menu of inline buttons                      |
+| `/status`          | anyone | Confirm the bot is alive                                     |
+| `/id`              | anyone | Show your Telegram numeric ID                                |
+| `/usage <arg>`     | both   | Admins search clients; users look up their own usage         |
+| `/inbound <remark>`| admin  | Show an inbound's details                                    |
+| `/restart`         | admin  | Restart Xray                                                 |
+
+Admins also get inline-button flows for server usage, sorted traffic reports,
+resetting traffic, DB backups, ban logs, listing inbounds/clients, online
+clients, "depleting soon", and a full **add-client** wizard. Regular users get
+buttons for their own usage, subscription links, individual links, and QR codes.
+
+## Reports & alerts
+
+- **Periodic report** — on the `tgRunTime` schedule (default `@daily`), the bot
+  sends admins server usage (host, versions, uptime, load, memory, online
+  clients, traffic), a list of exhausted/expiring clients, and — if
+  `tgBotBackup` is on — a database + Xray config backup. Clients linked by
+  Telegram ID get their own expiry/quota warnings.
+- **Event alerts** — selected by `tgEnabledEvents` (default `login.attempt,cpu.high`):
+
+  | Event           | When                                                    |
+  | --------------- | ------------------------------------------------------- |
+  | `login.attempt` | A panel login succeeds or fails (with IP and username)  |
+  | `cpu.high`      | CPU exceeds `tgCpu` percent (default 80)                |
+  | `memory.high`   | Memory exceeds `tgMemory` percent (default 80)          |
+  | `xray.crash`    | Xray-core crashes                                       |
+  | `outbound.down` / `outbound.up` | An outbound goes down / recovers        |
+  | `node.down` / `node.up`         | A node goes offline / comes back        |
+
+The warning lead times come from `expireDiff` (days before expiry) and
+`trafficDiff` (GB of quota remaining); both default to `0` (off).
+
+## Settings
+
+| Setting        | Default                    | Meaning                                        |
+| -------------- | -------------------------- | ---------------------------------------------- |
+| `tgBotEnable`  | `false`                    | Master on/off.                                 |
+| `tgBotToken`   | _(secret)_                 | Bot API token.                                 |
+| `tgBotChatId`  | _(none)_                   | Comma-separated **admin** Telegram IDs.        |
+| `tgBotProxy`   | _(none)_                   | `socks5://`, `http://`, or `https://` proxy.   |
+| `tgBotAPIServer` | _(default)_              | Custom Telegram Bot API server.                |
+| `tgRunTime`    | `@daily`                   | Report schedule (cron / `@daily` / `@every …`).|
+| `tgBotBackup`  | `false`                    | Attach a DB backup to the periodic report.     |
+| `tgCpu` / `tgMemory` | `80` / `80`          | CPU / memory alert thresholds (percent).       |
+| `tgLang`       | `en-US`                    | Bot language.                                  |
+| `tgEnabledEvents` | `login.attempt,cpu.high`| Which events to deliver.                       |
+
+<Callout type="warn">
+  The bot token controls your bot — keep it secret and only add **trusted** admin
+  chat IDs. Login alerts never include passwords.
+</Callout>
+
+<Callout type="info">
+  Email (SMTP) notifications mirror the same events (`smtpEnabledEvents`) if you'd
+  rather receive alerts by email — configure SMTP in Panel Settings.
+</Callout>

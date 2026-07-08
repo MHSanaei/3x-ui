@@ -116,25 +116,32 @@ func TestApplySecrets(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var gotMethod, gotPath string
+			var gotMethod, gotPath, gotAuth string
 			var gotBody secretsPutBody
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				gotMethod, gotPath = r.Method, r.URL.Path
+				gotMethod, gotPath, gotAuth = r.Method, r.URL.Path, r.Header.Get("Authorization")
 				_ = json.NewDecoder(r.Body).Decode(&gotBody)
 				w.WriteHeader(tc.status)
 			}))
 			defer srv.Close()
 
-			inst := mtgInst(1, SecretEntry{Name: "alice", Secret: "ee01"})
-			inst.AdTag = "0123456789abcdef0123456789abcdef"
-			if got := applySecrets(serverPort(t, srv), inst); got != tc.want {
+			inst := mtgInst(1,
+				SecretEntry{Name: "alice", Secret: "ee01"},
+				SecretEntry{Name: "bob", Secret: "ee02", AdTag: "fedcba9876543210fedcba9876543210"})
+			if got := applySecrets(serverPort(t, srv), "sesame", inst); got != tc.want {
 				t.Fatalf("applySecrets = %v, want %v", got, tc.want)
 			}
 			if gotMethod != http.MethodPut || gotPath != "/secrets" {
 				t.Fatalf("expected PUT /secrets, got %s %s", gotMethod, gotPath)
 			}
-			if gotBody.Secrets["alice"].Secret != "ee01" || gotBody.AdTag != "0123456789abcdef0123456789abcdef" {
-				t.Fatalf("payload must carry the secret and ad-tag: %+v", gotBody)
+			if gotAuth != "Bearer sesame" {
+				t.Fatalf("expected the bearer token on the request, got %q", gotAuth)
+			}
+			if gotBody.Secrets["alice"].Secret != "ee01" {
+				t.Fatalf("payload must carry the secret: %+v", gotBody)
+			}
+			if gotBody.Secrets["alice"].AdTag != "" || gotBody.Secrets["bob"].AdTag != "fedcba9876543210fedcba9876543210" {
+				t.Fatalf("payload must carry per-client ad-tags only where set: %+v", gotBody)
 			}
 		})
 	}
@@ -143,7 +150,7 @@ func TestApplySecrets(t *testing.T) {
 		srv := httptest.NewServer(http.NotFoundHandler())
 		port := serverPort(t, srv)
 		srv.Close()
-		if applySecrets(port, mtgInst(1, SecretEntry{Name: "a", Secret: "ee"})) {
+		if applySecrets(port, "", mtgInst(1, SecretEntry{Name: "a", Secret: "ee"})) {
 			t.Fatal("a refused connection must yield false")
 		}
 	})
@@ -159,6 +166,10 @@ func TestEnsureHotReloadKeepsProcess(t *testing.T) {
 	}
 	waitSpawnCount(t, pidFile, 1)
 	orig := mgr.procs[1].proc
+	origToken := mgr.procs[1].apiToken
+	if origToken == "" {
+		t.Fatal("a started process must get an api token")
+	}
 
 	reloaded := make(chan struct{}, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -200,6 +211,9 @@ func TestEnsureHotReloadKeepsProcess(t *testing.T) {
 	}
 	if !strings.Contains(string(cfg), fmt.Sprintf("api-bind-to = \"127.0.0.1:%d\"", serverPort(t, srv))) {
 		t.Fatalf("reload must reuse the same api port:\n%s", cfg)
+	}
+	if !strings.Contains(string(cfg), fmt.Sprintf("api-token = %q", origToken)) {
+		t.Fatalf("reload must reuse the token the running process was started with:\n%s", cfg)
 	}
 	mgr.StopAll()
 }

@@ -1,0 +1,54 @@
+---
+title: 备份与恢复
+description: 手动或通过 Telegram 机器人备份并恢复你的 3x-ui 数据库与证书。
+icon: DatabaseBackup
+---
+
+你的全部配置——入站、客户端、各项设置——都存放在面板的数据库中。
+请定期备份，以便日后恢复或迁移。
+
+## 需要备份的内容
+
+- **数据库** —— 默认为位于 `/etc/x-ui/x-ui.db` 的 SQLite（如果你使用
+  PostgreSQL 后端，则为对应的 PostgreSQL 数据库）。
+- **证书** —— `/root/cert/` 下的所有内容（或你存放 TLS 证书的任意位置）。
+
+## 手动备份
+
+你可以从面板的概览页下载备份，也可以直接从服务器上复制数据库文件：
+
+```bash title="copy the SQLite database"
+cp /etc/x-ui/x-ui.db /root/x-ui-backup-$(date +%F).db
+```
+
+要恢复时，先停止面板，把数据库文件放回原位，然后重新启动面板。
+
+<Callout type="warn">
+  尽量将备份恢复到与其来源**相同的主版本**上。跨主版本升级时，应让面板自行
+  运行迁移，而不要强行套用旧的数据库结构。
+</Callout>
+
+## Telegram 备份
+
+如果你已配置 [Telegram 机器人](/docs/operations/telegram-bot)，启用
+**`tgBotBackup`** 即可在周期性报告中附带一份备份（按 `tgRunTime`
+计划执行，默认每天一次）。机器人会将**数据库**与 Xray 的
+**`config.json`** 一并发送到你的管理员聊天，从而让你始终拥有一份服务器之外的副本。
+管理员也可以从机器人的菜单中按需请求备份。
+
+## SQLite 转储 / 恢复
+
+`x-ui migrate-db` 命令可在 SQLite 数据库与纯文本 SQL 转储之间相互转换
+（便于检查，或在不同机器之间转移）：
+
+```bash
+x-ui migrate-db --dump /root/x-ui.sql       # SQLite -> SQL text
+x-ui migrate-db --restore /root/x-ui.sql     # SQL text -> SQLite
+```
+
+若想改用 PostgreSQL，请参阅[数据库](/docs/reference/database)。
+
+<Callout type="info">
+  无论采用哪种方式，都请将备份保存在**服务器之外**，并不时测试一次恢复——
+  未经测试的备份算不上备份。
+</Callout>

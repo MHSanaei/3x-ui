@@ -1,0 +1,71 @@
+---
+title: Meet 3x-ui
+description: A web panel for Xray-core — manage inbounds, protocols, clients, and subscriptions from your browser instead of editing JSON by hand.
+icon: Info
+---
+
+**3x-ui** is a web control panel that sits on top of
+[Xray-core](https://github.com/XTLS/Xray-core), the proxy engine that actually
+moves your traffic. Instead of writing and reloading Xray's JSON configuration
+by hand, you manage everything — inbounds, protocols, clients, certificates,
+subscriptions — from a browser dashboard.
+
+## How the pieces fit together
+
+<Mermaid
+  chart={`
+flowchart LR
+  Admin["Admin browser"] -->|HTTPS panel| Panel["3x-ui panel"]
+  Panel -->|writes config, reloads| Xray["Xray-core"]
+  Panel --- DB[("SQLite or PostgreSQL")]
+  Clients["Client apps"] -->|VLESS / VMess / Trojan / ...| Xray
+  Xray -->|proxied traffic| Internet["Internet"]
+`}
+/>
+
+- **The panel** is the management layer: it stores your configuration in a
+  database, renders the dashboard, exposes a REST API, and writes the live Xray
+  configuration.
+- **Xray-core** is the data plane: it terminates client connections on your
+  **inbounds** and forwards traffic to its destination.
+- **Client apps** (such as v2rayNG, Clash/Mihomo, Hiddify, and others) connect
+  using a share link or a subscription that the panel generates for each client.
+
+## What it gives you
+
+- A dashboard for **inbounds** across every major protocol — VLESS, VMess,
+  Trojan, Shadowsocks, WireGuard, Hysteria2, SOCKS, HTTP, and Dokodemo-door.
+- First-class **REALITY** and **XTLS-Vision** support for stealthy, fast
+  transports.
+- **Per-client** traffic quotas, expiry dates, IP limits, online status, and
+  one-click share links / QR codes.
+- **Subscriptions** in VLESS, Clash/Mihomo, and JSON formats.
+- Operational tooling: **multi-node** management, a **Telegram bot**, backups,
+  Fail2ban-based IP limiting, and a documented REST API.
+
+## Under the hood
+
+| Layer        | Technology                                   |
+| ------------ | -------------------------------------------- |
+| Backend      | Go with the Gin web framework                |
+| Frontend     | TypeScript / React                           |
+| Database     | SQLite (default) or PostgreSQL               |
+| Proxy engine | Xray-core (bundled and managed by the panel) |
+
+The default SQLite database lives at `/etc/x-ui/x-ui.db`, and the panel listens
+on port **2053** by default. Both are configurable — see
+[First login](/docs/guide/first-login) and the environment variable reference.
+
+## Who it's for
+
+3x-ui is aimed at anyone running their own Xray server: from a single personal
+VPS to operators managing many nodes and clients. If you want the power of
+Xray-core without living in JSON config files, this is for you.
+
+<Callout type="info">
+  3x-ui is an enhanced fork of the original X-UI project, adding broader protocol
+  support, improved stability, per-client traffic accounting, multi-node
+  management, and many quality-of-life features.
+</Callout>
+
+Ready to install? Continue to [Installation](/docs/guide/installation).

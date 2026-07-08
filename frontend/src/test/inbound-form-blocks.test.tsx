@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { Form, type FormInstance } from 'antd';
+import { Form } from 'antd';
 import type { ReactNode } from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 
 import {
   GrpcForm,
@@ -17,61 +18,62 @@ import { renderWithProviders, fieldLabels } from './test-utils';
 
 function FormHarness({
   children,
-  initialValues,
+  defaultValues,
 }: {
-  children: (form: FormInstance<InboundFormValues>) => ReactNode;
-  initialValues?: Record<string, unknown>;
+  children: ReactNode;
+  defaultValues?: Record<string, unknown>;
 }) {
-  const [form] = Form.useForm<InboundFormValues>();
-  return <Form form={form} initialValues={initialValues}>{children(form)}</Form>;
+  const methods = useForm<InboundFormValues>({ defaultValues: defaultValues as never });
+  return (
+    <FormProvider {...methods}>
+      <Form>{children}</Form>
+    </FormProvider>
+  );
 }
 
-function renderInForm(
-  node: (form: FormInstance<InboundFormValues>) => ReactNode,
-  initialValues?: Record<string, unknown>,
-) {
-  return renderWithProviders(<FormHarness initialValues={initialValues}>{node}</FormHarness>);
+function renderInForm(node: ReactNode, defaultValues?: Record<string, unknown>) {
+  return renderWithProviders(<FormHarness defaultValues={defaultValues}>{node}</FormHarness>);
 }
 
 const noop = () => {};
 
 describe('inbound transport forms', () => {
   it('RawForm field structure is stable', () => {
-    renderInForm(() => <RawForm />);
+    renderInForm(<RawForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('WsForm field structure is stable', () => {
-    renderInForm(() => <WsForm />);
+    renderInForm(<WsForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('GrpcForm field structure is stable', () => {
-    renderInForm(() => <GrpcForm />);
+    renderInForm(<GrpcForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('KcpForm field structure is stable', () => {
-    renderInForm(() => <KcpForm />);
+    renderInForm(<KcpForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('HttpUpgradeForm field structure is stable', () => {
-    renderInForm(() => <HttpUpgradeForm />);
+    renderInForm(<HttpUpgradeForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('XhttpForm field structure is stable', () => {
-    renderInForm((form) => <XhttpForm form={form} />);
+    renderInForm(<XhttpForm />);
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('SockoptForm field structure is stable (server-side fields only)', () => {
-    // The inbound sockopt form shows only server/listening-side fields;
-    // outbound-only fields (dialerProxy, domainStrategy, interface,
-    // addressPortStrategy, happyEyeballs, tcpMptcp) live in the outbound form.
+    /* The inbound sockopt form shows only server/listening-side fields;
+       outbound-only fields (dialerProxy, domainStrategy, interface,
+       addressPortStrategy, happyEyeballs, tcpMptcp) live in the outbound form. */
     renderInForm(
-      () => <SockoptForm toggleSockopt={noop} network="tcp" />,
+      <SockoptForm toggleSockopt={noop} network="tcp" />,
       { streamSettings: { sockopt: { mark: 0 } } },
     );
     expect(fieldLabels()).toMatchSnapshot();
@@ -80,7 +82,7 @@ describe('inbound transport forms', () => {
 
 describe('inbound security forms', () => {
   it('TlsForm field structure is stable', () => {
-    renderInForm(() => (
+    renderInForm(
       <TlsForm
         saving={false}
         setCertFromPanel={noop}
@@ -89,13 +91,13 @@ describe('inbound security forms', () => {
         pinFromRemote={noop}
         getNewEchCert={noop}
         clearEchCert={noop}
-      />
-    ));
+      />,
+    );
     expect(fieldLabels()).toMatchSnapshot();
   });
 
   it('RealityForm field structure is stable', () => {
-    renderInForm(() => (
+    renderInForm(
       <RealityForm
         saving={false}
         scanning={false}
@@ -109,8 +111,8 @@ describe('inbound security forms', () => {
         clearRealityKeypair={noop}
         genMldsa65={noop}
         clearMldsa65={noop}
-      />
-    ));
+      />,
+    );
     expect(fieldLabels()).toMatchSnapshot();
   });
 });

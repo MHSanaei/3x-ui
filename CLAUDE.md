@@ -14,9 +14,14 @@ file locations when it can answer in one hop.
   API. MTProto inbounds run a second managed child — the `mtg-multi` binary
   (`github.com/mhsanaei/mtg-multi`, a multi-secret fork built from source;
   `internal/mtproto/`) — outside Xray, one process per inbound serving each
-  client's FakeTLS secret via the fork's `[secrets]` section. Client edits are
-  hot-applied through the fork's `POST /reload` so connections survive; the
-  manager falls back to a process restart on older binaries.
+  client's FakeTLS secret via the fork's `[secrets]` section (plus per-client
+  ad-tags via `[secret-ad-tags]` and per-client data quota / expiry via
+  `[secret-limits]`, mapped from the client's `totalGB`/`expiryTime`). Client,
+  ad-tag and quota/expiry edits are hot-applied through the fork's management API
+  (`PUT /secrets`, bearer-token guarded) so connections survive; the manager
+  falls back to a process restart on older binaries. A client's panel-side
+  traffic reset also calls `POST /secrets/{name}/reset-quota` so a renewed client
+  is not re-blocked by the sidecar's quota counter.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux; the executable dir on
   Windows), PostgreSQL optional (`XUI_DB_TYPE` / `XUI_DB_DSN`). The CGo SQLite
   driver (`mattn/go-sqlite3`) needs a C compiler — `CGO_ENABLED=0` builds fail.
