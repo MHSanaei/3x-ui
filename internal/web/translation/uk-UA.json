@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "Сімейний",
         "clearAll": "Видалити всі",
         "clearAllTitle": "Видалити всі DNS-сервери?",
-        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати."
+        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати.",
+        "dnsLeakWarning": "DNS може витікати через localhost, звичайний UDP/TCP, локальний режим DoH/DoQ, fallback-запити або EDNS client IP. Для приватності використовуйте маршрутизований DoH, фіксацію hosts і вимикайте fallback."
       },
       "fakedns": {
         "add": "Додати підроблений DNS",
@@ -1901,7 +1902,7 @@
       "fields": {
         "remark": "Примітка",
         "serverDescription": "Опис",
-        "inbound": "Вхідний",
+        "inbound": "Вхідні",
         "address": "Адреса",
         "port": "Порт",
         "endpoint": "Кінцева точка",
@@ -1928,7 +1929,8 @@
         "shuffleHost": "Перемішувати host",
         "tags": "Теги",
         "nodeGuids": "Вузли",
-        "excludeFromSubTypes": "Виключити з форматів"
+        "excludeFromSubTypes": "Виключити з форматів",
+        "inheritAddress": "Успадковує адресу"
       },
       "hints": {
         "address": "Залиште порожнім, щоб успадкувати власну адресу вхідного.",

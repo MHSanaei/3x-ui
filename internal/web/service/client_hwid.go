@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"hash/fnv"
 	"strings"
 	"time"
 
@@ -46,6 +47,19 @@ type ClientHwidInfo struct {
 func hashHwid(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func hwidAdvisoryLockKey(subID string) int64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte("client_hwid:" + subID))
+	return int64(h.Sum64())
+}
+
+func lockSubHwidRegistration(tx *gorm.DB, subID string) error {
+	if !database.IsPostgres() {
+		return nil
+	}
+	return tx.Exec("SELECT pg_advisory_xact_lock(?)", hwidAdvisoryLockKey(subID)).Error
 }
 
 func trimHwidMeta(s string) string {
@@ -104,6 +118,9 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	hwidHash := hashHwid(req.Hwid)
 
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockSubHwidRegistration(tx, subID); err != nil {
+			return err
+		}
 		limit, err := effectiveHwidLimitForSubID(tx, subID)
 		if err != nil {
 			return err

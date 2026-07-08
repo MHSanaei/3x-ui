@@ -15,6 +15,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import type { RealityScanResult } from '@/generated/types';
@@ -36,7 +37,7 @@ import {
   InboundFormSchema,
   type InboundFormValues,
 } from '@/schemas/forms/inbound-form';
-import { antdRule } from '@/utils/zodForm';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
@@ -50,7 +51,7 @@ import { GrpcStreamSettingsSchema } from '@/schemas/protocols/stream/grpc';
 import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/httpupgrade';
 import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import { DateTimePicker } from '@/components/form';
-import { FinalMaskForm } from '@/lib/xray/forms/transport';
+import { FinalMaskField } from '@/lib/xray/forms/fields';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
@@ -85,7 +86,7 @@ import type { DBInbound } from '@/models/dbinbound';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 
 
-// Render a field label with a hover tooltip icon instead of an `extra` help line below.
+/* Render a field label with a hover tooltip icon instead of an `extra` help line below. */
 const labelWithHint = (label: string, hint: string) => (
   <span>
     {label}
@@ -162,6 +163,25 @@ function buildAddModeValues(): InboundFormValues {
   });
 }
 
+/*
+ * Switching `network` swaps which per-network key (tcpSettings, wsSettings,
+ * grpcSettings, ...) appears on the wire. Seed each network's blob with its
+ * Zod schema defaults so every field inside the network sub-form has a
+ * defined starting value (KCP needs MTU=1350 etc., XHTTP needs the ""
+ * sentinels so the "Default" option shows instead of blank).
+ */
+function newStreamSlice(n: string): Record<string, unknown> {
+  switch (n) {
+    case 'tcp': return TcpStreamSettingsSchema.parse({ header: { type: 'none' } });
+    case 'kcp': return KcpStreamSettingsSchema.parse({});
+    case 'ws': return WsStreamSettingsSchema.parse({});
+    case 'grpc': return GrpcStreamSettingsSchema.parse({});
+    case 'httpupgrade': return HttpUpgradeStreamSettingsSchema.parse({});
+    case 'xhttp': return XHttpStreamSettingsSchema.parse({});
+    default: return {};
+  }
+}
+
 export default function InboundFormModal({
   open,
   onClose,
@@ -174,7 +194,10 @@ export default function InboundFormModal({
 }: InboundFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const [form] = Form.useForm<InboundFormValues>();
+  const methods = useForm<InboundFormValues>({ defaultValues: buildAddModeValues() });
+  const setV = methods.setValue as unknown as (name: string, value: unknown) => void;
+  const getV = methods.getValues as unknown as (name?: string) => unknown;
+  const control = methods.control;
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
@@ -191,41 +214,47 @@ export default function InboundFormModal({
   } = useInboundFallbacks(dbInbound, dbInbounds);
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
-  const protocol = (Form.useWatch('protocol', form) ?? '') as string;
+  const protocol = (useWatch({ control, name: 'protocol' }) ?? '') as string;
   const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
-  // The `node` share-address strategy only means something when the inbound can
-  // actually live on a node — otherwise the node address it would resolve to is
-  // always empty. Offer it only then; `listen`/`custom` work for local inbounds.
+  /*
+   * The `node` share-address strategy only means something when the inbound can
+   * actually live on a node — otherwise the node address it would resolve to is
+   * always empty. Offer it only then; `listen`/`custom` work for local inbounds.
+   */
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
-  const vlessEncryption = Form.useWatch(['settings', 'encryption'], form) ?? '';
-  const ssMethod = Form.useWatch(['settings', 'method'], form);
+  const vlessEncryption = useWatch({ control, name: 'settings.encryption' }) ?? '';
+  const ssMethod = useWatch({ control, name: 'settings.method' });
   const isSSWith2022 = isSS2022({
     protocol,
     settings: typeof ssMethod === 'string' ? { method: ssMethod } : {},
   });
-  const mixedUdpOn = Form.useWatch(['settings', 'udp'], form) ?? false;
-  const network = Form.useWatch(['streamSettings', 'network'], form) ?? '';
-  const security = Form.useWatch(['streamSettings', 'security'], form) ?? 'none';
+  const mixedUdpOn = (useWatch({ control, name: 'settings.udp' }) ?? false) as boolean;
+  const network = (useWatch({ control, name: 'streamSettings.network' }) ?? '') as string;
+  const security = (useWatch({ control, name: 'streamSettings.security' }) ?? 'none') as string;
   const streamEnabled = canEnableStream({ protocol });
   const sniffingSupported = canEnableSniffing({ protocol });
-  // Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no
-  // user-selectable transport — their stream tab is just sockopt, which is all
-  // Tunnel's TProxy/redirect mode needs (sockopt.tproxy). Hysteria carries its
-  // own dedicated transport form. For all of these the RAW/mKCP/WS/... network
-  // picker and the per-network sub-forms are hidden.
+  /*
+   * Wireguard (always a UDP listener) and Tunnel (dokodemo-door) expose no
+   * user-selectable transport — their stream tab is just sockopt, which is all
+   * Tunnel's TProxy/redirect mode needs (sockopt.tproxy). Hysteria carries its
+   * own dedicated transport form. For all of these the RAW/mKCP/WS/... network
+   * picker and the per-network sub-forms are hidden.
+   */
   const hasSelectableTransport =
     protocol !== Protocols.HYSTERIA
     && protocol !== Protocols.WIREGUARD
     && protocol !== Protocols.TUNNEL;
 
-  const wPort = Form.useWatch('port', form);
-  const wListen = (Form.useWatch('listen', form) ?? '') as string;
+  const wPort = useWatch({ control, name: 'port' });
+  const wListen = (useWatch({ control, name: 'listen' }) ?? '') as string;
   const isUdsListen = wListen.startsWith('/') || wListen.startsWith('@');
-  const wNodeId = Form.useWatch('nodeId', form) ?? null;
-  const shareAddrStrategy = Form.useWatch('shareAddrStrategy', form) ?? 'node';
-  const wTag = Form.useWatch('tag', form) ?? '';
-  const wSsNetwork = Form.useWatch(['settings', 'network'], form);
-  const wTunnelNetwork = Form.useWatch(['settings', 'allowedNetwork'], form);
+  const wNodeId = useWatch({ control, name: 'nodeId' }) ?? null;
+  const shareAddrStrategy = useWatch({ control, name: 'shareAddrStrategy' }) ?? 'node';
+  const wTag = (useWatch({ control, name: 'tag' }) ?? '') as string;
+  const wSsNetwork = useWatch({ control, name: 'settings.network' });
+  const wTunnelNetwork = useWatch({ control, name: 'settings.allowedNetwork' });
+  const wTotal = (useWatch({ control, name: 'total' }) as number | undefined) ?? 0;
+  const wExpiry = (useWatch({ control, name: 'expiryTime' }) as number | undefined) ?? 0;
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
   const currentTagInput = (): InboundTagInput => ({
@@ -257,27 +286,24 @@ export default function InboundFormModal({
     setCertFromPanel,
     clearCertFiles,
     onSecurityChange,
-  } = useSecurityActions({ form, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null, setScanResult, setScanning });
+  } = useSecurityActions({ methods, setSaving, messageApi, nodeId: typeof wNodeId === 'number' ? wNodeId : null, setScanResult, setScanning });
 
 
   const toggleSockopt = (on: boolean) => {
     if (on) {
-      form.setFieldValue(
-        ['streamSettings', 'sockopt'],
-        SockoptStreamSettingsSchema.parse({}),
-      );
+      setV('streamSettings.sockopt', SockoptStreamSettingsSchema.parse({}));
     } else {
-      form.setFieldValue(['streamSettings', 'sockopt'], undefined);
+      setV('streamSettings.sockopt', undefined);
     }
   };
-  const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form);
+  const wgSecretKey = useWatch({ control, name: 'settings.secretKey' });
   const wgPubKey = typeof wgSecretKey === 'string' && wgSecretKey.length > 0
     ? Wireguard.generateKeypair(wgSecretKey).publicKey
     : '';
 
   const regenInboundWg = () => {
     const kp = Wireguard.generateKeypair();
-    form.setFieldValue(['settings', 'secretKey'], kp.privateKey);
+    setV('settings.secretKey', kp.privateKey);
   };
 
   const matchesVlessAuth = (
@@ -306,16 +332,16 @@ export default function InboundFormModal({
       };
       const block = (obj.auths || []).find((a) => matchesVlessAuth(a, authId));
       if (!block) return;
-      form.setFieldValue(['settings', 'decryption'], block.decryption);
-      form.setFieldValue(['settings', 'encryption'], block.encryption);
+      setV('settings.decryption', block.decryption);
+      setV('settings.encryption', block.encryption);
     } finally {
       setSaving(false);
     }
   };
 
   const clearVlessEnc = () => {
-    form.setFieldValue(['settings', 'decryption'], 'none');
-    form.setFieldValue(['settings', 'encryption'], 'none');
+    setV('settings.decryption', 'none');
+    setV('settings.encryption', 'none');
   };
 
   const vlessAuthKind = vlessEncryptionAuthKind(
@@ -333,8 +359,7 @@ export default function InboundFormModal({
     const initial = mode === 'edit' && dbInbound
       ? rawInboundToFormValues(dbInbound)
       : buildAddModeValues();
-    form.resetFields();
-    form.setFieldsValue(initial);
+    methods.reset(initial);
     setScanResult(null);
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
@@ -355,77 +380,67 @@ export default function InboundFormModal({
       loadFallbacks(null);
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, dbInbound, form]);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [open, mode, dbInbound, methods]);
 
   useEffect(() => {
     if (!open) return;
     if (wTag === lastWrittenTagRef.current) return;
     autoTagRef.current = isAutoInboundTag(wTag, currentTagInput());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [open, wTag]);
 
   useEffect(() => {
     if (!open || !autoTagRef.current) return;
     const next = composeInboundTag(currentTagInput());
-    if (next !== (form.getFieldValue('tag') ?? '')) {
+    if (next !== ((getV('tag') as string | undefined) ?? '')) {
       lastWrittenTagRef.current = next;
-      form.setFieldValue('tag', next);
+      setV('tag', next);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [open, wPort, wNodeId, protocol, network, mixedUdpOn, wSsNetwork, wTunnelNetwork]);
 
-  // Keep the strategy value inside the visible option set: when `node` isn't
-  // offered (no node, or a protocol that can't deploy to one) fall back to
-  // `listen`, which yields the same link for a local inbound. Mirrors how the
-  // protocol reset drops a nodeId that no longer applies.
-  // Only downgrade once the inputs this decision depends on are settled, so a
-  // persisted `node` strategy is never clobbered by transient mount state (#5375):
-  //  - `availableNodesFetched`: an empty `availableNodes` during the async
-  //    /nodes/list fetch is a placeholder, not "no nodes".
-  //  - `protocol`: `Form.useWatch('protocol')` is briefly empty on the first
-  //    edit render before initialValues apply, which would momentarily make the
-  //    node option look unavailable.
+  /*
+   * Keep the strategy value inside the visible option set: when `node` isn't
+   * offered (no node, or a protocol that can't deploy to one) fall back to
+   * `listen`, which yields the same link for a local inbound. Mirrors how the
+   * protocol reset drops a nodeId that no longer applies.
+   * Only downgrade once the inputs this decision depends on are settled, so a
+   * persisted `node` strategy is never clobbered by transient mount state (#5375).
+   */
   useEffect(() => {
     if (!open) return;
     if (!availableNodesFetched || !protocol) return;
-    const current = form.getFieldValue('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
+    const current = getV('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
     if (!nodeShareOptionAvailable && (current ?? 'node') === 'node') {
-      form.setFieldValue('shareAddrStrategy', 'listen');
+      setV('shareAddrStrategy', 'listen');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [open, availableNodesFetched, protocol, nodeShareOptionAvailable, shareAddrStrategy]);
 
-  // Why: protocol picker reset cascades through the form — clearing the
-  // settings DU branch and dropping a nodeId that no longer applies. The
-  // legacy modal did this imperatively in onProtocolChange; here we hook
-  // into AntD's onValuesChange and let setFieldValue keep the rest of
-  // the form state intact.
-  const onValuesChange = (changed: Partial<InboundFormValues>) => {
+  /*
+   * Protocol picker reset cascades through the form — clearing the settings DU
+   * branch and dropping a nodeId that no longer applies. Only a real user
+   * change (type === 'change') triggers it; programmatic setValue (advanced
+   * JSON edits, open reset) must not, matching the legacy onValuesChange.
+   */
+  useEffect(() => {
     if (mode === 'edit') return;
-    if ('protocol' in changed && typeof changed.protocol === 'string') {
-      const next = changed.protocol;
+    /* eslint-disable-next-line react-hooks/incompatible-library */
+    const sub = methods.watch((_value, { name, type }) => {
+      if (name !== 'protocol' || type !== 'change') return;
+      const next = getV('protocol') as string;
       const settings = createDefaultInboundSettings(next) ?? undefined;
-      form.setFieldValue('settings', settings);
+      setV('settings', settings);
       if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
-        form.setFieldValue('nodeId', null);
+        setV('nodeId', null);
       }
-      // Hysteria uses its dedicated transport — force the network branch
-      // so the stream tab renders the hysteria sub-form, not the leftover
-      // tcpSettings from the previous protocol. When leaving hysteria,
-      // snap back to TCP so the standard network selector has a valid
-      // starting point.
       if (next === Protocols.HYSTERIA) {
-        form.setFieldValue('streamSettings', {
+        setV('streamSettings', {
           network: 'hysteria',
           security: 'tls',
           hysteriaSettings: HysteriaStreamSettingsSchema.parse({}),
           tlsSettings: createHysteriaTlsSettingsWithDefaultCert(),
-          // Hysteria2 needs an obfs wrapper on the FinalMask side; seed
-          // it with salamander + a random password so the listener boots
-          // with a usable default. Re-selecting Hysteria from another
-          // protocol re-runs this and refreshes the password — that's
-          // intentional, the form was already being reset.
           finalmask: {
             tcp: [],
             udp: [{
@@ -435,37 +450,28 @@ export default function InboundFormModal({
           },
         });
       } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
-        // Wireguard and Tunnel (dokodemo-door) have no user-selectable
-        // transport: wireguard is always a UDP listener, and tunnel only needs
-        // `sockopt.tproxy` for its TProxy/redirect mode. Drop the leftover
-        // network/transport slices so the stream tab doesn't render a TCP
-        // sub-form and the wire payload carries no dead tcpSettings — the
-        // sockopt section (with TProxy) stays available.
-        form.setFieldValue('streamSettings', { security: 'none' });
+        setV('streamSettings', { security: 'none' });
       } else {
-        const current = form.getFieldValue('streamSettings') as { network?: string } | undefined;
+        const current = getV('streamSettings') as { network?: string } | undefined;
         if (current?.network === 'hysteria' || !current?.network) {
-          form.setFieldValue('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
+          setV('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
         }
       }
-    }
-  };
+    });
+    return () => sub.unsubscribe();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [mode, methods]);
 
   const submit = async () => {
-    try {
-      await form.validateFields();
-    } catch {
-      return;
-    }
-    // Why getFieldsValue(true) instead of the validateFields return value:
-    // rc-component/form's validateFields filters its output by REGISTERED
-    // name paths. settings.clients and settings.fallbacks have no Form.Item
-    // bound to them (clients are managed via the standalone Client modal,
-    // not inside this inbound modal) — so validateFields would drop them
-    // and the update wire payload would silently delete every client on
-    // every save. getFieldsValue(true) returns the entire form store and
-    // keeps those sub-trees intact.
-    const values = form.getFieldsValue(true) as InboundFormValues;
+    if (!(await methods.trigger())) return;
+    /*
+     * getValues() returns the entire form store, including settings.clients and
+     * settings.fallbacks which have no bound field (clients are managed via the
+     * standalone Client modal, not this inbound modal). With shouldUnregister
+     * false those pass-through sub-trees survive from the reset object, so the
+     * update wire payload never silently drops every client on save.
+     */
+    const values = methods.getValues() as InboundFormValues;
     const parsed = InboundFormSchema.safeParse(values);
     if (!parsed.success) {
       const issues = parsed.error.issues;
@@ -509,24 +515,16 @@ export default function InboundFormModal({
 
   const basicTab = (
     <>
-      <Form.Item name="tag" hidden noStyle><Input /></Form.Item>
-      <Form.Item name="up" hidden noStyle><InputNumber /></Form.Item>
-      <Form.Item name="down" hidden noStyle><InputNumber /></Form.Item>
-      <Form.Item name="total" hidden noStyle><InputNumber /></Form.Item>
-      <Form.Item name="expiryTime" hidden noStyle><InputNumber /></Form.Item>
-      <Form.Item name="lastTrafficResetTime" hidden noStyle><InputNumber /></Form.Item>
-      <Form.Item name="clientStats" hidden noStyle><Input /></Form.Item>
-
-      <Form.Item name="enable" label={t('enable')} valuePropName="checked">
+      <FormField name="enable" label={t('enable')} valueProp="checked">
         <Switch />
-      </Form.Item>
+      </FormField>
 
-      <Form.Item name="remark" label={t('pages.inbounds.remark')}>
+      <FormField name="remark" label={t('pages.inbounds.remark')}>
         <Input />
-      </Form.Item>
+      </FormField>
 
       {selectableNodes.length > 0 && isNodeEligible && (
-        <Form.Item name="nodeId" label={t('pages.inbounds.deployTo')}>
+        <FormField name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
             showSearch
             disabled={mode === 'edit'}
@@ -538,21 +536,21 @@ export default function InboundFormModal({
               disabled: n.status === 'offline',
             }))}
           />
-        </Form.Item>
+        </FormField>
       )}
 
-      <Form.Item name="protocol" label={t('pages.inbounds.protocol')}>
-        <Select disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
-      </Form.Item>
+      <FormField name="protocol" label={t('pages.inbounds.protocol')}>
+        <Select id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
+      </FormField>
 
-      <Form.Item
+      <FormField
         name="listen"
         label={labelWithHint(t('pages.inbounds.address'), t('pages.inbounds.form.listenHelp'))}
       >
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
-      </Form.Item>
+      </FormField>
 
-      <Form.Item
+      <FormField
         name="shareAddrStrategy"
         label={labelWithHint(t('pages.inbounds.form.shareAddrStrategy'), t('pages.inbounds.form.shareAddrStrategyHelp'))}
       >
@@ -564,38 +562,35 @@ export default function InboundFormModal({
               label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
             }))}
         />
-      </Form.Item>
+      </FormField>
 
       {shareAddrStrategy === 'custom' && (
-        <Form.Item
+        <FormField
           name="shareAddr"
           label={labelWithHint(t('pages.inbounds.form.shareAddr'), t('pages.inbounds.form.shareAddrHelp'))}
-          rules={[{
-            validator: (_, value) => (
-              isValidShareAddrInput(String(value ?? ''))
-                ? Promise.resolve()
-                : Promise.reject(new Error(t('pages.inbounds.form.shareAddrHelp')))
-            ),
-          }]}
+          rules={{
+            validate: (value) =>
+              isValidShareAddrInput(String(value ?? '')) || t('pages.inbounds.form.shareAddrHelp'),
+          }}
         >
           <Input placeholder="edge.example.com" />
-        </Form.Item>
+        </FormField>
       )}
 
-      <Form.Item
+      <FormField
         name="subSortIndex"
         label={labelWithHint(t('pages.inbounds.form.subSortIndex'), t('pages.inbounds.form.subSortIndexHelp'))}
       >
         <InputNumber min={1} />
-      </Form.Item>
+      </FormField>
 
-      <Form.Item
+      <FormField
         name="port"
         label={t('pages.inbounds.port')}
-        rules={[antdRule(InboundFormBaseSchema.shape.port, t)]}
+        rules={{ validate: rhfZodValidate(InboundFormBaseSchema.shape.port) }}
       >
         <InputNumber min={isUdsListen ? 0 : 1} max={65535} />
-      </Form.Item>
+      </FormField>
 
       <Form.Item
         label={
@@ -604,41 +599,25 @@ export default function InboundFormModal({
           </Tooltip>
         }
       >
-        <Form.Item
-          noStyle
-          shouldUpdate={(prev, curr) => prev.total !== curr.total}
-        >
-          {({ getFieldValue, setFieldValue }) => {
-            const totalBytes = (getFieldValue('total') as number) ?? 0;
-            const totalGB = totalBytes
-              ? Math.round((totalBytes / SizeFormatter.ONE_GB) * 100) / 100
-              : 0;
-            return (
-              <InputNumber
-                value={totalGB}
-                min={0}
-                step={1}
-                onChange={(v) => {
-                  const bytes = NumberFormatter.toFixed(
-                    (Number(v) || 0) * SizeFormatter.ONE_GB,
-                    0,
-                  );
-                  setFieldValue('total', bytes);
-                }}
-              />
-            );
+        <InputNumber
+          value={wTotal ? Math.round((wTotal / SizeFormatter.ONE_GB) * 100) / 100 : 0}
+          min={0}
+          step={1}
+          onChange={(v) => {
+            const bytes = NumberFormatter.toFixed((Number(v) || 0) * SizeFormatter.ONE_GB, 0);
+            setV('total', bytes);
           }}
-        </Form.Item>
+        />
       </Form.Item>
 
-      <Form.Item name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
+      <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
         <Select
           options={TRAFFIC_RESETS.map((r) => ({
             value: r,
             label: t(`pages.inbounds.periodicTrafficReset.${r}`),
           }))}
         />
-      </Form.Item>
+      </FormField>
 
       <Form.Item
         label={
@@ -647,20 +626,10 @@ export default function InboundFormModal({
           </Tooltip>
         }
       >
-        <Form.Item
-          noStyle
-          shouldUpdate={(prev, curr) => prev.expiryTime !== curr.expiryTime}
-        >
-          {({ getFieldValue, setFieldValue }) => {
-            const expiry = (getFieldValue('expiryTime') as number) ?? 0;
-            return (
-              <DateTimePicker
-                value={expiry > 0 ? dayjs(expiry) : null}
-                onChange={(d) => setFieldValue('expiryTime', d ? d.valueOf() : 0)}
-              />
-            );
-          }}
-        </Form.Item>
+        <DateTimePicker
+          value={wExpiry > 0 ? dayjs(wExpiry) : null}
+          onChange={(d) => setV('expiryTime', d ? d.valueOf() : 0)}
+        />
       </Form.Item>
     </>
   );
@@ -690,7 +659,7 @@ export default function InboundFormModal({
 
       {protocol === Protocols.MTPROTO && <MtprotoFields />}
 
-      {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields form={form} isSSWith2022={isSSWith2022} />}
+      {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields isSSWith2022={isSSWith2022} />}
 
       {protocol === Protocols.VLESS && <VlessFields saving={saving} selectedVlessAuth={selectedVlessAuth} vlessAuthKind={vlessAuthKind} network={network} security={security} getNewVlessEnc={getNewVlessEnc} clearVlessEnc={clearVlessEnc} />}
 
@@ -707,41 +676,19 @@ export default function InboundFormModal({
     </>
   );
 
-  // Switching `network` swaps which per-network key (tcpSettings,
-  // wsSettings, grpcSettings, ...) appears on the wire. Clear the old
-  // network's blob and seed the new one with the schema defaults so the
-  // Form.Items inside it have valid initial values (KCP needs MTU=1350
-  // etc., not empty strings).
-  // Seed each network's settings blob with its Zod schema defaults so
-  // every Form.Item inside the network sub-form has a defined starting
-  // value. XHTTP in particular has ~20 fields (sessionIDPlacement,
-  // seqPlacement, xPaddingMethod, uplinkHTTPMethod, ...) whose value
-  // is the literal "" sentinel meaning "let xray-core pick its
-  // default". Without seeding "", the Form.Item reads `undefined` and
-  // the Select shows blank instead of the "Default (path)" option.
-  const newStreamSlice = (n: string): Record<string, unknown> => {
-    switch (n) {
-      case 'tcp': return TcpStreamSettingsSchema.parse({ header: { type: 'none' } });
-      case 'kcp': return KcpStreamSettingsSchema.parse({});
-      case 'ws': return WsStreamSettingsSchema.parse({});
-      case 'grpc': return GrpcStreamSettingsSchema.parse({});
-      case 'httpupgrade': return HttpUpgradeStreamSettingsSchema.parse({});
-      case 'xhttp': return XHttpStreamSettingsSchema.parse({});
-      default: return {};
-    }
-  };
+  /*
+   * Switching `network` swaps which per-network key appears on the wire. Clear
+   * the old network's blob and seed the new one with schema defaults, plus the
+   * FinalMask mkcp-legacy UDP mask when moving to mKCP (removed otherwise).
+   */
   const onNetworkChange = (next: string) => {
     const ALL = ['tcpSettings', 'kcpSettings', 'wsSettings', 'grpcSettings', 'httpupgradeSettings', 'xhttpSettings'];
-    const current = (form.getFieldValue('streamSettings') as Record<string, unknown>) ?? {};
+    const current = (getV('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, network: next };
     for (const k of ALL) {
       if (k !== `${next}Settings`) delete cleaned[k];
     }
     cleaned[`${next}Settings`] = newStreamSlice(next);
-    // mKCP wants a UDP mask wrapper on the FinalMask side; seed it with
-    // `mkcp-legacy` so the inbound boots with a sensible default
-    // instead of unobfuscated mKCP traffic. The user can still edit or
-    // clear the mask via the FinalMask section.
     if (next === 'kcp') {
       const fm = (cleaned.finalmask as Record<string, unknown> | undefined) ?? {};
       const udp = Array.isArray(fm.udp) ? (fm.udp as unknown[]) : [];
@@ -762,15 +709,16 @@ export default function InboundFormModal({
         cleaned.finalmask = { ...fm, udp };
       }
     }
-    form.setFieldValue('streamSettings', cleaned);
+    setV('streamSettings', cleaned);
   };
 
   const streamTab = (
     <>
       {hasSelectableTransport && (
-        <Form.Item label={t('transmission')} name={['streamSettings', 'network']}>
+        <Form.Item label={t('transmission')}>
           <Select
             style={{ width: '75%' }}
+            value={network}
             onChange={onNetworkChange}
             options={[
               { value: 'tcp', label: 'RAW' },
@@ -786,12 +734,8 @@ export default function InboundFormModal({
 
       {/* Inbound Hysteria stream sub-form. The transport for hysteria
           isn't user-selectable (always 'hysteria'), so the network
-          dropdown is hidden above. Fields here mirror the legacy
-          HysteriaStreamSettings inbound class: version is locked to 2,
-          auth + udpIdleTimeout are required, masquerade is an optional
-          sub-object that lets xray-core disguise the listener as an
-          HTTP server when probed. */}
-      {protocol === Protocols.HYSTERIA && <HysteriaFields form={form} />}
+          dropdown is hidden above. */}
+      {protocol === Protocols.HYSTERIA && <HysteriaFields />}
 
       {hasSelectableTransport && (
         <>
@@ -801,7 +745,7 @@ export default function InboundFormModal({
 
           {network === 'grpc' && <GrpcForm />}
 
-          {network === 'xhttp' && <XhttpForm form={form} />}
+          {network === 'xhttp' && <XhttpForm />}
 
           {network === 'httpupgrade' && <HttpUpgradeForm />}
 
@@ -813,56 +757,45 @@ export default function InboundFormModal({
           field is still parsed/rendered for backward compatibility but is no
           longer editable here. */}
 
-      <SockoptForm toggleSockopt={toggleSockopt} network={network as string} />
+      <SockoptForm toggleSockopt={toggleSockopt} network={network} />
 
       {/* Transport masks don't apply to tunnel (a transparent forwarder), so
           its stream tab is just sockopt + TProxy. */}
       {protocol !== Protocols.TUNNEL && (
-        <FinalMaskForm
-          name={['streamSettings', 'finalmask']}
-          network={network as string}
-          protocol={protocol}
-          form={form}
+        <Controller
+          control={control}
+          name="streamSettings.finalmask"
+          render={({ field }) => (
+            <FinalMaskField
+              key={`${protocol}:${network}`}
+              value={field.value}
+              onChange={field.onChange}
+              network={network}
+              protocol={protocol}
+            />
+          )}
         />
       )}
     </>
   );
 
+  const tlsOk = canEnableTls({ protocol, streamSettings: { network, security } });
+  const realityOk = canEnableReality({ protocol, streamSettings: { network, security } });
+  const tlsOnly = protocol === Protocols.HYSTERIA;
+
   const securityTab = (
     <>
-      <Form.Item name={['streamSettings', 'security']} hidden noStyle>
-        <Input />
-      </Form.Item>
       <Form.Item label={t('pages.inbounds.securityTab')}>
-        <Form.Item
-          noStyle
-          shouldUpdate={(prev, curr) =>
-            prev.streamSettings?.security !== curr.streamSettings?.security
-            || prev.streamSettings?.network !== curr.streamSettings?.network
-            || prev.protocol !== curr.protocol
-          }
+        <Radio.Group
+          value={security}
+          buttonStyle="solid"
+          disabled={!tlsOk}
+          onChange={(e) => onSecurityChange(e.target.value)}
         >
-          {({ getFieldValue }) => {
-            const sec = getFieldValue(['streamSettings', 'security']) ?? 'none';
-            const net = getFieldValue(['streamSettings', 'network']) ?? '';
-            const proto = getFieldValue('protocol') ?? '';
-            const tlsOk = canEnableTls({ protocol: proto, streamSettings: { network: net, security: sec } });
-            const realityOk = canEnableReality({ protocol: proto, streamSettings: { network: net, security: sec } });
-            const tlsOnly = proto === Protocols.HYSTERIA;
-            return (
-              <Radio.Group
-                value={sec}
-                buttonStyle="solid"
-                disabled={!tlsOk}
-                onChange={(e) => onSecurityChange(e.target.value)}
-              >
-                {!tlsOnly && <Radio.Button value="none">{t('none')}</Radio.Button>}
-                <Radio.Button value="tls">TLS</Radio.Button>
-                {realityOk && <Radio.Button value="reality">Reality</Radio.Button>}
-              </Radio.Group>
-            );
-          }}
-        </Form.Item>
+          {!tlsOnly && <Radio.Button value="none">{t('none')}</Radio.Button>}
+          <Radio.Button value="tls">TLS</Radio.Button>
+          {realityOk && <Radio.Button value="reality">Reality</Radio.Button>}
+        </Radio.Group>
       </Form.Item>
 
       {security === 'tls' && (
@@ -916,7 +849,7 @@ export default function InboundFormModal({
                   <div className="advanced-editor-meta">
                     {t('pages.inbounds.advanced.allHelp')}
                   </div>
-                  <AdvancedAllEditor form={form} streamEnabled={streamEnabled} sniffingEnabled={sniffingSupported} />
+                  <AdvancedAllEditor streamEnabled={streamEnabled} sniffingEnabled={sniffingSupported} />
                 </>
               ),
             },
@@ -930,7 +863,6 @@ export default function InboundFormModal({
                     <code>{'{ settings: { ... } }'}</code>.
                   </div>
                   <AdvancedSliceEditor
-                    form={form}
                     path="settings"
                     wrapKey="settings"
                     minHeight="320px"
@@ -950,7 +882,6 @@ export default function InboundFormModal({
                       <code>{'{ streamSettings: { ... } }'}</code>.
                     </div>
                     <AdvancedSliceEditor
-                      form={form}
                       path="streamSettings"
                       wrapKey="streamSettings"
                       minHeight="320px"
@@ -971,7 +902,6 @@ export default function InboundFormModal({
                       <code>{'{ sniffing: { ... } }'}</code>.
                     </div>
                     <AdvancedSliceEditor
-                      form={form}
                       path="sniffing"
                       wrapKey="sniffing"
                       minHeight="240px"
@@ -1004,50 +934,42 @@ export default function InboundFormModal({
         onCancel={onClose}
         destroyOnHidden
       >
-        <Form
-          form={form}
-          colon={false}
-          labelCol={{ sm: { span: 8 } }}
-          wrapperCol={{ sm: { span: 14 } }}
-          labelWrap
-          onValuesChange={onValuesChange}
-        >
-          <Tabs items={[
-            // forceRender on every tab so all Form.Items register at modal
-            // open, not lazily on first visit. Without it, AntD's items API
-            // lazy-mounts inactive tabs — their fields don't register, so
-            // Form.useWatch on a parent path (e.g. 'sniffing') returns the
-            // partial-view {} until the user touches the tab and the
-            // inner Form.Item for `sniffing.enabled` registers.
-            { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
-            ...(([
-              Protocols.VLESS,
-              Protocols.SHADOWSOCKS,
-              Protocols.HTTP,
-              Protocols.MIXED,
-              Protocols.TUNNEL,
-              Protocols.TUN,
-              Protocols.WIREGUARD,
-              Protocols.MTPROTO,
-            ] as string[]).includes(protocol) || isFallbackHost
-              ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
-              : []),
-            ...(streamEnabled
-              ? [
-                { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                // Wireguard and Tunnel can't do TLS/Reality (canEnableTls is false), so
-                // the security tab would only show a fully disabled radio.
-                ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
-                  ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
-                  : []),
-              ]
-              : []),
-            ...(sniffingSupported
-              ? [{ key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true }]
-              : []),
-            { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab, forceRender: true },
-          ]} />
-        </Form>
+        <FormProvider {...methods}>
+          <Form
+            colon={false}
+            labelCol={{ sm: { span: 8 } }}
+            wrapperCol={{ sm: { span: 14 } }}
+            labelWrap
+          >
+            <Tabs items={[
+              { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
+              ...(([
+                Protocols.VLESS,
+                Protocols.SHADOWSOCKS,
+                Protocols.HTTP,
+                Protocols.MIXED,
+                Protocols.TUNNEL,
+                Protocols.TUN,
+                Protocols.WIREGUARD,
+                Protocols.MTPROTO,
+              ] as string[]).includes(protocol) || isFallbackHost
+                ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
+                : []),
+              ...(streamEnabled
+                ? [
+                  { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
+                  ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
+                    ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
+                    : []),
+                ]
+                : []),
+              ...(sniffingSupported
+                ? [{ key: 'sniffing', label: t('pages.inbounds.sniffingTab'), children: sniffingTab, forceRender: true }]
+                : []),
+              { key: 'advanced', label: t('pages.xray.advancedTemplate'), children: advancedTab, forceRender: true },
+            ]} />
+          </Form>
+        </FormProvider>
       </Modal>
     </>
   );

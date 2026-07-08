@@ -1,18 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input } from 'antd';
+import { Input } from 'antd';
 
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { TrojanOutboundFormSettingsSchema } from '@/schemas/forms/outbound-form';
-import { antdRule } from '@/utils/zodForm';
 
 export default function TrojanFields() {
   const { t } = useTranslation();
   return (
-    <Form.Item
+    <FormField
       label={t('password')}
       name={['settings', 'password']}
-      rules={[antdRule(TrojanOutboundFormSettingsSchema.shape.password, t)]}
+      rules={{ validate: rhfZodValidate(TrojanOutboundFormSettingsSchema.shape.password) }}
     >
       <Input />
-    </Form.Item>
+    </FormField>
   );
 }

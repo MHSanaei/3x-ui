@@ -22,7 +22,7 @@ func TestInstanceFromInbound(t *testing.T) {
 			`"routeThroughXray":true,"routeXrayPort":50000,` +
 			`"adTag":" 0123456789abcdef0123456789abcdef ",` +
 			`"clients":[` +
-			`{"email":"alice","secret":"` + aliceSecret + `","adTag":"fedcba9876543210fedcba9876543210","enable":true},` +
+			`{"email":"alice","secret":"` + aliceSecret + `","adTag":"fedcba9876543210fedcba9876543210","enable":true,"totalGB":1073741824,"expiryTime":1893456000000},` +
 			`{"email":"bob","secret":"","enable":true},` +
 			`{"email":"carol","secret":"eeaa","enable":false}]}`,
 	}
@@ -41,6 +41,12 @@ func TestInstanceFromInbound(t *testing.T) {
 	}
 	if inst.Secrets[0].AdTag != "fedcba9876543210fedcba9876543210" {
 		t.Fatalf("the client ad-tag must be parsed, got %q", inst.Secrets[0].AdTag)
+	}
+	if inst.Secrets[0].QuotaBytes != 1073741824 {
+		t.Fatalf("totalGB must map to the byte quota, got %d", inst.Secrets[0].QuotaBytes)
+	}
+	if inst.Secrets[0].ExpiresUnix != 1893456000 {
+		t.Fatalf("expiryTime (ms) must map to a unix-second deadline, got %d", inst.Secrets[0].ExpiresUnix)
 	}
 	if inst.Port != 8443 || inst.Id != 3 {
 		t.Fatalf("bad instance %+v", inst)
@@ -186,6 +192,54 @@ func TestRenderConfigXrayEgress(t *testing.T) {
 	}
 }
 
+func TestRenderConfigSecretLimits(t *testing.T) {
+	cfg := renderConfig(Instance{
+		Secrets: []SecretEntry{
+			{Name: "alice", Secret: "ee11", QuotaBytes: 1073741824, ExpiresUnix: 1893456000},
+			{Name: "bob", Secret: "ee22", QuotaBytes: 500},
+			{Name: "carol", Secret: "ee33"},
+		},
+		Listen: "0.0.0.0", Port: 443,
+	}, 6000, "")
+
+	for _, want := range []string{
+		"[secret-limits.\"alice\"]",
+		`quota = "1073741824B"`,
+		`expires = "2030-01-01T00:00:00Z"`,
+		"[secret-limits.\"bob\"]",
+		`quota = "500B"`,
+	} {
+		if !strings.Contains(cfg, want) {
+			t.Fatalf("limits config missing %q:\n%s", want, cfg)
+		}
+	}
+	if strings.Contains(cfg, "[secret-limits.\"carol\"]") {
+		t.Fatalf("a client without a limit must not get a table:\n%s", cfg)
+	}
+	if strings.LastIndex(cfg, "[secrets]") < strings.Index(cfg, "[secret-limits.\"alice\"]") {
+		t.Fatalf("[secret-limits] must precede the final [secrets] section:\n%s", cfg)
+	}
+	if strings.Contains(cfg, "usage-state-file") {
+		t.Fatalf("no usage-state-file must be emitted; quota is an in-memory guard:\n%s", cfg)
+	}
+}
+
+func TestSecretsPayloadLimits(t *testing.T) {
+	body := secretsPayload(Instance{Secrets: []SecretEntry{
+		{Name: "alice", Secret: "ee11", QuotaBytes: 1073741824, ExpiresUnix: 1893456000},
+		{Name: "bob", Secret: "ee22"},
+	}})
+	if got := body.Secrets["alice"].Quota; got != "1073741824B" {
+		t.Fatalf("quota must be sent as an exact byte count, got %q", got)
+	}
+	if got := body.Secrets["alice"].Expires; got != "2030-01-01T00:00:00Z" {
+		t.Fatalf("expiry must be sent as RFC3339, got %q", got)
+	}
+	if body.Secrets["bob"].Quota != "" || body.Secrets["bob"].Expires != "" {
+		t.Fatalf("an unlimited client must carry no quota/expiry: %+v", body.Secrets["bob"])
+	}
+}
+
 func TestFingerprintSplit(t *testing.T) {
 	base := Instance{Secrets: []SecretEntry{{Name: "a", Secret: "ee"}}, Listen: "0.0.0.0", Port: 443}
 
@@ -224,6 +278,8 @@ func TestFingerprintSplit(t *testing.T) {
 		"clientAdTag": func(i *Instance) {
 			i.Secrets = []SecretEntry{{Name: "a", Secret: "ee", AdTag: "0123456789abcdef0123456789abcdef"}}
 		},
+		"quota":  func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee", QuotaBytes: 1 << 30}} },
+		"expiry": func(i *Instance) { i.Secrets = []SecretEntry{{Name: "a", Secret: "ee", ExpiresUnix: 1893456000}} },
 	} {
 		t.Run("secrets/"+name, func(t *testing.T) {
 			changed := base
@@ -241,7 +297,7 @@ func TestFingerprintSplit(t *testing.T) {
 	t.Run("orderInsensitive", func(t *testing.T) {
 		forward := Instance{Secrets: []SecretEntry{{Name: "alice", Secret: "ee11"}, {Name: "bob", Secret: "ee22"}}}
 		reversed := Instance{Secrets: []SecretEntry{{Name: "bob", Secret: "ee22"}, {Name: "alice", Secret: "ee11"}}}
-		if got, want := forward.secretsFingerprint(), "alice=ee11;tag=|bob=ee22;tag="; got != want {
+		if got, want := forward.secretsFingerprint(), "alice=ee11;tag=;q=0;exp=0|bob=ee22;tag=;q=0;exp=0"; got != want {
 			t.Fatalf("secrets fingerprint must join sorted pairs: got %q, want %q", got, want)
 		}
 		if forward.secretsFingerprint() != reversed.secretsFingerprint() {

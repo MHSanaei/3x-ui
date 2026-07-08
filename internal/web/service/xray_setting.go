@@ -29,6 +29,9 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	if hoisted, err := EnsureStatsRouting(newXraySettings); err == nil {
 		newXraySettings = hoisted
 	}
+	if synced, err := EnsureDnsServerRouting(newXraySettings); err == nil {
+		newXraySettings = synced
+	}
 	return s.saveSetting("xrayTemplateConfig", newXraySettings)
 }
 

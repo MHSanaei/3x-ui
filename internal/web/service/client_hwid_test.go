@@ -64,7 +64,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	for _, raw := range []string{firstRaw, "device-two"} {
 		res, err = svc.EnforceHwidForSubID(rec.SubID, HwidRequest{
 			Hwid:        raw,
-			UserAgent:   "Happ/1.0",
+			UserAgent:   "ExampleClient/1.0",
 			DeviceOS:    "android",
 			OsVersion:   "15",
 			DeviceModel: raw + "-model",
@@ -87,7 +87,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 
 	res, err = svc.EnforceHwidForSubID(rec.SubID, HwidRequest{
 		Hwid:        firstRaw,
-		UserAgent:   "Karing/2.0",
+		UserAgent:   "ExampleClient/2.0",
 		DeviceOS:    "ios",
 		OsVersion:   "18",
 		DeviceModel: "updated-model",
@@ -121,7 +121,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	}
 	foundUpdated := false
 	for _, row := range list {
-		if row.DeviceModel == "updated-model" && row.UserAgent == "Karing/2.0" && row.DeviceOS == "ios" && row.OsVersion == "18" {
+		if row.DeviceModel == "updated-model" && row.UserAgent == "ExampleClient/2.0" && row.DeviceOS == "ios" && row.OsVersion == "18" {
 			foundUpdated = true
 		}
 	}

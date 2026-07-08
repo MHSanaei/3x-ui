@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "Aile",
         "clearAll": "Tümünü Sil",
         "clearAllTitle": "Tüm DNS sunucularını sil?",
-        "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz."
+        "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz.",
+        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın."
       },
       "fakedns": {
         "add": "Sahte DNS Ekle",
@@ -1901,7 +1902,7 @@
       "fields": {
         "remark": "Açıklama",
         "serverDescription": "Tanım",
-        "inbound": "Gelen Bağlantı",
+        "inbound": "Gelen Bağlantılar",
         "address": "Adres",
         "port": "Port",
         "endpoint": "Uç Nokta",
@@ -1928,7 +1929,8 @@
         "tags": "Etiketler",
         "nodeGuids": "Düğümler",
         "excludeFromSubTypes": "Formatlardan hariç tut",
-        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula"
+        "verifyPeerCertByName": "Peer sertifikasını ada göre doğrula",
+        "inheritAddress": "Adresi devralır"
       },
       "hints": {
         "address": "Gelen bağlantının kendi adresini devralmak için boş bırakın.",

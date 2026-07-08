@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "家庭",
         "clearAll": "删除全部",
         "clearAllTitle": "删除所有 DNS 服务器？",
-        "clearAllConfirm": "此操作将从列表中删除所有 DNS 服务器，且无法撤销。"
+        "clearAllConfirm": "此操作将从列表中删除所有 DNS 服务器，且无法撤销。",
+        "dnsLeakWarning": "DNS 可能通过 localhost、明文 UDP/TCP、本地模式 DoH/DoQ、回退查询或 EDNS client IP 泄漏。重视隐私时请使用经路由的 DoH、在 hosts 中固定解析器，并禁用回退。"
       },
       "fakedns": {
         "add": "添加假 DNS",
@@ -1928,7 +1929,8 @@
         "shuffleHost": "随机打乱 Host",
         "tags": "标签",
         "nodeGuids": "节点",
-        "excludeFromSubTypes": "从格式中排除"
+        "excludeFromSubTypes": "从格式中排除",
+        "inheritAddress": "继承地址"
       },
       "hints": {
         "address": "留空则继承入站自身的地址。",

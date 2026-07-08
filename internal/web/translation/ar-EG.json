@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "العائلي",
         "clearAll": "حذف الكل",
         "clearAllTitle": "حذف جميع خوادم DNS؟",
-        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء."
+        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء.",
+        "dnsLeakWarning": "قد يتسرب DNS عبر localhost أو UDP/TCP غير المشفر أو وضع DoH/DoQ المحلي أو استعلامات الرجوع أو EDNS client IP. استخدم DoH عبر التوجيه، وثبت أسماء المحللات في hosts، وعطل الرجوع عندما تكون الخصوصية مهمة."
       },
       "fakedns": {
         "add": "أضف Fake DNS",
@@ -1901,7 +1902,7 @@
       "fields": {
         "remark": "ملاحظة",
         "serverDescription": "الوصف",
-        "inbound": "الوارد",
+        "inbound": "الواردات",
         "address": "العنوان",
         "port": "المنفذ",
         "endpoint": "النهاية",
@@ -1928,7 +1929,8 @@
         "tags": "وسوم",
         "nodeGuids": "النودز",
         "excludeFromSubTypes": "استبعاد من الصيغ",
-        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم"
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
+        "inheritAddress": "يرث العنوان"
       },
       "hints": {
         "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",

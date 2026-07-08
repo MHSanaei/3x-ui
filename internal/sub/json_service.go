@@ -10,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 //go:embed default.json
@@ -217,6 +218,12 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+		case "wireguard":
+			wgOutbound := s.genWireguard(inbound, client)
+			if wgOutbound == nil {
+				continue
+			}
+			newOutbounds = append(newOutbounds, wgOutbound)
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -515,6 +522,55 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 
 	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
 
+	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+// genWireguard builds an Xray wireguard outbound for a native WireGuard inbound,
+// mirroring genWireguardLink: the peer public key is derived from the inbound
+// secretKey, the client owns the private key / tunnel address / pre-shared key,
+// and the peer routes the full tunnel. Returns nil when the client has no key.
+func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Client) json_util.RawMessage {
+	if client.PrivateKey == "" {
+		return nil
+	}
+
+	var inboundSettings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	secretKey, _ := inboundSettings["secretKey"].(string)
+
+	peer := map[string]any{
+		"endpoint":   joinHostPort(inbound.Listen, inbound.Port),
+		"allowedIPs": []string{"0.0.0.0/0", "::/0"},
+	}
+	if secretKey != "" {
+		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
+			peer["publicKey"] = pub
+		}
+	}
+	if client.PreSharedKey != "" {
+		peer["preSharedKey"] = client.PreSharedKey
+	}
+	if client.KeepAlive > 0 {
+		peer["keepAlive"] = client.KeepAlive
+	}
+
+	settings := map[string]any{
+		"secretKey": client.PrivateKey,
+		"peers":     []any{peer},
+	}
+	if len(client.AllowedIPs) > 0 {
+		settings["address"] = client.AllowedIPs
+	}
+	if mtu, ok := inboundSettings["mtu"].(float64); ok && mtu > 0 {
+		settings["mtu"] = int(mtu)
+	}
+
+	outbound := map[string]any{
+		"protocol": string(inbound.Protocol),
+		"tag":      "proxy",
+		"settings": settings,
+	}
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
 }

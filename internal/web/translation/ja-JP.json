@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "ファミリー",
         "clearAll": "すべて削除",
         "clearAllTitle": "すべての DNS サーバを削除しますか？",
-        "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。"
+        "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。",
+        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。"
       },
       "fakedns": {
         "add": "フェイクDNS追加",
@@ -1928,7 +1929,8 @@
         "shuffleHost": "ホストをシャッフル",
         "tags": "タグ",
         "nodeGuids": "ノード",
-        "excludeFromSubTypes": "形式から除外"
+        "excludeFromSubTypes": "形式から除外",
+        "inheritAddress": "アドレス継承"
       },
       "hints": {
         "address": "空欄にするとインバウンド自身のアドレスを継承します。",

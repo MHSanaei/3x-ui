@@ -1865,7 +1865,8 @@
         "dnsPresetFamily": "Семейный",
         "clearAll": "Удалить все",
         "clearAllTitle": "Удалить все DNS-серверы?",
-        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить."
+        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить.",
+        "dnsLeakWarning": "DNS может утекать через localhost, обычный UDP/TCP, локальный режим DoH/DoQ, fallback-запросы или EDNS client IP. Для приватности используйте маршрутизируемый DoH, закрепляйте резолверы в hosts и отключайте fallback."
       },
       "fakedns": {
         "add": "Создать Fake DNS",
@@ -1901,7 +1902,7 @@
       "fields": {
         "remark": "Примечание",
         "serverDescription": "Описание",
-        "inbound": "Входящее",
+        "inbound": "Входящие",
         "address": "Адрес",
         "port": "Порт",
         "endpoint": "Конечная точка",
@@ -1928,7 +1929,8 @@
         "shuffleHost": "Перемешивать хост",
         "tags": "Теги",
         "nodeGuids": "Узлы",
-        "excludeFromSubTypes": "Исключить из форматов"
+        "excludeFromSubTypes": "Исключить из форматов",
+        "inheritAddress": "Наследует адрес"
       },
       "hints": {
         "address": "Оставьте пустым, чтобы унаследовать собственный адрес входящего.",

@@ -7,8 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -26,9 +28,11 @@ import (
 // client's own advertising-tag override, emitted into the [secret-ad-tags]
 // section; empty falls back to the instance-level tag.
 type SecretEntry struct {
-	Name   string
-	Secret string
-	AdTag  string
+	Name        string
+	Secret      string
+	AdTag       string
+	QuotaBytes  int64
+	ExpiresUnix int64
 }
 
 // Instance is the desired runtime configuration of one mtproto inbound. A single
@@ -100,12 +104,12 @@ func (inst Instance) structuralFingerprint() string {
 // secretsFingerprint identifies the reloadable secret config regardless of
 // client order, so a reordered clients array in the stored settings does not
 // read as a change. It moves whenever a client is added, removed, disabled,
-// re-keyed, or re-tagged — all of which mtg applies in place without dropping
-// connections.
+// re-keyed, re-tagged, or re-limited (quota/expiry) — all of which mtg applies
+// in place without dropping connections.
 func (inst Instance) secretsFingerprint() string {
 	pairs := make([]string, 0, len(inst.Secrets))
 	for _, e := range inst.Secrets {
-		pairs = append(pairs, e.Name+"="+e.Secret+";tag="+e.AdTag)
+		pairs = append(pairs, fmt.Sprintf("%s=%s;tag=%s;q=%d;exp=%d", e.Name, e.Secret, e.AdTag, e.QuotaBytes, e.ExpiresUnix))
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -182,10 +186,12 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		PublicIPv4             string `json:"publicIpv4"`
 		PublicIPv6             string `json:"publicIpv6"`
 		Clients                []struct {
-			Email  string `json:"email"`
-			Secret string `json:"secret"`
-			AdTag  string `json:"adTag"`
-			Enable bool   `json:"enable"`
+			Email      string `json:"email"`
+			Secret     string `json:"secret"`
+			AdTag      string `json:"adTag"`
+			Enable     bool   `json:"enable"`
+			TotalGB    int64  `json:"totalGB"`
+			ExpiryTime int64  `json:"expiryTime"`
 		} `json:"clients"`
 	}
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
@@ -196,7 +202,14 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		if !c.Enable || c.Secret == "" || c.Email == "" {
 			continue
 		}
-		secrets = append(secrets, SecretEntry{Name: c.Email, Secret: c.Secret, AdTag: usableAdTag(c.AdTag)})
+		entry := SecretEntry{Name: c.Email, Secret: c.Secret, AdTag: usableAdTag(c.AdTag)}
+		if c.TotalGB > 0 {
+			entry.QuotaBytes = c.TotalGB
+		}
+		if c.ExpiryTime > 0 {
+			entry.ExpiresUnix = c.ExpiryTime / 1000
+		}
+		secrets = append(secrets, entry)
 	}
 	if len(secrets) == 0 {
 		return Instance{}, false
@@ -401,9 +414,7 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 			continue
 		}
 		lastCopy := make(map[string]clientCounters, len(cur.last))
-		for k, v := range cur.last {
-			lastCopy[k] = v
-		}
+		maps.Copy(lastCopy, cur.last)
 		snaps = append(snaps, snap{id: id, apiPort: cur.apiPort, apiToken: cur.apiToken, tag: cur.tag, last: lastCopy})
 	}
 	m.mu.Unlock()
@@ -447,6 +458,53 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		m.mu.Unlock()
 	}
 	return out, online
+}
+
+func (m *Manager) HasRunning() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, cur := range m.procs {
+		if cur.proc != nil && cur.proc.IsRunning() {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Manager) ResetQuota(email string) {
+	if email == "" {
+		return
+	}
+	type target struct {
+		port  int
+		token string
+	}
+	m.mu.Lock()
+	targets := make([]target, 0, len(m.procs))
+	for _, cur := range m.procs {
+		if cur.proc != nil && cur.proc.IsRunning() {
+			targets = append(targets, target{cur.apiPort, cur.apiToken})
+		}
+	}
+	m.mu.Unlock()
+	for _, t := range targets {
+		resetQuota(t.port, t.token, email)
+	}
+}
+
+func resetQuota(port int, token, email string) {
+	client := http.Client{Timeout: 3 * time.Second}
+	endpoint := fmt.Sprintf("http://127.0.0.1:%d/secrets/%s/reset-quota", port, url.PathEscape(email))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, endpoint, nil)
+	if err != nil {
+		return
+	}
+	authorize(req, token)
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	_ = resp.Body.Close()
 }
 
 // FreeLocalPort asks the OS for an unused loopback TCP port. It is used both
@@ -525,6 +583,18 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 		}
 		fmt.Fprintf(&b, "%q = %q\n", e.Name, e.AdTag)
 	}
+	for _, e := range inst.Secrets {
+		if e.QuotaBytes <= 0 && e.ExpiresUnix <= 0 {
+			continue
+		}
+		fmt.Fprintf(&b, "\n[secret-limits.%q]\n", e.Name)
+		if e.QuotaBytes > 0 {
+			fmt.Fprintf(&b, "quota = %q\n", quotaString(e.QuotaBytes))
+		}
+		if e.ExpiresUnix > 0 {
+			fmt.Fprintf(&b, "expires = %q\n", expiresString(e.ExpiresUnix))
+		}
+	}
 	b.WriteString("\n[secrets]\n")
 	for _, e := range inst.Secrets {
 		fmt.Fprintf(&b, "%q = %q\n", e.Name, e.Secret)
@@ -549,8 +619,10 @@ type statsUser struct {
 }
 
 type secretPutEntry struct {
-	Secret string `json:"secret"`
-	AdTag  string `json:"ad_tag,omitempty"`
+	Secret  string `json:"secret"`
+	AdTag   string `json:"ad_tag,omitempty"`
+	Quota   string `json:"quota,omitempty"`
+	Expires string `json:"expires,omitempty"`
 }
 
 type secretsPutBody struct {
@@ -560,9 +632,24 @@ type secretsPutBody struct {
 func secretsPayload(inst Instance) secretsPutBody {
 	secrets := make(map[string]secretPutEntry, len(inst.Secrets))
 	for _, e := range inst.Secrets {
-		secrets[e.Name] = secretPutEntry{Secret: e.Secret, AdTag: e.AdTag}
+		entry := secretPutEntry{Secret: e.Secret, AdTag: e.AdTag}
+		if e.QuotaBytes > 0 {
+			entry.Quota = quotaString(e.QuotaBytes)
+		}
+		if e.ExpiresUnix > 0 {
+			entry.Expires = expiresString(e.ExpiresUnix)
+		}
+		secrets[e.Name] = entry
 	}
 	return secretsPutBody{Secrets: secrets}
+}
+
+func quotaString(bytes int64) string {
+	return strconv.FormatInt(bytes, 10) + "B"
+}
+
+func expiresString(unix int64) string {
+	return time.Unix(unix, 0).UTC().Format(time.RFC3339)
 }
 
 // newAPIToken mints the bearer token one mtg process and its manager share for

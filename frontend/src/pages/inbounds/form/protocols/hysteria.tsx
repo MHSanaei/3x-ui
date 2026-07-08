@@ -1,128 +1,124 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
+import { Form, Input, InputNumber, Select, Switch } from 'antd';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { HeaderMapEditor } from '@/components/form';
+import { FormField } from '@/components/form/rhf';
 
 const MASQ_PATH = ['streamSettings', 'hysteriaSettings', 'masquerade'];
 
-export default function HysteriaFields({ form }: { form: FormInstance }) {
+export default function HysteriaFields() {
   const { t } = useTranslation();
+  const { control, setValue } = useFormContext();
+  const masq = useWatch({ control, name: 'streamSettings.hysteriaSettings.masquerade' }) as
+    | { type?: string }
+    | undefined;
+  const masqType = useWatch({ control, name: 'streamSettings.hysteriaSettings.masquerade.type' }) as
+    | string
+    | undefined;
   return (
     <>
-      <Form.Item
+      <FormField
         label={t('pages.inbounds.form.version')}
         name={['streamSettings', 'hysteriaSettings', 'version']}
       >
         <InputNumber min={2} max={2} disabled />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         label={t('pages.inbounds.form.udpIdleTimeout')}
         name={['streamSettings', 'hysteriaSettings', 'udpIdleTimeout']}
       >
         <InputNumber min={2} max={600} style={{ width: '100%' }} />
-      </Form.Item>
+      </FormField>
 
       <Form.Item label={t('pages.inbounds.form.masquerade')}>
-        <Form.Item shouldUpdate noStyle>
-          {() => {
-            const m = form.getFieldValue(MASQ_PATH);
-            return (
-              <Switch
-                checked={!!m}
-                onChange={(checked) =>
-                  form.setFieldValue(
-                    MASQ_PATH,
-                    checked
-                      ? {
-                        type: '', dir: '', url: '',
-                        rewriteHost: false, insecure: false,
-                        content: '', headers: {}, statusCode: 0,
-                      }
-                      : undefined,
-                  )
+        <Switch
+          checked={!!masq}
+          onChange={(checked) =>
+            setValue(
+              'streamSettings.hysteriaSettings.masquerade',
+              checked
+                ? {
+                  type: '', dir: '', url: '',
+                  rewriteHost: false, insecure: false,
+                  content: '', headers: {}, statusCode: 0,
                 }
-              />
-            );
-          }}
-        </Form.Item>
+                : undefined,
+            )
+          }
+        />
       </Form.Item>
-      <Form.Item shouldUpdate noStyle>
-        {() => {
-          const m = form.getFieldValue(MASQ_PATH) as { type?: string } | undefined;
-          if (!m) return null;
-          return (
+      {masq && (
+        <>
+          <FormField
+            label={t('pages.inbounds.form.type')}
+            name={[...MASQ_PATH, 'type']}
+          >
+            <Select
+              options={[
+                { value: '', label: 'default (404 page)' },
+                { value: 'proxy', label: 'proxy (reverse proxy)' },
+                { value: 'file', label: 'file (serve directory)' },
+                { value: 'string', label: 'string (fixed body)' },
+              ]}
+            />
+          </FormField>
+          {masqType === 'proxy' && (
             <>
-              <Form.Item
-                label={t('pages.inbounds.form.type')}
-                name={[...MASQ_PATH, 'type']}
+              <FormField
+                label={t('pages.inbounds.form.upstreamUrl')}
+                name={[...MASQ_PATH, 'url']}
               >
-                <Select
-                  options={[
-                    { value: '', label: 'default (404 page)' },
-                    { value: 'proxy', label: 'proxy (reverse proxy)' },
-                    { value: 'file', label: 'file (serve directory)' },
-                    { value: 'string', label: 'string (fixed body)' },
-                  ]}
-                />
-              </Form.Item>
-              {m.type === 'proxy' && (
-                <>
-                  <Form.Item
-                    label={t('pages.inbounds.form.upstreamUrl')}
-                    name={[...MASQ_PATH, 'url']}
-                  >
-                    <Input placeholder="https://www.example.com" />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('pages.inbounds.form.rewriteHost')}
-                    name={[...MASQ_PATH, 'rewriteHost']}
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('pages.inbounds.form.skipTlsVerify')}
-                    name={[...MASQ_PATH, 'insecure']}
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </>
-              )}
-              {m.type === 'file' && (
-                <Form.Item
-                  label={t('pages.inbounds.form.directory')}
-                  name={[...MASQ_PATH, 'dir']}
-                >
-                  <Input placeholder="/var/www/html" />
-                </Form.Item>
-              )}
-              {m.type === 'string' && (
-                <>
-                  <Form.Item
-                    label={t('pages.inbounds.form.statusCode')}
-                    name={[...MASQ_PATH, 'statusCode']}
-                  >
-                    <InputNumber min={0} max={599} style={{ width: '100%' }} />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('pages.inbounds.form.body')}
-                    name={[...MASQ_PATH, 'content']}
-                  >
-                    <Input.TextArea autoSize={{ minRows: 3 }} />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('pages.inbounds.form.headers')}
-                    name={[...MASQ_PATH, 'headers']}
-                  >
-                    <HeaderMapEditor mode="v1" />
-                  </Form.Item>
-                </>
-              )}
+                <Input placeholder="https://www.example.com" />
+              </FormField>
+              <FormField
+                label={t('pages.inbounds.form.rewriteHost')}
+                name={[...MASQ_PATH, 'rewriteHost']}
+                valueProp="checked"
+              >
+                <Switch />
+              </FormField>
+              <FormField
+                label={t('pages.inbounds.form.skipTlsVerify')}
+                name={[...MASQ_PATH, 'insecure']}
+                valueProp="checked"
+              >
+                <Switch />
+              </FormField>
             </>
-          );
-        }}
-      </Form.Item>
+          )}
+          {masqType === 'file' && (
+            <FormField
+              label={t('pages.inbounds.form.directory')}
+              name={[...MASQ_PATH, 'dir']}
+            >
+              <Input placeholder="/var/www/html" />
+            </FormField>
+          )}
+          {masqType === 'string' && (
+            <>
+              <FormField
+                label={t('pages.inbounds.form.statusCode')}
+                name={[...MASQ_PATH, 'statusCode']}
+              >
+                <InputNumber min={0} max={599} style={{ width: '100%' }} />
+              </FormField>
+              <FormField
+                label={t('pages.inbounds.form.body')}
+                name={[...MASQ_PATH, 'content']}
+              >
+                <Input.TextArea autoSize={{ minRows: 3 }} />
+              </FormField>
+              <FormField
+                label={t('pages.inbounds.form.headers')}
+                name={[...MASQ_PATH, 'headers']}
+              >
+                <HeaderMapEditor mode="v1" />
+              </FormField>
+            </>
+          )}
+        </>
+      )}
     </>
   );
 }

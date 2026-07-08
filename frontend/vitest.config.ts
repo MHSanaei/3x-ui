@@ -19,7 +19,7 @@ export default defineConfig({
           name: 'unit',
           include: ['src/test/**/*.test.ts'],
           environment: 'node',
-          setupFiles: ['./src/test/setup.ts'],
+          setupFiles: ['./src/test/setup.ts', './src/test/setup.msw.ts'],
         },
       },
       {

@@ -19,6 +19,14 @@ func initLdapJobDB(t *testing.T) {
 	t.Cleanup(func() { _ = database.CloseDB() })
 }
 
+func TestBuildClient_ConvertsDefaultTotalGBToBytes(t *testing.T) {
+	j := NewLdapSyncJob()
+	c := j.buildClient("user@example.com", 10, 0, 0)
+	if want := int64(10) * 1024 * 1024 * 1024; c.TotalGB != want {
+		t.Errorf("TotalGB = %d, want %d", c.TotalGB, want)
+	}
+}
+
 func TestLdapCreateClients_AttachesToAllConfiguredInbounds(t *testing.T) {
 	initLdapJobDB(t)
 	db := database.GetDB()

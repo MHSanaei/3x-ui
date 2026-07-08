@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"strconv"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
@@ -17,12 +16,11 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
 
 func newHostTestDB(t *testing.T) {
 	t.Helper()
-	// I18nWeb logs a warning when the localizer is absent (as in tests); the
-	// logger must be initialised so that warning does not nil-panic.
 	xuilogger.InitLogger(logging.ERROR)
 	gin.SetMode(gin.TestMode)
 	dbDir := t.TempDir()
@@ -62,8 +60,6 @@ func doHostReq(t *testing.T, engine *gin.Engine, method, path string, body any) 
 	return env
 }
 
-// TestHostController_AddListGetDelete exercises the CRUD round-trip and asserts
-// the {success,msg,obj} envelope convention through the registered routes.
 func TestHostController_AddListGetDelete(t *testing.T) {
 	newHostTestDB(t)
 	engine := gin.New()
@@ -74,53 +70,83 @@ func TestHostController_AddListGetDelete(t *testing.T) {
 		t.Fatalf("seed inbound: %v", err)
 	}
 
-	// add
 	add := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/add", map[string]any{
-		"inboundId": ib.Id, "remark": "h1", "address": "h1.example.com", "port": 8443,
+		"inboundIds": []int{ib.Id}, "remark": "h1", "hosts": []string{"h1.example.com"}, "port": 8443,
 	})
 	if !add.Success {
 		t.Fatalf("add not successful: %s", add.Msg)
 	}
-	var created model.Host
+	var created []*model.Host
 	if err := json.Unmarshal(add.Obj, &created); err != nil {
-		t.Fatalf("decode created host: %v", err)
+		t.Fatalf("decode created hosts: %v", err)
 	}
-	if created.Id == 0 || created.Remark != "h1" {
-		t.Fatalf("created host = %+v", created)
+	if len(created) != 1 || created[0].GroupId == "" || created[0].Remark != "h1" {
+		t.Fatalf("created hosts = %+v", created)
 	}
+	groupId := created[0].GroupId
 
-	// list
 	list := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/list", nil)
-	var hosts []model.Host
-	if err := json.Unmarshal(list.Obj, &hosts); err != nil {
+	var groups []entity.HostGroup
+	if err := json.Unmarshal(list.Obj, &groups); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
-	if len(hosts) != 1 || hosts[0].Id != created.Id {
-		t.Fatalf("list = %+v, want one host id=%d", hosts, created.Id)
+	if len(groups) != 1 || groups[0].GroupId != groupId {
+		t.Fatalf("list = %+v, want one group groupId=%s", groups, groupId)
 	}
 
-	// get
-	get := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/get/"+itoa(created.Id), nil)
+	get := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/get/"+groupId, nil)
 	if !get.Success {
 		t.Fatalf("get not successful: %s", get.Msg)
 	}
 
-	// del
-	del := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/del/"+itoa(created.Id), nil)
-	if !del.Success {
-		t.Fatalf("del not successful: %s", del.Msg)
+	update := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/update/"+groupId, map[string]any{
+		"inboundIds": []int{ib.Id}, "remark": "h1-updated", "hosts": []string{"h1.example.com"}, "port": 8443,
+	})
+	if !update.Success {
+		t.Fatalf("update not successful: %s", update.Msg)
 	}
+	get2 := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/get/"+groupId, nil)
+	var group2 entity.HostGroup
+	_ = json.Unmarshal(get2.Obj, &group2)
+	if group2.Remark != "h1-updated" {
+		t.Fatalf("update did not change remark: %s", group2.Remark)
+	}
+
+	setEn := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/bulk/setEnable", map[string]any{
+		"ids": []string{groupId}, "enable": false,
+	})
+	if !setEn.Success {
+		t.Fatalf("bulk/setEnable not successful: %s", setEn.Msg)
+	}
+	get3 := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/get/"+groupId, nil)
+	var group3 entity.HostGroup
+	_ = json.Unmarshal(get3.Obj, &group3)
+	if !group3.IsDisabled {
+		t.Fatalf("bulk/setEnable did not disable host group")
+	}
+
+	add2 := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/bulk/add", map[string]any{
+		"inboundIds": []int{ib.Id}, "remark": "h2", "hosts": []string{"h2.example.com"}, "port": 8443,
+	})
+	var created2 []*model.Host
+	_ = json.Unmarshal(add2.Obj, &created2)
+	groupId2 := created2[0].GroupId
+
+	bulkDel := doHostReq(t, engine, http.MethodPost, "/panel/api/hosts/bulk/del", map[string]any{
+		"ids": []string{groupId, groupId2},
+	})
+	if !bulkDel.Success {
+		t.Fatalf("bulk/del not successful: %s", bulkDel.Msg)
+	}
+
 	list2 := doHostReq(t, engine, http.MethodGet, "/panel/api/hosts/list", nil)
-	var hosts2 []model.Host
-	_ = json.Unmarshal(list2.Obj, &hosts2)
-	if len(hosts2) != 0 {
-		t.Fatalf("after delete, list = %+v, want empty", hosts2)
+	var groups2 []entity.HostGroup
+	_ = json.Unmarshal(list2.Obj, &groups2)
+	if len(groups2) != 0 {
+		t.Fatalf("after delete, list = %+v, want empty", groups2)
 	}
 }
 
-// TestHostController_AuthInherited mirrors production wiring: the hosts group is
-// nested under the api group guarded by checkAPIAuth, so an unauthenticated XHR
-// to a hosts route is rejected (401) — the auth is inherited, not re-declared.
 func TestHostController_AuthInherited(t *testing.T) {
 	newHostTestDB(t)
 	engine := gin.New()
@@ -139,8 +165,4 @@ func TestHostController_AuthInherited(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthenticated hosts/list = %d, want 401 (auth inherited)", w.Code)
 	}
-}
-
-func itoa(i int) string {
-	return strconv.Itoa(i)
 }
