@@ -56,7 +56,6 @@ export function syncOutbound(t: XraySettingsValue, tag: string, settings: Record
   if (haveRules && idx < 0) t.outbounds.push(settings as never);
 }
 
-
 export function getDefaultOutboundTag(t: XraySettingsValue | null): string {
   const tag = t?.outbounds?.[0]?.tag;
   return typeof tag === 'string' && tag.length > 0 ? tag : 'direct';

@@ -20,10 +20,7 @@ interface RoutingBasicProps {
   setTemplateSettings: SetTemplate;
 }
 
-export default function RoutingBasic({
-  templateSettings,
-  setTemplateSettings,
-}: RoutingBasicProps) {
+export default function RoutingBasic({ templateSettings, setTemplateSettings }: RoutingBasicProps) {
   const { t } = useTranslation();
 
   const mutate = useCallback(
@@ -63,7 +60,6 @@ export default function RoutingBasic({
         className="mb-12 hint-alert"
         title={t('pages.xray.blockConnectionsConfigsDesc')}
       />
-
 
       <SettingListItem
         title={t('pages.xray.defaultOutbound')}
