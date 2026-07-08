@@ -1,0 +1,5 @@
+{
+  "title": "Помощь",
+  "icon": "LifeBuoy",
+  "pages": ["troubleshooting", "faq", "migration", "contributing"]
+}

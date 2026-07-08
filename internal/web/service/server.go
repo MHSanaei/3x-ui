@@ -1608,6 +1608,55 @@ func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+var (
+	pgUnsupportedDumpVersionPattern = regexp.MustCompile(`unsupported version \((\d+\.\d+)\) in file header`)
+	pgToolVersionPattern            = regexp.MustCompile(`\d+(?:\.\d+)+`)
+)
+
+var pgArchiveVersionIntroducedIn = map[string]int{
+	"1.15": 16,
+	"1.16": 17,
+}
+
+// checkPgRestoreCanRead probes the dump with pg_restore --list (reads only the
+// TOC, no database connection) so an unreadable file fails before Xray is stopped.
+func checkPgRestoreCanRead(bin, dumpPath string) error {
+	cmd := exec.CommandContext(context.Background(), bin, "--list", dumpPath)
+	cmd.Stdout = io.Discard
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if cmd.Run() == nil {
+		return nil
+	}
+	return pgRestoreReadFailureError(strings.TrimSpace(stderr.String()), pgRestoreVersion(bin))
+}
+
+func pgRestoreReadFailureError(probeOutput, localVersion string) error {
+	m := pgUnsupportedDumpVersionPattern.FindStringSubmatch(probeOutput)
+	if m == nil {
+		return common.NewErrorf("pg_restore cannot read this dump file: %s", probeOutput)
+	}
+	if localVersion == "" {
+		localVersion = "unknown"
+	}
+	if major, known := pgArchiveVersionIntroducedIn[m[1]]; known {
+		return common.NewErrorf("This backup was created by pg_dump from PostgreSQL %d or newer, but the server's pg_restore is version %s and cannot read it; run 'x-ui pgclient %d' on the server (or upgrade the postgresql-client package to version %d or newer), then retry the import", major, localVersion, major, major)
+	}
+	return common.NewErrorf("This backup was created by a newer pg_dump than the server's pg_restore (version %s) can read; upgrade the postgresql-client package and retry the import", localVersion)
+}
+
+func pgRestoreVersion(bin string) string {
+	out, err := exec.CommandContext(context.Background(), bin, "--version").Output()
+	if err != nil {
+		return ""
+	}
+	return parsePgToolVersion(string(out))
+}
+
+func parsePgToolVersion(versionOutput string) string {
+	return pgToolVersionPattern.FindString(versionOutput)
+}
+
 func (s *ServerService) importPostgresDB(file multipart.File) error {
 	header := make([]byte, 5)
 	if _, err := file.ReadAt(header, 0); err != nil {
@@ -1641,6 +1690,10 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 	}
 	if err := tempFile.Close(); err != nil {
 		return common.NewErrorf("Error closing temporary dump file: %v", err)
+	}
+
+	if err := checkPgRestoreCanRead(bin, tempPath); err != nil {
+		return err
 	}
 
 	xrayStopped := true

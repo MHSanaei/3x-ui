@@ -1,0 +1,64 @@
+---
+title: Database
+description: 3x-ui storage backends — SQLite (default) and PostgreSQL — the database path, connection pool, and SQLite-to-PostgreSQL migration.
+icon: Database
+---
+
+3x-ui stores everything — inbounds, clients, settings — in a database. You choose
+the backend at install time; both are first-class.
+
+## SQLite (default)
+
+A single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium
+deployments. The folder is configurable with
+[`XUI_DB_FOLDER`](/docs/reference/env-vars#database) (on Windows it defaults next
+to the binary).
+
+## PostgreSQL
+
+Recommended for high client counts or multi-node setups. The installer can
+install PostgreSQL locally for you, or accept a DSN to an existing server. At
+runtime the backend is selected via environment variables, which the installer
+writes to `/etc/default/x-ui`:
+
+```bash title="/etc/default/x-ui"
+XUI_DB_TYPE=postgres
+XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+```
+
+Tune the connection pool with `XUI_DB_MAX_OPEN_CONNS` and
+`XUI_DB_MAX_IDLE_CONNS`.
+
+### Docker
+
+`docker compose up -d` keeps using SQLite. To run with the bundled PostgreSQL
+service, uncomment the two `XUI_DB_*` lines in `docker-compose.yml` and start
+with the profile:
+
+```bash
+docker compose --profile postgres up -d
+```
+
+## Migrate SQLite → PostgreSQL
+
+Move an existing SQLite install to PostgreSQL with the built-in command:
+
+```bash
+x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+```
+
+Then set `XUI_DB_TYPE` and `XUI_DB_DSN` in `/etc/default/x-ui` and restart:
+
+```bash
+systemctl restart x-ui
+```
+
+<Callout type="info">
+  The source SQLite file is left untouched — remove it manually only after you've
+  verified the new backend works.
+</Callout>
+
+## Backups
+
+Whichever backend you use, back it up regularly — see
+[Backup & restore](/docs/operations/backup-restore).

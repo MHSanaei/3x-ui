@@ -1,0 +1,19 @@
+{
+  "title": "Справочник по API",
+  "icon": "Webhook",
+  "pages": [
+    "index",
+    "authentication",
+    "api-tokens",
+    "inbounds",
+    "clients",
+    "server",
+    "settings",
+    "xray-settings",
+    "subscription-server",
+    "hosts",
+    "nodes",
+    "backup",
+    "websocket"
+  ]
+}

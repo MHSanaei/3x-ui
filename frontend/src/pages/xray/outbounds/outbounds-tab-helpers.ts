@@ -1,5 +1,8 @@
+import type { TFunction } from 'i18next';
+
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
-import type { OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import { isUdpOutbound } from '@/hooks/useXraySetting';
+import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 
@@ -43,6 +46,14 @@ export function isUntestable(o: OutboundRow): boolean {
 
 export function showSecurity(security?: string): boolean {
   return security === 'tls' || security === 'reality';
+}
+
+export function effectiveTestMode(o: unknown, mode: OutboundTestMode): OutboundTestMode {
+  return mode === 'tcp' && isUdpOutbound(o) ? 'http' : mode;
+}
+
+export function testModeLabel(mode: string, t: TFunction): string {
+  return mode === 'real' ? t('pages.xray.outbound.modeRealDelay') : mode.toUpperCase();
 }
 
 export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRow): { up: number; down: number } {

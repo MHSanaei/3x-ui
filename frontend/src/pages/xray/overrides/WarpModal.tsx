@@ -12,8 +12,10 @@ import {
   Tag,
 } from 'antd';
 import { ApiOutlined, SyncOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, SizeFormatter, ObjectUtil, Wireguard } from '@/utils';
+import { FormField } from '@/components/form/rhf';
 import './WarpModal.css';
 
 interface WarpModalProps {
@@ -51,6 +53,13 @@ interface WarpConfig {
   };
 }
 
+interface WarpFormValues {
+  warpPlus: string;
+  updateInterval: number;
+}
+
+const EMPTY: WarpFormValues = { warpPlus: '', updateInterval: 0 };
+
 function addressesFor(addrs: { v4?: string; v6?: string }): string[] {
   const out: string[] = [];
   if (addrs.v4) out.push(`${addrs.v4}/32`);
@@ -79,10 +88,10 @@ export default function WarpModal({
   const [loading, setLoading] = useState(false);
   const [warpData, setWarpData] = useState<WarpData | null>(null);
   const [warpConfig, setWarpConfig] = useState<WarpConfig | null>(null);
-  const [warpPlus, setWarpPlus] = useState('');
-  const [updateInterval, setUpdateInterval] = useState<number>(0);
   const [licenseError, setLicenseError] = useState('');
   const [stagedOutbound, setStagedOutbound] = useState<Record<string, unknown> | null>(null);
+  const methods = useForm<WarpFormValues>({ defaultValues: EMPTY });
+  const warpPlusValue = useWatch({ control: methods.control, name: 'warpPlus' }) ?? '';
 
   const warpOutboundIndex = useMemo(() => {
     const list = templateSettings?.outbounds;
@@ -132,12 +141,12 @@ export default function WarpModal({
       }
       const settingMsg = await HttpUtil.post<Record<string, unknown>>('/panel/api/setting/all');
       if (settingMsg?.success && settingMsg.obj) {
-        setUpdateInterval(Number(settingMsg.obj.warpUpdateInterval) || 0);
+        methods.setValue('updateInterval', Number(settingMsg.obj.warpUpdateInterval) || 0);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [methods]);
 
   useEffect(() => {
     if (!open) return;
@@ -202,7 +211,7 @@ export default function WarpModal({
   async function saveInterval() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/xray/warp/interval', { interval: updateInterval });
+      const msg = await HttpUtil.post('/panel/api/xray/warp/interval', { interval: methods.getValues('updateInterval') });
       if (msg?.success) {
         messageApi.success(t('pages.setting.toasts.saveSuccess', 'Settings saved successfully'));
       }
@@ -212,15 +221,16 @@ export default function WarpModal({
   }
 
   async function updateLicense() {
-    if (warpPlus.length < 26) return;
+    const licenseValue = methods.getValues('warpPlus');
+    if (licenseValue.length < 26) return;
     setLoading(true);
     setLicenseError('');
     try {
-      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/license', { license: warpPlus });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/license', { license: licenseValue });
       if (msg?.success && msg.obj) {
         setWarpData(JSON.parse(msg.obj));
         setWarpConfig(null);
-        setWarpPlus('');
+        methods.setValue('warpPlus', '');
       } else {
         setLicenseError(msg?.msg || t('pages.xray.warp.licenseError'));
       }
@@ -266,6 +276,7 @@ export default function WarpModal({
     <>
       {messageContextHolder}
       <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
+        <FormProvider {...methods}>
         {!hasWarp ? (
           <Button type="primary" loading={loading} icon={<ApiOutlined />} onClick={register}>
             {t('pages.xray.warp.createAccount')}
@@ -307,29 +318,26 @@ export default function WarpModal({
                   label: t('pages.xray.warp.licenseKeyLabel'),
                   children: (
                     <Form colon={false} labelCol={{ md: { span: 6 } }} wrapperCol={{ md: { span: 14 } }}>
-                      <Form.Item label={t('pages.xray.warp.key')}>
-                        <Input
-                          value={warpPlus}
-                          placeholder={t('pages.xray.warp.keyPlaceholder')}
-                          onChange={(e) => {
-                            setWarpPlus(e.target.value);
-                            setLicenseError('');
-                          }}
-                        />
-                        <div className="license-actions mt-8">
-                          <Button
-                            type="primary"
-                            disabled={warpPlus.length < 26}
-                            loading={loading}
-                            onClick={updateLicense}
-                          >
-                            {t('update')}
-                          </Button>
-                          {licenseError && (
-                            <Alert title={licenseError} type="error" showIcon className="license-error" />
-                          )}
-                        </div>
-                      </Form.Item>
+                      <FormField
+                        name="warpPlus"
+                        label={t('pages.xray.warp.key')}
+                        onAfterChange={() => setLicenseError('')}
+                      >
+                        <Input placeholder={t('pages.xray.warp.keyPlaceholder')} />
+                      </FormField>
+                      <div className="license-actions mt-8">
+                        <Button
+                          type="primary"
+                          disabled={warpPlusValue.length < 26}
+                          loading={loading}
+                          onClick={updateLicense}
+                        >
+                          {t('update')}
+                        </Button>
+                        {licenseError && (
+                          <Alert title={licenseError} type="error" showIcon className="license-error" />
+                        )}
+                      </div>
                     </Form>
                   ),
                 },
@@ -338,18 +346,17 @@ export default function WarpModal({
                   label: t('pages.xray.warp.autoUpdateIp', 'Auto Update IP Address'),
                   children: (
                     <Form colon={false} labelCol={{ md: { span: 8 } }} wrapperCol={{ md: { span: 12 } }}>
-                      <Form.Item label={t('pages.xray.warp.intervalDays', 'Interval (Days)')}
-                        tooltip={t('pages.xray.warp.intervalDesc', '0 to disable. Changes IP address automatically.')}>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={updateInterval}
-                          onChange={(e) => setUpdateInterval(Number(e.target.value))}
-                        />
-                        <Button className="mt-8" type="primary" loading={loading} onClick={saveInterval}>
-                          {t('save', 'Save')}
-                        </Button>
-                      </Form.Item>
+                      <FormField
+                        name="updateInterval"
+                        label={t('pages.xray.warp.intervalDays', 'Interval (Days)')}
+                        tooltip={t('pages.xray.warp.intervalDesc', '0 to disable. Changes IP address automatically.')}
+                        transform={{ output: (v) => Number(v) }}
+                      >
+                        <Input type="number" min={0} />
+                      </FormField>
+                      <Button className="mt-8" type="primary" loading={loading} onClick={saveInterval}>
+                        {t('save', 'Save')}
+                      </Button>
                     </Form>
                   ),
                 },
@@ -431,6 +438,7 @@ export default function WarpModal({
             )}
           </>
         )}
+        </FormProvider>
       </Modal>
     </>
   );

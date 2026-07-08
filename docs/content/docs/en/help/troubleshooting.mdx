@@ -1,0 +1,42 @@
+---
+title: Troubleshooting
+description: Fix common 3x-ui problems — the panel won't start, 502 errors, certificate issues, and clients that can't connect.
+icon: Wrench
+---
+
+A checklist for the most common issues. When in doubt, raise the log level
+(`XUI_LOG_LEVEL=debug`) and check the panel and Xray logs.
+
+## The panel won't start
+
+- Check the service status and logs (`x-ui` menu → status/logs).
+- Make sure the **panel port isn't already in use** by another service.
+- Verify the database path is writable (default `/etc/x-ui/x-ui.db`).
+
+## 502 / panel unreachable behind a proxy
+
+- Confirm the panel is actually listening on the upstream port (e.g. `2053`).
+- Ensure your [reverse proxy](/docs/operations/reverse-proxy) passes WebSocket
+  upgrade headers and points at the correct port and **web base path**.
+- Check the firewall isn't blocking the proxy → panel connection.
+
+## Certificate problems
+
+- The domain's DNS must point at the server before issuing a certificate.
+- Ports 80/443 must be reachable for HTTP/TLS validation (or use DNS validation).
+- For REALITY, remember it needs **no certificate** — the issue is usually a bad
+  `dest`/SNI instead (see [REALITY pitfalls](/docs/config/reality)).
+
+## A client can't connect
+
+- Decode the client's link with the
+  [share-link inspector](/docs/config/share-links) and confirm every parameter.
+- Check the **transport and security match** on both ends.
+- Make sure the client hasn't hit its **traffic, expiry, or IP limit**.
+- Confirm the inbound port is open in the firewall.
+
+<Callout type="info">
+  Still stuck? Search the
+  [GitHub issues](https://github.com/MHSanaei/3x-ui/issues) — your symptom has
+  probably been seen before.
+</Callout>

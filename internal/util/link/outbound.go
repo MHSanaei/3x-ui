@@ -8,10 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Outbound is the minimal shape we emit for each parsed link.
@@ -657,9 +659,89 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 	if fm := p.Get("fm"); fm != "" {
 		var parsed any
 		if json.Unmarshal([]byte(fm), &parsed) == nil {
+			sanitizeFinalMaskQuicParams(parsed)
 			stream["finalmask"] = parsed
 		}
 	}
+}
+
+// sanitizeFinalMaskQuicParams coerces the strictly numeric quicParams fields
+// of a finalmask blob taken verbatim from a share link's fm= parameter.
+// Xray-core rejects the whole config at startup when e.g. keepAlivePeriod
+// arrives as a duration string like "10s" or an out-of-range integer, so
+// numeric strings are parsed, duration strings are converted to whole
+// seconds, the ranged fields are clamped to what xray accepts, and anything
+// non-finite, negative, absurdly large, or unparseable is dropped so a bad
+// value falls back to xray's default instead of killing the config (#5783).
+func sanitizeFinalMaskQuicParams(parsed any) {
+	fm, ok := parsed.(map[string]any)
+	if !ok {
+		return
+	}
+	qp, ok := fm["quicParams"].(map[string]any)
+	if !ok {
+		return
+	}
+	numericKeys := []string{
+		"initStreamReceiveWindow", "maxStreamReceiveWindow",
+		"initConnectionReceiveWindow", "maxConnectionReceiveWindow",
+		"maxIdleTimeout", "keepAlivePeriod", "maxIncomingStreams",
+	}
+	for _, key := range numericKeys {
+		raw, exists := qp[key]
+		if !exists {
+			continue
+		}
+		n, ok := coerceQuicNumeric(raw)
+		if ok {
+			n, ok = clampQuicNumeric(key, n)
+		}
+		if !ok {
+			delete(qp, key)
+			continue
+		}
+		qp[key] = int64(n)
+	}
+}
+
+func coerceQuicNumeric(raw any) (float64, bool) {
+	switch v := raw.(type) {
+	case float64:
+		return math.Trunc(v), true
+	case string:
+		if n, err := strconv.ParseFloat(v, 64); err == nil && !math.IsInf(n, 0) && !math.IsNaN(n) {
+			return math.Trunc(n), true
+		}
+		if d, err := time.ParseDuration(v); err == nil {
+			return math.Trunc(d.Seconds()), true
+		}
+	}
+	return 0, false
+}
+
+// clampQuicNumeric enforces xray-core's QuicParamsConfig validation so a
+// coerced value cannot still fail the config load: keepAlivePeriod is 0 or
+// 2-60, maxIdleTimeout is 0 or 4-120, maxIncomingStreams is 0 or >= 8.
+// quicNumericMax keeps values in plain-integer JSON territory and far below
+// the uint64 window fields' range.
+const quicNumericMax = float64(1e15)
+
+func clampQuicNumeric(key string, n float64) (float64, bool) {
+	if n < 0 || n > quicNumericMax {
+		return 0, false
+	}
+	if n == 0 {
+		return 0, true
+	}
+	switch key {
+	case "keepAlivePeriod":
+		return math.Min(math.Max(n, 2), 60), true
+	case "maxIdleTimeout":
+		return math.Min(math.Max(n, 4), 120), true
+	case "maxIncomingStreams":
+		return math.Max(n, 8), true
+	}
+	return n, true
 }
 
 func firstNonEmpty(a, b string) string {

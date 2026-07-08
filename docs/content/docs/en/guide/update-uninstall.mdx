@@ -1,0 +1,99 @@
+---
+title: Update & Uninstall
+description: Manage 3x-ui with the x-ui menu and CLI — update (stable, dev, or legacy), change settings, and uninstall cleanly.
+icon: RefreshCw
+---
+
+After a script install, the `x-ui` command is your control center. Run it with
+no arguments for the interactive menu, or pass a subcommand for a one-shot action.
+
+```bash
+x-ui
+```
+
+## The `x-ui` management menu
+
+The menu (items `0`–`28`) shows the panel/Xray status at the top, then:
+
+| #     | Item                                   | What it does                                              |
+| ----- | -------------------------------------- | --------------------------------------------------------- |
+| 1     | Install                                | (Re)install from the remote script                        |
+| 2     | Update                                 | Update to the latest **stable** release                   |
+| 3     | Update to Dev Channel (latest commit)  | Update to the rolling `dev-latest` build                  |
+| 4     | Update Menu                            | Update just the `x-ui` menu script                        |
+| 5     | Legacy Version                         | Install a specific older version (prompts for a tag)      |
+| 6     | Uninstall                              | Remove 3x-ui (see below)                                  |
+| 7     | Reset Username & Password              | Set new credentials; optionally disable 2FA               |
+| 8     | Reset Web Base Path                    | Randomize the web base path                               |
+| 9     | Reset Settings                         | Reset panel settings (your account is preserved)          |
+| 10    | Change Port                            | Change the panel port                                     |
+| 11    | View Current Settings                  | Show username, port, web base path, cert paths            |
+| 12–14 | Start / Stop / Restart                 | Control the panel service                                 |
+| 15    | Restart Xray                           | Reload only Xray-core                                     |
+| 16    | Check Status                           | Service status                                            |
+| 17    | Logs Management                        | View debug logs / clear logs                              |
+| 18–19 | Enable / Disable Autostart             | Toggle start-on-boot                                      |
+| 20    | SSL Certificate Management             | Let's Encrypt (domain or IP), custom paths, renew/revoke  |
+| 21    | Cloudflare SSL Certificate             | DNS-01 wildcard cert via Cloudflare                       |
+| 22    | IP Limit Management                    | Fail2ban-based per-client IP limits                       |
+| 23    | Firewall Management                    | `ufw` install and port rules                              |
+| 24    | SSH Port Forwarding Management         | Bind the panel to localhost and tunnel over SSH           |
+| 25    | PostgreSQL Management                  | Install/migrate/manage PostgreSQL                         |
+| 26    | Enable BBR                             | Toggle the BBR congestion-control sysctl                  |
+| 27    | Update Geo Files                       | Update geoip/geosite data (Loyalsoldier, IR, RU)          |
+| 28    | Speedtest by Ookla                     | Run an Ookla speed test                                   |
+| 0     | Exit                                   | —                                                         |
+
+Some of these have their own pages: [SSL certificates](/docs/config/ssl-certificates)
+(items 20–21), [Security](/docs/operations/security) (IP limits, firewall),
+[Reverse proxy](/docs/operations/reverse-proxy) and [Panel settings](/docs/config/panel)
+(TLS), and [Database](/docs/reference/database) (PostgreSQL).
+
+## CLI subcommands
+
+For scripts and quick actions, `x-ui` also takes a subcommand directly:
+
+| Command                    | Action                                              |
+| -------------------------- | --------------------------------------------------- |
+| `x-ui start` / `stop` / `restart` | Control the service                          |
+| `x-ui restart-xray`        | Reload only Xray-core                               |
+| `x-ui status`              | Show status                                         |
+| `x-ui settings`            | Show current settings                               |
+| `x-ui enable` / `disable`  | Toggle autostart on boot                            |
+| `x-ui log`                 | Tail the debug log                                  |
+| `x-ui banlog`              | Show Fail2ban ban log                               |
+| `x-ui update`              | Update to the latest stable release                 |
+| `x-ui update-dev`          | Update to the rolling `dev-latest` build            |
+| `x-ui legacy`              | Install a specific older version (prompts)          |
+| `x-ui update-all-geofiles` | Update all geo files, restart if changed            |
+| `x-ui migrate-db --dsn …`  | Migrate SQLite → PostgreSQL (see [Database](/docs/reference/database)) |
+| `x-ui install` / `uninstall` | Install / uninstall                               |
+
+## Updating
+
+- **Stable:** menu option **2** or `x-ui update`. Re-running the install script
+  also updates in place.
+- **Dev channel:** menu option **3** or `x-ui update-dev` — the rolling
+  `dev-latest` per-commit build (not a stable release).
+- **A specific older version:** menu option **5** (Legacy Version).
+
+Updating preserves your database and settings. Take a
+[backup](/docs/operations/backup-restore) before a major-version jump.
+
+<Callout type="info">
+  Docker users update differently — pull the new image and recreate the
+  container (`docker compose pull && docker compose up -d`) rather than using the
+  `x-ui` update commands.
+</Callout>
+
+## Uninstalling
+
+Menu option **6** or `x-ui uninstall`. It stops and disables the service, removes
+the service unit, and deletes `/etc/x-ui/` and the install folder. If the panel
+used a locally-installed PostgreSQL, it offers to purge that too (a separate,
+irreversible confirmation).
+
+<Callout type="warn">
+  Uninstalling removes the database (`/etc/x-ui/x-ui.db`) and your configuration.
+  [Back up](/docs/operations/backup-restore) first if you might need it.
+</Callout>

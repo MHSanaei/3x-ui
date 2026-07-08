@@ -1,7 +1,10 @@
-// Package mtproto manages mtg (github.com/9seconds/mtg) sidecar processes that
-// serve MTProto FakeTLS proxies. Xray-core has no mtproto protocol, so mtproto
-// inbounds are run as standalone mtg processes — one process per inbound —
-// entirely outside the Xray config and lifecycle.
+// Package mtproto manages mtg-multi (github.com/mhsanaei/mtg-multi) sidecar
+// processes that serve MTProto FakeTLS proxies. Xray-core has no mtproto
+// protocol, so mtproto inbounds are run as standalone mtg processes — one
+// process per inbound, each serving every active client's secret through the
+// mtg-multi [secrets] section — entirely outside the Xray config and lifecycle.
+// A client edit is hot-applied via the fork's POST /reload endpoint so live
+// connections survive; the manager falls back to a restart on older binaries.
 package mtproto
 
 import (

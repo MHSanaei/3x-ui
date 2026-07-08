@@ -27,12 +27,19 @@ The `@` import alias maps to `src/`.
   `src/lib/xray/`. HTTP goes through `HttpUtil` in `src/utils/index.ts`.
 
 ## Rules
-- Ant Design 6 only; no Tailwind/shadcn (a migration was rolled back).
+- Ant Design 6 for components; no Tailwind/shadcn (a migration was rolled back).
+  Form *state* runs on React Hook Form (`src/components/form/rhf/`), not Ant
+  Design's `Form` store.
 - Function components + hooks only; no class components.
 - No `//` line comments in committed TS/TSX. HTML comments are fine.
-- TS strict; `no-explicit-any` is an error. Validate form fields with
-  `antdRule(Schema.shape.field, t)` from `@/utils/zodForm`, not inline
-  `z.string()`.
+- TS strict; `no-explicit-any` is an error. Build forms with `useZodForm` +
+  `FormField` from `@/components/form/rhf` (wrap the tree in `FormProvider`);
+  validate through the `zodResolver` or per-field
+  `rules={{ validate: rhfZodValidate(Schema.shape.field) }}` — messages are Zod
+  issue keys resolved via `t()`, never inline `z.string()`. AntD `<Form>` stays
+  only as a layout wrapper. Complex shared config editors (FinalMask / Sniffing /
+  Sockopt) remain AntD-`Form` islands wrapped as value/onChange adapters in
+  `src/lib/xray/forms/fields/`, bound via a `Controller`.
 - New `g.POST`/`g.GET` route => add it to `src/pages/api-docs/endpoints.ts`,
   then `npm run gen`.
 - i18n strings live in `internal/web/translation/<locale>.json`, NOT under
