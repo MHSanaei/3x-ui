@@ -1129,13 +1129,8 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err != nil {
 		return inbound, false, err
 	}
-	// An inbound can't be moved between nodes via edit: its NodeID is taken from
-	// the stored row, not the request payload (whose nodeId is unreliable and may
-	// be absent). Restore it BEFORE the port-conflict check so a node inbound is
-	// scoped to its own node — otherwise it is mis-checked as a local/main-server
-	// inbound and falsely clashes with a same-port inbound that lives on a
-	// different server (e.g. editing a node inbound's listen address is rejected
-	// as "port already used" by an unrelated inbound on the main panel).
+	// Restore the stored NodeID before the port-conflict check so a node inbound
+	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)

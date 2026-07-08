@@ -68,18 +68,11 @@ func TestUpdateInbound_NodeTagKeepsPrefixWhenNodeIdOmitted(t *testing.T) {
 	}
 }
 
-// editing a node inbound that happens to share a port with a local (main-panel)
-// inbound must not be rejected as a port conflict: they live on different
-// machines. The port-conflict check has to run against the inbound's *stored*
-// NodeID, not the nodeId in the update body (which the UI/manager omits). This
-// is the regression for the ordering bug where checkPortConflict ran before the
-// NodeID was restored from the DB, so a node inbound was mis-checked as local
-// and clashed with the main server's same-port inbound.
+// A node inbound sharing a port with a local inbound must stay editable: the
+// port-conflict check is scoped to the inbound's stored NodeID, not the body's.
 func TestUpdateInbound_NodeInboundNotBlockedByLocalSamePort(t *testing.T) {
 	setupConflictDB(t)
-	// main-panel inbound on :10000 (NodeID nil), bound to all interfaces.
 	seedInboundConflict(t, "in-10000-tcp", "0.0.0.0", 10000, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`)
-	// a node inbound on the SAME port — a different machine, so no real conflict.
 	seedInboundConflictNode(t, "n1-in-10000-tcp", "0.0.0.0", 10000, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, new(1))
 
 	var nodeInbound model.Inbound
@@ -89,13 +82,10 @@ func TestUpdateInbound_NodeInboundNotBlockedByLocalSamePort(t *testing.T) {
 
 	svc := &InboundService{}
 	update := nodeInbound
-	update.Listen = "10.0.0.5" // the user edits the node inbound's listen address
-	update.NodeID = nil        // the update body omits nodeId (as the UI does)
+	update.Listen = "10.0.0.5"
+	update.NodeID = nil
 	_, _, err := svc.UpdateInbound(&update)
 
-	// The runtime manager isn't wired in unit tests, so a node inbound update
-	// fails later with a runtime/push error — that's expected here. What must NOT
-	// happen is a port-conflict rejection against the local same-port inbound.
 	if err != nil && strings.Contains(err.Error(), "already used") {
 		t.Fatalf("node inbound edit wrongly rejected as a port conflict: %v", err)
 	}
