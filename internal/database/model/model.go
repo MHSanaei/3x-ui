@@ -716,9 +716,6 @@ type ClientExternalLink struct {
 
 func (ClientExternalLink) TableName() string { return "client_external_links" }
 
-// Link is a reusable external link/subscription template managed from the Links
-// page. Assigning rows from this table copies them into ClientExternalLink so
-// existing subscription rendering and the client Links tab keep working.
 type Link struct {
 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Kind       string `json:"kind" form:"kind" gorm:"column:kind;index" validate:"required,oneof=link subscription"`
