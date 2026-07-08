@@ -905,16 +905,63 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 }
 
 // OverrideBalancer forces a balancer in the running core to use the given
-// outbound tag; an empty target clears the override.
+// outbound tag; an empty target clears the override. When target names
+// another balancer, the override resolves to the loopback outbound that
+// routes traffic through the target balancer via the routing rules.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
 	if !s.IsXrayRunning() {
 		return errors.New("xray is not running")
+	}
+	if target != "" {
+		resolved, err := s.resolveOverrideTarget(target)
+		if err != nil {
+			return err
+		}
+		if resolved != "" {
+			target = resolved
+		}
 	}
 	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
 		return err
 	}
 	defer s.xrayAPI.Close()
 	return s.xrayAPI.SetBalancerTarget(tag, target)
+}
+
+// resolveOverrideTarget checks if target names a balancer and, if so,
+// returns the loopback outbound tag that routes to it through the
+// routing rules. Returns empty if target is already a concrete outbound.
+func (s *XrayService) resolveOverrideTarget(target string) (string, error) {
+	template, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil {
+		return "", err
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
+		return "", err
+	}
+	routing, _ := cfg["routing"].(map[string]any)
+	if routing == nil {
+		return "", nil
+	}
+	rules, _ := routing["rules"].([]any)
+	for _, r := range rules {
+		rule, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if rule["balancerTag"] != target {
+			continue
+		}
+		inboundTags, ok := rule["inboundTag"].([]any)
+		if !ok || len(inboundTags) == 0 {
+			continue
+		}
+		if lbTag, ok := inboundTags[0].(string); ok && strings.HasPrefix(lbTag, "_bl_") {
+			return lbTag, nil
+		}
+	}
+	return "", nil
 }
 
 // TestRoute asks the running core which outbound its router picks for the

@@ -1755,6 +1755,7 @@
         "tagPlaceholder": "tag balancer unik",
         "selector": "Selector",
         "fallback": "Fallback",
+        "cycleTooltip": "Siklus: {path} → (kembali ke {start})",
         "expected": "Diharapkan",
         "expectedPlaceholder": "jumlah node optimal",
         "maxRtt": "Maks. RTT",
@@ -1764,7 +1765,12 @@
         "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
         "costMatch": "Pola tag",
         "costValue": "Bobot",
-        "costRegexp": "Pencocokan ekspresi reguler"
+        "costRegexp": "Pencocokan ekspresi reguler",
+        "balancerDeleteInUse": "Tidak dapat menghapus load balancer ini — digunakan sebagai fallback untuk: {names}",
+        "balancerFallbackCycle": "Tidak dapat mengatur load balancer ini sebagai fallback — akan menciptakan dependensi siklik.",
+        "balancerFallbackInfo": "Lalu lintas akan di-routing melalui: Load Balancer → Loopback → Server → Load Balancer tujuan → Koneksi keluar. Ini menambahkan hop tambahan melalui server, yang dapat menyebabkan sedikit penundaan.",
+        "fallbackBalancerHint": "Pilih load balancer lain sebagai fallback",
+        "reservedPrefix": "Awalan _bl_ dicadangkan untuk objek loopback internal load balancer"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",

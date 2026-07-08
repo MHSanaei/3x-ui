@@ -45,6 +45,7 @@ import OutboundFormModal from './OutboundFormModal';
 import { propagateOutboundTagRename } from '../basics/helpers';
 import { planOutboundDeletion, applyOutboundDeletion } from '../reference-cleanup';
 import DeletionImpactList from '../DeletionImpactList';
+import { isBalancerLoopbackTag } from '../balancers/balancer-loopback';
 import type { XraySettingsValue, SetTemplate, OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
 
@@ -142,7 +143,13 @@ export default function OutboundsTab({
     [templateSettings?.outbounds],
   );
 
-  const rows = useMemo(() => outbounds.map((o, i) => ({ ...o, key: i })), [outbounds]);
+  const rows = useMemo(
+    () =>
+      outbounds
+        .map((o, i) => ({ ...o, key: i }))
+        .filter((o) => !isBalancerLoopbackTag(o.tag || '')),
+    [outbounds],
+  );
 
   const dialerProxyTags = useMemo(() => {
     const tags = new Set<string>();

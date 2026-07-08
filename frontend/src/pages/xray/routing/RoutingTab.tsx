@@ -14,6 +14,7 @@ import {
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import PromptModal from '@/components/feedback/PromptModal';
 import TextModal from '@/components/feedback/TextModal';
+import { isBalancerLoopbackTag } from '../balancers/balancer-loopback';
 import RoutingBasic from './RoutingBasic';
 import RouteTester from './RouteTester';
 import RuleFormModal from './RuleFormModal';
@@ -66,26 +67,31 @@ export default function RoutingTab({
 
   const rows: RuleRow[] = useMemo(
     () =>
-      rules.map((rule, idx) => {
-        const r: RuleRow = { key: idx };
-        r.enabled = rule.enabled !== false;
-        r.domain = arrJoin(rule.domain);
-        r.ip = arrJoin(rule.ip);
-        r.port = rule.port;
-        r.sourcePort = rule.sourcePort;
-        r.vlessRoute = rule.vlessRoute;
-        r.network = rule.network;
-        r.sourceIP = arrJoin(rule.sourceIP);
-        r.user = arrJoin(rule.user);
-        r.inboundTag = arrJoin(rule.inboundTag);
-        r.protocol = arrJoin(rule.protocol);
-        if (rule.attrs && typeof rule.attrs === 'object' && !Array.isArray(rule.attrs)) {
-          r.attrs = JSON.stringify(rule.attrs, null, 2);
-        }
-        r.outboundTag = rule.outboundTag;
-        r.balancerTag = rule.balancerTag;
-        return r;
-      }),
+      rules
+        .map((rule, idx) => {
+          const r: RuleRow = { key: idx };
+          r.enabled = rule.enabled !== false;
+          r.domain = arrJoin(rule.domain);
+          r.ip = arrJoin(rule.ip);
+          r.port = rule.port;
+          r.sourcePort = rule.sourcePort;
+          r.vlessRoute = rule.vlessRoute;
+          r.network = rule.network;
+          r.sourceIP = arrJoin(rule.sourceIP);
+          r.user = arrJoin(rule.user);
+          r.inboundTag = arrJoin(rule.inboundTag);
+          r.protocol = arrJoin(rule.protocol);
+          if (rule.attrs && typeof rule.attrs === 'object' && !Array.isArray(rule.attrs)) {
+            r.attrs = JSON.stringify(rule.attrs, null, 2);
+          }
+          r.outboundTag = rule.outboundTag;
+          r.balancerTag = rule.balancerTag;
+          return r;
+        })
+        .filter((r) => {
+          const inboundTags = (rules[r.key]?.inboundTag || []) as string[];
+          return !inboundTags.some(isBalancerLoopbackTag);
+        }),
     [rules],
   );
 
@@ -105,7 +111,7 @@ export default function RoutingTab({
     const seen = new Set<string>();
     const out: string[] = [];
     const push = (tag?: string) => {
-      if (!tag || seen.has(tag)) return;
+      if (!tag || seen.has(tag) || isBalancerLoopbackTag(tag)) return;
       seen.add(tag);
       out.push(tag);
     };
