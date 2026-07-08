@@ -62,6 +62,7 @@ func TestGetNodeTree_SurfacesTransitiveNodeNestedUnderParent(t *testing.T) {
 	}
 	if node2 == nil || node3 == nil {
 		t.Fatalf("expected Node2 + transitive Node3, got %d nodes", len(tree))
+		return
 	}
 	if node2.ParentGuid != selfGuid {
 		t.Errorf("Node2 parent = %q, want this panel's GUID %q", node2.ParentGuid, selfGuid)

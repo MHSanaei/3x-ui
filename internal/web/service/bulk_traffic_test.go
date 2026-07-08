@@ -139,6 +139,7 @@ func TestGetClientTrafficByEmailReadsClientsTable(t *testing.T) {
 	}
 	if tr == nil {
 		t.Fatalf("expected traffic, got nil")
+		return
 	}
 	if tr.UUID != "11111111-1111-1111-1111-111111111111" {
 		t.Fatalf("UUID not enriched from clients table, got %q", tr.UUID)
