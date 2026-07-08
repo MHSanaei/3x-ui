@@ -530,22 +530,21 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
-// validateFinalMaskRealityCombo rejects finalmask configured together with
-// REALITY security. finalmask wraps the connection before REALITY's handshake
-// ever sees it, and reality.Server() does an unchecked type assertion assuming
-// a raw *net.TCPConn — with finalmask in front, that assertion panics and takes
-// down the whole xray-core process on the very first connection. Upstream has
-// confirmed this will be documented as unsupported rather than made graceful
-// (https://github.com/XTLS/Xray-core/issues/6453), so the panel must not let
-// this combination be saved.
-func validateFinalMaskRealityCombo(streamSettings string) error {
-	if streamSettings == "" {
-		return nil
-	}
-	var stream map[string]any
-	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
-		return nil
-	}
+// finalMaskRealityTcpMasks returns the stream's finalmask.tcp masks when the
+// stream uses REALITY security, or nil otherwise. A non-empty result means
+// this stream carries the finalmask+REALITY combination that panics
+// Xray-core (see https://github.com/XTLS/Xray-core/issues/6453): finalmask
+// wraps the connection before REALITY's handshake ever sees it, and
+// reality.Server() does an unchecked type assertion assuming a raw
+// *net.TCPConn, which panics once finalmask is in front of it.
+//
+// Only finalmask.tcp matters here — TcpmaskManager (the thing that wraps the
+// listener ahead of REALITY's handshake, in xray-core's own
+// transport/internet/memory_settings.go) is only constructed when tcp masks
+// are present; a finalmask.udp-only config never touches the TCP accept path
+// REALITY runs on, so it doesn't reproduce this panic and shouldn't be
+// rejected.
+func finalMaskRealityTcpMasks(stream map[string]any) []any {
 	if stream["security"] != "reality" {
 		return nil
 	}
@@ -554,8 +553,22 @@ func validateFinalMaskRealityCombo(streamSettings string) error {
 		return nil
 	}
 	tcp, _ := finalmask["tcp"].([]any)
-	udp, _ := finalmask["udp"].([]any)
-	if len(tcp) == 0 && len(udp) == 0 {
+	return tcp
+}
+
+// validateFinalMaskRealityCombo rejects finalmask.tcp configured together
+// with REALITY security at save time. Upstream has confirmed this
+// combination will be documented as unsupported rather than made graceful,
+// so the panel must not let it be saved.
+func validateFinalMaskRealityCombo(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if len(finalMaskRealityTcpMasks(stream)) == 0 {
 		return nil
 	}
 	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
