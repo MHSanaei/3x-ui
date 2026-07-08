@@ -1,0 +1,51 @@
+---
+title: Reverse Proxy
+description: Put the 3x-ui panel and subscription behind Nginx or Caddy with Let's Encrypt TLS.
+icon: Waypoints
+---
+
+A reverse proxy lets you serve the panel and subscription on a clean domain with
+automatic HTTPS, and hide the real ports behind ports 80/443. Prefer to let the
+panel terminate TLS directly? Get a certificate with the
+[`x-ui` SSL menu](/docs/config/ssl-certificates) instead.
+
+## Generate a config
+
+<ReverseProxyGenerator />
+
+<Callout type="info">
+  The panel uses WebSockets for live updates, so the proxy must pass the
+  `Upgrade`/`Connection` headers (the Nginx output above already does). Caddy
+  handles WebSocket upgrades automatically.
+</Callout>
+
+## Nginx + certificate
+
+With Nginx, obtain a certificate with `certbot` (or `acme.sh`) and reference it
+in the server block:
+
+```bash title="certbot"
+certbot certonly --nginx -d panel.example.com
+```
+
+Reload Nginx after installing the certificate, and set up automatic renewal
+(`certbot renew` runs on a timer by default).
+
+## Caddy
+
+Caddy obtains and renews certificates for you — point a Caddyfile at the panel
+and it just works:
+
+```text title="Caddyfile"
+panel.example.com {
+    reverse_proxy 127.0.0.1:2053
+}
+```
+
+## Tips
+
+- Keep the panel's **web base path** even behind a proxy; defense in depth.
+- If you terminate TLS at the proxy, you may want `XUI_SKIP_HSTS=true` on the
+  panel — see the [environment variables reference](/docs/reference/env-vars).
+- Proxy the [subscription](/docs/config/subscription) server too, so its contents
+  are served over HTTPS.

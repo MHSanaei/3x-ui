@@ -16,6 +16,7 @@ export const DEFAULT_BURST_OBSERVATORY = Object.freeze({
     connectivity: 'http://connectivitycheck.platform.hicloud.com/generate_204',
     timeout: '5s',
     sampling: 2,
+    httpMethod: 'HEAD',
   },
 });
 
@@ -25,35 +26,55 @@ export function collectSelectors(list: BalancerObject[]): string[] {
   return [...out];
 }
 
+export function balancerRequiresBurstObservatory(b: BalancerObject): boolean {
+  const type = b.strategy?.type || 'random';
+  return type === 'leastLoad' || ((type === 'random' || type === 'roundRobin') && (b.fallbackTag ?? '').length > 0);
+}
+
+export function settingsRequireBurstObservatory(t: XraySettingsValue | null): boolean {
+  const balancers = (t?.routing?.balancers || []) as BalancerObject[];
+  return balancers.some(balancerRequiresBurstObservatory);
+}
+
 // syncObservatories keeps the (burst)observatory sections aligned with the
-// balancer strategies that actually require them. Observatories have no
-// runtime reload API in xray-core, so any change here forces a full process
-// restart — that's why random/roundRobin balancers, which work fine without
-// an observer, never CREATE one: a plain balancer add/edit then stays a
-// routing-only change and applies live through the core API. An already
-// existing burstObservatory is still kept in sync for them (alive-only
-// filtering keeps working for setups that had it), it's just never the
-// reason a new one appears.
+// balancer strategies that actually require them. Observatories have no runtime
+// reload API in xray-core, so creating OR removing one forces a full process
+// restart — that's why an observer-less balancer never gets one and stays a
+// live, routing-only change applied through the core API.
+//
+// xray-core binds the Observatory feature to a Random/RoundRobinStrategy only
+// when its fallbackTag is set (issue #5605): with a fallbackTag the strategy
+// calls RequireFeatures(Observatory) and the core aborts startup with "not all
+// dependencies are resolved" if none exists; without a fallbackTag it never even
+// consults an observatory. leastLoad needs the burst observer, while leastPing
+// can use any extension.Observatory result with Alive/Delay. When a burst
+// observer is required, keep all observer-backed balancers on burstObservatory
+// to avoid xray-core resolving the earlier regular observatory feature instead.
+//
+// So each observer lives exactly as long as something requires it, and is
+// dropped the moment nothing does — clearing the last fallbackTag (or deleting
+// the last leastLoad) removes the burst observer again. A no-fallback
+// Random/RoundRobin balancer never expands the observer either, because those
+// strategies do not consume observer data.
 export function syncObservatories(t: XraySettingsValue) {
   const balancers = (t.routing?.balancers || []) as BalancerObject[];
 
   const leastPings = balancers.filter((b) => b.strategy?.type === 'leastPing');
-  if (leastPings.length > 0) {
-    if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
-    (t.observatory as { subjectSelector: string[] }).subjectSelector = collectSelectors(leastPings);
-  } else {
+  const required = balancers.filter(balancerRequiresBurstObservatory);
+  if (required.length > 0) {
     delete t.observatory;
-  }
-
-  const required = balancers.filter((b) => b.strategy?.type === 'leastLoad');
-  const optional = balancers.filter((b) => {
-    const type = b.strategy?.type || 'random';
-    return type === 'random' || type === 'roundRobin';
-  });
-  if (required.length > 0 || (optional.length > 0 && t.burstObservatory)) {
     if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
-    (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([...required, ...optional]);
-  } else if (required.length === 0 && optional.length === 0) {
+    (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([
+      ...required,
+      ...leastPings,
+    ]);
+  } else {
     delete t.burstObservatory;
+    if (leastPings.length > 0) {
+      if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
+      (t.observatory as { subjectSelector: string[] }).subjectSelector = collectSelectors(leastPings);
+    } else {
+      delete t.observatory;
+    }
   }
 }

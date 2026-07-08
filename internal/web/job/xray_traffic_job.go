@@ -20,6 +20,14 @@ type XrayTrafficJob struct {
 	outboundService outbound.OutboundService
 }
 
+// clientStatsSnapshotMaxClients caps how many client_traffics rows the job
+// ships as a full websocket snapshot per poll (same spirit as the
+// controller's broadcastInboundsUpdateClientLimit). Above it, a snapshot
+// would blow past the hub's payload cap and be dropped wholesale, so the job
+// broadcasts only this poll's active rows and the UI leans on its 5s REST
+// refetch for the rest.
+const clientStatsSnapshotMaxClients = 5000
+
 // NewXrayTrafficJob creates a new traffic collection job instance.
 func NewXrayTrafficJob() *XrayTrafficJob {
 	return new(XrayTrafficJob)
@@ -50,8 +58,8 @@ func (j *XrayTrafficJob) Run() {
 			logger.Warning("get RestartXrayOnClientDisable failed:", settingErr)
 		}
 		if restartOnDisable {
-			if err := j.xrayService.RestartXray(true); err != nil {
-				logger.Warning("restart xray after disabling clients failed:", err)
+			if err := j.xrayService.RestartXray(false); err != nil {
+				logger.Warning("reconcile xray after disabling clients failed:", err)
 				j.xrayService.SetToNeedRestart()
 			}
 		}
@@ -116,9 +124,41 @@ func (j *XrayTrafficJob) Run() {
 		return
 	}
 
-	lastOnlineMap, err := j.inboundService.GetClientsLastOnline()
-	if err != nil {
-		logger.Warning("get clients last online failed:", err)
+	// Small installs broadcast the full snapshot (see GetAllClientTraffics for
+	// why deltas alone left UI rows stale). Above the threshold the snapshot
+	// would be dropped by the hub's payload cap anyway, so ship this poll's
+	// active rows instead and scope last-online to them; the initial full map
+	// still arrives over REST.
+	snapshot := true
+	if total, countErr := j.inboundService.CountClientTraffics(); countErr != nil {
+		logger.Warning("count client traffics for websocket failed:", countErr)
+	} else if total > clientStatsSnapshotMaxClients {
+		snapshot = false
+	}
+
+	var stats []*xray.ClientTraffic
+	var statsErr error
+	if snapshot {
+		stats, statsErr = j.inboundService.GetAllClientTraffics()
+	} else {
+		stats, statsErr = j.inboundService.GetActiveClientTraffics(activeEmails)
+	}
+	if statsErr != nil {
+		logger.Warning("get client traffics for websocket failed:", statsErr)
+	}
+
+	var lastOnlineMap map[string]int64
+	if snapshot {
+		if lastOnlineMap, err = j.inboundService.GetClientsLastOnline(); err != nil {
+			logger.Warning("get clients last online failed:", err)
+		}
+	} else {
+		lastOnlineMap = make(map[string]int64, len(stats))
+		for _, ct := range stats {
+			if ct != nil {
+				lastOnlineMap[ct.Email] = ct.LastOnline
+			}
+		}
 	}
 	if lastOnlineMap == nil {
 		lastOnlineMap = make(map[string]int64)
@@ -136,10 +176,8 @@ func (j *XrayTrafficJob) Run() {
 		"lastOnlineMap":  lastOnlineMap,
 	})
 
-	clientStatsPayload := map[string]any{}
-	if stats, err := j.inboundService.GetAllClientTraffics(); err != nil {
-		logger.Warning("get all client traffics for websocket failed:", err)
-	} else if len(stats) > 0 {
+	clientStatsPayload := map[string]any{"snapshot": snapshot}
+	if len(stats) > 0 {
 		clientStatsPayload["clients"] = stats
 	}
 	if inboundSummary, err := j.inboundService.GetInboundsTrafficSummary(); err != nil {
@@ -147,7 +185,7 @@ func (j *XrayTrafficJob) Run() {
 	} else if len(inboundSummary) > 0 {
 		clientStatsPayload["inbounds"] = inboundSummary
 	}
-	if len(clientStatsPayload) > 0 {
+	if len(clientStatsPayload) > 1 {
 		websocket.BroadcastClientStats(clientStatsPayload)
 	}
 
@@ -178,7 +216,7 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 	defer fasthttp.ReleaseRequest(request)
 	request.Header.SetMethod("POST")
 	request.Header.SetContentType("application/json; charset=UTF-8")
-	request.SetBody([]byte(requestBody))
+	request.SetBody(requestBody)
 	request.SetRequestURI(informURL)
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)

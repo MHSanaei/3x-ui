@@ -60,7 +60,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/outbound-subs/:id/move", a.moveOutboundSub)
 	g.POST("/outbound-subs/:id", a.updateOutboundSub)
 	g.DELETE("/outbound-subs/:id", a.deleteOutboundSub)
-	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // axios-friendly alias
+	g.POST("/outbound-subs/:id/del", a.deleteOutboundSub) // POST alias for clients that can't send DELETE
 	g.POST("/outbound-subs/parse", a.parseOutboundSubURL) // preview without saving
 }
 
@@ -258,8 +258,8 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 
 // testOutbound tests an outbound configuration and returns the delay/response time.
 // Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
-// Optional form "mode": "tcp" for a fast dial-only probe (parallel-safe),
-// anything else (default) for a full HTTP probe through a temp xray instance.
+// Optional form "mode": "tcp" for a fast dial-only probe, "real" for the cold
+// full-request delay, anything else (default) for a full HTTP probe through a temp xray instance.
 func (a *XraySettingController) testOutbound(c *gin.Context) {
 	outboundJSON := c.PostForm("outbound")
 	allOutboundsJSON := c.PostForm("allOutbounds")
@@ -291,8 +291,8 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 // temp xray instance and returns an array of results in input order.
 // Form "outbounds": JSON array of outbound configs (required).
 // Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
-// Optional form "mode": "tcp" for fast dial-only probes, anything else
-// (default) for real HTTP requests routed through each outbound.
+// Optional form "mode": "tcp" for fast dial-only probes, "real" for the cold
+// full-request delay, anything else (default) for real HTTP requests routed through each outbound.
 func (a *XraySettingController) testOutbounds(c *gin.Context) {
 	outboundsJSON := c.PostForm("outbounds")
 	allOutboundsJSON := c.PostForm("allOutbounds")

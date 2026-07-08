@@ -126,9 +126,9 @@ export default function GroupsPage() {
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
-  const bulkResetMut = useMutation({
-    mutationFn: (body: { emails: string[] }) =>
-      HttpUtil.post('/panel/api/clients/bulkResetTraffic', body, JSON_HEADERS),
+  const groupResetMut = useMutation({
+    mutationFn: (body: { name: string }) =>
+      HttpUtil.post('/panel/api/clients/groups/resetTraffic', body, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidate(); },
   });
 
@@ -321,17 +321,14 @@ export default function GroupsPage() {
     }
     modal.confirm({
       title: t('pages.groups.resetConfirmTitle', { name: g.name }),
-      content: t('pages.groups.resetConfirmContent', { count: g.clientCount }),
+      content: t('pages.groups.resetConfirmContent'),
       okText: t('reset'),
       okType: 'danger',
       cancelText: t('cancel'),
       onOk: async () => {
-        const emails = await fetchEmailsForGroup(g.name);
-        if (emails.length === 0) return;
-        const msg = await bulkResetMut.mutateAsync({ emails });
+        const msg = await groupResetMut.mutateAsync({ name: g.name });
         if (msg?.success) {
-          const affected = (msg.obj as { affected?: number } | undefined)?.affected ?? emails.length;
-          messageApi.success(t('pages.groups.resetSuccess', { count: affected }));
+          messageApi.success(t('pages.groups.resetSuccess', { name: g.name }));
         }
       },
     });
@@ -407,10 +404,10 @@ export default function GroupsPage() {
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
+            <Button aria-label={t('more')} size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
           </Dropdown>
           <Tooltip title={t('pages.groups.rename')}>
-            <Button size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
+            <Button aria-label={t('pages.groups.rename')} size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
           </Tooltip>
         </Space>
       ),
@@ -525,7 +522,7 @@ export default function GroupsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                          <Button aria-label={t('pages.groups.addGroup')} type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                             {!isMobile && t('pages.groups.addGroup')}
                           </Button>
                         </div>

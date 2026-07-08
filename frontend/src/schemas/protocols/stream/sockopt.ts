@@ -33,7 +33,7 @@ export const AddressPortStrategySchema = z.enum([
 export type AddressPortStrategy = z.infer<typeof AddressPortStrategySchema>;
 
 export const HappyEyeballsSchema = z.object({
-  tryDelayMs: z.number().int().min(0).default(0),
+  tryDelayMs: z.number().int().min(0).default(250),
   prioritizeIPv6: z.boolean().default(false),
   interleave: z.number().int().min(1).default(1),
   maxConcurrentTry: z.number().int().min(0).default(4),

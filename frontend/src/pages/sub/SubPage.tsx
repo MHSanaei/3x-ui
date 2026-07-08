@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -31,8 +32,9 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
-import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import { isPostQuantumLink, wireguardConfigFromLink } from '@/lib/xray/inbound-link';
 import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
+import ConfigBlock from '@/components/clients/ConfigBlock';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import SubUsageSummary from './SubUsageSummary';
@@ -60,6 +62,7 @@ const links: string[] = Array.isArray(subData.links) ? subData.links : [];
 const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
 const subEmail = [...new Set(linkEmails.filter(Boolean))].join(', ');
 const datepicker = subData.datepicker || 'gregorian';
+const announce = subData.announce || '';
 
 const isUnlimited = totalByte <= 0 && expireMs === 0;
 const isActive = (() => {
@@ -282,6 +285,9 @@ export default function SubPage() {
           <Row justify="center">
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
+                {announce && (
+                  <Alert type="info" showIcon message={announce} style={{ marginBottom: 16 }} />
+                )}
                 <Descriptions
                   bordered
                   column={1}
@@ -423,8 +429,10 @@ export default function SubPage() {
                         const rowTitle = parts?.remark || fallback;
                         const qrLabel = parts?.remark || rowTitle;
                         const canQr = !isPostQuantumLink(link);
+                        const isWireguardLink = link.startsWith('wireguard://') || link.startsWith('wg://');
                         return (
-                          <div key={link} className="sub-link-row">
+                          <Fragment key={link}>
+                          <div className="sub-link-row">
                             {parts
                               ? <LinkTags parts={parts} />
                               : <Tag className="sub-link-tag">LINK</Tag>}
@@ -468,6 +476,16 @@ export default function SubPage() {
                               )}
                             </div>
                           </div>
+                          {isWireguardLink && (
+                            <ConfigBlock
+                              label={t('pages.clients.wireguardConfig')}
+                              text={wireguardConfigFromLink(link, rowTitle)}
+                              fileName={`${rowTitle || 'peer'}.conf`}
+                              qrRemark={rowTitle}
+                              tagColor="cyan"
+                            />
+                          )}
+                          </Fragment>
                         );
                       })}
                     </div>

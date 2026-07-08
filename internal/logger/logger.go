@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/op/go-logging"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -29,7 +30,9 @@ const (
 )
 
 var (
-	logger     *logging.Logger
+	// Initialized to a usable default so logging never nil-derefs before InitLogger
+	// runs — the "migrate" and "setting" CLI subcommands log without calling it.
+	logger     = logging.MustGetLogger("x-ui")
 	fileRotate *lumberjack.Logger // nil when file backend disabled
 
 	// logBuffer maintains recent log entries in memory for web UI retrieval;

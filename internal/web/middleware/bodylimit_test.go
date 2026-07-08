@@ -50,7 +50,7 @@ func TestMaxBodyBytes(t *testing.T) {
 
 func TestMaxBodyBytesSkipSuffix(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	const limit = 16
+	const limit = 10 << 20
 
 	r := gin.New()
 	r.Use(MaxBodyBytes(limit, "/server/importDB"))
@@ -61,20 +61,22 @@ func TestMaxBodyBytesSkipSuffix(t *testing.T) {
 		}
 		c.String(http.StatusOK, "ok")
 	}
-	r.POST("/server/importDB", read)
+	r.POST("/prefix/panel/api/server/importDB", read)
+	r.POST("/prefix/panel/api/server/importDB/other", read)
 	r.POST("/x", read)
 
-	// Exempt route reads an over-limit body without error.
+	large := bytes.Repeat([]byte("x"), limit+1)
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/server/importDB", bytes.NewReader(make([]byte, limit*4))))
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/prefix/panel/api/server/importDB", bytes.NewReader(large)))
 	if w.Code != http.StatusOK {
-		t.Errorf("exempt route should pass through over-limit body, got %d", w.Code)
+		t.Fatalf("restore route should accept an over-limit body, got %d", w.Code)
 	}
 
-	// Non-exempt route is still capped.
-	w = httptest.NewRecorder()
-	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/x", bytes.NewReader(make([]byte, limit*4))))
-	if w.Code == http.StatusOK {
-		t.Errorf("non-exempt over-limit POST should not succeed, got 200")
+	for _, path := range []string{"/x", "/prefix/panel/api/server/importDB/other"} {
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(large)))
+		if w.Code == http.StatusOK {
+			t.Fatalf("non-exempt path %q accepted an over-limit body", path)
+		}
 	}
 }

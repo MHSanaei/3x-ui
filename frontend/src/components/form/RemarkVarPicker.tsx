@@ -2,6 +2,7 @@ import { Tag, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { REMARK_VARIABLES, REMARK_VAR_GROUPS, wrapToken } from '@/lib/remark/remarkVariables';
+import { activateOnKey } from '@/utils/a11y';
 
 interface RemarkVarPickerProps {
   /** Called with the bare token (e.g. "EMAIL") when a chip is clicked. */
@@ -28,7 +29,10 @@ export default function RemarkVarPicker({ onPick }: RemarkVarPickerProps) {
             {REMARK_VARIABLES.filter((v) => v.group === group).map((v) => (
               <Tooltip key={v.token} title={t(`pages.hosts.remarkVars.desc${v.token}`)}>
                 <Tag
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onPick(v.token)}
+                  onKeyDown={activateOnKey(() => onPick(v.token))}
                   style={{ cursor: 'pointer', margin: 0, fontFamily: 'monospace' }}
                 >
                   {wrapToken(v.token)}

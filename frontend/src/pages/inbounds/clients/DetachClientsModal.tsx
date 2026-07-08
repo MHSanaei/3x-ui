@@ -152,6 +152,7 @@ export default function DetachClientsModal({
         <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
           <Input.Search
             allowClear
+            aria-label={t('search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('pages.inbounds.attachClientsSearchPlaceholder')}

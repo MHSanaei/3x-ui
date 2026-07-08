@@ -58,6 +58,7 @@ export function useRoutingColumns({
             <HolderOutlined
               className="drag-handle"
               title={t('pages.xray.routing.dragToReorder')}
+              aria-hidden="true"
               onPointerDown={(ev: React.PointerEvent) => onHandlePointerDown(index, ev)}
             />
             <span className="row-index">{index + 1}</span>
@@ -72,7 +73,7 @@ export function useRoutingColumns({
         render: (_v, _r, index) => (
           <div className={!isMobile ? 'action-buttons' : ''} style={{ justifyContent: 'center', margin: 0 }}>
             {!isMobile && (
-              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+              <Button shape="circle" size="small" icon={<EditOutlined />} aria-label={t('edit')} onClick={() => openEdit(index)} />
             )}
             <Dropdown
               trigger={['click']}
@@ -81,10 +82,10 @@ export function useRoutingColumns({
                   ...(isMobile
                     ? [{ key: 'edit', label: <><EditOutlined /> {t('edit')}</>, onClick: () => openEdit(index) }]
                     : []),
-                  { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
+                  { key: 'up', label: <><ArrowUpOutlined /> {t('pages.inbounds.form.moveUp')}</>, disabled: index === 0, onClick: () => moveUp(index) },
                   {
                     key: 'down',
-                    label: <ArrowDownOutlined />,
+                    label: <><ArrowDownOutlined /> {t('pages.inbounds.form.moveDown')}</>,
                     disabled: index === rowsLength - 1,
                     onClick: () => moveDown(index),
                   },
@@ -92,7 +93,7 @@ export function useRoutingColumns({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button shape="circle" size="small" icon={<MoreOutlined />} aria-label={t('more')} />
             </Dropdown>
           </div>
         ),
@@ -133,7 +134,7 @@ export function useRoutingColumns({
         key: 'network',
         render: (_v, record) => (
           <div className="criterion-flow">
-            {record.network && <CriterionRow label="L4" value={record.network} title={`L4: ${record.network}`} />}
+            {record.network && <CriterionRow label="L4" value={record.network.toUpperCase()} title={`L4: ${record.network.toUpperCase()}`} />}
             {record.protocol && <CriterionRow label="Protocol" value={record.protocol} title={`Protocol: ${record.protocol}`} />}
             {record.attrs && <CriterionRow label="Attrs" value={record.attrs} title={`Attrs: ${record.attrs}`} />}
             {!record.network && !record.protocol && !record.attrs && <span className="criterion-empty">—</span>}
@@ -184,7 +185,7 @@ export function useRoutingColumns({
         render: (_v, record) =>
           record.outboundTag ? (
             <div className="target-row">
-              <ExportOutlined className="target-icon" />
+              <ExportOutlined className="target-icon" aria-hidden="true" />
               <Tag color="green">{record.outboundTag}</Tag>
             </div>
           ) : (
@@ -200,7 +201,7 @@ export function useRoutingColumns({
         render: (_v, record) =>
           record.balancerTag ? (
             <div className="target-row">
-              <ClusterOutlined className="target-icon" />
+              <ClusterOutlined className="target-icon" aria-hidden="true" />
               <Tag color="purple">{record.balancerTag}</Tag>
             </div>
           ) : (

@@ -1,0 +1,511 @@
+---
+title: 客户端
+description: >-
+  将客户端作为一等实体进行管理，可将其挂载到一个或多个入站。单条客户端记录会驱动其所属
+  每个入站中的 settings.clients 条目。相关端点位于 /panel/api/clients 之下。
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        列出每个客户端及其挂载的入站 ID 和流量记录。reverse 字段若已设置，将以嵌套 JSON
+        对象的形式返回（写入时仍接受旧版的 JSON 编码字符串形式）。
+      url: >-
+        #list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
+    - depth: 2
+      title: >-
+        在服务端对客户端进行筛选、排序和分页。每一项都是精简记录（不含
+        uuid/password/auth/flow/security/reverse/tgId），因此客户端页面只需几 KB
+        即可承载约 25 行，而无需返回整张表。响应中还包含一个基于完整数据库行集计算的汇总，
+        这样在用户分页或筛选时仪表盘计数器仍保持稳定。每页上限为 200；可调用 /get/:email
+        获取某个客户端用于编辑/信息弹窗的完整载荷。
+      url: >-
+        #filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
+    - depth: 2
+      title: >-
+        按 email 获取单个客户端，包括它所挂载的入站 ID 和外部配置 ID。
+      url: >-
+        #fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+    - depth: 2
+      title: >-
+        在一次调用中创建一个新客户端并将其挂载到一个或多个入站。请求体为 JSON。各协议的密钥
+        （VLESS/VMess 的 UUID、Trojan/Shadowsocks 的 password、Hysteria 的 auth）在
+        省略时由服务端生成，因此调用方只需发送通用字段。
+      url: >-
+        #create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+    - depth: 2
+      title: >-
+        按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
+        请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+      url: >-
+        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+    - depth: 2
+      title: >-
+        按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
+        keepTraffic=1。
+      url: >-
+        #delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+    - depth: 2
+      title: >-
+        将现有客户端挂载到一个或多个额外的入站。请求体为 JSON。
+      url: >-
+        #attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
+    - depth: 2
+      title: 在不删除客户端的前提下，将其从一个或多个入站上分离。
+      url: '#detach-a-client-from-one-or-more-inbounds-without-deleting-the-client'
+    - depth: 2
+      title: >-
+        替换某客户端的外部链接（在其订阅中呈现的按客户端分享链接和远程订阅 URL）。发送完整
+        集合；服务端会替换所有记录。
+      url: >-
+        #replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+    - depth: 2
+      title: >-
+        全局重置每个客户端的上行/下行计数器。配额和到期时间不受影响。若有任何计数器实际发生
+        变动，则触发一次 Xray 重启。
+      url: >-
+        #reset-the-updown-counters-for-every-client-globally-quotas-and-expiry-are-not-affected-triggers-an-xray-restart-if-any-counter-actually-moved
+    - depth: 2
+      title: >-
+        删除所有流量配额已耗尽（在禁用重置时，used >= total）或已过期的客户端。返回删除
+        数量，并在任一客户端位于运行中的入站时触发一次 Xray 重启。
+      url: >-
+        #delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
+    - depth: 2
+      title: >-
+        删除所有未挂载到任何入站的客户端，连同其流量记录、IP 日志和外部链接一并删除。适用于
+        清理在其入站被移除后处于未挂载状态的客户端。返回删除数量。无法撤销。
+      url: >-
+        #delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+    - depth: 2
+      title: >-
+        以 {client, inboundIds} 数组的形式返回每个客户端——与 /bulkCreate 和 /import
+        接受的形态相同——因此该载荷可原样回传至 /import。未挂载任何入站的客户端也会包含在内，
+        其 inboundIds 列表为空。UI 会在 CodeMirror 查看器中展示（复制/下载）；程序化调用方
+        则可在 obj 中获取该数组。
+      url: >-
+        #return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+    - depth: 2
+      title: >-
+        从 JSON 请求体 { "data": "<json>" } 导入客户端，其中 data 是由 /export 生成的
+        字符串编码数组（[{client, inboundIds}]）。带有 inboundIds 的项会被创建并挂载到
+        这些入站；inboundIds 列表为空的项会作为未挂载的客户端记录还原。已存在的 email
+        绝不会被覆盖——它们会在 skipped 中返回。若任一目标入站处于运行中，则在最后触发一次
+        Xray 重启。
+      url: >-
+        #import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        在一次调用中为多个客户端调整到期时间和/或流量配额。addDays/addBytes 可为负值。对于
+        到期无限（expiryTime=0）或流量无限（totalGB=0）的客户端，会跳过相应字段——批量延期
+        绝不会将无限转为有限。可选的 flow 指令会为每个客户端设置 XTLS flow："none" 将其清除，
+        "xtls-rprx-vision"/"xtls-rprx-vision-udp443" 在入站支持时将其设置（省略或传 "" 则
+        保持不变）。返回调整数量和按 email 的跳过原因。
+      url: >-
+        #shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        在一次调用中启用多个客户端。email 会按入站分组，并对每个入站执行一次读-改-写；运行中
+        的 Xray（本地或远程节点）会被更新以添加每个用户。请注意，启用一个配额已耗尽或已过期的
+        客户端只会翻转标志——流量循环会在下一个周期再次将其禁用。返回变更数量和按 email 的
+        跳过原因。
+      url: >-
+        #enable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-add-each-user-note-that-enabling-a-client-whose-quota-is-exhausted-or-whose-expiry-has-passed-only-flips-the-flag--the-traffic-loop-will-disable-it-again-on-the-next-tick-returns-the-changed-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        在一次调用中禁用多个客户端。email 会按入站分组，并对每个入站执行一次读-改-写；运行中
+        的 Xray（本地或远程节点）会被更新以移除每个用户。返回变更数量和按 email 的跳过原因。
+      url: >-
+        #disable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-remove-each-user-returns-the-changed-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        在一次调用中删除多个客户端。服务端会顺序处理该列表，使每次删除都能看到上一次删除已
+        提交的状态——避免了面板侧按 email 扇出时存在的竞态。传入 keepTraffic=true 可在删除
+        后保留 xray_client_traffic 记录。
+      url: >-
+        #delete-many-clients-in-one-call-the-server-processes-the-list-sequentially-so-each-delete-sees-the-committed-state-of-the-previous-one--avoids-the-race-the-per-email-fan-out-had-on-the-panel-side-pass-keeptraffictrue-to-retain-the-xray_client_traffic-rows-after-deletion
+    - depth: 2
+      title: >-
+        在一次调用中创建多个客户端。请求体是一个 {client, inboundIds} 载荷的 JSON 数组
+        ——与 /add 接受的形态相同。各项按顺序处理；对于失败的项（例如 email 重复）会返回
+        按 email 的跳过原因。若任一入站处于运行中，则在最后触发一次 Xray 重启。
+      url: >-
+        #create-many-clients-in-one-call-body-is-a-json-array-of-client-inboundids-payloads--the-same-shape-add-accepts-items-are-processed-sequentially-per-email-skip-reasons-are-returned-for-items-that-fail-eg-duplicate-email-triggers-a-single-xray-restart-at-the-end-if-any-inbound-was-running
+    - depth: 2
+      title: >-
+        在一次调用中将多个客户端加入某个分组。会更新 clients.group_name，并在单个事务中修补
+        每个所属入站的 settings JSON 内匹配的客户端条目。若该分组名尚不存在（无论是在
+        client_groups 中还是作为派生标签），则会将其自动创建为持久化分组。要清除分组标签，
+        请改用 /groups/bulkRemove。
+      url: >-
+        #add-many-clients-to-a-group-in-one-call-updates-clientsgroup_name-and-patches-the-matching-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-if-the-group-name-does-not-yet-exist-in-client_groups-or-as-a-derived-label-it-is-auto-created-as-a-persistent-group-to-clear-the-group-label-use-groupsbulkremove-instead
+    - depth: 2
+      title: >-
+        在一次调用中清除多个客户端的分组标签。与 /groups/bulkAdd 相反。客户端本身会保留——
+        仅从 clients.group_name 以及每个所属入站的 settings JSON 中清除分组标签。若某分组的
+        全部成员都被移除，该分组将变为空。
+      url: >-
+        #clear-the-group-label-on-many-clients-in-one-call-inverse-of-groupsbulkadd-clients-themselves-are-kept--only-the-group-label-is-cleared-from-clientsgroup_name-and-from-each-owning-inbounds-settings-json-groups-become-empty-if-all-their-members-are-removed
+    - depth: 2
+      title: >-
+        在一次调用中将多个现有客户端挂载到多个入站。每个客户端都保留其身份
+        （email/UUID/password/subId）以及共享的流量记录；所有客户端会在单次 AddInboundClient
+        调用中被添加到一个目标入站。已存在于目标上的客户端会在 skipped 中报告。返回按 email 的
+        attached/skipped/errors 列表，并在任一目标入站处于运行中时触发一次 Xray 重启。
+      url: >-
+        #attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        bulkAttach 的镜像操作：在一次调用中将多个现有客户端从多个入站上分离。对于每个 email，
+        会将该客户端当前的入站集合与请求的集合取交集，并仅从这些入站上分离；客户端当前未挂载的
+        (email, inbound) 组合会被静默地视为空操作。未挂载到任一请求入站的 email 会在 skipped
+        中报告。即使客户端记录因此变为孤立，也会被保留——如需完全移除请使用 bulkDel。返回按
+        email 的 detached/skipped/errors 列表，并在任一目标入站处于运行中时触发一次 Xray
+        重启。
+      url: >-
+        #mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        在一次调用中将多个客户端的上行/下行计数器清零。循环执行单个重置流程，使每个客户端在其
+        挂载的各入站上被重新启用，并推送到 Xray/远程节点。返回成功重置的客户端数量。
+      url: >-
+        #zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients
+    - depth: 2
+      title: >-
+        列出所有客户端分组及其成员数量。将持久化分组（client_groups 中的记录，包括空占位符）
+        与当前在客户端上设置的去重后的 group_name 值合并。按字母顺序排序（不区分大小写）。
+      url: >-
+        #list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+    - depth: 2
+      title: >-
+        仅返回当前属于指定分组的客户端 email 列表。适用于将单个批量操作扇出到整个分组，而无需
+        往返获取完整的客户端列表。
+      url: >-
+        #return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
+    - depth: 2
+      title: >-
+        创建一个新的空（占位）分组。即使尚未向其添加任何客户端，该分组也会在客户端表单和筛选
+        抽屉中变为可选。若已存在同名分组，则报错。
+      url: >-
+        #create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+    - depth: 2
+      title: >-
+        重命名分组。新名称会应用到 client_groups 记录，并在单个事务中传播到每个匹配的客户端
+        （包括 clients.group_name 以及每个所属入站的 settings JSON 内的客户端条目）。返回
+        标签被更新的客户端数量。
+      url: >-
+        #rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+    - depth: 2
+      title: >-
+        移除分组。删除 client_groups 记录，并从每个匹配的客户端清除分组标签（包括
+        clients.group_name 以及入站 settings JSON）。客户端本身不会被删除——如需删除请先按
+        分组筛选后再使用 /bulkDel。返回标签被清除的客户端数量。
+      url: >-
+        #remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared
+    - depth: 2
+      title: >-
+        将单个客户端的上行/下行计数器清零。会在每个挂载的入站上重新启用该客户端，并将变更推送
+        到 Xray（或远程节点），使流量耗尽的用户能够立即重新连接。
+      url: >-
+        #zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately
+    - depth: 2
+      title: >-
+        手动调整某个客户端的上传 + 下载计数器。适用于从外部计费系统迁移的场景。
+      url: >-
+        #manually-adjust-a-clients-upload--download-counters-useful-for-migrations-from-external-accounting-systems
+    - depth: 2
+      title: >-
+        列出曾使用指定客户端凭据连接过的来源 IP。返回一个 "ip (timestamp)" 字符串数组。
+      url: >-
+        #list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
+    - depth: 2
+      title: 重置某个客户端已记录的 IP 列表。
+      url: '#reset-the-recorded-ip-list-for-a-client'
+    - depth: 2
+      title: >-
+        列出当前已连接的客户端 email（在心跳窗口内最近一次出现过），并跨所有节点去重。
+      url: >-
+        #list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
+    - depth: 2
+      title: >-
+        按实际承载每个客户端的节点的 panelGuid 分组的在线客户端 email。本地面板使用自身的
+        GUID；链路中（任意深度）的每个节点使用其自身的 GUID。让入站页面能将在线状态归因到
+        真实节点，而非它所经由的中间节点。
+      url: >-
+        #online-client-emails-grouped-by-the-panelguid-of-the-node-that-physically-hosts-each-client-the-local-panel-uses-its-own-guid-each-node-at-any-depth-in-a-chain-uses-its-guid-lets-the-inbounds-page-attribute-online-status-to-the-real-node-instead-of-the-intermediate-one-it-syncs-through
+    - depth: 2
+      title: >-
+        按观测到这些 IP 的节点的 panelGuid 分组的按客户端来源 IP。让中央面板能使用每个节点
+        所见的真实访客 IP 来归因并执行按客户端的 IP 限制，而非它所经由的中间面板的地址。
+      url: >-
+        #per-client-source-ips-grouped-by-the-panelguid-of-the-node-that-observed-them-lets-the-central-panel-attribute-and-enforce-per-client-ip-limits-using-the-real-visitor-ips-each-node-sees-instead-of-the-address-of-the-intermediate-panel-it-syncs-through
+    - depth: 2
+      title: >-
+        在心跳窗口内承载过流量的入站标签，按承载节点的 panelGuid 分组。与 onlinesByGuid 配合，
+        使入站页面只在多入站客户端实际使用过的入站上将其标记为在线。不报告按入站活动的节点
+        将被省略。
+      url: >-
+        #inbound-tags-that-carried-traffic-within-the-heartbeat-window-grouped-by-the-hosting-nodes-panelguid-pairs-with-onlinesbyguid-so-the-inbounds-page-only-marks-a-multi-inbound-client-online-on-the-inbounds-it-actually-used-nodes-that-do-not-report-per-inbound-activity-are-absent
+    - depth: 2
+      title: 客户端 email → 最近一次出现的 unix 时间戳的映射。
+      url: '#map-of-client-email--last-seen-unix-timestamp'
+    - depth: 2
+      title: 按 email 标识的客户端的流量计数器。
+      url: '#traffic-counters-for-a-client-identified-by-email'
+    - depth: 2
+      title: >-
+        返回与该订阅 ID 匹配的客户端的每个协议 URL（vless://、vmess://、trojan://、ss://、
+        hysteria://、hy2://）。结果集与 /sub/<subId> 相同，但以 JSON 数组形式返回——不含
+        base64。当某入站设置了 streamSettings.externalProxy 时，每个外部代理会发出一条 URL。
+        当该 subId 没有已启用的客户端时返回空数组。
+      url: >-
+        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+    - depth: 2
+      title: >-
+        返回单个客户端在所有挂载入站上的每个 URL——与面板 UI 中“复制 URL”按钮所复制的字符串
+        相同。支持的协议：vmess、vless、trojan、shadowsocks、hysteria。若设置了
+        streamSettings.externalProxy，则每个外部代理返回一条 URL。没有 URL 形式的协议
+        （socks、http、mixed、wireguard、dokodemo、tunnel）不产生任何内容。
+      url: >-
+        #return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+  structuredData:
+    headings:
+      - content: >-
+          列出每个客户端及其挂载的入站 ID 和流量记录。reverse 字段若已设置，将以嵌套 JSON
+          对象的形式返回（写入时仍接受旧版的 JSON 编码字符串形式）。
+        id: >-
+          list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
+      - content: >-
+          在服务端对客户端进行筛选、排序和分页。每一项都是精简记录（不含
+          uuid/password/auth/flow/security/reverse/tgId），因此客户端页面只需几 KB
+          即可承载约 25 行，而无需返回整张表。响应中还包含一个基于完整数据库行集计算的汇总，
+          这样在用户分页或筛选时仪表盘计数器仍保持稳定。每页上限为 200；可调用 /get/:email
+          获取某个客户端用于编辑/信息弹窗的完整载荷。
+        id: >-
+          filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
+      - content: >-
+          按 email 获取单个客户端，包括它所挂载的入站 ID 和外部配置 ID。
+        id: >-
+          fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+      - content: >-
+          在一次调用中创建一个新客户端并将其挂载到一个或多个入站。请求体为 JSON。各协议的密钥
+          （VLESS/VMess 的 UUID、Trojan/Shadowsocks 的 password、Hysteria 的 auth）在
+          省略时由服务端生成，因此调用方只需发送通用字段。
+        id: >-
+          create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: >-
+          按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
+          请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+        id: >-
+          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+      - content: >-
+          按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
+          keepTraffic=1。
+        id: >-
+          delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+      - content: >-
+          将现有客户端挂载到一个或多个额外的入站。请求体为 JSON。
+        id: >-
+          attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
+      - content: 在不删除客户端的前提下，将其从一个或多个入站上分离。
+        id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
+      - content: >-
+          替换某客户端的外部链接（在其订阅中呈现的按客户端分享链接和远程订阅 URL）。发送完整
+          集合；服务端会替换所有记录。
+        id: >-
+          replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+      - content: >-
+          全局重置每个客户端的上行/下行计数器。配额和到期时间不受影响。若有任何计数器实际发生
+          变动，则触发一次 Xray 重启。
+        id: >-
+          reset-the-updown-counters-for-every-client-globally-quotas-and-expiry-are-not-affected-triggers-an-xray-restart-if-any-counter-actually-moved
+      - content: >-
+          删除所有流量配额已耗尽（在禁用重置时，used >= total）或已过期的客户端。返回删除
+          数量，并在任一客户端位于运行中的入站时触发一次 Xray 重启。
+        id: >-
+          delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
+      - content: >-
+          删除所有未挂载到任何入站的客户端，连同其流量记录、IP 日志和外部链接一并删除。适用于
+          清理在其入站被移除后处于未挂载状态的客户端。返回删除数量。无法撤销。
+        id: >-
+          delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+      - content: >-
+          以 {client, inboundIds} 数组的形式返回每个客户端——与 /bulkCreate 和 /import
+          接受的形态相同——因此该载荷可原样回传至 /import。未挂载任何入站的客户端也会包含在内，
+          其 inboundIds 列表为空。UI 会在 CodeMirror 查看器中展示（复制/下载）；程序化调用方
+          则可在 obj 中获取该数组。
+        id: >-
+          return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+      - content: >-
+          从 JSON 请求体 { "data": "<json>" } 导入客户端，其中 data 是由 /export 生成的
+          字符串编码数组（[{client, inboundIds}]）。带有 inboundIds 的项会被创建并挂载到
+          这些入站；inboundIds 列表为空的项会作为未挂载的客户端记录还原。已存在的 email
+          绝不会被覆盖——它们会在 skipped 中返回。若任一目标入站处于运行中，则在最后触发一次
+          Xray 重启。
+        id: >-
+          import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+      - content: >-
+          在一次调用中为多个客户端调整到期时间和/或流量配额。addDays/addBytes 可为负值。对于
+          到期无限（expiryTime=0）或流量无限（totalGB=0）的客户端，会跳过相应字段——批量延期
+          绝不会将无限转为有限。可选的 flow 指令会为每个客户端设置 XTLS flow："none" 将其清除，
+          "xtls-rprx-vision"/"xtls-rprx-vision-udp443" 在入站支持时将其设置（省略或传 "" 则
+          保持不变）。返回调整数量和按 email 的跳过原因。
+        id: >-
+          shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+      - content: >-
+          在一次调用中启用多个客户端。email 会按入站分组，并对每个入站执行一次读-改-写；运行中
+          的 Xray（本地或远程节点）会被更新以添加每个用户。请注意，启用一个配额已耗尽或已过期的
+          客户端只会翻转标志——流量循环会在下一个周期再次将其禁用。返回变更数量和按 email 的
+          跳过原因。
+        id: >-
+          enable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-add-each-user-note-that-enabling-a-client-whose-quota-is-exhausted-or-whose-expiry-has-passed-only-flips-the-flag--the-traffic-loop-will-disable-it-again-on-the-next-tick-returns-the-changed-count-and-per-email-skip-reasons
+      - content: >-
+          在一次调用中禁用多个客户端。email 会按入站分组，并对每个入站执行一次读-改-写；运行中
+          的 Xray（本地或远程节点）会被更新以移除每个用户。返回变更数量和按 email 的跳过原因。
+        id: >-
+          disable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-remove-each-user-returns-the-changed-count-and-per-email-skip-reasons
+      - content: >-
+          在一次调用中删除多个客户端。服务端会顺序处理该列表，使每次删除都能看到上一次删除已
+          提交的状态——避免了面板侧按 email 扇出时存在的竞态。传入 keepTraffic=true 可在删除
+          后保留 xray_client_traffic 记录。
+        id: >-
+          delete-many-clients-in-one-call-the-server-processes-the-list-sequentially-so-each-delete-sees-the-committed-state-of-the-previous-one--avoids-the-race-the-per-email-fan-out-had-on-the-panel-side-pass-keeptraffictrue-to-retain-the-xray_client_traffic-rows-after-deletion
+      - content: >-
+          在一次调用中创建多个客户端。请求体是一个 {client, inboundIds} 载荷的 JSON 数组
+          ——与 /add 接受的形态相同。各项按顺序处理；对于失败的项（例如 email 重复）会返回
+          按 email 的跳过原因。若任一入站处于运行中，则在最后触发一次 Xray 重启。
+        id: >-
+          create-many-clients-in-one-call-body-is-a-json-array-of-client-inboundids-payloads--the-same-shape-add-accepts-items-are-processed-sequentially-per-email-skip-reasons-are-returned-for-items-that-fail-eg-duplicate-email-triggers-a-single-xray-restart-at-the-end-if-any-inbound-was-running
+      - content: >-
+          在一次调用中将多个客户端加入某个分组。会更新 clients.group_name，并在单个事务中修补
+          每个所属入站的 settings JSON 内匹配的客户端条目。若该分组名尚不存在（无论是在
+          client_groups 中还是作为派生标签），则会将其自动创建为持久化分组。要清除分组标签，
+          请改用 /groups/bulkRemove。
+        id: >-
+          add-many-clients-to-a-group-in-one-call-updates-clientsgroup_name-and-patches-the-matching-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-if-the-group-name-does-not-yet-exist-in-client_groups-or-as-a-derived-label-it-is-auto-created-as-a-persistent-group-to-clear-the-group-label-use-groupsbulkremove-instead
+      - content: >-
+          在一次调用中清除多个客户端的分组标签。与 /groups/bulkAdd 相反。客户端本身会保留——
+          仅从 clients.group_name 以及每个所属入站的 settings JSON 中清除分组标签。若某分组的
+          全部成员都被移除，该分组将变为空。
+        id: >-
+          clear-the-group-label-on-many-clients-in-one-call-inverse-of-groupsbulkadd-clients-themselves-are-kept--only-the-group-label-is-cleared-from-clientsgroup_name-and-from-each-owning-inbounds-settings-json-groups-become-empty-if-all-their-members-are-removed
+      - content: >-
+          在一次调用中将多个现有客户端挂载到多个入站。每个客户端都保留其身份
+          （email/UUID/password/subId）以及共享的流量记录；所有客户端会在单次 AddInboundClient
+          调用中被添加到一个目标入站。已存在于目标上的客户端会在 skipped 中报告。返回按 email 的
+          attached/skipped/errors 列表，并在任一目标入站处于运行中时触发一次 Xray 重启。
+        id: >-
+          attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+      - content: >-
+          bulkAttach 的镜像操作：在一次调用中将多个现有客户端从多个入站上分离。对于每个 email，
+          会将该客户端当前的入站集合与请求的集合取交集，并仅从这些入站上分离；客户端当前未挂载的
+          (email, inbound) 组合会被静默地视为空操作。未挂载到任一请求入站的 email 会在 skipped
+          中报告。即使客户端记录因此变为孤立，也会被保留——如需完全移除请使用 bulkDel。返回按
+          email 的 detached/skipped/errors 列表，并在任一目标入站处于运行中时触发一次 Xray
+          重启。
+        id: >-
+          mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+      - content: >-
+          在一次调用中将多个客户端的上行/下行计数器清零。循环执行单个重置流程，使每个客户端在其
+          挂载的各入站上被重新启用，并推送到 Xray/远程节点。返回成功重置的客户端数量。
+        id: >-
+          zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients
+      - content: >-
+          列出所有客户端分组及其成员数量。将持久化分组（client_groups 中的记录，包括空占位符）
+          与当前在客户端上设置的去重后的 group_name 值合并。按字母顺序排序（不区分大小写）。
+        id: >-
+          list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: >-
+          仅返回当前属于指定分组的客户端 email 列表。适用于将单个批量操作扇出到整个分组，而无需
+          往返获取完整的客户端列表。
+        id: >-
+          return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
+      - content: >-
+          创建一个新的空（占位）分组。即使尚未向其添加任何客户端，该分组也会在客户端表单和筛选
+          抽屉中变为可选。若已存在同名分组，则报错。
+        id: >-
+          create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+      - content: >-
+          重命名分组。新名称会应用到 client_groups 记录，并在单个事务中传播到每个匹配的客户端
+          （包括 clients.group_name 以及每个所属入站的 settings JSON 内的客户端条目）。返回
+          标签被更新的客户端数量。
+        id: >-
+          rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+      - content: >-
+          移除分组。删除 client_groups 记录，并从每个匹配的客户端清除分组标签（包括
+          clients.group_name 以及入站 settings JSON）。客户端本身不会被删除——如需删除请先按
+          分组筛选后再使用 /bulkDel。返回标签被清除的客户端数量。
+        id: >-
+          remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared
+      - content: >-
+          将单个客户端的上行/下行计数器清零。会在每个挂载的入站上重新启用该客户端，并将变更推送
+          到 Xray（或远程节点），使流量耗尽的用户能够立即重新连接。
+        id: >-
+          zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately
+      - content: >-
+          手动调整某个客户端的上传 + 下载计数器。适用于从外部计费系统迁移的场景。
+        id: >-
+          manually-adjust-a-clients-upload--download-counters-useful-for-migrations-from-external-accounting-systems
+      - content: >-
+          列出曾使用指定客户端凭据连接过的来源 IP。返回一个 "ip (timestamp)" 字符串数组。
+        id: >-
+          list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
+      - content: 重置某个客户端已记录的 IP 列表。
+        id: reset-the-recorded-ip-list-for-a-client
+      - content: >-
+          列出当前已连接的客户端 email（在心跳窗口内最近一次出现过），并跨所有节点去重。
+        id: >-
+          list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
+      - content: >-
+          按实际承载每个客户端的节点的 panelGuid 分组的在线客户端 email。本地面板使用自身的
+          GUID；链路中（任意深度）的每个节点使用其自身的 GUID。让入站页面能将在线状态归因到
+          真实节点，而非它所经由的中间节点。
+        id: >-
+          online-client-emails-grouped-by-the-panelguid-of-the-node-that-physically-hosts-each-client-the-local-panel-uses-its-own-guid-each-node-at-any-depth-in-a-chain-uses-its-guid-lets-the-inbounds-page-attribute-online-status-to-the-real-node-instead-of-the-intermediate-one-it-syncs-through
+      - content: >-
+          按观测到这些 IP 的节点的 panelGuid 分组的按客户端来源 IP。让中央面板能使用每个节点
+          所见的真实访客 IP 来归因并执行按客户端的 IP 限制，而非它所经由的中间面板的地址。
+        id: >-
+          per-client-source-ips-grouped-by-the-panelguid-of-the-node-that-observed-them-lets-the-central-panel-attribute-and-enforce-per-client-ip-limits-using-the-real-visitor-ips-each-node-sees-instead-of-the-address-of-the-intermediate-panel-it-syncs-through
+      - content: >-
+          在心跳窗口内承载过流量的入站标签，按承载节点的 panelGuid 分组。与 onlinesByGuid 配合，
+          使入站页面只在多入站客户端实际使用过的入站上将其标记为在线。不报告按入站活动的节点
+          将被省略。
+        id: >-
+          inbound-tags-that-carried-traffic-within-the-heartbeat-window-grouped-by-the-hosting-nodes-panelguid-pairs-with-onlinesbyguid-so-the-inbounds-page-only-marks-a-multi-inbound-client-online-on-the-inbounds-it-actually-used-nodes-that-do-not-report-per-inbound-activity-are-absent
+      - content: 客户端 email → 最近一次出现的 unix 时间戳的映射。
+        id: map-of-client-email--last-seen-unix-timestamp
+      - content: 按 email 标识的客户端的流量计数器。
+        id: traffic-counters-for-a-client-identified-by-email
+      - content: >-
+          返回与该订阅 ID 匹配的客户端的每个协议 URL（vless://、vmess://、trojan://、ss://、
+          hysteria://、hy2://）。结果集与 /sub/<subId> 相同，但以 JSON 数组形式返回——不含
+          base64。当某入站设置了 streamSettings.externalProxy 时，每个外部代理会发出一条 URL。
+          当该 subId 没有已启用的客户端时返回空数组。
+        id: >-
+          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+      - content: >-
+          返回单个客户端在所有挂载入站上的每个 URL——与面板 UI 中“复制 URL”按钮所复制的字符串
+          相同。支持的协议：vmess、vless、trojan、shadowsocks、hysteria。若设置了
+          streamSettings.externalProxy，则每个外部代理返回一条 URL。没有 URL 形式的协议
+          （socks、http、mixed、wireguard、dokodemo、tunnel）不产生任何内容。
+        id: >-
+          return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+    </>
+  );
+}

@@ -1,6 +1,6 @@
 module github.com/mhsanaei/3x-ui/v3
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/gin-contrib/gzip v1.2.6
@@ -17,16 +17,16 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/shirou/gopsutil/v4 v4.26.5
+	github.com/shirou/gopsutil/v4 v4.26.6
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	github.com/valyala/fasthttp v1.71.0
+	github.com/valyala/fasthttp v1.72.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.260327.1-0.20260622185510-b99c3e56574f
+	github.com/xtls/xray-core v1.260327.1-0.20260627131803-45cf2898ab12
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/sys v0.46.0
 	golang.org/x/text v0.38.0
-	google.golang.org/grpc v1.81.1
+	google.golang.org/grpc v1.82.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
@@ -63,7 +63,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
-	github.com/klauspost/compress v1.18.6
+	github.com/klauspost/compress v1.19.0
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
@@ -109,7 +109,7 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260622175928-b703f567277d // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.11
 	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )

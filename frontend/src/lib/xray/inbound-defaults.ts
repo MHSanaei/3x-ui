@@ -3,7 +3,7 @@ import { RandomUtil, Wireguard } from '@/utils';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
-import type { MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
+import type { MtprotoClient, MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
 import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
@@ -216,26 +216,19 @@ export function generateMtprotoSecret(domain: string): string {
   return `ee${RandomUtil.randomSeq(32, { type: 'hex' })}${domainToHex(domain)}`;
 }
 
-// mtprotoSecretForDomain rewrites only the domain suffix of an existing secret,
-// preserving its 16-byte random middle when valid (generating one otherwise).
-// Mirrors the Go model.HealMtprotoSecret so editing the FakeTLS domain doesn't
-// needlessly rotate the secret's identity.
-export function mtprotoSecretForDomain(currentSecret: string, domain: string): string {
-  let body = currentSecret;
-  if (body.startsWith('ee') || body.startsWith('dd')) {
-    body = body.slice(2);
-  }
-  const middle = /^[0-9a-f]{32}/i.test(body)
-    ? body.slice(0, 32)
-    : RandomUtil.randomSeq(32, { type: 'hex' });
-  return `ee${middle}${domainToHex(domain)}`;
+export function createDefaultMtprotoInboundSettings(): MtprotoInboundSettings {
+  return {
+    fakeTlsDomain: 'www.cloudflare.com',
+    clients: [],
+  };
 }
 
-export function createDefaultMtprotoInboundSettings(): MtprotoInboundSettings {
-  const fakeTlsDomain = 'www.cloudflare.com';
+// createDefaultMtprotoClient seeds a new MTProto client with a fresh FakeTLS
+// secret fronting the given domain. Mirrors the WireGuard client default: the
+// backend re-derives the secret on save, so this is only for immediate display.
+export function createDefaultMtprotoClient(domain: string): Partial<MtprotoClient> {
   return {
-    fakeTlsDomain,
-    secret: generateMtprotoSecret(fakeTlsDomain),
+    secret: generateMtprotoSecret(domain || 'www.cloudflare.com'),
   };
 }
 
@@ -263,24 +256,20 @@ export interface WireguardInboundSeed {
   mtu?: number;
   secretKey?: string;
   noKernelTun?: boolean;
-  peerPrivateKey?: string;
 }
 
+// WireGuard is multi-client now: a new inbound holds only the server identity
+// (secretKey/mtu) and starts with no clients. Clients (peers) are added later
+// through the client modal, which generates each one's keypair and a unique
+// tunnel address. peers stays empty for backward-compatible parsing.
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
-  const peerKp = seed.peerPrivateKey
-    ? { privateKey: seed.peerPrivateKey, publicKey: Wireguard.generateKeypair(seed.peerPrivateKey).publicKey }
-    : Wireguard.generateKeypair();
   return {
     mtu: seed.mtu ?? 1420,
     secretKey: seed.secretKey ?? Wireguard.generateKeypair().privateKey,
-    peers: [{
-      privateKey: peerKp.privateKey,
-      publicKey: peerKp.publicKey,
-      allowedIPs: ['10.0.0.2/32'],
-      keepAlive: 0,
-    }],
+    peers: [],
+    clients: [],
     noKernelTun: seed.noKernelTun ?? false,
   };
 }

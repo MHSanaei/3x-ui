@@ -283,7 +283,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
 				return err
 			}
-			parsedAdminIds = append(parsedAdminIds, int64(id))
+			parsedAdminIds = append(parsedAdminIds, id)
 		}
 	}
 	tgBotMutex.Lock()
@@ -345,6 +345,10 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
 			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
 			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
+			{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
+			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
+			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
+			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
 		},
 	})
 	if err != nil {
@@ -472,7 +476,7 @@ func StopBot() {
 	userStateMgr.reset()
 
 	if handler != nil {
-		handler.Stop()
+		_ = handler.Stop()
 	}
 
 	if cancel != nil {

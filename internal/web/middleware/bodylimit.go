@@ -23,7 +23,7 @@ func MaxBodyBytes(limit int64, skipSuffixes ...string) gin.HandlerFunc {
 			switch c.Request.Method {
 			case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodTrace:
 			default:
-				if c.Request.Body != nil && !hasSuffix(c.Request.URL.Path, skipSuffixes) {
+				if c.Request.Body != nil && !hasAnySuffix(c.Request.URL.Path, skipSuffixes) {
 					c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 				}
 			}
@@ -32,10 +32,9 @@ func MaxBodyBytes(limit int64, skipSuffixes ...string) gin.HandlerFunc {
 	}
 }
 
-// hasSuffix reports whether path ends in any of the given suffixes.
-func hasSuffix(path string, suffixes []string) bool {
-	for _, s := range suffixes {
-		if strings.HasSuffix(path, s) {
+func hasAnySuffix(path string, suffixes []string) bool {
+	for _, suffix := range suffixes {
+		if suffix != "" && strings.HasSuffix(path, suffix) {
 			return true
 		}
 	}

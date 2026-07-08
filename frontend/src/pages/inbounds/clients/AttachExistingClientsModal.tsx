@@ -180,7 +180,7 @@ export default function AttachExistingClientsModal({
       </Typography.Paragraph>
 
       {noClients ? (
-        <Alert type="info" showIcon message={t('pages.inbounds.attachExistingNoClients')} />
+        <Alert type="info" showIcon title={t('pages.inbounds.attachExistingNoClients')} />
       ) : (
         <Spin spinning={loading}>
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>
@@ -188,6 +188,7 @@ export default function AttachExistingClientsModal({
               <Space wrap>
                 <Input.Search
                   allowClear
+                  aria-label={t('search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('pages.inbounds.attachClientsSearchPlaceholder')}
@@ -196,6 +197,7 @@ export default function AttachExistingClientsModal({
                 {groupOptions.length > 0 && (
                   <Select
                     allowClear
+                    aria-label={t('pages.clients.group')}
                     value={groupFilter}
                     onChange={(v) => setGroupFilter(v)}
                     options={groupOptions}

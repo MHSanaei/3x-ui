@@ -6,16 +6,17 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
-import { isUdpOutbound } from '@/hooks/useXraySetting';
-import type { OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 import TestResultPopover from './TestResultPopover';
 import {
+  effectiveTestMode,
   isTesting,
   isUntestable,
   outboundAddresses,
   showSecurity,
+  testModeLabel,
   testResult,
   trafficFor,
 } from './outbounds-tab-helpers';
@@ -24,7 +25,7 @@ interface SubscriptionOutboundsProps {
   subscriptionOutbounds: unknown[];
   outboundsTraffic: OutboundTrafficRow[];
   subscriptionTestStates: Record<string, OutboundTestState>;
-  testMode: 'tcp' | 'http';
+  testMode: OutboundTestMode;
   isMobile: boolean;
   onTestSubscription: (outbound: Record<string, unknown>, mode: string) => void;
 }
@@ -104,8 +105,9 @@ export default function SubscriptionOutbounds({
   const testButton = (record: OutboundRow) => {
     const key = record.tag || '';
     return (
-      <Tooltip title={`${t('check')} (${(isUdpOutbound(record) ? 'http' : testMode).toUpperCase()})`}>
+      <Tooltip title={`${t('check')} (${testModeLabel(effectiveTestMode(record, testMode), t)})`}>
         <Button
+          aria-label={t('check')}
           type="primary"
           shape="circle"
           size={isMobile ? 'small' : undefined}

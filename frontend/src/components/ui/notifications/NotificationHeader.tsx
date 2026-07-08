@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tag } from 'antd';
 
 interface Props {
@@ -10,11 +11,12 @@ interface Props {
 }
 
 function MasterCheckbox({ checked, indeterminate, onChange }: { checked: boolean; indeterminate: boolean; onChange: () => void }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
-  return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} style={{ cursor: 'pointer' }} />;
+  return <input ref={ref} type="checkbox" aria-label={t('pages.clients.selectAll')} checked={checked} onChange={onChange} style={{ cursor: 'pointer' }} />;
 }
 
 export function NotificationHeader({ count, total, allSelected, indeterminate, onToggleAll }: Props) {

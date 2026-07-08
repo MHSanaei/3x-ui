@@ -80,11 +80,12 @@ func run(root, outDir string) error {
 				"NodeMutationRequest",
 				"NodeView",
 				"ProbeResultUI",
+				"RealityScanResult",
 			),
 		},
 		{
 			Path:        resolveRel(root, "internal/web/service/panel"),
-			StructAllow: setOf("ApiTokenView"),
+			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus"),
 		},
 	}
 

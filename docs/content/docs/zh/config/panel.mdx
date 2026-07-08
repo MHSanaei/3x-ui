@@ -1,0 +1,73 @@
+---
+title: 面板设置
+description: 全部 3x-ui 面板设置——Web 服务器、TLS、显示、安全与通知——并附上源码中的默认值。
+icon: SlidersHorizontal
+---
+
+**面板设置**控制面板本身如何对外提供服务以及如何受到保护（与你的入站和客户端相互独立）。设置以键/值对的形式存储；下面的默认值直接取自面板源码。机密信息（令牌、密码）仅以"已设置 / 未设置"指示器的形式展示，绝不会以完整形式返回到浏览器。
+
+## Web 服务器
+
+| 设置                | 默认值                  | 含义                                                                    |
+| ------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `webPort`           | `2053`                  | 面板端口（1–65535）。`XUI_PORT` 环境变量会在运行时覆盖它。              |
+| `webListen`         | _（所有网络接口）_      | 将面板绑定到指定的 IP。                                                  |
+| `webBasePath`       | `/`                     | 面板对外提供服务所使用的 URL 路径（始终规范化为 `/…/`）。               |
+| `webCertFile` / `webKeyFile` | _（无）_       | TLS 证书 + 密钥。两者都设置后，面板将以 **HTTPS** 提供服务。           |
+| `sessionMaxAge`     | `360`                   | 会话有效期，单位为**分钟**（默认 6 小时）。                              |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | 其转发头（真实客户端 IP）受信任的 IP/CIDR。                            |
+| `panelOutbound`     | _（无）_                | 通过一个命名的 Xray 出站来路由面板自身的出口流量（更新检查、Telegram、地理/订阅拉取）。 |
+
+更改端口或基础路径后，面板 URL 将变为
+`http(s)://<server>:<port><web-base-path>`。你可以在首次启动时通过
+[`XUI_INIT_WEB_BASE_PATH`](/docs/reference/env-vars) 预设基础路径。
+
+### TLS
+
+通过 HTTPS 提供面板服务可保护你的凭据在传输过程中的安全。要么设置
+`webCertFile` + `webKeyFile`——[`x-ui` SSL 菜单](/docs/config/ssl-certificates)
+可以为你申请 Let's Encrypt 证书——要么在
+[反向代理](/docs/operations/reverse-proxy)处终止 TLS。
+
+<Callout type="warn">
+  切勿在公网上以明文 HTTP 暴露面板。请使用 TLS、非默认端口和一个长随机的
+  Web 基础路径。
+</Callout>
+
+## 显示
+
+| 设置             | 默认值                                           | 含义                                                          |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| `pageSize`       | `25`                                             | 列表中每页的行数（`0` 表示禁用分页）。                        |
+| `expireDiff`     | `0`                                              | 到期前开始预警的天数。                                        |
+| `trafficDiff`    | `0`                                              | 配额剩余达到该百分比时开始预警。                              |
+| `remarkTemplate` | `{{INBOUND}}-{{EMAIL}}\|📊{{TRAFFIC_LEFT}}\|⏳{{DAYS_LEFT}}D` | 默认的客户端备注模板（参见 [分享链接](/docs/config/share-links#remark-template-variables)）。 |
+| `timeLocation`   | `Local`                                          | 统计和到期所用的时区。                                        |
+| `datepicker`     | `gregorian`                                      | 日期输入所用的日历（公历或波斯历/Jalali）。                  |
+
+## 安全与身份验证
+
+凭据、双因素认证、暴力破解限制器、会话以及 LDAP 在
+[首次登录](/docs/guide/first-login)和
+[安全](/docs/operations/security)中有详细介绍。简而言之：
+
+- 密码以 **bcrypt** 哈希形式存储；更改密码会登出所有会话。
+- 登录时可要求 **2FA（TOTP）**。
+- 当本地密码校验失败时，可由 **LDAP** 回退来验证用户。
+- API 访问使用在面板设置下管理的 **API 令牌**（参见
+  [API 参考](/docs/reference/api/api-tokens)）。
+
+## 通知与订阅
+
+它们各自拥有独立的设置分组和页面：
+
+<Cards>
+  <Card title="Telegram 机器人" href="/docs/operations/telegram-bot" description="令牌、聊天 ID、告警与报告。" />
+  <Card title="订阅" href="/docs/config/subscription" description="订阅服务器、格式与路径。" />
+  <Card title="安全" href="/docs/operations/security" description="2FA、IP 限制与加固。" />
+</Cards>
+
+<Callout type="info">
+  电子邮件（SMTP）通知同样可配置（主机、端口、加密、收件人），并与 Telegram
+  机器人使用相同的事件类型。
+</Callout>

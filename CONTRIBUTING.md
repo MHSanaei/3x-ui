@@ -151,7 +151,7 @@ Panel navigation happens client-side through React Router, and per-route code is
 - **Local UI state stays in the page** (`useState`); shared concerns go through contexts and hooks in `src/hooks/` (`useTheme`, `useWebSocket`, `useClients`, `useDatepicker`, …). Prefer extending an existing hook over introducing a new global.
 - **Zod is the single source of truth.** Schemas in `src/schemas/` define the xray config model; every API response is parsed through them, every form field validates against them, and TypeScript types are inferred with `z.infer` — never hand-written. Go-side types are mirrored into `src/generated/` by `npm run gen:zod` (do not hand-edit that folder).
 - **xray domain logic** — link generation, protocol defaults, form ⇄ wire adapters — lives as pure functions in `src/lib/xray/`. `src/models/` keeps only thin legacy types still being migrated onto schemas.
-- **HTTP** goes through `HttpUtil` in `src/utils/index.ts`, a thin Axios wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The Axios setup itself lives in `src/api/axios-init.ts`.
+- **HTTP** goes through `HttpUtil` in `src/utils/index.ts`, a thin `fetch` wrapper that handles CSRF, response toasts, and a `silent: true` opt-out for bulk operations that would otherwise spam toasts. The `fetch` setup itself (base path, CSRF, 401/403 handling) lives in `src/api/http-init.ts`.
 
 ### i18n
 
@@ -184,11 +184,11 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **Ant Design 6** is the only UI kit — no Tailwind, no shadcn. A previous attempt to migrate was rolled back. Small, targeted UX tweaks beat sweeping rewrites; raise broader visual changes for discussion before implementing.
 - **Function components + hooks** everywhere. No class components.
 - **No `//` line comments** in committed JS/TS/Vue/Go. HTML `<!-- ... -->` is fine for template structure. Names should carry the meaning; rename rather than annotate. Comments are reserved for the *why*, and only when the reason is surprising.
-- **RTL is a first-class concern.** Persian and Arabic users matter — RTL is enabled through AntD's `ConfigProvider direction="rtl"`. When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows.
+- **Persian and Arabic users are first-class.** When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows. (Full RTL layout is not currently wired through AntD `ConfigProvider direction` — only the Jalali date picker is RTL-aware — so treat RTL as an open area, not a solved one.)
 - **Schemas over `any`.** New config shapes go in `src/schemas/`; `@typescript-eslint/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
 - **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
-- **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — currently `8.0.16` — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
+- **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — read the live version there rather than trusting a number quoted here — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
 
 ### Project layout
 
@@ -210,7 +210,7 @@ frontend/
     ├── pages/             — one folder per route (index, inbounds, clients, groups, nodes, settings, xray, api-docs) plus login, sub
     ├── components/        — cross-page React components
     ├── hooks/             — reusable hooks (useTheme, useWebSocket, useClients, useDatepicker, …)
-    ├── api/               — Axios + CSRF interceptor, TanStack Query provider/keys, WebSocket client
+    ├── api/               — fetch client + CSRF handling, TanStack Query provider/keys, WebSocket client
     ├── i18n/              — react-i18next bootstrap (JSON lives in internal/web/translation/)
     ├── lib/xray/          — pure xray logic: link generation, defaults, form ⇄ wire adapters
     ├── schemas/           — Zod source of truth for the xray config model

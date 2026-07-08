@@ -8,6 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+
+	"gorm.io/gorm"
 )
 
 type GroupSummary struct {
@@ -36,26 +38,82 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 		return nil, err
 	}
 	type groupAgg struct {
-		count   int
-		traffic int64
-		up      int64
-		down    int64
+		count int
+		up    int64
+		down  int64
 	}
+	baseUp := make(map[string]int64, len(stored))
+	baseDown := make(map[string]int64, len(stored))
 	merged := make(map[string]groupAgg, len(derived)+len(stored))
 	for _, g := range stored {
 		merged[g.Name] = groupAgg{}
+		baseUp[g.Name] = g.ResetUp
+		baseDown[g.Name] = g.ResetDown
 	}
 	for _, g := range derived {
-		merged[g.Name] = groupAgg{count: g.ClientCount, traffic: g.TrafficUsed, up: g.Up, down: g.Down}
+		merged[g.Name] = groupAgg{count: g.ClientCount, up: g.Up, down: g.Down}
 	}
 	out := make([]GroupSummary, 0, len(merged))
 	for name, agg := range merged {
-		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: agg.traffic, Up: agg.up, Down: agg.down})
+		up := max(agg.up-baseUp[name], 0)
+		down := max(agg.down-baseDown[name], 0)
+		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: up + down, Up: up, Down: down})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
 	})
 	return out, nil
+}
+
+// adjustGroupBaselinesForRemovedTraffic shifts group baselines down by the clients'
+// current counters so ListGroups totals survive a traffic reset or client delete (#5675).
+func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
+	if len(emails) == 0 {
+		return nil
+	}
+	type groupDelta struct {
+		Name string
+		Up   int64
+		Down int64
+	}
+	totals := make(map[string]*groupDelta)
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var part []groupDelta
+		if err := tx.Table("clients AS c").
+			Select("c.group_name AS name, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
+			Joins("JOIN client_traffics ct ON ct.email = c.email").
+			Where("c.group_name <> '' AND c.email IN ?", batch).
+			Group("c.group_name").
+			Scan(&part).Error; err != nil {
+			return err
+		}
+		for i := range part {
+			if agg, ok := totals[part[i].Name]; ok {
+				agg.Up += part[i].Up
+				agg.Down += part[i].Down
+			} else {
+				totals[part[i].Name] = &part[i]
+			}
+		}
+	}
+	for name, d := range totals {
+		if d.Up == 0 && d.Down == 0 {
+			continue
+		}
+		res := tx.Model(&model.ClientGroup{}).Where("name = ?", name).Updates(map[string]any{
+			"reset_up":   gorm.Expr("reset_up - ?", d.Up),
+			"reset_down": gorm.Expr("reset_down - ?", d.Down),
+		})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			if err := tx.Create(&model.ClientGroup{Name: name, ResetUp: -d.Up, ResetDown: -d.Down}).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *ClientService) EmailsByGroup(name string) ([]string, error) {
@@ -75,6 +133,34 @@ func (s *ClientService) EmailsByGroup(name string) ([]string, error) {
 		emails = []string{}
 	}
 	return emails, nil
+}
+
+func (s *ClientService) ResetGroupTraffic(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return common.NewError("group name is required")
+	}
+	db := database.GetDB()
+	var agg struct {
+		Up   int64
+		Down int64
+	}
+	if err := db.Table("clients AS c").
+		Select("COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Where("c.group_name = ?", name).
+		Scan(&agg).Error; err != nil {
+		return err
+	}
+	var count int64
+	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
+		return err
+	}
+	if count == 0 {
+		return db.Create(&model.ClientGroup{Name: name, ResetUp: agg.Up, ResetDown: agg.Down}).Error
+	}
+	return db.Model(&model.ClientGroup{}).Where("name = ?", name).
+		Updates(map[string]any{"reset_up": agg.Up, "reset_down": agg.Down}).Error
 }
 
 func (s *ClientService) CreateGroup(name string) error {

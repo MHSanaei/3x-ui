@@ -1,11 +1,65 @@
-.sparkline-svg {
+.sparkline-plot {
   display: block;
   width: 100%;
+}
+
+.sparkline-plot .uplot,
+.sparkline-plot .u-wrap {
+  width: 100%;
+}
+
+.sparkline-plot .u-cursor-x {
+  border-right: 1px dashed var(--ant-color-border);
 }
 
 .sparkline-container {
   position: relative;
   width: 100%;
+}
+
+.sparkline-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 6px;
+  background: var(--ant-color-bg-elevated);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  color: var(--ant-color-text);
+  font-size: 12px;
+}
+
+.sparkline-tooltip .spk-tt-label {
+  margin-bottom: 4px;
+  color: var(--ant-color-text-tertiary);
+  font-size: 11px;
+}
+
+.sparkline-tooltip .spk-tt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.sparkline-tooltip .spk-tt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.sparkline-tooltip .spk-tt-name {
+  color: var(--ant-color-text-tertiary);
+}
+
+.sparkline-tooltip .spk-tt-val {
+  margin-left: auto;
 }
 
 .sparkline-extrema {

@@ -81,7 +81,7 @@ export default function BulkDetachInboundsModal({
           {t('pages.clients.detachFromInboundsDesc', { count })}
         </Typography.Paragraph>
         {targetOptions.length === 0 ? (
-          <Alert type="info" showIcon message={t('pages.clients.detachFromInboundsNoTargets')} />
+          <Alert type="info" showIcon title={t('pages.clients.detachFromInboundsNoTargets')} />
         ) : (
           <>
             <SelectAllClearButtons

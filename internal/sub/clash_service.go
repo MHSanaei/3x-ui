@@ -239,9 +239,8 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["cipher"] = cipher
 	case model.VLESS:
 		proxy["type"] = "vless"
-		proxy["uuid"] = client.ID
-		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		proxy["uuid"] = applyVlessRoute(client.ID, hostVlessRoute(ep))
+		inboundSettings := subReq.linkSettings(inbound)
 		streamSecurity, _ := stream["security"].(string)
 		if client.Flow != "" && vlessFlowAllowed(network, streamSecurity, inboundSettings) {
 			proxy["flow"] = client.Flow
@@ -258,8 +257,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	case model.Shadowsocks:
 		proxy["type"] = "ss"
 		proxy["password"] = client.Password
-		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		inboundSettings := subReq.linkSettings(inbound)
 		method, _ := inboundSettings["method"].(string)
 		if method == "" {
 			return nil
@@ -288,8 +286,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 // helpers prune fields (like `allowInsecure` / the salamander obfs
 // block) that the hysteria proxy wants preserved.
 func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 
 	proxyType := "hysteria2"
 	authKey := "password"
@@ -655,7 +652,7 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 
 func (s *SubClashService) streamData(stream string) map[string]any {
 	var streamSettings map[string]any
-	json.Unmarshal([]byte(stream), &streamSettings)
+	_ = json.Unmarshal([]byte(stream), &streamSettings)
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":

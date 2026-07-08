@@ -22,6 +22,7 @@ export interface AllSetting {
   ldapFlagField: string;
   ldapHost: string;
   ldapInboundTags: string;
+  ldapInsecureSkipVerify: boolean;
   ldapInvertFlag: boolean;
   ldapPassword: string;
   ldapPort: number;
@@ -125,6 +126,7 @@ export interface AllSettingView {
   ldapFlagField: string;
   ldapHost: string;
   ldapInboundTags: string;
+  ldapInsecureSkipVerify: boolean;
   ldapInvertFlag: boolean;
   ldapPassword: string;
   ldapPort: number;
@@ -222,6 +224,8 @@ export interface ApiTokenView {
 }
 
 export interface Client {
+  adTag?: string;
+  allowedIPs?: string[];
   auth?: string;
   comment: string;
   created_at?: number;
@@ -231,10 +235,15 @@ export interface Client {
   flow?: string;
   group?: string;
   id?: string;
+  keepAlive?: number;
   limitIp: number;
   password?: string;
+  preSharedKey?: string;
+  privateKey?: string;
+  publicKey?: string;
   reset: number;
   reverse?: ClientReverse | null;
+  secret?: string;
   security: string;
   subId: string;
   tgId: number;
@@ -250,6 +259,8 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  adTag: string;
+  allowedIPs: string;
   auth: string;
   comment: string;
   createdAt: number;
@@ -259,10 +270,15 @@ export interface ClientRecord {
   flow: string;
   group: string;
   id: number;
+  keepAlive: number;
   limitIp: number;
   password: string;
+  preSharedKey: string;
+  privateKey: string;
+  publicKey: string;
   reset: number;
   reverse: unknown;
+  secret: string;
   security: string;
   subId: string;
   tgId: number;
@@ -381,14 +397,23 @@ export interface InboundFallback {
 }
 
 export interface InboundOption {
+  enable: boolean;
   id: number;
+  listen?: string;
+  mtprotoDomain?: string;
+  nodeAddress?: string;
   nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;
+  shareAddr?: string;
+  shareAddrStrategy?: string;
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  wgDns?: string;
+  wgMtu?: number;
+  wgPublicKey?: string;
 }
 
 export interface Msg {
@@ -511,6 +536,13 @@ export interface OutboundTraffics {
   up: number;
 }
 
+export interface PanelUpdateStatus {
+  exitCode: number;
+  finishedAt: number;
+  runId: string;
+  state: string;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;
@@ -522,6 +554,27 @@ export interface ProbeResultUI {
   xrayError: string;
   xrayState: string;
   xrayVersion: string;
+}
+
+export interface RealityScanResult {
+  alpn: string;
+  certIssuer: string;
+  certSubject: string;
+  certValid: boolean;
+  curveID: string;
+  feasible: boolean;
+  h2: boolean;
+  host: string;
+  ip: string;
+  latencyMs: number;
+  notAfter: string;
+  port: number;
+  reason: string;
+  serverNames: string[];
+  target: string;
+  tls13: boolean;
+  tlsVersion: string;
+  x25519: boolean;
 }
 
 export interface Setting {

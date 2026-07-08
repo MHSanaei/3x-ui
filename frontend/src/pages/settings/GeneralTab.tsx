@@ -21,6 +21,7 @@ import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
+import SecretInput from './SecretInput';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -312,18 +313,32 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <SettingListItem paddings="small" title={t('pages.settings.ldap.useTls')}>
               <Switch checked={allSetting.ldapUseTLS} onChange={(v) => updateSetting({ ldapUseTLS: v })} />
             </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.ldap.skipTlsVerify')}
+              description={t('pages.settings.ldap.skipTlsVerifyDesc')}
+            >
+              <Switch
+                checked={allSetting.ldapInsecureSkipVerify}
+                disabled={!allSetting.ldapUseTLS}
+                onChange={(v) => updateSetting({ ldapInsecureSkipVerify: v })}
+              />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.bindDn')}>
               <Input value={allSetting.ldapBindDN} onChange={(e) => updateSetting({ ldapBindDN: e.target.value })} />
             </SettingListItem>
             <SettingListItem
               paddings="small"
               title={t('password')}
-              description={allSetting.hasLdapPassword ? t('pages.settings.ldap.passwordConfigured') : t('pages.settings.ldap.passwordUnconfigured')}
+              description={allSetting.hasLdapPassword && !allSetting.clearLdapPassword ? t('pages.settings.ldap.passwordConfigured') : t('pages.settings.ldap.passwordUnconfigured')}
             >
-              <Input.Password
+              <SecretInput
                 value={allSetting.ldapPassword}
-                placeholder={allSetting.hasLdapPassword ? t('pages.settings.ldap.passwordPlaceholder') : ''}
-                onChange={(e) => updateSetting({ ldapPassword: e.target.value })}
+                configured={allSetting.hasLdapPassword}
+                clearArmed={allSetting.clearLdapPassword}
+                placeholder={t('pages.settings.ldap.passwordPlaceholder')}
+                onChange={(v) => updateSetting({ ldapPassword: v })}
+                onClearArmedChange={(armed) => updateSetting({ clearLdapPassword: armed })}
               />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.baseDn')}>

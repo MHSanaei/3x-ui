@@ -162,6 +162,12 @@
   background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
 }
 
+.client-card-speed {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
 .card-head {
   display: flex;
   align-items: center;

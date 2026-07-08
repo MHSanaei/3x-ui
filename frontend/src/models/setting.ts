@@ -68,6 +68,7 @@ export class AllSetting {
   ldapHost = '';
   ldapPort = 389;
   ldapUseTLS = false;
+  ldapInsecureSkipVerify = false;
   ldapBindDN = '';
   ldapPassword = '';
   ldapBaseDN = '';
@@ -102,6 +103,9 @@ export class AllSetting {
   hasWarpSecret = false;
   hasNordSecret = false;
   hasSmtpPassword = false;
+  clearTgBotToken = false;
+  clearLdapPassword = false;
+  clearSmtpPassword = false;
 
   constructor(data?: unknown) {
     if (data != null) {

@@ -4,6 +4,7 @@ import { Button, Checkbox, Form, Input, Modal, Select, Tag } from 'antd';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 
 import { HttpUtil, FileManager, IntlUtil, PromiseUtil } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import './XrayLogModal.css';
@@ -132,7 +133,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       title={
         <>
           {t('pages.index.accessLogs')}
-          <SyncOutlined spin={loading} className="reload-icon" onClick={refresh} />
+          <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
         </>
       }
     >
@@ -177,7 +178,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} />
+          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
         </Form.Item>
       </Form>
 

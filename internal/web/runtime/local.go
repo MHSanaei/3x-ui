@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -72,11 +73,43 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.MTProto || newIb.Protocol == model.MTProto {
+		return l.updateMtprotoInbound(ctx, oldIb, newIb)
+	}
 	_ = l.DelInbound(ctx, oldIb)
 	if !newIb.Enable {
 		return nil
 	}
 	return l.AddInbound(ctx, newIb)
+}
+
+// updateMtprotoInbound applies an inbound update without the Del+Add sequence
+// the xray path uses: Remove would drop the manager's fingerprint state, which
+// is what lets Ensure keep the running mtg process (and its live connections)
+// when nothing in the generated config changed. The sidecar is only stopped
+// when the inbound is disabled, loses its last active secret, or moves to a
+// different protocol.
+func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.MTProto && newIb.Protocol != model.MTProto {
+		mtproto.GetManager().Remove(oldIb.Id)
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol != model.MTProto {
+		_ = l.DelInbound(ctx, oldIb)
+	}
+	if !newIb.Enable {
+		mtproto.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	inst, ok := mtproto.InstanceFromInbound(newIb)
+	if !ok {
+		mtproto.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	return mtproto.GetManager().Ensure(inst)
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
@@ -102,12 +135,16 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 		return nil
 	}
 	user := map[string]any{
-		"email":    client.Email,
-		"id":       client.ID,
-		"security": client.Security,
-		"flow":     client.Flow,
-		"auth":     client.Auth,
-		"password": client.Password,
+		"email":        client.Email,
+		"id":           client.ID,
+		"security":     client.Security,
+		"flow":         client.Flow,
+		"auth":         client.Auth,
+		"password":     client.Password,
+		"publicKey":    client.PublicKey,
+		"allowedIPs":   client.AllowedIPs,
+		"preSharedKey": client.PreSharedKey,
+		"keepAlive":    wgKeepAlive(client.KeepAlive),
 	}
 	return l.AddUser(ctx, ib, user)
 }
@@ -125,6 +162,10 @@ func (l *Local) DeleteUser(ctx context.Context, ib *model.Inbound, email string)
 	return nil
 }
 
+func (l *Local) DeleteClient(context.Context, string) error {
+	return nil
+}
+
 func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
 	if oldEmail != "" {
 		if err := l.RemoveUser(ctx, ib, oldEmail); err != nil && !strings.Contains(err.Error(), "not found") {
@@ -135,14 +176,25 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 		return nil
 	}
 	user := map[string]any{
-		"email":    payload.Email,
-		"id":       payload.ID,
-		"security": payload.Security,
-		"flow":     payload.Flow,
-		"auth":     payload.Auth,
-		"password": payload.Password,
+		"email":        payload.Email,
+		"id":           payload.ID,
+		"security":     payload.Security,
+		"flow":         payload.Flow,
+		"auth":         payload.Auth,
+		"password":     payload.Password,
+		"publicKey":    payload.PublicKey,
+		"allowedIPs":   payload.AllowedIPs,
+		"preSharedKey": payload.PreSharedKey,
+		"keepAlive":    wgKeepAlive(payload.KeepAlive),
 	}
 	return l.AddUser(ctx, ib, user)
+}
+
+func wgKeepAlive(seconds int) string {
+	if seconds <= 0 {
+		return ""
+	}
+	return strconv.Itoa(seconds)
 }
 
 func (l *Local) RestartXray(_ context.Context) error {

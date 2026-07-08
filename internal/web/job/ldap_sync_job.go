@@ -4,8 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	ldaputil "github.com/mhsanaei/3x-ui/v3/internal/util/ldap"
@@ -69,17 +67,18 @@ func (j *LdapSyncJob) Run() {
 
 	// --- LDAP fetch ---
 	cfg := ldaputil.Config{
-		Host:       mustGetString(j.settingService.GetLdapHost),
-		Port:       mustGetInt(j.settingService.GetLdapPort),
-		UseTLS:     mustGetBool(j.settingService.GetLdapUseTLS),
-		BindDN:     mustGetString(j.settingService.GetLdapBindDN),
-		Password:   mustGetString(j.settingService.GetLdapPassword),
-		BaseDN:     mustGetString(j.settingService.GetLdapBaseDN),
-		UserFilter: mustGetString(j.settingService.GetLdapUserFilter),
-		UserAttr:   mustGetString(j.settingService.GetLdapUserAttr),
-		FlagField:  mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
-		TruthyVals: splitCsv(mustGetString(j.settingService.GetLdapTruthyValues)),
-		Invert:     mustGetBool(j.settingService.GetLdapInvertFlag),
+		Host:               mustGetString(j.settingService.GetLdapHost),
+		Port:               mustGetInt(j.settingService.GetLdapPort),
+		UseTLS:             mustGetBool(j.settingService.GetLdapUseTLS),
+		InsecureSkipVerify: mustGetBool(j.settingService.GetLdapInsecureSkipVerify),
+		BindDN:             mustGetString(j.settingService.GetLdapBindDN),
+		Password:           mustGetString(j.settingService.GetLdapPassword),
+		BaseDN:             mustGetString(j.settingService.GetLdapBaseDN),
+		UserFilter:         mustGetString(j.settingService.GetLdapUserFilter),
+		UserAttr:           mustGetString(j.settingService.GetLdapUserAttr),
+		FlagField:          mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
+		TruthyVals:         splitCsv(mustGetString(j.settingService.GetLdapTruthyValues)),
+		Invert:             mustGetBool(j.settingService.GetLdapInvertFlag),
 	}
 
 	flags, err := ldaputil.FetchVlessFlags(cfg)
@@ -113,51 +112,40 @@ func (j *LdapSyncJob) Run() {
 	defExpiryDays := mustGetInt(j.settingService.GetLdapDefaultExpiryDays)
 	defLimitIP := mustGetInt(j.settingService.GetLdapDefaultLimitIP)
 
-	clientsToCreate := map[string][]model.Client{} // tag -> []new clients
-	clientsToEnable := map[string][]string{}       // tag -> []email
-	clientsToDisable := map[string][]string{}      // tag -> []email
-
-	for email, allowed := range flags {
-		exists := allClients[email] != nil
-		for _, tag := range inboundTags {
-			if !exists && allowed && autoCreate {
-				newClient := j.buildClient(inboundMap[tag], email, defGB, defExpiryDays, defLimitIP)
-				clientsToCreate[tag] = append(clientsToCreate[tag], newClient)
-			} else if exists {
-				if allowed && !allClients[email].Enable {
-					clientsToEnable[tag] = append(clientsToEnable[tag], email)
-				} else if !allowed && allClients[email].Enable {
-					clientsToDisable[tag] = append(clientsToDisable[tag], email)
-				}
-			}
-		}
-	}
-
-	for tag, newClients := range clientsToCreate {
-		if len(newClients) == 0 {
+	resolvedInboundIds := make([]int, 0, len(inboundTags))
+	resolvedTags := make([]string, 0, len(inboundTags))
+	for _, tag := range inboundTags {
+		ib := inboundMap[tag]
+		if ib == nil {
+			logger.Warningf("LDAP inbound tag %s does not match any inbound", tag)
 			continue
 		}
-		ib := inboundMap[tag]
-		created := 0
-		restartNeeded := false
-		for _, c := range newClients {
-			nr, err := j.clientService.CreateOne(&j.inboundService, ib.Id, c)
-			if err != nil {
-				logger.Warningf("Failed to add client %s for tag %s: %v", c.Email, tag, err)
-				continue
+		resolvedInboundIds = append(resolvedInboundIds, ib.Id)
+		resolvedTags = append(resolvedTags, tag)
+	}
+
+	clientsToCreate := []model.Client{}
+	clientsToEnable := map[string][]string{}  // tag -> []email
+	clientsToDisable := map[string][]string{} // tag -> []email
+
+	for email, allowed := range flags {
+		existing := allClients[email]
+		if existing == nil {
+			if allowed && autoCreate {
+				clientsToCreate = append(clientsToCreate, j.buildClient(email, defGB, defExpiryDays, defLimitIP))
 			}
-			created++
-			if nr {
-				restartNeeded = true
-			}
+			continue
 		}
-		if created > 0 {
-			logger.Infof("LDAP auto-create: %d clients for %s", created, tag)
-			if restartNeeded {
-				j.xrayService.SetToNeedRestart()
+		for _, tag := range resolvedTags {
+			if allowed && !existing.Enable {
+				clientsToEnable[tag] = append(clientsToEnable[tag], email)
+			} else if !allowed && existing.Enable {
+				clientsToDisable[tag] = append(clientsToDisable[tag], email)
 			}
 		}
 	}
+
+	j.createClients(clientsToCreate, resolvedInboundIds, resolvedTags)
 
 	// --- Execute enable/disable batch ---
 	for tag, emails := range clientsToEnable {
@@ -195,24 +183,46 @@ func splitCsv(s string) []string {
 	return out
 }
 
-// buildClient creates a new client for auto-create
-func (j *LdapSyncJob) buildClient(ib *model.Inbound, email string, defGB, defExpiryDays, defLimitIP int) model.Client {
+// buildClient creates a new client for auto-create; ClientService.Create fills per-protocol credentials
+func (j *LdapSyncJob) buildClient(email string, defGB, defExpiryDays, defLimitIP int) model.Client {
 	c := model.Client{
 		Email:   email,
 		Enable:  true,
 		LimitIP: defLimitIP,
-		TotalGB: int64(defGB),
+		TotalGB: int64(defGB) * 1024 * 1024 * 1024,
 	}
 	if defExpiryDays > 0 {
 		c.ExpiryTime = time.Now().Add(time.Duration(defExpiryDays) * 24 * time.Hour).UnixMilli()
 	}
-	switch ib.Protocol {
-	case model.Trojan, model.Shadowsocks:
-		c.Password = uuid.NewString()
-	default:
-		c.ID = uuid.NewString()
-	}
 	return c
+}
+
+// createClients adds each new LDAP client once, attached to every configured inbound
+func (j *LdapSyncJob) createClients(newClients []model.Client, inboundIds []int, tags []string) {
+	if len(newClients) == 0 || len(inboundIds) == 0 {
+		return
+	}
+	tagList := strings.Join(tags, ",")
+	created := 0
+	restartNeeded := false
+	for _, c := range newClients {
+		nr, err := j.clientService.Create(&j.inboundService, &service.ClientCreatePayload{Client: c, InboundIds: inboundIds})
+		if err != nil {
+			logger.Warningf("Failed to add client %s for tags %s: %v", c.Email, tagList, err)
+			continue
+		}
+		created++
+		if nr {
+			restartNeeded = true
+		}
+	}
+	if created == 0 {
+		return
+	}
+	logger.Infof("LDAP auto-create: %d clients for %s", created, tagList)
+	if restartNeeded {
+		j.xrayService.SetToNeedRestart()
+	}
 }
 
 func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable bool) {

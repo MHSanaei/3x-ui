@@ -34,6 +34,7 @@ export const AllSettingSchema = z.object({
   ldapFlagField: z.string(),
   ldapHost: z.string(),
   ldapInboundTags: z.string(),
+  ldapInsecureSkipVerify: z.boolean(),
   ldapInvertFlag: z.boolean(),
   ldapPassword: z.string(),
   ldapPort: z.number().int().min(0).max(65535),
@@ -138,6 +139,7 @@ export const AllSettingViewSchema = z.object({
   ldapFlagField: z.string(),
   ldapHost: z.string(),
   ldapInboundTags: z.string(),
+  ldapInsecureSkipVerify: z.boolean(),
   ldapInvertFlag: z.boolean(),
   ldapPassword: z.string(),
   ldapPort: z.number().int().min(0).max(65535),
@@ -238,6 +240,8 @@ export const ApiTokenViewSchema = z.object({
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  adTag: z.string().optional(),
+  allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
   comment: z.string(),
   created_at: z.number().int().optional(),
@@ -247,10 +251,15 @@ export const ClientSchema = z.object({
   flow: z.string().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
+  keepAlive: z.number().int().optional(),
   limitIp: z.number().int(),
   password: z.string().optional(),
+  preSharedKey: z.string().optional(),
+  privateKey: z.string().optional(),
+  publicKey: z.string().optional(),
   reset: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
+  secret: z.string().optional(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -268,6 +277,8 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  adTag: z.string(),
+  allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),
   createdAt: z.number().int(),
@@ -277,10 +288,15 @@ export const ClientRecordSchema = z.object({
   flow: z.string(),
   group: z.string(),
   id: z.number().int(),
+  keepAlive: z.number().int(),
   limitIp: z.number().int(),
   password: z.string(),
+  preSharedKey: z.string(),
+  privateKey: z.string(),
+  publicKey: z.string(),
   reset: z.number().int(),
   reverse: z.unknown(),
+  secret: z.string(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -408,14 +424,23 @@ export const InboundFallbackSchema = z.object({
 export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
+  enable: z.boolean(),
   id: z.number().int(),
+  listen: z.string().optional(),
+  mtprotoDomain: z.string().optional(),
+  nodeAddress: z.string().optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),
   protocol: z.string(),
   remark: z.string(),
+  shareAddr: z.string().optional(),
+  shareAddrStrategy: z.string().optional(),
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
+  wgDns: z.string().optional(),
+  wgMtu: z.number().int().optional(),
+  wgPublicKey: z.string().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
@@ -544,6 +569,14 @@ export const OutboundTrafficsSchema = z.object({
 });
 export type OutboundTraffics = z.infer<typeof OutboundTrafficsSchema>;
 
+export const PanelUpdateStatusSchema = z.object({
+  exitCode: z.number().int(),
+  finishedAt: z.number().int(),
+  runId: z.string(),
+  state: z.string(),
+});
+export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
+
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),
   error: z.string(),
@@ -557,6 +590,28 @@ export const ProbeResultUISchema = z.object({
   xrayVersion: z.string(),
 });
 export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
+
+export const RealityScanResultSchema = z.object({
+  alpn: z.string(),
+  certIssuer: z.string(),
+  certSubject: z.string(),
+  certValid: z.boolean(),
+  curveID: z.string(),
+  feasible: z.boolean(),
+  h2: z.boolean(),
+  host: z.string(),
+  ip: z.string(),
+  latencyMs: z.number().int(),
+  notAfter: z.string(),
+  port: z.number().int(),
+  reason: z.string(),
+  serverNames: z.array(z.string()),
+  target: z.string(),
+  tls13: z.boolean(),
+  tlsVersion: z.string(),
+  x25519: z.boolean(),
+});
+export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const SettingSchema = z.object({
   id: z.number().int(),

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfigProvider, Layout } from 'antd';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
@@ -12,6 +13,7 @@ const openApiUrl = `${basePath}panel/api/openapi.json`;
 
 export default function ApiDocsPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
+  const { t } = useTranslation();
 
   const pageClass = useMemo(() => {
     const classes = ['api-docs-page'];
@@ -27,7 +29,7 @@ export default function ApiDocsPage() {
 
         <Layout className="content-shell">
           <Layout.Content className="content-area">
-            <div className="docs-wrapper">
+            <div className="docs-wrapper" role="region" aria-label={t('menu.apiDocs')}>
               <SwaggerUI
                 url={openApiUrl}
                 docExpansion="list"

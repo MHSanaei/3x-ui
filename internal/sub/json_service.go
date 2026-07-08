@@ -29,7 +29,7 @@ type SubJsonService struct {
 func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
-	json.Unmarshal([]byte(defaultJson), &configJson)
+	_ = json.Unmarshal([]byte(defaultJson), &configJson)
 	if outboundSlices, ok := configJson["outbounds"].([]any); ok {
 		for _, defaultOutbound := range outboundSlices {
 			jsonBytes, _ := json.Marshal(defaultOutbound)
@@ -41,7 +41,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		var newRules []any
 		routing, _ := configJson["routing"].(map[string]any)
 		defaultRules, _ := routing["rules"].([]any)
-		json.Unmarshal([]byte(rules), &newRules)
+		_ = json.Unmarshal([]byte(rules), &newRules)
 		defaultRules = append(newRules, defaultRules...)
 		routing["rules"] = defaultRules
 		configJson["routing"] = routing
@@ -138,7 +138,7 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 
 func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
 	var newJsonArray []json_util.RawMessage
-	stream := s.streamData(inbound.StreamSettings)
+	stream := s.streamData(inbound.StreamSettings, subKey(client))
 
 	// When externalProxy is empty the JSON config falls back to a
 	// synthetic one whose `dest` is the host the client connects to.
@@ -210,9 +210,11 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "vmess":
 			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "vless":
-			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client, jsonMux(mux, hostMux)))
+			vc := client
+			vc.ID = applyVlessRoute(client.ID, hostVlessRoute(extPrxy))
+			newOutbounds = append(newOutbounds, s.genVless(subReq, inbound, streamSettings, vc, jsonMux(mux, hostMux)))
 		case "trojan", "shadowsocks":
-			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client, jsonMux(mux, hostMux)))
+			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
 		}
@@ -232,15 +234,25 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 	return newJsonArray
 }
 
-func (s *SubJsonService) streamData(stream string) map[string]any {
+func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {
 	var streamSettings map[string]any
-	json.Unmarshal([]byte(stream), &streamSettings)
+	if err := json.Unmarshal([]byte(stream), &streamSettings); err != nil || streamSettings == nil {
+		streamSettings = map[string]any{}
+	}
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":
-		streamSettings["tlsSettings"] = s.tlsData(streamSettings["tlsSettings"].(map[string]any))
+		if tlsSettings, ok := streamSettings["tlsSettings"].(map[string]any); ok {
+			streamSettings["tlsSettings"] = s.tlsData(tlsSettings)
+		} else {
+			delete(streamSettings, "tlsSettings")
+		}
 	case "reality":
-		streamSettings["realitySettings"] = s.realityData(streamSettings["realitySettings"].(map[string]any))
+		if realitySettings, ok := streamSettings["realitySettings"].(map[string]any); ok {
+			streamSettings["realitySettings"] = s.realityData(realitySettings, clientKey)
+		} else {
+			delete(streamSettings, "realitySettings")
+		}
 	}
 	delete(streamSettings, "sockopt")
 
@@ -320,7 +332,7 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	return tlsData
 }
 
-func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
+func (s *SubJsonService) realityData(rData map[string]any, clientKey string) map[string]any {
 	rltyData := make(map[string]any, 1)
 	rltyClientSettings, _ := rData["settings"].(map[string]any)
 
@@ -329,8 +341,8 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	rltyData["fingerprint"] = rltyClientSettings["fingerprint"]
 	rltyData["mldsa65Verify"] = rltyClientSettings["mldsa65Verify"]
 
-	// Set random data
-	rltyData["spiderX"] = "/" + random.Seq(15)
+	seed, _ := rltyClientSettings["spiderX"].(string)
+	rltyData["spiderX"] = deriveSpiderX(seed, clientKey)
 	shortIds, ok := rData["shortIds"].([]any)
 	if ok && len(shortIds) > 0 {
 		rltyData["shortId"] = shortIds[random.Num(len(shortIds))].(string)
@@ -381,7 +393,7 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
@@ -391,8 +403,7 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 	outbound.StreamSettings = streamSettings
 
 	// Add encryption for VLESS outbound from inbound settings
-	var inboundSettings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	encryption, _ := inboundSettings["encryption"].(string)
 
 	settings := map[string]any{
@@ -410,7 +421,7 @@ func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_ut
 	return result
 }
 
-func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{}
 
 	serverData := make([]ServerSetting, 1)
@@ -422,8 +433,7 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 	}
 
 	if inbound.Protocol == model.Shadowsocks {
-		var inboundSettings map[string]any
-		json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+		inboundSettings := subReq.linkSettings(inbound)
 		method, _ := inboundSettings["method"].(string)
 		serverData[0].Method = method
 
@@ -474,7 +484,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	}
 
 	var settings, stream map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
 	outbound.Settings = map[string]any{
 		"version": int(version),
@@ -482,7 +492,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		"port":    inbound.Port,
 	}
 
-	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	hyStream := stream["hysteriaSettings"].(map[string]any)
 	outHyStream := map[string]any{
 		"version": int(version),

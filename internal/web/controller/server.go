@@ -42,7 +42,6 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 
 // initRouter sets up the routes for server status, Xray management, and utility endpoints.
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
-
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
@@ -52,6 +51,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/xrayObservatoryHistory/:tag/:bucket", a.getXrayObservatoryHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getPanelUpdateInfo", a.getPanelUpdateInfo)
+	g.GET("/getUpdateStatus", a.getUpdateStatus)
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
 	g.GET("/getMigration", a.getMigration)
@@ -78,6 +78,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
 	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
+	g.POST("/scanRealityTarget", a.scanRealityTarget)
+	g.POST("/scanRealityTargets", a.scanRealityTargets)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -87,7 +89,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 // the cross-service side effects (xrayMetrics sample + websocket broadcast).
 func (a *ServerController) startTask() {
 	c := global.GetWebServer().GetCron()
-	c.AddFunc("@every 2s", func() {
+	_, _ = c.AddFunc("@every 2s", func() {
 		status := a.serverService.RefreshStatus()
 		if status == nil {
 			return
@@ -95,7 +97,7 @@ func (a *ServerController) startTask() {
 		a.xrayMetricsService.Sample(time.Now())
 		websocket.BroadcastStatus(status)
 	})
-	c.AddFunc("@every 1m", func() {
+	_, _ = c.AddFunc("@every 1m", func() {
 		if err := service.PersistSystemMetrics(); err != nil {
 			logger.Warning("persist system metrics failed:", err)
 		}
@@ -208,21 +210,34 @@ func (a *ServerController) installXray(c *gin.Context) {
 
 // updatePanel starts a panel self-update. With no "dev" form value it follows
 // this panel's own channel setting; an explicit "dev" (sent by the master node
-// updater) overrides it for this run.
+// updater) overrides it for this run. The response's runId identifies this
+// update for a later getUpdateStatus poll.
 func (a *ServerController) updatePanel(c *gin.Context) {
 	devParam := c.PostForm("dev")
+	var runID int64
 	var err error
 	if devParam == "" {
-		err = a.panelService.StartUpdate()
+		runID, err = a.panelService.StartUpdate()
 	} else {
 		dev, perr := strconv.ParseBool(devParam)
 		if perr != nil {
 			jsonMsg(c, "invalid data", perr)
 			return
 		}
-		err = a.panelService.StartUpdateChannel(dev)
+		runID, err = a.panelService.StartUpdateChannel(dev)
 	}
-	jsonMsg(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), err)
+	var obj any
+	if err == nil {
+		obj = gin.H{"runId": strconv.FormatInt(runID, 10)}
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), obj, err)
+}
+
+// getUpdateStatus reports the outcome of the most recently launched panel
+// self-update (see updatePanel). Compare the returned runId against the one
+// updatePanel returned to tell this run's result apart from a stale one.
+func (a *ServerController) getUpdateStatus(c *gin.Context) {
+	jsonObj(c, a.panelService.GetUpdateStatus(), nil)
 }
 
 // setUpdateChannel toggles whether self-update tracks the rolling dev release.
@@ -325,13 +340,13 @@ func (a *ServerController) getDb(c *gin.Context) {
 
 	filename := a.serverService.BackupFilename(c.Request.Host)
 	if !filenameRegex.MatchString(filename) {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
 	}
 
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Writer.Write(db)
+	_, _ = c.Writer.Write(db)
 }
 
 // getMigration downloads a cross-engine migration file: a .dump on SQLite or a
@@ -343,13 +358,13 @@ func (a *ServerController) getMigration(c *gin.Context) {
 		return
 	}
 	if !filenameRegex.MatchString(filename) {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
 	}
 
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Writer.Write(data)
+	_, _ = c.Writer.Write(data)
 }
 
 // importDB imports a database file and restarts the Xray service.
@@ -443,6 +458,29 @@ func (a *ServerController) getRemoteCertHash(c *gin.Context) {
 		return
 	}
 	jsonObj(c, hashes, nil)
+}
+
+// scanRealityTarget runs a live TLS 1.3 probe against the candidate REALITY
+// target and returns a structured feasibility verdict plus the cert SAN names.
+func (a *ServerController) scanRealityTarget(c *gin.Context) {
+	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
+		return
+	}
+	jsonObj(c, res, nil)
+}
+
+// scanRealityTargets probes a batch of candidate REALITY targets (the supplied
+// comma-separated list, or the built-in seed set when empty) and returns each
+// verdict ranked by feasibility then latency.
+func (a *ServerController) scanRealityTargets(c *gin.Context) {
+	res, err := a.serverService.ScanRealityTargets(c.PostForm("targets"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
+		return
+	}
+	jsonObj(c, res, nil)
 }
 
 // getNewVlessEnc generates a new VLESS encryption key.

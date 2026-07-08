@@ -76,6 +76,7 @@ export default function SettingsPage() {
     setSpinning,
     saveDisabled,
     saveAll,
+    savePayload,
   } = useAllSettings();
 
   const [entryHost, setEntryHost] = useState('');
@@ -196,14 +197,14 @@ export default function SettingsPage() {
 
   const categoryBody = useMemo(() => {
     switch (activeSlug) {
-      case 'security': return <SecurityTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'security': return <SecurityTab allSetting={allSetting} updateSetting={updateSetting} saveSetting={savePayload} />;
       case 'telegram': return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'email': return <EmailTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription': return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
       default: return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
     }
-  }, [activeSlug, allSetting, updateSetting]);
+  }, [activeSlug, allSetting, updateSetting, savePayload]);
 
   return (
     <ConfigProvider theme={antdThemeConfig}>

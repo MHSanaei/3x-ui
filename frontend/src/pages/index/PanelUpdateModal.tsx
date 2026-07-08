@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Modal, Switch, Tag } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
+import type { PanelUpdateStatus } from '@/generated/types';
 import './PanelUpdateModal.css';
+
+type UpdateOutcome = 'success' | 'failed' | 'timeout';
 
 export interface PanelUpdateInfo {
   channel?: string;
@@ -25,7 +27,6 @@ interface BusyEvent {
 interface PanelUpdateModalProps {
   open: boolean;
   info: PanelUpdateInfo;
-  isDevBuild?: boolean;
   devChannelEnable?: boolean;
   onChannelChange?: (dev: boolean) => void | Promise<void>;
   onClose: () => void;
@@ -35,7 +36,6 @@ interface PanelUpdateModalProps {
 export default function PanelUpdateModal({
   open,
   info,
-  isDevBuild,
   devChannelEnable,
   onChannelChange,
   onClose,
@@ -47,19 +47,27 @@ export default function PanelUpdateModal({
 
   const isDev = info.channel === 'dev';
 
-  async function pollUntilBack(): Promise<boolean> {
+  async function pollUpdateStatus(expectedRunId: string): Promise<UpdateOutcome> {
     await PromiseUtil.sleep(5000);
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       try {
-        const r = await axios.get('/panel/api/server/status', { timeout: 2000 });
-        if (r?.data?.success) return true;
+        const msg = await HttpUtil.get<PanelUpdateStatus>(
+          '/panel/api/server/getUpdateStatus',
+          undefined,
+          { silent: true, timeout: 2000 },
+        );
+        const status = msg?.obj ?? undefined;
+        if (status?.runId === expectedRunId) {
+          if (status.state === 'success') return 'success';
+          if (status.state === 'failed') return 'failed';
+        }
       } catch {
         /* still restarting */
       }
       await PromiseUtil.sleep(2000);
     }
-    return false;
+    return 'timeout';
   }
 
   async function handleChannel(checked: boolean) {
@@ -83,14 +91,24 @@ export default function PanelUpdateModal({
         const tip = info.latestVersion ? `${baseTip} (${info.latestVersion})` : baseTip;
         onClose();
         onBusy({ busy: true, tip });
-        const result = await HttpUtil.post('/panel/api/server/updatePanel');
+        const result = await HttpUtil.post<{ runId: string }>('/panel/api/server/updatePanel');
         if (!result?.success) {
           onBusy({ busy: false });
           return;
         }
-        const back = await pollUntilBack();
-        if (back) await PromiseUtil.sleep(800);
-        window.location.reload();
+        const outcome = await pollUpdateStatus(result.obj?.runId ?? '');
+        onBusy({ busy: false });
+        if (outcome === 'success') {
+          await PromiseUtil.sleep(800);
+          window.location.reload();
+          return;
+        }
+        modal[outcome === 'failed' ? 'error' : 'warning']({
+          title: t(outcome === 'failed' ? 'pages.index.panelUpdateFailedTitle' : 'pages.index.panelUpdateUnknownTitle'),
+          content: t(outcome === 'failed' ? 'pages.index.panelUpdateFailedDesc' : 'pages.index.panelUpdateUnknownDesc'),
+          okText: t('refresh'),
+          onOk: () => window.location.reload(),
+        });
       },
     });
   }
@@ -113,18 +131,16 @@ export default function PanelUpdateModal({
           />
         )}
 
-        {isDevBuild && (
-          <div className="version-list">
-            <div className="version-list-item">
-              <span>{t('pages.index.devChannel')}</span>
-              <Switch
-                checked={!!devChannelEnable}
-                loading={channelBusy}
-                onChange={handleChannel}
-              />
-            </div>
+        <div className="version-list">
+          <div className="version-list-item">
+            <span>{t('pages.index.devChannel')}</span>
+            <Switch
+              checked={!!devChannelEnable}
+              loading={channelBusy}
+              onChange={handleChannel}
+            />
           </div>
-        )}
+        </div>
 
         {devChannelEnable && (
           <Alert

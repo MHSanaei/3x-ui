@@ -41,6 +41,15 @@ func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email
 	return splitLinkLines(svc.GetLink(inbound, email))
 }
 
+func (p *LinkProvider) LinksForInbounds(host string, inbounds []*model.Inbound) []string {
+	svc := p.build(host)
+	var out []string
+	for _, inbound := range inbounds {
+		out = append(out, svc.inboundLinks(inbound)...)
+	}
+	return out
+}
+
 func splitLinkLines(raw string) []string {
 	if raw == "" {
 		return nil

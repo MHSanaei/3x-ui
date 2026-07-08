@@ -75,6 +75,33 @@
   font-size: 16px;
 }
 
+.sidebar-docs {
+  background: transparent;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ant-color-text-secondary);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+}
+
+.sidebar-docs:hover,
+.sidebar-docs:focus-visible {
+  background-color: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  color: var(--ant-color-primary);
+  transform: scale(1.08);
+  outline: none;
+}
+
+.sidebar-docs .anticon {
+  font-size: 16px;
+}
+
 .sidebar-theme-cycle {
   background: transparent;
   border: none;

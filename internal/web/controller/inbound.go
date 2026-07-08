@@ -61,10 +61,10 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
-
 	g.GET("/list", a.getInbounds)
 	g.GET("/list/slim", a.getInboundsSlim)
 	g.GET("/options", a.getInboundOptions)
+	g.GET("/allLinks", a.getAllInboundLinks)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbacks", a.getFallbacks)
 
@@ -102,6 +102,19 @@ func (a *InboundController) getInboundsSlim(c *gin.Context) {
 		return
 	}
 	jsonObj(c, inbounds, nil)
+}
+
+// getAllInboundLinks returns every inbound's share links across all clients,
+// rendered through the same subscription engine the client pages use so the
+// remark template (name-only display part) is applied consistently.
+func (a *InboundController) getAllInboundLinks(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	links, err := a.inboundService.GetAllInboundLinks(resolveHost(c), user.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, links, nil)
 }
 
 // getInboundOptions returns a lightweight projection of the user's inbounds

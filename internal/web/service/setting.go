@@ -14,6 +14,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/xlzd/gotp"
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -24,8 +27,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-
-	"gorm.io/gorm"
 )
 
 //go:embed config.json
@@ -113,26 +114,27 @@ var defaultValueMap = map[string]string{
 	"devChannelEnable":            "false",
 
 	// LDAP defaults
-	"ldapEnable":            "false",
-	"ldapHost":              "",
-	"ldapPort":              "389",
-	"ldapUseTLS":            "false",
-	"ldapBindDN":            "",
-	"ldapPassword":          "",
-	"ldapBaseDN":            "",
-	"ldapUserFilter":        "(objectClass=person)",
-	"ldapUserAttr":          "mail",
-	"ldapVlessField":        "vless_enabled",
-	"ldapSyncCron":          "@every 1m",
-	"ldapFlagField":         "",
-	"ldapTruthyValues":      "true,1,yes,on",
-	"ldapInvertFlag":        "false",
-	"ldapInboundTags":       "",
-	"ldapAutoCreate":        "false",
-	"ldapAutoDelete":        "false",
-	"ldapDefaultTotalGB":    "0",
-	"ldapDefaultExpiryDays": "0",
-	"ldapDefaultLimitIP":    "0",
+	"ldapEnable":             "false",
+	"ldapHost":               "",
+	"ldapPort":               "389",
+	"ldapUseTLS":             "false",
+	"ldapInsecureSkipVerify": "false",
+	"ldapBindDN":             "",
+	"ldapPassword":           "",
+	"ldapBaseDN":             "",
+	"ldapUserFilter":         "(objectClass=person)",
+	"ldapUserAttr":           "mail",
+	"ldapVlessField":         "vless_enabled",
+	"ldapSyncCron":           "@every 1m",
+	"ldapFlagField":          "",
+	"ldapTruthyValues":       "true,1,yes,on",
+	"ldapInvertFlag":         "false",
+	"ldapInboundTags":        "",
+	"ldapAutoCreate":         "false",
+	"ldapAutoDelete":         "false",
+	"ldapDefaultTotalGB":     "0",
+	"ldapDefaultExpiryDays":  "0",
+	"ldapDefaultLimitIP":     "0",
 
 	// Event bus — per-subscriber event filtering (empty = all disabled)
 	"tgEnabledEvents":   "login.attempt,cpu.high",
@@ -567,6 +569,24 @@ func (s *SettingService) SetTwoFactorToken(value string) error {
 	return s.setString("twoFactorToken", value)
 }
 
+func (s *SettingService) VerifyTwoFactorCode(code string) error {
+	enabled, err := s.GetTwoFactorEnable()
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+	token, err := s.GetTwoFactorToken()
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(token) == "" || !gotp.NewDefaultTOTP(token).Verify(strings.TrimSpace(code), time.Now().Unix()) {
+		return common.NewError("invalid two factor code")
+	}
+	return nil
+}
+
 func (s *SettingService) GetPort() (int, error) {
 	return s.getInt("webPort")
 }
@@ -690,11 +710,13 @@ func (s *SettingService) GetSubTitle() (string, error) {
 }
 
 func (s *SettingService) GetSubSupportUrl() (string, error) {
-	return s.getString("subSupportUrl")
+	value, err := s.getString("subSupportUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubProfileUrl() (string, error) {
-	return s.getString("subProfileUrl")
+	value, err := s.getString("subProfileUrl")
+	return common.EnsureURLScheme(value), err
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -903,6 +925,10 @@ func (s *SettingService) GetLdapUseTLS() (bool, error) {
 	return s.getBool("ldapUseTLS")
 }
 
+func (s *SettingService) GetLdapInsecureSkipVerify() (bool, error) {
+	return s.getBool("ldapInsecureSkipVerify")
+}
+
 func (s *SettingService) GetLdapBindDN() (string, error) {
 	return s.getString("ldapBindDN")
 }
@@ -1059,8 +1085,17 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
-func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
-	if err := s.preserveRedactedSecrets(allSetting); err != nil {
+// SecretClears marks redacted secrets the user explicitly emptied. Without a
+// flag, a blank submitted secret means "unchanged" (the field is always served
+// blank to the browser) and the stored value is preserved.
+type SecretClears struct {
+	TgBotToken   bool
+	LdapPassword bool
+	SmtpPassword bool
+}
+
+func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
@@ -1106,15 +1141,15 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	})
 }
 
-func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) error {
-	if strings.TrimSpace(allSetting.TgBotToken) == "" {
+func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, clears SecretClears) error {
+	if !clears.TgBotToken && strings.TrimSpace(allSetting.TgBotToken) == "" {
 		value, err := s.GetTgBotToken()
 		if err != nil {
 			return err
 		}
 		allSetting.TgBotToken = value
 	}
-	if strings.TrimSpace(allSetting.LdapPassword) == "" {
+	if !clears.LdapPassword && strings.TrimSpace(allSetting.LdapPassword) == "" {
 		value, err := s.GetLdapPassword()
 		if err != nil {
 			return err
@@ -1128,7 +1163,7 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting) 
 		}
 		allSetting.TwoFactorToken = value
 	}
-	if strings.TrimSpace(allSetting.SmtpPassword) == "" {
+	if !clears.SmtpPassword && strings.TrimSpace(allSetting.SmtpPassword) == "" {
 		value, err := s.GetSmtpPassword()
 		if err != nil {
 			return err
@@ -1153,6 +1188,12 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 		allSetting.TgBotAPIServer = u
 	}
+	// Support/profile links land in subscription headers and page data, where
+	// client apps resolve a scheme-less value against the panel's own domain.
+	// Non-http schemes (tg://, mailto:) are legitimate here, so only default
+	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
+	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
+	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
 	return nil
 }
 

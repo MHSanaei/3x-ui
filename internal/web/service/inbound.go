@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -17,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -153,7 +155,7 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.enrichClientStats(db, inbounds)
@@ -196,7 +198,7 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.annotateFallbackParents(db, inbounds)
@@ -295,47 +297,124 @@ type InboundOption struct {
 	Tag            string `json:"tag" example:"in-443-tcp"`
 	Protocol       string `json:"protocol" example:"vless"`
 	Port           int    `json:"port" example:"443"`
+	Enable         bool   `json:"enable" example:"true"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
+	WgPublicKey    string `json:"wgPublicKey,omitempty"`
+	WgMtu          int    `json:"wgMtu,omitempty"`
+	WgDns          string `json:"wgDns,omitempty"`
+	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
+	// Share-host resolution inputs, mirroring the subscription's
+	// resolveInboundAddress so the clients page renders a node-managed WireGuard
+	// Endpoint that points at the node, not the master panel. NodeAddress is the
+	// hosting node's externally reachable address (empty for this panel's own
+	// inbounds); Listen and ShareAddrStrategy/ShareAddr feed the same
+	// node→listen→custom fallback the share/QR links already use.
+	NodeAddress       string `json:"nodeAddress,omitempty"`
+	Listen            string `json:"listen,omitempty"`
+	ShareAddr         string `json:"shareAddr,omitempty"`
+	ShareAddrStrategy string `json:"shareAddrStrategy,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
-		Id             int    `gorm:"column:id"`
-		Remark         string `gorm:"column:remark"`
-		Tag            string `gorm:"column:tag"`
-		Protocol       string `gorm:"column:protocol"`
-		Port           int    `gorm:"column:port"`
-		StreamSettings string `gorm:"column:stream_settings"`
-		Settings       string `gorm:"column:settings"`
-		NodeId         *int   `gorm:"column:node_id"`
+		Id                int    `gorm:"column:id"`
+		Remark            string `gorm:"column:remark"`
+		Tag               string `gorm:"column:tag"`
+		Protocol          string `gorm:"column:protocol"`
+		Port              int    `gorm:"column:port"`
+		Enable            bool   `gorm:"column:enable"`
+		StreamSettings    string `gorm:"column:stream_settings"`
+		Settings          string `gorm:"column:settings"`
+		Listen            string `gorm:"column:listen"`
+		ShareAddr         string `gorm:"column:share_addr"`
+		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
+		NodeId            *int   `gorm:"column:node_id"`
+		NodeAddress       string `gorm:"column:node_address"`
 	}
 	err := db.Table("inbounds").
-		Select("id, remark, tag, protocol, port, stream_settings, settings, node_id").
-		Where("user_id = ?", userId).
-		Order("id ASC").
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
+		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
+		Where("inbounds.user_id = ?", userId).
+		Order("inbounds.id ASC").
 		Scan(&rows).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
+		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
+		shareAddrStrategy := r.ShareAddrStrategy
+		if shareAddrStrategy == "node" {
+			shareAddrStrategy = ""
+		}
 		out = append(out, InboundOption{
-			Id:             r.Id,
-			Remark:         r.Remark,
-			Tag:            r.Tag,
-			Protocol:       r.Protocol,
-			Port:           r.Port,
-			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
-			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
-			NodeId:         r.NodeId,
+			Id:                r.Id,
+			Remark:            r.Remark,
+			Tag:               r.Tag,
+			Protocol:          r.Protocol,
+			Port:              r.Port,
+			Enable:            r.Enable,
+			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
+			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
+			WgPublicKey:       wgPublicKey,
+			WgMtu:             wgMtu,
+			WgDns:             wgDns,
+			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
+			NodeId:            r.NodeId,
+			NodeAddress:       r.NodeAddress,
+			Listen:            r.Listen,
+			ShareAddr:         r.ShareAddr,
+			ShareAddrStrategy: shareAddrStrategy,
 		})
 	}
 	return out, nil
+}
+
+func inboundWireguardHints(protocol string, settings string) (string, int, string) {
+	if protocol != string(model.WireGuard) || strings.TrimSpace(settings) == "" {
+		return "", 0, ""
+	}
+	var parsed struct {
+		PublicKey string `json:"publicKey"`
+		PubKey    string `json:"pubKey"`
+		SecretKey string `json:"secretKey"`
+		MTU       int    `json:"mtu"`
+		DNS       string `json:"dns"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return "", 0, ""
+	}
+	publicKey := parsed.PublicKey
+	if publicKey == "" {
+		publicKey = parsed.PubKey
+	}
+	if publicKey == "" && parsed.SecretKey != "" {
+		if derived, err := wgutil.PublicKeyFromPrivate(parsed.SecretKey); err == nil {
+			publicKey = derived
+		}
+	}
+	return publicKey, parsed.MTU, parsed.DNS
+}
+
+// inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
+// the clients UI to seed a new mtproto client's secret with the right fronting
+// hostname.
+func inboundMtprotoDomain(protocol string, settings string) string {
+	if protocol != string(model.MTProto) || strings.TrimSpace(settings) == "" {
+		return ""
+	}
+	var parsed struct {
+		FakeTLSDomain string `json:"fakeTlsDomain"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(parsed.FakeTLSDomain)
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -343,7 +422,7 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	s.enrichClientStats(db, inbounds)
@@ -354,24 +433,21 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return inbounds, nil
 }
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
-	settings := map[string][]model.Client{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
-	if settings == nil {
-		return nil, fmt.Errorf("setting is null")
-	}
+	return ParseInboundSettingsClients(inbound.Settings)
+}
 
-	clients := settings["clients"]
-	if clients == nil {
-		return nil, nil
-	}
-	return clients, nil
+// GetClientsBySubId returns the inbound's clients with the given subscription
+// id, resolved from the normalized clients tables (the same source the running
+// Xray users are built from) instead of parsing the settings JSON blob.
+func (s *InboundService) GetClientsBySubId(inboundId int, subId string) ([]model.Client, error) {
+	return s.clientService.ListForInboundBySubId(nil, inboundId, subId)
 }
 
 func (s *InboundService) GetAllEmails() ([]string, error) {
@@ -444,13 +520,66 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
-// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
-// always valid and matches the configured domain before the row is persisted.
+// finalMaskRealityTcpMasks returns the stream's finalmask.tcp masks when the
+// stream uses REALITY security, or nil otherwise. A non-empty result means
+// this stream carries the finalmask+REALITY combination that panics
+// Xray-core (see https://github.com/XTLS/Xray-core/issues/6453): finalmask
+// wraps the connection before REALITY's handshake ever sees it, and
+// reality.Server() does an unchecked type assertion assuming a raw
+// *net.TCPConn, which panics once finalmask is in front of it.
+//
+// Only finalmask.tcp matters here — TcpmaskManager (the thing that wraps the
+// listener ahead of REALITY's handshake, in xray-core's own
+// transport/internet/memory_settings.go) is only constructed when tcp masks
+// are present; a finalmask.udp-only config never touches the TCP accept path
+// REALITY runs on, so it doesn't reproduce this panic and shouldn't be
+// rejected.
+func finalMaskRealityTcpMasks(stream map[string]any) []any {
+	if stream["security"] != "reality" {
+		return nil
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	return tcp
+}
+
+// validateFinalMaskRealityCombo rejects finalmask.tcp configured together
+// with REALITY security at save time. Upstream has confirmed this
+// combination will be documented as unsupported rather than made graceful,
+// so the panel must not let it be saved.
+func validateFinalMaskRealityCombo(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if len(finalMaskRealityTcpMasks(stream)) == 0 {
+		return nil
+	}
+	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
+}
+
+// normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
+// always valid before the row is persisted, and drops the vestigial inbound-level
+// secret and adTag: MTProto is multi-client, so mtg and every share link read
+// only the per-client values. Leaving an inbound-level secret behind is what
+// produced stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
-	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if stripped, ok := model.StripMtprotoInboundAdTag(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
 		inbound.Settings = healed
 	}
 }
@@ -564,6 +693,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -643,6 +775,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "mtproto":
+			if client.Secret == "" {
+				return inbound, false, common.NewError("mtproto client requires a secret")
+			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -658,12 +797,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			tx.Rollback()
 			return
 		}
-		tx.Commit()
 		if markDirty && inbound.NodeID != nil {
-			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
+			if dErr := (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID); dErr != nil {
+				err = dErr
+				tx.Rollback()
+				return
 			}
 		}
+		tx.Commit()
 	}()
 
 	// Omit the ClientStats has-many association: GORM's cascade would INSERT
@@ -705,6 +846,16 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	// Legacy import: an inbound exported from a build that predated the hosts
+	// table carries its external proxies inline in streamSettings.externalProxy.
+	// The startup migration that converts those to host rows runs once and is
+	// gated off afterwards, so it never sees a freshly imported inbound —
+	// reproduce it here. No-op for inbounds without externalProxy (everything the
+	// current UI builds), so this only fires on such imports.
+	if _, err = database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+
 	// Before the deferred commit, so a node in "selected" sync mode cannot
 	// sweep the new central row in the gap before its tag is allowed.
 	if inbound.NodeID != nil {
@@ -724,14 +875,26 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
-				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
-			} else {
-				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
-				if inbound.NodeID != nil {
-					markDirty = true
+			payload := inbound
+			pushable := true
+			if inbound.NodeID == nil && inbound.Protocol == model.MTProto {
+				if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+					payload = built
 				} else {
-					needRestart = true
+					logger.Debug("Unable to prepare runtime inbound config:", bErr)
+					pushable = false
+				}
+			}
+			if pushable {
+				if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
+					logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
+				} else {
+					logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+					if inbound.NodeID != nil {
+						markDirty = true
+					} else if inbound.Protocol != model.MTProto {
+						needRestart = true
+					}
 				}
 			}
 		}
@@ -798,17 +961,20 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 	}
 
-	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
-		return needRestart, err
-	}
-	// Hosts have no hard FK; drop the inbound's hosts alongside it.
-	if err := db.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
-		return needRestart, err
-	}
-	if markDirty && ib.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
+			return err
 		}
+		// Hosts have no hard FK; drop the inbound's hosts alongside it.
+		if err := tx.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
+			return err
+		}
+		if markDirty && ib.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
+		}
+		return nil
+	}); err != nil {
+		return needRestart, err
 	}
 	if !database.IsPostgres() {
 		var count int64
@@ -891,14 +1057,22 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
-	if err := db.Model(model.Inbound{}).Where("id = ?", id).
-		Update("enable", enable).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
+			Update("enable", enable).Error; err != nil {
+			return err
+		}
+		if inbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
+		}
+		return nil
+	}); err != nil {
 		return false, err
 	}
 	inbound.Enable = enable
 
 	needRestart := false
-	rt, push, dirty, perr := s.nodePushPlan(inbound)
+	rt, push, _, perr := s.nodePushPlan(inbound)
 	if perr != nil {
 		return false, perr
 	}
@@ -912,12 +1086,6 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		if push {
 			if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
 				logger.Warning("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
-				dirty = true
-			}
-		}
-		if dirty {
-			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
-				logger.Warning("mark node dirty failed:", dErr)
 			}
 		}
 		return false, nil
@@ -951,6 +1119,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
@@ -967,9 +1138,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
-	// Capture the pre-edit routing state before oldInbound.Settings is replaced
-	// with the new settings further down, then ensure a routed inbound keeps a
-	// stable egress port (reusing the one already stored).
+	// Capture the pre-edit protocol and routing state before oldInbound is
+	// overwritten with the new values further down, then ensure a routed
+	// inbound keeps a stable egress port (reusing the one already stored).
+	oldProtocol := oldInbound.Protocol
 	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
@@ -980,7 +1152,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldTagWasAuto := isAutoGeneratedTag(tag, oldInbound.Port, oldInbound.NodeID, oldBits)
 
 	needRestart := false
-	markDirty := false
 
 	// Persist the client-stat sync, settings munging, runtime push and inbound
 	// save as one transaction routed through the serial traffic writer, so it
@@ -1106,16 +1277,37 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Tag = resolvedTag
 		inbound.Tag = oldInbound.Tag
 
-		rt, push, dirty, perr := s.nodePushPlan(oldInbound)
+		rt, push, _, perr := s.nodePushPlan(oldInbound)
 		if perr != nil {
 			return perr
-		}
-		if dirty {
-			markDirty = true
 		}
 		if oldInbound.NodeID == nil {
 			if !push {
 				needRestart = true
+			} else if oldProtocol == model.MTProto || oldInbound.Protocol == model.MTProto {
+				oldSnapshot := *oldInbound
+				oldSnapshot.Tag = tag
+				oldSnapshot.Protocol = oldProtocol
+				payload := oldInbound
+				pushable := true
+				if inbound.Enable {
+					if built, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound); err2 == nil {
+						payload = built
+					} else {
+						logger.Debug("Unable to prepare runtime inbound config:", err2)
+						pushable = false
+					}
+				}
+				if pushable {
+					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+					} else {
+						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+						if oldInbound.Protocol != model.MTProto {
+							needRestart = true
+						}
+					}
+				}
 			} else {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag
@@ -1141,11 +1333,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			if !inbound.Enable {
 				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
 					logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
-					markDirty = true
 				}
 			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
 				logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
-				markDirty = true
 			}
 		}
 
@@ -1168,6 +1358,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 			return err
 		}
+		if oldInbound.NodeID != nil {
+			if err := (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID); err != nil {
+				return err
+			}
+		}
 		// (Re)generate the Xray config whenever routing was or is now enabled, so
 		// the egress SOCKS bridge is added, moved, or dropped to match the new
 		// settings.
@@ -1188,11 +1383,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
 		} else if routingChanged {
 			needRestart = true
-		}
-	}
-	if markDirty && oldInbound.NodeID != nil {
-		if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
-			logger.Warning("mark node dirty failed:", dErr)
 		}
 	}
 	return inbound, needRestart, nil
@@ -1338,7 +1528,7 @@ func (s *InboundService) GetInboundTags() (string, error) {
 	db := database.GetDB()
 	var inboundTags []string
 	err := db.Model(model.Inbound{}).Select("tag").Find(&inboundTags).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", err
 	}
 	tags, _ := json.Marshal(inboundTags)
@@ -1349,7 +1539,7 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 	db := database.GetDB()
 	var inbounds []model.Inbound
 	err := db.Model(model.Inbound{}).Select("settings").Where("protocol = ?", "vless").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "[]", err
 	}
 
@@ -1394,7 +1584,7 @@ func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) 
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return inbounds, nil

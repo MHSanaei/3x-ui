@@ -58,6 +58,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapInboundTags": {
         "type": "string"
       },
+      "ldapInsecureSkipVerify": {
+        "type": "boolean"
+      },
       "ldapInvertFlag": {
         "type": "boolean"
       },
@@ -403,6 +406,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapFlagField",
       "ldapHost",
       "ldapInboundTags",
+      "ldapInsecureSkipVerify",
       "ldapInvertFlag",
       "ldapPassword",
       "ldapPort",
@@ -562,6 +566,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "ldapInboundTags": {
         "type": "string"
+      },
+      "ldapInsecureSkipVerify": {
+        "type": "boolean"
       },
       "ldapInvertFlag": {
         "type": "boolean"
@@ -915,6 +922,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapFlagField",
       "ldapHost",
       "ldapInboundTags",
+      "ldapInsecureSkipVerify",
       "ldapInvertFlag",
       "ldapPassword",
       "ldapPort",
@@ -1058,6 +1066,16 @@ export const SCHEMAS: Record<string, unknown> = {
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
+      "adTag": {
+        "example": "0123456789abcdef0123456789abcdef",
+        "type": "string"
+      },
+      "allowedIPs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "auth": {
         "description": "Auth password (Hysteria)",
         "type": "string"
@@ -1094,12 +1112,24 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Unique client identifier",
         "type": "string"
       },
+      "keepAlive": {
+        "type": "integer"
+      },
       "limitIp": {
         "description": "IP limit for this client",
         "type": "integer"
       },
       "password": {
         "description": "Client password",
+        "type": "string"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
         "type": "string"
       },
       "reset": {
@@ -1114,6 +1144,10 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "description": "VLESS simple reverse proxy settings",
         "nullable": true
+      },
+      "secret": {
+        "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
+        "type": "string"
       },
       "security": {
         "description": "Security method (e.g., \"auto\", \"aes-128-gcm\")",
@@ -1175,6 +1209,12 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "ClientRecord": {
     "properties": {
+      "adTag": {
+        "type": "string"
+      },
+      "allowedIPs": {
+        "type": "string"
+      },
       "auth": {
         "type": "string"
       },
@@ -1202,16 +1242,31 @@ export const SCHEMAS: Record<string, unknown> = {
       "id": {
         "type": "integer"
       },
+      "keepAlive": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
       "password": {
         "type": "string"
       },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      },
       "reset": {
         "type": "integer"
       },
       "reverse": {},
+      "secret": {
+        "type": "string"
+      },
       "security": {
         "type": "string"
       },
@@ -1232,6 +1287,8 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "adTag",
+      "allowedIPs",
       "auth",
       "comment",
       "createdAt",
@@ -1241,10 +1298,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "flow",
       "group",
       "id",
+      "keepAlive",
       "limitIp",
       "password",
+      "preSharedKey",
+      "privateKey",
+      "publicKey",
       "reset",
       "reverse",
+      "secret",
       "security",
       "subId",
       "tgId",
@@ -1499,7 +1561,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "vlessRoute": {
-        "description": "VlessRoute is a free-form port/range routing spec (e.g. \"53,443,1000-2000\");\nstored verbatim, format-validated on the frontend.",
+        "description": "Single VLESS route value (0-65535) baked into the subscription UUID's 3rd\ngroup (bytes 6-7), which xray reads via net.PortFromBytes(id[6:8]). Empty = none.",
+        "example": "443",
         "type": "string"
       }
     },
@@ -1751,9 +1814,23 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "InboundOption": {
     "properties": {
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
       "id": {
         "example": 1,
         "type": "integer"
+      },
+      "listen": {
+        "type": "string"
+      },
+      "mtprotoDomain": {
+        "type": "string"
+      },
+      "nodeAddress": {
+        "description": "Share-host resolution inputs, mirroring the subscription's\nresolveInboundAddress so the clients page renders a node-managed WireGuard\nEndpoint that points at the node, not the master panel. NodeAddress is the\nhosting node's externally reachable address (empty for this panel's own\ninbounds); Listen and ShareAddrStrategy/ShareAddr feed the same\nnode→listen→custom fallback the share/QR links already use.",
+        "type": "string"
       },
       "nodeId": {
         "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
@@ -1772,6 +1849,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "VLESS-443",
         "type": "string"
       },
+      "shareAddr": {
+        "type": "string"
+      },
+      "shareAddrStrategy": {
+        "type": "string"
+      },
       "ssMethod": {
         "type": "string"
       },
@@ -1782,9 +1865,19 @@ export const SCHEMAS: Record<string, unknown> = {
       "tlsFlowCapable": {
         "example": true,
         "type": "boolean"
+      },
+      "wgDns": {
+        "type": "string"
+      },
+      "wgMtu": {
+        "type": "integer"
+      },
+      "wgPublicKey": {
+        "type": "string"
       }
     },
     "required": [
+      "enable",
       "id",
       "port",
       "protocol",
@@ -2362,6 +2455,34 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PanelUpdateStatus": {
+    "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
+    "properties": {
+      "exitCode": {
+        "example": 0,
+        "type": "integer"
+      },
+      "finishedAt": {
+        "example": 1735689612,
+        "type": "integer"
+      },
+      "runId": {
+        "example": "1735689600123456789",
+        "type": "string"
+      },
+      "state": {
+        "example": "success",
+        "type": "string"
+      }
+    },
+    "required": [
+      "exitCode",
+      "finishedAt",
+      "runId",
+      "state"
+    ],
+    "type": "object"
+  },
   "ProbeResultUI": {
     "properties": {
       "cpuPct": {
@@ -2414,6 +2535,104 @@ export const SCHEMAS: Record<string, unknown> = {
       "xrayError",
       "xrayState",
       "xrayVersion"
+    ],
+    "type": "object"
+  },
+  "RealityScanResult": {
+    "properties": {
+      "alpn": {
+        "example": "h2",
+        "type": "string"
+      },
+      "certIssuer": {
+        "example": "Google Trust Services",
+        "type": "string"
+      },
+      "certSubject": {
+        "example": "cloudflare.com",
+        "type": "string"
+      },
+      "certValid": {
+        "example": true,
+        "type": "boolean"
+      },
+      "curveID": {
+        "example": "X25519",
+        "type": "string"
+      },
+      "feasible": {
+        "example": true,
+        "type": "boolean"
+      },
+      "h2": {
+        "example": true,
+        "type": "boolean"
+      },
+      "host": {
+        "example": "www.cloudflare.com",
+        "type": "string"
+      },
+      "ip": {
+        "example": "104.16.124.96",
+        "type": "string"
+      },
+      "latencyMs": {
+        "example": 180,
+        "type": "integer"
+      },
+      "notAfter": {
+        "example": "2026-08-01T00:00:00Z",
+        "type": "string"
+      },
+      "port": {
+        "example": 443,
+        "type": "integer"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "serverNames": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "target": {
+        "example": "www.cloudflare.com:443",
+        "type": "string"
+      },
+      "tls13": {
+        "example": true,
+        "type": "boolean"
+      },
+      "tlsVersion": {
+        "example": "1.3",
+        "type": "string"
+      },
+      "x25519": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "alpn",
+      "certIssuer",
+      "certSubject",
+      "certValid",
+      "curveID",
+      "feasible",
+      "h2",
+      "host",
+      "ip",
+      "latencyMs",
+      "notAfter",
+      "port",
+      "reason",
+      "serverNames",
+      "target",
+      "tls13",
+      "tlsVersion",
+      "x25519"
     ],
     "type": "object"
   },

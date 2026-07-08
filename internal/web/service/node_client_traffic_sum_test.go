@@ -3,13 +3,15 @@ package service
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-	"gorm.io/gorm"
 )
 
 func initTrafficTestDB(t *testing.T) *gorm.DB {
@@ -132,6 +134,47 @@ func TestNodeAdd_ImportsClientHistoryWithNewInbound(t *testing.T) {
 
 	syncNode(t, svc, 1, "fresh-in", xray.ClientTraffic{Email: email, Up: histUp + 1024, Down: histDown + 2048, Enable: true})
 	assertUpDown(t, readTraffic(t, db, email), histUp+1024, histDown+2048, "post-import delta accrues, no double count")
+}
+
+// TestStaleSnapshot_DeletedClientNotResurrected reproduces #5739: a snapshot
+// fetched just before a client's deletion still names the email. Applying it
+// must neither recreate the client_traffics row (at zero) nor re-add the
+// client to the central inbound's settings while the delete tombstone lives.
+func TestStaleSnapshot_DeletedClientNotResurrected(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "victim-5739")
+	svc := &InboundService{}
+
+	const email = "victim-5739"
+	withClient := fmt.Sprintf(`{"clients": [{"email": %q, "enable": true}]}`, email)
+	syncNodeWithSettings(t, svc, 1, "n1-in", withClient, xray.ClientTraffic{Email: email, Up: 100, Down: 100, Enable: true})
+
+	if err := db.Model(&model.Inbound{}).Where("tag = ?", "n1-in").
+		Update("settings", `{"clients": []}`).Error; err != nil {
+		t.Fatalf("clear central settings: %v", err)
+	}
+	if err := db.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
+		t.Fatalf("delete stats row: %v", err)
+	}
+	tombstoneClientEmail(email)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", withClient, xray.ClientTraffic{Email: email, Up: 120, Down: 120, Enable: true})
+
+	var rows int64
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Count(&rows).Error; err != nil {
+		t.Fatalf("count stats rows: %v", err)
+	}
+	if rows != 0 {
+		t.Errorf("deleted client's stats row resurrected by stale snapshot (%d rows)", rows)
+	}
+
+	var ib model.Inbound
+	if err := db.Where("tag = ?", "n1-in").First(&ib).Error; err != nil {
+		t.Fatalf("load inbound: %v", err)
+	}
+	if strings.Contains(ib.Settings, email) {
+		t.Errorf("deleted client re-added to central settings: %s", ib.Settings)
+	}
 }
 
 func TestNodeAdd_TombstonedClientNotResurrected(t *testing.T) {

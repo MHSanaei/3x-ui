@@ -16,6 +16,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapFlagField": "",
     "ldapHost": "",
     "ldapInboundTags": "",
+    "ldapInsecureSkipVerify": false,
     "ldapInvertFlag": false,
     "ldapPassword": "",
     "ldapPort": 0,
@@ -118,6 +119,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapFlagField": "",
     "ldapHost": "",
     "ldapInboundTags": "",
+    "ldapInsecureSkipVerify": false,
     "ldapInvertFlag": false,
     "ldapPassword": "",
     "ldapPort": 0,
@@ -212,6 +214,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "token": "new-token-string"
   },
   "Client": {
+    "adTag": "0123456789abcdef0123456789abcdef",
+    "allowedIPs": [
+      ""
+    ],
     "auth": "",
     "comment": "",
     "created_at": 0,
@@ -221,10 +227,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "flow": "",
     "group": "",
     "id": "",
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
+    "secret": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
     "security": "",
     "subId": "",
     "tgId": 0,
@@ -238,6 +249,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "inboundId": 0
   },
   "ClientRecord": {
+    "adTag": "",
+    "allowedIPs": "",
     "auth": "",
     "comment": "",
     "createdAt": 0,
@@ -247,10 +260,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "flow": "",
     "group": "",
     "id": 0,
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": "",
     "reset": 0,
     "reverse": null,
+    "secret": "",
     "security": "",
     "subId": "",
     "tgId": 0,
@@ -326,7 +344,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "updatedAt": 0,
     "verifyPeerCertByName": "",
-    "vlessRoute": ""
+    "vlessRoute": "443"
   },
   "Inbound": {
     "clientStats": [
@@ -385,14 +403,23 @@ export const EXAMPLES: Record<string, unknown> = {
     "xver": 0
   },
   "InboundOption": {
+    "enable": true,
     "id": 1,
+    "listen": "",
+    "mtprotoDomain": "",
+    "nodeAddress": "",
     "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",
+    "shareAddr": "",
+    "shareAddrStrategy": "",
     "ssMethod": "",
     "tag": "in-443-tcp",
-    "tlsFlowCapable": true
+    "tlsFlowCapable": true,
+    "wgDns": "",
+    "wgMtu": 0,
+    "wgPublicKey": ""
   },
   "Msg": {
     "msg": "",
@@ -515,6 +542,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 0,
     "up": 0
   },
+  "PanelUpdateStatus": {
+    "exitCode": 0,
+    "finishedAt": 1735689612,
+    "runId": "1735689600123456789",
+    "state": "success"
+  },
   "ProbeResultUI": {
     "cpuPct": 12.5,
     "error": "",
@@ -526,6 +559,28 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayError": "",
     "xrayState": "",
     "xrayVersion": "25.10.31"
+  },
+  "RealityScanResult": {
+    "alpn": "h2",
+    "certIssuer": "Google Trust Services",
+    "certSubject": "cloudflare.com",
+    "certValid": true,
+    "curveID": "X25519",
+    "feasible": true,
+    "h2": true,
+    "host": "www.cloudflare.com",
+    "ip": "104.16.124.96",
+    "latencyMs": 180,
+    "notAfter": "2026-08-01T00:00:00Z",
+    "port": 443,
+    "reason": "",
+    "serverNames": [
+      ""
+    ],
+    "target": "www.cloudflare.com:443",
+    "tls13": true,
+    "tlsVersion": "1.3",
+    "x25519": true
   },
   "Setting": {
     "id": 0,

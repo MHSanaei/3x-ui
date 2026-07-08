@@ -4,6 +4,7 @@ import { Button, QRCode, Tag, Tooltip, message } from 'antd';
 import { CopyOutlined, DownloadOutlined, PictureOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, FileManager } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import './QrPanel.css';
 
 interface QrPanelProps {
@@ -96,21 +97,29 @@ export default function QrPanel({
       <div className="qr-panel-header">
         <Tag color="green" className="qr-remark">{remark}</Tag>
         <Tooltip title={t('copy')}>
-          <Button size="small" icon={<CopyOutlined />} onClick={copy} />
+          <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={copy} />
         </Tooltip>
         {showQr && (
-          <Tooltip title={t('downloadImage') !== 'downloadImage' ? t('downloadImage') : 'Download Image'}>
-            <Button size="small" icon={<PictureOutlined />} onClick={downloadImage} />
+          <Tooltip title={t('downloadImage')}>
+            <Button size="small" icon={<PictureOutlined />} aria-label={t('downloadImage')} onClick={downloadImage} />
           </Tooltip>
         )}
         {downloadName && (
           <Tooltip title={t('download')}>
-            <Button size="small" icon={<DownloadOutlined />} onClick={download} />
+            <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={download} />
           </Tooltip>
         )}
       </div>
       {showQr && (
-        <div ref={qrRef} className="qr-panel-canvas">
+        <div
+          ref={qrRef}
+          className="qr-panel-canvas"
+          role="button"
+          tabIndex={0}
+          aria-label={t('copy')}
+          onClick={copyImage}
+          onKeyDown={activateOnKey(copyImage)}
+        >
           <Tooltip title={t('copy')}>
             <QRCode
               className="qr-code"
@@ -120,7 +129,6 @@ export default function QrPanel({
               bordered={false}
               color="#000000"
               bgColor="#ffffff"
-              onClick={copyImage}
             />
           </Tooltip>
         </div>

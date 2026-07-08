@@ -3,14 +3,15 @@ package panel
 import (
 	"errors"
 
+	"github.com/xlzd/gotp"
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	ldaputil "github.com/mhsanaei/3x-ui/v3/internal/util/ldap"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/xlzd/gotp"
-	"gorm.io/gorm"
 )
 
 // UserService provides business logic for user management and authentication.
@@ -43,7 +44,7 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		Where("username = ?", username).
 		First(user).
 		Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("invalid credentials")
 	} else if err != nil {
 		logger.Warning("check user err:", err)
@@ -59,6 +60,7 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		host, _ := s.settingService.GetLdapHost()
 		port, _ := s.settingService.GetLdapPort()
 		useTLS, _ := s.settingService.GetLdapUseTLS()
+		skipVerify, _ := s.settingService.GetLdapInsecureSkipVerify()
 		bindDN, _ := s.settingService.GetLdapBindDN()
 		ldapPass, _ := s.settingService.GetLdapPassword()
 		baseDN, _ := s.settingService.GetLdapBaseDN()
@@ -66,14 +68,15 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		userAttr, _ := s.settingService.GetLdapUserAttr()
 
 		cfg := ldaputil.Config{
-			Host:       host,
-			Port:       port,
-			UseTLS:     useTLS,
-			BindDN:     bindDN,
-			Password:   ldapPass,
-			BaseDN:     baseDN,
-			UserFilter: userFilter,
-			UserAttr:   userAttr,
+			Host:               host,
+			Port:               port,
+			UseTLS:             useTLS,
+			InsecureSkipVerify: skipVerify,
+			BindDN:             bindDN,
+			Password:           ldapPass,
+			BaseDN:             baseDN,
+			UserFilter:         userFilter,
+			UserAttr:           userAttr,
 		}
 		ok, err := ldaputil.AuthenticateUser(cfg, username, password)
 		if err != nil || !ok {
@@ -89,7 +92,6 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 
 	if twoFactorEnable {
 		twoFactorToken, err := s.settingService.GetTwoFactorToken()
-
 		if err != nil {
 			logger.Warning("check two factor token err:", err)
 			return nil, err
@@ -114,7 +116,6 @@ func (s *UserService) BumpLoginEpoch() error {
 func (s *UserService) UpdateUser(id int, username string, password string) error {
 	db := database.GetDB()
 	hashedPassword, err := crypto.HashPasswordAsBcrypt(password)
-
 	if err != nil {
 		return err
 	}
@@ -125,8 +126,8 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 	}
 
 	if twoFactorEnable {
-		s.settingService.SetTwoFactorEnable(false)
-		s.settingService.SetTwoFactorToken("")
+		_ = s.settingService.SetTwoFactorEnable(false)
+		_ = s.settingService.SetTwoFactorToken("")
 	}
 
 	return db.Model(model.User{}).

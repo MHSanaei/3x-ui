@@ -157,3 +157,77 @@ func TestAdjustTraffics_DelayedStartConvertsDespiteStaleInboundId(t *testing.T) 
 		t.Errorf("inbound settings expiry not converted: %#v", cs)
 	}
 }
+
+// TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients locks in that the
+// delayed-start persistence pass touches only clients adjustTraffics actually
+// converted this poll: the delayed client's negative expiry becomes an absolute
+// deadline while an already-absolute expiry passes through byte-identical.
+// Before the fix every polled row got its own no-op expiry UPDATE.
+func TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+
+	const delayedEmail = "delayed-mixed-user"
+	const normalEmail = "normal-mixed-user"
+	const delayedUID = "ce8d33df-3a64-4f10-8f9b-91c3a8e0d002"
+	const normalUID = "ce8d33df-3a64-4f10-8f9b-91c3a8e0d003"
+	const sevenDays = int64(7 * 86400000)
+	normalExpiry := time.Now().AddDate(0, 1, 0).UnixMilli()
+
+	clients := []model.Client{
+		{Email: delayedEmail, ID: delayedUID, Enable: true, ExpiryTime: -sevenDays},
+		{Email: normalEmail, ID: normalUID, Enable: true, ExpiryTime: normalExpiry},
+	}
+	inbound := &model.Inbound{
+		Tag: "vless-mixed", Enable: true, Port: 45002, Protocol: model.VLESS,
+		Settings: clientsSettings(t, clients),
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	svc := InboundService{}
+	if err := svc.clientService.SyncInbound(db, inbound.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: delayedEmail, Enable: true, ExpiryTime: -sevenDays}).Error; err != nil {
+		t.Fatalf("create delayed traffic row: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: normalEmail, Enable: true, ExpiryTime: normalExpiry}).Error; err != nil {
+		t.Fatalf("create normal traffic row: %v", err)
+	}
+
+	before := time.Now().UnixMilli()
+	err := svc.addClientTraffic(db, []*xray.ClientTraffic{
+		{Email: delayedEmail, Up: 10, Down: 20},
+		{Email: normalEmail, Up: 30, Down: 40},
+	})
+	if err != nil {
+		t.Fatalf("addClientTraffic: %v", err)
+	}
+
+	var delayed xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", delayedEmail).First(&delayed).Error; err != nil {
+		t.Fatalf("reload delayed row: %v", err)
+	}
+	if delayed.ExpiryTime < before+sevenDays-5000 || delayed.ExpiryTime > before+sevenDays+5000 {
+		t.Errorf("delayed expiry = %d, want ~now+7d (%d)", delayed.ExpiryTime, before+sevenDays)
+	}
+
+	var normal xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", normalEmail).First(&normal).Error; err != nil {
+		t.Fatalf("reload normal row: %v", err)
+	}
+	if normal.ExpiryTime != normalExpiry {
+		t.Errorf("normal expiry changed: %d, want %d", normal.ExpiryTime, normalExpiry)
+	}
+	if normal.Up != 30 || normal.Down != 40 {
+		t.Errorf("normal traffic not applied: up=%d down=%d, want 30/40", normal.Up, normal.Down)
+	}
+}

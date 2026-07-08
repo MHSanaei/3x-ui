@@ -47,7 +47,7 @@ export default function RemarkTemplateField({ value = '', onChange, maxLength, p
         maxLength={maxLength}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
-        addonAfter={
+        suffix={
           <Popover
             content={<RemarkVarPicker onPick={insertToken} />}
             trigger="click"
@@ -55,7 +55,7 @@ export default function RemarkTemplateField({ value = '', onChange, maxLength, p
             title={t('pages.hosts.remarkVars.title')}
           >
             <Tooltip title={t('pages.hosts.remarkVars.title')}>
-              <Button type="text" size="small" icon={<CodeOutlined />} style={{ margin: '0 -7px' }} />
+              <Button type="text" size="small" icon={<CodeOutlined />} aria-label={t('pages.hosts.remarkVars.title')} style={{ marginInlineEnd: -7 }} />
             </Tooltip>
           </Popover>
         }

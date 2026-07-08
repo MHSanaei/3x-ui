@@ -9,17 +9,22 @@ import (
 )
 
 type Config struct {
-	Host       string
-	Port       int
-	UseTLS     bool
-	BindDN     string
-	Password   string
-	BaseDN     string
-	UserFilter string
-	UserAttr   string
-	FlagField  string
-	TruthyVals []string
-	Invert     bool
+	Host               string
+	Port               int
+	UseTLS             bool
+	InsecureSkipVerify bool
+	BindDN             string
+	Password           string
+	BaseDN             string
+	UserFilter         string
+	UserAttr           string
+	FlagField          string
+	TruthyVals         []string
+	Invert             bool
+}
+
+func tlsConfig(cfg Config) *tls.Config {
+	return &tls.Config{InsecureSkipVerify: cfg.InsecureSkipVerify}
 }
 
 // FetchVlessFlags returns map[email]enabled
@@ -35,9 +40,7 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 
 	var opts []ldap.DialOpt
 	if cfg.UseTLS {
-		opts = append(opts, ldap.DialWithTLSConfig(&tls.Config{
-			InsecureSkipVerify: false,
-		}))
+		opts = append(opts, ldap.DialWithTLSConfig(tlsConfig(cfg)))
 	}
 
 	conn, err := ldap.DialURL(ldapURL, opts...)
@@ -105,9 +108,7 @@ func AuthenticateUser(cfg Config, username, password string) (bool, error) {
 
 	var opts []ldap.DialOpt
 	if cfg.UseTLS {
-		opts = append(opts, ldap.DialWithTLSConfig(&tls.Config{
-			InsecureSkipVerify: false,
-		}))
+		opts = append(opts, ldap.DialWithTLSConfig(tlsConfig(cfg)))
 	}
 
 	conn, err := ldap.DialURL(ldapURL, opts...)

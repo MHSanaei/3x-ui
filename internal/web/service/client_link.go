@@ -75,6 +75,12 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if incoming.Auth != "" {
 			row.Auth = incoming.Auth
 		}
+		if incoming.Secret != "" {
+			row.Secret = incoming.Secret
+		}
+		if incoming.AdTag != "" {
+			row.AdTag = incoming.AdTag
+		}
 		row.Flow = incoming.Flow
 		if incoming.Security != "" {
 			row.Security = incoming.Security
@@ -82,6 +88,17 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if incoming.Reverse != "" {
 			row.Reverse = incoming.Reverse
 		}
+		if incoming.PrivateKey != "" {
+			row.PrivateKey = incoming.PrivateKey
+		}
+		if incoming.PublicKey != "" {
+			row.PublicKey = incoming.PublicKey
+		}
+		if incoming.AllowedIPs != "" {
+			row.AllowedIPs = incoming.AllowedIPs
+		}
+		row.PreSharedKey = incoming.PreSharedKey
+		row.KeepAlive = incoming.KeepAlive
 		row.SubID = incoming.SubID
 		row.LimitIP = incoming.LimitIP
 		row.TotalGB = incoming.TotalGB
@@ -172,6 +189,37 @@ func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Clie
 		Select("clients.*, client_inbounds.flow_override AS flow_override").
 		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
 		Where("client_inbounds.inbound_id = ?", inboundId).
+		Order("clients.id ASC").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]model.Client, 0, len(rows))
+	for i := range rows {
+		c := rows[i].ToClient()
+		c.Flow = rows[i].FlowOverride
+		out = append(out, *c)
+	}
+	return out, nil
+}
+
+// ListForInboundBySubId is ListForInbound narrowed to one subscription id —
+// both filter columns are indexed, so the subscription server resolves a
+// subscriber's clients without touching the inbound's settings JSON.
+func (s *ClientService) ListForInboundBySubId(tx *gorm.DB, inboundId int, subId string) ([]model.Client, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	type joinedRow struct {
+		model.ClientRecord
+		FlowOverride string
+	}
+	var rows []joinedRow
+	err := tx.Table("clients").
+		Select("clients.*, client_inbounds.flow_override AS flow_override").
+		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Where("client_inbounds.inbound_id = ? AND clients.sub_id = ?", inboundId, subId).
 		Order("clients.id ASC").
 		Find(&rows).Error
 	if err != nil {

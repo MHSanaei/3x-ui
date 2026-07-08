@@ -361,7 +361,7 @@ func TestConnectionTokensDisplayContextUnchanged(t *testing.T) {
 	}
 }
 
-func TestIdentityTokensEverywhere(t *testing.T) {
+func TestIdentityTokenBodyVsDisplay(t *testing.T) {
 	const tmpl = "{{INBOUND}}|📊{{TRAFFIC_LEFT}}|{{EMAIL}}"
 	inbound := &model.Inbound{
 		Remark:         "DE",
@@ -373,8 +373,8 @@ func TestIdentityTokensEverywhere(t *testing.T) {
 
 	body := &SubService{remarkTemplate: tmpl, subscriptionBody: true, usageShown: map[string]bool{}}
 	_ = body.genTemplatedRemark(inbound, client, "", "ws") // first link consumes the usage block
-	if second := body.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(second, "john@x") {
-		t.Fatalf("repeat body link %q must keep the identity token", second)
+	if second := body.genTemplatedRemark(inbound, client, "", "ws"); strings.Contains(second, "john@x") {
+		t.Fatalf("repeat body link %q must drop the identity token", second)
 	}
 
 	display := &SubService{remarkTemplate: tmpl, subscriptionBody: false}
@@ -608,5 +608,34 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 	}
 	if strings.Contains(second, "📊") {
 		t.Fatalf("second link must not carry usage: %q", second)
+	}
+}
+
+func TestEmailOnFirstLinkOnly(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	inbound := &model.Inbound{
+		Remark: "DE",
+		ClientStats: []xray.ClientTraffic{{
+			Email:  "alice@x",
+			Enable: true,
+			Total:  100 * gb,
+		}},
+	}
+	client := model.Client{Email: "alice@x"}
+	first := s.genTemplatedRemark(inbound, client, "", "ws")
+	s.usageShown["alice@x"] = true
+	second := s.genTemplatedRemark(inbound, client, "", "ws")
+	if !strings.Contains(first, "alice@x") {
+		t.Fatalf("first link should carry email: %q", first)
+	}
+	if strings.Contains(second, "alice@x") {
+		t.Fatalf("second link must not carry email: %q", second)
+	}
+	if !strings.Contains(second, "DE") {
+		t.Fatalf("second link should still carry the inbound name: %q", second)
 	}
 }

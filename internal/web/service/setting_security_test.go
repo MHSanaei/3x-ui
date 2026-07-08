@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/xlzd/gotp"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -75,7 +77,7 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := &view.AllSetting
-	if err := s.UpdateAllSetting(settings); err != nil {
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.GetTgBotToken(); got != "telegram-secret" {
@@ -92,11 +94,78 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 	}
 }
 
+func TestUpdateAllSettingClearsFlaggedSecrets(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	if err := s.saveSetting("tgBotToken", "telegram-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.saveSetting("ldapPassword", "ldap-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.saveSetting("smtpPassword", "smtp-secret"); err != nil {
+		t.Fatal(err)
+	}
+
+	view, err := s.GetAllSettingView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UpdateAllSetting(&view.AllSetting, SecretClears{SmtpPassword: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetSmtpPassword(); got != "" {
+		t.Fatalf("smtp password = %q, want cleared", got)
+	}
+	if got, _ := s.GetTgBotToken(); got != "telegram-secret" {
+		t.Fatalf("tg token = %q, unflagged secret must stay preserved", got)
+	}
+	if got, _ := s.GetLdapPassword(); got != "ldap-secret" {
+		t.Fatalf("ldap password = %q, unflagged secret must stay preserved", got)
+	}
+
+	view, err = s.GetAllSettingView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.HasSmtpPassword {
+		t.Fatal("hasSmtpPassword must report false after clearing")
+	}
+	if err := s.UpdateAllSetting(&view.AllSetting, SecretClears{TgBotToken: true, LdapPassword: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetTgBotToken(); got != "" {
+		t.Fatalf("tg token = %q, want cleared", got)
+	}
+	if got, _ := s.GetLdapPassword(); got != "" {
+		t.Fatalf("ldap password = %q, want cleared", got)
+	}
+}
+
 func TestSanitizePublicHTTPURLBlocksPrivateAddressUnlessAllowed(t *testing.T) {
 	if _, err := SanitizePublicHTTPURL("http://127.0.0.1:8080/hook", false); err == nil {
 		t.Fatal("expected localhost URL to be blocked")
 	}
 	if got, err := SanitizePublicHTTPURL("http://127.0.0.1:8080/hook", true); err != nil || got != "http://127.0.0.1:8080/hook" {
 		t.Fatalf("allowPrivate result = %q, %v", got, err)
+	}
+}
+
+func TestVerifyTwoFactorCode(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	if err := s.saveSetting("twoFactorEnable", "true"); err != nil {
+		t.Fatal(err)
+	}
+	const token = "JBSWY3DPEHPK3PXP"
+	if err := s.saveSetting("twoFactorToken", token); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.VerifyTwoFactorCode(gotp.NewDefaultTOTP(token).Now()); err != nil {
+		t.Fatalf("valid code rejected: %v", err)
+	}
+	if err := s.VerifyTwoFactorCode("000000"); err == nil {
+		t.Fatal("invalid code accepted")
 	}
 }

@@ -472,11 +472,13 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
 	}
-	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+			return err
+		}
+		return s.MarkNodeDirtyTx(tx, id)
+	}); err != nil {
 		return err
-	}
-	if dErr := s.MarkNodeDirty(id); dErr != nil {
-		logger.Warning("mark node dirty after update failed:", dErr)
 	}
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
@@ -859,10 +861,17 @@ func (s *NodeService) warnOnDuplicateGuid(id int, guid string) {
 }
 
 func (s *NodeService) MarkNodeDirty(id int) error {
+	return s.MarkNodeDirtyTx(database.GetDB(), id)
+}
+
+func (s *NodeService) MarkNodeDirtyTx(tx *gorm.DB, id int) error {
 	if id <= 0 {
 		return nil
 	}
-	return database.GetDB().Model(model.Node{}).
+	if tx == nil {
+		return errors.New("nil db transaction")
+	}
+	return tx.Model(model.Node{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
 			"config_dirty":    true,
@@ -894,12 +903,19 @@ func (s *NodeService) NodeSyncState(id int) (enabled bool, status string, dirty 
 	return row.Enable, row.Status, row.ConfigDirty, row.ConfigDirtyAt, nil
 }
 
+// IsNodePending reports whether a save targeting this node was deferred because
+// the node is unreachable right now — offline or disabled — so the edit only
+// reaches it on the next reconcile. It deliberately ignores config_dirty: that
+// flag is set on EVERY node-backed edit as the reconcile self-heal marker,
+// including edits pushed live to an online node, so keying the user-facing
+// "saved, node offline, will sync" toast off it fired the warning on every save
+// to a perfectly healthy online node.
 func (s *NodeService) IsNodePending(id int) bool {
-	enabled, status, dirty, _, err := s.NodeSyncState(id)
+	enabled, status, _, _, err := s.NodeSyncState(id)
 	if err != nil {
 		return false
 	}
-	return !enabled || status != "online" || dirty
+	return !enabled || status != "online"
 }
 
 func nodeMetricKey(id int, metric string) string {
@@ -955,7 +971,7 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 		return
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		fn("")
 		return

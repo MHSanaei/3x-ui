@@ -1,0 +1,65 @@
+---
+title: پایگاه داده
+description: بک‌اندهای ذخیره‌سازی 3x-ui — SQLite (پیش‌فرض) و PostgreSQL — مسیر پایگاه داده، استخر اتصال و مهاجرت از SQLite به PostgreSQL.
+icon: Database
+---
+
+3x-ui همه چیز را — inboundها، کلاینت‌ها و تنظیمات — در یک پایگاه داده ذخیره می‌کند.
+بک‌اند را هنگام نصب انتخاب می‌کنید؛ هر دو کاملاً پشتیبانی می‌شوند.
+
+## SQLite (پیش‌فرض)
+
+یک فایل واحد در مسیر `/etc/x-ui/x-ui.db`. بدون نیاز به هیچ راه‌اندازی، ایده‌آل برای
+استقرارهای کوچک و متوسط. این پوشه با
+[`XUI_DB_FOLDER`](/docs/reference/env-vars#database) قابل تنظیم است (در ویندوز به‌طور
+پیش‌فرض کنار فایل اجرایی قرار می‌گیرد).
+
+## PostgreSQL
+
+برای تعداد بالای کلاینت‌ها یا راه‌اندازی‌های چندنودی توصیه می‌شود. نصب‌کننده می‌تواند
+PostgreSQL را به‌صورت محلی برای شما نصب کند، یا یک DSN به سروری موجود را بپذیرد. در زمان
+اجرا بک‌اند از طریق متغیرهای محیطی انتخاب می‌شود که نصب‌کننده آن‌ها را در
+`/etc/default/x-ui` می‌نویسد:
+
+```bash title="/etc/default/x-ui"
+XUI_DB_TYPE=postgres
+XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
+```
+
+استخر اتصال را با `XUI_DB_MAX_OPEN_CONNS` و
+`XUI_DB_MAX_IDLE_CONNS` تنظیم کنید.
+
+### Docker
+
+دستور `docker compose up -d` همچنان از SQLite استفاده می‌کند. برای اجرا با سرویس
+PostgreSQL همراه، دو خط `XUI_DB_*` را در `docker-compose.yml` از حالت کامنت خارج کنید و
+با این پروفایل اجرا کنید:
+
+```bash
+docker compose --profile postgres up -d
+```
+
+## مهاجرت از SQLite به PostgreSQL
+
+یک نصب موجود SQLite را با دستور داخلی به PostgreSQL منتقل کنید:
+
+```bash
+x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
+```
+
+سپس `XUI_DB_TYPE` و `XUI_DB_DSN` را در `/etc/default/x-ui` تنظیم کرده و سرویس را مجدداً
+راه‌اندازی کنید:
+
+```bash
+systemctl restart x-ui
+```
+
+<Callout type="info">
+  فایل مبدأ SQLite دست‌نخورده باقی می‌ماند — آن را تنها پس از اینکه از کارکرد صحیح
+  بک‌اند جدید مطمئن شدید، به‌صورت دستی حذف کنید.
+</Callout>
+
+## پشتیبان‌گیری
+
+از هر بک‌اندی که استفاده می‌کنید، به‌طور منظم از آن پشتیبان بگیرید — به
+[پشتیبان‌گیری و بازیابی](/docs/operations/backup-restore) مراجعه کنید.

@@ -200,6 +200,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
                 onChange={(e) => setRow(i, { file: e.target.value })}
               />
               <Button
+                aria-label={t('delete')}
                 icon={<DeleteOutlined />}
                 onClick={() => setRows((p) => p.filter((_, j) => j !== i))}
               />
