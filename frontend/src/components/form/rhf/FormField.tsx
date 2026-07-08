@@ -23,6 +23,7 @@ export interface FormFieldProps<T extends FieldValues = FieldValues> {
   transform?: FormFieldTransform;
   onAfterChange?: (value: unknown) => void;
   rules?: ControllerProps<T>['rules'];
+  required?: boolean;
   noStyle?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -39,6 +40,7 @@ export function FormField<T extends FieldValues = FieldValues>({
   transform,
   onAfterChange,
   rules,
+  required,
   noStyle,
   className,
   style,
@@ -73,6 +75,7 @@ export function FormField<T extends FieldValues = FieldValues>({
             label={label}
             tooltip={tooltip}
             extra={extra}
+            required={required}
             validateStatus={fieldState.error ? 'error' : undefined}
             help={help}
             noStyle={noStyle}
