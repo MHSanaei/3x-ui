@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
+import { Alert, Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
 import {
   DatabaseOutlined,
   DeleteOutlined,
@@ -237,6 +237,12 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
             />
             {dnsEnabled && (
               <>
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={t('pages.xray.dns.dnsLeakWarning')}
+                  style={{ marginBottom: 12 }}
+                />
                 <SettingListItem
                   paddings="small"
                   title={t('pages.xray.dns.tag')}

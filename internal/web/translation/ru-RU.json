@@ -1858,7 +1858,8 @@
         "dnsPresetFamily": "Семейный",
         "clearAll": "Удалить все",
         "clearAllTitle": "Удалить все DNS-серверы?",
-        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить."
+        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить.",
+        "dnsLeakWarning": "DNS может утекать через localhost, обычный UDP/TCP, локальный режим DoH/DoQ, fallback-запросы или EDNS client IP. Для приватности используйте маршрутизируемый DoH, закрепляйте резолверы в hosts и отключайте fallback."
       },
       "fakedns": {
         "add": "Создать Fake DNS",

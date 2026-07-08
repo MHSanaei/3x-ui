@@ -1858,7 +1858,8 @@
         "dnsPresetFamily": "Сімейний",
         "clearAll": "Видалити всі",
         "clearAllTitle": "Видалити всі DNS-сервери?",
-        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати."
+        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати.",
+        "dnsLeakWarning": "DNS може витікати через localhost, звичайний UDP/TCP, локальний режим DoH/DoQ, fallback-запити або EDNS client IP. Для приватності використовуйте маршрутизований DoH, фіксацію hosts і вимикайте fallback."
       },
       "fakedns": {
         "add": "Додати підроблений DNS",
