@@ -32,7 +32,15 @@ export default function FinalMaskField({ value, onChange, network, protocol, sho
   }, [finalmask]);
 
   return (
-    <Form form={form} component={false} initialValues={{ finalmask: initial }}>
+    <Form
+      form={form}
+      component={false}
+      colon={false}
+      labelCol={{ sm: { span: 8 } }}
+      wrapperCol={{ sm: { span: 14 } }}
+      labelWrap
+      initialValues={{ finalmask: initial }}
+    >
       <FinalMaskForm name="finalmask" network={network} protocol={protocol} form={form} showAll={showAll} />
     </Form>
   );

@@ -28,7 +28,15 @@ export default function SniffingField({ value, onChange, enableLabel }: Sniffing
   }, [sniffing]);
 
   return (
-    <Form form={form} component={false} initialValues={{ sniffing: initial }}>
+    <Form
+      form={form}
+      component={false}
+      colon={false}
+      labelCol={{ sm: { span: 8 } }}
+      wrapperCol={{ sm: { span: 14 } }}
+      labelWrap
+      initialValues={{ sniffing: initial }}
+    >
       <SniffingFields name={['sniffing']} form={form} enableLabel={enableLabel} />
     </Form>
   );
