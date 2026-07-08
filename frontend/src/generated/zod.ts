@@ -240,6 +240,7 @@ export const ApiTokenViewSchema = z.object({
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
   comment: z.string(),
@@ -258,6 +259,7 @@ export const ClientSchema = z.object({
   publicKey: z.string().optional(),
   reset: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
+  secret: z.string().optional(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -275,6 +277,7 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  adTag: z.string(),
   allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),
@@ -293,6 +296,7 @@ export const ClientRecordSchema = z.object({
   publicKey: z.string(),
   reset: z.number().int(),
   reverse: z.unknown(),
+  secret: z.string(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -344,6 +348,7 @@ export const HostSchema = z.object({
   excludeFromSubTypes: z.array(z.string()),
   finalMask: z.string(),
   fingerprint: z.string(),
+  groupId: z.string(),
   hostHeader: z.string(),
   id: z.number().int(),
   inboundId: z.number().int(),
@@ -371,6 +376,41 @@ export const HostSchema = z.object({
   vlessRoute: z.string(),
 });
 export type Host = z.infer<typeof HostSchema>;
+
+export const HostGroupSchema = z.object({
+  allowInsecure: z.boolean(),
+  alpn: z.array(z.string()),
+  echConfigList: z.string(),
+  excludeFromSubTypes: z.array(z.string()),
+  finalMask: z.string(),
+  fingerprint: z.string(),
+  groupId: z.string(),
+  hostHeader: z.string(),
+  hosts: z.array(z.string()),
+  inboundIds: z.array(z.number().int()),
+  isDisabled: z.boolean(),
+  isHidden: z.boolean(),
+  keepSniBlank: z.boolean(),
+  mihomoIpVersion: z.enum(['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer']),
+  mihomoX25519: z.boolean(),
+  muxParams: z.string(),
+  nodeGuids: z.array(z.string()),
+  overrideSniFromAddress: z.boolean(),
+  path: z.string(),
+  pinnedPeerCertSha256: z.array(z.string()),
+  port: z.number().int().min(0).max(65535),
+  remark: z.string().max(256),
+  security: z.enum(['same', 'tls', 'none', 'reality']),
+  serverDescription: z.string().max(64),
+  shuffleHost: z.boolean(),
+  sni: z.string(),
+  sockoptParams: z.string(),
+  sortOrder: z.number().int(),
+  tags: z.array(z.string()),
+  verifyPeerCertByName: z.string(),
+  vlessRoute: z.string(),
+});
+export type HostGroup = z.infer<typeof HostGroupSchema>;
 
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
@@ -421,11 +461,17 @@ export const InboundFallbackSchema = z.object({
 export type InboundFallback = z.infer<typeof InboundFallbackSchema>;
 
 export const InboundOptionSchema = z.object({
+  enable: z.boolean(),
   id: z.number().int(),
+  listen: z.string().optional(),
+  mtprotoDomain: z.string().optional(),
+  nodeAddress: z.string().optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),
   protocol: z.string(),
   remark: z.string(),
+  shareAddr: z.string().optional(),
+  shareAddrStrategy: z.string().optional(),
   ssMethod: z.string(),
   tag: z.string(),
   tlsFlowCapable: z.boolean(),
@@ -495,6 +541,14 @@ export const OutboundTrafficsSchema = z.object({
   up: z.number().int(),
 });
 export type OutboundTraffics = z.infer<typeof OutboundTrafficsSchema>;
+
+export const PanelUpdateStatusSchema = z.object({
+  exitCode: z.number().int(),
+  finishedAt: z.number().int(),
+  runId: z.string(),
+  state: z.string(),
+});
+export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
 
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),

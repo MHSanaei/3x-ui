@@ -48,7 +48,7 @@ export default function GroupRemoveClientsModal({
     if (!open) return;
     setSelectedEmails([]);
     setSearch('');
-  }, [open, rows]);
+  }, [open]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();

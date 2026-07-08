@@ -209,20 +209,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
-				peer := map[string]any{"email": c.Email, "level": 0}
-				if c.PublicKey != "" {
-					peer["publicKey"] = c.PublicKey
-				}
-				if len(c.AllowedIPs) > 0 {
-					peer["allowedIPs"] = c.AllowedIPs
-				}
-				if c.PreSharedKey != "" {
-					peer["preSharedKey"] = c.PreSharedKey
-				}
-				if c.KeepAlive > 0 {
-					peer["keepAlive"] = c.KeepAlive
-				}
-				wgPeers = append(wgPeers, peer)
+				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
 			finalClients = append(finalClients, entry)
@@ -284,6 +271,18 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 
 			delete(stream, "externalProxy")
+
+			// finalmask.tcp + REALITY panics Xray-core on the first connection
+			// (XTLS/Xray-core#6453). AddInbound/UpdateInbound reject this
+			// combination at save time, but a row saved before that guard
+			// existed (upgrade, node sync, restored backup, direct DB edit)
+			// would still crash Xray on the next restart without this — drop
+			// it here too, the same way liftXhttpSessionIDKeys and
+			// HealShadowsocksClientMethods heal other legacy data in place.
+			if len(finalMaskRealityTcpMasks(stream)) > 0 {
+				logger.Warningf("Inbound %q: dropping finalmask, incompatible with REALITY security (crashes Xray-core, see XTLS/Xray-core#6453)", inbound.Tag)
+				delete(stream, "finalmask")
+			}
 
 			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
 			// kept no fallback. Lift legacy sessionPlacement/sessionKey onto the
@@ -1007,6 +1006,12 @@ func (s *XrayService) tryHotApply(newCfg *xray.Config) bool {
 
 	// Removals first so changed handlers and port swaps never collide with
 	// the additions that follow.
+	for _, u := range diff.RemovedUsers {
+		if err := hotAPI.RemoveUser(u.Tag, u.Email); err != nil && !xray.IsMissingHandlerErr(err) {
+			logger.Info("hot apply: remove user [", u.Email, "] from [", u.Tag, "] failed:", err)
+			return false
+		}
+	}
 	for _, tag := range diff.RemovedInboundTags {
 		if err := hotAPI.DelInbound(tag); err != nil && !xray.IsMissingHandlerErr(err) {
 			logger.Info("hot apply: remove inbound [", tag, "] failed:", err)
@@ -1031,6 +1036,12 @@ func (s *XrayService) tryHotApply(newCfg *xray.Config) bool {
 			return false
 		}
 	}
+	for _, u := range diff.AddedUsers {
+		if err := addUserReconciling(&hotAPI, u); err != nil {
+			logger.Info("hot apply: add user [", u.Email, "] to [", u.Tag, "] failed:", err)
+			return false
+		}
+	}
 	if diff.RoutingConfig != nil {
 		if err := hotAPI.ApplyRoutingConfig(diff.RoutingConfig); err != nil {
 			logger.Info("hot apply: apply routing config failed:", err)
@@ -1040,6 +1051,19 @@ func (s *XrayService) tryHotApply(newCfg *xray.Config) bool {
 
 	p.SetConfig(newCfg)
 	return true
+}
+
+// addUserReconciling adds a user, and on an email conflict (the user was
+// already applied through the runtime API) replaces the existing user instead.
+func addUserReconciling(api *xray.XrayAPI, u xray.UserOp) error {
+	err := api.AddUser(u.Protocol, u.Tag, u.User)
+	if err == nil || !xray.IsUserExistsErr(err) {
+		return err
+	}
+	if delErr := api.RemoveUser(u.Tag, u.Email); delErr != nil && !xray.IsMissingHandlerErr(delErr) {
+		return delErr
+	}
+	return api.AddUser(u.Protocol, u.Tag, u.User)
 }
 
 // addInboundReconciling adds an inbound, and on a tag conflict (the handler

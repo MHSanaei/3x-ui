@@ -5,6 +5,7 @@ import {
   Card,
   Checkbox,
   Dropdown,
+  Input,
   Select,
   Space,
   Switch,
@@ -22,6 +23,7 @@ import {
   ReloadOutlined,
   InfoCircleOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -56,6 +58,7 @@ export default function InboundList({
   // Node filter (#4997): 'all' shows everything, 0 is the local-panel
   // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
   const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
+  const [searchKey, setSearchKey] = useState('');
 
   const showNodeFilter = useMemo(
     () => nodesById.size > 0 || dbInbounds.some((ib) => ib.nodeId != null),
@@ -72,10 +75,17 @@ export default function InboundList({
   );
 
   const visibleInbounds = useMemo(() => {
-    if (nodeFilter === 'all') return dbInbounds;
-    if (nodeFilter === 0) return dbInbounds.filter((ib) => ib.nodeId == null);
-    return dbInbounds.filter((ib) => ib.nodeId === nodeFilter);
-  }, [dbInbounds, nodeFilter]);
+    let list = dbInbounds;
+    if (nodeFilter === 0) list = list.filter((ib) => ib.nodeId == null);
+    else if (nodeFilter !== 'all') list = list.filter((ib) => ib.nodeId === nodeFilter);
+    const q = searchKey.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((ib) => (
+      (ib.remark || '').toLowerCase().includes(q)
+      || String(ib.port).includes(q)
+      || (ib.protocol || '').toLowerCase().includes(q)
+    ));
+  }, [dbInbounds, nodeFilter, searchKey]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -174,11 +184,21 @@ export default function InboundList({
               value={nodeFilter}
               onChange={(v) => setNodeFilter(v)}
               options={nodeFilterOptions}
+              showSearch
               popupMatchSelectWidth={false}
               style={{ minWidth: isMobile ? 90 : 140 }}
               aria-label={t('pages.clients.filters.nodes')}
             />
           )}
+          <Input
+            value={searchKey}
+            onChange={(e) => setSearchKey(e.target.value)}
+            placeholder={t('search')}
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ maxWidth: isMobile ? 110 : 200 }}
+            aria-label={t('search')}
+          />
           {selectedRowKeys.length > 0 && (
             <>
               <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>

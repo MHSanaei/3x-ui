@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Empty, Input, InputNumber, Segmented, Select, Space, Switch, Tag } from 'antd';
+import { Alert, Empty, Input, InputNumber, Select, Space, Switch, Tag } from 'antd';
 
 import { SettingListItem } from '@/components/ui';
 import {
@@ -13,11 +13,11 @@ import {
   type PingConfigObject,
 } from '@/schemas/observatory';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
+import { settingsRequireBurstObservatory } from './balancer-helpers';
 
 interface ObservatorySettingsTabProps {
   templateSettings: XraySettingsValue | null;
   mutate: (mutator: (next: XraySettingsValue) => void) => void;
-  isMobile: boolean;
 }
 
 const OBSERVATORY_DEFAULTS = ObservatorySchema.parse({});
@@ -43,7 +43,6 @@ function SelectorTags({ tags }: { tags: string[] }) {
 export default function ObservatorySettingsTab({
   templateSettings,
   mutate,
-  isMobile,
 }: ObservatorySettingsTabProps) {
   const { t } = useTranslation();
 
@@ -63,13 +62,10 @@ export default function ObservatorySettingsTab({
 
   const hasObservatory = observatory != null;
   const hasBurst = burst != null;
-
-  const [view, setView] = useState<'observatory' | 'burstObservatory'>('observatory');
-  const effectiveView = !hasObservatory && hasBurst
+  const hasMixedObservers = hasObservatory && hasBurst;
+  const activeView = hasBurst && (!hasObservatory || settingsRequireBurstObservatory(templateSettings))
     ? 'burstObservatory'
-    : !hasBurst && hasObservatory
-      ? 'observatory'
-      : view;
+    : 'observatory';
 
   function patchObservatory(patch: Partial<ObservatoryObject>) {
     mutate((tt) => {
@@ -220,19 +216,15 @@ export default function ObservatorySettingsTab({
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert type="info" showIcon message={t('pages.xray.observatory.autoManaged')} />
-      {hasObservatory && hasBurst && (
-        <Segmented
-          block={isMobile}
-          value={effectiveView}
-          onChange={(v) => setView(v as 'observatory' | 'burstObservatory')}
-          options={[
-            { label: t('pages.xray.observatory.title'), value: 'observatory' },
-            { label: t('pages.xray.observatory.burstTitle'), value: 'burstObservatory' },
-          ]}
+      <Alert type="info" showIcon title={t('pages.xray.observatory.autoManaged')} />
+      {hasMixedObservers && (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('pages.xray.observatory.mixedLegacy')}
         />
       )}
-      <div>{effectiveView === 'observatory' ? observatorySection : burstSection}</div>
+      <div>{activeView === 'observatory' ? observatorySection : burstSection}</div>
     </Space>
   );
 }

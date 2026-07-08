@@ -90,6 +90,7 @@ func (s *SubService) buildEndpointLinks(
 		applyEndpointTLSParams(e, nextParams, securityToApply)
 		applyEndpointRealityParams(e, nextParams, securityToApply)
 		applyEndpointHostPath(e, nextParams)
+		applyEndpointFinalMask(e, nextParams)
 		applyEndpointAllowInsecure(e, nextParams, securityToApply)
 		links = append(links, buildLinkWithParamsAndSecurity(
 			makeLink(e),
@@ -119,6 +120,7 @@ func (s *SubService) buildEndpointVmessLinks(eps []ShareEndpoint, baseObj map[st
 		}
 		applyEndpointTLSObj(e, newObj, securityToApply)
 		applyEndpointHostPathObj(e, newObj)
+		applyEndpointFinalMaskObj(e, newObj)
 		if index > 0 {
 			links.WriteString("\n")
 		}

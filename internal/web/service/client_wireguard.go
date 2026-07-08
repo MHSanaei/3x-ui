@@ -73,6 +73,47 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 	return "", common.NewError("wireguard: no free address available in", base)
 }
 
+// normalizeWireguardAllowedIPs validates user-supplied allowedIPs entries and
+// canonicalizes them: bare addresses become single-host prefixes, duplicates drop.
+func normalizeWireguardAllowedIPs(values []string) ([]string, error) {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, v := range values {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			continue
+		}
+		p, err := netip.ParsePrefix(v)
+		if err != nil {
+			a, aErr := netip.ParseAddr(v)
+			if aErr != nil {
+				return nil, common.NewError("wireguard: invalid allowedIPs entry:", v)
+			}
+			p = netip.PrefixFrom(a, a.BitLen())
+		}
+		norm := p.String()
+		if _, dup := seen[norm]; dup {
+			continue
+		}
+		seen[norm] = struct{}{}
+		out = append(out, norm)
+	}
+	return out, nil
+}
+
+func wireguardAllowedIPsCollision(entries, used []string) string {
+	taken := make(map[string]struct{}, len(used))
+	for _, u := range used {
+		taken[strings.TrimSpace(u)] = struct{}{}
+	}
+	for _, e := range entries {
+		if _, ok := taken[e]; ok {
+			return e
+		}
+	}
+	return ""
+}
+
 // defaultWireguardClients fills in blank WireGuard credentials for newly added
 // clients: a generated keypair when none was provided, a derived public key when
 // only a private key was given, and a unique tunnel address allocated from the
@@ -107,6 +148,18 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 				return err
 			}
 			c.AllowedIPs = []string{addr}
+		} else {
+			normalized, err := normalizeWireguardAllowedIPs(c.AllowedIPs)
+			if err != nil {
+				return err
+			}
+			if len(normalized) == 0 {
+				return common.NewError("wireguard: allowedIPs has no usable entry")
+			}
+			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
+				return common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
+			}
+			c.AllowedIPs = normalized
 		}
 		used = append(used, c.AllowedIPs...)
 

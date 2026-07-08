@@ -420,6 +420,54 @@ describe('outbound-form-adapter: round-trip', () => {
   });
 });
 
+describe('outbound-form-adapter: targetStrategy', () => {
+  it('round-trips a top-level targetStrategy', () => {
+    const back = formValuesToWirePayload(rawOutboundToFormValues({
+      protocol: 'vless',
+      settings: { address: 's', port: 443, id: '11111111-2222-4333-8444-555555555555', flow: '', encryption: 'none' },
+      targetStrategy: 'ForceIPv6v4',
+    }));
+    expect(back.targetStrategy).toBe('ForceIPv6v4');
+  });
+
+  it('normalizes wire case to the canonical spelling (core matches case-insensitively)', () => {
+    const form = rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: {},
+      targetStrategy: 'useipv4v6',
+    });
+    expect(form.targetStrategy).toBe('UseIPv4v6');
+  });
+
+  it('omits targetStrategy when unset and drops unknown values', () => {
+    const unset = formValuesToWirePayload(rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: {},
+    }));
+    expect(unset).not.toHaveProperty('targetStrategy');
+
+    const invalid = formValuesToWirePayload(rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: {},
+      targetStrategy: 'UseIPv5',
+    }));
+    expect(invalid).not.toHaveProperty('targetStrategy');
+  });
+
+  it('freedom prefers settings.targetStrategy over domainStrategy and emits the legacy key', () => {
+    const form = rawOutboundToFormValues({
+      protocol: 'freedom',
+      settings: { targetStrategy: 'UseIPv6', domainStrategy: 'UseIPv4' },
+    });
+    if (form.protocol === 'freedom') {
+      expect(form.settings.domainStrategy).toBe('UseIPv6');
+    }
+    const back = formValuesToWirePayload(form);
+    expect(back.settings).toMatchObject({ domainStrategy: 'UseIPv6' });
+    expect(back.settings).not.toHaveProperty('targetStrategy');
+  });
+});
+
 describe('outbound-form-adapter: xhttp xmux toggle', () => {
   const xmuxWire = {
     protocol: 'vless',

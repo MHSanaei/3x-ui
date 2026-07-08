@@ -71,6 +71,7 @@ func TestGetAll_ClientBreakdownMatchesByEmailNotStaleInboundId(t *testing.T) {
 	}
 	if n == nil {
 		t.Fatal("node 1 not found")
+		return
 	}
 	if n.ClientCount != 3 {
 		t.Errorf("ClientCount = %d, want 3", n.ClientCount)

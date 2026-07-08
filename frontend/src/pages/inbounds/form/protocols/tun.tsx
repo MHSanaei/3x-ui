@@ -1,84 +1,73 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Space, Tooltip } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { useFieldArray, useFormContext } from 'react-hook-form';
+
+import { FormField } from '@/components/form/rhf';
+
+interface StringListProps {
+  name: string[];
+  label: ReactNode;
+  placeholder: (index: number) => string;
+}
+
+function StringList({ name, label, placeholder }: StringListProps) {
+  const { t } = useTranslation();
+  const { control } = useFormContext();
+  const { fields, append, remove } = useFieldArray({ control, name: name.join('.') });
+  return (
+    <Form.Item label={label}>
+      <Button aria-label={t('add')} size="small" onClick={() => append('')}>
+        <PlusOutlined />
+      </Button>
+      {fields.map((field, j) => (
+        <Space.Compact key={field.id} block className="mt-4">
+          <FormField name={[...name, j]} noStyle>
+            <Input placeholder={placeholder(j)} />
+          </FormField>
+          <Button aria-label={t('remove')} size="small" onClick={() => remove(j)}>
+            <MinusOutlined />
+          </Button>
+        </Space.Compact>
+      ))}
+    </Form.Item>
+  );
+}
 
 export default function TunFields() {
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item name={['settings', 'name']} label={t('pages.inbounds.info.interfaceName')}>
+      <FormField name={['settings', 'name']} label={t('pages.inbounds.info.interfaceName')}>
         <Input placeholder="xray0" />
-      </Form.Item>
-      <Form.Item name={['settings', 'mtu']} label="MTU">
+      </FormField>
+      <FormField name={['settings', 'mtu']} label="MTU">
         <InputNumber min={0} />
-      </Form.Item>
-      <Form.List name={['settings', 'gateway']}>
-        {(fields, { add, remove }) => (
-          <Form.Item label={t('pages.inbounds.info.gateway')}>
-            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
-              <PlusOutlined />
-            </Button>
-            {fields.map((field, j) => (
-              <Space.Compact key={field.key} block className="mt-4">
-                <Form.Item name={field.name} noStyle>
-                  <Input placeholder={j === 0 ? '10.0.0.1/16' : 'fc00::1/64'} />
-                </Form.Item>
-                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
-                  <MinusOutlined />
-                </Button>
-              </Space.Compact>
-            ))}
-          </Form.Item>
-        )}
-      </Form.List>
-      <Form.List name={['settings', 'dns']}>
-        {(fields, { add, remove }) => (
-          <Form.Item label="DNS">
-            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
-              <PlusOutlined />
-            </Button>
-            {fields.map((field, j) => (
-              <Space.Compact key={field.key} block className="mt-4">
-                <Form.Item name={field.name} noStyle>
-                  <Input placeholder={j === 0 ? '1.1.1.1' : '8.8.8.8'} />
-                </Form.Item>
-                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
-                  <MinusOutlined />
-                </Button>
-              </Space.Compact>
-            ))}
-          </Form.Item>
-        )}
-      </Form.List>
-      <Form.Item name={['settings', 'userLevel']} label={t('pages.xray.tun.userLevel')}>
+      </FormField>
+      <StringList
+        name={['settings', 'gateway']}
+        label={t('pages.inbounds.info.gateway')}
+        placeholder={(j) => (j === 0 ? '10.0.0.1/16' : 'fc00::1/64')}
+      />
+      <StringList
+        name={['settings', 'dns']}
+        label="DNS"
+        placeholder={(j) => (j === 0 ? '1.1.1.1' : '8.8.8.8')}
+      />
+      <FormField name={['settings', 'userLevel']} label={t('pages.xray.tun.userLevel')}>
         <InputNumber min={0} />
-      </Form.Item>
-      <Form.List name={['settings', 'autoSystemRoutingTable']}>
-        {(fields, { add, remove }) => (
-          <Form.Item
-            label={
-              <Tooltip title={t('pages.inbounds.form.autoSystemRoutesTooltip')}>
-                {t('pages.inbounds.info.autoSystemRoutes')}
-              </Tooltip>
-            }
-          >
-            <Button aria-label={t('add')} size="small" onClick={() => add('')}>
-              <PlusOutlined />
-            </Button>
-            {fields.map((field, j) => (
-              <Space.Compact key={field.key} block className="mt-4">
-                <Form.Item name={field.name} noStyle>
-                  <Input placeholder={j === 0 ? '0.0.0.0/0' : '::/0'} />
-                </Form.Item>
-                <Button aria-label={t('remove')} size="small" onClick={() => remove(field.name)}>
-                  <MinusOutlined />
-                </Button>
-              </Space.Compact>
-            ))}
-          </Form.Item>
-        )}
-      </Form.List>
-      <Form.Item
+      </FormField>
+      <StringList
+        name={['settings', 'autoSystemRoutingTable']}
+        label={
+          <Tooltip title={t('pages.inbounds.form.autoSystemRoutesTooltip')}>
+            {t('pages.inbounds.info.autoSystemRoutes')}
+          </Tooltip>
+        }
+        placeholder={(j) => (j === 0 ? '0.0.0.0/0' : '::/0')}
+      />
+      <FormField
         name={['settings', 'autoOutboundsInterface']}
         label={
           <Tooltip title={t('pages.inbounds.form.autoOutboundsInterfaceTooltip')}>
@@ -87,7 +76,7 @@ export default function TunFields() {
         }
       >
         <Input placeholder="auto" />
-      </Form.Item>
+      </FormField>
     </>
   );
 }

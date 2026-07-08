@@ -1,0 +1,82 @@
+---
+title: Share Links
+description: 3x-ui share-link formats (vless, vmess, trojan, ss, hysteria2, mtproto), the remark template variables, and an in-browser link inspector.
+icon: Link
+---
+
+3x-ui generates a **share link** (and QR code) for each client. Client apps such
+as v2rayNG, Hiddify, and Mihomo import these links to configure themselves.
+
+## Link formats
+
+| Scheme         | Shape                                                           |
+| -------------- | --------------------------------------------------------------- |
+| `vless://`     | `vless://<uuid>@<host>:<port>?<params>#<remark>`                |
+| `vmess://`     | `vmess://<base64-json>` (a base64-encoded JSON object)          |
+| `trojan://`    | `trojan://<password>@<host>:<port>?<params>#<remark>`           |
+| `ss://`        | `ss://<userinfo>@<host>:<port>?<params>#<remark>` (SIP002; Shadowsocks-2022 uses percent-encoded userinfo) |
+| `hysteria2://` | `hysteria2://<auth>@<host>:<port>?<params>#<remark>`            |
+| `tg://proxy`   | `tg://proxy?server=…&port=…&secret=…` (MTProto)                 |
+
+The query parameters carry the transport and security settings — `security`,
+`sni`, `fp`, `pbk`, `sid`, `spx`, `flow`, `type`, `path`, `host`, `alpn`, and
+more.
+
+## Inspect a link
+
+Paste any share link to decode every field. Parsing happens **entirely in your
+browser** — the link is never sent over the network.
+
+<ShareLinkInspector />
+
+<Callout type="warn">
+  Share links contain everything needed to connect as a client, including the
+  client's credential. Treat them like passwords.
+</Callout>
+
+## Remark template variables
+
+The text after `#` in each link (the **remark**) is generated from a template
+you control in Panel Settings (`remarkTemplate`). The default is:
+
+```text
+{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D
+```
+
+Tokens use `{{UPPER_CASE}}` syntax. The template is split on `|` into segments;
+a segment whose only value is the unlimited marker `∞` (for `TRAFFIC_LEFT`,
+`TRAFFIC_TOTAL`, `DAYS_LEFT`, or `TIME_LEFT`) is dropped, so unlimited clients
+don't show empty decorations.
+
+### Available tokens
+
+| Token | Value |
+| ----- | ----- |
+| `{{EMAIL}}` / `{{USERNAME}}` | Client email (identifier) |
+| `{{INBOUND}}` | Inbound remark |
+| `{{HOST}}` | Host-row remark (managed hosts) |
+| `{{ID}}` / `{{SHORT_ID}}` | Client UUID / its first 8 chars |
+| `{{TELEGRAM_ID}}` · `{{SUB_ID}}` · `{{COMMENT}}` | Telegram ID, subscription ID, comment |
+| `{{STATUS}}` / `{{STATUS_EMOJI}}` | `active`/`expired`/`depleted`/`disabled` (or ✅⏳🚫) |
+| `{{DAYS_LEFT}}` / `{{TIME_LEFT}}` | Days, or `Xd Xh Xm`, remaining (`∞` if unlimited) |
+| `{{EXPIRE_DATE}}` / `{{JALALI_EXPIRE_DATE}}` / `{{EXPIRE_UNIX}}` | Expiry as Gregorian / Jalali date / Unix seconds |
+| `{{CREATED_UNIX}}` | Creation time (Unix seconds) |
+| `{{TRAFFIC_USED}}` / `{{TRAFFIC_LEFT}}` / `{{TRAFFIC_TOTAL}}` | Human-readable usage (`∞` if unlimited) |
+| `{{TRAFFIC_USED_BYTES}}` / `{{TRAFFIC_LEFT_BYTES}}` / `{{TRAFFIC_TOTAL_BYTES}}` | Same, in bytes |
+| `{{UP}}` / `{{DOWN}}` | Upload / download (human-readable) |
+| `{{RESET_DAYS}}` · `{{USAGE_PERCENTAGE}}` | Reset period (days) · used percent |
+| `{{PROTOCOL}}` / `{{TRANSPORT}}` / `{{SECURITY}}` | e.g. `VLESS` / `ws` / `REALITY` |
+
+<Callout type="info">
+  Usage tokens (traffic, days, status) appear in the subscription **body** but
+  are stripped from the display/QR view, so a shared QR doesn't leak a client's
+  remaining quota. Date tokens follow the `datepicker` setting (Gregorian or
+  Jalali).
+</Callout>
+
+## Related
+
+<Cards>
+  <Card title="REALITY" href="/docs/config/reality" description="Generate a VLESS + REALITY config and link." />
+  <Card title="Subscription" href="/docs/config/subscription" description="Serve all of a client's links from one URL." />
+</Cards>

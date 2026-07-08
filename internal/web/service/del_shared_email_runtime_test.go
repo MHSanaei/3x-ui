@@ -25,7 +25,7 @@ func TestDelInboundClientByEmail_SharedEmailStillRemovesFromRuntime(t *testing.T
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
 
-	if _, err := svc.DelInboundClientByEmail(inboundSvc, ibA.Id, "shared@x", false); err != nil {
+	if _, err := svc.DelInboundClientByEmail(inboundSvc, ibA.Id, "shared@x", false, false); err != nil {
 		t.Fatalf("DelInboundClientByEmail: %v", err)
 	}
 
