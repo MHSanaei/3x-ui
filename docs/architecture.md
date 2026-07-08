@@ -63,7 +63,7 @@ Two key ideas that explain most of the complexity:
 **Frontend (`frontend/`):**
 - **React 19** + **Ant Design 6** + **Vite 8** + **TypeScript**.
 - Data layer: **TanStack Query** (`@tanstack/react-query`) over the native **Fetch API**; **Zod 4** schemas.
-- Router: **react-router-dom 7**. Charts: **recharts**. Editor: **CodeMirror 6**.
+- Router: **react-router-dom 7**. Charts: **uPlot** (`frontend/src/components/viz/Sparkline.tsx`). Editor: **CodeMirror 6**.
 - **Build output goes to `internal/web/dist/`** (see `vite.config.js` → `outDir`) and is
   embedded into the Go binary with `go:embed`. Three HTML entries: `index.html` (panel SPA),
   `login.html`, `subpage.html`. The Go server serves the SPA; there is no separate frontend
