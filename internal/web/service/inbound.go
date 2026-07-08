@@ -530,6 +530,37 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
+// validateFinalMaskRealityCombo rejects finalmask configured together with
+// REALITY security. finalmask wraps the connection before REALITY's handshake
+// ever sees it, and reality.Server() does an unchecked type assertion assuming
+// a raw *net.TCPConn — with finalmask in front, that assertion panics and takes
+// down the whole xray-core process on the very first connection. Upstream has
+// confirmed this will be documented as unsupported rather than made graceful
+// (https://github.com/XTLS/Xray-core/issues/6453), so the panel must not let
+// this combination be saved.
+func validateFinalMaskRealityCombo(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if stream["security"] != "reality" {
+		return nil
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	udp, _ := finalmask["udp"].([]any)
+	if len(tcp) == 0 && len(udp) == 0 {
+		return nil
+	}
+	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
+}
+
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
 // secret and adTag: MTProto is multi-client, so mtg and every share link read
@@ -659,6 +690,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -1082,6 +1116,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
