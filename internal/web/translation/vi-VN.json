@@ -1894,7 +1894,7 @@
       "fields": {
         "remark": "Ghi chú",
         "serverDescription": "Mô tả",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Địa chỉ",
         "port": "Cổng",
         "endpoint": "Endpoint",
@@ -1921,7 +1921,8 @@
         "shuffleHost": "Xáo trộn host",
         "tags": "Tag",
         "nodeGuids": "Nút",
-        "excludeFromSubTypes": "Loại trừ khỏi định dạng"
+        "excludeFromSubTypes": "Loại trừ khỏi định dạng",
+        "inheritAddress": "Kế thừa địa chỉ"
       },
       "hints": {
         "address": "Để trống để kế thừa địa chỉ của chính inbound.",

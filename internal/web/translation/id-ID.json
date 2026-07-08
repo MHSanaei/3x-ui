@@ -1921,7 +1921,8 @@
         "tags": "Tag",
         "nodeGuids": "Node",
         "excludeFromSubTypes": "Kecualikan dari format",
-        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama"
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "inheritAddress": "Warisi alamat"
       },
       "hints": {
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",

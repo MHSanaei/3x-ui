@@ -2,29 +2,18 @@ import { z } from 'zod';
 
 import { AlpnSchema, UtlsFingerprintSchema } from '@/schemas/protocols/security/tls';
 
-// A Host is a per-inbound override endpoint: at subscription time each enabled
-// host renders one extra share link/proxy with its own address/port/TLS, etc.,
-// superseding the legacy externalProxy array. The form schema mirrors the field
-// logic of schemas/protocols/stream/external-proxy.ts and reuses the shared
-// ALPN / uTLS primitives.
-
 export const HostSecuritySchema = z.enum(['same', 'tls', 'none', 'reality']);
 export type HostSecurity = z.infer<typeof HostSecuritySchema>;
 
 export const MihomoIpVersionSchema = z.enum(['dual', 'ipv4', 'ipv6', 'ipv4-prefer', 'ipv6-prefer']);
 export const SubTypeSchema = z.enum(['raw', 'json', 'clash']);
 
-// Tags are short uppercase identifiers (≤10 tags, each ≤36 chars). Enforced on
-// the frontend; the backend stores them verbatim.
 const HostTagSchema = z.string().regex(/^[A-Z0-9_:]+$/, 'pages.hosts.toasts.badTag').max(36);
 
-// HostFormValues is what the form edits and POSTs.
 export const HostFormSchema = z.object({
   id: z.number().optional(),
   inboundId: z.number().int().positive(),
   sortOrder: z.number().int().default(0),
-  // Remark may contain {{VAR}} template tokens expanded per client at
-  // subscription time, so the stored template gets a generous cap.
   remark: z.string().trim().min(1).max(256),
   serverDescription: z.string().max(64).default(''),
   isDisabled: z.boolean().default(false),
@@ -46,8 +35,6 @@ export const HostFormSchema = z.object({
   overrideSniFromAddress: z.boolean().default(false),
   keepSniBlank: z.boolean().default(false),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
-  // Comma-separated cert names (xray `vcn`). Legacy rows stored a boolean here;
-  // coerce any stray bool to '' so old data loads cleanly.
   verifyPeerCertByName: z.preprocess(
     (v) => (typeof v === 'boolean' ? '' : v),
     z.string().default(''),
@@ -58,7 +45,6 @@ export const HostFormSchema = z.object({
   muxParams: z.string().default(''),
   sockoptParams: z.string().default(''),
   finalMask: z.string().default(''),
-  // Single value 0-65535 baked into the subscription UUID's 3rd group. Empty = none.
   vlessRoute: z
     .string()
     .trim()
@@ -69,8 +55,6 @@ export const HostFormSchema = z.object({
 
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
 
-  // Visual-only assignment of nodes that resolve from this host (stored, not yet
-  // wired into routing).
   nodeGuids: z.array(z.string()).default([]),
 
   mihomoIpVersion: z.preprocess(
@@ -82,18 +66,16 @@ export const HostFormSchema = z.object({
 });
 export type HostFormValues = z.infer<typeof HostFormSchema>;
 
-// HostRecord is the loose list/read projection from /panel/api/hosts. Slice and
-// free-JSON fields tolerate the backend serializing nil as null.
 export const HostRecordSchema = z.object({
-  id: z.number(),
-  inboundId: z.number(),
+  groupId: z.string(),
+  inboundIds: z.array(z.number()),
+  hosts: z.array(z.string()),
   sortOrder: z.number().optional(),
   remark: z.string().optional(),
   serverDescription: z.string().optional(),
   isDisabled: z.boolean().optional(),
   isHidden: z.boolean().optional(),
   tags: z.array(z.string()).nullish(),
-  address: z.string().optional(),
   port: z.number().optional(),
   security: z.string().optional(),
   sni: z.string().optional(),
@@ -123,3 +105,9 @@ export const HostRecordSchema = z.object({
 export type HostRecord = z.infer<typeof HostRecordSchema>;
 
 export const HostListSchema = z.array(HostRecordSchema);
+
+export const BulkAddHostSchema = HostFormSchema.omit({ inboundId: true, address: true }).extend({
+  inboundIds: z.array(z.number().int().positive()).min(1),
+  hosts: z.array(z.string()).default([]),
+});
+export type BulkAddHostValues = z.infer<typeof BulkAddHostSchema>;

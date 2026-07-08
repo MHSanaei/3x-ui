@@ -325,6 +325,7 @@ export interface Host {
   excludeFromSubTypes: string[];
   finalMask: string;
   fingerprint: string;
+  groupId: string;
   hostHeader: string;
   id: number;
   inboundId: number;
@@ -348,6 +349,40 @@ export interface Host {
   sortOrder: number;
   tags: string[];
   updatedAt: number;
+  verifyPeerCertByName: string;
+  vlessRoute: string;
+}
+
+export interface HostGroup {
+  allowInsecure: boolean;
+  alpn: string[];
+  echConfigList: string;
+  excludeFromSubTypes: string[];
+  finalMask: string;
+  fingerprint: string;
+  groupId: string;
+  hostHeader: string;
+  hosts: string[];
+  inboundIds: number[];
+  isDisabled: boolean;
+  isHidden: boolean;
+  keepSniBlank: boolean;
+  mihomoIpVersion: string;
+  mihomoX25519: boolean;
+  muxParams: string;
+  nodeGuids: string[];
+  overrideSniFromAddress: boolean;
+  path: string;
+  pinnedPeerCertSha256: string[];
+  port: number;
+  remark: string;
+  security: string;
+  serverDescription: string;
+  shuffleHost: boolean;
+  sni: string;
+  sockoptParams: string;
+  sortOrder: number;
+  tags: string[];
   verifyPeerCertByName: string;
   vlessRoute: string;
 }
