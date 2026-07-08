@@ -1,0 +1,98 @@
+---
+title: 更新与卸载
+description: 使用 x-ui 菜单和命令行管理 3x-ui——更新（稳定版、开发版或指定旧版本）、修改设置，以及干净地卸载。
+icon: RefreshCw
+---
+
+脚本安装完成后，`x-ui` 命令就是你的控制中心。不带参数运行它会进入交互式菜单，
+或传入一个子命令来执行单次操作。
+
+```bash
+x-ui
+```
+
+## The `x-ui` management menu
+
+菜单（项 `0`–`28`）在顶部显示面板/Xray 状态，然后列出：
+
+| #     | Item                                   | What it does                                              |
+| ----- | -------------------------------------- | --------------------------------------------------------- |
+| 1     | Install                                | 从远程脚本（重新）安装                                       |
+| 2     | Update                                 | 更新到最新的**稳定版**                                       |
+| 3     | Update to Dev Channel (latest commit)  | 更新到滚动的 `dev-latest` 构建                               |
+| 4     | Update Menu                            | 仅更新 `x-ui` 菜单脚本                                       |
+| 5     | Legacy Version                         | 安装指定的旧版本（提示输入标签）                             |
+| 6     | Uninstall                              | 移除 3x-ui（见下文）                                        |
+| 7     | Reset Username & Password              | 设置新凭据；可选择禁用 2FA                                   |
+| 8     | Reset Web Base Path                    | 随机生成 Web 根路径                                         |
+| 9     | Reset Settings                         | 重置面板设置（保留你的账户）                                 |
+| 10    | Change Port                            | 修改面板端口                                               |
+| 11    | View Current Settings                  | 显示用户名、端口、Web 根路径、证书路径                       |
+| 12–14 | Start / Stop / Restart                 | 控制面板服务                                               |
+| 15    | Restart Xray                           | 仅重新加载 Xray-core                                       |
+| 16    | Check Status                           | 服务状态                                                   |
+| 17    | Logs Management                        | 查看调试日志 / 清除日志                                      |
+| 18–19 | Enable / Disable Autostart             | 开关开机自启                                               |
+| 20    | SSL Certificate Management             | Let's Encrypt（域名或 IP）、自定义路径、续期/吊销           |
+| 21    | Cloudflare SSL Certificate             | 通过 Cloudflare 的 DNS-01 通配符证书                        |
+| 22    | IP Limit Management                    | 基于 Fail2ban 的按客户端 IP 限制                            |
+| 23    | Firewall Management                    | `ufw` 安装与端口规则                                        |
+| 24    | SSH Port Forwarding Management         | 将面板绑定到 localhost 并通过 SSH 隧道访问                  |
+| 25    | PostgreSQL Management                  | 安装/迁移/管理 PostgreSQL                                   |
+| 26    | Enable BBR                             | 开关 BBR 拥塞控制 sysctl                                    |
+| 27    | Update Geo Files                       | 更新 geoip/geosite 数据（Loyalsoldier、IR、RU）            |
+| 28    | Speedtest by Ookla                     | 运行 Ookla 测速                                            |
+| 0     | Exit                                   | —                                                         |
+
+其中部分功能有各自的页面：[SSL 证书](/docs/config/ssl-certificates)
+（项 20–21）、[安全](/docs/operations/security)（IP 限制、防火墙）、
+[反向代理](/docs/operations/reverse-proxy) 和 [面板设置](/docs/config/panel)
+（TLS），以及 [数据库](/docs/reference/database)（PostgreSQL）。
+
+## 命令行子命令
+
+对于脚本和快速操作，`x-ui` 也可直接接受一个子命令：
+
+| Command                    | Action                                              |
+| -------------------------- | --------------------------------------------------- |
+| `x-ui start` / `stop` / `restart` | 控制服务                                     |
+| `x-ui restart-xray`        | 仅重新加载 Xray-core                               |
+| `x-ui status`              | 显示状态                                           |
+| `x-ui settings`            | 显示当前设置                                       |
+| `x-ui enable` / `disable`  | 开关开机自启                                       |
+| `x-ui log`                 | 跟踪查看调试日志                                   |
+| `x-ui banlog`              | 显示 Fail2ban 封禁日志                             |
+| `x-ui update`              | 更新到最新的稳定版                                 |
+| `x-ui update-dev`          | 更新到滚动的 `dev-latest` 构建                     |
+| `x-ui legacy`              | 安装指定的旧版本（带提示）                         |
+| `x-ui update-all-geofiles` | 更新所有 geo 文件，如有变化则重启                  |
+| `x-ui migrate-db --dsn …`  | 将 SQLite → PostgreSQL 迁移（见 [数据库](/docs/reference/database)） |
+| `x-ui install` / `uninstall` | 安装 / 卸载                                       |
+
+## 更新
+
+- **稳定版：** 菜单选项 **2** 或 `x-ui update`。重新运行安装脚本
+  同样会就地更新。
+- **开发版渠道：** 菜单选项 **3** 或 `x-ui update-dev`——即滚动的
+  `dev-latest` 逐提交构建（并非稳定版）。
+- **指定的旧版本：** 菜单选项 **5**（Legacy Version）。
+
+更新会保留你的数据库和设置。在跨大版本升级前请先做一次
+[备份](/docs/operations/backup-restore)。
+
+<Callout type="info">
+  Docker 用户的更新方式不同——拉取新镜像并重新创建容器
+  （`docker compose pull && docker compose up -d`），而不是使用
+  `x-ui` 更新命令。
+</Callout>
+
+## 卸载
+
+菜单选项 **6** 或 `x-ui uninstall`。它会停止并禁用服务、移除服务单元，
+并删除 `/etc/x-ui/` 和安装目录。如果面板使用的是本地安装的 PostgreSQL，
+它还会询问是否一并清除（这是一次单独的、不可逆的确认）。
+
+<Callout type="warn">
+  卸载会删除数据库（`/etc/x-ui/x-ui.db`）和你的配置。
+  如果以后可能还需要，请先[备份](/docs/operations/backup-restore)。
+</Callout>

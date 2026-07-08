@@ -1,0 +1,184 @@
+---
+title: 传输方式与安全层
+description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
+icon: Network
+---
+
+**传输方式**决定数据包在客户端与服务器之间如何承载，**安全**层决定它们如何被加密和伪装，
+而 **FinalMask** 可以对剩下的部分进行混淆。面板只提供有效的组合；本页列出每一种传输方式的
+设置项以及面板强制执行的规则。
+
+## 传输方式
+
+在入站/出站表单中选择传输方式（入站的 `network`）。每种网络会在传输链路上写入它自己的
+设置键（`tcpSettings`、`kcpSettings`……）。
+
+| 传输方式        | 设置键                | 适用场景                                                               |
+| --------------- | --------------------- | ---------------------------------------------------------------------- |
+| **TCP (Raw)**   | `tcpSettings`         | 开销最低。是 REALITY + XTLS-Vision 以及回落的基础；可选的 HTTP/1.1 头部伪装。 |
+| **mKCP**        | `kcpSettings`         | 基于 **UDP** 的可靠协议——以带宽换取在丢包链路上更低的延迟。承载不了 TLS/REALITY。 |
+| **WebSocket**   | `wsSettings`          | 可穿透 CDN 和 HTTP 反向代理；兼容性极佳。                              |
+| **gRPC**        | `grpcSettings`        | 基于 HTTP/2；多路复用效果好，通过 Nginx 代理也很干净。                |
+| **HTTPUpgrade** | `httpupgradeSettings` | 对 CDN 友好的 HTTP/1.1 `Upgrade`；比完整的 WebSocket 更轻量。          |
+| **XHTTP**       | `xhttpSettings`       | 现代的流多路复用 HTTP 传输；对 CDN 友好且支持 REALITY。               |
+| **Hysteria**    | `hysteriaSettings`    | 基于 QUIC 的传输——仅用于 **Hysteria2** 协议。                          |
+
+<Callout type="info">
+  **WireGuard** 和 **Tunnel**（dokodemo-door）入站不提供传输方式选择器——它们的传输流
+  只承载安全层/sockopt。早期的面板还提供过一个原始的 **HTTP/2 (`http`)** 传输；它已被
+  **XHTTP** 取代，不再可供选择。
+</Callout>
+
+### TCP (Raw) — `tcpSettings`
+
+| 字段                          | 默认值  | 含义                                                                    |
+| ------------------------------ | ------- | ----------------------------------------------------------------------- |
+| `acceptProxyProtocol`          | `false` | 接受来自上游代理的 PROXY 协议，以保留真实的客户端 IP。                  |
+| `header.type`                  | `none`  | `none`，或 `http`（用于 HTTP/1.1 伪装）。                               |
+| `header.request` / `response`  | —       | 当 `type: http` 时：方法、路径、版本以及一个模仿正常 HTTP 交互的头部映射。 |
+
+### mKCP — `kcpSettings`
+
+| 字段               | 默认值      | 含义                                                            |
+| ------------------ | ----------- | ---------------------------------------------------------------- |
+| `mtu`              | `1350`      | 最大传输单元，单位字节（576–1460）。                            |
+| `tti`              | `20`        | 传输时间间隔，单位毫秒（10–100）。越低 = 响应越快，开销越大。   |
+| `uplinkCapacity`   | `5`         | 上行带宽预算，单位 **MB/s**。                                   |
+| `downlinkCapacity` | `20`        | 下行带宽预算，单位 **MB/s**。                                   |
+| `cwndMultiplier`   | `1`         | 拥塞窗口乘数；在优质链路上调高可以更激进地发送。               |
+| `maxSendingWindow` | `2097152`   | 在途数据包数量的上限。                                          |
+
+<Callout type="info">
+  mKCP 无法承载 TLS 或 REALITY。要伪装它，可以添加一个 **FinalMask** UDP 掩码——
+  `mkcp-legacy` 掩码重现了旧版 Xray 存储在 `kcpSettings.header`/`seed` 中的经典头部
+  混淆（这些字段在这里已不复存在）。
+</Callout>
+
+### WebSocket — `wsSettings`
+
+| 字段                  | 默认值  | 含义                                                            |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| `path`                | `/`     | 请求路径——当多个服务共用一个主机时可据此路由。                 |
+| `host`                | _(无)_  | `Host` 头部覆盖（在 CDN 后面很有用）。                          |
+| `headers`             | `{}`    | 额外的请求头。                                                  |
+| `heartbeatPeriod`     | `0`     | keepalive ping 之间的秒数；`0` 表示禁用。                       |
+| `acceptProxyProtocol` | `false` | 接受来自上游的 PROXY 协议。                                     |
+
+### gRPC — `grpcSettings`
+
+| 字段          | 默认值  | 含义                                                       |
+| ------------- | ------- | --------------------------------------------------------- |
+| `serviceName` | _(无)_  | gRPC 服务路径；作用类似一个秘密路由。                      |
+| `authority`   | _(无)_  | `:authority` 伪头部覆盖。                                  |
+| `multiMode`   | `false` | 在一条连接上多路复用多个流。                              |
+
+### HTTPUpgrade — `httpupgradeSettings`
+
+| 字段                  | 默认值  | 含义                                          |
+| --------------------- | ------- | --------------------------------------------- |
+| `path`                | `/`     | 请求路径。                                    |
+| `host`                | _(无)_  | `Host` 头部覆盖。                             |
+| `headers`             | `{}`    | 额外的请求头。                                |
+| `acceptProxyProtocol` | `false` | 接受来自上游的 PROXY 协议。                  |
+
+HTTPUpgrade 是一次性的 HTTP/1.1 `Upgrade`，没有 WebSocket 帧——因此没有心跳字段。
+
+### XHTTP — `xhttpSettings`
+
+XHTTP（SplitHTTP）有一组庞大的字段；面板会填入合理的默认值。你通常会改动的那些：
+
+| 字段                   | 默认值      | 含义                                                                   |
+| ---------------------- | ----------- | ---------------------------------------------------------------------- |
+| `path`                 | `/`         | 请求路径。                                                            |
+| `host`                 | _(无)_      | `Host` 头部覆盖。                                                     |
+| `mode`                 | `auto`      | `auto`、`packet-up`、`stream-up` 或 `stream-one`。`packet-up` 对 CDN 兼容性最好；`stream-*` 延迟更低。 |
+| `xPaddingBytes`        | `100-1000`  | 用于模糊数据包大小的随机填充范围。                                    |
+| `scMaxBufferedPosts`   | `30`        | 服务端对上传 POST 的缓冲区。                                          |
+| `scStreamUpServerSecs` | `20-80`     | stream-up 服务端窗口（短横线范围）。                                  |
+| `xmux` (`enableXmux`)  | _(关闭)_    | 连接多路复用——`maxConcurrency` `16-32`、`maxConnections` `6`……为高并发场景开启。 |
+
+Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
+`sessionIDLength`）以及 `scMin/MaxEachPostBytes` 旋钮属于高级项；除非要匹配某个特定的
+上游，否则保持为空。
+
+### Hysteria — `hysteriaSettings`
+
+仅当协议为 **Hysteria2** 时有效。
+
+| 字段             | 默认值  | 含义                                                                    |
+| ---------------- | ------- | ----------------------------------------------------------------------- |
+| `version`        | `2`     | Hysteria 协议版本。                                                     |
+| `auth`           | _(无)_  | 共享的认证字符串。                                                      |
+| `udpIdleTimeout` | `60`    | 空闲 UDP 会话被丢弃前的秒数（2–600）。                                 |
+| `masquerade`     | —       | 伪装成一个 HTTP/3 服务器：`type` 为 `proxy`/`file`/`string`，配合 `url`/`dir`/`content`，外加 `headers` 与 `statusCode`。 |
+
+## FinalMask — 末层混淆
+
+**FinalMask** 在传输方式和安全层**之后**包裹流量，因此它既能伪装那些承载不了 TLS 的
+传输（如 mKCP），也能在 TLS 之上再加一层外壳。掩码按方向分别配置：
+
+- **TCP 掩码** — `fragment`、`sudoku`、`header-custom`。
+- **UDP 掩码** — `salamander`、`mkcp-legacy`、`header-custom`、`xdns`、`xicmp`、
+  `noise`、`sudoku`、`realm`。（`mkcp-legacy` 重现旧版 mKCP 的头部混淆。）
+- **QUIC 参数** — 拥塞控制（`reno`、`bbr`、`brutal`、`force-brutal`）、Brutal 上/下行
+  速率、`udpHop`（在一个范围内轮换 QUIC 端口以规避端口封锁）以及接收窗口调优。
+
+FinalMask 取代了旧版 Xray 构建中暴露的、按每种传输各自实现的 `header`/`seed` 混淆。
+
+## sockopt — 底层套接字选项
+
+`sockopt` 与任意传输方式一同生效，用于调优底层套接字。最有用的字段：
+
+| 字段                  | 默认值  | 含义                                                            |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| `tcpFastOpen`         | `false` | 启用 TCP Fast Open。                                            |
+| `tcpcongestion`       | `bbr`   | 拥塞控制：`bbr`、`cubic` 或 `reno`。                           |
+| `tproxy`              | `off`   | 透明代理模式：`off`、`redirect` 或 `tproxy`。                  |
+| `domainStrategy`      | `AsIs`  | 地址如何解析（`UseIP`、`ForceIPv4`……）。                      |
+| `dialerProxy`         | _(无)_  | 将此出站的拨号链式经过另一个出站标签。                         |
+| `interface`           | _(无)_  | 绑定到指定的网络接口。                                          |
+| `mark`                | `0`     | 用于策略路由的 SO_MARK（`0` = 未设置）。                       |
+
+保持为 `0` 的数值字段不会写入传输链路，因此 Xray 会沿用操作系统的默认值。高级条目
+（`happyEyeballs`、`customSockopt[]`、keepalive 计时器）可用于特殊场景。
+
+## 安全
+
+安全层为 **`none`**、**`tls`** 或 **`reality`** 三者之一，并遵循以下适用规则：
+
+| 安全层      | 适用的传输方式                               | 适用的协议                                          |
+| ----------- | -------------------------------------------- | --------------------------------------------------- |
+| **TLS**     | `tcp`, `ws`, `grpc`, `httpupgrade`, `xhttp`  | VLESS、VMess、Trojan、Shadowsocks（Hysteria2 始终为 TLS） |
+| **REALITY** | `tcp`, `grpc`, `xhttp`                       | VLESS、Trojan                                       |
+
+mKCP 和 Hysteria 不使用单独的 TLS/REALITY 层——mKCP 以明文运行（用 FinalMask 混淆），
+而 Hysteria 在设计上就是 QUIC/TLS。REALITY 会把你的服务器伪装成一个真实的 TLS 站点，
+且无需证书——参见 [REALITY](/docs/config/reality)。
+
+## XTLS-Vision 流控
+
+`xtls-rprx-vision` 流控既快速又能抵抗 DPI。在以下任一情况下，它都可用于 **VLESS**：
+
+- 传输方式为裸 **TCP**，安全层为 **TLS** 或 **REALITY**（经典的 XTLS-Vision），或者
+- 传输方式为 **XHTTP** 且启用了 VLESS 加密（见下文）。
+
+请在 VLESS **客户端**上设置流控，而不是在入站上。在 TCP 上使用经典 Vision 时，一旦某个
+客户端使用该流控，面板还可以提供一个 **Vision seed**。
+
+## VLESS 加密（ML-KEM）
+
+VLESS 支持后量子**加密**（ML-KEM / `mlkem768x25519`），它存储在入站的 `decryption`
+（服务器）以及客户端的 `encryption`（用于生成链接）中。启用后，它会解锁在 XHTTP
+之上的 Vision 流控。请从面板的 VLESS 设置中生成密钥。
+
+## Shadowsocks 加密方式
+
+Shadowsocks 入站同时支持经典加密方式和 **Shadowsocks-2022**（以 `2022-blake3-`
+开头的方法名）。大多数加密方式支持多用户；`2022-blake3-chacha20-poly1305`
+为单用户。
+
+<Callout type="info">
+  传输方式和安全层必须在两端一致。客户端的分享链接会对它们进行编码（`type=ws`、
+  `security=reality`、`flow=xtls-rprx-vision`……）——可使用
+  [分享链接检查器](/docs/config/share-links)解码任意链接。
+</Callout>

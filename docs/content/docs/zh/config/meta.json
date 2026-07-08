@@ -1,0 +1,14 @@
+{
+  "title": "配置",
+  "icon": "Settings",
+  "pages": [
+    "panel",
+    "ssl-certificates",
+    "inbounds",
+    "reality",
+    "transports",
+    "clients",
+    "subscription",
+    "share-links"
+  ]
+}

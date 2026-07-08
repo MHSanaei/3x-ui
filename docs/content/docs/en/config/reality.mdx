@@ -1,0 +1,135 @@
+---
+title: REALITY
+description: Set up a VLESS + REALITY inbound with XTLS-Vision in 3x-ui — keys, short IDs, SNI, fingerprints, and common pitfalls.
+icon: ShieldCheck
+---
+
+**REALITY** is an Xray transport security that disguises your proxy as ordinary
+traffic to a real, popular website. Unlike classic TLS, your server needs **no
+certificate of its own** — it borrows the TLS handshake of the target site
+(`dest`). Combined with the **XTLS-Vision** flow, it is fast and resistant to
+deep-packet inspection.
+
+REALITY is used with **VLESS** (and Trojan). The recommended flow is
+`xtls-rprx-vision`.
+
+## Key settings
+
+When you choose **REALITY** as the security mode on a VLESS inbound, 3x-ui
+exposes these fields:
+
+| Field                    | What it is                                                         |
+| ------------------------ | ------------------------------------------------------------------ |
+| **Dest (target)**        | A real TLS site to impersonate, e.g. `www.microsoft.com:443`.      |
+| **SNI / Server Names**   | The hostname(s) clients send; must match the target's certificate. |
+| **Public / Private key** | An **x25519** keypair. The private key stays on the server.        |
+| **Short IDs**            | Hex strings used to authenticate clients (you can have several).   |
+| **Flow**                 | Set to `xtls-rprx-vision`.                                         |
+| **Fingerprint (uTLS)**   | The client TLS fingerprint to mimic, e.g. `chrome`.                |
+
+The private key is generated with Xray's `x25519` utility (the panel can
+generate the pair for you):
+
+```bash title="generate an x25519 keypair"
+xray x25519
+```
+
+## Set it up in the panel
+
+<Steps>
+
+<Step>
+### Create a VLESS inbound
+
+Add a new inbound, choose protocol **VLESS**, and set **Security** to
+**reality**.
+</Step>
+
+<Step>
+### Choose a target (dest) and SNI
+
+Pick a reputable site that supports TLS 1.3 and HTTP/2 and is reachable from your
+server and your clients (for example `www.microsoft.com:443`). Set the server
+names / SNI to match that site's certificate.
+</Step>
+
+<Step>
+### Generate keys and short IDs
+
+Generate the x25519 keypair and one or more short IDs. Keep the **private key**
+secret; clients only ever receive the **public key**.
+</Step>
+
+<Step>
+### Set the flow and fingerprint
+
+Use the `xtls-rprx-vision` flow and a common uTLS fingerprint such as `chrome`.
+</Step>
+
+<Step>
+### Add a client and share the link
+
+Create a client, then use its share link or QR code in a compatible app
+(v2rayNG, Hiddify, Mihomo, and others).
+</Step>
+
+</Steps>
+
+## What the configuration looks like
+
+On the server, a REALITY inbound's `streamSettings` looks roughly like this:
+
+```json title="server inbound (excerpt)"
+{
+  "network": "tcp",
+  "security": "reality",
+  "realitySettings": {
+    "dest": "www.microsoft.com:443",
+    "serverNames": ["www.microsoft.com"],
+    "privateKey": "<x25519 private key>",
+    "shortIds": ["<hex short id>"],
+    "fingerprint": "chrome"
+  }
+}
+```
+
+The matching client share link carries the **public** parameters:
+
+```text title="vless:// (excerpt)"
+vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni=www.microsoft.com&fp=chrome&spx=%2F&flow=xtls-rprx-vision#my-reality
+```
+
+- `pbk` — REALITY **public** key
+- `sid` — short ID (matches one on the server)
+- `sni` — server name (matches the target's certificate)
+- `fp` — client fingerprint
+- `spx` — spiderX path
+- `flow` — `xtls-rprx-vision`
+
+## Common pitfalls
+
+<Callout type="warn">
+
+- **Bad target.** The `dest` must be a real site that supports **TLS 1.3** and
+  **HTTP/2**, is reachable, and isn't blocked in your region. Pick a site you do
+  not own and that sees lots of traffic.
+- **SNI mismatch.** The SNI / server names must match the target's real
+  certificate, or the handshake gives the disguise away.
+- **Leaked private key.** Only ever distribute the **public** key to clients.
+- **Wrong flow.** REALITY + XTLS-Vision needs `flow = xtls-rprx-vision` on both
+  the inbound client entry and the share link.
+
+</Callout>
+
+## Generate a config
+
+Use the generator below to create a fresh X25519 keypair, UUID, and short ID,
+then copy the server inbound JSON and the client share link. Everything is
+computed **in your browser** — no keys or links are sent anywhere.
+
+<RealityConfigGenerator />
+
+<Callout type="info">
+  The **private key** belongs only on your server. Share the generated
+  `vless://` link (which contains the **public** key) with clients.
+</Callout>

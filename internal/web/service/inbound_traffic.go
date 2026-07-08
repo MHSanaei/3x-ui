@@ -509,7 +509,7 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
-	return submitTrafficWrite(func() error {
+	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
 				return err
@@ -525,6 +525,10 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 			return tx.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
 		})
 	})
+	if err == nil {
+		s.resetMtprotoClientQuota(clientEmail)
+	}
+	return err
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRestart bool, err error) {
@@ -533,6 +537,9 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRes
 		needRestart, inner = s.resetClientTrafficLocked(id, clientEmail)
 		return inner
 	})
+	if err == nil {
+		s.resetMtprotoClientQuota(clientEmail)
+	}
 	return
 }
 
@@ -646,9 +653,13 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 }
 
 func (s *InboundService) ResetAllTraffics() error {
-	return submitTrafficWrite(func() error {
+	err := submitTrafficWrite(func() error {
 		return s.resetAllTrafficsLocked()
 	})
+	if err == nil {
+		s.resetAllMtprotoQuotas()
+	}
+	return err
 }
 
 func (s *InboundService) resetAllTrafficsLocked() error {
@@ -1058,14 +1069,12 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 
 	traffic.InboundId = inbound.Id
 
-	// Unmarshal settings to get clients
-	settings := map[string][]model.Client{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+	clients, err := ParseInboundSettingsClients(inbound.Settings)
+	if err != nil {
 		logger.Errorf("Error unmarshalling inbound settings for inbound ID %d: %v", inbound.Id, err)
 		return nil, err
 	}
 
-	clients := settings["clients"]
 	for _, client := range clients {
 		if (client.ID == query || client.Password == query) && client.Email != "" {
 			traffic.Email = client.Email

@@ -1,0 +1,36 @@
+---
+title: Ports & Firewall
+description: The ports 3x-ui uses by default and ready-made ufw / nftables rules to open them.
+icon: Network
+---
+
+Open only the ports you actually use. Below are the common ones and a generator
+for `ufw` and `nftables` rules.
+
+## Common ports
+
+| Port (default) | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| `22`           | SSH (keep this open!).                     |
+| `2053`         | Panel (configurable).                     |
+| `2096`         | Subscription server (if separate).        |
+| `443`          | A common inbound port (TLS / REALITY).    |
+| `80` / `443`   | Reverse proxy (if you run one).           |
+
+Your actual inbound ports depend on the inbounds you create.
+
+## Generate firewall rules
+
+<FirewallRulesGenerator />
+
+<Callout type="warn">
+  Always keep SSH allowed before enabling a default-deny policy, and test from a
+  second session so you don't lock yourself out.
+</Callout>
+
+## Related
+
+<Cards>
+  <Card title="Security" href="/docs/operations/security" description="Fail2ban, IP limits, and hardening." />
+  <Card title="Environment variables" href="/docs/reference/env-vars" description="XUI_PORT and friends." />
+</Cards>

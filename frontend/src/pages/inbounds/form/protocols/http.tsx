@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { Form, Switch } from 'antd';
+import { Switch } from 'antd';
 
+import { FormField } from '@/components/form/rhf';
 import AccountsList from './accounts-list';
 
 export default function HttpFields() {
@@ -8,13 +9,13 @@ export default function HttpFields() {
   return (
     <>
       <AccountsList />
-      <Form.Item
+      <FormField
         name={['settings', 'allowTransparent']}
         label={t('pages.inbounds.form.allowTransparent')}
-        valuePropName="checked"
+        valueProp="checked"
       >
         <Switch />
-      </Form.Item>
+      </FormField>
     </>
   );
 }

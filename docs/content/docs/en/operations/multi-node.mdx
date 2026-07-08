@@ -1,0 +1,97 @@
+---
+title: Multi-node & Managed Hosts
+description: Manage multiple 3x-ui panels from one master, with API-token or mTLS trust, heartbeats, and per-inbound host overrides for subscriptions.
+icon: Boxes
+---
+
+3x-ui can manage **multiple servers** from a single master panel, and override
+how each inbound is advertised in subscriptions with **managed hosts**.
+
+## Nodes
+
+A **node** is another 3x-ui panel that your master panel manages over the node's
+API. The master polls each node and shows its status, versions, CPU/memory,
+uptime, and traffic in one place.
+
+### Add a node
+
+Provide the node's connection details:
+
+| Field             | Notes                                                                 |
+| ----------------- | --------------------------------------------------------------------- |
+| **Name**          | Unique label (e.g. `de-fra-1`).                                        |
+| **Scheme**        | `https` (default) or `http`.                                          |
+| **Address / Port**| The node panel's host and port.                                       |
+| **Base path**     | The node's web base path.                                             |
+| **API token**     | A Bearer token created on the node (not needed in mTLS mode).         |
+| **TLS verify**    | `verify` (default), `skip`, `pin` (pin a cert SHA-256), or `mtls`.    |
+| **Inbound sync**  | `all` inbounds, or `selected` by tag.                                 |
+| **Outbound tag**  | Optionally reach the node **through** a named outbound (egress bridge).|
+
+The master verifies reachability when you add or test a node. It then sends a
+**heartbeat** every few seconds, updating the node's status (`online` / `offline`)
+and emitting `node.up` / `node.down` events (see the
+[Telegram bot](/docs/operations/telegram-bot)).
+
+<Callout type="info">
+  Nodes are identified by a stable per-panel GUID, so a node keeps its identity
+  across restarts. A node can itself manage further nodes — the master surfaces
+  those as read-only **transitive** sub-nodes (Node 1 → Node 2 → Node 3).
+</Callout>
+
+### Mutual TLS (mTLS) between master and node
+
+For the strongest trust, use `tlsVerifyMode = mtls` (requires `https`):
+
+<Steps>
+
+<Step>
+### Get the master's CA
+
+On the master, fetch its node-auth CA certificate (the CA private key never
+leaves the panel).
+</Step>
+
+<Step>
+### Trust it on the node
+
+Paste that CA into the node's "trusted CA" setting. It takes effect on the node's
+next restart.
+</Step>
+
+<Step>
+### Switch the node to mTLS
+
+Set the node's TLS verify mode to `mtls`. The master now presents a client
+certificate instead of an API token.
+</Step>
+
+</Steps>
+
+## Managed hosts
+
+A **managed host** is an override endpoint attached to an inbound. At
+subscription time, each enabled host renders an additional share link / proxy
+with its own address, port, TLS, SNI, host header, path, and more — superseding
+the older "external proxy" list. Use them to:
+
+- front an inbound through a **CDN** (Cloudflare) with a different address/SNI,
+- advertise **multiple domains** or per-region endpoints for one inbound,
+- tweak ALPN, fingerprint, ECH, or mux per endpoint.
+
+Each host has a remark (which supports the same
+[template variables](/docs/config/share-links#remark-template-variables)), an
+enable toggle, a sort order, and can be **excluded from specific subscription
+formats** or **scoped to specific nodes**.
+
+<Callout type="info">
+  Hosts whose address/port point at a CDN let you keep the real server address
+  private while clients connect through the CDN edge.
+</Callout>
+
+## Related
+
+<Cards>
+  <Card title="Outbounds & routing" href="/docs/operations/outbounds-routing" description="WARP, NordVPN, outbound subscriptions, and routing." />
+  <Card title="Subscription" href="/docs/config/subscription" description="How hosts shape subscription output." />
+</Cards>
