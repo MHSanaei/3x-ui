@@ -1,4 +1,5 @@
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
+import { blockedSettings, directSettings } from './constants';
 
 export function ruleGetter(t: XraySettingsValue | null, outboundTag: string, property: string): string[] {
   if (!t?.routing?.rules) return [];
@@ -53,6 +54,28 @@ export function syncOutbound(t: XraySettingsValue, tag: string, settings: Record
   const idx = t.outbounds.findIndex((o) => o?.tag === tag);
   if (!haveRules && idx > 0) t.outbounds.splice(idx, 1);
   if (haveRules && idx < 0) t.outbounds.push(settings as never);
+}
+
+export function getDefaultOutboundTag(t: XraySettingsValue | null): string {
+  const tag = t?.outbounds?.[0]?.tag;
+  return typeof tag === 'string' && tag.length > 0 ? tag : 'direct';
+}
+
+export function setDefaultOutboundTag(t: XraySettingsValue, tag: string): void {
+  if (!tag) return;
+  if (!Array.isArray(t.outbounds)) t.outbounds = [];
+  const idx = t.outbounds.findIndex((o) => o?.tag === tag);
+  if (idx < 0) {
+    if (tag === 'direct') t.outbounds.push(directSettings as never);
+    else if (tag === 'blocked') t.outbounds.push(blockedSettings as never);
+    else return;
+    const newIdx = t.outbounds.length - 1;
+    const [moved] = t.outbounds.splice(newIdx, 1);
+    t.outbounds.unshift(moved);
+  } else if (idx > 0) {
+    const [moved] = t.outbounds.splice(idx, 1);
+    t.outbounds.unshift(moved);
+  }
 }
 
 export function propagateOutboundTagRename(

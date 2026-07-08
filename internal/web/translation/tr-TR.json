@@ -1866,7 +1866,9 @@
         "edit": "Sahte DNS'i Düzenle",
         "ipPool": "IP Havuzu Alt Ağı",
         "poolSize": "Havuz Boyutu"
-      }
+      },
+      "defaultOutbound": "Varsayılan giden",
+      "defaultOutboundDesc": "Yönlendirme kuralıyla eşleşmeyen trafik bu gideni kullanır (listedeki ilk giden)."
     },
     "hosts": {
       "addHost": "Host Ekle",

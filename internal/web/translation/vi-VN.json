@@ -1866,7 +1866,9 @@
         "edit": "Chỉnh sửa DNS giả",
         "ipPool": "Mạng con nhóm IP",
         "poolSize": "Kích thước bể bơi"
-      }
+      },
+      "defaultOutbound": "Outbound mặc định",
+      "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách)."
     },
     "hosts": {
       "addHost": "Thêm Host",

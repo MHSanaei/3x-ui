@@ -1866,7 +1866,9 @@
         "edit": "Editar Fake DNS",
         "ipPool": "Sub-rede do Pool de IP",
         "poolSize": "Tamanho do Pool"
-      }
+      },
+      "defaultOutbound": "Saída padrão",
+      "defaultOutboundDesc": "Tráfego sem regra de roteamento usa esta saída (a primeira da lista)."
     },
     "hosts": {
       "addHost": "Adicionar Host",

@@ -1866,7 +1866,9 @@
         "edit": "Editar DNS Falso",
         "ipPool": "Subred del grupo de IP",
         "poolSize": "Tamaño del grupo"
-      }
+      },
+      "defaultOutbound": "Salida predeterminada",
+      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista)."
     },
     "hosts": {
       "addHost": "Agregar host",

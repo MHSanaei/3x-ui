@@ -1866,7 +1866,9 @@
         "edit": "Edit DNS Palsu",
         "ipPool": "Subnet Kumpulan IP",
         "poolSize": "Ukuran Kolam"
-      }
+      },
+      "defaultOutbound": "Outbound default",
+      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar)."
     },
     "hosts": {
       "addHost": "Tambah Host",
