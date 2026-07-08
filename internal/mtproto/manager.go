@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -413,9 +414,7 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 			continue
 		}
 		lastCopy := make(map[string]clientCounters, len(cur.last))
-		for k, v := range cur.last {
-			lastCopy[k] = v
-		}
+		maps.Copy(lastCopy, cur.last)
 		snaps = append(snaps, snap{id: id, apiPort: cur.apiPort, apiToken: cur.apiToken, tag: cur.tag, last: lastCopy})
 	}
 	m.mu.Unlock()
