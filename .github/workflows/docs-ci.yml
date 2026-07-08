@@ -11,6 +11,9 @@ on:
       - 'docs/**'
       - '.github/workflows/docs-ci.yml'
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: docs
