@@ -250,6 +250,7 @@ export const ApiTokenViewSchema = z.object({
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
 export const ClientSchema = z.object({
+  adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
   auth: z.string().optional(),
   comment: z.string(),
@@ -268,6 +269,7 @@ export const ClientSchema = z.object({
   publicKey: z.string().optional(),
   reset: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
+  secret: z.string().optional(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -285,6 +287,7 @@ export const ClientInboundSchema = z.object({
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
 
 export const ClientRecordSchema = z.object({
+  adTag: z.string(),
   allowedIPs: z.string(),
   auth: z.string(),
   comment: z.string(),
@@ -303,6 +306,7 @@ export const ClientRecordSchema = z.object({
   publicKey: z.string(),
   reset: z.number().int(),
   reverse: z.unknown(),
+  secret: z.string(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
@@ -433,6 +437,7 @@ export const InboundOptionSchema = z.object({
   enable: z.boolean(),
   id: z.number().int(),
   listen: z.string().optional(),
+  mtprotoDomain: z.string().optional(),
   nodeAddress: z.string().optional(),
   nodeId: z.number().int().nullable().optional(),
   port: z.number().int(),

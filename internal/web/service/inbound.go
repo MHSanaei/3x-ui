@@ -303,6 +303,7 @@ type InboundOption struct {
 	WgPublicKey    string `json:"wgPublicKey,omitempty"`
 	WgMtu          int    `json:"wgMtu,omitempty"`
 	WgDns          string `json:"wgDns,omitempty"`
+	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -363,6 +364,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgPublicKey:       wgPublicKey,
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
+			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -399,6 +401,22 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 	return publicKey, parsed.MTU, parsed.DNS
 }
 
+// inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
+// the clients UI to seed a new mtproto client's secret with the right fronting
+// hostname.
+func inboundMtprotoDomain(protocol string, settings string) string {
+	if protocol != string(model.MTProto) || strings.TrimSpace(settings) == "" {
+		return ""
+	}
+	var parsed struct {
+		FakeTLSDomain string `json:"fakeTlsDomain"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(parsed.FakeTLSDomain)
+}
+
 // GetAllInbounds retrieves all inbounds with client stats.
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
@@ -422,17 +440,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 }
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
-	settings := map[string][]model.Client{}
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if settings == nil {
-		return nil, fmt.Errorf("setting is null")
-	}
-
-	clients := settings["clients"]
-	if clients == nil {
-		return nil, nil
-	}
-	return clients, nil
+	return ParseInboundSettingsClients(inbound.Settings)
 }
 
 // GetClientsBySubId returns the inbound's clients with the given subscription
@@ -512,13 +520,66 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
-// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
-// always valid and matches the configured domain before the row is persisted.
+// finalMaskRealityTcpMasks returns the stream's finalmask.tcp masks when the
+// stream uses REALITY security, or nil otherwise. A non-empty result means
+// this stream carries the finalmask+REALITY combination that panics
+// Xray-core (see https://github.com/XTLS/Xray-core/issues/6453): finalmask
+// wraps the connection before REALITY's handshake ever sees it, and
+// reality.Server() does an unchecked type assertion assuming a raw
+// *net.TCPConn, which panics once finalmask is in front of it.
+//
+// Only finalmask.tcp matters here — TcpmaskManager (the thing that wraps the
+// listener ahead of REALITY's handshake, in xray-core's own
+// transport/internet/memory_settings.go) is only constructed when tcp masks
+// are present; a finalmask.udp-only config never touches the TCP accept path
+// REALITY runs on, so it doesn't reproduce this panic and shouldn't be
+// rejected.
+func finalMaskRealityTcpMasks(stream map[string]any) []any {
+	if stream["security"] != "reality" {
+		return nil
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	return tcp
+}
+
+// validateFinalMaskRealityCombo rejects finalmask.tcp configured together
+// with REALITY security at save time. Upstream has confirmed this
+// combination will be documented as unsupported rather than made graceful,
+// so the panel must not let it be saved.
+func validateFinalMaskRealityCombo(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if len(finalMaskRealityTcpMasks(stream)) == 0 {
+		return nil
+	}
+	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
+}
+
+// normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
+// always valid before the row is persisted, and drops the vestigial inbound-level
+// secret and adTag: MTProto is multi-client, so mtg and every share link read
+// only the per-client values. Leaving an inbound-level secret behind is what
+// produced stale links that failed with "incorrect client random".
 func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
-	if healed, ok := model.HealMtprotoSecret(inbound.Settings); ok {
+	if stripped, ok := model.StripMtprotoInboundSecret(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if stripped, ok := model.StripMtprotoInboundAdTag(inbound.Settings); ok {
+		inbound.Settings = stripped
+	}
+	if healed, ok := model.HealMtprotoClientSecrets(inbound.Settings); ok {
 		inbound.Settings = healed
 	}
 }
@@ -632,6 +693,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -710,6 +774,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		case "mtproto":
+			if client.Secret == "" {
+				return inbound, false, common.NewError("mtproto client requires a secret")
+			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
 			}
 		default:
 			if client.ID == "" {
@@ -804,14 +875,26 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			markDirty = true
 		}
 		if push {
-			if err1 := rt.AddInbound(context.Background(), inbound); err1 == nil {
-				logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
-			} else {
-				logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
-				if inbound.NodeID != nil {
-					markDirty = true
+			payload := inbound
+			pushable := true
+			if inbound.NodeID == nil && inbound.Protocol == model.MTProto {
+				if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+					payload = built
 				} else {
-					needRestart = true
+					logger.Debug("Unable to prepare runtime inbound config:", bErr)
+					pushable = false
+				}
+			}
+			if pushable {
+				if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
+					logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
+				} else {
+					logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
+					if inbound.NodeID != nil {
+						markDirty = true
+					} else if inbound.Protocol != model.MTProto {
+						needRestart = true
+					}
 				}
 			}
 		}
@@ -1036,6 +1119,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
@@ -1052,9 +1138,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
-	// Capture the pre-edit routing state before oldInbound.Settings is replaced
-	// with the new settings further down, then ensure a routed inbound keeps a
-	// stable egress port (reusing the one already stored).
+	// Capture the pre-edit protocol and routing state before oldInbound is
+	// overwritten with the new values further down, then ensure a routed
+	// inbound keeps a stable egress port (reusing the one already stored).
+	oldProtocol := oldInbound.Protocol
 	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
@@ -1197,6 +1284,30 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if oldInbound.NodeID == nil {
 			if !push {
 				needRestart = true
+			} else if oldProtocol == model.MTProto || oldInbound.Protocol == model.MTProto {
+				oldSnapshot := *oldInbound
+				oldSnapshot.Tag = tag
+				oldSnapshot.Protocol = oldProtocol
+				payload := oldInbound
+				pushable := true
+				if inbound.Enable {
+					if built, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound); err2 == nil {
+						payload = built
+					} else {
+						logger.Debug("Unable to prepare runtime inbound config:", err2)
+						pushable = false
+					}
+				}
+				if pushable {
+					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+					} else {
+						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+						if oldInbound.Protocol != model.MTProto {
+							needRestart = true
+						}
+					}
+				}
 			} else {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag

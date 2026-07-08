@@ -48,7 +48,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 
 	// SPA pages built by Vite don't have a server-rendered <meta name="csrf-token">,
 	// so they fetch the session token via this endpoint at startup and replay it
-	// on subsequent unsafe requests through axios.
+	// on subsequent unsafe requests.
 	g.GET("/csrf-token", a.csrfToken)
 }
 

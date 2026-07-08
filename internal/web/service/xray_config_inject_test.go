@@ -14,6 +14,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// A test binary re-executed with MTG_FAKE_CHILD=1 poses as an mtg child
+	// process (see mtproto_fake_test.go) and never reaches the test runner.
+	if os.Getenv("MTG_FAKE_CHILD") == "1" {
+		fakeMtgChildMain()
+	}
 	// injectPanelEgress logs when it skips injection; the package logger must
 	// exist before any test exercises a skipped path.
 	xuilogger.InitLogger(logging.ERROR)

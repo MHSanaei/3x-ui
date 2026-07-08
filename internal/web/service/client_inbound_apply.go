@@ -384,6 +384,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if client.PublicKey == "" {
 				return false, common.NewError("wireguard client requires a key")
 			}
+		case "mtproto":
+			if client.Secret == "" {
+				return false, common.NewError("mtproto client requires a secret")
+			}
+			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
+				return false, common.NewError("mtproto client ad tag must be 32 hex characters")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -456,6 +463,8 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	if oldInbound.NodeID == nil {
 		if !push {
 			needRestart = true
+		} else if oldInbound.Protocol == model.MTProto {
+			inboundSvc.applyLocalMtproto(oldInbound.Id)
 		} else {
 			for _, client := range clients {
 				if len(client.Email) == 0 {
@@ -549,6 +558,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		newClientId = clients[0].Auth
 	case "wireguard":
 		newClientId = clients[0].Email
+	case "mtproto":
+		newClientId = clients[0].Email
 	default:
 		newClientId = clients[0].ID
 	}
@@ -570,6 +581,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	if strings.TrimSpace(clients[0].Email) == "" {
 		return false, common.NewError("client email is required")
+	}
+	if oldInbound.Protocol == model.MTProto && clients[0].AdTag != "" && !model.ValidMtprotoAdTag(clients[0].AdTag) {
+		return false, common.NewError("mtproto client ad tag must be 32 hex characters")
 	}
 
 	if clients[0].Email != oldEmail {
@@ -812,6 +826,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if oldInbound.NodeID == nil {
 			if !push {
 				needRestart = true
+			} else if oldInbound.Protocol == model.MTProto {
+				inboundSvc.applyLocalMtproto(oldInbound.Id)
 			} else {
 				if oldClients[clientIndex].Enable {
 					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
@@ -988,9 +1004,14 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	// inbound's runtime even when the same email survives in another inbound.
 	if len(email) > 0 {
 		if oldInbound.NodeID == nil {
-			// Local inbound: a disabled client isn't in the running Xray, so only
-			// a live one (needApiDel) needs an API removal.
-			if needApiDel {
+			if oldInbound.Protocol == model.MTProto {
+				// mtg serves the full secret set, so any client delete re-applies
+				// it (removing the last client stops the sidecar) regardless of the
+				// client's enable state.
+				inboundSvc.applyLocalMtproto(oldInbound.Id)
+			} else if needApiDel {
+				// Local inbound: a disabled client isn't in the running Xray, so only
+				// a live one (needApiDel) needs an API removal.
 				if !push {
 					needRestart = true
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, email); err1 == nil {

@@ -1,0 +1,257 @@
+---
+title: تنظیمات Xray
+description: >-
+  قالب پیکربندی Xray، مدیریت outboundها، یکپارچه‌سازی Warp/Nord و آزمایش
+  پیکربندی. همه‌ی نقاط پایانی زیر /panel/api/xray قرار دارند.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        Return the Xray config template (JSON string), available inbound tags,
+        client reverse tags, and the configured outbound test URL in one
+        response.
+      url: >-
+        #return-the-xray-config-template-json-string-available-inbound-tags-client-reverse-tags-and-the-configured-outbound-test-url-in-one-response
+    - depth: 2
+      title: >-
+        Return the built-in default Xray config shipped with the panel
+        (identical to /panel/api/setting/getDefaultJsonConfig).
+      url: >-
+        #return-the-built-in-default-xray-config-shipped-with-the-panel-identical-to-panelapisettinggetdefaultjsonconfig
+    - depth: 2
+      title: >-
+        Return traffic statistics for every outbound. Each outbound shows
+        up/down/total counters.
+      url: >-
+        #return-traffic-statistics-for-every-outbound-each-outbound-shows-updowntotal-counters
+    - depth: 2
+      title: >-
+        Return the most recent Xray process stdout/stderr output. Useful to
+        check for startup errors or runtime warnings.
+      url: >-
+        #return-the-most-recent-xray-process-stdoutstderr-output-useful-to-check-for-startup-errors-or-runtime-warnings
+    - depth: 2
+      title: >-
+        Save the Xray JSON config template and optionally the outbound test URL.
+        Both are sent as form fields.
+      url: >-
+        #save-the-xray-json-config-template-and-optionally-the-outbound-test-url-both-are-sent-as-form-fields
+    - depth: 2
+      title: >-
+        Manage Cloudflare Warp integration. The action parameter selects the
+        operation.
+      url: >-
+        #manage-cloudflare-warp-integration-the-action-parameter-selects-the-operation
+    - depth: 2
+      title: Manage NordVPN integration. The action parameter selects the operation.
+      url: '#manage-nordvpn-integration-the-action-parameter-selects-the-operation'
+    - depth: 2
+      title: Reset traffic counters for a specific outbound by tag.
+      url: '#reset-traffic-counters-for-a-specific-outbound-by-tag'
+    - depth: 2
+      title: >-
+        Test an outbound configuration. Sends the outbound JSON (required),
+        optionally all outbounds (to resolve sockopt.dialerProxy dependencies),
+        and a mode flag.
+      url: >-
+        #test-an-outbound-configuration-sends-the-outbound-json-required-optionally-all-outbounds-to-resolve-sockoptdialerproxy-dependencies-and-a-mode-flag
+    - depth: 2
+      title: >-
+        Test a batch of outbounds (max 50) through one shared temp xray
+        instance. Returns an array of results in input order, each with the
+        outbound tag, delay, HTTP status and a connect/TLS/TTFB timing
+        breakdown.
+      url: >-
+        #test-a-batch-of-outbounds-max-50-through-one-shared-temp-xray-instance-returns-an-array-of-results-in-input-order-each-with-the-outbound-tag-delay-http-status-and-a-connecttlsttfb-timing-breakdown
+    - depth: 2
+      title: >-
+        Live state of routing balancers in the running core
+        (RoutingService.GetBalancerInfo): current override and the targets the
+        strategy prefers. Returns a map keyed by balancer tag.
+      url: >-
+        #live-state-of-routing-balancers-in-the-running-core-routingservicegetbalancerinfo-current-override-and-the-targets-the-strategy-prefers-returns-a-map-keyed-by-balancer-tag
+    - depth: 2
+      title: >-
+        Force a balancer in the running core to always pick one outbound
+        (RoutingService.OverrideBalancerTarget). Applied live without a restart;
+        cleared automatically when Xray restarts.
+      url: >-
+        #force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-cleared-automatically-when-xray-restarts
+    - depth: 2
+      title: >-
+        Ask the running core which outbound its router would pick for a
+        synthetic connection (RoutingService.TestRoute). No traffic is sent.
+      url: >-
+        #ask-the-running-core-which-outbound-its-router-would-pick-for-a-synthetic-connection-routingservicetestroute-no-traffic-is-sent
+    - depth: 2
+      title: >-
+        List all outbound subscriptions (remote URLs that supply additional
+        outbounds), newest first.
+      url: >-
+        #list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first
+    - depth: 2
+      title: >-
+        Create an outbound subscription. The URL is fetched, parsed into
+        outbounds with stable tags, and merged additively into the running Xray
+        config.
+      url: >-
+        #create-an-outbound-subscription-the-url-is-fetched-parsed-into-outbounds-with-stable-tags-and-merged-additively-into-the-running-xray-config
+    - depth: 2
+      title: >-
+        Update an existing outbound subscription by id. Accepts the same form
+        fields as create.
+      url: >-
+        #update-an-existing-outbound-subscription-by-id-accepts-the-same-form-fields-as-create
+    - depth: 2
+      title: Delete an outbound subscription by id.
+      url: '#delete-an-outbound-subscription-by-id'
+    - depth: 2
+      title: >-
+        Delete an outbound subscription by id (POST alias of DELETE for
+        axios-friendly clients).
+      url: >-
+        #delete-an-outbound-subscription-by-id-post-alias-of-delete-for-axios-friendly-clients
+    - depth: 2
+      title: >-
+        Force an immediate re-fetch of the subscription and return the parsed
+        outbounds. Signals Xray to reload.
+      url: >-
+        #force-an-immediate-re-fetch-of-the-subscription-and-return-the-parsed-outbounds-signals-xray-to-reload
+    - depth: 2
+      title: >-
+        Reorder a subscription one step up or down in priority (controls its
+        position in the merged outbounds).
+      url: >-
+        #reorder-a-subscription-one-step-up-or-down-in-priority-controls-its-position-in-the-merged-outbounds
+    - depth: 2
+      title: >-
+        Preview a subscription URL: fetch and parse it into outbounds without
+        persisting anything.
+      url: >-
+        #preview-a-subscription-url-fetch-and-parse-it-into-outbounds-without-persisting-anything
+  structuredData:
+    headings:
+      - content: >-
+          Return the Xray config template (JSON string), available inbound tags,
+          client reverse tags, and the configured outbound test URL in one
+          response.
+        id: >-
+          return-the-xray-config-template-json-string-available-inbound-tags-client-reverse-tags-and-the-configured-outbound-test-url-in-one-response
+      - content: >-
+          Return the built-in default Xray config shipped with the panel
+          (identical to /panel/api/setting/getDefaultJsonConfig).
+        id: >-
+          return-the-built-in-default-xray-config-shipped-with-the-panel-identical-to-panelapisettinggetdefaultjsonconfig
+      - content: >-
+          Return traffic statistics for every outbound. Each outbound shows
+          up/down/total counters.
+        id: >-
+          return-traffic-statistics-for-every-outbound-each-outbound-shows-updowntotal-counters
+      - content: >-
+          Return the most recent Xray process stdout/stderr output. Useful to
+          check for startup errors or runtime warnings.
+        id: >-
+          return-the-most-recent-xray-process-stdoutstderr-output-useful-to-check-for-startup-errors-or-runtime-warnings
+      - content: >-
+          Save the Xray JSON config template and optionally the outbound test
+          URL. Both are sent as form fields.
+        id: >-
+          save-the-xray-json-config-template-and-optionally-the-outbound-test-url-both-are-sent-as-form-fields
+      - content: >-
+          Manage Cloudflare Warp integration. The action parameter selects the
+          operation.
+        id: >-
+          manage-cloudflare-warp-integration-the-action-parameter-selects-the-operation
+      - content: >-
+          Manage NordVPN integration. The action parameter selects the
+          operation.
+        id: manage-nordvpn-integration-the-action-parameter-selects-the-operation
+      - content: Reset traffic counters for a specific outbound by tag.
+        id: reset-traffic-counters-for-a-specific-outbound-by-tag
+      - content: >-
+          Test an outbound configuration. Sends the outbound JSON (required),
+          optionally all outbounds (to resolve sockopt.dialerProxy
+          dependencies), and a mode flag.
+        id: >-
+          test-an-outbound-configuration-sends-the-outbound-json-required-optionally-all-outbounds-to-resolve-sockoptdialerproxy-dependencies-and-a-mode-flag
+      - content: >-
+          Test a batch of outbounds (max 50) through one shared temp xray
+          instance. Returns an array of results in input order, each with the
+          outbound tag, delay, HTTP status and a connect/TLS/TTFB timing
+          breakdown.
+        id: >-
+          test-a-batch-of-outbounds-max-50-through-one-shared-temp-xray-instance-returns-an-array-of-results-in-input-order-each-with-the-outbound-tag-delay-http-status-and-a-connecttlsttfb-timing-breakdown
+      - content: >-
+          Live state of routing balancers in the running core
+          (RoutingService.GetBalancerInfo): current override and the targets the
+          strategy prefers. Returns a map keyed by balancer tag.
+        id: >-
+          live-state-of-routing-balancers-in-the-running-core-routingservicegetbalancerinfo-current-override-and-the-targets-the-strategy-prefers-returns-a-map-keyed-by-balancer-tag
+      - content: >-
+          Force a balancer in the running core to always pick one outbound
+          (RoutingService.OverrideBalancerTarget). Applied live without a
+          restart; cleared automatically when Xray restarts.
+        id: >-
+          force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-cleared-automatically-when-xray-restarts
+      - content: >-
+          Ask the running core which outbound its router would pick for a
+          synthetic connection (RoutingService.TestRoute). No traffic is sent.
+        id: >-
+          ask-the-running-core-which-outbound-its-router-would-pick-for-a-synthetic-connection-routingservicetestroute-no-traffic-is-sent
+      - content: >-
+          List all outbound subscriptions (remote URLs that supply additional
+          outbounds), newest first.
+        id: >-
+          list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first
+      - content: >-
+          Create an outbound subscription. The URL is fetched, parsed into
+          outbounds with stable tags, and merged additively into the running
+          Xray config.
+        id: >-
+          create-an-outbound-subscription-the-url-is-fetched-parsed-into-outbounds-with-stable-tags-and-merged-additively-into-the-running-xray-config
+      - content: >-
+          Update an existing outbound subscription by id. Accepts the same form
+          fields as create.
+        id: >-
+          update-an-existing-outbound-subscription-by-id-accepts-the-same-form-fields-as-create
+      - content: Delete an outbound subscription by id.
+        id: delete-an-outbound-subscription-by-id
+      - content: >-
+          Delete an outbound subscription by id (POST alias of DELETE for
+          axios-friendly clients).
+        id: >-
+          delete-an-outbound-subscription-by-id-post-alias-of-delete-for-axios-friendly-clients
+      - content: >-
+          Force an immediate re-fetch of the subscription and return the parsed
+          outbounds. Signals Xray to reload.
+        id: >-
+          force-an-immediate-re-fetch-of-the-subscription-and-return-the-parsed-outbounds-signals-xray-to-reload
+      - content: >-
+          Reorder a subscription one step up or down in priority (controls its
+          position in the merged outbounds).
+        id: >-
+          reorder-a-subscription-one-step-up-or-down-in-priority-controls-its-position-in-the-merged-outbounds
+      - content: >-
+          Preview a subscription URL: fetch and parse it into outbounds without
+          persisting anything.
+        id: >-
+          preview-a-subscription-url-fetch-and-parse-it-into-outbounds-without-persisting-anything
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/xray/","method":"post"},{"path":"/panel/api/xray/getDefaultJsonConfig","method":"get"},{"path":"/panel/api/xray/getOutboundsTraffic","method":"get"},{"path":"/panel/api/xray/getXrayResult","method":"get"},{"path":"/panel/api/xray/update","method":"post"},{"path":"/panel/api/xray/warp/{action}","method":"post"},{"path":"/panel/api/xray/nord/{action}","method":"post"},{"path":"/panel/api/xray/resetOutboundsTraffic","method":"post"},{"path":"/panel/api/xray/testOutbound","method":"post"},{"path":"/panel/api/xray/testOutbounds","method":"post"},{"path":"/panel/api/xray/balancerStatus","method":"post"},{"path":"/panel/api/xray/balancerOverride","method":"post"},{"path":"/panel/api/xray/routeTest","method":"post"},{"path":"/panel/api/xray/outbound-subs","method":"get"},{"path":"/panel/api/xray/outbound-subs","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"delete"},{"path":"/panel/api/xray/outbound-subs/{id}/del","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/refresh","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/move","method":"post"},{"path":"/panel/api/xray/outbound-subs/parse","method":"post"}]} showTitle />
+    </>
+  );
+}

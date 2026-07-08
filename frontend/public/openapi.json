@@ -1142,6 +1142,10 @@
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
+          "adTag": {
+            "example": "0123456789abcdef0123456789abcdef",
+            "type": "string"
+          },
           "allowedIPs": {
             "items": {
               "type": "string"
@@ -1217,6 +1221,10 @@
             "description": "VLESS simple reverse proxy settings",
             "nullable": true
           },
+          "secret": {
+            "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
+            "type": "string"
+          },
           "security": {
             "description": "Security method (e.g., \"auto\", \"aes-128-gcm\")",
             "type": "string"
@@ -1277,6 +1285,9 @@
       },
       "ClientRecord": {
         "properties": {
+          "adTag": {
+            "type": "string"
+          },
           "allowedIPs": {
             "type": "string"
           },
@@ -1329,6 +1340,9 @@
             "type": "integer"
           },
           "reverse": {},
+          "secret": {
+            "type": "string"
+          },
           "security": {
             "type": "string"
           },
@@ -1349,6 +1363,7 @@
           }
         },
         "required": [
+          "adTag",
           "allowedIPs",
           "auth",
           "comment",
@@ -1367,6 +1382,7 @@
           "publicKey",
           "reset",
           "reverse",
+          "secret",
           "security",
           "subId",
           "tgId",
@@ -1883,6 +1899,9 @@
             "type": "integer"
           },
           "listen": {
+            "type": "string"
+          },
+          "mtprotoDomain": {
             "type": "string"
           },
           "nodeAddress": {
@@ -2853,6 +2872,7 @@
                       "enable": true,
                       "id": 1,
                       "listen": "",
+                      "mtprotoDomain": "",
                       "nodeAddress": "",
                       "nodeId": null,
                       "port": 443,
@@ -10201,7 +10221,7 @@
         "tags": [
           "Xray Settings"
         ],
-        "summary": "Delete an outbound subscription by id (POST alias of DELETE for axios-friendly clients).",
+        "summary": "Delete an outbound subscription by id (POST alias of DELETE for clients that cannot send DELETE).",
         "operationId": "post_panel_api_xray_outbound_subs_id_del",
         "parameters": [
           {

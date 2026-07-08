@@ -1,0 +1,35 @@
+---
+title: 端口与防火墙
+description: 3x-ui 默认使用的端口，以及用于开放这些端口的现成 ufw / nftables 规则。
+icon: Network
+---
+
+只开放你实际会用到的端口。下面列出了常用端口，并提供了一个用于生成
+`ufw` 和 `nftables` 规则的生成器。
+
+## 常用端口
+
+| Port (default) | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| `22`           | SSH（务必保持开放！）。                    |
+| `2053`         | 面板（可配置）。                          |
+| `2096`         | 订阅服务器（如果单独部署）。              |
+| `443`          | 常用的入站端口（TLS / REALITY）。         |
+| `80` / `443`   | 反向代理（如果你运行了反向代理）。        |
+
+实际的入站端口取决于你创建的入站配置。
+
+## 生成防火墙规则
+
+<FirewallRulesGenerator />
+
+<Callout type="warn">
+  在启用默认拒绝策略之前，请始终保持 SSH 处于允许状态，并在另一个会话中进行测试，以免把自己锁在外面。
+</Callout>
+
+## 相关内容
+
+<Cards>
+  <Card title="安全" href="/docs/operations/security" description="Fail2ban、IP 限制与安全加固。" />
+  <Card title="环境变量" href="/docs/reference/env-vars" description="XUI_PORT 及相关变量。" />
+</Cards>

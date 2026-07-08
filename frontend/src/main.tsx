@@ -6,13 +6,13 @@ import '@/styles/utils.css';
 import '@/styles/page-shell.css';
 import '@/styles/page-cards.css';
 
-import { setupAxios } from '@/api/axios-init';
+import { setupHttp } from '@/api/http-init';
 import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { QueryProvider } from '@/api/QueryProvider';
 import { router } from '@/routes';
 
-setupAxios();
+setupHttp();
 
 const messageContainer = document.getElementById('message');
 if (messageContainer) {

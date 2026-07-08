@@ -196,6 +196,18 @@ func mergeActivationExpiry(existing, node int64) int64 {
 	return node
 }
 
+// nodeClientRenewed reports a node-side auto-renew: an absolute deadline moved
+// forward while the node's cumulative counter fell below the stored baseline.
+func nodeClientRenewed(existing *xray.ClientTraffic, cs xray.ClientTraffic, canon, base nodeTrafficCounter) bool {
+	if cs.Reset <= 0 || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
+		return false
+	}
+	if cs.ExpiryTime <= existing.ExpiryTime {
+		return false
+	}
+	return canon.Up < base.Up || canon.Down < base.Down
+}
+
 // liftActivatedClientRecordExpiries copies a node-activated deadline from
 // client_traffics onto client records still holding the negative duration (#5714).
 func liftActivatedClientRecordExpiries(tx *gorm.DB) error {
@@ -728,7 +740,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 
-			if existing := centralCSByEmail[cs.Email]; existing != nil &&
+			existing := centralCSByEmail[cs.Email]
+			if existing != nil &&
 				(existing.Enable != cs.Enable ||
 					existing.Total != cs.Total ||
 					existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime) ||
@@ -736,31 +749,53 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				structuralChange = true
 			}
 
-			enableExpr := database.ClientTrafficEnableMergeExpr()
-			// expiry_time merge mirrors mergeActivationExpiry: a node that has not
-			// yet seen the client's first connection keeps reporting the negative
-			// "start after first connect" duration, which must never reset the
-			// absolute deadline another node already activated. A positive node
-			// value is still adopted (e.g. auto-renew moves the deadline forward).
-			// CAST(? AS BIGINT): in the `<= 0` comparison Postgres would otherwise
-			// infer int4 from the literal and overflow on real expiry values.
-			if err := tx.Exec(
-				fmt.Sprintf(
-					`UPDATE client_traffics
-					 SET up = %s, down = %s, enable = %s, total = ?,
-					     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
-					     reset = ?, last_online = %s
-					 WHERE email = ?`,
-					database.ClampedAddExpr("up"),
-					database.ClampedAddExpr("down"),
-					enableExpr,
-					database.GreatestExpr("last_online", "?"),
-				),
-				deltaUp, deltaDown, cs.Enable, cs.Total,
-				cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
-				cs.LastOnline, cs.Email,
-			).Error; err != nil {
-				return false, err
+			if seen && existing != nil && nodeClientRenewed(existing, cs, canon, base) {
+				// A renewal starts a fresh quota window: adopt the node's counters
+				// and enable state, drop stale pushes (mirrors autoRenewClients).
+				if err := tx.Exec(
+					fmt.Sprintf(
+						`UPDATE client_traffics
+						 SET up = ?, down = ?, enable = ?, total = ?,
+						     expiry_time = ?, reset = ?, last_online = %s
+						 WHERE email = ?`,
+						database.GreatestExpr("last_online", "?"),
+					),
+					canon.Up, canon.Down, cs.Enable, cs.Total,
+					cs.ExpiryTime, cs.Reset,
+					cs.LastOnline, cs.Email,
+				).Error; err != nil {
+					return false, err
+				}
+				if err := clearGlobalTraffic(tx, cs.Email); err != nil {
+					return false, err
+				}
+			} else {
+				enableExpr := database.ClientTrafficEnableMergeExpr()
+				// expiry_time merge mirrors mergeActivationExpiry: a node that has not
+				// yet seen the client's first connection keeps reporting the negative
+				// "start after first connect" duration, which must never reset the
+				// absolute deadline another node already activated. A positive node
+				// value is still adopted (e.g. auto-renew moves the deadline forward).
+				// CAST(? AS BIGINT): in the `<= 0` comparison Postgres would otherwise
+				// infer int4 from the literal and overflow on real expiry values.
+				if err := tx.Exec(
+					fmt.Sprintf(
+						`UPDATE client_traffics
+						 SET up = %s, down = %s, enable = %s, total = ?,
+						     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
+						     reset = ?, last_online = %s
+						 WHERE email = ?`,
+						database.ClampedAddExpr("up"),
+						database.ClampedAddExpr("down"),
+						enableExpr,
+						database.GreatestExpr("last_online", "?"),
+					),
+					deltaUp, deltaDown, cs.Enable, cs.Total,
+					cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
+					cs.LastOnline, cs.Email,
+				).Error; err != nil {
+					return false, err
+				}
 			}
 			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
 				return false, err

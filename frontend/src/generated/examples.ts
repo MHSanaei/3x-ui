@@ -224,6 +224,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "token": "new-token-string"
   },
   "Client": {
+    "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
       ""
     ],
@@ -244,6 +245,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "publicKey": "",
     "reset": 0,
     "reverse": null,
+    "secret": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
     "security": "",
     "subId": "",
     "tgId": 0,
@@ -257,6 +259,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "inboundId": 0
   },
   "ClientRecord": {
+    "adTag": "",
     "allowedIPs": "",
     "auth": "",
     "comment": "",
@@ -275,6 +278,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "publicKey": "",
     "reset": 0,
     "reverse": null,
+    "secret": "",
     "security": "",
     "subId": "",
     "tgId": 0,
@@ -412,6 +416,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": true,
     "id": 1,
     "listen": "",
+    "mtprotoDomain": "",
     "nodeAddress": "",
     "nodeId": null,
     "port": 443,

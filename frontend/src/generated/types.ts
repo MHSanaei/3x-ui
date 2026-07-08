@@ -234,6 +234,7 @@ export interface ApiTokenView {
 }
 
 export interface Client {
+  adTag?: string;
   allowedIPs?: string[];
   auth?: string;
   comment: string;
@@ -252,6 +253,7 @@ export interface Client {
   publicKey?: string;
   reset: number;
   reverse?: ClientReverse | null;
+  secret?: string;
   security: string;
   subId: string;
   tgId: number;
@@ -267,6 +269,7 @@ export interface ClientInbound {
 }
 
 export interface ClientRecord {
+  adTag: string;
   allowedIPs: string;
   auth: string;
   comment: string;
@@ -285,6 +288,7 @@ export interface ClientRecord {
   publicKey: string;
   reset: number;
   reverse: unknown;
+  secret: string;
   security: string;
   subId: string;
   tgId: number;
@@ -406,6 +410,7 @@ export interface InboundOption {
   enable: boolean;
   id: number;
   listen?: string;
+  mtprotoDomain?: string;
   nodeAddress?: string;
   nodeId?: number | null;
   port: number;

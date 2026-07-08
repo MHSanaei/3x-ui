@@ -142,8 +142,34 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.Auth == "" {
 			c.Auth = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
+	case model.MTProto:
+		if c.Secret == "" {
+			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
+		}
 	}
 	return nil
+}
+
+// defaultMtprotoDomain is the FakeTLS fronting domain used when an mtproto
+// inbound carries no fakeTlsDomain of its own; it mirrors the frontend default.
+const defaultMtprotoDomain = "www.cloudflare.com"
+
+// mtprotoDomainFromSettings returns the inbound-level FakeTLS domain, falling
+// back to the default when unset, so a generated client secret always fronts a
+// real hostname.
+func mtprotoDomainFromSettings(settings string) string {
+	domain := ""
+	if settings != "" {
+		var m map[string]any
+		if err := json.Unmarshal([]byte(settings), &m); err == nil {
+			domain, _ = m["fakeTlsDomain"].(string)
+		}
+	}
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		return defaultMtprotoDomain
+	}
+	return domain
 }
 
 func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
@@ -409,6 +435,15 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
+	// Same shape as the group write above: SyncInbound keeps a stored ad-tag
+	// when the incoming settings carry none, so clearing the override must be
+	// applied here, where the editor always round-trips the field.
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		UpdateColumn("ad_tag", updated.AdTag).Error; err != nil {
+		return needRestart, err
+	}
+
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("enable", updated.Enable).Error; err != nil {
@@ -486,6 +521,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 				return err
 			}
 			if err := tx.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("email = ?", existing.Email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return err
 			}
 		}
@@ -629,6 +667,9 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 			return needRestart, err
 		}
 		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {
+			return needRestart, err
+		}
+		if err := db.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return needRestart, err
 		}
 	}

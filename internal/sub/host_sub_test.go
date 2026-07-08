@@ -2,6 +2,7 @@ package sub
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -267,6 +268,28 @@ func TestSub_HostAllowInsecure(t *testing.T) {
 	}
 	if !strings.Contains(yaml, "skip-cert-verify: true") {
 		t.Fatalf("clash proxy should carry skip-cert-verify: true:\n%s", yaml)
+	}
+}
+
+// A host's Final Mask reaches the raw share link as the fm param, merged with
+// any inbound-level mask (#5831).
+func TestSub_HostFinalMask_RawLink(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "fmh", 4455, 1,
+		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"},"finalmask":{"tcp":[{"type":"sudoku"}]}}`)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "FM", Address: "fm.cdn.com", Port: 8443, Security: "tls",
+		FinalMask: `{"tcp":[{"type":"fragment"}]}`,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	wantFm := "fm=" + url.QueryEscape(`{"tcp":[{"type":"sudoku"},{"type":"fragment"}]}`)
+	if !strings.Contains(joined, wantFm) {
+		t.Fatalf("raw link should merge the host Final Mask into fm.\n got: %s\nwant substring: %s", joined, wantFm)
 	}
 }
 
