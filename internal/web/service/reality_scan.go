@@ -286,7 +286,7 @@ func (s *ServerService) ScanRealityTarget(target string) (*RealityScanResult, er
 
 func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {
 	var tokens []string
-	for _, raw := range strings.Split(targetsCSV, ",") {
+	for raw := range strings.SplitSeq(targetsCSV, ",") {
 		if t := strings.TrimSpace(raw); t != "" {
 			tokens = append(tokens, t)
 		}

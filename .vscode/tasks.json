@@ -116,6 +116,35 @@
       ]
     },
     {
+      "label": "go: golangci-lint run",
+      "type": "shell",
+      "command": "golangci-lint",
+      "args": [
+        "run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$go"
+      ]
+    },
+    {
+      "label": "go: golangci-lint run --fix",
+      "type": "shell",
+      "command": "golangci-lint",
+      "args": [
+        "run",
+        "--fix"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$go"
+      ]
+    },
+    {
       "label": "frontend: ncu -u",
       "type": "shell",
       "command": "npx",

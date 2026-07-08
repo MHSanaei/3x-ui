@@ -52,11 +52,10 @@ func InitLogger(level logging.Level) {
 	backends := make([]logging.Backend, 0, 2)
 
 	// Console/syslog backend with configurable level
-	if consoleBackend := initDefaultBackend(); consoleBackend != nil {
-		leveledBackend := logging.AddModuleLevel(consoleBackend)
-		leveledBackend.SetLevel(level, "x-ui")
-		backends = append(backends, leveledBackend)
-	}
+	consoleBackend := initDefaultBackend()
+	leveledBackend := logging.AddModuleLevel(consoleBackend)
+	leveledBackend.SetLevel(level, "x-ui")
+	backends = append(backends, leveledBackend)
 
 	// File backend with DEBUG level for comprehensive logging
 	if fileBackend := initFileBackend(); fileBackend != nil {
