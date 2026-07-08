@@ -4,11 +4,38 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
+
+var (
+	heavyMu      sync.Mutex
+	heavyClients = map[string]*rate.Limiter{}
+)
+
+// HeavyEndpointRateLimiter limits resource-intensive endpoints (outbound network
+// scans, file imports) to 1 request/second with a burst of 3, keyed by client IP.
+func HeavyEndpointRateLimiter() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		heavyMu.Lock()
+		lim, ok := heavyClients[ip]
+		if !ok {
+			lim = rate.NewLimiter(1, 3)
+			heavyClients[ip] = lim
+		}
+		heavyMu.Unlock()
+		if !lim.Allow() {
+			c.AbortWithStatus(http.StatusTooManyRequests)
+			return
+		}
+		c.Next()
+	}
+}
 
 // SecurityHeadersMiddleware adds browser hardening headers to panel responses.
 func SecurityHeadersMiddleware(directHTTPS bool) gin.HandlerFunc {

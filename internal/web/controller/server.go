@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -74,13 +75,15 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
-	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
-	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
-	g.POST("/scanRealityTarget", a.scanRealityTarget)
-	g.POST("/scanRealityTargets", a.scanRealityTargets)
 	g.POST("/clientIps", a.setClientIps)
+
+	heavy := g.Group("", middleware.HeavyEndpointRateLimiter())
+	heavy.POST("/importDB", a.importDB)
+	heavy.POST("/getRemoteCertHash", a.getRemoteCertHash)
+	heavy.POST("/scanRealityTarget", a.scanRealityTarget)
+	heavy.POST("/scanRealityTargets", a.scanRealityTargets)
 }
 
 // startTask registers the @2s ticker that refreshes server status, samples
