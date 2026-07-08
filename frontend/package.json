@@ -95,7 +95,8 @@
     "tree-sitter": false,
     "core-js-pure": false,
     "tree-sitter-json": false,
-    "msw": false
+    "msw": false,
+    "esbuild": false
   },
   "msw": {
     "workerDirectory": [
