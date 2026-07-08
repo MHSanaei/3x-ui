@@ -1,39 +1,53 @@
 import { useTranslation } from 'react-i18next';
-import { AutoComplete, Form, Input, InputNumber, Select, Switch, type FormInstance } from 'antd';
+import { AutoComplete, Input, InputNumber, Select, Switch } from 'antd';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { HeaderMapEditor } from '@/components/form';
-import type { InboundFormValues } from '@/schemas/forms/inbound-form';
+import { FormField } from '@/components/form/rhf';
 import { XHTTP_SESSION_ID_TABLES, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
 
 const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
-export default function XhttpForm({ form }: { form: FormInstance<InboundFormValues> }) {
+function antdValidatorToRhf(fn: (rule: unknown, value: unknown) => Promise<void>) {
+  return async (value: unknown): Promise<true | string> => {
+    try {
+      await fn(undefined, value);
+      return true;
+    } catch (e) {
+      return (e as Error).message;
+    }
+  };
+}
+
+export default function XhttpForm() {
   const { t } = useTranslation();
-  const xhttpMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'mode'], form);
-  const xhttpObfsMode = Form.useWatch(['streamSettings', 'xhttpSettings', 'xPaddingObfsMode'], form) ?? false;
-  const xhttpSessionIDPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionIDPlacement'], form);
-  const xhttpSessionIDTable = Form.useWatch(['streamSettings', 'xhttpSettings', 'sessionIDTable'], form);
-  const xhttpSeqPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'seqPlacement'], form);
-  const xhttpUplinkPlacement = Form.useWatch(['streamSettings', 'xhttpSettings', 'uplinkDataPlacement'], form);
+  const { control, getValues, setValue } = useFormContext();
+  const xhttpMode = useWatch({ control, name: 'streamSettings.xhttpSettings.mode' }) as string | undefined;
+  const xhttpObfsMode = !!useWatch({ control, name: 'streamSettings.xhttpSettings.xPaddingObfsMode' });
+  const xhttpSessionIDPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.sessionIDPlacement' }) as string | undefined;
+  const xhttpSessionIDTable = useWatch({ control, name: 'streamSettings.xhttpSettings.sessionIDTable' });
+  const xhttpSeqPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.seqPlacement' }) as string | undefined;
+  const xhttpUplinkPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.uplinkDataPlacement' }) as string | undefined;
+  const enableXmux = !!useWatch({ control, name: 'streamSettings.xhttpSettings.enableXmux' });
 
   function onXmuxToggle(checked: boolean) {
     if (!checked) return;
-    const existing = form.getFieldValue(['streamSettings', 'xhttpSettings', 'xmux']);
+    const existing = getValues('streamSettings.xhttpSettings.xmux');
     const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
     if (hasValues) return;
-    form.setFieldValue(['streamSettings', 'xhttpSettings', 'xmux'], { ...XMUX_DEFAULTS });
+    setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_DEFAULTS });
   }
 
   return (
     <>
-      <Form.Item name={['streamSettings', 'xhttpSettings', 'host']} label={t('host')}>
+      <FormField name={['streamSettings', 'xhttpSettings', 'host']} label={t('host')}>
         <Input />
-      </Form.Item>
-      <Form.Item name={['streamSettings', 'xhttpSettings', 'path']} label={t('path')}>
+      </FormField>
+      <FormField name={['streamSettings', 'xhttpSettings', 'path']} label={t('path')}>
         <Input />
-      </Form.Item>
-      <Form.Item name={['streamSettings', 'xhttpSettings', 'mode']} label={t('pages.inbounds.info.mode')}>
+      </FormField>
+      <FormField name={['streamSettings', 'xhttpSettings', 'mode']} label={t('pages.inbounds.info.mode')}>
         <Select
           style={{ width: '50%' }}
           options={(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => ({
@@ -41,64 +55,64 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
             label: m,
           }))}
         />
-      </Form.Item>
+      </FormField>
       {(xhttpMode === 'packet-up' || xhttpMode === 'auto') && (
         <>
-          <Form.Item
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'scMaxEachPostBytes']}
             label={t('pages.inbounds.form.maxUploadSize')}
           >
             <Input />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
             label={t('pages.inbounds.form.maxBufferedUpload')}
           >
             <InputNumber />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'scMinPostsIntervalMs']}
             label={t('pages.xray.outboundForm.minUploadInterval')}
           >
             <Input placeholder="e.g. 50-150" />
-          </Form.Item>
+          </FormField>
         </>
       )}
       {xhttpMode === 'stream-up' && (
         <>
-          <Form.Item
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'scMaxBufferedPosts']}
             label={t('pages.inbounds.form.maxBufferedUpload')}
           >
             <InputNumber />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'scStreamUpServerSecs']}
             label={t('pages.inbounds.form.streamUpServer')}
           >
             <Input />
-          </Form.Item>
+          </FormField>
         </>
       )}
-      <Form.Item
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'serverMaxHeaderBytes']}
         label={t('pages.inbounds.form.serverMaxHeaderBytes')}
       >
         <InputNumber min={0} placeholder="0 (default)" />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
         label={t('pages.inbounds.form.paddingBytes')}
       >
         <Input />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'headers']}
         label={t('pages.inbounds.form.headers')}
       >
         <HeaderMapEditor mode="v1" />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
         label={t('pages.inbounds.form.uplinkHttpMethod')}
       >
@@ -114,29 +128,29 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
             },
           ]}
         />
-      </Form.Item>
-      <Form.Item
+      </FormField>
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
         label={t('pages.inbounds.form.paddingObfsMode')}
-        valuePropName="checked"
+        valueProp="checked"
       >
         <Switch />
-      </Form.Item>
+      </FormField>
       {xhttpObfsMode && (
         <>
-          <Form.Item
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'xPaddingKey']}
             label={t('pages.inbounds.form.paddingKey')}
           >
             <Input placeholder="x_padding" />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'xPaddingHeader']}
             label={t('pages.inbounds.form.paddingHeader')}
           >
             <Input placeholder="X-Padding" />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'xPaddingPlacement']}
             label={t('pages.inbounds.form.paddingPlacement')}
           >
@@ -149,8 +163,8 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
                 { value: 'query', label: 'query' },
               ]}
             />
-          </Form.Item>
-          <Form.Item
+          </FormField>
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'xPaddingMethod']}
             label={t('pages.inbounds.form.paddingMethod')}
           >
@@ -161,10 +175,10 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
                 { value: 'tokenish', label: 'tokenish' },
               ]}
             />
-          </Form.Item>
+          </FormField>
         </>
       )}
-      <Form.Item
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'sessionIDPlacement']}
         label={t('pages.inbounds.form.sessionPlacement')}
       >
@@ -177,38 +191,38 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
             { value: 'query', label: 'query' },
           ]}
         />
-      </Form.Item>
+      </FormField>
       {xhttpSessionIDPlacement && xhttpSessionIDPlacement !== 'path' && (
-        <Form.Item
+        <FormField
           name={['streamSettings', 'xhttpSettings', 'sessionIDKey']}
           label={t('pages.inbounds.form.sessionKey')}
         >
           <Input placeholder="x_session" />
-        </Form.Item>
+        </FormField>
       )}
-      <Form.Item
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'sessionIDTable']}
         label={t('pages.inbounds.form.sessionIDTable')}
         tooltip={t('pages.inbounds.form.sessionIDTableHint')}
-        rules={[{ validator: validateSessionIDTable }]}
+        rules={{ validate: antdValidatorToRhf(validateSessionIDTable) }}
       >
         <AutoComplete
           allowClear
           options={XHTTP_SESSION_ID_TABLES.map((v) => ({ value: v }))}
           placeholder="Base62"
         />
-      </Form.Item>
-      {xhttpSessionIDTable && (
-        <Form.Item
+      </FormField>
+      {!!xhttpSessionIDTable && (
+        <FormField
           name={['streamSettings', 'xhttpSettings', 'sessionIDLength']}
           label={t('pages.inbounds.form.sessionIDLength')}
           tooltip={t('pages.inbounds.form.sessionIDLengthHint')}
-          rules={[{ validator: validateSessionIDLength }]}
+          rules={{ validate: antdValidatorToRhf(validateSessionIDLength) }}
         >
           <Input placeholder="8-16" />
-        </Form.Item>
+        </FormField>
       )}
-      <Form.Item
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
         label={t('pages.inbounds.form.sequencePlacement')}
       >
@@ -221,18 +235,18 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
             { value: 'query', label: 'query' },
           ]}
         />
-      </Form.Item>
+      </FormField>
       {xhttpSeqPlacement && xhttpSeqPlacement !== 'path' && (
-        <Form.Item
+        <FormField
           name={['streamSettings', 'xhttpSettings', 'seqKey']}
           label={t('pages.inbounds.form.sequenceKey')}
         >
           <Input placeholder="x_seq" />
-        </Form.Item>
+        </FormField>
       )}
       {xhttpMode === 'packet-up' && (
         <>
-          <Form.Item
+          <FormField
             name={['streamSettings', 'xhttpSettings', 'uplinkDataPlacement']}
             label={t('pages.inbounds.form.uplinkDataPlacement')}
           >
@@ -245,83 +259,77 @@ export default function XhttpForm({ form }: { form: FormInstance<InboundFormValu
                 { value: 'query', label: 'query' },
               ]}
             />
-          </Form.Item>
+          </FormField>
           {xhttpUplinkPlacement && xhttpUplinkPlacement !== 'body' && (
-            <Form.Item
+            <FormField
               name={['streamSettings', 'xhttpSettings', 'uplinkDataKey']}
               label={t('pages.inbounds.form.uplinkDataKey')}
             >
               <Input placeholder="x_data" />
-            </Form.Item>
+            </FormField>
           )}
         </>
       )}
-      <Form.Item
+      <FormField
         name={['streamSettings', 'xhttpSettings', 'noSSEHeader']}
         label={t('pages.inbounds.form.noSseHeader')}
-        valuePropName="checked"
+        valueProp="checked"
       >
         <Switch />
-      </Form.Item>
+      </FormField>
       {/* XMUX is the connection-multiplexing layer
           xHTTP uses to fan out parallel requests over
           a small pool of upstream connections. UI-only
           toggle (enableXmux) hides the 6 nested knobs
           when off. */}
-      <Form.Item
+      <FormField
         label="XMUX"
         name={['streamSettings', 'xhttpSettings', 'enableXmux']}
-        valuePropName="checked"
+        valueProp="checked"
+        onAfterChange={(v) => onXmuxToggle(v as boolean)}
       >
-        <Switch onChange={onXmuxToggle} />
-      </Form.Item>
-      <Form.Item shouldUpdate noStyle>
-        {() => {
-          if (!form.getFieldValue([
-            'streamSettings', 'xhttpSettings', 'enableXmux',
-          ])) return null;
-          return (
-            <>
-              <Form.Item
-                label={t('pages.xray.outboundForm.maxConcurrency')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
-              >
-                <Input placeholder="16-32" />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundForm.maxConnections')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
-              >
-                <Input placeholder="0" />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundForm.maxReuseTimes')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundForm.maxRequestTimes')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
-              >
-                <Input placeholder="600-900" />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundForm.maxReusableSecs')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
-              >
-                <Input placeholder="1800-3000" />
-              </Form.Item>
-              <Form.Item
-                label={t('pages.xray.outboundForm.keepAlivePeriod')}
-                name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
-              >
-                <InputNumber min={0} style={{ width: '100%' }} />
-              </Form.Item>
-            </>
-          );
-        }}
-      </Form.Item>
+        <Switch />
+      </FormField>
+      {enableXmux && (
+        <>
+          <FormField
+            label={t('pages.xray.outboundForm.maxConcurrency')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
+          >
+            <Input placeholder="16-32" />
+          </FormField>
+          <FormField
+            label={t('pages.xray.outboundForm.maxConnections')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
+          >
+            <Input placeholder="0" />
+          </FormField>
+          <FormField
+            label={t('pages.xray.outboundForm.maxReuseTimes')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'cMaxReuseTimes']}
+          >
+            <Input />
+          </FormField>
+          <FormField
+            label={t('pages.xray.outboundForm.maxRequestTimes')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxRequestTimes']}
+          >
+            <Input placeholder="600-900" />
+          </FormField>
+          <FormField
+            label={t('pages.xray.outboundForm.maxReusableSecs')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'hMaxReusableSecs']}
+          >
+            <Input placeholder="1800-3000" />
+          </FormField>
+          <FormField
+            label={t('pages.xray.outboundForm.keepAlivePeriod')}
+            name={['streamSettings', 'xhttpSettings', 'xmux', 'hKeepAlivePeriod']}
+          >
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </FormField>
+        </>
+      )}
     </>
   );
 }
