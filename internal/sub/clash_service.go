@@ -336,6 +336,9 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 			}
 		}
 	}
+	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
+		proxy["skip-cert-verify"] = true
+	}
 
 	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
 	// block the subscription link generator uses.
