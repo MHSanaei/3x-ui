@@ -95,7 +95,7 @@ const (
 // query itself is unchanged from List(); the win is that the response
 // only carries 25-ish slim rows over the wire instead of all 2000 full
 // records, which on real panels was the dominant cost.
-func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
+func (s *ClientService) ListPaged(inboundSvc InboundServiceInterface, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
 	all, err := s.List()
 	if err != nil {
 		return nil, err

@@ -70,12 +70,12 @@ func TestDepletedCond_ProbeGuard(t *testing.T) {
 
 	// No global rows: the cross-panel EXISTS branch is skipped (#5392), but a
 	// client over its local quota is still disabled.
-	if got := depletedCond(db); got != depletedClientsCondLocal {
+	if got := DepletedCond(db); got != DepletedClientsCondLocal {
 		t.Fatalf("empty globals must use the local-only predicate")
 	}
 	seedClientRow(t, "local-cap", 1, 600, 600, 1000)
-	if _, count, err := svc.disableInvalidClients(db); err != nil {
-		t.Fatalf("disableInvalidClients: %v", err)
+	if _, count, _, err := svc.DisableInvalidClients(db); err != nil {
+		t.Fatalf("DisableInvalidClients: %v", err)
 	} else if count != 1 {
 		t.Fatalf("local over-quota client must be disabled, disabled %d", count)
 	}
@@ -85,7 +85,7 @@ func TestDepletedCond_ProbeGuard(t *testing.T) {
 	if err := svc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: "local-cap", Up: 1, Down: 1}}); err != nil {
 		t.Fatalf("AcceptGlobalTraffic: %v", err)
 	}
-	if got := depletedCond(db); got != depletedClientsCond {
+	if got := DepletedCond(db); got != DepletedClientsCond {
 		t.Fatalf("with globals present the cross-panel predicate must be used")
 	}
 }
@@ -100,8 +100,8 @@ func TestGlobalUsage_DisablesClient(t *testing.T) {
 		t.Fatalf("AcceptGlobalTraffic: %v", err)
 	}
 
-	if _, count, err := svc.disableInvalidClients(db); err != nil {
-		t.Fatalf("disableInvalidClients: %v", err)
+	if _, count, _, err := svc.DisableInvalidClients(db); err != nil {
+		t.Fatalf("DisableInvalidClients: %v", err)
 	} else if count != 1 {
 		t.Fatalf("expected 1 client disabled, got %d", count)
 	}

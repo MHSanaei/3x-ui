@@ -10,23 +10,23 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
-type transportBits uint8
+type TransportBits uint8
 
 const (
-	transportTCP transportBits = 1 << iota
-	transportUDP
+	TransportTCP TransportBits = 1 << iota
+	TransportUDP
 )
 
-func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
+func inboundTransports(protocol model.Protocol, streamSettings, settings string) TransportBits {
 	// protocols that ignore streamSettings entirely.
 	switch protocol {
 	case model.Hysteria, model.WireGuard:
-		return transportUDP
+		return TransportUDP
 	case model.MTProto:
-		return transportTCP
+		return TransportTCP
 	}
 
-	var bits transportBits
+	var bits TransportBits
 
 	// peek at streamSettings.network to spot udp-based transports.
 	// parse errors are non-fatal: missing or weird streamSettings just
@@ -42,13 +42,13 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	}
 	switch network {
 	case "kcp", "quic":
-		bits |= transportUDP
+		bits |= TransportUDP
 	default:
-		bits |= transportTCP
+		bits |= TransportTCP
 	}
 
-	// a few protocols carry their L4 choice in settings instead of (or in
-	// addition to) streamSettings: SS / Tunnel via a CSV field that wins
+	// a few protocols carry their L4 choice in settings instead of (or
+	// in addition to) streamSettings: SS / Tunnel via a CSV field that wins
 	// outright, Mixed via an additive udp boolean.
 	if settings != "" {
 		var st map[string]any
@@ -64,9 +64,9 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 					for part := range strings.SplitSeq(n, ",") {
 						switch strings.TrimSpace(part) {
 						case "tcp":
-							bits |= transportTCP
+							bits |= TransportTCP
 						case "udp":
-							bits |= transportUDP
+							bits |= TransportUDP
 						}
 					}
 				}
@@ -74,7 +74,7 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 				// socks/http "mixed" inbound: settings.udp=true means it
 				// also relays udp on the same port (socks5 udp associate).
 				if udpOn, _ := st["udp"].(bool); udpOn {
-					bits |= transportUDP
+					bits |= TransportUDP
 				}
 			}
 		}
@@ -82,7 +82,7 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 
 	// safety net: never return zero, even if every parse failed.
 	if bits == 0 {
-		bits = transportTCP
+		bits = TransportTCP
 	}
 	return bits
 }
@@ -98,17 +98,17 @@ func isAnyListen(s string) bool {
 	return s == "" || s == "0.0.0.0" || s == "::" || s == "::0"
 }
 
-type portConflictDetail struct {
+type PortConflictDetail struct {
 	InboundID  int
 	Remark     string
 	Tag        string
 	Listen     string
 	Port       int
-	Transports transportBits
+	Transports TransportBits
 }
 
 // String renders the detail as a single-line, user-facing summary.
-func (d *portConflictDetail) String() string {
+func (d *PortConflictDetail) String() string {
 	name := d.Remark
 	if name == "" {
 		name = d.Tag
@@ -158,7 +158,7 @@ func reservedAPIPort() int {
 	return defaultXrayAPIPort
 }
 
-func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
+func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*PortConflictDetail, error) {
 	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
 
 	// The internal Xray API inbound (tag "api", loopback TCP) isn't a DB row,
@@ -166,12 +166,12 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 	// port twice (#5304). Nodes run their own Xray, so this only applies to
 	// the local panel.
 	if inbound.NodeID == nil && inbound.Port == reservedAPIPort() &&
-		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
-		return &portConflictDetail{
+		newBits&TransportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		return &PortConflictDetail{
 			Tag:        "api",
 			Listen:     "127.0.0.1",
 			Port:       inbound.Port,
-			Transports: transportTCP,
+			Transports: TransportTCP,
 		}, nil
 	}
 
@@ -198,7 +198,7 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		if shared == 0 {
 			continue
 		}
-		return &portConflictDetail{
+		return &PortConflictDetail{
 			InboundID:  c.Id,
 			Remark:     c.Remark,
 			Tag:        c.Tag,
@@ -208,6 +208,11 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		}, nil
 	}
 	return nil, nil
+}
+
+// CheckPortConflict is the public wrapper that matches InboundServiceInterface
+func (s *InboundService) CheckPortConflict(inbound *model.Inbound, excludeId int) (*PortConflictDetail, error) {
+	return s.checkPortConflict(inbound, excludeId)
 }
 
 func sameNode(a, b *int) bool {
@@ -224,13 +229,13 @@ func baseInboundTag(port int) string {
 	return fmt.Sprintf("in-%v", port)
 }
 
-func transportTagSuffix(b transportBits) string {
+func transportTagSuffix(b TransportBits) string {
 	switch b {
-	case transportTCP:
+	case TransportTCP:
 		return "tcp"
-	case transportUDP:
+	case TransportUDP:
 		return "udp"
-	case transportTCP | transportUDP:
+	case TransportTCP | TransportUDP:
 		return "tcpudp"
 	}
 	return "any"
@@ -246,11 +251,11 @@ func nodeTagPrefix(nodeID *int) string {
 	return fmt.Sprintf("n%d-", *nodeID)
 }
 
-func composeInboundTag(port int, nodeID *int, bits transportBits) string {
+func composeInboundTag(port int, nodeID *int, bits TransportBits) string {
 	return nodeTagPrefix(nodeID) + baseInboundTag(port) + "-" + transportTagSuffix(bits)
 }
 
-func isAutoGeneratedTag(tag string, port int, nodeID *int, bits transportBits) bool {
+func isAutoGeneratedTag(tag string, port int, nodeID *int, bits TransportBits) bool {
 	base := composeInboundTag(port, nodeID, bits)
 	if tag == base {
 		return true

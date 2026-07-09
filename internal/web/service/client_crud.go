@@ -42,7 +42,7 @@ func validateClientSubID(subID string) error {
 	return nil
 }
 
-func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
+func (s *ClientService) Create(inboundSvc InboundServiceInterface, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
 	}
@@ -147,7 +147,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 }
 
 func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
-	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings, ib.Settings) {
+	if !inboundCanEnableTlsFlow(string(ib.Protocol), ib.StreamSettings) {
 		c.Flow = ""
 	}
 	return c
@@ -263,7 +263,7 @@ func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 	}
 }
 
-func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, inboundFilter ...int) (bool, error) {
+func (s *ClientService) Update(inboundSvc InboundServiceInterface, id int, updated model.Client, inboundFilter ...int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -423,7 +423,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	return needRestart, nil
 }
 
-func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic bool) (bool, error) {
+func (s *ClientService) Delete(inboundSvc InboundServiceInterface, id int, keepTraffic bool) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -496,7 +496,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	return needRestart, nil
 }
 
-func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
+func (s *ClientService) Attach(inboundSvc InboundServiceInterface, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -549,14 +549,14 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	return needRestart, nil
 }
 
-func (s *ClientService) CreateOne(inboundSvc *InboundService, inboundId int, client model.Client) (bool, error) {
+func (s *ClientService) CreateOne(inboundSvc InboundServiceInterface, inboundId int, client model.Client) (bool, error) {
 	return s.Create(inboundSvc, &ClientCreatePayload{
 		Client:     client,
 		InboundIds: []int{inboundId},
 	})
 }
 
-func (s *ClientService) DetachByEmail(inboundSvc *InboundService, inboundId int, email string) (bool, error) {
+func (s *ClientService) DetachByEmail(inboundSvc InboundServiceInterface, inboundId int, email string) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -567,7 +567,7 @@ func (s *ClientService) DetachByEmail(inboundSvc *InboundService, inboundId int,
 	return s.Detach(inboundSvc, rec.Id, []int{inboundId})
 }
 
-func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
+func (s *ClientService) AttachByEmail(inboundSvc InboundServiceInterface, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -578,7 +578,7 @@ func (s *ClientService) AttachByEmail(inboundSvc *InboundService, email string, 
 	return s.Attach(inboundSvc, rec.Id, inboundIds)
 }
 
-func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email string, inboundIds []int) (bool, error) {
+func (s *ClientService) DetachByEmailMany(inboundSvc InboundServiceInterface, email string, inboundIds []int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -589,7 +589,7 @@ func (s *ClientService) DetachByEmailMany(inboundSvc *InboundService, email stri
 	return s.Detach(inboundSvc, rec.Id, inboundIds)
 }
 
-func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, keepTraffic bool) (bool, error) {
+func (s *ClientService) DeleteByEmail(inboundSvc InboundServiceInterface, email string, keepTraffic bool) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -635,7 +635,7 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 	return needRestart, nil
 }
 
-func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, updated model.Client, inboundFilter ...int) (bool, error) {
+func (s *ClientService) UpdateByEmail(inboundSvc InboundServiceInterface, email string, updated model.Client, inboundFilter ...int) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -646,7 +646,7 @@ func (s *ClientService) UpdateByEmail(inboundSvc *InboundService, email string, 
 	return s.Update(inboundSvc, rec.Id, updated, inboundFilter...)
 }
 
-func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
+func (s *ClientService) Detach(inboundSvc InboundServiceInterface, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err

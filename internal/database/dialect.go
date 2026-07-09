@@ -30,3 +30,17 @@ func ClientTrafficEnableMergeExpr() string {
 	}
 	return "CASE WHEN ? THEN enable ELSE 0 END"
 }
+
+// ClientTrafficExpiryMergeExpr returns the SQL expression for merging expiry_time.
+// "Start after first connect" persists a negative duration that each node converts
+// to an absolute deadline (now+duration) the first time the client connects there.
+// The per-email client_traffics row is shared across every node, so a node that
+// has not yet seen a first connection keeps reporting the negative duration —
+// which must never reset a deadline another node already activated.
+func ClientTrafficExpiryMergeExpr() string {
+	if IsPostgres() {
+		return "CASE WHEN ? > 0 AND ? <= 0 THEN ? ELSE ? END"
+	}
+	return "CASE WHEN ? > 0 AND ? <= 0 THEN ? ELSE ? END"
+}
+

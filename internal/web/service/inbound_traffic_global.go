@@ -183,12 +183,12 @@ func (s *InboundService) GetNodeClientTraffics(nodeID int) ([]*xray.ClientTraffi
 	return out, nil
 }
 
-// overlayInboundsClientStats applies the global overlay to every preloaded
+// OverlayInboundsClientStats applies the global overlay to every preloaded
 // ClientStats row across the given inbounds. UI read paths only — never the
 // full /panel/api/inbounds/list payload, which doubles as the traffic
 // snapshot masters poll: overlaying that would leak pushed globals back into
 // the masters' delta accounting.
-func (s *InboundService) overlayInboundsClientStats(db *gorm.DB, inbounds []*model.Inbound) {
+func (s *InboundService) OverlayInboundsClientStats(db *gorm.DB, inbounds []*model.Inbound) {
 	rows := make([]*xray.ClientTraffic, 0)
 	for _, ib := range inbounds {
 		for j := range ib.ClientStats {

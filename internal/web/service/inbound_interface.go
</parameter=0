@@ -1,0 +1,87 @@
+package service
+
+import (
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
+)
+
+// InboundServiceInterface defines the contract for inbound operations.
+// This allows for mocking in tests and decoupling controller from implementation.
+// All types (InboundOption, BulkDelInboundResult, PortConflictDetail, TransportBits, TransportTCP, TransportUDP) 
+// are defined in inbound.go and port_conflict.go to avoid duplicate declarations.
+type InboundServiceInterface interface {
+	// CRUD
+	GetInbounds(userId int) ([]*model.Inbound, error)
+	GetInbound(id int) (*model.Inbound, error)
+	GetInboundDetail(id int) (*model.Inbound, error)
+	AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error)
+	UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error)
+	DelInbound(id int) (bool, error)
+	SearchInbounds(query string) ([]*model.Inbound, error)
+	GetInboundOptions(userId int) ([]InboundOption, error)
+	GetAllInbounds() ([]*model.Inbound, error)
+	GetInboundsByTrafficReset(period string) ([]*model.Inbound, error)
+
+	// Client management
+	GetClients(inbound *model.Inbound) ([]model.Client, error)
+	GetClientsBySubId(inboundId int, subId string) ([]model.Client, error)
+	GetAllEmails() ([]string, error)
+	GetClientByEmail(email string) (*xray.ClientTraffic, *model.Client, error)
+	EmailsByInbound(inboundId int) ([]string, error)
+	GetInboundTags() (string, error)
+	GetClientReverseTags() (string, error)
+
+	// Private methods used by ClientService
+	getAllEmailSubIDs() (map[string]string, error)
+	nodePushPlan(inbound *model.Inbound) (runtime.Runtime, bool, bool, error)
+	runtimeFor(inbound *model.Inbound) (runtime.Runtime, error)
+	delClientIPsByEmails(tx *gorm.DB, emails []string) error
+	delClientStatsByEmails(tx *gorm.DB, emails []string) error
+	emailsUsedByOtherInbounds(emails []string, exceptInboundId int) (map[string]bool, error)
+	emailUsedByOtherInbounds(email string, exceptInboundId int) (bool, error)
+
+	// Client stat/IP management
+	AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error
+	DelClientStat(tx *gorm.DB, email string) error
+	DelClientIPs(tx *gorm.DB, email string) error
+	UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error
+	UpdateClientIPs(tx *gorm.DB, oldEmail, newEmail string) error
+
+	// Traffic
+	AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error)
+	ResetInboundTraffic(id int) error
+	ResetAllTraffics() error
+	AcceptGlobalTraffic(masterGuid string, traffics []*xray.ClientTraffic) error
+	GetClientInboundByTrafficID(trafficId int) (*xray.ClientTraffic, *model.Inbound, error)
+	GetClientInboundByEmail(email string) (*xray.ClientTraffic, *model.Inbound, error)
+
+	// Stream/TLS/Share
+	GetInboundStreamSettings(id int) (string, error)
+	NormalizeStreamSettings(inbound *model.Inbound) error
+	GetInboundMtproto(id int) (string, error)
+	GetInboundShareLink(id int) (string, error)
+	GetAllInboundLinks(host string, userId int) ([]string, error)
+
+	// Xray sync
+	SyncInboundXrayConfig(inbound *model.Inbound) (bool, error)
+	BuildRuntimeInbound(inbound *model.Inbound) (*xray.InboundConfig, error)
+
+	// Port conflict
+	CheckPortConflict(inbound *model.Inbound, excludeId int) (*PortConflictDetail, error)
+
+	// Stats
+	GetInboundsSlim(userId int) ([]*model.Inbound, error)
+	OverlayInboundsClientStats(db *gorm.DB, inbounds []*model.Inbound)
+	SetInboundEnable(id int, enable bool) (bool, error)
+	DelInbounds(ids []int) (BulkDelInboundResult, bool, error)
+
+	// Additional methods needed by ClientService
+	AnyNodePending(inboundIds []int) bool
+	GetClientTrafficByEmail(email string) (*xray.ClientTraffic, error)
+	GetOnlineClients() []string
+	ResetClientTrafficByEmail(email string) error
+	ResetClientTraffic(id int, clientEmail string) (bool, error)
+}

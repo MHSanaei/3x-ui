@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email string) (bool, error) {
+func (s *ClientService) ResetTrafficByEmail(inboundSvc InboundServiceInterface, email string) (bool, error) {
 	if email == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -58,7 +58,7 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 	return needRestart, nil
 }
 
-func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {
+func (s *ClientService) BulkResetTraffic(inboundSvc InboundServiceInterface, emails []string) (int, error) {
 	if len(emails) == 0 {
 		return 0, nil
 	}
@@ -121,7 +121,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 	return affected, nil
 }
 
-func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
+func (s *ClientService) ResetAllClientTraffics(inboundSvc InboundServiceInterface, id int) error {
 	return submitTrafficWrite(func() error {
 		return s.resetAllClientTrafficsLocked(id)
 	})

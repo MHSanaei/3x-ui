@@ -50,6 +50,7 @@ func (f *fakeNodeRuntime) ResetClientTraffic(context.Context, *model.Inbound, st
 }
 func (f *fakeNodeRuntime) ResetInboundTraffic(context.Context, *model.Inbound) error { return nil }
 func (f *fakeNodeRuntime) ResetAllTraffics(context.Context) error                    { return nil }
+func (f *fakeNodeRuntime) ReconcileInbound(context.Context, *model.Inbound, bool) (bool, error) { return false, nil }
 
 // setupNodeRuntime wires an online node + a fake runtime override and returns the
 // node id and the fake so a test can drive the service node-dispatch path without

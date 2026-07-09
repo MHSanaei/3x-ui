@@ -7,13 +7,48 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-)
+
+	"path/filepath")
 
 // Cloned node servers ship an identical panelGuid in their copied settings, and
 // a node cloned from the master shares the master's own GUID. effectiveNodeGuid
 // must keep each physical node in its own attribution bucket by falling back to
 // the node-unique id for both collision kinds, while leaving a uniquely-named
 // node on its real GUID and never folding transitive (Id 0) nodes.
+
+
+func setupClientIpTestDB(t *testing.T) {
+	// Initialize database first
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := database.CloseDB(); err != nil {
+			t.Logf("CloseDB: %v", err)
+		}
+	})
+	
+	db := database.GetDB()
+	if dropErr := db.Migrator().DropTable(
+		&model.Node{},
+		&model.NodeClientIp{},
+		&model.Inbound{},
+	); dropErr != nil {
+		t.Fatalf("drop tables: %v", dropErr)
+	}
+	// Use Migrator directly to avoid Error field/method ambiguity
+	migrator := db.Migrator()
+	if autoErr := migrator.AutoMigrate(
+		&model.Node{},
+		&model.NodeClientIp{},
+		&model.Inbound{},
+	); autoErr != nil {
+		t.Fatalf("migrate: %v", autoErr)
+	}
+}
+
 func TestEffectiveNodeGuid_DisambiguatesAmbiguousGuids(t *testing.T) {
 	nodes := []*model.Node{
 		{Id: 1, Guid: "dup"},

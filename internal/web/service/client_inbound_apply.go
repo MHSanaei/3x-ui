@@ -46,7 +46,7 @@ func advancePushedInbound(rt runtime.Runtime, prevSettings string, ib *model.Inb
 // whole batch, instead of repeating the full per-client cycle. It mirrors the
 // semantics of DelInboundClientByEmail for each removed client. needRestart is
 // the OR across all removals.
-func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId int, recs []*model.ClientRecord, keepTraffic bool) (bool, error) {
+func (s *ClientService) delInboundClients(inboundSvc InboundServiceInterface, inboundId int, recs []*model.ClientRecord, keepTraffic bool) (bool, error) {
 	if len(recs) == 0 {
 		return false, nil
 	}
@@ -124,7 +124,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 			}
 		}
 		var sharedErr error
-		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(removedEmails, inboundId)
+		sharedSet, sharedErr = inboundSvc.EmailsUsedByOtherInbounds(removedEmails, inboundId)
 		if sharedErr != nil {
 			return false, sharedErr
 		}
@@ -196,7 +196,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	var nodeRt runtime.Runtime
 	nodePush := false
 	if oldInbound.NodeID != nil {
-		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.NodePushPlan(oldInbound)
 		if perr != nil {
 			return needRestart, perr
 		}
@@ -216,7 +216,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 		if oldInbound.NodeID == nil {
 			if t.needApiDel && t.notDepleted {
-				rt, rterr := inboundSvc.runtimeFor(oldInbound)
+				rt, rterr := inboundSvc.RuntimeFor(oldInbound)
 				if rterr != nil {
 					needRestart = true
 				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, t.email); err1 != nil {
@@ -239,10 +239,10 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	return needRestart, nil
 }
 
-func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client, emailSubIDs map[string]string) (string, error) {
+func (s *ClientService) checkEmailsExistForClients(inboundSvc InboundServiceInterface, clients []model.Client, emailSubIDs map[string]string) (string, error) {
 	if emailSubIDs == nil {
 		var err error
-		emailSubIDs, err = inboundSvc.getAllEmailSubIDs()
+		emailSubIDs, err = inboundSvc.GetAllEmailSubIDs()
 		if err != nil {
 			return "", err
 		}
@@ -269,7 +269,7 @@ func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, c
 	return "", nil
 }
 
-func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
+func (s *ClientService) AddInboundClient(inboundSvc InboundServiceInterface, data *model.Inbound) (bool, error) {
 	return s.addInboundClient(inboundSvc, data, nil)
 }
 
@@ -277,7 +277,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 // map. Bulk callers pass a single snapshot so the global getAllEmailSubIDs scan
 // runs once for the whole batch instead of once per target inbound; a nil map
 // makes it compute its own (the single-add path).
-func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
+func (s *ClientService) addInboundClient(inboundSvc InboundServiceInterface, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
 	defer lockInbound(data.Id).Unlock()
 
 	clients, err := inboundSvc.GetClients(data)
@@ -383,7 +383,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 
 	needRestart := false
 
-	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
+	rt, push, _, perr := inboundSvc.NodePushPlan(oldInbound)
 	if perr != nil {
 		return false, perr
 	}
@@ -479,7 +479,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	return needRestart, nil
 }
 
-func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *model.Inbound, oldEmail string) (bool, error) {
+func (s *ClientService) UpdateInboundClient(inboundSvc InboundServiceInterface, data *model.Inbound, oldEmail string) (bool, error) {
 	defer lockInbound(data.Id).Unlock()
 
 	clients, err := inboundSvc.GetClients(data)
@@ -692,7 +692,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	var push bool
 	if len(oldEmail) > 0 {
 		var perr error
-		rt, push, _, perr = inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr = inboundSvc.NodePushPlan(oldInbound)
 		if perr != nil {
 			return false, perr
 		}
@@ -718,7 +718,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 						return e
 					}
 				} else {
-					stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+					stillUsed, sErr := inboundSvc.EmailUsedByOtherInbounds(oldEmail, data.Id)
 					if sErr != nil {
 						return sErr
 					}
@@ -740,7 +740,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				}
 			}
 		} else {
-			stillUsed, sErr := inboundSvc.emailUsedByOtherInbounds(oldEmail, data.Id)
+			stillUsed, sErr := inboundSvc.EmailUsedByOtherInbounds(oldEmail, data.Id)
 			if sErr != nil {
 				return sErr
 			}
@@ -831,7 +831,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	return needRestart, nil
 }
 
-func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inboundId int, email string, keepTraffic bool) (bool, error) {
+func (s *ClientService) DelInboundClientByEmail(inboundSvc InboundServiceInterface, inboundId int, email string, keepTraffic bool) (bool, error) {
 	defer lockInbound(inboundId).Unlock()
 
 	oldInbound, err := inboundSvc.GetInbound(inboundId)
@@ -884,7 +884,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
-	emailShared, err := inboundSvc.emailUsedByOtherInbounds(email, inboundId)
+	emailShared, err := inboundSvc.EmailUsedByOtherInbounds(email, inboundId)
 	if err != nil {
 		return false, err
 	}
@@ -908,7 +908,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	var rt runtime.Runtime
 	var push bool
 	if len(email) > 0 && (oldInbound.NodeID != nil || needApiDel) {
-		r, p, _, perr := inboundSvc.nodePushPlan(oldInbound)
+		r, p, _, perr := inboundSvc.NodePushPlan(oldInbound)
 		if perr != nil {
 			return false, perr
 		}
@@ -986,7 +986,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 	return needRestart, nil
 }
 
-func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, trafficId int, tgId int64) (bool, error) {
+func (s *ClientService) SetClientTelegramUserID(inboundSvc InboundServiceInterface, trafficId int, tgId int64) (bool, error) {
 	traffic, inbound, err := inboundSvc.GetClientInboundByTrafficID(trafficId)
 	if err != nil {
 		return false, err
@@ -1039,7 +1039,7 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 	return needRestart, err
 }
 
-func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+func (s *ClientService) CheckIsEnabledByEmail(inboundSvc InboundServiceInterface, clientEmail string) (bool, error) {
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, err
@@ -1065,7 +1065,7 @@ func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, client
 	return isEnable, err
 }
 
-func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, clientEmail string) (bool, bool, error) {
+func (s *ClientService) ToggleClientEnableByEmail(inboundSvc InboundServiceInterface, clientEmail string) (bool, bool, error) {
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, false, err
@@ -1124,7 +1124,7 @@ func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, cl
 	return !clientOldEnabled, needRestart, nil
 }
 
-func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clientEmail string, enable bool) (bool, bool, error) {
+func (s *ClientService) SetClientEnableByEmail(inboundSvc InboundServiceInterface, clientEmail string, enable bool) (bool, bool, error) {
 	current, err := s.CheckIsEnabledByEmail(inboundSvc, clientEmail)
 	if err != nil {
 		return false, false, err
@@ -1151,7 +1151,7 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 // the first inbound's JSON would leave the siblings stale, and the next
 // SyncInbound over a stale sibling would revert the edit in the normalized
 // records (#5039).
-func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
+func (s *ClientService) applyClientFieldByEmail(inboundSvc InboundServiceInterface, clientEmail string, mutate func(c map[string]any)) (bool, error) {
 	inboundIds, err := s.GetInboundIdsForEmail(database.GetDB(), clientEmail)
 	if err != nil {
 		return false, err
@@ -1220,19 +1220,19 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 	return needRestart, nil
 }
 
-func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc InboundServiceInterface, clientEmail string, count int) (bool, error) {
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["limitIp"] = count
 	})
 }
 
-func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc InboundServiceInterface, clientEmail string, expiry_time int64) (bool, error) {
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["expiryTime"] = expiry_time
 	})
 }
 
-func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundService, clientEmail string, totalGB int) (bool, error) {
+func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc InboundServiceInterface, clientEmail string, totalGB int) (bool, error) {
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
 	}

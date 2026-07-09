@@ -64,7 +64,7 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 // pushed to xray); items with no inboundIds are restored as bare records so an
 // orphan-inclusive export round-trips. Existing emails are never overwritten —
 // they are reported in Skipped. The boolean reports whether xray needs a restart.
-func (s *ClientService) ImportClients(inboundSvc *InboundService, items []ClientCreatePayload) (BulkCreateResult, bool, error) {
+func (s *ClientService) ImportClients(inboundSvc InboundServiceInterface, items []ClientCreatePayload) (BulkCreateResult, bool, error) {
 	result := BulkCreateResult{}
 	if len(items) == 0 {
 		return result, false, nil

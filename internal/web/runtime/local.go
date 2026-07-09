@@ -179,3 +179,13 @@ func (l *Local) ResetAllTraffics(_ context.Context) error {
 func (l *Local) ResetInboundTraffic(_ context.Context, _ *model.Inbound) error {
 	return nil
 }
+
+// ReconcileInbound for local runtime just calls UpdateInbound since there's no
+// fingerprint tracking needed for local Xray.
+func (l *Local) ReconcileInbound(ctx context.Context, ib *model.Inbound, existsOnNode bool) (bool, error) {
+	err := l.UpdateInbound(ctx, ib, ib)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

@@ -60,10 +60,10 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		records = append(records, rec)
 	}
 
-	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
+	emailSubIDs, sidErr := inboundSvc.GetAllEmailSubIDs()
 	if sidErr != nil {
 		emailSubIDs = nil
-		logger.Warningf("[BulkAttach] getAllEmailSubIDs: %v", sidErr)
+		logger.Warningf("[BulkAttach] GetAllEmailSubIDs: %v", sidErr)
 	}
 
 	needRestart := false
@@ -422,7 +422,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	}
 
 	now := time.Now().Unix() * 1000
-	cond := depletedCond(db)
+	cond := DepletedCond(db)
 	candidateEmails := make([]string, 0, len(plan))
 	for email, entry := range plan {
 		if entry.applyExpiry || entry.applyTotal {
@@ -583,7 +583,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 	// resolve it once. Clearing flow is always allowed; setting a vision flow
 	// is only honored on an inbound that can carry it.
 	flowEligible := flow == bulkFlowClear ||
-		inboundCanEnableTlsFlow(string(oldInbound.Protocol), oldInbound.StreamSettings, oldInbound.Settings)
+		inboundCanEnableTlsFlow(string(oldInbound.Protocol), oldInbound.StreamSettings)
 
 	interfaceClients, _ := settings["clients"].([]any)
 	foundEmails := map[string]bool{}
@@ -656,7 +656,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 	}
 
 	if oldInbound.NodeID != nil {
-		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.NodePushPlan(oldInbound)
 		if perr != nil {
 			for email := range foundEmails {
 				res.perEmailSkipped[email] = perr.Error()
@@ -996,7 +996,7 @@ func (s *ClientService) bulkDelInboundClients(
 	var sharedSet map[string]bool
 	if !keepTraffic {
 		var sharedErr error
-		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(foundList, inboundId)
+		sharedSet, sharedErr = inboundSvc.EmailsUsedByOtherInbounds(foundList, inboundId)
 		if sharedErr != nil {
 			for email := range foundEmails {
 				res.perEmailSkipped[email] = sharedErr.Error()
@@ -1016,11 +1016,11 @@ func (s *ClientService) bulkDelInboundClients(
 			// Serialize the IP/stat purge against the traffic poll to avoid the
 			// cross-transaction lock-order deadlock on client_traffics.
 			if delErr := runSerializedTx(func(tx *gorm.DB) error {
-				if e := inboundSvc.delClientIPsByEmails(tx, purge); e != nil {
+				if e := inboundSvc.DelClientIPsByEmails(tx, purge); e != nil {
 					logger.Error("Error in delete client IPs")
 					return e
 				}
-				if e := inboundSvc.delClientStatsByEmails(tx, purge); e != nil {
+				if e := inboundSvc.DelClientStatsByEmails(tx, purge); e != nil {
 					logger.Error("Delete stats Data Error")
 					return e
 				}
@@ -1035,7 +1035,7 @@ func (s *ClientService) bulkDelInboundClients(
 	}
 
 	if oldInbound.NodeID == nil {
-		rt, rterr := inboundSvc.runtimeFor(oldInbound)
+		rt, rterr := inboundSvc.RuntimeFor(oldInbound)
 		if rterr != nil {
 			res.needRestart = true
 		} else {
@@ -1055,7 +1055,7 @@ func (s *ClientService) bulkDelInboundClients(
 			}
 		}
 	} else {
-		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
+		rt, push, _, perr := inboundSvc.NodePushPlan(oldInbound)
 		if perr != nil {
 			for email := range foundEmails {
 				res.perEmailSkipped[email] = perr.Error()
@@ -1121,7 +1121,7 @@ type BulkCreateReport struct {
 	Reason string `json:"reason"`
 }
 
-func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []ClientCreatePayload) (BulkCreateResult, bool, error) {
+func (s *ClientService) BulkCreate(inboundSvc InboundServiceInterface, payloads []ClientCreatePayload) (BulkCreateResult, bool, error) {
 	result := BulkCreateResult{}
 	if len(payloads) == 0 {
 		return result, false, nil
@@ -1134,7 +1134,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		result.Skipped = append(result.Skipped, BulkCreateReport{Email: email, Reason: reason})
 	}
 
-	emailSubIDs, err := inboundSvc.getAllEmailSubIDs()
+	emailSubIDs, err := inboundSvc.GetAllEmailSubIDs()
 	if err != nil {
 		emailSubIDs = nil
 	}
@@ -1575,7 +1575,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
-	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
+	rt, push, _, perr := inboundSvc.NodePushPlan(oldInbound)
 	if perr != nil {
 		for _, ch := range changed {
 			res.perEmailSkipped[ch.email] = perr.Error()

@@ -180,7 +180,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	return out, nil
 }
 
-func (s *ClientService) HasPendingNode(inboundSvc *InboundService, email string) bool {
+func (s *ClientService) HasPendingNode(inboundSvc InboundServiceInterface, email string) bool {
 	if strings.TrimSpace(email) == "" {
 		return false
 	}

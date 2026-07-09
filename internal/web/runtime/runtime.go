@@ -28,4 +28,11 @@ type Runtime interface {
 	ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error
 	ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error
 	ResetAllTraffics(ctx context.Context) error
+
+	// ReconcileInbound pushes ib only when its wire payload differs from the last
+	// successful push, or when the node no longer reports the tag (existsOnNode
+	// false) — a node that dropped/restarted must still be re-seeded. Returns
+	// whether a push actually happened. This turns a full-fleet reconcile from
+	// "send every inbound's full settings" into "send only what changed".
+	ReconcileInbound(ctx context.Context, ib *model.Inbound, existsOnNode bool) (bool, error)
 }

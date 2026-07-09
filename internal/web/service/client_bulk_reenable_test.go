@@ -31,7 +31,7 @@ func forceRecordDisabled(t *testing.T, svc *ClientService, email string) {
 	}
 }
 
-func jsonClientEnable(t *testing.T, inboundSvc *InboundService, inboundId int, email string) bool {
+func jsonClientEnable(t *testing.T, inboundSvc InboundServiceInterface, inboundId int, email string) bool {
 	t.Helper()
 	ib, err := inboundSvc.GetInbound(inboundId)
 	if err != nil {
@@ -50,7 +50,7 @@ func jsonClientEnable(t *testing.T, inboundSvc *InboundService, inboundId int, e
 	return false
 }
 
-func assertEnableEverywhere(t *testing.T, svc *ClientService, inboundSvc *InboundService, inboundId int, email string, want bool) {
+func assertEnableEverywhere(t *testing.T, svc *ClientService, inboundSvc InboundServiceInterface, inboundId int, email string, want bool) {
 	t.Helper()
 	if got := trafficOf(t, email).Enable; got != want {
 		t.Fatalf("%s: client_traffics.enable = %v, want %v", email, got, want)

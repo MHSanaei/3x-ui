@@ -30,8 +30,8 @@ func TestMergeActivationExpiry(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := mergeActivationExpiry(c.existing, c.node); got != c.want {
-				t.Fatalf("mergeActivationExpiry(%d,%d) = %d, want %d", c.existing, c.node, got, c.want)
+			if got := MergeActivationExpiry(c.existing, c.node); got != c.want {
+				t.Fatalf("MergeActivationExpiry(%d,%d) = %d, want %d", c.existing, c.node, got, c.want)
 			}
 		})
 	}

@@ -51,7 +51,7 @@ type Inbound struct {
 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
 	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
 	SubSortIndex         int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty,gte=1" example:"1"`                                                                     // 1-based sort order of this inbound's links in subscription output only (lower first; ties by id)
-	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
+	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1;index:idx_user_enable,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
@@ -65,7 +65,7 @@ type Inbound struct {
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
 	Sniffing          string   `json:"sniffing" form:"sniffing"`
-	NodeID            *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
+	NodeID            *int     `json:"nodeId,omitempty" form:"nodeId" gorm:"index;index:idx_node_enable,priority:1"`
 	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:node" validate:"omitempty,oneof=node listen custom"`
 	ShareAddr         string   `json:"shareAddr" form:"shareAddr" gorm:"column:share_addr"`
 
@@ -99,8 +99,8 @@ type FallbackParentInfo struct {
 type OutboundTraffics struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Tag   string `json:"tag" form:"tag" gorm:"unique"`
-	Up    int64  `json:"up" form:"up" gorm:"default:0"`
-	Down  int64  `json:"down" form:"down" gorm:"default:0"`
+	Up    int64  `json:"up" form:"up" gorm:"default:0;index:idx_outbound_tag_up"`
+	Down  int64  `json:"down" form:"down" gorm:"default:0;index:idx_outbound_tag_down"`
 	Total int64  `json:"total" form:"total" gorm:"default:0"`
 }
 
@@ -507,7 +507,7 @@ type Node struct {
 	Port                int      `json:"port" form:"port" validate:"gte=1,lte=65535" example:"2053"`
 	BasePath            string   `json:"basePath" form:"basePath" example:"/"`
 	ApiToken            string   `json:"apiToken" form:"apiToken" validate:"required_unless=TlsVerifyMode mtls" example:"abcdef0123456789"`
-	Enable              bool     `json:"enable" form:"enable" gorm:"default:true" example:"true"`
+	Enable              bool     `json:"enable" form:"enable" gorm:"default:true;index:idx_node_status_enable,priority:1" example:"true"`
 	AllowPrivateAddress bool     `json:"allowPrivateAddress" form:"allowPrivateAddress" gorm:"default:false"`
 	TlsVerifyMode       string   `json:"tlsVerifyMode" form:"tlsVerifyMode" gorm:"column:tls_verify_mode;default:verify" validate:"omitempty,oneof=verify skip pin mtls"`
 	PinnedCertSha256    string   `json:"pinnedCertSha256" form:"pinnedCertSha256" gorm:"column:pinned_cert_sha256"`
@@ -525,7 +525,7 @@ type Node struct {
 	// Heartbeat-updated fields. UpdatedAt advances on every probe even when
 	// the row is otherwise unchanged so the UI's "last seen" tooltip is
 	// truthful without us having to read LastHeartbeat separately.
-	Status        string  `json:"status" gorm:"default:unknown" example:"online"` // online|offline|unknown
+	Status        string  `json:"status" gorm:"default:unknown;index:idx_node_status_enable,priority:2" example:"online"` // online|offline|unknown
 	LastHeartbeat int64   `json:"lastHeartbeat" example:"1700000000"`             // unix seconds, 0 = never
 	LatencyMs     int     `json:"latencyMs" example:"42"`
 	XrayVersion   string  `json:"xrayVersion" example:"25.10.31"`
@@ -560,8 +560,8 @@ type Node struct {
 	ParentGuid string `json:"parentGuid,omitempty" gorm:"-"`
 	Transitive bool   `json:"transitive,omitempty" gorm:"-"`
 
-	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1700000000"`
-	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1700000000"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli;index:idx_node_created" example:"1700000000"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli;index:idx_node_updated"`
 }
 
 // NodeSummary is the read-only identity of a node as published one hop up: the
@@ -637,10 +637,10 @@ type ClientRecord struct {
 	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
 	Enable       bool   `json:"enable" gorm:"default:true"`
 	TgID         int64  `json:"tgId" gorm:"column:tg_id"`
-	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group;index:idx_client_group_enable,priority:2"`
 	Comment      string `json:"comment"`
 	Reset        int    `json:"reset" gorm:"default:0"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli;index:idx_client_created"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 

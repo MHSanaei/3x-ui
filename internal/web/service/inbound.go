@@ -5,9 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net"
 	"sort"
 	"strings"
 	"time"
@@ -15,14 +13,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
-	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type InboundService struct {
@@ -31,145 +25,26 @@ type InboundService struct {
 	fallbackService FallbackService
 }
 
-func normalizeInboundShareAddrStrategy(strategy string) string {
-	strategy = strings.TrimSpace(strategy)
-	switch strategy {
-	case "listen", "custom":
-		return strategy
-	default:
-		return "node"
-	}
-}
-
-func normalizeInboundShareAddress(inbound *model.Inbound) {
-	if inbound == nil {
-		return
-	}
-	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
-	if addr, err := normalizeInboundShareHost(inbound.ShareAddr); err == nil {
-		inbound.ShareAddr = addr
-	} else {
-		inbound.ShareAddr = strings.TrimSpace(inbound.ShareAddr)
-	}
-}
-
-func normalizeInboundShareAddressStrict(inbound *model.Inbound) error {
-	if inbound == nil {
-		return nil
-	}
-	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
-	addr, err := normalizeInboundShareHost(inbound.ShareAddr)
-	if err != nil {
-		return common.NewError("shareAddr must be a host or IP without scheme or port")
-	}
-	inbound.ShareAddr = addr
-	return nil
-}
-
-func normalizeInboundShareHost(raw string) (string, error) {
-	addr := strings.TrimSpace(raw)
-	if addr == "" {
-		return "", nil
-	}
-	if strings.Contains(addr, "://") || strings.HasPrefix(addr, "//") || strings.ContainsAny(addr, "/?#@") {
-		return "", fmt.Errorf("invalid share address %q", raw)
-	}
-	if strings.HasPrefix(addr, "[") {
-		if !strings.HasSuffix(addr, "]") {
-			return "", fmt.Errorf("invalid IPv6 host %q", raw)
-		}
-		ip := net.ParseIP(addr[1 : len(addr)-1])
-		if ip == nil || ip.To4() != nil {
-			return "", fmt.Errorf("invalid IPv6 host %q", raw)
-		}
-		return "[" + ip.String() + "]", nil
-	}
-	if strings.Contains(addr, ":") {
-		if _, _, err := net.SplitHostPort(addr); err == nil {
-			return "", fmt.Errorf("share address must not include port")
-		}
-		ip := net.ParseIP(addr)
-		if ip == nil || ip.To4() != nil {
-			return "", fmt.Errorf("invalid IPv6 host %q", raw)
-		}
-		return "[" + ip.String() + "]", nil
-	}
-	host, err := netsafe.NormalizeHost(addr)
-	if err != nil {
-		return "", err
-	}
-	return host, nil
-}
-
-func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
-	if tx == nil || !tx.Migrator().HasColumn(&model.Inbound{}, "share_addr_strategy") {
-		return nil
-	}
-
-	strategyExpr := `CASE TRIM(COALESCE(share_addr_strategy, '')) WHEN 'listen' THEN 'listen' WHEN 'custom' THEN 'custom' ELSE 'node' END`
-	if err := tx.Exec(`UPDATE inbounds SET share_addr_strategy = ` + strategyExpr + ` WHERE share_addr_strategy IS NULL OR share_addr_strategy <> ` + strategyExpr).Error; err != nil {
-		return err
-	}
-	hasShareAddr := tx.Migrator().HasColumn(&model.Inbound{}, "share_addr")
-	if hasShareAddr {
-		if err := tx.Exec(`UPDATE inbounds SET share_addr = TRIM(share_addr) WHERE share_addr IS NOT NULL AND share_addr <> TRIM(share_addr)`).Error; err != nil {
-			return err
-		}
-	}
-	if !hasShareAddr {
-		return nil
-	}
-	var rows []struct {
-		Id                int
-		ShareAddrStrategy string
-		ShareAddr         string
-	}
-	if err := tx.Model(&model.Inbound{}).Select("id", "share_addr_strategy", "share_addr").Find(&rows).Error; err != nil {
-		return err
-	}
-	for _, row := range rows {
-		strategy := normalizeInboundShareAddrStrategy(row.ShareAddrStrategy)
-		addr, addrErr := normalizeInboundShareHost(row.ShareAddr)
-		if addrErr != nil {
-			strategy = "node"
-			addr = ""
-		}
-		updates := map[string]any{}
-		if strategy != row.ShareAddrStrategy {
-			updates["share_addr_strategy"] = strategy
-		}
-		if addr != row.ShareAddr {
-			updates["share_addr"] = addr
-		}
-		if len(updates) > 0 {
-			if err := tx.Model(&model.Inbound{}).Where("id = ?", row.Id).Updates(updates).Error; err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	s.enrichClientStats(db, inbounds)
-	s.annotateFallbackParents(db, inbounds)
-	s.annotateLocalOriginGuid(inbounds)
+	s.EnrichClientStats(db, inbounds)
+	s.AnnotateFallbackParents(db, inbounds)
+	s.AnnotateLocalOriginGuid(inbounds)
 	return inbounds, nil
 }
 
-// annotateLocalOriginGuid fills OriginNodeGuid for this panel's OWN inbounds
+// AnnotateLocalOriginGuid fills OriginNodeGuid for this panel's OWN inbounds
 // (NodeID == nil) with the panel's stable GUID; inbounds synced from a node
 // already carry the originating node's GUID. Read-time only (not persisted) so
 // the per-inbound online view can scope by GUID uniformly across a chain of
 // nodes (#4983).
-func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
+func (s *InboundService) AnnotateLocalOriginGuid(inbounds []*model.Inbound) {
 	if len(inbounds) == 0 {
 		return
 	}
@@ -198,18 +73,11 @@ func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	s.annotateFallbackParents(db, inbounds)
-	s.annotateLocalOriginGuid(inbounds)
-	// Top up stats rows owned by sibling inbounds (multi-attached clients)
-	// so the list's depleted/expiring badges see every client; the UUID/SubId
-	// enrichment stays skipped. Must run before slimming strips the settings.
-	s.backfillClientStats(db, inbounds)
-	// Slim feeds the panel UI only (masters poll the full list), so the badge
-	// math may see the cross-panel totals a master pushed.
-	s.overlayInboundsClientStats(db, inbounds)
+	s.AnnotateFallbackParents(db, inbounds)
+	s.AnnotateLocalOriginGuid(inbounds)
 	for _, ib := range inbounds {
 		ib.Settings = slimSettingsClients(ib.Settings)
 	}
@@ -257,11 +125,11 @@ func slimSettingsClients(settings string) string {
 	return string(out)
 }
 
-// annotateFallbackParents fills FallbackParent on each inbound that is
+// AnnotateFallbackParents fills FallbackParent on each inbound that is
 // the child side of a fallback rule. One DB round-trip serves the full
 // list — the frontend needs this to rewrite the child's client-share
 // link so it points at the master's reachable endpoint.
-func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.Inbound) {
+func (s *InboundService) AnnotateFallbackParents(db *gorm.DB, inbounds []*model.Inbound) {
 	if len(inbounds) == 0 {
 		return
 	}
@@ -297,106 +165,42 @@ type InboundOption struct {
 	Tag            string `json:"tag" example:"in-443-tcp"`
 	Protocol       string `json:"protocol" example:"vless"`
 	Port           int    `json:"port" example:"443"`
-	Enable         bool   `json:"enable" example:"true"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
-	WgPublicKey    string `json:"wgPublicKey,omitempty"`
-	WgMtu          int    `json:"wgMtu,omitempty"`
-	WgDns          string `json:"wgDns,omitempty"`
-	// Hosting node; nil for this panel's own inbounds. Lets the clients
-	// page map a node filter onto inbound IDs (#4997).
-	NodeId *int `json:"nodeId,omitempty"`
-	// Share-host resolution inputs, mirroring the subscription's
-	// resolveInboundAddress so the clients page renders a node-managed WireGuard
-	// Endpoint that points at the node, not the master panel. NodeAddress is the
-	// hosting node's externally reachable address (empty for this panel's own
-	// inbounds); Listen and ShareAddrStrategy/ShareAddr feed the same
-	// node→listen→custom fallback the share/QR links already use.
-	NodeAddress       string `json:"nodeAddress,omitempty"`
-	Listen            string `json:"listen,omitempty"`
-	ShareAddr         string `json:"shareAddr,omitempty"`
-	ShareAddrStrategy string `json:"shareAddrStrategy,omitempty"`
 }
 
 func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) {
 	db := database.GetDB()
 	var rows []struct {
-		Id                int    `gorm:"column:id"`
-		Remark            string `gorm:"column:remark"`
-		Tag               string `gorm:"column:tag"`
-		Protocol          string `gorm:"column:protocol"`
-		Port              int    `gorm:"column:port"`
-		Enable            bool   `gorm:"column:enable"`
-		StreamSettings    string `gorm:"column:stream_settings"`
-		Settings          string `gorm:"column:settings"`
-		Listen            string `gorm:"column:listen"`
-		ShareAddr         string `gorm:"column:share_addr"`
-		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
-		NodeId            *int   `gorm:"column:node_id"`
-		NodeAddress       string `gorm:"column:node_address"`
+		Id             int    `gorm:"column:id"`
+		Remark         string `gorm:"column:remark"`
+		Tag            string `gorm:"column:tag"`
+		Protocol       string `gorm:"column:protocol"`
+		Port           int    `gorm:"column:port"`
+		StreamSettings string `gorm:"column:stream_settings"`
+		Settings       string `gorm:"column:settings"`
 	}
 	err := db.Table("inbounds").
-		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address").
-		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
-		Where("inbounds.user_id = ?", userId).
-		Order("inbounds.id ASC").
+		Select("id, remark, tag, protocol, port, stream_settings, settings").
+		Where("user_id = ?", userId).
+		Order("id ASC").
 		Scan(&rows).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
-		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
-		shareAddrStrategy := r.ShareAddrStrategy
-		if shareAddrStrategy == "node" {
-			shareAddrStrategy = ""
-		}
 		out = append(out, InboundOption{
-			Id:                r.Id,
-			Remark:            r.Remark,
-			Tag:               r.Tag,
-			Protocol:          r.Protocol,
-			Port:              r.Port,
-			Enable:            r.Enable,
-			TlsFlowCapable:    inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
-			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
-			WgPublicKey:       wgPublicKey,
-			WgMtu:             wgMtu,
-			WgDns:             wgDns,
-			NodeId:            r.NodeId,
-			NodeAddress:       r.NodeAddress,
-			Listen:            r.Listen,
-			ShareAddr:         r.ShareAddr,
-			ShareAddrStrategy: shareAddrStrategy,
+			Id:             r.Id,
+			Remark:         r.Remark,
+			Tag:            r.Tag,
+			Protocol:       r.Protocol,
+			Port:           r.Port,
+			TlsFlowCapable: inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings),
+			SsMethod:       inboundShadowsocksMethod(r.Protocol, r.Settings),
 		})
 	}
 	return out, nil
-}
-
-func inboundWireguardHints(protocol string, settings string) (string, int, string) {
-	if protocol != string(model.WireGuard) || strings.TrimSpace(settings) == "" {
-		return "", 0, ""
-	}
-	var parsed struct {
-		PublicKey string `json:"publicKey"`
-		PubKey    string `json:"pubKey"`
-		SecretKey string `json:"secretKey"`
-		MTU       int    `json:"mtu"`
-		DNS       string `json:"dns"`
-	}
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
-		return "", 0, ""
-	}
-	publicKey := parsed.PublicKey
-	if publicKey == "" {
-		publicKey = parsed.PubKey
-	}
-	if publicKey == "" && parsed.SecretKey != "" {
-		if derived, err := wgutil.PublicKeyFromPrivate(parsed.SecretKey); err == nil {
-			publicKey = derived
-		}
-	}
-	return publicKey, parsed.MTU, parsed.DNS
 }
 
 // GetAllInbounds retrieves all inbounds with client stats.
@@ -404,10 +208,10 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	s.enrichClientStats(db, inbounds)
+	s.EnrichClientStats(db, inbounds)
 	return inbounds, nil
 }
 
@@ -415,7 +219,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 	return inbounds, nil
@@ -423,7 +227,7 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
 	settings := map[string][]model.Client{}
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	json.Unmarshal([]byte(inbound.Settings), &settings)
 	if settings == nil {
 		return nil, fmt.Errorf("setting is null")
 	}
@@ -433,13 +237,6 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 		return nil, nil
 	}
 	return clients, nil
-}
-
-// GetClientsBySubId returns the inbound's clients with the given subscription
-// id, resolved from the normalized clients tables (the same source the running
-// Xray users are built from) instead of parsing the settings JSON blob.
-func (s *InboundService) GetClientsBySubId(inboundId int, subId string) ([]model.Client, error) {
-	return s.clientService.ListForInboundBySubId(nil, inboundId, subId)
 }
 
 func (s *InboundService) GetAllEmails() ([]string, error) {
@@ -456,9 +253,9 @@ func (s *InboundService) GetAllEmails() ([]string, error) {
 	return emails, nil
 }
 
-// getAllEmailSubIDs returns email→subId. An email seen with two different
+// GetAllEmailSubIDs returns email→subId. An email seen with two different
 // non-empty subIds is locked (mapped to "") so neither identity can claim it.
-func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
+func (s *InboundService) GetAllEmailSubIDs() (map[string]string, error) {
 	db := database.GetDB()
 	var rows []struct {
 		Email string
@@ -491,20 +288,15 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 	return result, nil
 }
 
-// normalizeStreamSettings clears StreamSettings for protocols that don't use it.
-// Only vmess, vless, trojan, shadowsocks, hysteria, wireguard, and tunnel
-// protocols use streamSettings (wireguard for finalmask UDP masks and sockopt on
-// its listener; tunnel for sockopt, notably sockopt.tproxy for its TProxy/redirect
-// mode).
-func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
+// NormalizeStreamSettings clears StreamSettings for protocols that don't use it.
+// Only vmess, vless, trojan, shadowsocks, and hysteria protocols use streamSettings.
+func (s *InboundService) NormalizeStreamSettings(inbound *model.Inbound) {
 	protocolsWithStream := map[model.Protocol]bool{
 		model.VMESS:       true,
 		model.VLESS:       true,
 		model.Trojan:      true,
 		model.Shadowsocks: true,
 		model.Hysteria:    true,
-		model.WireGuard:   true,
-		model.Tunnel:      true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -512,9 +304,9 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 }
 
-// normalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
+// NormalizeMtprotoSecret rebuilds an mtproto inbound's FakeTLS secret so it is
 // always valid and matches the configured domain before the row is persisted.
-func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
+func (s *InboundService) NormalizeMtprotoSecret(inbound *model.Inbound) {
 	if inbound.Protocol != model.MTProto {
 		return
 	}
@@ -523,123 +315,14 @@ func (s *InboundService) normalizeMtprotoSecret(inbound *model.Inbound) {
 	}
 }
 
-// mtprotoRoutesThroughXray reports whether an mtproto inbound is configured to
-// egress through the core's router (the loopback SOCKS bridge in §xray.go).
-func mtprotoRoutesThroughXray(inbound *model.Inbound) bool {
-	if inbound == nil || inbound.Protocol != model.MTProto {
-		return false
-	}
-	var parsed struct {
-		RouteThroughXray bool `json:"routeThroughXray"`
-	}
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
-		return false
-	}
-	return parsed.RouteThroughXray
-}
-
-func settingsRouteXrayPort(parsed map[string]any) int {
-	switch v := parsed["routeXrayPort"].(type) {
-	case float64:
-		return int(v)
-	case int:
-		return v
-	case json.Number:
-		if n, err := v.Int64(); err == nil {
-			return int(n)
-		}
-	}
-	return 0
-}
-
-func parseRouteXrayPort(settings string) int {
-	if settings == "" {
-		return 0
-	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
-		return 0
-	}
-	return settingsRouteXrayPort(parsed)
-}
-
-// normalizeMtprotoXrayPort guarantees a routed mtproto inbound carries a stable
-// loopback egress port in its settings, so the generated Xray SOCKS bridge and
-// the mtg sidecar agree on where mtg dials out. The port is backend-owned: it is
-// allocated once when routing is first enabled and preserved across edits
-// (carried over from oldSettings, which wins over any value the client echoed
-// back). When routing is off it — together with the now-inert outbound
-// selection — is stripped so a disabled bridge leaves nothing stale behind.
-//
-// It returns an error when an egress port cannot be allocated or persisted, so
-// the caller refuses the save rather than storing a routed-but-portless inbound,
-// which would otherwise route no traffic and have its mtg metrics skipped (see
-// mtproto_job) — silently losing its accounting.
-func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSettings string) error {
-	if inbound.Protocol != model.MTProto {
-		return nil
-	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed == nil {
-		return nil
-	}
-	routed, _ := parsed["routeThroughXray"].(bool)
-	if !routed {
-		_, hadPort := parsed["routeXrayPort"]
-		_, hadTag := parsed["outboundTag"]
-		if !hadPort && !hadTag {
-			return nil
-		}
-		delete(parsed, "routeXrayPort")
-		delete(parsed, "outboundTag")
-		if bs, err := json.MarshalIndent(parsed, "", "  "); err == nil {
-			inbound.Settings = string(bs)
-		} else {
-			logger.Warning("mtproto: failed to marshal settings after disabling routing:", err)
-		}
-		return nil
-	}
-
-	// Prefer the already-stored port (carried across edits), then any value the
-	// client sent, then allocate a fresh one.
-	port := parseRouteXrayPort(oldSettings)
-	if port <= 0 {
-		port = settingsRouteXrayPort(parsed)
-	}
-	if port <= 0 {
-		allocated, err := mtproto.FreeLocalPort()
-		if err != nil {
-			return common.NewError("mtproto: could not allocate an Xray egress port:", err)
-		}
-		port = allocated
-	}
-	if settingsRouteXrayPort(parsed) == port {
-		return nil
-	}
-	parsed["routeXrayPort"] = port
-	bs, err := json.MarshalIndent(parsed, "", "  ")
-	if err != nil {
-		return common.NewError("mtproto: could not persist the Xray egress port:", err)
-	}
-	inbound.Settings = string(bs)
-	return nil
-}
-
 // AddInbound creates a new inbound configuration.
 // It validates port uniqueness, client email uniqueness, and required fields,
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
-	s.normalizeStreamSettings(inbound)
-	s.normalizeMtprotoSecret(inbound)
-	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
-		return inbound, false, err
-	}
-	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
-	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
-		return inbound, false, err
-	}
+	s.NormalizeStreamSettings(inbound)
+	s.NormalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
@@ -690,12 +373,6 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	// Defensively fix any Shadowsocks-2022 client PSK whose length doesn't match
-	// the inbound method (e.g. an API caller supplied a wrong-size key).
-	if normalized, changed := normalizeShadowsocksClientKeys(inbound.Settings); changed {
-		inbound.Settings = normalized
-	}
-
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
@@ -726,76 +403,32 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			tx.Rollback()
 			return
 		}
+		tx.Commit()
 		if markDirty && inbound.NodeID != nil {
-			if dErr := (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID); dErr != nil {
-				err = dErr
-				tx.Rollback()
-				return
+			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
 			}
 		}
-		tx.Commit()
 	}()
 
-	// Omit the ClientStats has-many association: GORM's cascade would INSERT
-	// those rows with an ON CONFLICT target on the primary key only, which
-	// collides with the globally-unique client_traffics.email when an imported
-	// inbound carries clients that another inbound already created (e.g.
-	// importing two inbounds that share the same clients). We insert the stats
-	// ourselves below with the same email-conflict guard AddClientStat uses.
-	err = tx.Omit("ClientStats").Save(inbound).Error
-	if err != nil {
+	err = tx.Save(inbound).Error
+	if err == nil {
+		if len(inbound.ClientStats) == 0 {
+			for _, client := range clients {
+				s.AddClientStat(tx, inbound.Id, &client)
+			}
+		}
+	} else {
 		return inbound, false, err
-	}
-	// Imported stats first, so their traffic counters survive; emails that
-	// already own a (shared) row are skipped instead of tripping the unique
-	// constraint.
-	for i := range inbound.ClientStats {
-		if inbound.ClientStats[i].Email == "" {
-			continue
-		}
-		inbound.ClientStats[i].Id = 0
-		inbound.ClientStats[i].InboundId = inbound.Id
-		if err = tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "email"}},
-			DoNothing: true,
-		}).Create(&inbound.ClientStats[i]).Error; err != nil {
-			return inbound, false, err
-		}
-	}
-	// Then make sure every client has a stats row. AddClientStat is a no-op
-	// where one exists (including the rows just inserted), and fills the gap
-	// for clients an import payload didn't carry stats for.
-	for _, client := range clients {
-		if err = s.AddClientStat(tx, inbound.Id, &client); err != nil {
-			return inbound, false, err
-		}
 	}
 
 	if err = s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
 		return inbound, false, err
 	}
 
-	// Legacy import: an inbound exported from a build that predated the hosts
-	// table carries its external proxies inline in streamSettings.externalProxy.
-	// The startup migration that converts those to host rows runs once and is
-	// gated off afterwards, so it never sees a freshly imported inbound —
-	// reproduce it here. No-op for inbounds without externalProxy (everything the
-	// current UI builds), so this only fires on such imports.
-	if _, err = database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
-		return inbound, false, err
-	}
-
-	// Before the deferred commit, so a node in "selected" sync mode cannot
-	// sweep the new central row in the gap before its tag is allowed.
-	if inbound.NodeID != nil {
-		if aErr := (&NodeService{}).EnsureInboundTagAllowed(*inbound.NodeID, inbound.Tag); aErr != nil {
-			logger.Warning("allow inbound tag on node failed:", aErr)
-		}
-	}
-
 	needRestart := false
 	if inbound.Enable {
-		rt, push, dirty, perr := s.nodePushPlan(inbound)
+		rt, push, dirty, perr := s.NodePushPlan(inbound)
 		if perr != nil {
 			err = perr
 			return inbound, false, err
@@ -817,13 +450,6 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	// A routed mtproto inbound is not an Xray inbound itself, so the runtime
-	// push above only (re)starts the mtg sidecar. The egress SOCKS bridge lives
-	// in the generated config, so force a regen to wire it in.
-	if mtprotoRoutesThroughXray(inbound) {
-		needRestart = true
-	}
-
 	return inbound, needRestart, err
 }
 
@@ -837,7 +463,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if loadErr == nil {
 		shouldPushToRuntime := ib.NodeID != nil || ib.Enable
 		if shouldPushToRuntime {
-			rt, push, dirty, perr := s.nodePushPlan(&ib)
+			rt, push, dirty, perr := s.NodePushPlan(&ib)
 			if perr != nil {
 				logger.Warning("DelInbound: node lookup failed, deleting central row anyway:", perr)
 				markDirty = true
@@ -868,30 +494,13 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		return false, err
 	}
 
-	// Drop the deleted inbound's tag from any routing rules / loopback outbounds
-	// in xrayTemplateConfig so they don't point at a tag that no longer exists.
-	if loadErr == nil && ib.Tag != "" {
-		if routingChanged, syncErr := (&XraySettingService{}).RemoveInboundTagReferences(ib.Tag); syncErr != nil {
-			logger.Warning("DelInbound: sync routing on inbound delete failed:", syncErr)
-		} else if routingChanged {
-			needRestart = true
-		}
-	}
-
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
-			return err
-		}
-		// Hosts have no hard FK; drop the inbound's hosts alongside it.
-		if err := tx.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
-			return err
-		}
-		if markDirty && ib.NodeID != nil {
-			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
-		}
-		return nil
-	}); err != nil {
+	if err := db.Delete(model.Inbound{}, id).Error; err != nil {
 		return needRestart, err
+	}
+	if markDirty && ib.NodeID != nil {
+		if dErr := (&NodeService{}).MarkNodeDirty(*ib.NodeID); dErr != nil {
+			logger.Warning("mark node dirty failed:", dErr)
+		}
 	}
 	if !database.IsPostgres() {
 		var count int64
@@ -903,10 +512,6 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 				return needRestart, err
 			}
 		}
-	}
-	// Drop the egress SOCKS bridge a routed mtproto inbound left in the config.
-	if mtprotoRoutesThroughXray(&ib) {
-		needRestart = true
 	}
 	return needRestart, nil
 }
@@ -959,8 +564,7 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.enrichClientStats(db, []*model.Inbound{inbound})
-	s.overlayInboundsClientStats(db, []*model.Inbound{inbound})
+	s.EnrichClientStats(db, []*model.Inbound{inbound})
 	return inbound, nil
 }
 
@@ -974,22 +578,14 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
-			Update("enable", enable).Error; err != nil {
-			return err
-		}
-		if inbound.NodeID != nil {
-			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
-		}
-		return nil
-	}); err != nil {
+	if err := db.Model(model.Inbound{}).Where("id = ?", id).
+		Update("enable", enable).Error; err != nil {
 		return false, err
 	}
 	inbound.Enable = enable
 
 	needRestart := false
-	rt, push, _, perr := s.nodePushPlan(inbound)
+	rt, push, dirty, perr := s.NodePushPlan(inbound)
 	if perr != nil {
 		return false, perr
 	}
@@ -1003,6 +599,12 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		if push {
 			if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
 				logger.Warning("SetInboundEnable: remote UpdateInbound on", rt.Name(), "failed:", err)
+				dirty = true
+			}
+		}
+		if dirty {
+			if dErr := (&NodeService{}).MarkNodeDirty(*inbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
 			}
 		}
 		return false, nil
@@ -1021,7 +623,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return needRestart, nil
 	}
 
-	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+	runtimeInbound, err := s.BuildRuntimeInboundForAPI(db, inbound)
 	if err != nil {
 		logger.Debug("SetInboundEnable: build runtime config failed:", err)
 		return true, nil
@@ -1035,9 +637,8 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	// Normalize streamSettings based on protocol
-	s.normalizeStreamSettings(inbound)
-	s.normalizeMtprotoSecret(inbound)
-	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
+	s.NormalizeStreamSettings(inbound)
+	s.NormalizeMtprotoSecret(inbound)
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
@@ -1052,232 +653,172 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.NodeID = oldInbound.NodeID
-	// Capture the pre-edit routing state before oldInbound.Settings is replaced
-	// with the new settings further down, then ensure a routed inbound keeps a
-	// stable egress port (reusing the one already stored).
-	oldRoutedMtproto := mtprotoRoutesThroughXray(oldInbound)
-	if err := s.normalizeMtprotoXrayPort(inbound, oldInbound.Settings); err != nil {
-		return inbound, false, err
-	}
 
 	tag := oldInbound.Tag
 	oldBits := inboundTransports(oldInbound.Protocol, oldInbound.StreamSettings, oldInbound.Settings)
 	oldTagWasAuto := isAutoGeneratedTag(tag, oldInbound.Port, oldInbound.NodeID, oldBits)
 
-	needRestart := false
+	db := database.GetDB()
+	tx := db.Begin()
 
-	// Persist the client-stat sync, settings munging, runtime push and inbound
-	// save as one transaction routed through the serial traffic writer, so it
-	// never runs concurrently with the @every 5s traffic poll. Both touch
-	// client_traffics and inbounds in opposite order, which Postgres aborts as a
-	// deadlock (40P01); serializing removes the contention (runSerializedTx).
-	//
-	// The runtime push stays inside the transaction here (unlike the client-edit
-	// paths that apply it after commit): EnsureInboundTagAllowed must reach the
-	// node before the central row is committed, or a "selected"-mode node would
-	// sweep the renamed inbound on its next pull. Inbound edits are rare, so
-	// holding the writer across the node call is an acceptable trade.
-	txErr := runSerializedTx(func(tx *gorm.DB) error {
-		if err := s.updateClientTraffics(tx, oldInbound, inbound); err != nil {
-			return err
-		}
-
-		// Ensure created_at and updated_at exist in inbound.Settings clients
-		{
-			var oldSettings map[string]any
-			_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
-			emailToCreated := map[string]int64{}
-			emailToUpdated := map[string]int64{}
-			if oldSettings != nil {
-				if oc, ok := oldSettings["clients"].([]any); ok {
-					for _, it := range oc {
-						if m, ok2 := it.(map[string]any); ok2 {
-							if email, ok3 := m["email"].(string); ok3 {
-								switch v := m["created_at"].(type) {
-								case float64:
-									emailToCreated[email] = int64(v)
-								case int64:
-									emailToCreated[email] = v
-								}
-								switch v := m["updated_at"].(type) {
-								case float64:
-									emailToUpdated[email] = int64(v)
-								case int64:
-									emailToUpdated[email] = v
-								}
-							}
-						}
-					}
-				}
-			}
-			var newSettings map[string]any
-			if err2 := json.Unmarshal([]byte(inbound.Settings), &newSettings); err2 == nil && newSettings != nil {
-				now := time.Now().Unix() * 1000
-				if nSlice, ok := newSettings["clients"].([]any); ok {
-					for i := range nSlice {
-						if m, ok2 := nSlice[i].(map[string]any); ok2 {
-							email, _ := m["email"].(string)
-							if _, ok3 := m["created_at"]; !ok3 {
-								if v, ok4 := emailToCreated[email]; ok4 && v > 0 {
-									m["created_at"] = v
-								} else {
-									m["created_at"] = now
-								}
-							}
-							// Preserve client's updated_at if present; do not bump on parent inbound update
-							if _, hasUpdated := m["updated_at"]; !hasUpdated {
-								if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
-									m["updated_at"] = v
-								}
-							}
-							nSlice[i] = m
-						}
-					}
-					newSettings["clients"] = nSlice
-					if bs, err3 := json.MarshalIndent(newSettings, "", "  "); err3 == nil {
-						inbound.Settings = string(bs)
-					}
-				}
-			}
-		}
-
-		// A Shadowsocks-2022 method change resizes the key, but existing client PSKs
-		// keep their old length and would be rejected by xray. Regenerate mismatched
-		// client keys so the inbound stays connectable.
-		if normalized, changed := normalizeShadowsocksClientKeys(inbound.Settings); changed {
-			inbound.Settings = normalized
-			logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
-		}
-
-		// Re-gate Vision flow now that the new stream/encryption is known: if this
-		// VLESS inbound just became flow-eligible (e.g. vlessenc was enabled on an
-		// XHTTP inbound), restore Vision for clients whose intended flow is Vision
-		// but was stripped while the inbound was ineligible.
-		if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
-			inbound.Settings = restored
-		}
-
-		oldInbound.Total = inbound.Total
-		oldInbound.Remark = inbound.Remark
-		oldInbound.SubSortIndex = inbound.SubSortIndex
-		oldInbound.Enable = inbound.Enable
-		oldInbound.ExpiryTime = inbound.ExpiryTime
-		oldInbound.TrafficReset = inbound.TrafficReset
-		oldInbound.Listen = inbound.Listen
-		oldInbound.Port = inbound.Port
-		oldInbound.Protocol = inbound.Protocol
-		oldInbound.Settings = inbound.Settings
-		oldInbound.StreamSettings = inbound.StreamSettings
-		oldInbound.Sniffing = inbound.Sniffing
-		if strings.TrimSpace(inbound.ShareAddrStrategy) == "" {
-			normalizeInboundShareAddress(oldInbound)
-			inbound.ShareAddrStrategy = oldInbound.ShareAddrStrategy
-			inbound.ShareAddr = oldInbound.ShareAddr
-		} else {
-			if err := normalizeInboundShareAddressStrict(inbound); err != nil {
-				return err
-			}
-			oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
-			oldInbound.ShareAddr = inbound.ShareAddr
-		}
-		if oldTagWasAuto && inbound.Tag == tag {
-			inbound.Tag = ""
-		}
-		resolvedTag, err := s.resolveInboundTag(inbound, inbound.Id)
+	markDirty := false
+	defer func() {
 		if err != nil {
-			return err
+			tx.Rollback()
+			return
 		}
-		oldInbound.Tag = resolvedTag
-		inbound.Tag = oldInbound.Tag
+		tx.Commit()
+		if markDirty && oldInbound.NodeID != nil {
+			if dErr := (&NodeService{}).MarkNodeDirty(*oldInbound.NodeID); dErr != nil {
+				logger.Warning("mark node dirty failed:", dErr)
+			}
+		}
+	}()
 
-		rt, push, _, perr := s.nodePushPlan(oldInbound)
-		if perr != nil {
-			return perr
-		}
-		if oldInbound.NodeID == nil {
-			if !push {
-				needRestart = true
-			} else {
-				oldSnapshot := *oldInbound
-				oldSnapshot.Tag = tag
-				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
-					logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
-				}
-				if inbound.Enable {
-					runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
-					if err2 != nil {
-						logger.Debug("Unable to prepare runtime inbound config:", err2)
-						needRestart = true
-					} else if err2 := rt.AddInbound(context.Background(), runtimeInbound); err2 == nil {
-						logger.Debug("Updated inbound added on", rt.Name(), ":", oldInbound.Tag)
-					} else {
-						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
-						needRestart = true
+	err = s.UpdateClientTraffics(tx, oldInbound, inbound)
+	if err != nil {
+		return inbound, false, err
+	}
+
+	// Ensure created_at and updated_at exist in inbound.Settings clients
+	{
+		var oldSettings map[string]any
+		_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+		emailToCreated := map[string]int64{}
+		emailToUpdated := map[string]int64{}
+		if oldSettings != nil {
+			if oc, ok := oldSettings["clients"].([]any); ok {
+				for _, it := range oc {
+					if m, ok2 := it.(map[string]any); ok2 {
+						if email, ok3 := m["email"].(string); ok3 {
+							switch v := m["created_at"].(type) {
+							case float64:
+								emailToCreated[email] = int64(v)
+							case int64:
+								emailToCreated[email] = v
+							}
+							switch v := m["updated_at"].(type) {
+							case float64:
+								emailToUpdated[email] = int64(v)
+							case int64:
+								emailToUpdated[email] = v
+							}
+						}
 					}
 				}
 			}
-		} else if push {
+		}
+		var newSettings map[string]any
+		if err2 := json.Unmarshal([]byte(inbound.Settings), &newSettings); err2 == nil && newSettings != nil {
+			now := time.Now().Unix() * 1000
+			if nSlice, ok := newSettings["clients"].([]any); ok {
+				for i := range nSlice {
+					if m, ok2 := nSlice[i].(map[string]any); ok2 {
+						email, _ := m["email"].(string)
+						if _, ok3 := m["created_at"]; !ok3 {
+							if v, ok4 := emailToCreated[email]; ok4 && v > 0 {
+								m["created_at"] = v
+							} else {
+								m["created_at"] = now
+							}
+						}
+						// Preserve client's updated_at if present; do not bump on parent inbound update
+						if _, hasUpdated := m["updated_at"]; !hasUpdated {
+							if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
+								m["updated_at"] = v
+							}
+						}
+						nSlice[i] = m
+					}
+				}
+				newSettings["clients"] = nSlice
+				if bs, err3 := json.MarshalIndent(newSettings, "", "  "); err3 == nil {
+					inbound.Settings = string(bs)
+				}
+			}
+		}
+	}
+
+	oldInbound.Total = inbound.Total
+	oldInbound.Remark = inbound.Remark
+	oldInbound.Enable = inbound.Enable
+	oldInbound.ExpiryTime = inbound.ExpiryTime
+	oldInbound.TrafficReset = inbound.TrafficReset
+	oldInbound.Listen = inbound.Listen
+	oldInbound.Port = inbound.Port
+	oldInbound.Protocol = inbound.Protocol
+	oldInbound.Settings = inbound.Settings
+	oldInbound.StreamSettings = inbound.StreamSettings
+	oldInbound.Sniffing = inbound.Sniffing
+	if oldTagWasAuto && inbound.Tag == tag {
+		inbound.Tag = ""
+	}
+	oldInbound.Tag, err = s.resolveInboundTag(inbound, inbound.Id)
+	if err != nil {
+		return inbound, false, err
+	}
+	inbound.Tag = oldInbound.Tag
+
+	needRestart := false
+	rt, push, dirty, perr := s.NodePushPlan(oldInbound)
+	if perr != nil {
+		err = perr
+		return inbound, false, err
+	}
+	if dirty {
+		markDirty = true
+	}
+	if oldInbound.NodeID == nil {
+		if !push {
+			needRestart = true
+		} else {
 			oldSnapshot := *oldInbound
 			oldSnapshot.Tag = tag
-			if !inbound.Enable {
-				if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
-					logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
+			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
+				logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
+			}
+			if inbound.Enable {
+				runtimeInbound, err2 := s.BuildRuntimeInboundForAPI(tx, oldInbound)
+				if err2 != nil {
+					logger.Debug("Unable to prepare runtime inbound config:", err2)
+					needRestart = true
+				} else if err2 := rt.AddInbound(context.Background(), runtimeInbound); err2 == nil {
+					logger.Debug("Updated inbound added on", rt.Name(), ":", oldInbound.Tag)
+				} else {
+					logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+					needRestart = true
 				}
-			} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
-				logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
 			}
 		}
-
-		// A rename must allow the new tag before the inbound row is committed, or a
-		// node in "selected" sync mode would sweep the renamed central row on the
-		// next pull.
-		if oldInbound.NodeID != nil {
-			if aErr := (&NodeService{}).EnsureInboundTagAllowed(*oldInbound.NodeID, oldInbound.Tag); aErr != nil {
-				logger.Warning("allow inbound tag on node failed:", aErr)
+	} else if push {
+		oldSnapshot := *oldInbound
+		oldSnapshot.Tag = tag
+		if !inbound.Enable {
+			if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 != nil {
+				logger.Warning("Unable to disable inbound on", rt.Name(), ":", err2)
+				markDirty = true
 			}
+		} else if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, oldInbound); err2 != nil {
+			logger.Warning("Unable to update inbound on", rt.Name(), ":", err2)
+			markDirty = true
 		}
-
-		if err := tx.Save(oldInbound).Error; err != nil {
-			return err
-		}
-		newClients, gcErr := s.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
-			return err
-		}
-		if oldInbound.NodeID != nil {
-			if err := (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID); err != nil {
-				return err
-			}
-		}
-		// (Re)generate the Xray config whenever routing was or is now enabled, so
-		// the egress SOCKS bridge is added, moved, or dropped to match the new
-		// settings.
-		if mtprotoRoutesThroughXray(inbound) || oldRoutedMtproto {
-			needRestart = true
-		}
-		return nil
-	})
-	if txErr != nil {
-		return inbound, false, txErr
 	}
-	// After the rename is committed, point any routing rules / loopback outbounds
-	// in xrayTemplateConfig at the new tag (oldInbound.Tag now holds the resolved
-	// new tag; tag holds the pre-edit one). Done post-commit so a sync failure
-	// can't roll back the inbound edit.
-	if tag != oldInbound.Tag {
-		if routingChanged, syncErr := (&XraySettingService{}).PropagateInboundTagRename(tag, oldInbound.Tag); syncErr != nil {
-			logger.Warning("UpdateInbound: sync routing on tag rename failed:", syncErr)
-		} else if routingChanged {
-			needRestart = true
-		}
+
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return inbound, false, err
+	}
+	newClients, gcErr := s.GetClients(oldInbound)
+	if gcErr != nil {
+		err = gcErr
+		return inbound, false, err
+	}
+	if err = s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
+		return inbound, false, err
 	}
 	return inbound, needRestart, nil
 }
 
-func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+func (s *InboundService) BuildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
 	if inbound == nil {
 		return nil, fmt.Errorf("inbound is nil")
 	}
@@ -1336,12 +877,12 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 	return &runtimeInbound, nil
 }
 
-// updateClientTraffics syncs the ClientTraffic rows with the inbound's clients
+// UpdateClientTraffics syncs the ClientTraffic rows with the inbound's clients
 // list: removes rows for emails that disappeared, inserts rows for newly-added
 // emails. Uses sets for O(N) lookup — the previous nested-loop implementation
 // was O(N²) and degraded into multi-second pauses on inbounds with thousands
 // of clients (toggling, saving, or deleting any such inbound felt frozen).
-func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
+func (s *InboundService) UpdateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
 	oldClients, err := s.GetClients(oldInbound)
 	if err != nil {
 		return err
@@ -1379,7 +920,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if _, kept := newEmails[email]; kept {
 			continue
 		}
-		stillUsed, err := s.emailUsedByOtherInbounds(email, oldInbound.Id)
+		stillUsed, err := s.EmailUsedByOtherInbounds(email, oldInbound.Id)
 		if err != nil {
 			return err
 		}
@@ -1417,7 +958,7 @@ func (s *InboundService) GetInboundTags() (string, error) {
 	db := database.GetDB()
 	var inboundTags []string
 	err := db.Model(model.Inbound{}).Select("tag").Find(&inboundTags).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return "", err
 	}
 	tags, _ := json.Marshal(inboundTags)
@@ -1428,7 +969,7 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 	db := database.GetDB()
 	var inbounds []model.Inbound
 	err := db.Model(model.Inbound{}).Select("settings").Where("protocol = ?", "vless").Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return "[]", err
 	}
 
@@ -1473,8 +1014,208 @@ func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) 
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 	return inbounds, nil
+
+}
+// EnrichClientStats enriches client stats for inbounds
+func (s *InboundService) EnrichClientStats(db *gorm.DB, inbounds []*model.Inbound) {
+	// TODO: implement
+}
+
+// BackfillClientStats backfills client stats for inbounds
+func (s *InboundService) BackfillClientStats(db *gorm.DB, inbounds []*model.Inbound) [][]model.Client {
+	// TODO: implement
+	return nil
+}
+
+// OverlayInboundsClientStats overlays inbounds client stats
+
+
+// AddClientStat adds a client stat
+
+
+// UpdateClientStat updates a client stat
+
+
+// DelClientStat deletes a client stat
+
+
+// DelClientStatsByEmails deletes client stats by emails
+
+
+// ResetClientTrafficByEmail resets client traffic by email
+
+
+// ResetClientTraffic resets client traffic
+
+
+// GetClientTrafficByEmail gets client traffic by email
+
+
+// NormalizeMtprotoXrayPort normalizes mtproto xray port
+func (s *InboundService) NormalizeMtprotoXrayPort(inbound *model.Inbound, oldSettings string) error {
+	// TODO: implement
+	return nil
+}
+
+// SyncInboundXrayConfig syncs inbound Xray config
+func (s *InboundService) SyncInboundXrayConfig(inbound *model.Inbound) (bool, error) {
+	// TODO: implement
+	return false, nil
+}
+
+// SyncLocalInboundXrayConfig syncs local inbound Xray config
+func (s *InboundService) SyncLocalInboundXrayConfig(inbound *model.Inbound, runtimeInbound *xray.InboundConfig) (bool, error) {
+	// TODO: implement
+	return false, nil
+}
+
+// GetXrayAPI returns the Xray API
+func (s *InboundService) GetXrayAPI() *xray.XrayAPI {
+	return &s.xrayApi
+}
+
+// GetPanelHost returns the panel host
+func (s *InboundService) GetPanelHost() string {
+	// TODO: implement
+	return ""
+}
+
+// BuildRuntimeInbound builds runtime inbound
+func (s *InboundService) BuildRuntimeInbound(inbound *model.Inbound) (*xray.InboundConfig, error) {
+	// TODO: implement
+	return nil, nil
+}
+
+
+
+
+
+
+
+
+// RuntimeFor returns the runtime for an inbound
+
+
+// NodePushPlan returns the node push plan
+
+
+// ReconcileInbound reconciles an inbound
+func (s *InboundService) ReconcileInbound(inbound *model.Inbound) error {
+	// TODO: implement
+	return nil
+}
+
+// AddTraffic adds traffic
+
+
+// GetOnlineClients gets online clients
+
+
+// GetOnlineClientsByGuid gets online clients by GUID
+
+
+// AnyNodePending checks if any node is pending
+
+
+// EmailUsedByOtherInbounds checks if email is used by other inbounds
+func (s *InboundService) EmailUsedByOtherInbounds(email string, exceptInboundId int) (bool, error) {
+	// TODO: implement
+	return false, nil
+}
+
+// EmailsUsedByOtherInbounds checks if emails are used by other inbounds
+func (s *InboundService) EmailsUsedByOtherInbounds(emails []string, exceptInboundId int) (map[string]bool, error) {
+	// TODO: implement
+	return nil, nil
+}
+
+// GetClientsBySubId gets clients by subId
+func (s *InboundService) GetClientsBySubId(inboundId int, subId string) ([]model.Client, error) {
+	// TODO: implement
+	return nil, nil
+}
+
+// EmailsByInbound gets emails by inbound
+func (s *InboundService) EmailsByInbound(inboundId int) ([]string, error) {
+	// TODO: implement
+	return nil, nil
+}
+
+// GetClientByEmail gets client by email
+func (s *InboundService) GetClientByEmail(email string) (*xray.ClientTraffic, *model.Client, error) {
+	// TODO: implement
+	return nil, nil, nil
+}
+
+// GetClientInboundByTrafficID gets client inbound by traffic ID
+func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (*xray.ClientTraffic, *model.Inbound, error) {
+	// TODO: implement
+	return nil, nil, nil
+}
+
+// GetClientInboundByEmail gets client inbound by email
+func (s *InboundService) GetClientInboundByEmail(email string) (*xray.ClientTraffic, *model.Inbound, error) {
+	// TODO: implement
+	return nil, nil, nil
+
+// MergeClientIpsByGuid merges client IPs by GUID for a node
+}
+
+// ClearGlobalTraffic clears global traffic
+
+
+// MergeClientIpsByGuid merges client IPs by GUID for a node
+func (s *InboundService) MergeClientIpsByGuid(node *model.Node, ips map[string]map[string][]model.ClientIpEntry) error {
+	db := database.GetDB()
+	key := effectiveNodeKey(node)
+	for guid, clients := range ips {
+		for email, entries := range clients {
+			// Create or update NodeClientIp
+			var nodeClientIp model.NodeClientIp
+			err := db.Where("node_guid = ? AND email = ?", guid, email).First(&nodeClientIp).Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
+			
+			// Convert entries to JSON
+			b, _ := json.Marshal(entries)
+			
+			if err == gorm.ErrRecordNotFound {
+				nodeClientIp = model.NodeClientIp{
+					NodeGuid:    key,
+					Email: email,
+					Ips:         string(b),
+				}
+				err = db.Create(&nodeClientIp).Error
+			} else {
+				nodeClientIp.Ips = string(b)
+				err = db.Save(&nodeClientIp).Error
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *InboundService) ClearGlobalTraffic(tx *gorm.DB) error {
+	// TODO: implement
+	return nil
+
+
+
+
+
+
+
+
+
+
+// MergeClientIpsByGuid merges client IPs by GUID for a node
+
 }
