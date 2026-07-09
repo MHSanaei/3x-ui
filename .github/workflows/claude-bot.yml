@@ -201,14 +201,14 @@ jobs:
                already exist in that list. Never create new labels. Quote any
                multi-word label name, e.g. --add-label "clarification needed".
 
-            2. SPAM / INVALID CHECK: Treat the issue as spam ONLY if you are
-               highly confident it matches one of:
+            2. VALIDITY CHECK: Treat the issue as invalid and close it ONLY if
+               you are highly confident it matches one of:
                  - Body empty or only whitespace, punctuation, or emoji.
                  - Pure gibberish / random characters with no real request.
                  - Obvious advertising, promotion, or links unrelated to 3x-ui.
                  - A throwaway test issue (just "test", "asdf", "hello", etc.).
                  - No relation at all to 3x-ui / Xray.
-               If it clearly is spam:
+               If it clearly matches one of these:
                  a) gh issue comment ${{ github.event.issue.number }} --body "..."
                     (short, polite: closed because it lacks a valid, actionable
                     report; invite them to reopen with details)
@@ -216,7 +216,8 @@ jobs:
                  c) gh issue close ${{ github.event.issue.number }} --reason "not planned"
                  d) STOP. Do not do steps 3-6.
                If you have ANY doubt, treat it as a real issue and continue.
-               A short or low-quality but genuine report is NOT spam.
+               A short or low-quality but genuine report is NOT invalid;
+               investigate it instead.
 
             3. DUPLICATE CHECK: Search existing issues using the main keywords
                from the title:
@@ -253,6 +254,13 @@ jobs:
                info is missing (version from `x-ui`, OS, install method - script
                vs Docker, Xray/inbound config, or relevant logs), also add the
                "clarification needed" label.
+               If the issue's stated type is wrong - for example filed as a
+               feature request but actually a bug, or the reverse - correct it:
+               remove the wrong label, add the right one, and if the title
+               misstates the type or problem, fix it with
+               `gh issue edit ${{ github.event.issue.number }} --title "<corrected title>"`,
+               preserving the reporter's meaning and changing only what is
+               needed for clarity. Note any retitle in your comment.
 
             6. RESPOND: Post ONE comment that fully addresses the issue,
                following COMMENT STYLE above.
@@ -261,14 +269,32 @@ jobs:
                  copy-pasteable commands, exact file paths, and exact setting
                  names taken from the repo. Do NOT invent features, paths,
                  flags, or commands.
-               - If it is a BUG and you found the root cause, CONFIRM it: name
-                 the exact file, function, and line, explain what happens and
-                 why, and tag @${{ github.repository_owner }} so a maintainer
-                 can decide on a fix. Do NOT open a pull request and do NOT edit
-                 code; a fix is made only when the maintainer requests it by
-                 mentioning @claude.
+               - If it is a BUG and you found the root cause, CONFIRM it with a
+                 structured comment using these plain-text headings: Title (a
+                 one-line summary of the defect); Severity (Critical, High,
+                 Medium, Low, or Suggestion); Category (Correctness, Security,
+                 Performance, Reliability, Maintainability, API, Testing, or
+                 Documentation); Why this matters (the concrete runtime,
+                 security, or maintainability impact); Recommendation (the fix
+                 approach - do NOT open a pull request or edit code; a fix is
+                 made only when the maintainer requests it by mentioning
+                 @claude); and an optional short Example as a plain fenced code
+                 block naming the exact file, function, and line. State your
+                 confidence and, if it is low, say so. Tag
+                 @${{ github.repository_owner }} so a maintainer can decide on a
+                 fix.
+               - If it is filed or titled as a bug but investigation CONFIRMS
+                 there is no bug (expected behavior, a user configuration error,
+                 or a misunderstanding), explain why with evidence from the
+                 source (exact file and line), remove the bug label, add
+                 "question" or "invalid" as appropriate, optionally correct the
+                 title, and close it with
+                 `gh issue close ${{ github.event.issue.number }} --reason "not planned"`.
+                 If you are not certain, or key information is missing, do NOT
+                 close: add "clarification needed" and keep it open.
                - For a feature/enhancement request, a question, or a
-                 documentation issue, just answer it; never open a PR.
+                 documentation issue, answer it in prose in the style above (no
+                 Severity/heading scaffold); never open a PR.
                - If, after investigating, you still cannot determine the cause,
                  state briefly what you checked and ask for the specific
                  missing details rather than guessing.
@@ -422,13 +448,23 @@ jobs:
                For backend changes trace the call sites; for DB/model changes
                check migrations. Read as many files as you need; do not stop at
                the first file. Separate what you CONFIRMED in the source from
-               what you infer, and do not invent problems.
+               what you infer, and do not invent problems. Weigh each change
+               against the review areas - correctness, security, reliability,
+               performance, concurrency, maintainability, API design, testing,
+               and documentation - and rate each real problem by severity
+               (Critical, High, Medium, Low, or Suggestion).
 
             5. APPLY FIXES (this is the core of the job): for every real problem
                you find - a bug, a correctness or security issue, a broken
                caller, a build break, or a convention violation - and for
                refactors that clearly improve the code, MAKE the change directly
-               with Edit/Write, following the project conventions above. Keep
+               with Edit/Write, following the project conventions above.
+               Prioritize by severity: always apply Critical and High
+               correctness and security fixes and clear convention violations,
+               and apply Medium maintainability fixes when they are low-risk;
+               leave Low and Suggestion items - and anything large, risky, or
+               that you are not confident is correct - for the author, and list
+               them with their severity in your step-6 summary. Keep
                each edit focused and correct; do not rewrite unrelated code or
                reformat wholesale. You cannot run builds or tests here, so make
                changes that are obviously correct; if a needed fix is large,
@@ -559,6 +595,59 @@ jobs:
               frontend/src does not affect users until internal/web/dist is
               rebuilt.
 
+            REVIEW PRINCIPLES
+            - Base every finding on evidence: a specific diff hunk or a
+              file:line in the checked-out source. Never invent hypothetical
+              problems, and do not assume missing context unless the change
+              clearly requires it.
+            - If you are uncertain, say so explicitly; do not present an
+              assumption as fact.
+            - Prefer a few high-signal findings over many low-value ones. Do
+              not report the same issue twice and do not bikeshed style. Ignore
+              pure-formatting changes unless they reduce readability.
+            - Ignore true vendor code, lock files, and build output. Do NOT
+              ignore i18n or generated files here: a new English key missing
+              from any of the 13 internal/web/translation/ JSONs, or a
+              frontend/src/generated or frontend/public/openapi.json that would
+              be dirty after `make gen`, is a real convention violation.
+
+            REVIEW AREAS (weigh each against the diff):
+            - Correctness: logic errors, edge cases, nil/empty handling,
+              invalid assumptions, regressions.
+            - Security: authentication and authorization, input validation,
+              injection, XSS, CSRF, SSRF, path traversal, secrets exposure,
+              unsafe defaults. Pay special attention to
+              internal/web/controller/ handlers, subscription output in
+              internal/sub/, and Xray config generation in internal/xray/.
+            - Reliability: error handling, resource cleanup, timeouts, retry
+              and failure paths, child-process and goroutine failure handling.
+            - Performance: unnecessary allocations, N+1 or unbounded GORM
+              queries, expensive work in hot loops or per-request paths.
+            - Concurrency: races, deadlocks, unsynchronized shared state,
+              goroutine or task leaks (xray/mtproto child processes, cron jobs
+              in internal/web/job/).
+            - Maintainability: readability, naming, duplication, complexity.
+            - API design: backward compatibility, breaking changes, request
+              validation, error responses.
+            - Testing: missing coverage or edge-case tests, wrong assertions
+              (this repo uses the stdlib testing package only).
+            - Documentation: a new route needs an endpoints.ts entry; note any
+              needed upgrade or configuration notes.
+
+            SEVERITY (assign exactly one per finding; text labels, no emoji):
+            - Critical: security hole, data corruption, crash, privilege
+              escalation, authentication bypass, or severe regression.
+            - High: likely production bug, incorrect behavior, or a significant
+              performance problem.
+            - Medium: missing validation, an unhandled edge case, a
+              maintainability problem, or a moderate performance issue.
+            - Low: minor readability or consistency improvement.
+            - Suggestion: optional improvement with no correctness impact.
+
+            CONFIDENCE (assign exactly one per finding): High, Medium, or Low.
+            Reserve High for issues you CONFIRMED in the source (name the file
+            and line); label anything inferred Medium or Low.
+
             CURRENT PULL REQUEST
             REPO:   ${{ github.repository }}
             NUMBER: ${{ github.event.pull_request.number }}
@@ -578,28 +667,48 @@ jobs:
 
             3. INVESTIGATE: For each meaningful change, open the changed file
                region and the base-repo code it touches with Read/Glob/Grep.
-               Focus on REAL problems: correctness bugs, security issues,
-               broken callers, build breaks, data loss, and clear convention
-               violations from the list above. Do not bikeshed style or invent
-               issues.
+               Weigh it against the REVIEW AREAS and PROJECT CONVENTIONS above.
+               For backend changes trace the call sites; for DB/model changes
+               check migrations. For every real problem, assign a severity and
+               a confidence and record the exact file:line. Discard anything you
+               cannot ground in the diff or the source; do not bikeshed style or
+               invent issues.
 
-            4. REPORT: Post ONE comment on the PR
-               (`gh pr comment ${{ github.event.pull_request.number }} --body "..."`).
-               - Lead with a one- or two-sentence verdict.
-               - Then a short list of the real problems you found, each naming
-                 the exact file and line (as text, e.g.
-                 `internal/web/service/foo.go:42`) and stating what is wrong and
-                 why it matters, grounded in the code.
+            4. REPORT: Post ONE plain comment on the PR
+               (`gh pr comment ${{ github.event.pull_request.number }} --body "..."`),
+               structured as below and scaled to the size of the change:
+               - Summary: lead with one to three sentences on what the PR
+                 changes, its overall quality, the main risks, and your overall
+                 recommendation.
+               - Findings, most severe first. Give each as a compact block with
+                 these fields on their own lines:
+                   Severity / Confidence / Category
+                   Location: file:line as plain text (e.g.
+                   internal/web/service/foo.go:42), not a Markdown link
+                   Problem: what is wrong
+                   Why it matters: the practical runtime, security, or
+                   maintainability impact
+                   Recommendation: the preferred fix
+                 A code example is optional and, if included, MUST be a plain
+                 fenced code block, never a ```suggestion``` block.
+               - Positive observations: include only when genuinely substantive
+                 (good validation, tests, or a clean refactor); otherwise omit
+                 them rather than pad the comment.
+               - Verdict: end with a single text line - Approve, Comment, or
+                 Request changes - plus one or two sentences of reasoning. This
+                 is TEXT ONLY; do NOT post a GitHub review with an APPROVE or
+                 REQUEST_CHANGES event. For blocking problems (Critical or High
+                 correctness, security, data loss, or a build break), tag
+                 @${{ github.repository_owner }} so a maintainer decides how to
+                 proceed.
+               - Keep it as short as completeness allows: a trivial or clean PR
+                 gets just the Summary and Verdict (findings only if any); a
+                 large or risky PR gets the full structure.
                - Do NOT post ```suggestion``` blocks and do NOT open an inline
-                 review; this is a single plain comment.
-               - If there are blocking problems (correctness, security, data
-                 loss, build break), tag @${{ github.repository_owner }} so a
-                 maintainer decides how to proceed.
-               - If the PR looks correct, say so plainly and note anything the
-                 maintainer should still verify.
-               - Reply in the SAME LANGUAGE the PR is written in, be
-                 professional and matter-of-fact (no emoji, no filler), and end
-                 with one italic line stating the review was generated
+                 review; this is a single plain comment. Reply in the SAME
+                 LANGUAGE the PR is written in, stay professional and
+                 matter-of-fact (no emoji, no exclamation marks, no filler), and
+                 end with one italic line stating the review was generated
                  automatically and a maintainer may follow up.
 
             RULES
