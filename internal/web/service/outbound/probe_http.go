@@ -589,12 +589,16 @@ func probeEgressTrace(proxyURL *url.URL, timeout time.Duration) *TestEgressResul
 }
 
 func cloudflareTraceTargets() (net.IP, net.IP) {
-	ips, err := net.LookupIP(egressTraceHost)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, egressTraceHost)
 	if err != nil {
 		return nil, nil
 	}
 	var ipv4, ipv6 net.IP
-	for _, ip := range ips {
+	for _, addr := range addrs {
+		ip := addr.IP
 		if ipv4 == nil {
 			if v4 := ip.To4(); v4 != nil {
 				ipv4 = v4
