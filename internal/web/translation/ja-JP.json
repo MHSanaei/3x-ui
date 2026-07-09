@@ -1622,6 +1622,8 @@
         "tag": "タグ",
         "tagDesc": "一意のタグ",
         "address": "アドレス",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "リバース",
         "domain": "ドメイン",
         "type": "タイプ",

@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,7 +56,9 @@ const (
 	// already dials its endpoints concurrently).
 	tcpBatchConcurrency = 8
 
-	defaultTestURL = "https://www.google.com/generate_204"
+	defaultTestURL  = "https://www.google.com/generate_204"
+	egressTraceHost = "cloudflare.com"
+	egressTracePath = "/cdn-cgi/trace"
 )
 
 // httpTestSemaphore serialises HTTP-mode batches (each spawns a temp xray
@@ -542,6 +545,136 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, realDela
 		}
 	}
 	result.Delay = max(delay, 1)
+	if !realDelay {
+		result.Egress = probeEgressTrace(proxyURL, timeout)
+	}
+}
+
+// probeEgressTrace fetches Cloudflare's plain-text trace endpoint through the
+// same SOCKS route used by the HTTP probe. It asks one IPv4 and one IPv6
+// Cloudflare address directly, when available, while keeping the TLS SNI as
+// cloudflare.com. Failures are intentionally ignored by the caller: egress
+// metadata is diagnostic, not reachability.
+func probeEgressTrace(proxyURL *url.URL, timeout time.Duration) *TestEgressResult {
+	ipv4, ipv6 := cloudflareTraceTargets()
+	if ipv4 == nil && ipv6 == nil {
+		return nil
+	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyURL(proxyURL),
+		TLSClientConfig: &tls.Config{
+			ServerName: egressTraceHost,
+		},
+	}
+	defer tr.CloseIdleConnections()
+
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   timeout,
+	}
+
+	egress := &TestEgressResult{}
+	if ipv4 != nil {
+		applyEgressTrace(egress, fetchCloudflareTrace(client, ipv4))
+	}
+	if ipv6 != nil {
+		applyEgressTrace(egress, fetchCloudflareTrace(client, ipv6))
+	}
+	if egress.IPv4 == "" && egress.IPv6 == "" && egress.Country == "" && egress.Warp == "" {
+		return nil
+	}
+
+	return egress
+}
+
+func cloudflareTraceTargets() (net.IP, net.IP) {
+	ips, err := net.LookupIP(egressTraceHost)
+	if err != nil {
+		return nil, nil
+	}
+	var ipv4, ipv6 net.IP
+	for _, ip := range ips {
+		if ipv4 == nil {
+			if v4 := ip.To4(); v4 != nil {
+				ipv4 = v4
+				continue
+			}
+		}
+		if ipv6 == nil && ip.To4() == nil && ip.To16() != nil {
+			ipv6 = ip
+		}
+		if ipv4 != nil && ipv6 != nil {
+			break
+		}
+	}
+	return ipv4, ipv6
+}
+
+func fetchCloudflareTrace(client *http.Client, ip net.IP) map[string]string {
+	if ip == nil {
+		return nil
+	}
+	traceURL := (&url.URL{
+		Scheme: "https",
+		Host:   net.JoinHostPort(ip.String(), "443"),
+		Path:   egressTracePath,
+	}).String()
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, traceURL, nil)
+	if err != nil {
+		return nil
+	}
+	req.Host = egressTraceHost
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 16<<10))
+	if err != nil {
+		return nil
+	}
+	return parseCloudflareTrace(string(body))
+}
+
+func applyEgressTrace(egress *TestEgressResult, values map[string]string) {
+	if len(values) == 0 {
+		return
+	}
+	if ip := net.ParseIP(values["ip"]); ip != nil {
+		if ip.To4() != nil {
+			if egress.IPv4 == "" {
+				egress.IPv4 = values["ip"]
+			}
+		} else if egress.IPv6 == "" {
+			egress.IPv6 = values["ip"]
+		}
+	}
+	if egress.Country == "" {
+		egress.Country = values["loc"]
+	}
+	if values["warp"] == "on" || egress.Warp == "" {
+		egress.Warp = values["warp"]
+	}
+}
+
+func parseCloudflareTrace(body string) map[string]string {
+	values := make(map[string]string)
+	for line := range strings.SplitSeq(body, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		values[strings.TrimSpace(key)] = strings.TrimSpace(value)
+	}
+	return values
 }
 
 // timedWarmGet re-issues the probe request over the transport's kept-alive

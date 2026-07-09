@@ -1622,6 +1622,8 @@
         "tag": "Etiket",
         "tagDesc": "Benzersiz Etiket",
         "address": "Adres",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "Ters",
         "domain": "Alan Adı",
         "type": "Tür",

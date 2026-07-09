@@ -1622,6 +1622,8 @@
         "tag": "تگ",
         "tagDesc": "برچسب یگانه",
         "address": "آدرس",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "معکوس",
         "domain": "دامنه",
         "type": "نوع",

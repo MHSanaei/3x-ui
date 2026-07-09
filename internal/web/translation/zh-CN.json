@@ -1622,6 +1622,8 @@
         "tag": "标签",
         "tagDesc": "唯一标签",
         "address": "地址",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "反向",
         "domain": "域名",
         "type": "类型",

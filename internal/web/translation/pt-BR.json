@@ -1622,6 +1622,8 @@
         "tag": "Tag",
         "tagDesc": "Tag Única",
         "address": "Endereço",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "Reverso",
         "domain": "Domínio",
         "type": "Tipo",

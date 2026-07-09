@@ -1739,6 +1739,8 @@
         "tag": "Tag",
         "tagDesc": "Unique Tag",
         "address": "Address",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "Reverse",
         "domain": "Domain",
         "type": "Type",

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Tag, Tooltip } from 'antd';
 import {
@@ -9,6 +10,8 @@ import {
   ThunderboltOutlined,
   LoadingOutlined,
   ExportOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 
 import { SizeFormatter } from '@/utils';
@@ -16,8 +19,11 @@ import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
+import CountryPill from './CountryPill';
 import TestResultPopover from './TestResultPopover';
 import {
+  countryFlag,
+  countryName,
   isTesting,
   isUntestable,
   outboundAddresses,
@@ -49,7 +55,50 @@ export default function OutboundCardList({
   confirmDelete,
   onTest,
 }: OutboundCardListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [showEgressIp, setShowEgressIp] = useState(false);
+
+  const renderEgress = (index: number) => {
+    const result = testResult(outboundTestStates, index);
+    const egress = result?.egress;
+    const flag = countryFlag(egress?.country);
+    const name = countryName(egress?.country, i18n.language);
+    const addresses = [
+      egress?.ipv4 ? { label: 'v4', value: egress.ipv4 } : null,
+      egress?.ipv6 ? { label: 'v6', value: egress.ipv6 } : null,
+    ].filter((item): item is { label: string; value: string } => Boolean(item));
+
+    if (!egress || (addresses.length === 0 && !egress.country)) {
+      return null;
+    }
+
+    return (
+      <div className="card-egress">
+        <div className="card-egress-row">
+          <span>{t('pages.xray.outbound.egress')}:</span>
+          <Tooltip title={t('pages.index.toggleIpVisibility')}>
+            {showEgressIp ? (
+              <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(false)} />
+            ) : (
+              <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(true)} />
+            )}
+          </Tooltip>
+          {egress.country && (
+            <CountryPill flag={flag} name={name || egress.country} warp={egress.warp} />
+          )}
+        </div>
+        {addresses.map((addr) => (
+          <Tooltip key={addr.label} title={addr.value}>
+            <div className="card-egress-row">
+              <span className="egress-family">{addr.label}:</span>
+              <span className={showEgressIp ? 'address-visible egress-ip' : 'address-hidden egress-ip'}>{addr.value}</span>
+            </div>
+          </Tooltip>
+        ))}
+      </div>
+    );
+  };
+
   if (rows.length === 0) {
     return (
       <div className="card-empty">
@@ -101,6 +150,7 @@ export default function OutboundCardList({
               ))}
             </div>
           )}
+          {renderEgress(index)}
           <div className="card-foot">
             <span className="traffic-up">↑ {SizeFormatter.sizeFormat(trafficFor(outboundsTraffic, record).up)}</span>
             <span className="traffic-sep" />
