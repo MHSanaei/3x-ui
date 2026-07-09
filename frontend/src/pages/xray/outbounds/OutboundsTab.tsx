@@ -111,7 +111,7 @@ export default function OutboundsTab({
   const { t } = useTranslation();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const [testMode, setTestMode] = useState<OutboundTestMode>('http');
+  const [testMode, setTestMode] = useState<OutboundTestMode>('tcp');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingOutbound, setEditingOutbound] = useState<Record<string, unknown> | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -493,6 +493,7 @@ export default function OutboundsTab({
                 <Radio.Group value={testMode} onChange={(e) => setTestMode(e.target.value)} buttonStyle="solid" size="small">
                   <Radio.Button value="tcp">TCP</Radio.Button>
                   <Radio.Button value="http">HTTP</Radio.Button>
+                  <Radio.Button value="real">{t('pages.xray.outbound.modeRealDelay')}</Radio.Button>
                 </Radio.Group>
               </Tooltip>
               <Button type="primary" loading={testingAll} icon={<PlayCircleOutlined />} onClick={() => onTestAll(testMode)}>

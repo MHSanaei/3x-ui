@@ -17,6 +17,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
@@ -147,9 +148,9 @@ export function useOutboundColumns({
             {t('pages.xray.outbound.egress')}
             <Tooltip title={t('pages.index.toggleIpVisibility')}>
               {showEgressIp ? (
-                <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(false)} />
+                <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(false)} onKeyDown={activateOnKey(() => setShowEgressIp(false))} />
               ) : (
-                <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(true)} />
+                <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(true)} onKeyDown={activateOnKey(() => setShowEgressIp(true))} />
               )}
             </Tooltip>
           </span>

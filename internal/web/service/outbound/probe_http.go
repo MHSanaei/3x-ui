@@ -55,6 +55,9 @@ const (
 	// tcpBatchConcurrency caps parallel TCP-mode items in a batch (each item
 	// already dials its endpoints concurrently).
 	tcpBatchConcurrency = 8
+	// egressTraceTimeout keeps diagnostic trace metadata from extending a
+	// successful HTTP probe by the full reachability timeout.
+	egressTraceTimeout = 3 * time.Second
 
 	defaultTestURL  = "https://www.google.com/generate_204"
 	egressTraceHost = "cloudflare.com"
@@ -78,6 +81,8 @@ type batchProcess interface {
 var newBatchProcess = func(cfg *xray.Config, configPath string) batchProcess {
 	return xray.NewTestProcess(cfg, configPath)
 }
+
+var egressTraceProbe = probeEgressTrace
 
 // httpBatchItem is one outbound inside an HTTP-mode batch. result is the
 // pre-allocated entry in the caller's result slice, filled in place.
@@ -546,7 +551,7 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, realDela
 	}
 	result.Delay = max(delay, 1)
 	if !realDelay {
-		result.Egress = probeEgressTrace(proxyURL, timeout)
+		result.Egress = egressTraceProbe(proxyURL)
 	}
 }
 
@@ -555,7 +560,7 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, realDela
 // Cloudflare address directly, when available, while keeping the TLS SNI as
 // cloudflare.com. Failures are intentionally ignored by the caller: egress
 // metadata is diagnostic, not reachability.
-func probeEgressTrace(proxyURL *url.URL, timeout time.Duration) *TestEgressResult {
+func probeEgressTrace(proxyURL *url.URL) *TestEgressResult {
 	ipv4, ipv6 := cloudflareTraceTargets()
 	if ipv4 == nil && ipv6 == nil {
 		return nil
@@ -571,15 +576,25 @@ func probeEgressTrace(proxyURL *url.URL, timeout time.Duration) *TestEgressResul
 
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   timeout,
+		Timeout:   egressTraceTimeout,
 	}
 
 	egress := &TestEgressResult{}
+	targets := make([]net.IP, 0, 2)
 	if ipv4 != nil {
-		applyEgressTrace(egress, fetchCloudflareTrace(client, ipv4))
+		targets = append(targets, ipv4)
 	}
 	if ipv6 != nil {
-		applyEgressTrace(egress, fetchCloudflareTrace(client, ipv6))
+		targets = append(targets, ipv6)
+	}
+	results := make(chan map[string]string, len(targets))
+	for _, target := range targets {
+		go func(ip net.IP) {
+			results <- fetchCloudflareTrace(client, ip)
+		}(target)
+	}
+	for range targets {
+		applyEgressTrace(egress, <-results)
 	}
 	if egress.IPv4 == "" && egress.IPv6 == "" && egress.Country == "" && egress.Warp == "" {
 		return nil
@@ -589,7 +604,7 @@ func probeEgressTrace(proxyURL *url.URL, timeout time.Duration) *TestEgressResul
 }
 
 func cloudflareTraceTargets() (net.IP, net.IP) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), egressTraceTimeout)
 	defer cancel()
 
 	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, egressTraceHost)
