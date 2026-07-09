@@ -1,0 +1,5 @@
+{
+  "title": "快速开始",
+  "icon": "Rocket",
+  "pages": ["index", "installation", "first-login", "update-uninstall"]
+}

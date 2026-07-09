@@ -16,51 +16,64 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "gen": "npm run gen:zod && npm run gen:api",
     "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
-    "gen:zod": "cd .. && go run ./tools/openapigen"
+    "gen:zod": "cd .. && go run ./tools/openapigen",
+    "prepare": "cd .. && husky frontend/.husky || true"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/theme-one-dark": "^6.1.3",
+    "@hookform/resolvers": "^5.4.0",
     "@noble/hashes": "^2.2.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-query-devtools": "^5.101.2",
     "antd": "^6.5.0",
-    "axios": "^1.18.1",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.21",
-    "i18next": "^26.3.4",
+    "i18next": "^26.3.5",
     "otpauth": "^9.5.1",
     "persian-calendar-suite": "^1.5.5",
-    "qs": "^6.15.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-hook-form": "^7.81.0",
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.18.1",
-    "recharts": "^3.9.1",
     "swagger-ui-react": "^5.32.8",
+    "uplot": "^1.6.32",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-docs": "^10.4.6",
+    "@storybook/react-vite": "^10.4.6",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/swagger-ui-react": "^5.18.0",
     "@vitejs/plugin-react": "^6.0.3",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.6.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
+    "msw": "^2.15.0",
+    "storybook": "^10.4.6",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1",
+    "typescript-eslint": "^8.63.0",
     "vite": "8.1.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "eslint-plugin-jsx-a11y": {
@@ -81,6 +94,13 @@
     "@tree-sitter-grammars/tree-sitter-yaml": false,
     "tree-sitter": false,
     "core-js-pure": false,
-    "tree-sitter-json": false
+    "tree-sitter-json": false,
+    "msw": false,
+    "esbuild": false
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

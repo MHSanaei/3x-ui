@@ -523,6 +523,13 @@
         "mtgRouteOutbound": "الصادر",
         "mtgRouteOutboundHint": "اختياري. إجبار حركة Telegram على الخروج عبر هذا الصادر (أو الموازِن). اتركه فارغًا لتقرر قواعد التوجيه.",
         "mtgRouteOutboundPlaceholder": "استخدام قواعد التوجيه",
+        "mtprotoFakeTlsDomainHint": "نطاق FakeTLS الافتراضي المستخدم لإنشاء سر عميل جديد. يمكن لكل عميل استخدام نطاقه الخاص.",
+        "mtgThrottleMaxConnections": "الحد الأقصى للاتصالات",
+        "mtgThrottleMaxConnectionsHint": "تحديد الاتصالات المتزامنة لجميع المستخدمين بتوزيع عادل. القيمة 0 تعطّل الميزة.",
+        "mtgAdTagInvalid": "يجب أن تتكوّن العلامة الإعلانية من 32 حرفًا ست عشريًا بالضبط.",
+        "mtgPublicIpv4": "عنوان IPv4 العام",
+        "mtgPublicIpv6": "عنوان IPv6 العام",
+        "mtgPublicIpHint": "العنوان العام لهذا الخادم الذي يمكن الوصول إليه، ويُستخدم بواسطة البروكسي الوسيط للعلامة الإعلانية. اتركه فارغًا ليكتشفه mtg تلقائيًا.",
         "visionTestseed": "Vision testseed",
         "version": "الإصدار",
         "udpIdleTimeout": "UDP idle timeout (ثانية)",
@@ -800,6 +807,7 @@
       "limitIpFail2banWindows": "Fail2ban غير متوفّر على نظام Windows، لذا لا يمكن تطبيق حد عناوين IP.",
       "limitIpDisabled": "ميزة حد عناوين IP معطّلة على هذا الخادم.",
       "password": "كلمة المرور",
+      "passwordDesc": "تُستخدم فقط من قبل عملاء Trojan و Shadowsocks؛ ويتم تجاهلها لـ VLESS و VMess و Hysteria و WireGuard.",
       "subId": "معرّف الاشتراك",
       "online": "متصل",
       "email": "البريد",
@@ -810,6 +818,7 @@
       "groupPlaceholder": "مثلاً customer-a",
       "comment": "ملاحظة",
       "traffic": "حركة المرور",
+      "speed": "السرعة",
       "offline": "غير متصل",
       "addClient": "إضافة عميل",
       "qrCode": "رمز QR",
@@ -899,6 +908,7 @@
       "delOrphansConfirmContent": "يزيل كل عميل غير مرتبط بأي اتصال وارد مع سجل حركة مروره. لا يمكن التراجع.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "بيانات اعتماد يستخدمها عملاء Hysteria فقط. أما Trojan و Shadowsocks فيستخدمان حقل «كلمة المرور» بدلاً منها.",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "أمان VMess",
@@ -907,6 +917,10 @@
       "wireguardPreSharedKey": "مفتاح وايرغارد المشترك مسبقًا",
       "wireguardAllowedIPs": "عناوين IP المسموحة لوايرغارد",
       "wireguardAllowedIPsHint": "اتركه فارغًا للتعيين التلقائي؛ افصل بين الإدخالات بفواصل",
+      "mtprotoSecret": "سر MTProto",
+      "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
+      "mtprotoAdTag": "علامة إعلانية (قناة مموّلة)",
+      "mtprotoAdTagHint": "علامة اختيارية مكوّنة من 32 حرفًا ست عشريًا يتم الحصول عليها عند تسجيل البروكسي في تلغرام. عند تعيينها، يتم توجيه هذا العميل عبر البروكسيات الوسيطة في تلغرام وتظهر قناة مموّلة أعلى قائمة محادثاته.",
       "reverseTag": "وسم عكسي",
       "reverseTagPlaceholder": "Reverse tag اختياري",
       "telegramId": "معرّف مستخدم تلغرام",
@@ -1628,7 +1642,8 @@
         "testSuccess": "الاختبار ناجح",
         "testFailed": "فشل الاختبار",
         "testError": "فشل اختبار المخرج",
-        "testModeTooltip": "TCP: فحص dial سريع. HTTP: طلب كامل عبر xray.",
+        "modeRealDelay": "التأخير الفعلي",
+        "testModeTooltip": "TCP: فحص dial سريع. HTTP: طلب كامل عبر xray. التأخير الفعلي: الوقت الكامل شاملاً إنشاء الاتصال.",
         "testAll": "اختبار الكل",
         "httpStatus": "حالة HTTP",
         "breakdownConnect": "اتصال البروكسي",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "وسم موازن فريد",
         "selector": "المحدد",
         "fallback": "Fallback",
+        "cycleTooltip": "حلقة: {path} → (العودة إلى {start})",
         "expected": "المتوقع",
         "expectedPlaceholder": "العدد الأمثل للعقد",
         "maxRtt": "أقصى RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "ماينفعش تستخدم balancerTag و outboundTag مع بعض. لو اتستخدموا مع بعض، outboundTag هو اللي هيشتغل.",
         "costMatch": "نمط الوسم",
         "costValue": "الوزن",
-        "costRegexp": "مطابقة تعبير نمطي"
+        "costRegexp": "مطابقة تعبير نمطي",
+        "balancerDeleteInUse": "لا يمكن حذف هذا الموزان — يتم استخدامه كبديل لـ: {names}",
+        "balancerFallbackCycle": "لا يمكن تعيين هذا الموزان كبديل — سيؤدي ذلك إلى إنشاء تبعية دائرية.",
+        "balancerFallbackInfo": "سيتم توجيه حركة المرور عبر: الموزان → Loopback → الخادم → الموزان المستهدف → الاتصال الخارجي. سيؤدي هذا إلى إضافة قفزة إضافية عبر الخادم، مما قد يسبب تأخيرات طفيفة.",
+        "fallbackBalancerHint": "اختر موزان أحمال آخر كبديل",
+        "reservedPrefix": "البادئة _bl_ محجوزة لكائنات loopback الداخلية للموازنات"
       },
       "wireguard": {
         "secretKey": "المفتاح السري",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "العائلي",
         "clearAll": "حذف الكل",
         "clearAllTitle": "حذف جميع خوادم DNS؟",
-        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء."
+        "clearAllConfirm": "سيؤدي هذا إلى إزالة جميع خوادم DNS من القائمة. لا يمكن التراجع عن هذا الإجراء.",
+        "dnsLeakWarning": "قد يتسرب DNS عبر localhost أو UDP/TCP غير المشفر أو وضع DoH/DoQ المحلي أو استعلامات الرجوع أو EDNS client IP. استخدم DoH عبر التوجيه، وثبت أسماء المحللات في hosts، وعطل الرجوع عندما تكون الخصوصية مهمة."
       },
       "fakedns": {
         "add": "أضف Fake DNS",
         "edit": "عدل Fake DNS",
         "ipPool": "نطاق IP Pool",
         "poolSize": "حجم المجموعة"
-      }
+      },
+      "defaultOutbound": "الصادر الافتراضي",
+      "defaultOutboundDesc": "الحركة التي لا تطابق أي قاعدة توجيه تستخدم هذا الصادر (الأول في القائمة)."
     },
     "hosts": {
       "addHost": "إضافة مضيف",
@@ -1881,7 +1905,7 @@
       "fields": {
         "remark": "ملاحظة",
         "serverDescription": "الوصف",
-        "inbound": "الوارد",
+        "inbound": "الواردات",
         "address": "العنوان",
         "port": "المنفذ",
         "endpoint": "النهاية",
@@ -1908,7 +1932,8 @@
         "tags": "وسوم",
         "nodeGuids": "النودز",
         "excludeFromSubTypes": "استبعاد من الصيغ",
-        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم"
+        "verifyPeerCertByName": "التحقق من شهادة النظير بالاسم",
+        "inheritAddress": "يرث العنوان"
       },
       "hints": {
         "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",

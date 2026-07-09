@@ -1,0 +1,40 @@
+---
+title: Справочник по API
+description: REST API панели 3x-ui — аутентификация, входящие подключения, клиенты, статистика сервера и многое другое, сгенерировано из спецификации OpenAPI.
+icon: Webhook
+---
+
+Панель 3x-ui предоставляет REST API для автоматизации. Эти страницы сгенерированы
+из спецификации OpenAPI самой панели, поэтому они всегда соответствуют документированной схеме.
+
+## Аутентификация
+
+Запросы аутентифицируются либо с помощью **сессионной cookie** (полученной через `POST /login`), либо
+с помощью **Bearer-токена**:
+
+```text
+Authorization: Bearer <token>
+```
+
+Создавайте API-токены в панели; они дают права полного администратора, поэтому храните их
+в безопасности. См. [API-токены](/docs/reference/api/api-tokens).
+
+Сформируйте аутентифицированный запрос для любого из приведённых ниже эндпоинтов:
+
+<ApiRequestBuilder />
+
+## Просмотр по разделам
+
+<Cards>
+  <Card title="Аутентификация" href="/docs/reference/api/authentication" />
+  <Card title="Входящие подключения" href="/docs/reference/api/inbounds" />
+  <Card title="Клиенты" href="/docs/reference/api/clients" />
+  <Card title="Сервер" href="/docs/reference/api/server" />
+  <Card title="Настройки" href="/docs/reference/api/settings" />
+  <Card title="Настройки Xray" href="/docs/reference/api/xray-settings" />
+</Cards>
+
+<Callout type="info">
+  Этот справочник повторно генерируется из `public/openapi.json` командой `pnpm gen:api`.
+  Не редактируйте сгенерированные страницы тегов вручную.
+</Callout>

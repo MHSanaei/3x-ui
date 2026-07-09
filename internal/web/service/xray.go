@@ -206,20 +206,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
-				peer := map[string]any{"email": c.Email, "level": 0}
-				if c.PublicKey != "" {
-					peer["publicKey"] = c.PublicKey
-				}
-				if len(c.AllowedIPs) > 0 {
-					peer["allowedIPs"] = c.AllowedIPs
-				}
-				if c.PreSharedKey != "" {
-					peer["preSharedKey"] = c.PreSharedKey
-				}
-				if c.KeepAlive > 0 {
-					peer["keepAlive"] = c.KeepAlive
-				}
-				wgPeers = append(wgPeers, peer)
+				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
 			finalClients = append(finalClients, entry)
@@ -281,6 +268,18 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 
 			delete(stream, "externalProxy")
+
+			// finalmask.tcp + REALITY panics Xray-core on the first connection
+			// (XTLS/Xray-core#6453). AddInbound/UpdateInbound reject this
+			// combination at save time, but a row saved before that guard
+			// existed (upgrade, node sync, restored backup, direct DB edit)
+			// would still crash Xray on the next restart without this — drop
+			// it here too, the same way liftXhttpSessionIDKeys and
+			// HealShadowsocksClientMethods heal other legacy data in place.
+			if len(finalMaskRealityTcpMasks(stream)) > 0 {
+				logger.Warningf("Inbound %q: dropping finalmask, incompatible with REALITY security (crashes Xray-core, see XTLS/Xray-core#6453)", inbound.Tag)
+				delete(stream, "finalmask")
+			}
 
 			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
 			// kept no fallback. Lift legacy sessionPlacement/sessionKey onto the
@@ -906,16 +905,63 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 }
 
 // OverrideBalancer forces a balancer in the running core to use the given
-// outbound tag; an empty target clears the override.
+// outbound tag; an empty target clears the override. When target names
+// another balancer, the override resolves to the loopback outbound that
+// routes traffic through the target balancer via the routing rules.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
 	if !s.IsXrayRunning() {
 		return errors.New("xray is not running")
+	}
+	if target != "" {
+		resolved, err := s.resolveOverrideTarget(target)
+		if err != nil {
+			return err
+		}
+		if resolved != "" {
+			target = resolved
+		}
 	}
 	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
 		return err
 	}
 	defer s.xrayAPI.Close()
 	return s.xrayAPI.SetBalancerTarget(tag, target)
+}
+
+// resolveOverrideTarget checks if target names a balancer and, if so,
+// returns the loopback outbound tag that routes to it through the
+// routing rules. Returns empty if target is already a concrete outbound.
+func (s *XrayService) resolveOverrideTarget(target string) (string, error) {
+	template, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil {
+		return "", err
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
+		return "", err
+	}
+	routing, _ := cfg["routing"].(map[string]any)
+	if routing == nil {
+		return "", nil
+	}
+	rules, _ := routing["rules"].([]any)
+	for _, r := range rules {
+		rule, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if rule["balancerTag"] != target {
+			continue
+		}
+		inboundTags, ok := rule["inboundTag"].([]any)
+		if !ok || len(inboundTags) == 0 {
+			continue
+		}
+		if lbTag, ok := inboundTags[0].(string); ok && strings.HasPrefix(lbTag, "_bl_") {
+			return lbTag, nil
+		}
+	}
+	return "", nil
 }
 
 // TestRoute asks the running core which outbound its router picks for the

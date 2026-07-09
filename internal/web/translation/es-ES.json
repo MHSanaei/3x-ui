@@ -523,6 +523,13 @@
         "mtgRouteOutbound": "Salida",
         "mtgRouteOutboundHint": "Opcional. Fuerza el tráfico de Telegram a salir por esta salida (o balanceador). Déjalo vacío para que decidan tus reglas de enrutamiento.",
         "mtgRouteOutboundPlaceholder": "Usar reglas de enrutamiento",
+        "mtprotoFakeTlsDomainHint": "Dominio FakeTLS predeterminado para generar el secreto de un nuevo cliente. Cada cliente puede usar su propio dominio.",
+        "mtgThrottleMaxConnections": "Conexiones máximas",
+        "mtgThrottleMaxConnectionsHint": "Limita las conexiones simultáneas de todos los usuarios con reparto equitativo. 0 desactiva el límite.",
+        "mtgAdTagInvalid": "El ad-tag debe tener exactamente 32 caracteres hexadecimales.",
+        "mtgPublicIpv4": "IPv4 pública",
+        "mtgPublicIpv6": "IPv6 pública",
+        "mtgPublicIpHint": "La dirección pública accesible de este servidor, usada por el proxy intermedio del ad-tag. Déjalo en blanco para que mtg la detecte automáticamente.",
         "visionTestseed": "Vision testseed",
         "version": "Versión",
         "udpIdleTimeout": "UDP idle timeout (s)",
@@ -800,6 +807,7 @@
       "limitIpFail2banWindows": "Fail2ban no está disponible en Windows, por lo que no se puede aplicar el límite de IP.",
       "limitIpDisabled": "La función de límite de IP está deshabilitada en este servidor.",
       "password": "Contraseña",
+      "passwordDesc": "Solo la usan los clientes Trojan y Shadowsocks; se ignora para VLESS, VMess, Hysteria y WireGuard.",
       "subId": "ID de suscripción",
       "online": "En línea",
       "email": "Email",
@@ -810,6 +818,7 @@
       "groupPlaceholder": "p. ej. customer-a",
       "comment": "Comentario",
       "traffic": "Tráfico",
+      "speed": "Velocidad",
       "offline": "Sin conexión",
       "addClient": "Añadir cliente",
       "qrCode": "Código QR",
@@ -899,6 +908,7 @@
       "delOrphansConfirmContent": "Elimina todos los clientes que no están vinculados a ningún entrante, junto con su registro de tráfico. No se puede deshacer.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "Credencial usada únicamente por los clientes Hysteria. Trojan y Shadowsocks usan el campo «Contraseña» en su lugar.",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "Seguridad VMess",
@@ -907,6 +917,10 @@
       "wireguardPreSharedKey": "Clave precompartida de WireGuard",
       "wireguardAllowedIPs": "IP permitidas de WireGuard",
       "wireguardAllowedIPsHint": "Déjalo vacío para asignar automáticamente; separa las entradas con comas",
+      "mtprotoSecret": "Secreto MTProto",
+      "mtprotoSecretHint": "El secreto FakeTLS del cliente. Vuelve a generarlo para cambiarlo.",
+      "mtprotoAdTag": "Ad-tag (canal patrocinado)",
+      "mtprotoAdTagHint": "Etiqueta hexadecimal opcional de 32 caracteres del registro de proxy de Telegram. Si se establece, este cliente se enruta a través de los proxies intermedios de Telegram y aparece un canal patrocinado en la parte superior de su lista de chats.",
       "reverseTag": "Etiqueta inversa",
       "reverseTagPlaceholder": "Reverse tag opcional",
       "telegramId": "ID de usuario de Telegram",
@@ -1628,7 +1642,8 @@
         "testSuccess": "Prueba exitosa",
         "testFailed": "Prueba fallida",
         "testError": "Error al probar la salida",
-        "testModeTooltip": "TCP: sonda rápida solo de dial. HTTP: petición completa a través de xray.",
+        "modeRealDelay": "Retardo real",
+        "testModeTooltip": "TCP: sonda rápida solo de dial. HTTP: petición completa a través de xray. Retardo real: tiempo total incluyendo el establecimiento de la conexión.",
         "testAll": "Probar todo",
         "httpStatus": "Estado HTTP",
         "breakdownConnect": "Conexión al proxy",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "etiqueta única de balanceador",
         "selector": "Selector",
         "fallback": "Fallback",
+        "cycleTooltip": "Ciclo: {path} → (volver a {start})",
         "expected": "Esperado",
         "expectedPlaceholder": "número óptimo de nodos",
         "maxRtt": "Máx. RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag.",
         "costMatch": "Patrón de etiqueta",
         "costValue": "Peso",
-        "costRegexp": "Coincidencia por expresión regular"
+        "costRegexp": "Coincidencia por expresión regular",
+        "balancerDeleteInUse": "No se puede eliminar este balanceador — se usa como respaldo para: {names}",
+        "balancerFallbackCycle": "No se puede establecer este balanceador como respaldo — crearía una dependencia circular.",
+        "balancerFallbackInfo": "El tráfico se enrutará a través de: Balanceador → Loopback → Servidor → Balanceador destino → Conexión saliente. Esto agrega un salto adicional a través del servidor, lo que puede introducir ligeros retrasos.",
+        "fallbackBalancerHint": "Seleccione otro balanceador como respaldo",
+        "reservedPrefix": "El prefijo _bl_ está reservado para objetos loopback internos del balanceador"
       },
       "wireguard": {
         "secretKey": "Llave secreta",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "Familiar",
         "clearAll": "Eliminar todos",
         "clearAllTitle": "¿Eliminar todos los servidores DNS?",
-        "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer."
+        "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer.",
+        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe."
       },
       "fakedns": {
         "add": "Agregar DNS Falso",
         "edit": "Editar DNS Falso",
         "ipPool": "Subred del grupo de IP",
         "poolSize": "Tamaño del grupo"
-      }
+      },
+      "defaultOutbound": "Salida predeterminada",
+      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista)."
     },
     "hosts": {
       "addHost": "Agregar host",
@@ -1881,7 +1905,7 @@
       "fields": {
         "remark": "Notas",
         "serverDescription": "Descripción",
-        "inbound": "Inbound",
+        "inbound": "Inbounds",
         "address": "Dirección",
         "port": "Puerto",
         "endpoint": "Punto final",
@@ -1908,7 +1932,8 @@
         "shuffleHost": "Barajar host",
         "tags": "Etiquetas",
         "nodeGuids": "Nodos",
-        "excludeFromSubTypes": "Excluir de formatos"
+        "excludeFromSubTypes": "Excluir de formatos",
+        "inheritAddress": "Hereda dirección"
       },
       "hints": {
         "address": "Déjalo en blanco para heredar la dirección propia del inbound.",

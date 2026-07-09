@@ -357,9 +357,7 @@ func (j *CheckClientIpJob) processObserved(observed map[string]map[string]int64,
 	for _, d := range disconnects {
 		clients, cached := clientsCache[d.inbound.Id]
 		if !cached {
-			settings := map[string][]model.Client{}
-			_ = json.Unmarshal([]byte(d.inbound.Settings), &settings)
-			clients = settings["clients"]
+			clients, _ = service.ParseInboundSettingsClients(d.inbound.Settings)
 			clientsCache[d.inbound.Id] = clients
 		}
 		j.disconnectClientTemporarily(d.inbound, d.email, clients)
@@ -702,11 +700,11 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 		return nil, listErr
 	}
 	for i := range candidates {
-		settings := map[string][]model.Client{}
-		if jsonErr := json.Unmarshal([]byte(candidates[i].Settings), &settings); jsonErr != nil {
+		clients, jsonErr := service.ParseInboundSettingsClients(candidates[i].Settings)
+		if jsonErr != nil {
 			continue
 		}
-		for _, client := range settings["clients"] {
+		for _, client := range clients {
 			if client.Email == clientEmail {
 				return &candidates[i], nil
 			}

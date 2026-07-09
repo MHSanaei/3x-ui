@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Controller, useFormContext } from 'react-hook-form';
 
+import { FormField } from '@/components/form/rhf';
 import { VLESS_AUTH_LABEL_KEYS, type VlessAuthKind } from '@/lib/xray/vless-encryption';
 
 interface VlessFieldsProps {
@@ -24,6 +26,7 @@ export default function VlessFields({
   clearVlessEnc,
 }: VlessFieldsProps) {
   const { t } = useTranslation();
+  const { control } = useFormContext();
   const [authKind, setAuthKind] = useState<VlessAuthKind>(vlessAuthKind ?? 'x25519');
 
   useEffect(() => {
@@ -36,12 +39,12 @@ export default function VlessFields({
 
   return (
     <>
-      <Form.Item name={['settings', 'decryption']} label={t('pages.inbounds.decryption')}>
+      <FormField name={['settings', 'decryption']} label={t('pages.inbounds.decryption')}>
         <Input />
-      </Form.Item>
-      <Form.Item name={['settings', 'encryption']} label={t('pages.inbounds.encryption')}>
+      </FormField>
+      <FormField name={['settings', 'encryption']} label={t('pages.inbounds.encryption')}>
         <Input />
-      </Form.Item>
+      </FormField>
       <Form.Item label={t('pages.inbounds.vlessAuthGenerate')}>
         <Space size={8} wrap>
           <Select
@@ -66,9 +69,22 @@ export default function VlessFields({
         >
           <Space.Compact block>
             {[900, 500, 900, 256].map((def, i) => (
-              <Form.Item key={i} name={['settings', 'testseed', i]} noStyle initialValue={def}>
-                <InputNumber min={1} style={{ width: '25%' }} />
-              </Form.Item>
+              <Controller
+                key={i}
+                control={control}
+                name={`settings.testseed.${i}`}
+                defaultValue={def}
+                render={({ field }) => (
+                  <InputNumber
+                    min={1}
+                    style={{ width: '25%' }}
+                    value={field.value as number}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                  />
+                )}
+              />
             ))}
           </Space.Compact>
         </Form.Item>

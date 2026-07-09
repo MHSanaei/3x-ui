@@ -9,6 +9,7 @@ import (
 	yaml "github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 type SubClashService struct {
@@ -214,6 +215,9 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	if inbound.Protocol == model.Hysteria {
 		return s.buildHysteriaProxy(subReq, inbound, client, ep)
 	}
+	if inbound.Protocol == model.WireGuard {
+		return s.buildWireguardProxy(subReq, inbound, client, ep)
+	}
 
 	network, _ := stream["network"].(string)
 
@@ -332,6 +336,9 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 			}
 		}
 	}
+	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
+		proxy["skip-cert-verify"] = true
+	}
 
 	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
 	// block the subscription link generator uses.
@@ -356,6 +363,67 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	// field (the base `port` stays as the redirect target).
 	if hopPorts := hysteriaHopPorts(rawStream); hopPorts != "" {
 		proxy["ports"] = hopPorts
+	}
+
+	return proxy
+}
+
+// buildWireguardProxy produces a mihomo-compatible Clash entry for a native
+// WireGuard inbound, mirroring genWireguardLink: the peer public key is derived
+// from the inbound secretKey, while the private key, tunnel address, and
+// pre-shared key come from the client. Returns nil when the client has no key.
+func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
+	if client.PrivateKey == "" {
+		return nil
+	}
+
+	var inboundSettings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	secretKey, _ := inboundSettings["secretKey"].(string)
+
+	proxy := map[string]any{
+		"name":        subReq.endpointRemark(inbound, client.Email, ep, ""),
+		"type":        "wireguard",
+		"server":      inbound.Listen,
+		"port":        inbound.Port,
+		"udp":         true,
+		"private-key": client.PrivateKey,
+	}
+	if secretKey != "" {
+		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
+			proxy["public-key"] = pub
+		}
+	}
+	if client.PreSharedKey != "" {
+		proxy["pre-shared-key"] = client.PreSharedKey
+	}
+	if client.KeepAlive > 0 {
+		proxy["persistent-keepalive"] = client.KeepAlive
+	}
+	for _, addr := range client.AllowedIPs {
+		ip := stripCIDR(addr)
+		if ip == "" {
+			continue
+		}
+		if strings.Contains(ip, ":") {
+			proxy["ipv6"] = ip
+		} else {
+			proxy["ip"] = ip
+		}
+	}
+	if mtu, ok := inboundSettings["mtu"].(float64); ok && mtu > 0 {
+		proxy["mtu"] = int(mtu)
+	}
+	if dns, _ := inboundSettings["dns"].(string); dns != "" {
+		servers := make([]string, 0)
+		for _, server := range strings.Split(dns, ",") {
+			if server = strings.TrimSpace(server); server != "" {
+				servers = append(servers, server)
+			}
+		}
+		if len(servers) > 0 {
+			proxy["dns"] = servers
+		}
 	}
 
 	return proxy

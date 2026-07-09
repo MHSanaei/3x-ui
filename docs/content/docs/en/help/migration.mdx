@@ -1,0 +1,52 @@
+---
+title: Migration
+description: Migrate to 3x-ui from x-ui, between servers, or between 3x-ui versions.
+icon: ArrowRightLeft
+---
+
+## Between servers
+
+Moving to a new server is a database move:
+
+<Steps>
+
+<Step>
+### Back up the old server
+
+Copy the database (default `/etc/x-ui/x-ui.db`) and your certificates. See
+[Backup & restore](/docs/operations/backup-restore).
+</Step>
+
+<Step>
+### Install 3x-ui on the new server
+
+Use the same install method and a compatible version. See
+[Installation](/docs/guide/installation).
+</Step>
+
+<Step>
+### Restore the database
+
+Stop the panel, put the database in place, restore certificates, and start the
+panel. Update any IP/domain-specific settings.
+</Step>
+
+</Steps>
+
+## Between 3x-ui versions
+
+Within the same backend, upgrading is usually just re-running the installer or
+pulling a new image — the panel migrates its own database. Across **major**
+versions, read the [release notes](https://github.com/MHSanaei/3x-ui/releases)
+first and take a backup.
+
+## From x-ui
+
+Importing an older x-ui panel's database directly into 3x-ui is **not
+supported** — the schemas differ. Install 3x-ui fresh and recreate
+inbounds/clients, exporting share links from the old panel as you go.
+
+<Callout type="warn">
+  Always take a backup before any migration, and keep the old server running
+  until you've verified the new one.
+</Callout>

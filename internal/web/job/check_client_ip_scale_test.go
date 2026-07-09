@@ -51,7 +51,7 @@ func scaleJobSizes(t *testing.T, def ...int) []int {
 		return def
 	}
 	var out []int
-	for _, part := range strings.Split(raw, ",") {
+	for part := range strings.SplitSeq(raw, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue

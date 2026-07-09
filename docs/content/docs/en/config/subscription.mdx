@@ -1,0 +1,86 @@
+---
+title: Subscription
+description: Run the 3x-ui subscription server — base64/JSON/Clash formats, ports and paths, TLS, response headers, and custom templates.
+icon: Rss
+---
+
+A **subscription** is a single URL that returns all of a client's
+configurations. Client apps refresh it periodically, so when you change an
+inbound, clients pick up the change automatically. The subscription server runs
+as a **separate** server from the panel.
+
+## Enable and configure
+
+The subscription server is **on by default** (`subEnable`). Configure it in the
+panel's subscription settings:
+
+| Setting       | Default | Meaning                                                         |
+| ------------- | ------- | --------------------------------------------------------------- |
+| `subPort`     | `2096`  | Listen port (separate from the panel).                          |
+| `subListen`   | _(all)_ | Bind address.                                                   |
+| `subPath`     | `/sub/` | Base path for raw subscription URLs.                            |
+| `subDomain`   | _(none)_| Public host; if set, the server only answers for that Host.     |
+| `subCertFile` / `subKeyFile` | _(none)_ | TLS cert + key — when set, the server serves **HTTPS**. |
+| `subEncrypt`  | `true`  | Base64-encode the raw subscription body.                        |
+| `subUpdates`  | `12`    | Suggested refresh interval (hours) sent to clients.             |
+
+A subscription URL looks like:
+
+```text
+https://<sub-host>:<sub-port>/sub/<sub-id>
+```
+
+where `<sub-id>` is the client's **Sub ID**.
+
+The same Sub ID is served in several formats on different paths — the **Base64**
+list at `subPath` and the **JSON** (Xray-json) config at the JSON path. Build the
+URLs and preview both bodies here:
+
+<SubscriptionBuilder />
+
+## Output formats
+
+The **format is chosen by path**, each with its own enable toggle:
+
+| Format                | Path      | Enabled by       | Output                                              |
+| --------------------- | --------- | ---------------- | --------------------------------------------------- |
+| **Raw links**         | `/sub/`   | always (if on)   | A list of `vless://`, `vmess://`, … links (base64-encoded when `subEncrypt` is on). |
+| **JSON**              | `/json/`  | `subJsonEnable`  | Full Xray client config(s).                         |
+| **Clash / Mihomo**    | `/clash/` | `subClashEnable` | YAML profile.                                       |
+
+Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, or Hysteria2**
+appear in a subscription, ordered by their sub-sort index. Requesting `/sub/`
+with an `Accept: text/html` header (or `?html=1`) returns a human-readable info
+page instead of the raw body.
+
+### Base64 vs JSON
+
+The **Base64** body is just the newline-joined share links, standard-base64
+encoded (toggle with `subEncrypt`). The **JSON** body wraps each client in a
+complete Xray client config — a fixed skeleton (local mixed/HTTP inbounds, DNS,
+routing, policy) plus a `proxy` outbound pointing at the inbound. 3x-ui emits a
+**single config object for one client and an array for several**, uses the flat
+outbound `settings` form (`address`/`port`/`id`, `level: 8`), and strips
+`sockopt` from `streamSettings`.
+
+## Response headers
+
+Subscriptions return standard headers that compatible apps read:
+
+- **`Subscription-Userinfo`** — `upload`, `download`, `total` (bytes; `total=0`
+  means unlimited) and `expire` (Unix seconds).
+- **`Profile-Update-Interval`** — refresh interval in hours (`subUpdates`).
+- **`Profile-Title`**, **`Support-Url`**, **`Profile-Web-Page-Url`**,
+  **`Announce`** — optional branding shown by some clients.
+
+## Custom page templates
+
+Point `subThemeDir` at a folder containing a custom info-page template to brand
+the HTML subscription page. The per-client remark on each link is fully
+templated — see [Share links → remark variables](/docs/config/share-links#remark-template-variables).
+
+<Callout type="info">
+  Put the subscription server behind TLS (set `subCertFile`/`subKeyFile`, or a
+  [reverse proxy](/docs/operations/reverse-proxy)) so subscription contents
+  aren't exposed in transit.
+</Callout>

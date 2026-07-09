@@ -1,0 +1,82 @@
+---
+title: 环境变量
+description: 3x-ui 的 XUI_* 环境变量完整参考——涵盖数据库、面板、日志、内存以及隧道健康监测器。
+icon: Variable
+---
+
+3x-ui 从 `XUI_*` 环境变量中读取其运行时配置。使用脚本安装时，安装程序会将
+这些变量写入服务环境文件（`/etc/default/x-ui`，或视发行版而定的
+`/etc/conf.d/x-ui` / `/etc/sysconfig/x-ui`）；使用 Docker 时，则在
+`docker-compose.yml` 或 `docker run -e` 中设置。默认值已足够合理——只需设置
+你需要更改的项，然后重启即可：`systemctl restart x-ui`。
+
+## 数据库
+
+| Variable                 | Default     | Description                                                          |
+| ------------------------ | ----------- | -------------------------------------------------------------------- |
+| `XUI_DB_TYPE`            | `sqlite`    | 后端：`sqlite`，或 `postgres`（也接受 `postgresql` / `pg`）。       |
+| `XUI_DB_FOLDER`          | `/etc/x-ui` | SQLite 数据库文件（`x-ui.db`）所在的文件夹。                         |
+| `XUI_DB_DSN`             | —           | PostgreSQL 连接字符串（当 `XUI_DB_TYPE=postgres` 时使用）。          |
+| `XUI_DB_MAX_OPEN_CONNS`  | —           | PostgreSQL 连接池中的最大打开连接数。                               |
+| `XUI_DB_MAX_IDLE_CONNS`  | —           | PostgreSQL 连接池中的最大空闲连接数。                               |
+
+默认的 SQLite 数据库路径为 `/etc/x-ui/x-ui.db`。有关 SQLite ↔ PostgreSQL 的
+细节，参见 [数据库](/docs/reference/database)。
+
+## 面板
+
+| Variable                 | Default | Description                                                              |
+| ------------------------ | ------- | ------------------------------------------------------------------------ |
+| `XUI_PORT`               | —       | 覆盖面板端口（1–65535）。优先级高于已存储的设置。                       |
+| `XUI_INIT_WEB_BASE_PATH` | `/`     | **首次**启动时的初始 Web 根路径（例如 `/panel`）。                       |
+| `XUI_ENABLE_FAIL2BAN`    | `true`  | 启用基于 Fail2ban 的 IP 限制强制执行。                                  |
+| `XUI_SKIP_HSTS`          | `false` | 跳过 HSTS 标头——当 TLS 由反向代理终结时设为 `true`。                    |
+
+## 日志与二进制文件
+
+| Variable         | Default          | Description                                                 |
+| ---------------- | ---------------- | ----------------------------------------------------------- |
+| `XUI_LOG_LEVEL`  | `info`           | `debug`、`info`、`notice`、`warning` 或 `error`。           |
+| `XUI_DEBUG`      | `false`          | 调试模式（强制将日志级别设为 `debug`）。                    |
+| `XUI_LOG_FOLDER` | `/var/log/x-ui`  | 日志输出目录。                                              |
+| `XUI_BIN_FOLDER` | `bin`            | 存放 Xray-core 二进制文件及 geosite/geoip 文件的文件夹。    |
+
+## 内存与性能分析
+
+面板通过 `GOGC` 和定期释放来保持低内存占用。这些是高级调节项——除非你正在
+为受限主机做调优，否则请保持不设置。
+
+| Variable                      | Default | Description                                                       |
+| ----------------------------- | ------- | ----------------------------------------------------------------- |
+| `XUI_GOGC`                    | —       | Go GC 目标百分比；值越低 = 占用 RAM 越少，CPU 略增。              |
+| `XUI_MEMORY_RELEASE_INTERVAL` | —       | 两次 `FreeOSMemory` 调用之间的分钟数；`0` 表示禁用。              |
+| `XUI_MEMORY_LIMIT`            | —       | Go 软内存限制，单位 **MiB**。                                     |
+| `GOMEMLIMIT`                  | —       | Go 语法的软限制（例如 `400MiB`）；优先级高于上一项。              |
+| `XUI_PPROF`                   | `false` | 在 `127.0.0.1:6060` 上暴露 pprof 性能分析。                       |
+
+## Xray
+
+| Variable                 | Default | Description           |
+| ------------------------ | ------- | --------------------- |
+| `XRAY_VMESS_AEAD_FORCED` | `false` | 强制启用 VMess AEAD。 |
+
+## 隧道健康监测器
+
+可选的看门狗：它探测一个 URL（可选择**经由**本地 Xray 入站进行），并在反复
+失败后重启 Xray。重启会断开所有已连接的客户端，因此请审慎启用。
+
+| Variable                      | Default                                      | Description                                                       |
+| ----------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| `XUI_TUNNEL_HEALTH_MONITOR`   | `false`                                      | 启用监测器。                                                      |
+| `XUI_TUNNEL_HEALTH_PROXY`     | —                                            | 用于发送探测的代理，例如 `socks5://127.0.0.1:1080`。留空 = 仅检查主机连通性。 |
+| `XUI_TUNNEL_HEALTH_URL`       | `https://www.cloudflare.com/cdn-cgi/trace`   | 要探测的 URL。                                                    |
+| `XUI_TUNNEL_HEALTH_INTERVAL`  | `30s`                                        | 探测之间的间隔。                                                 |
+| `XUI_TUNNEL_HEALTH_TIMEOUT`   | `10s`                                        | 单次探测的超时时间。                                            |
+| `XUI_TUNNEL_HEALTH_FAILURES`  | `3`                                          | 触发重启前的连续失败次数。                                      |
+| `XUI_TUNNEL_HEALTH_COOLDOWN`  | `5m`                                         | 两次重启之间的最小延迟。                                        |
+
+## 无人值守安装
+
+| Variable             | Description                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| `XUI_NONINTERACTIVE` | 设为 `1`（或在无 TTY 的环境下运行）即可在零提示的情况下完成安装；生成的凭据会写入 `/etc/x-ui/install-result.env`。参见 [安装](/docs/guide/installation#unattended--cloud-init)。 |

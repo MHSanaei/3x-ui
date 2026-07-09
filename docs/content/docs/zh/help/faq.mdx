@@ -1,0 +1,45 @@
+---
+title: 常见问题
+description: 关于 3x-ui 的常见问题 —— 许可协议、受支持的系统、数据库以及客户端。
+icon: CircleQuestionMark
+---
+
+## 3x-ui 是免费且开源的吗？
+
+是的。3x-ui 基于 GPL-3.0 许可协议开源，源代码托管在
+[GitHub](https://github.com/MHSanaei/3x-ui) 上。
+
+## 它能运行在哪些系统上？
+
+绝大多数主流 Linux 发行版（Ubuntu、Debian、CentOS/RHEL 及其衍生版、
+Fedora、Arch、Alpine 等），并支持 `amd64`、`arm64` 以及其他架构。
+它同样可以作为 Docker 容器运行。参见[安装](/docs/guide/installation)。
+
+## 选 SQLite 还是 PostgreSQL？
+
+SQLite 是默认选项，适用于大多数部署场景。对于规模更大的部署，可以通过
+`XUI_DB_TYPE=postgres` 和 `XUI_DB_DSN` 启用 PostgreSQL —— 参见
+[环境变量](/docs/reference/env-vars)。
+
+## 哪些客户端应用可以配合使用？
+
+任何兼容 Xray 的客户端 —— 例如 v2rayNG、Hiddify 以及 Clash/Mihomo。
+导入客户端的分享链接或 QR 码，或者使用
+[订阅](/docs/config/subscription)。
+
+## 3x-ui 与 x-ui 有什么区别？
+
+3x-ui 是原版 X-UI 项目的增强分支。它增加了更广泛的协议支持、更佳的稳定性、
+按客户端的流量统计、多节点管理、13 种语言的界面，以及众多提升使用体验的功能。
+
+## 我该如何更新？
+
+重新运行安装脚本（它会原地更新），或者拉取新的 Docker 镜像。
+参见[安装](/docs/guide/installation)以及
+[发布页面](https://github.com/MHSanaei/3x-ui/releases)。
+
+## 我可以在哪里获取帮助？
+
+加入官方 Telegram 频道 [@XrayUI](https://t.me/XrayUI) 获取公告与社区支持，
+或在 [GitHub](https://github.com/MHSanaei/3x-ui/issues) 上提交 issue。遇到常见问题时，
+请先查看[故障排查](/docs/help/troubleshooting)。

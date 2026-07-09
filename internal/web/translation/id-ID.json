@@ -523,6 +523,13 @@
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Opsional. Paksa lalu lintas Telegram keluar melalui outbound (atau balancer) ini. Biarkan kosong agar aturan routing yang menentukan.",
         "mtgRouteOutboundPlaceholder": "Gunakan aturan routing",
+        "mtprotoFakeTlsDomainHint": "Domain FakeTLS default untuk membuat secret klien baru. Setiap klien bisa memakai domainnya sendiri.",
+        "mtgThrottleMaxConnections": "Koneksi maksimum",
+        "mtgThrottleMaxConnectionsHint": "Batasi koneksi bersamaan semua pengguna dengan pembagian adil. 0 menonaktifkan.",
+        "mtgAdTagInvalid": "Ad-tag harus tepat 32 karakter heksadesimal.",
+        "mtgPublicIpv4": "IPv4 Publik",
+        "mtgPublicIpv6": "IPv6 Publik",
+        "mtgPublicIpHint": "Alamat publik server ini yang dapat dijangkau, digunakan oleh proxy perantara ad-tag. Biarkan kosong agar mtg mendeteksinya secara otomatis.",
         "visionTestseed": "Vision testseed",
         "version": "Versi",
         "udpIdleTimeout": "UDP idle timeout (d)",
@@ -800,6 +807,7 @@
       "limitIpFail2banWindows": "Fail2ban tidak tersedia di Windows, sehingga batas IP tidak dapat diterapkan.",
       "limitIpDisabled": "Fitur batas IP dinonaktifkan di server ini.",
       "password": "Kata sandi",
+      "passwordDesc": "Hanya digunakan oleh klien Trojan dan Shadowsocks; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
       "subId": "ID Langganan",
       "online": "Online",
       "email": "Email",
@@ -810,6 +818,7 @@
       "groupPlaceholder": "mis. customer-a",
       "comment": "Komentar",
       "traffic": "Lalu lintas",
+      "speed": "Kecepatan",
       "offline": "Offline",
       "addClient": "Tambah klien",
       "qrCode": "Kode QR",
@@ -899,6 +908,7 @@
       "delOrphansConfirmContent": "Menghapus setiap klien yang tidak terhubung ke inbound mana pun, beserta catatan lalu lintasnya. Tidak dapat dibatalkan.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "Kredensial yang hanya digunakan oleh klien Hysteria. Trojan dan Shadowsocks menggunakan kolom \"Kata sandi\" sebagai gantinya.",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "Keamanan VMess",
@@ -907,6 +917,10 @@
       "wireguardPreSharedKey": "Kunci Pra-Berbagi WireGuard",
       "wireguardAllowedIPs": "IP yang Diizinkan WireGuard",
       "wireguardAllowedIPsHint": "Biarkan kosong untuk penetapan otomatis; pisahkan entri dengan koma",
+      "mtprotoSecret": "Secret MTProto",
+      "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
+      "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
+      "mtprotoAdTagHint": "Tag heksadesimal 32 karakter opsional dari pendaftaran proxy Telegram. Jika diatur, klien ini dirutekan melalui proxy perantara Telegram dan kanal bersponsor muncul di bagian atas daftar obrolannya.",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag opsional",
       "telegramId": "ID pengguna Telegram",
@@ -1628,7 +1642,8 @@
         "testSuccess": "Tes berhasil",
         "testFailed": "Tes gagal",
         "testError": "Gagal menguji outbound",
-        "testModeTooltip": "TCP: probe dial-only cepat. HTTP: permintaan penuh via xray.",
+        "modeRealDelay": "Delay nyata",
+        "testModeTooltip": "TCP: probe dial-only cepat. HTTP: permintaan penuh via xray. Delay nyata: total waktu termasuk pembentukan koneksi.",
         "testAll": "Tes semua",
         "httpStatus": "Status HTTP",
         "breakdownConnect": "Koneksi proxy",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "tag balancer unik",
         "selector": "Selector",
         "fallback": "Fallback",
+        "cycleTooltip": "Siklus: {path} → (kembali ke {start})",
         "expected": "Diharapkan",
         "expectedPlaceholder": "jumlah node optimal",
         "maxRtt": "Maks. RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
         "costMatch": "Pola tag",
         "costValue": "Bobot",
-        "costRegexp": "Pencocokan ekspresi reguler"
+        "costRegexp": "Pencocokan ekspresi reguler",
+        "balancerDeleteInUse": "Tidak dapat menghapus load balancer ini — digunakan sebagai fallback untuk: {names}",
+        "balancerFallbackCycle": "Tidak dapat mengatur load balancer ini sebagai fallback — akan menciptakan dependensi siklik.",
+        "balancerFallbackInfo": "Lalu lintas akan di-routing melalui: Load Balancer → Loopback → Server → Load Balancer tujuan → Koneksi keluar. Ini menambahkan hop tambahan melalui server, yang dapat menyebabkan sedikit penundaan.",
+        "fallbackBalancerHint": "Pilih load balancer lain sebagai fallback",
+        "reservedPrefix": "Awalan _bl_ dicadangkan untuk objek loopback internal load balancer"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "Keluarga",
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
-        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan."
+        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",
         "edit": "Edit DNS Palsu",
         "ipPool": "Subnet Kumpulan IP",
         "poolSize": "Ukuran Kolam"
-      }
+      },
+      "defaultOutbound": "Outbound default",
+      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar)."
     },
     "hosts": {
       "addHost": "Tambah Host",
@@ -1908,7 +1932,8 @@
         "tags": "Tag",
         "nodeGuids": "Node",
         "excludeFromSubTypes": "Kecualikan dari format",
-        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama"
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "inheritAddress": "Warisi alamat"
       },
       "hints": {
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",

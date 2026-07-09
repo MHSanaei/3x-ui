@@ -544,6 +544,13 @@
         "mtgRouteOutbound": "Исходящее",
         "mtgRouteOutboundHint": "Необязательно. Принудительно направить трафик Telegram через это исходящее соединение (или балансировщик). Оставьте пустым, чтобы решали ваши правила маршрутизации.",
         "mtgRouteOutboundPlaceholder": "Использовать правила маршрутизации",
+        "mtprotoFakeTlsDomainHint": "Домен FakeTLS по умолчанию для генерации секрета нового клиента. Каждый клиент может использовать свой домен.",
+        "mtgThrottleMaxConnections": "Макс. подключений",
+        "mtgThrottleMaxConnectionsHint": "Ограничение одновременных подключений всех пользователей по справедливому распределению. 0 — отключено.",
+        "mtgAdTagInvalid": "Рекламный тег должен содержать ровно 32 шестнадцатеричных символа.",
+        "mtgPublicIpv4": "Публичный IPv4",
+        "mtgPublicIpv6": "Публичный IPv6",
+        "mtgPublicIpHint": "Доступный публичный адрес этого сервера, используемый промежуточным прокси рекламного тега. Оставьте пустым, чтобы mtg определил его автоматически.",
         "visionTestseed": "Vision testseed",
         "version": "Версия",
         "udpIdleTimeout": "UDP idle timeout (с)",
@@ -800,6 +807,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
       "password": "Пароль",
+      "passwordDesc": "Используется только клиентами Trojan и Shadowsocks; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
       "subId": "ID подписки",
       "online": "В сети",
       "email": "Email",
@@ -810,6 +818,7 @@
       "groupPlaceholder": "например, customer-a",
       "comment": "Комментарий",
       "traffic": "Трафик",
+      "speed": "Скорость",
       "offline": "Не в сети",
       "addClient": "Добавить клиента",
       "qrCode": "QR-код",
@@ -899,6 +908,7 @@
       "delOrphansConfirmContent": "Удаляются все клиенты, не привязанные ни к одному входящему, вместе с их записями трафика. Это действие нельзя отменить.",
       "auth": "Авторизация",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "Учётные данные, используемые только клиентами Hysteria. Для Trojan и Shadowsocks используйте поле «Пароль».",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "VMess Security",
@@ -907,6 +917,10 @@
       "wireguardPreSharedKey": "Общий ключ WireGuard",
       "wireguardAllowedIPs": "Разрешённые IP WireGuard",
       "wireguardAllowedIPsHint": "Оставьте пустым для автоназначения; разделяйте записи запятыми",
+      "mtprotoSecret": "Секрет MTProto",
+      "mtprotoSecretHint": "Секрет FakeTLS клиента. Перегенерируйте, чтобы сменить.",
+      "mtprotoAdTag": "Рекламный тег (спонсорский канал)",
+      "mtprotoAdTagHint": "Необязательный шестнадцатеричный тег из 32 символов, получаемый при регистрации прокси в Telegram. Если задан, этот клиент маршрутизируется через промежуточные прокси Telegram, и спонсорский канал появляется вверху списка чатов.",
       "reverseTag": "Обратный тег",
       "reverseTagPlaceholder": "Необязательный Reverse tag",
       "telegramId": "ID пользователя Telegram",
@@ -1628,7 +1642,8 @@
         "testSuccess": "Тест успешен",
         "testFailed": "Тест не пройден",
         "testError": "Не удалось протестировать исходящее подключение",
-        "testModeTooltip": "TCP: быстрый dial-only probe. HTTP: полный запрос через xray.",
+        "modeRealDelay": "Реальная задержка",
+        "testModeTooltip": "TCP: быстрый dial-only probe. HTTP: полный запрос через xray. Реальная задержка: полное время с установлением соединения.",
         "testAll": "Тестировать все",
         "httpStatus": "HTTP-статус",
         "breakdownConnect": "Подключение к прокси",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "уникальный тег балансировщика",
         "selector": "Селектор",
         "fallback": "Fallback",
+        "cycleTooltip": "Цикл: {path} → (обратно к {start})",
         "expected": "Ожидаемое",
         "expectedPlaceholder": "оптимальное число узлов",
         "maxRtt": "Макс. RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "Невозможно одновременно использовать balancerTag и outboundTag. При одновременном использовании будет работать только outboundTag.",
         "costMatch": "Шаблон тега",
         "costValue": "Вес",
-        "costRegexp": "Совпадение по регулярному выражению"
+        "costRegexp": "Совпадение по регулярному выражению",
+        "balancerDeleteInUse": "Невозможно удалить этот балансировщик — он используется как запасной для: {names}",
+        "balancerFallbackCycle": "Невозможно назначить этот балансировщик запасным — это создаст циклическую зависимость.",
+        "balancerFallbackInfo": "Трафик будет маршрутизирован через: Балансировщик → Loopback → Сервер → Целевой балансировщик → Исходящее соединение. Это добавляет дополнительный хоп через сервер, что может вызвать небольшие задержки.",
+        "fallbackBalancerHint": "Выберите другой балансировщик в качестве запасного",
+        "reservedPrefix": "Префикс _bl_ зарезервирован для внутренних loopback-объектов балансеров"
       },
       "wireguard": {
         "secretKey": "Секретный ключ",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "Семейный",
         "clearAll": "Удалить все",
         "clearAllTitle": "Удалить все DNS-серверы?",
-        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить."
+        "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить.",
+        "dnsLeakWarning": "DNS может утекать через localhost, обычный UDP/TCP, локальный режим DoH/DoQ, fallback-запросы или EDNS client IP. Для приватности используйте маршрутизируемый DoH, закрепляйте резолверы в hosts и отключайте fallback."
       },
       "fakedns": {
         "add": "Создать Fake DNS",
         "edit": "Редактировать Fake DNS",
         "ipPool": "Подсеть пула IP",
         "poolSize": "Размер пула"
-      }
+      },
+      "defaultOutbound": "Исходящий по умолчанию",
+      "defaultOutboundDesc": "Трафик без совпадения с правилами маршрутизации идёт через этот исходящий (первый в списке)."
     },
     "hosts": {
       "addHost": "Добавить хост",
@@ -1881,7 +1905,7 @@
       "fields": {
         "remark": "Примечание",
         "serverDescription": "Описание",
-        "inbound": "Входящее",
+        "inbound": "Входящие",
         "address": "Адрес",
         "port": "Порт",
         "endpoint": "Конечная точка",
@@ -1908,7 +1932,8 @@
         "shuffleHost": "Перемешивать хост",
         "tags": "Теги",
         "nodeGuids": "Узлы",
-        "excludeFromSubTypes": "Исключить из форматов"
+        "excludeFromSubTypes": "Исключить из форматов",
+        "inheritAddress": "Наследует адрес"
       },
       "hints": {
         "address": "Оставьте пустым, чтобы унаследовать собственный адрес входящего.",

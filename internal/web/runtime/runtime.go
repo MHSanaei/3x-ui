@@ -23,6 +23,13 @@ type Runtime interface {
 	DeleteUser(ctx context.Context, ib *model.Inbound, email string) error
 	AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error
 
+	// DeleteClient removes the client identified by email entirely from the
+	// runtime's own store: on Remote it hits the node's full-delete endpoint
+	// (record, attachments, traffic), unlike DeleteUser which only detaches
+	// from one inbound and leaves the node's client record behind. Local has
+	// no client store of its own, so it is a no-op there.
+	DeleteClient(ctx context.Context, email string) error
+
 	RestartXray(ctx context.Context) error
 
 	ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error

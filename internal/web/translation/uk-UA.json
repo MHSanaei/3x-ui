@@ -523,6 +523,13 @@
         "mtgRouteOutbound": "Вихідне",
         "mtgRouteOutboundHint": "Необов'язково. Примусово спрямувати трафік Telegram через це вихідне з'єднання (або балансувальник). Залиште порожнім, щоб вирішували ваші правила маршрутизації.",
         "mtgRouteOutboundPlaceholder": "Використовувати правила маршрутизації",
+        "mtprotoFakeTlsDomainHint": "Домен FakeTLS за замовчуванням для генерації секрету нового клієнта. Кожен клієнт може використовувати власний домен.",
+        "mtgThrottleMaxConnections": "Макс. з'єднань",
+        "mtgThrottleMaxConnectionsHint": "Обмеження одночасних з'єднань усіх користувачів зі справедливим розподілом. 0 — вимкнено.",
+        "mtgAdTagInvalid": "Рекламний тег має містити рівно 32 шістнадцяткові символи.",
+        "mtgPublicIpv4": "Публічний IPv4",
+        "mtgPublicIpv6": "Публічний IPv6",
+        "mtgPublicIpHint": "Доступна публічна адреса цього сервера, яку використовує проміжний проксі рекламного тега. Залиште порожнім, щоб mtg визначив її автоматично.",
         "visionTestseed": "Vision testseed",
         "version": "Версія",
         "udpIdleTimeout": "UDP idle timeout (с)",
@@ -800,6 +807,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступний у Windows, тому обмеження за IP не може бути застосоване.",
       "limitIpDisabled": "Функцію обмеження за IP вимкнено на цьому сервері.",
       "password": "Пароль",
+      "passwordDesc": "Використовується лише клієнтами Trojan і Shadowsocks; ігнорується для VLESS, VMess, Hysteria та WireGuard.",
       "subId": "ID підписки",
       "online": "У мережі",
       "email": "Email",
@@ -810,6 +818,7 @@
       "groupPlaceholder": "напр. customer-a",
       "comment": "Коментар",
       "traffic": "Трафік",
+      "speed": "Швидкість",
       "offline": "Не в мережі",
       "addClient": "Додати клієнта",
       "qrCode": "QR-код",
@@ -899,6 +908,7 @@
       "delOrphansConfirmContent": "Видаляється кожен клієнт, не прив'язаний до жодного вхідного, разом із його записом трафіку. Цю дію неможливо скасувати.",
       "auth": "Авторизація",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "Облікові дані, які використовують лише клієнти Hysteria. Для Trojan і Shadowsocks використовуйте поле «Пароль».",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "Безпека VMess",
@@ -907,6 +917,10 @@
       "wireguardPreSharedKey": "Спільний ключ WireGuard",
       "wireguardAllowedIPs": "Дозволені IP WireGuard",
       "wireguardAllowedIPsHint": "Залиште порожнім для автопризначення; розділяйте записи комами",
+      "mtprotoSecret": "Секрет MTProto",
+      "mtprotoSecretHint": "Секрет FakeTLS клієнта. Згенеруйте заново, щоб змінити.",
+      "mtprotoAdTag": "Рекламний тег (спонсорський канал)",
+      "mtprotoAdTagHint": "Необовʼязковий шістнадцятковий тег із 32 символів, який видається під час реєстрації проксі в Telegram. Якщо задано, цей клієнт маршрутизується через проміжні проксі Telegram, а спонсорський канал зʼявляється вгорі списку чатів.",
       "reverseTag": "Зворотний тег",
       "reverseTagPlaceholder": "Необов'язковий Reverse tag",
       "telegramId": "ID користувача Telegram",
@@ -1628,7 +1642,8 @@
         "testSuccess": "Тест успішний",
         "testFailed": "Тест не пройдено",
         "testError": "Не вдалося протестувати вихідне з'єднання",
-        "testModeTooltip": "TCP: швидкий dial-only probe. HTTP: повний запит через xray.",
+        "modeRealDelay": "Реальна затримка",
+        "testModeTooltip": "TCP: швидкий dial-only probe. HTTP: повний запит через xray. Реальна затримка: повний час із встановленням з'єднання.",
         "testAll": "Тестувати всі",
         "httpStatus": "HTTP-статус",
         "breakdownConnect": "Підключення до проксі",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "унікальний тег балансувальника",
         "selector": "Селектор",
         "fallback": "Fallback",
+        "cycleTooltip": "Цикл: {path} → (назад до {start})",
         "expected": "Очікуване",
         "expectedPlaceholder": "оптимальна кількість вузлів",
         "maxRtt": "Макс. RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "Неможливо використовувати balancerTag і outboundTag одночасно. Якщо використовувати одночасно, працюватиме лише outboundTag.",
         "costMatch": "Шаблон тегу",
         "costValue": "Вага",
-        "costRegexp": "Збіг за регулярним виразом"
+        "costRegexp": "Збіг за регулярним виразом",
+        "balancerDeleteInUse": "Неможливо видалити цей балансувач — він використовується як резервний для: {names}",
+        "balancerFallbackCycle": "Неможливо призначити цей балансувач резервним — це створить циклічну залежність.",
+        "balancerFallbackInfo": "Трафік буде маршрутизовано через: Балансувач → Loopback → Сервер → Цільовий балансувач → Вихідне зʼєднання. Це додає додатковий хоп через сервер, що може спричинити невеликі затримки.",
+        "fallbackBalancerHint": "Оберіть інший балансувач як резервний",
+        "reservedPrefix": "Префікс _bl_ зарезервовано для внутрішніх loopback-об'єктів балансувальника"
       },
       "wireguard": {
         "secretKey": "Приватний ключ",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "Сімейний",
         "clearAll": "Видалити всі",
         "clearAllTitle": "Видалити всі DNS-сервери?",
-        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати."
+        "clearAllConfirm": "Усі DNS-сервери буде видалено зі списку. Дію не можна скасувати.",
+        "dnsLeakWarning": "DNS може витікати через localhost, звичайний UDP/TCP, локальний режим DoH/DoQ, fallback-запити або EDNS client IP. Для приватності використовуйте маршрутизований DoH, фіксацію hosts і вимикайте fallback."
       },
       "fakedns": {
         "add": "Додати підроблений DNS",
         "edit": "Редагувати підроблений DNS",
         "ipPool": "Підмережа IP-пулу",
         "poolSize": "Розмір пулу"
-      }
+      },
+      "defaultOutbound": "Вихідний за замовчуванням",
+      "defaultOutboundDesc": "Трафік без збігу з правилами маршрутизації йде через цей вихідний (перший у списку)."
     },
     "hosts": {
       "addHost": "Додати хост",
@@ -1881,7 +1905,7 @@
       "fields": {
         "remark": "Примітка",
         "serverDescription": "Опис",
-        "inbound": "Вхідний",
+        "inbound": "Вхідні",
         "address": "Адреса",
         "port": "Порт",
         "endpoint": "Кінцева точка",
@@ -1908,7 +1932,8 @@
         "shuffleHost": "Перемішувати host",
         "tags": "Теги",
         "nodeGuids": "Вузли",
-        "excludeFromSubTypes": "Виключити з форматів"
+        "excludeFromSubTypes": "Виключити з форматів",
+        "inheritAddress": "Успадковує адресу"
       },
       "hints": {
         "address": "Залиште порожнім, щоб успадкувати власну адресу вхідного.",

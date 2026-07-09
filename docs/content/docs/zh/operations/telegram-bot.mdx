@@ -1,0 +1,110 @@
+---
+title: Telegram 机器人
+description: 将 Telegram 机器人接入 3x-ui，实现命令交互、周期性报告、事件告警（登录、CPU、节点上线/下线）、备份以及客户端自助服务。
+icon: Send
+---
+
+3x-ui 可以驱动一个 Telegram 机器人，用于监控、告警、备份和远程管理。
+管理员拥有完全的控制权；普通用户（通过 Telegram ID 关联）则可以
+查询自己的用量和链接。
+
+<Callout type="info">
+  想获取最新动态和社区支持？欢迎加入官方 Telegram 频道
+  [@XrayUI](https://t.me/XrayUI)。它与下文中那个由你自行运行、用于管理自己面板的
+  机器人是两回事。
+</Callout>
+
+## 完成配置
+
+<Steps>
+
+<Step>
+### 创建机器人
+
+向 [@BotFather](https://t.me/BotFather) 发送消息，发送 `/newbot`，然后复制**机器人令牌**（bot token）。
+</Step>
+
+<Step>
+### 查找你的 Telegram ID
+
+获取你的数字 Telegram 用户 ID（机器人连接成功后，其自带的 `/id` 命令会显示该 ID）。
+这就是你的**管理员** ID。
+</Step>
+
+<Step>
+### 配置面板
+
+在面板设置中启用 Telegram 机器人，并填写**令牌**和**管理员聊天 ID**
+（多个时以逗号分隔）。保存后，再向你的机器人发送消息。
+</Step>
+
+</Steps>
+
+在将令牌、管理员 ID 和报告计划粘贴到面板之前，先对它们进行校验：
+
+<TelegramSetupHelper />
+
+## 命令
+
+以下命令会出现在 Telegram 命令菜单中：`/start`、`/help`、`/status`、`/id`。
+其他命令：
+
+| 命令               | 适用对象 | 作用                                                         |
+| ------------------ | ------ | ------------------------------------------------------------ |
+| `/start`、`/help`  | 任何人 | 问候语以及内联按钮菜单                                       |
+| `/status`          | 任何人 | 确认机器人在线                                               |
+| `/id`              | 任何人 | 显示你的 Telegram 数字 ID                                    |
+| `/usage <arg>`     | 两者   | 管理员可搜索客户端；用户则查询自己的用量                     |
+| `/inbound <remark>`| 管理员 | 显示某个入站的详情                                           |
+| `/restart`         | 管理员 | 重启 Xray                                                    |
+
+管理员还可通过内联按钮使用一系列功能：服务器用量、按流量排序的报告、
+重置流量、数据库备份、封禁日志、列出入站/客户端、在线客户端、
+“即将耗尽”，以及完整的**添加客户端**向导。普通用户则可以使用按钮查看
+自己的用量、订阅链接、单条链接和 QR 码。
+
+## 报告与告警
+
+- **周期性报告** —— 按 `tgRunTime` 计划（默认 `@daily`），机器人会向管理员
+  发送服务器用量（主机、版本、运行时长、负载、内存、在线客户端、流量）、
+  一份已耗尽/即将到期的客户端列表，以及——如果启用了 `tgBotBackup`——
+  一份数据库 + Xray 配置的备份。通过 Telegram ID 关联的客户端则会收到
+  各自的到期/配额提醒。
+- **事件告警** —— 由 `tgEnabledEvents` 选定（默认 `login.attempt,cpu.high`）：
+
+  | 事件            | 触发时机                                                |
+  | --------------- | ------------------------------------------------------- |
+  | `login.attempt` | 面板登录成功或失败时（附带 IP 和用户名）                |
+  | `cpu.high`      | CPU 超过 `tgCpu` 百分比（默认 80）                      |
+  | `memory.high`   | 内存超过 `tgMemory` 百分比（默认 80）                   |
+  | `xray.crash`    | Xray-core 崩溃                                          |
+  | `outbound.down` / `outbound.up` | 某个出站断开 / 恢复                      |
+  | `node.down` / `node.up`         | 某个节点下线 / 重新上线                  |
+
+提醒的提前时间由 `expireDiff`（到期前的天数）和 `trafficDiff`
+（剩余配额的 GB 数）决定；两者默认均为 `0`（关闭）。
+
+## 设置
+
+| 设置项         | 默认值                     | 含义                                           |
+| -------------- | -------------------------- | ---------------------------------------------- |
+| `tgBotEnable`  | `false`                    | 总开关。                                       |
+| `tgBotToken`   | _（机密）_                 | 机器人 API 令牌。                              |
+| `tgBotChatId`  | _（无）_                   | 以逗号分隔的**管理员** Telegram ID。           |
+| `tgBotProxy`   | _（无）_                   | `socks5://`、`http://` 或 `https://` 代理。    |
+| `tgBotAPIServer` | _（默认）_              | 自定义 Telegram Bot API 服务器。               |
+| `tgRunTime`    | `@daily`                   | 报告计划（cron / `@daily` / `@every …`）。     |
+| `tgBotBackup`  | `false`                    | 在周期性报告中附带一份数据库备份。             |
+| `tgCpu` / `tgMemory` | `80` / `80`          | CPU / 内存告警阈值（百分比）。                 |
+| `tgLang`       | `en-US`                    | 机器人语言。                                   |
+| `tgEnabledEvents` | `login.attempt,cpu.high`| 投递哪些事件。                                 |
+
+<Callout type="warn">
+  机器人令牌掌控着你的机器人——务必妥善保密，且只添加**可信的**管理员聊天 ID。
+  登录告警绝不会包含密码。
+</Callout>
+
+<Callout type="info">
+  如果你更倾向于通过邮件接收告警，邮件（SMTP）通知会镜像同样的这些事件
+  （`smtpEnabledEvents`）——请在面板设置中配置 SMTP。
+</Callout>

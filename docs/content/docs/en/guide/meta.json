@@ -1,0 +1,5 @@
+{
+  "title": "Getting Started",
+  "icon": "Rocket",
+  "pages": ["index", "installation", "first-login", "update-uninstall"]
+}

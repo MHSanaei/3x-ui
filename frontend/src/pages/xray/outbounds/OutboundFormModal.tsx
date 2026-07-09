@@ -11,8 +11,9 @@ import {
   Tabs,
   message,
 } from 'antd';
-import { FinalMaskForm } from '@/lib/xray/forms/transport';
-import SniffingFields from '@/lib/xray/forms/SniffingFields';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
+import { FinalMaskField, SniffingField } from '@/lib/xray/forms/fields';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
@@ -31,7 +32,6 @@ import {
   canEnableTls,
   canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
-import { antdRule } from '@/utils/zodForm';
 
 import {
   FLOW_OPTIONS,
@@ -75,10 +75,7 @@ import {
 import { RealityForm, TlsForm } from './security';
 import './OutboundFormModal.css';
 
-// Pattern A rewrite of OutboundFormModal. Built as a sibling `.new.tsx`
-// file so the build stays green section-by-section. The atomic swap at
-// the end of the rewrite replaces the legacy file in one commit
-// (per Core Decision 7 in the migration spec).
+type StreamValue = OutboundFormValues['streamSettings'];
 
 interface OutboundFormModalProps {
   open: boolean;
@@ -88,7 +85,6 @@ interface OutboundFormModalProps {
   onClose: () => void;
   onConfirm: (outbound: Record<string, unknown>) => void;
 }
-
 
 export default function OutboundFormModal({
   open,
@@ -100,15 +96,36 @@ export default function OutboundFormModal({
 }: OutboundFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const [form] = Form.useForm<OutboundFormValues>();
+  const methods = useForm<OutboundFormValues>({ defaultValues: buildAddModeValues() });
   const [activeKey, setActiveKey] = useState('1');
   const [jsonText, setJsonText] = useState('');
   const [jsonDirty, setJsonDirty] = useState(false);
   const [linkInput, setLinkInput] = useState('');
 
-  // Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
-  // hysteria2:// / wireguard://) and replace form state with the result.
-  // The current tag is preserved when the parsed link doesn't carry one.
+  const isEdit = outboundProp != null;
+  const title = isEdit
+    ? `${t('edit')} ${t('pages.xray.Outbounds')}`
+    : `+ ${t('pages.xray.Outbounds')}`;
+  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
+
+  const tag = (useWatch({ control: methods.control, name: 'tag' }) ?? '') as string;
+  const protocol = (useWatch({ control: methods.control, name: 'protocol' }) ?? 'vless') as string;
+  const network = (useWatch({ control: methods.control, name: 'streamSettings.network' }) ?? '') as string;
+  const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ?? 'none') as string;
+  const flow = (useWatch({ control: methods.control, name: 'settings.flow' }) ?? '') as string;
+  const reverseTag = useWatch({ control: methods.control, name: 'settings.reverseTag' });
+  const wgSecretKey = useWatch({ control: methods.control, name: 'settings.secretKey' }) as string | undefined;
+
+  const streamAllowed = canEnableStream({ protocol });
+  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
+  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
+
+  /*
+   * Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
+   * hysteria2:// / wireguard://) and replace form state with the result.
+   * The current tag is preserved when the parsed link doesn't carry one.
+   */
   function importLink() {
     const link = linkInput.trim();
     if (!link) return;
@@ -117,11 +134,10 @@ export default function OutboundFormModal({
       messageApi.error('Wrong Link!');
       return;
     }
-    const currentTag = form.getFieldValue('tag') as string | undefined;
+    const currentTag = methods.getValues('tag');
     if (!parsed.tag && currentTag) parsed.tag = currentTag;
     const next = rawOutboundToFormValues(parsed);
-    form.resetFields();
-    form.setFieldsValue(next);
+    methods.reset(next);
     setJsonText(JSON.stringify(formValuesToWirePayload(next), null, 2));
     setJsonDirty(false);
     setLinkInput('');
@@ -129,89 +145,76 @@ export default function OutboundFormModal({
     switchTab('1');
   }
 
-  const isEdit = outboundProp != null;
-  const title = isEdit
-    ? `${t('edit')} ${t('pages.xray.Outbounds')}`
-    : `+ ${t('pages.xray.Outbounds')}`;
-  const okText = isEdit ? t('pages.clients.submitEdit') : t('create');
-
   useEffect(() => {
     if (!open) return;
     const initial = outboundProp
       ? rawOutboundToFormValues(outboundProp)
       : buildAddModeValues();
-    form.resetFields();
-    form.setFieldsValue(initial);
+    methods.reset(initial);
     setActiveKey('1');
     setJsonText(JSON.stringify(formValuesToWirePayload(initial), null, 2));
     setJsonDirty(false);
-  }, [open, outboundProp, form]);
-
-  const tag = Form.useWatch('tag', form) ?? '';
-  const protocol = (Form.useWatch('protocol', form) ?? 'vless') as string;
-  const network = (Form.useWatch(['streamSettings', 'network'], { form, preserve: true }) ?? '') as string;
-  const security = (Form.useWatch(['streamSettings', 'security'], { form, preserve: true }) ?? 'none') as string;
-  const streamAllowed = canEnableStream({ protocol });
-  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
-  const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
-  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
+  }, [open, outboundProp, methods]);
 
   useEffect(() => {
     if (!streamAllowed) return;
-    // Wireguard dials its own UDP — only finalmask/sockopt apply, never a
-    // transport. Don't seed network 'tcp'; clear a leftover one (from a
-    // protocol switch) so the transmission/security blocks stay hidden.
+    /*
+     * Wireguard dials its own UDP — only finalmask/sockopt apply, never a
+     * transport. Don't seed network 'tcp'; clear a leftover one (from a
+     * protocol switch) so the transmission/security blocks stay hidden.
+     */
     if (protocol === 'wireguard') {
-      if (network) form.setFieldValue('streamSettings', { security: 'none' });
+      if (network) methods.setValue('streamSettings', { security: 'none' } as StreamValue);
       return;
     }
     if (network) return;
-    form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamAllowed, network, protocol]);
+    methods.setValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' } as StreamValue);
+  }, [streamAllowed, network, protocol, methods]);
 
   useEffect(() => {
     if (protocol !== 'hysteria') return;
     if (network === 'hysteria' && security === 'tls') return;
-    const existing = (form.getFieldValue('streamSettings') ?? {}) as Record<string, unknown>;
+    const existing = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
     const slice = hysteriaStreamSlice();
     if (existing.hysteriaSettings) slice.hysteriaSettings = existing.hysteriaSettings;
     if (existing.tlsSettings) slice.tlsSettings = existing.tlsSettings;
-    form.setFieldValue('streamSettings', slice);
-  }, [protocol, network, security, form]);
+    methods.setValue('streamSettings', slice as StreamValue);
+  }, [protocol, network, security, methods]);
 
-  const wgSecretKey = Form.useWatch(['settings', 'secretKey'], form) as string | undefined;
   useEffect(() => {
     if (protocol !== 'wireguard') return;
     const sk = (wgSecretKey ?? '').trim();
     if (!sk) {
-      form.setFieldValue(['settings', 'pubKey'], '');
+      methods.setValue('settings.pubKey', '');
       return;
     }
     try {
       const { publicKey } = Wireguard.generateKeypair(sk);
-      form.setFieldValue(['settings', 'pubKey'], publicKey);
+      methods.setValue('settings.pubKey', publicKey);
     } catch {
-      form.setFieldValue(['settings', 'pubKey'], '');
+      methods.setValue('settings.pubKey', '');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [protocol, wgSecretKey]);
+  }, [protocol, wgSecretKey, methods]);
 
-  function onValuesChange(changed: Partial<OutboundFormValues>) {
-    if ('protocol' in changed && changed.protocol) {
-      const next = rawOutboundToFormValues({ protocol: changed.protocol });
-      form.setFieldValue('settings', next.settings);
-      if (changed.protocol === 'hysteria') {
-        form.setFieldValue('streamSettings', hysteriaStreamSlice());
-      } else if ((form.getFieldValue(['streamSettings', 'network']) ?? '') === 'hysteria') {
-        form.setFieldValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' });
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/incompatible-library */
+    const sub = methods.watch((_value, { name, type }) => {
+      if (name !== 'protocol' || type !== 'change') return;
+      const nextProtocol = methods.getValues('protocol');
+      const next = rawOutboundToFormValues({ protocol: nextProtocol });
+      methods.setValue('settings', next.settings);
+      if (nextProtocol === 'hysteria') {
+        methods.setValue('streamSettings', hysteriaStreamSlice() as StreamValue);
+      } else if ((methods.getValues('streamSettings.network') ?? '') === 'hysteria') {
+        methods.setValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' } as StreamValue);
       }
-    }
-  }
+    });
+    return () => sub.unsubscribe();
+  }, [methods]);
 
   function onSecurityChange(next: string) {
-    const stream = form.getFieldValue('streamSettings') ?? {};
-    const cleaned = { ...stream } as Record<string, unknown>;
+    const stream = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
+    const cleaned = { ...stream };
     delete cleaned.tlsSettings;
     delete cleaned.realitySettings;
     if (next === 'tls') {
@@ -234,23 +237,25 @@ export default function OutboundFormModal({
       };
     }
     cleaned.security = next;
-    form.setFieldValue('streamSettings', cleaned);
+    methods.setValue('streamSettings', cleaned as StreamValue);
   }
 
-  // Network change cascade: swap the per-network sub-key (tcpSettings,
-  // wsSettings, etc.) so the DU branch matches. Preserve security if
-  // the new network supports it, otherwise force back to 'none'.
+  /*
+   * Network change cascade: swap the per-network sub-key (tcpSettings,
+   * wsSettings, etc.) so the DU branch matches. Preserve security if
+   * the new network supports it, otherwise force back to 'none'.
+   */
   function onNetworkChange(next: string) {
-    const stream = (form.getFieldValue('streamSettings') ?? {}) as Record<string, unknown>;
-    form.setFieldValue('streamSettings', applyNetworkChange(protocol, stream, next));
+    const stream = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
+    methods.setValue('streamSettings', applyNetworkChange(protocol, stream, next) as StreamValue);
   }
 
   function onXmuxToggle(checked: boolean) {
     if (!checked) return;
-    const existing = form.getFieldValue(['streamSettings', 'xhttpSettings', 'xmux']);
+    const existing = methods.getValues('streamSettings.xhttpSettings.xmux');
     const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
     if (hasValues) return;
-    form.setFieldValue(['streamSettings', 'xhttpSettings', 'xmux'], { ...XMUX_DEFAULTS });
+    methods.setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_DEFAULTS });
   }
 
   const duplicateTag = useMemo(() => {
@@ -260,9 +265,11 @@ export default function OutboundFormModal({
     return (existingTags || []).includes(myTag);
   }, [tag, existingTags, isEdit, outboundProp]);
 
-  // Bridge form ↔ JSON tab: when leaving the JSON tab back to Basic, push
-  // any edits into form state. When entering JSON tab, snapshot current
-  // form values so the user sees the live shape.
+  /*
+   * Bridge form <-> JSON tab: when leaving the JSON tab back to Basic, push
+   * any edits into form state. When entering JSON tab, snapshot current
+   * form values so the user sees the live shape.
+   */
   function applyJsonToForm(): boolean {
     if (!jsonDirty) return true;
     const raw = jsonText.trim();
@@ -275,8 +282,7 @@ export default function OutboundFormModal({
       return false;
     }
     const next = rawOutboundToFormValues(parsed);
-    form.resetFields();
-    form.setFieldsValue(next);
+    methods.reset(next);
     setJsonDirty(false);
     return true;
   }
@@ -290,7 +296,7 @@ export default function OutboundFormModal({
 
   function onTabChange(key: string) {
     if (key === '2') {
-      const values = form.getFieldsValue(true) as OutboundFormValues;
+      const values = methods.getValues();
       setJsonText(JSON.stringify(formValuesToWirePayload(values), null, 2));
       setJsonDirty(false);
       switchTab(key);
@@ -315,20 +321,19 @@ export default function OutboundFormModal({
         return;
       }
       values = rawOutboundToFormValues(parsed);
-      form.resetFields();
-      form.setFieldsValue(values);
+      methods.reset(values);
       setJsonDirty(false);
     } else {
-      try {
-        await form.validateFields();
-      } catch {
-        return;
-      }
-      values = form.getFieldsValue(true) as OutboundFormValues;
+      if (!(await methods.trigger())) return;
+      values = methods.getValues();
     }
     const tagValue = (values.tag ?? '').trim();
     if (!tagValue) {
       messageApi.error(t('pages.xray.outboundForm.tagRequired'));
+      return;
+    }
+    if (tagValue.startsWith('_bl_')) {
+      messageApi.error(t('pages.xray.balancer.reservedPrefix'));
       return;
     }
     const isDuplicateTag = (existingTags || []).includes(tagValue)
@@ -354,218 +359,226 @@ export default function OutboundFormModal({
         onCancel={onClose}
         destroyOnHidden
       >
-        <Form
-          form={form}
-          colon={false}
-          labelCol={{ md: { span: 8 } }}
-          wrapperCol={{ md: { span: 14 } }}
-          labelWrap
-          onValuesChange={onValuesChange}
-        >
-          <Tabs
-            activeKey={activeKey}
-            onChange={onTabChange}
-            items={[
-              {
-                key: '1',
-                label: t('pages.xray.basicTemplate'),
-                children: (
-                  <>
-                    <Form.Item
-                      label={t('protocol')}
-                      name="protocol"
-                      rules={[antdRule(OutboundFormBaseSchema.shape.tag, t)]}
-                    >
-                      <Select options={PROTOCOL_OPTIONS} />
-                    </Form.Item>
+        <FormProvider {...methods}>
+          <Form
+            colon={false}
+            labelCol={{ md: { span: 8 } }}
+            wrapperCol={{ md: { span: 14 } }}
+            labelWrap
+          >
+            <Tabs
+              activeKey={activeKey}
+              onChange={onTabChange}
+              items={[
+                {
+                  key: '1',
+                  label: t('pages.xray.basicTemplate'),
+                  children: (
+                    <>
+                      <FormField
+                        label={t('protocol')}
+                        name="protocol"
+                        rules={{ validate: rhfZodValidate(OutboundFormBaseSchema.shape.tag) }}
+                      >
+                        <Select id="protocol" options={PROTOCOL_OPTIONS} />
+                      </FormField>
 
-                    <Form.Item
-                      label={t('pages.xray.outbound.tag')}
-                      name="tag"
-                      validateStatus={duplicateTag ? 'warning' : undefined}
-                      help={duplicateTag ? t('pages.xray.outboundForm.tagDuplicate') : undefined}
-                      rules={[
-                        { required: true, message: t('pages.xray.outboundForm.tagRequired') },
-                      ]}
-                    >
-                      <Input placeholder={t('pages.xray.outboundForm.tagPlaceholder')} />
-                    </Form.Item>
-
-                    <Form.Item label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
-                      <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
-                    </Form.Item>
-
-                    <Form.Item
-                      label={t('pages.xray.outbound.targetStrategy')}
-                      name="targetStrategy"
-                      tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
-                    >
-                      <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
-                    </Form.Item>
-
-                    {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
-                    {protocol === 'vmess' && <VmessFields />}
-                    {protocol === 'vless' && <VlessFields />}
-                    {protocol === 'trojan' && <TrojanFields />}
-                    {protocol === 'shadowsocks' && <ShadowsocksFields />}
-                    {protocol === 'http' && <HttpFields />}
-                    {protocol === 'socks' && <SocksFields />}
-
-                    {protocol === 'loopback' && <LoopbackFields />}
-                    {protocol === 'blackhole' && <BlackholeFields />}
-                    {protocol === 'dns' && <DnsFields />}
-
-                    {protocol === 'freedom' && <FreedomFields form={form} />}
-
-                    {protocol === 'vless' && (
-                      <Form.Item shouldUpdate noStyle>
-                        {() => {
-                          const reverseTag = form.getFieldValue(['settings', 'reverseTag']);
-                          if (!reverseTag) return null;
+                      <Controller
+                        control={methods.control}
+                        name="tag"
+                        rules={{ required: 'pages.xray.outboundForm.tagRequired' }}
+                        render={({ field, fieldState }) => {
+                          const errorMessage = fieldState.error?.message
+                            ? t(fieldState.error.message, { defaultValue: fieldState.error.message })
+                            : '';
                           return (
-                            <SniffingFields
-                              name={['settings', 'reverseSniffing']}
-                              form={form}
-                              enableLabel={t('pages.xray.outboundForm.reverseSniffing')}
-                            />
+                            <Form.Item
+                              label={t('pages.xray.outbound.tag')}
+                              required
+                              validateStatus={errorMessage ? 'error' : duplicateTag ? 'warning' : undefined}
+                              help={errorMessage || (duplicateTag ? t('pages.xray.outboundForm.tagDuplicate') : undefined)}
+                            >
+                              <Input
+                                value={field.value}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                onBlur={field.onBlur}
+                                ref={field.ref}
+                                placeholder={t('pages.xray.outboundForm.tagPlaceholder')}
+                              />
+                            </Form.Item>
                           );
                         }}
-                      </Form.Item>
-                    )}
+                      />
 
-                    {protocol === 'wireguard' && <WireguardFields form={form} />}
+                      <FormField label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
+                        <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
+                      </FormField>
 
-                    {streamAllowed && network && (
-                      <>
-                        <Form.Item
-                          label={t('transmission')}
-                          name={['streamSettings', 'network']}
-                        >
-                          <Select
-                            value={network}
-                            onChange={onNetworkChange}
-                            options={
-                              protocol === 'hysteria'
-                                ? [HYSTERIA_NETWORK_OPTION]
-                                : NETWORK_OPTIONS
-                            }
-                          />
-                        </Form.Item>
+                      <FormField
+                        label={t('pages.xray.outbound.targetStrategy')}
+                        name="targetStrategy"
+                        tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
+                      >
+                        <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
+                      </FormField>
 
-                        {network === 'tcp' && <RawForm form={form} />}
+                      {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
+                      {protocol === 'vmess' && <VmessFields />}
+                      {protocol === 'vless' && <VlessFields />}
+                      {protocol === 'trojan' && <TrojanFields />}
+                      {protocol === 'shadowsocks' && <ShadowsocksFields />}
+                      {protocol === 'http' && <HttpFields />}
+                      {protocol === 'socks' && <SocksFields />}
 
-                        {network === 'kcp' && <KcpForm />}
+                      {protocol === 'loopback' && <LoopbackFields />}
+                      {protocol === 'blackhole' && <BlackholeFields />}
+                      {protocol === 'dns' && <DnsFields />}
 
-                        {network === 'ws' && <WsForm />}
+                      {protocol === 'freedom' && <FreedomFields />}
 
-                        {network === 'grpc' && <GrpcForm />}
-
-                        {network === 'httpupgrade' && <HttpUpgradeForm />}
-
-                        {network === 'xhttp' && <XhttpForm form={form} onXmuxToggle={onXmuxToggle} />}
-
-                        {network === 'hysteria' && <HysteriaForm form={form} />}
-                      </>
-                    )}
-
-                    {tlsFlowAllowed && (
-                      <Form.Item label={t('pages.clients.flow')} name={['settings', 'flow']}>
-                        <Select
-                          allowClear
-                          placeholder={t('none')}
-                          options={[{ value: '', label: t('none') }, ...FLOW_OPTIONS]}
+                      {protocol === 'vless' && reverseTag && (
+                        <Controller
+                          control={methods.control}
+                          name="settings.reverseSniffing"
+                          render={({ field }) => (
+                            <SniffingField
+                              value={field.value}
+                              onChange={field.onChange}
+                              enableLabel={t('pages.xray.outboundForm.reverseSniffing')}
+                            />
+                          )}
                         />
-                      </Form.Item>
-                    )}
+                      )}
 
-                    {/* Vision seed knobs only meaningful for the exact
-                        xtls-rprx-vision flow, on TCP+(tls|reality). The
-                        legacy class gated this on `canEnableVisionSeed()`
-                        — same condition encoded inline here. */}
-                    <Form.Item shouldUpdate noStyle>
-                      {() => {
-                        const flow =
-                          (form.getFieldValue(['settings', 'flow']) ?? '') as string;
-                        if (!(tlsFlowAllowed && flow === 'xtls-rprx-vision')) return null;
-                        return (
-                          <>
-                            <Form.Item label={t('pages.xray.outboundForm.visionTestpre')} name={['settings', 'testpre']}>
-                              <InputNumber min={0} style={{ width: '100%' }} />
-                            </Form.Item>
-                            <Form.Item label={t('pages.inbounds.form.visionTestseed')}>
-                              <Space.Compact block>
-                                {[900, 500, 900, 256].map((def, i) => (
-                                  <Form.Item key={i} name={['settings', 'testseed', i]} noStyle initialValue={def}>
-                                    <InputNumber min={1} style={{ width: '25%' }} />
-                                  </Form.Item>
-                                ))}
-                              </Space.Compact>
-                            </Form.Item>
-                          </>
-                        );
-                      }}
-                    </Form.Item>
+                      {protocol === 'wireguard' && <WireguardFields />}
 
-                    {streamAllowed && network && (
-                      <Form.Item label={t('security')}>
-                        <Radio.Group
-                          value={security}
-                          buttonStyle="solid"
-                          onChange={(e) => onSecurityChange(e.target.value as string)}
-                        >
-                          {network !== 'hysteria' && <Radio.Button value="none">{t('none')}</Radio.Button>}
-                          {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
-                          {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
-                        </Radio.Group>
-                      </Form.Item>
-                    )}
+                      {streamAllowed && network && (
+                        <>
+                          <Form.Item label={t('transmission')}>
+                            <Select
+                              value={network}
+                              onChange={onNetworkChange}
+                              options={
+                                protocol === 'hysteria'
+                                  ? [HYSTERIA_NETWORK_OPTION]
+                                  : NETWORK_OPTIONS
+                              }
+                            />
+                          </Form.Item>
 
-                    {security === 'tls' && tlsAllowed && <TlsForm />}
+                          {network === 'tcp' && <RawForm />}
 
-                    {security === 'reality' && realityAllowed && <RealityForm />}
+                          {network === 'kcp' && <KcpForm />}
 
-                    {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
-                      <SockoptForm form={form} outboundTags={dialerProxyTags ?? existingTags} />
-                    )}
+                          {network === 'ws' && <WsForm />}
 
-                    <FinalMaskForm
-                      name={['streamSettings', 'finalmask']}
-                      network={network}
-                      protocol={protocol}
-                      form={form}
-                    />
+                          {network === 'grpc' && <GrpcForm />}
 
-                    <MuxForm form={form} protocol={protocol} network={network} />
-                  </>
-                ),
-              },
-              {
-                key: '2',
-                label: 'JSON',
-                children: (
-                  <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
-                    <Input.Search
-                      value={linkInput}
-                      placeholder="vmess:// vless:// trojan:// ss:// hysteria2:// wireguard://"
-                      enterButton="Import"
-                      onChange={(e) => setLinkInput(e.target.value)}
-                      onSearch={importLink}
-                    />
-                    <JsonEditor
-                      value={jsonText}
-                      onChange={(next) => {
-                        setJsonText(next);
-                        setJsonDirty(true);
-                      }}
-                      minHeight="360px"
-                      maxHeight="600px"
-                    />
-                  </Space>
-                ),
-              },
-            ]}
-          />
-        </Form>
+                          {network === 'httpupgrade' && <HttpUpgradeForm />}
+
+                          {network === 'xhttp' && <XhttpForm onXmuxToggle={onXmuxToggle} />}
+
+                          {network === 'hysteria' && <HysteriaForm />}
+                        </>
+                      )}
+
+                      {tlsFlowAllowed && (
+                        <FormField label={t('pages.clients.flow')} name={['settings', 'flow']}>
+                          <Select
+                            allowClear
+                            placeholder={t('none')}
+                            options={[{ value: '', label: t('none') }, ...FLOW_OPTIONS]}
+                          />
+                        </FormField>
+                      )}
+
+                      {/* Vision seed knobs only meaningful for the exact
+                          xtls-rprx-vision flow, on TCP+(tls|reality). */}
+                      {tlsFlowAllowed && flow === 'xtls-rprx-vision' && (
+                        <>
+                          <FormField label={t('pages.xray.outboundForm.visionTestpre')} name={['settings', 'testpre']}>
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                          <Form.Item label={t('pages.inbounds.form.visionTestseed')}>
+                            <Space.Compact block>
+                              {[0, 1, 2, 3].map((i) => (
+                                <FormField key={i} name={['settings', 'testseed', i]} noStyle>
+                                  <InputNumber min={1} style={{ width: '25%' }} />
+                                </FormField>
+                              ))}
+                            </Space.Compact>
+                          </Form.Item>
+                        </>
+                      )}
+
+                      {streamAllowed && network && (
+                        <Form.Item label={t('security')}>
+                          <Radio.Group
+                            value={security}
+                            buttonStyle="solid"
+                            onChange={(e) => onSecurityChange(e.target.value as string)}
+                          >
+                            {network !== 'hysteria' && <Radio.Button value="none">{t('none')}</Radio.Button>}
+                            {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
+                            {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
+                          </Radio.Group>
+                        </Form.Item>
+                      )}
+
+                      {security === 'tls' && tlsAllowed && <TlsForm />}
+
+                      {security === 'reality' && realityAllowed && <RealityForm />}
+
+                      {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
+                        <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
+                      )}
+
+                      <Controller
+                        control={methods.control}
+                        name="streamSettings.finalmask"
+                        render={({ field }) => (
+                          <FinalMaskField
+                            key={`${protocol}:${network}`}
+                            value={field.value}
+                            onChange={field.onChange}
+                            network={network}
+                            protocol={protocol}
+                          />
+                        )}
+                      />
+
+                      <MuxForm protocol={protocol} network={network} />
+                    </>
+                  ),
+                },
+                {
+                  key: '2',
+                  label: 'JSON',
+                  children: (
+                    <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
+                      <Input.Search
+                        value={linkInput}
+                        placeholder="vmess:// vless:// trojan:// ss:// hysteria2:// wireguard://"
+                        enterButton="Import"
+                        onChange={(e) => setLinkInput(e.target.value)}
+                        onSearch={importLink}
+                      />
+                      <JsonEditor
+                        value={jsonText}
+                        onChange={(next) => {
+                          setJsonText(next);
+                          setJsonDirty(true);
+                        }}
+                        minHeight="360px"
+                        maxHeight="600px"
+                      />
+                    </Space>
+                  ),
+                },
+              ]}
+            />
+          </Form>
+        </FormProvider>
       </Modal>
     </>
   );

@@ -523,6 +523,13 @@
         "mtgRouteOutbound": "خروجی",
         "mtgRouteOutboundHint": "اختیاری. ترافیک تلگرام را وادار کنید از این خروجی (یا متعادل‌کننده) خارج شود. برای اینکه قوانین مسیریابی تصمیم بگیرند، خالی بگذارید.",
         "mtgRouteOutboundPlaceholder": "استفاده از قوانین مسیریابی",
+        "mtprotoFakeTlsDomainHint": "دامنه پیش‌فرض FakeTLS برای ساخت سکرت کلاینت جدید. هر کلاینت می‌تواند دامنه مخصوص خود را داشته باشد.",
+        "mtgThrottleMaxConnections": "حداکثر اتصالات",
+        "mtgThrottleMaxConnectionsHint": "محدود کردن اتصالات همزمان همه کاربران با تقسیم منصفانه. مقدار ۰ غیرفعال است.",
+        "mtgAdTagInvalid": "برچسب تبلیغاتی باید دقیقاً ۳۲ کاراکتر هگزادسیمال باشد.",
+        "mtgPublicIpv4": "IPv4 عمومی",
+        "mtgPublicIpv6": "IPv6 عمومی",
+        "mtgPublicIpHint": "نشانی عمومی و در‌دسترس این سرور که پروکسی میانی برچسب تبلیغاتی از آن استفاده می‌کند. برای تشخیص خودکار توسط mtg، خالی بگذارید.",
         "visionTestseed": "Vision testseed",
         "version": "نسخه",
         "udpIdleTimeout": "UDP idle timeout (s)",
@@ -801,6 +808,7 @@
       "limitIpFail2banWindows": "Fail2ban روی ویندوز در دسترس نیست، بنابراین محدودیت IP قابل اعمال نیست.",
       "limitIpDisabled": "قابلیت محدودیت IP روی این سرور غیرفعال است.",
       "password": "رمز عبور",
+      "passwordDesc": "فقط توسط کلاینت‌های Trojan و Shadowsocks استفاده می‌شود؛ برای VLESS، VMess، Hysteria و WireGuard نادیده گرفته می‌شود.",
       "subId": "شناسه اشتراک",
       "online": "آنلاین",
       "email": "ایمیل",
@@ -811,6 +819,7 @@
       "groupPlaceholder": "مثلاً customer-a",
       "comment": "توضیحات",
       "traffic": "ترافیک",
+      "speed": "سرعت",
       "offline": "آفلاین",
       "addClient": "افزودن کلاینت",
       "qrCode": "کد QR",
@@ -900,6 +909,7 @@
       "delOrphansConfirmContent": "هر کلاینتی که به هیچ اینباندی متصل نیست، همراه با رکورد ترافیک‌اش حذف می‌شود. این عمل غیرقابل بازگشت است.",
       "auth": "احراز",
       "hysteriaAuth": "احراز Hysteria",
+      "hysteriaAuthDesc": "اعتباری که فقط کلاینت‌های Hysteria از آن استفاده می‌کنند. Trojan و Shadowsocks به‌جای آن از فیلد «رمز عبور» استفاده می‌کنند.",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "امنیت VMess",
@@ -908,6 +918,10 @@
       "wireguardPreSharedKey": "کلید پیش‌اشتراکی وایرگارد",
       "wireguardAllowedIPs": "آی‌پی‌های مجاز وایرگارد",
       "wireguardAllowedIPsHint": "برای تخصیص خودکار خالی بگذارید؛ ورودی‌ها را با کاما جدا کنید",
+      "mtprotoSecret": "سکرت MTProto",
+      "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
+      "mtprotoAdTag": "برچسب تبلیغاتی (کانال حامی)",
+      "mtprotoAdTagHint": "برچسب هگزادسیمال اختیاری ۳۲ کاراکتری که هنگام ثبت پروکسی در تلگرام دریافت می‌شود. با تنظیم آن، این کلاینت از طریق پروکسی‌های میانی تلگرام هدایت می‌شود و یک کانال حامی در بالای فهرست گفتگوهایش نمایش داده می‌شود.",
       "reverseTag": "تگ معکوس",
       "reverseTagPlaceholder": "Reverse tag اختیاری",
       "telegramId": "شناسه کاربر تلگرام",
@@ -1628,7 +1642,8 @@
         "testSuccess": "تست موفقیت‌آمیز",
         "testFailed": "تست ناموفق",
         "testError": "خطا در تست خروجی",
-        "testModeTooltip": "TCP: فقط dial سریع. HTTP: درخواست کامل از طریق xray.",
+        "modeRealDelay": "تأخیر واقعی",
+        "testModeTooltip": "TCP: فقط dial سریع. HTTP: درخواست کامل از طریق xray. تأخیر واقعی: کل زمان همراه با برقراری اتصال.",
         "testAll": "تست همه",
         "httpStatus": "وضعیت HTTP",
         "breakdownConnect": "اتصال پروکسی",
@@ -1742,6 +1757,7 @@
         "tagPlaceholder": "تگ منحصربه‌فرد بالانسر",
         "selector": "انتخابگر",
         "fallback": "Fallback",
+        "cycleTooltip": "حلقه: {path} → (بازگشت به {start})",
         "expected": "مورد انتظار",
         "expectedPlaceholder": "تعداد نود بهینه",
         "maxRtt": "حداکثر RTT",
@@ -1751,7 +1767,12 @@
         "balancerDesc": "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد.",
         "costMatch": "الگوی برچسب",
         "costValue": "وزن",
-        "costRegexp": "تطبیق با عبارت باقاعده"
+        "costRegexp": "تطبیق با عبارت باقاعده",
+        "balancerDeleteInUse": "امکان حذف این بالانسر وجود ندارد — به عنوان پشتیبان برای موارد زیر استفاده می‌شود: {names}",
+        "balancerFallbackCycle": "امکان تنظیم این بالانسر به عنوان پشتیبان وجود ندارد — وابستگی دایره‌ای ایجاد می‌کند.",
+        "balancerFallbackInfo": "ترافیک از مسیر زیر مسیریابی می‌شود: بالانسر → Loopback → سرور → بالانسر مقصد → اتصال خروجی. این یک پرش اضافی از طریق سرور اضافه می‌کند که ممکن است تأخیرهای جزئی ایجاد کند.",
+        "fallbackBalancerHint": "یک بالانسر دیگر به عنوان پشتیبان انتخاب کنید",
+        "reservedPrefix": "پیشوند _bl_ برای اشیاء loopback داخلی بالانسر رزرو شده است"
       },
       "wireguard": {
         "secretKey": "کلید شخصی",
@@ -1845,14 +1866,17 @@
         "dnsPresetFamily": "خانوادگی",
         "clearAll": "حذف همه",
         "clearAllTitle": "حذف همه سرورهای DNS؟",
-        "clearAllConfirm": "این کار همه سرورهای DNS را از لیست حذف می‌کند و قابل بازگشت نیست."
+        "clearAllConfirm": "این کار همه سرورهای DNS را از لیست حذف می‌کند و قابل بازگشت نیست.",
+        "dnsLeakWarning": "DNS ممکن است از طریق localhost، UDP/TCP ساده، حالت محلی DoH/DoQ، درخواست‌های fallback یا EDNS client IP نشت کند. برای حریم خصوصی از DoH مسیریابی‌شده، مقدارهای hosts ثابت و غیرفعال‌سازی fallback استفاده کنید."
       },
       "fakedns": {
         "add": "افزودن دی‌ان‌اس جعلی",
         "edit": "ویرایش دی‌ان‌اس جعلی",
         "ipPool": "زیرشبکه استخر آی‌پی",
         "poolSize": "اندازه استخر"
-      }
+      },
+      "defaultOutbound": "خروجی پیش‌فرض",
+      "defaultOutboundDesc": "ترافیکی که با هیچ قانون مسیریابی جور نشود از این خروجی استفاده می‌کند (اولین خروجی در فهرست)."
     },
     "links": {
       "addLink": "افزودن لینک",
@@ -1923,7 +1947,7 @@
       "fields": {
         "remark": "نام",
         "serverDescription": "توضیحات",
-        "inbound": "اینباند",
+        "inbound": "اینباندها",
         "address": "آدرس",
         "port": "پورت",
         "endpoint": "نقطه پایانی",
@@ -1950,7 +1974,8 @@
         "shuffleHost": "درهم‌سازی میزبان",
         "tags": "برچسب‌ها",
         "nodeGuids": "نودها",
-        "excludeFromSubTypes": "حذف از فرمت‌ها"
+        "excludeFromSubTypes": "حذف از فرمت‌ها",
+        "inheritAddress": "ارث‌بری آدرس"
       },
       "hints": {
         "address": "برای ارث‌بری آدرس خودِ اینباند خالی بگذارید.",
