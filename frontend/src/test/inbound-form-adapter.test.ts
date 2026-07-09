@@ -353,3 +353,40 @@ describe('legacy xhttp session keys on edit (#5621)', () => {
     expect(out.sessionKey).toBeUndefined();
   });
 });
+
+// Regression (#5864): an inbound saved before xmux.maxConnections got a
+// non-zero schema default only ever persisted maxConcurrency. Loading it
+// must not resurrect a phantom maxConnections that then fights
+// maxConcurrency and deletes it again on the very next save, even if the
+// user never touches the XMUX section at all.
+describe('xhttp xmux maxConnections stays off when only maxConcurrency was saved (#5864)', () => {
+  const xmuxRow: RawInboundRow = {
+    ...vlessRow,
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/xh',
+        mode: 'auto',
+        xmux: { maxConcurrency: '1-2' },
+      },
+    },
+  };
+
+  it('rawInboundToFormValues does not default maxConnections to a non-zero value', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    expect(xhttp.enableXmux).toBe(true);
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+    expect(xmux.maxConnections).toBe(0);
+  });
+
+  it('formValuesToWirePayload preserves maxConcurrency on an unedited re-save', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const payload = formValuesToWirePayload(values);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
+    const xmux = stream.xhttpSettings.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+  });
+});

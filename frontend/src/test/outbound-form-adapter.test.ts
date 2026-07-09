@@ -521,6 +521,33 @@ describe('outbound-form-adapter: xhttp xmux toggle', () => {
     const wireXhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
     expect(wireXhttp).not.toHaveProperty('xmux');
   });
+
+  // Regression (#5864): a config that only ever saved maxConcurrency (no
+  // maxConnections key at all) must not regain a phantom non-zero
+  // maxConnections on load — that would fight the real maxConcurrency and
+  // delete it again on the very next save, with no XMUX field touched.
+  it('does not resurrect a non-zero maxConnections when only maxConcurrency was saved', () => {
+    const wire = {
+      ...xmuxWire,
+      streamSettings: {
+        ...xmuxWire.streamSettings,
+        xhttpSettings: {
+          ...xmuxWire.streamSettings.xhttpSettings,
+          xmux: { maxConcurrency: '1-2' },
+        },
+      },
+    };
+    const form = rawOutboundToFormValues(wire);
+    const xhttp = (form.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+    expect(xmux.maxConnections).toBe(0);
+
+    const back = formValuesToWirePayload(form);
+    const wireXhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    const wireXmux = wireXhttp.xmux as Record<string, unknown>;
+    expect(wireXmux.maxConcurrency).toBe('1-2');
+  });
 });
 
 describe('outbound-form-adapter: full optional-block round-trip', () => {

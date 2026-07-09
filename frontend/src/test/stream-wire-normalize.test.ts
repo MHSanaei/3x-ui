@@ -12,7 +12,7 @@ import {
 import { InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { HappyEyeballsSchema } from '@/schemas/protocols/stream/sockopt';
 import type { InboundFormValues } from '@/schemas/forms/inbound-form';
-import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { XHttpXmuxSchema, XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 
 describe('validateRealityTarget', () => {
   it('accepts host:port and bare port', () => {
@@ -153,19 +153,29 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(xmux.maxConnections).toBe('8');
   });
 
-  it('defaults xmux maxConnections to 6 (xray-core anti-RKN default) and drops maxConcurrency on the wire', () => {
-    expect(XHttpXmuxSchema.parse({}).maxConnections).toBe(6);
+  it('does not bake a non-zero maxConnections into the bare schema default (#5864)', () => {
+    // A bare parse must only ever make ONE of the exclusive fields non-zero,
+    // otherwise every load of a previously-saved config that only set
+    // maxConcurrency would regain a phantom conflicting maxConnections and
+    // lose maxConcurrency again on the very next save.
+    expect(XHttpXmuxSchema.parse({}).maxConnections).toBe(0);
+    expect(XHttpXmuxSchema.parse({}).maxConcurrency).toBe('16-32');
+  });
+
+  it('XMUX_FRESH_DEFAULTS seeds xray-core\'s anti-RKN maxConnections=6 default without an opposing maxConcurrency', () => {
+    expect(XMUX_FRESH_DEFAULTS.maxConnections).toBe(6);
+    expect(XMUX_FRESH_DEFAULTS.maxConcurrency).toBe('');
 
     const out = normalizeXhttpForWire({
       path: '/app',
       mode: 'stream-one',
       enableXmux: true,
-      xmux: XHttpXmuxSchema.parse({}),
+      xmux: XMUX_FRESH_DEFAULTS,
     }, 'outbound');
 
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux.maxConnections).toBe(6);
-    expect(xmux).not.toHaveProperty('maxConcurrency');
+    expect(xmux.maxConcurrency).toBe('');
   });
 });
 

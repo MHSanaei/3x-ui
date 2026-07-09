@@ -15,15 +15,38 @@ export type XHttpMode = z.infer<typeof XHttpModeSchema>;
 // XMUX is the connection-multiplexing layer xHTTP uses to fan out
 // parallel requests over a small pool of upstream connections. Fields
 // are strings because they accept dash-range values like '16-32'.
+// maxConcurrency and maxConnections are mutually exclusive strategies —
+// xray-core rejects a config that sets both (see resolveXmuxExclusivity
+// in stream-wire-normalize.ts) — so the schema default only ever makes
+// ONE of them non-zero. Baking a non-zero maxConnections in here too
+// (previously done to mirror xray-core v26.6.27's own maxConnections=6
+// anti-RKN fallback) made every load of a previously-saved config that
+// only ever set maxConcurrency silently regain a "conflicting" second
+// value, which then got the user's real maxConcurrency deleted on the
+// very next save (#5864). XMUX_FRESH_DEFAULTS below is the one place
+// that intentionally seeds the anti-RKN default, for a config that never
+// had an xmux block before.
 export const XHttpXmuxSchema = z.object({
   maxConcurrency: z.string().default('16-32'),
-  maxConnections: z.union([z.string(), z.number()]).default(6),
+  maxConnections: z.union([z.string(), z.number()]).default(0),
   cMaxReuseTimes: z.union([z.string(), z.number()]).default(0),
   hMaxRequestTimes: z.string().default('600-900'),
   hMaxReusableSecs: z.string().default('1800-3000'),
   hKeepAlivePeriod: z.number().int().min(0).default(0),
 });
 export type XHttpXmux = z.infer<typeof XHttpXmuxSchema>;
+
+// Seed values for freshly enabling XMUX on a config that had no xmux
+// block at all. Mirrors xray-core v26.6.27's own maxConnections=6
+// anti-RKN fallback instead of the schema's baseline maxConcurrency
+// default, so turning XMUX on without touching either field matches what
+// xray-core already does out of the box — without leaving both fields
+// non-zero simultaneously.
+export const XMUX_FRESH_DEFAULTS: XHttpXmux = {
+  ...XHttpXmuxSchema.parse({}),
+  maxConcurrency: '',
+  maxConnections: 6,
+};
 
 // Predefined sessionIDTable names xray-core accepts as a shorthand for a
 // charset (splithttp.PredefinedTable, xray-core #6258). A literal ASCII

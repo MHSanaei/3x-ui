@@ -46,7 +46,7 @@ function hasMeaningfulHeaders(headers: unknown): boolean {
 // Upper bound of an xray-core Int32Range value: "16-32" -> 32, "4" -> 4,
 // 4 -> 4, "" / null -> 0. xmux fields are ranges, and xray-core keys its
 // mutual-exclusivity check on the `.To` (upper) side.
-function int32RangeUpper(v: unknown): number {
+export function int32RangeUpper(v: unknown): number {
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   if (typeof v !== 'string') return 0;
   const trimmed = v.trim();
