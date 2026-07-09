@@ -104,6 +104,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.FinalMask != "" {
 		ep["finalMask"] = h.FinalMask
 	}
+	if h.VlessRoute != "" {
+		ep["vlessRoute"] = h.VlessRoute
+	}
 	return ep
 }
 
@@ -300,6 +303,44 @@ func applyEndpointAllowInsecure(e ShareEndpoint, params map[string]string, secur
 	if ai, ok := e.ep["allowInsecure"].(bool); ok && ai {
 		params["allowInsecure"] = "1"
 	}
+}
+
+// applyEndpointFinalMask merges a host's Final Mask into the raw link's fm
+// param, mirroring the applyHostStreamOverrides merge on the JSON/Clash path.
+func applyEndpointFinalMask(e ShareEndpoint, params map[string]string) {
+	if merged, ok := endpointFinalMask(e, params["fm"]); ok {
+		params["fm"] = merged
+	}
+}
+
+// applyEndpointFinalMaskObj is applyEndpointFinalMask for the VMess object form.
+func applyEndpointFinalMaskObj(e ShareEndpoint, obj map[string]any) {
+	baseFm, _ := obj["fm"].(string)
+	if merged, ok := endpointFinalMask(e, baseFm); ok {
+		obj["fm"] = merged
+	}
+}
+
+func endpointFinalMask(e ShareEndpoint, baseFm string) (string, bool) {
+	if e.ep == nil {
+		return "", false
+	}
+	fm, ok := e.ep["finalMask"].(string)
+	if !ok || fm == "" {
+		return "", false
+	}
+	var masks map[string]any
+	if json.Unmarshal([]byte(fm), &masks) != nil || len(masks) == 0 {
+		return "", false
+	}
+	var base any
+	if baseFm != "" {
+		var baseMap map[string]any
+		if json.Unmarshal([]byte(baseFm), &baseMap) == nil {
+			base = baseMap
+		}
+	}
+	return marshalFinalMask(mergeFinalMask(base, masks))
 }
 
 // applyEndpointHostPathObj is applyEndpointHostPath for the VMess object form.

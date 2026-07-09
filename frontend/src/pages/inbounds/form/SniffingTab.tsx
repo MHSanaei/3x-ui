@@ -1,16 +1,22 @@
 import { useTranslation } from 'react-i18next';
-import { Form } from 'antd';
+import { Controller, useFormContext } from 'react-hook-form';
 
-import SniffingFields from '@/lib/xray/forms/SniffingFields';
+import { SniffingField } from '@/lib/xray/forms/fields';
 
 export default function SniffingTab() {
   const { t } = useTranslation();
-  const form = Form.useFormInstance();
+  const { control } = useFormContext();
   return (
-    <SniffingFields
-      name={['sniffing']}
-      form={form}
-      enableLabel={t('enable')}
+    <Controller
+      control={control}
+      name="sniffing"
+      render={({ field }) => (
+        <SniffingField
+          value={field.value}
+          onChange={field.onChange}
+          enableLabel={t('enable')}
+        />
+      )}
     />
   );
 }

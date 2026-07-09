@@ -99,7 +99,7 @@ func TestDelInboundClientByEmail_DisabledNodeClientMarksDirty(t *testing.T) {
 
 	inboundSvc := &InboundService{}
 	clientSvc := &ClientService{}
-	if _, err := clientSvc.DelInboundClientByEmail(inboundSvc, central.Id, "a@x", false); err != nil {
+	if _, err := clientSvc.DelInboundClientByEmail(inboundSvc, central.Id, "a@x", false, false); err != nil {
 		t.Fatalf("DelInboundClientByEmail: %v", err)
 	}
 
@@ -107,6 +107,59 @@ func TestDelInboundClientByEmail_DisabledNodeClientMarksDirty(t *testing.T) {
 		t.Fatalf("NodeSyncState: %v", err)
 	} else if !dirty {
 		t.Fatal("deleting a disabled node client must mark the node dirty (#5352)")
+	}
+}
+
+// An online, enabled node that is merely config-dirty must NOT be reported as
+// pending: every node-backed edit marks the node dirty as the reconcile
+// self-heal marker, so keying the "saved, node offline, will sync" toast off
+// the dirty flag fired it on every save to a healthy online node.
+func TestIsNodePending_OnlineDirtyNodeIsNotPending(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	node := &model.Node{Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	nodeSvc := NodeService{}
+	if nodeSvc.IsNodePending(node.Id) {
+		t.Fatal("a clean online node must not be pending")
+	}
+	if err := nodeSvc.MarkNodeDirty(node.Id); err != nil {
+		t.Fatalf("MarkNodeDirty: %v", err)
+	}
+	if nodeSvc.IsNodePending(node.Id) {
+		t.Fatal("an online, enabled node must not be pending just because it is config-dirty")
+	}
+}
+
+// Offline or disabled nodes are genuinely deferred and must report pending so
+// the "saved, node offline, will sync" toast still surfaces for them.
+func TestIsNodePending_OfflineOrDisabledIsPending(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	offline := &model.Node{Name: "off", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "offline"}
+	disabled := &model.Node{Name: "dis", Address: "127.0.0.1", Port: 2097, ApiToken: "tok", Enable: false, Status: "online"}
+	for _, n := range []*model.Node{offline, disabled} {
+		if err := db.Create(n).Error; err != nil {
+			t.Fatalf("create node %s: %v", n.Name, err)
+		}
+	}
+	// Node.Enable carries gorm default:true, so Create({Enable:false}) persists
+	// TRUE — force the column off to actually exercise the disabled path.
+	if err := db.Model(&model.Node{}).Where("id = ?", disabled.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("force-disable node: %v", err)
+	}
+
+	nodeSvc := NodeService{}
+	if !nodeSvc.IsNodePending(offline.Id) {
+		t.Fatal("an offline node must be pending")
+	}
+	if !nodeSvc.IsNodePending(disabled.Id) {
+		t.Fatal("a disabled node must be pending")
 	}
 }
 

@@ -188,6 +188,7 @@ export default function AttachExistingClientsModal({
               <Space wrap>
                 <Input.Search
                   allowClear
+                  aria-label={t('search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('pages.inbounds.attachClientsSearchPlaceholder')}
@@ -196,6 +197,7 @@ export default function AttachExistingClientsModal({
                 {groupOptions.length > 0 && (
                   <Select
                     allowClear
+                    aria-label={t('pages.clients.group')}
                     value={groupFilter}
                     onChange={(v) => setGroupFilter(v)}
                     options={groupOptions}

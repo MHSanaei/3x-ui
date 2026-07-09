@@ -15,6 +15,10 @@
   "copied": "Tersalin",
   "more": "lainnya",
   "download": "Unduh",
+  "regenerate": "Buat Ulang",
+  "jsonEditor": "Editor JSON",
+  "downloadImage": "Unduh Gambar",
+  "sort": "Urutkan",
   "remark": "Catatan",
   "enable": "Aktifkan",
   "protocol": "Protokol",
@@ -118,7 +122,8 @@
     "link": "Kelola",
     "donate": "Donasi",
     "hosts": "Host",
-    "docs": "Dokumentasi"
+    "docs": "Dokumentasi",
+    "openMenu": "Buka menu"
   },
   "pages": {
     "login": {
@@ -226,6 +231,10 @@
       "panelUpdateDialogDesc": "Ini akan memperbarui 3X-UI ke #version# dan me-restart layanan panel.",
       "panelUpdateCheckPopover": "Pemeriksaan pembaruan panel gagal",
       "panelUpdateStartedPopover": "Pembaruan panel dimulai",
+      "panelUpdateFailedTitle": "Pembaruan panel gagal",
+      "panelUpdateFailedDesc": "Pembaruan tidak selesai dengan sukses. Periksa log server, atau jalankan 'x-ui update' dari baris perintah.",
+      "panelUpdateUnknownTitle": "Tidak dapat memastikan pembaruan selesai",
+      "panelUpdateUnknownDesc": "Panel tidak melaporkan hasil tepat waktu. Muat ulang untuk memeriksa versi saat ini, atau periksa log server.",
       "geofileUpdateDialog": "Apakah Anda yakin ingin memperbarui geofile?",
       "geofileUpdateDialogDesc": "Ini akan memperbarui file #filename#.",
       "geofilesUpdateDialogDesc": "Ini akan memperbarui semua berkas.",
@@ -513,6 +522,13 @@
         "mtgRouteOutbound": "Outbound",
         "mtgRouteOutboundHint": "Opsional. Paksa lalu lintas Telegram keluar melalui outbound (atau balancer) ini. Biarkan kosong agar aturan routing yang menentukan.",
         "mtgRouteOutboundPlaceholder": "Gunakan aturan routing",
+        "mtprotoFakeTlsDomainHint": "Domain FakeTLS default untuk membuat secret klien baru. Setiap klien bisa memakai domainnya sendiri.",
+        "mtgThrottleMaxConnections": "Koneksi maksimum",
+        "mtgThrottleMaxConnectionsHint": "Batasi koneksi bersamaan semua pengguna dengan pembagian adil. 0 menonaktifkan.",
+        "mtgAdTagInvalid": "Ad-tag harus tepat 32 karakter heksadesimal.",
+        "mtgPublicIpv4": "IPv4 Publik",
+        "mtgPublicIpv6": "IPv6 Publik",
+        "mtgPublicIpHint": "Alamat publik server ini yang dapat dijangkau, digunakan oleh proxy perantara ad-tag. Biarkan kosong agar mtg mendeteksinya secara otomatis.",
         "visionTestseed": "Vision testseed",
         "version": "Versi",
         "udpIdleTimeout": "UDP idle timeout (d)",
@@ -641,6 +657,7 @@
         "scanUse": "Gunakan",
         "scanRescan": "Pindai ulang",
         "spiderX": "SpiderX",
+        "spiderXHint": "Seed per-klien — panel menurunkan jalur spx unik untuk tiap klien darinya; regenerasi untuk merotasi jalur semua klien",
         "getNewCert": "Dapatkan sertifikat baru",
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
@@ -712,7 +729,8 @@
           "requestHeader": "Header Permintaan",
           "responseHeader": "Header Respons"
         }
-      }
+      },
+      "sniffingDestOverride": "Penggantian tujuan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -725,6 +743,11 @@
       "addExternalSubscription": "Tambah Langganan Eksternal",
       "noExternalLinks": "Belum ada tautan eksternal.",
       "noExternalSubscriptions": "Belum ada langganan eksternal.",
+      "namePrefix": "Name prefix",
+      "lastFetchAt": "Last fetch",
+      "lastFetchError": "Fetch error",
+      "neverFetched": "Not fetched yet",
+      "leaveBlankToNeverExpire": "Leave blank to never expire",
       "add": "Tambah klien",
       "edit": "Ubah klien",
       "submitAdd": "Tambah klien",
@@ -788,6 +811,7 @@
       "limitIpFail2banWindows": "Fail2ban tidak tersedia di Windows, sehingga batas IP tidak dapat diterapkan.",
       "limitIpDisabled": "Fitur batas IP dinonaktifkan di server ini.",
       "password": "Kata sandi",
+      "passwordDesc": "Hanya digunakan oleh klien Trojan dan Shadowsocks; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
       "subId": "ID Langganan",
       "online": "Online",
       "email": "Email",
@@ -798,6 +822,7 @@
       "groupPlaceholder": "mis. customer-a",
       "comment": "Komentar",
       "traffic": "Lalu lintas",
+      "speed": "Kecepatan",
       "offline": "Offline",
       "addClient": "Tambah klien",
       "qrCode": "Kode QR",
@@ -887,6 +912,7 @@
       "delOrphansConfirmContent": "Menghapus setiap klien yang tidak terhubung ke inbound mana pun, beserta catatan lalu lintasnya. Tidak dapat dibatalkan.",
       "auth": "Auth",
       "hysteriaAuth": "Hysteria Auth",
+      "hysteriaAuthDesc": "Kredensial yang hanya digunakan oleh klien Hysteria. Trojan dan Shadowsocks menggunakan kolom \"Kata sandi\" sebagai gantinya.",
       "uuid": "UUID",
       "flow": "Flow",
       "vmessSecurity": "Keamanan VMess",
@@ -894,6 +920,11 @@
       "wireguardPublicKey": "Kunci Publik WireGuard",
       "wireguardPreSharedKey": "Kunci Pra-Berbagi WireGuard",
       "wireguardAllowedIPs": "IP yang Diizinkan WireGuard",
+      "wireguardAllowedIPsHint": "Biarkan kosong untuk penetapan otomatis; pisahkan entri dengan koma",
+      "mtprotoSecret": "Secret MTProto",
+      "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
+      "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
+      "mtprotoAdTagHint": "Tag heksadesimal 32 karakter opsional dari pendaftaran proxy Telegram. Jika diatur, klien ini dirutekan melalui proxy perantara Telegram dan kanal bersponsor muncul di bagian atas daftar obrolannya.",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag opsional",
       "telegramId": "ID pengguna Telegram",
@@ -1142,7 +1173,9 @@
         "custom": "Kustom (crontab)",
         "seconds": "Detik",
         "minutes": "Menit",
-        "hours": "Jam"
+        "hours": "Jam",
+        "interval": "Interval",
+        "unit": "Satuan"
       },
       "tgNotifyBackup": "Cadangan Database",
       "tgNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",
@@ -1192,7 +1225,7 @@
       "subListen": "IP Pendengar",
       "subListenDesc": "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)",
       "subPort": "Port Pendengar",
-      "subPortDesc": "Nomor port untuk layanan langganan. (harus menjadi port yang tidak digunakan)",
+      "subPortDesc": "Nomor port untuk layanan langganan. (harus menjadi port yang tidak digunakan). Juga digunakan untuk membangun tautan/QR langganan yang ditampilkan di panel ketika \"URI Proxy Terbalik\" di bawah kosong — jika langganan diakses melalui reverse proxy pada port yang berbeda, atur \"URI Proxy Terbalik\" sebagai gantinya.",
       "subCertPath": "Path Kunci Publik",
       "subCertPathDesc": "Path berkas kunci publik untuk layanan langganan. (dimulai dengan ‘/‘)",
       "subKeyPath": "Path Kunci Privat",
@@ -1200,13 +1233,13 @@
       "subPath": "Path URI",
       "subPathDesc": "URI path untuk layanan langganan. (dimulai dengan ‘/‘ dan diakhiri dengan ‘/‘)",
       "subDomain": "Domain Pendengar",
-      "subDomainDesc": "Nama domain untuk layanan langganan. (biarkan kosong untuk mendengarkan semua domain dan IP)",
+      "subDomainDesc": "Nama domain untuk layanan langganan. (biarkan kosong untuk mendengarkan semua domain dan IP). Juga digunakan sebagai domain cadangan untuk tautan langganan yang ditampilkan ketika \"URI Proxy Terbalik\" kosong — atur \"URI Proxy Terbalik\" jika panel dan langganan diakses melalui domain yang berbeda (misalnya di belakang reverse proxy).",
       "subUpdates": "Interval Pembaruan",
       "subUpdatesDesc": "Interval pembaruan URL langganan dalam aplikasi klien. (unit: jam)",
       "subEncrypt": "Encode",
       "subEncryptDesc": "Konten yang dikembalikan dari layanan langganan akan dienkripsi Base64.",
       "subURI": "URI Proxy Terbalik",
-      "subURIDesc": "Path URI dari URL langganan untuk digunakan di belakang proxy.",
+      "subURIDesc": "URL dasar lengkap (scheme://domain[:port]/path/) untuk tautan langganan dan kode QR, digunakan sebagai pengganti Domain/Port Pendengar. Atur ini kapan pun langganan diakses melalui reverse proxy atau domain/port yang berbeda dari yang di atas.",
       "externalTrafficInformEnable": "Informasikan API eksternal pada setiap pembaruan lalu lintas.",
       "externalTrafficInformEnableDesc": "Beritahu API eksternal setiap kali ada pembaruan trafik.",
       "externalTrafficInformURI": "Lalu Lintas Eksternal Menginformasikan URI",
@@ -1386,7 +1419,12 @@
       "smtpErrorUnknown": "Kesalahan SMTP: {{ .Error }}",
       "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
-      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas."
+      "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
+      "validation": {
+        "pathLeadingSlash": "Path harus diawali dengan /"
+      },
+      "secretClear": "Hapus",
+      "secretClearUndo": "Batalkan hapus"
     },
     "xray": {
       "title": "Konfigurasi Xray",
@@ -1530,6 +1568,7 @@
         "localIpPlaceholder": "IP lokal",
         "dialerProxyPlaceholder": "Pilih outbound untuk dirantai",
         "dialerProxyHint": "Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membuat rantai proxy. Kosongkan untuk terhubung langsung.",
+        "targetStrategyHint": "Cara domain tujuan diresolusi sebelum terhubung: AsIs (default) mengirim apa adanya, UseIP… meresolusi dengan fallback, ForceIP… wajib berhasil diresolusi.",
         "addressRequired": "Alamat wajib diisi",
         "portRequired": "Port wajib diisi",
         "optional": "opsional",
@@ -1599,13 +1638,15 @@
         "accountInfo": "Informasi Akun",
         "outboundStatus": "Status Keluar",
         "sendThrough": "Kirim Melalui",
+        "targetStrategy": "Strategi Target",
         "test": "Tes",
         "testResult": "Hasil Tes",
         "testing": "Menguji koneksi...",
         "testSuccess": "Tes berhasil",
         "testFailed": "Tes gagal",
         "testError": "Gagal menguji outbound",
-        "testModeTooltip": "TCP: probe dial-only cepat. HTTP: permintaan penuh via xray.",
+        "modeRealDelay": "Delay nyata",
+        "testModeTooltip": "TCP: probe dial-only cepat. HTTP: permintaan penuh via xray. Delay nyata: total waktu termasuk pembentukan koneksi.",
         "testAll": "Tes semua",
         "httpStatus": "Status HTTP",
         "breakdownConnect": "Koneksi proxy",
@@ -1618,7 +1659,8 @@
         "city": "Kota",
         "allCities": "Semua Kota",
         "privateKey": "Kunci Privat",
-        "load": "Beban"
+        "load": "Beban",
+        "moveToTop": "Pindahkan ke atas"
       },
       "outboundSub": {
         "manage": "Langganan",
@@ -1676,7 +1718,8 @@
         "title": "Observatory",
         "burstTitle": "Burst Observatory",
         "autoManaged": "Observer dikelola otomatis dari balancer Anda. Atur cara mereka melakukan probe di bawah; outbound yang dipantau mengikuti selector balancer.",
-        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer dapat mengukur outbound Anda dan memilih yang terbaik.",
+        "emptyHint": "Tidak ada observer koneksi yang aktif. Satu akan ditambahkan otomatis saat Anda membuat balancer Least Ping atau Least Load — atau balancer Random / Round-robin dengan fallback — sehingga balancer yang memakai observer dapat memeriksa kesehatan outbound sebelum memilih target.",
+        "mixedLegacy": "Konfigurasi ini berisi Observatory dan Burst Observatory sekaligus. Xray memakai satu observer global, jadi status campuran lama ini tidak didukung; menyimpan balancer akan menormalkannya menjadi satu observer.",
         "subjectSelector": "Outbound yang Dipantau",
         "subjectSelectorDesc": "Tag outbound yang di-probe observer ini. Dikelola otomatis dari balancer Anda.",
         "probeURL": "URL Probe",
@@ -1700,6 +1743,12 @@
         "deleteAlsoObservatory": "Ini balancer terakhir yang memakai Observatory, jadi itu juga akan dihapus.",
         "deleteAlsoBurst": "Ini balancer terakhir yang memakai Burst Observatory, jadi itu juga akan dihapus."
       },
+      "refCleanup": {
+        "header": "Menghapus ini juga memperbarui perutean Anda:",
+        "ruleRemoved": "Aturan {label} — dihapus (tidak ada tujuan tersisa)",
+        "ruleModified": "Aturan {label} — dipertahankan (kini memakai {keeps})",
+        "balancerRemoved": "Balancer {tag} — dihapus (tidak ada target tersisa)"
+      },
       "balancer": {
         "addBalancer": "Tambahkan Penyeimbang",
         "editBalancer": "Sunting Penyeimbang",
@@ -1717,7 +1766,10 @@
         "tolerance": "Toleransi",
         "baselines": "Baselines",
         "costs": "Costs",
-        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi."
+        "balancerDesc": "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi.",
+        "costMatch": "Pola tag",
+        "costValue": "Bobot",
+        "costRegexp": "Pencocokan ekspresi reguler"
       },
       "wireguard": {
         "secretKey": "Kunci Rahasia",
@@ -1811,7 +1863,8 @@
         "dnsPresetFamily": "Keluarga",
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
-        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan."
+        "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",
@@ -1874,7 +1927,8 @@
         "tags": "Tag",
         "nodeGuids": "Node",
         "excludeFromSubTypes": "Kecualikan dari format",
-        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama"
+        "verifyPeerCertByName": "Verifikasi sertifikat peer berdasarkan nama",
+        "inheritAddress": "Warisi alamat"
       },
       "hints": {
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",
@@ -1883,7 +1937,7 @@
         "nodeGuids": "Pilih node yang teresolusi dari host ini. Hanya penetapan visual.",
         "serverDescription": "Catatan opsional yang ditampilkan di bawah catatan.",
         "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
-        "vlessRoute": "Port/rentang yang dirutekan melalui VLESS, mis. 53,443,1000-2000. Biarkan kosong jika tidak ada.",
+        "vlessRoute": "Satu nilai rute VLESS (0-65535) yang disisipkan ke UUID, mis. 443. Biarkan kosong jika tidak ada.",
         "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
       },
       "remarkVars": {
@@ -1933,7 +1987,7 @@
         "update": "Perbarui host",
         "delete": "Hapus host",
         "badTag": "Tag tidak valid",
-        "badVlessRoute": "Gunakan port/rentang seperti 53,443,1000-2000"
+        "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
       }
     }
   },
@@ -1975,7 +2029,11 @@
       "startDesc": "Tampilkan menu utama",
       "helpDesc": "Bantuan bot",
       "statusDesc": "Periksa status bot",
-      "idDesc": "Tampilkan ID Telegram Anda"
+      "idDesc": "Tampilkan ID Telegram Anda",
+      "usageDesc": "Lihat pemakaian klien: /usage email",
+      "inboundDesc": "Cari inbound: /inbound nama (admin)",
+      "restartDesc": "Mulai ulang inti Xray (admin)",
+      "clearallDesc": "Reset trafik semua klien (admin)"
     },
     "messages": {
       "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",

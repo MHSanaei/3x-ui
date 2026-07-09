@@ -169,6 +169,14 @@ func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
 
+// GetUpdateStatusFilePath returns the path to the panel self-update status
+// file update.sh writes on completion. It lives beside the database, outside
+// XUI_MAIN_FOLDER, so it survives an update regardless of what happens to
+// that folder.
+func GetUpdateStatusFilePath() string {
+	return filepath.Join(GetDBFolderPath(), "update-status.json")
+}
+
 // GetDBKind returns the configured database backend: "sqlite" (default) or "postgres".
 func GetDBKind() string {
 	v := strings.ToLower(strings.TrimSpace(os.Getenv("XUI_DB_TYPE")))

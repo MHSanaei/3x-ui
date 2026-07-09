@@ -2,6 +2,19 @@ package database
 
 import "fmt"
 
+// TrafficMax caps every traffic counter safely below math.MaxInt64 (~9.22e18)
+// so that one more delta can never overflow int64. SQLite silently promotes an
+// overflowing INTEGER to REAL, after which the column no longer scans into the
+// Go int64 field and every reader of the table fails (#5762).
+const TrafficMax = int64(9_000_000_000_000_000_000)
+
+func ClampedAddExpr(col string) string {
+	if IsPostgres() {
+		return fmt.Sprintf("LEAST(%s + ?, %d)", col, TrafficMax)
+	}
+	return fmt.Sprintf("MIN(%s + ?, %d)", col, TrafficMax)
+}
+
 func JSONClientsFromInbound() string {
 	if IsPostgres() {
 		return "FROM inbounds, jsonb_array_elements(inbounds.settings::jsonb -> 'clients') AS client(value)"

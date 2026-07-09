@@ -1,0 +1,186 @@
+---
+title: 入站
+description: >-
+  管理入站配置及其客户端。所有端点均位于 /panel/api/inbounds 下，需要已登录的会话或 Bearer
+  令牌。生成链接的端点仅在请求来自已配置的受信任代理时，才会采信转发请求头。
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        列出已认证用户拥有的每个入站，包括每个入站的 clientStats 流量计数器。settings、streamSettings 和
+        sniffing 以嵌套的 JSON 对象形式返回（不含转义字符串）；写入时仍接受以 JSON 编码字符串形式回传这些字段的旧版调用方。
+      url: >-
+        #list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write
+    - depth: 2
+      title: >-
+        与 /list 结构相同，但 settings.clients[] 精简为 {email, enable, comment}，且 ClientStats
+        不附带 UUID/SubId。请将其用于列表页面；当你需要完整的单客户端数据（uuid、password、flow……）时，请调用
+        /get/:id。
+      url: >-
+        #same-shape-as-list-but-with-settingsclients-stripped-down-to-email-enable-comment-and-clientstats-not-enriched-with-uuidsubid-use-this-for-list-pages-fetch-getid-when-you-need-the-full-per-client-payload-uuid-password-flow-
+    - depth: 2
+      title: >-
+        已认证用户入站的轻量级选择器投影。返回 id、remark、tag、protocol、port、由服务端计算的 tlsFlowCapable
+        标志（当 VLESS 在 TCP 上使用 tls 或 reality，或在 XHTTP 上启用 VLESS encryption / vlessenc
+        时为 true），以及 ssMethod（Shadowsocks 加密方式，非 Shadowsocks 入站为空——客户端 UI 用它生成有效的
+        Shadowsocks 2022 PSK）。请将其用于下拉菜单和附加选择器——它会跳过 settings、streamSettings 和
+        clientStats，因此即便在拥有数千客户端的面板上，数据负载也能保持精简。
+      url: >-
+        #lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+    - depth: 2
+      title: 按数字 ID 获取单个入站。
+      url: '#fetch-a-single-inbound-by-numeric-id'
+    - depth: 2
+      title: >-
+        创建一个新入站。发送完整的入站数据（protocol、port、settings、streamSettings、sniffing、remark、expiryTime、total、enable）。settings、streamSettings
+        和 sniffing 可以嵌套 JSON 对象形式发送（推荐），也可以 JSON 编码字符串形式发送（旧版）。
+      url: >-
+        #create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy
+    - depth: 2
+      title: 按 ID 删除一个入站。同时会移除其关联的客户端统计记录行。
+      url: '#delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows'
+    - depth: 2
+      title: >-
+        在一次调用中删除多个入站。按顺序逐个处理列表；失败会按 id 逐一报告，其余的仍会继续执行。最多重启 xray 一次。
+      url: >-
+        #delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once
+    - depth: 2
+      title: >-
+        替换一个入站的配置。请求体结构与 /add 相同。对于拥有数千客户端的入站开销较大——若仅切换 enable，请优先使用 /setEnable。
+      url: >-
+        #replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
+    - depth: 2
+      title: >-
+        仅切换 enable 标志，而无需序列化整个 settings JSON。推荐用于大型入站上的 UI 开关。
+      url: >-
+        #toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
+    - depth: 2
+      title: >-
+        将单个入站的上传 + 下载计数器清零。不会影响单客户端的计数器。
+      url: >-
+        #zero-out-upload--download-counters-for-a-single-inbound-does-not-touch-per-client-counters
+    - depth: 2
+      title: >-
+        移除某个入站上附加的所有客户端，同时保留入站本身。它会从 settings.clients[] 收集 email，并将其送入优化过的批量删除流程（运行时用户移除
+        + 流量记录行清理 + SyncInbound）。此操作具有破坏性且无法撤销。
+      url: >-
+        #remove-every-client-attached-to-a-single-inbound-while-keeping-the-inbound-itself-collects-emails-from-settingsclients-and-feeds-them-into-the-optimized-bulk-delete-path-runtime-user-removal--traffic-row-cleanup--syncinbound-destructive-and-cannot-be-undone
+    - depth: 2
+      title: >-
+        重置每个入站的上传 + 下载计数器。此操作具有破坏性——统计历史将丢失。
+      url: >-
+        #reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost
+    - depth: 2
+      title: >-
+        从一段 JSON 数据（例如通过 UI 导出的数据）批量导入一个入站。请求体使用表单编码，仅含一个 "data" 字段。
+      url: >-
+        #bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
+    - depth: 2
+      title: >-
+        接收主面板聚合后的单客户端用量，以主面板的 GUID 为键。存储在一个仅用于 UI 显示叠加层和本地配额执行的辅助表中——绝不会并入主面板轮询的本地计数器，因此增量统计保持完整。由节点流量同步任务在面板间调用。
+      url: >-
+        #receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job
+    - depth: 2
+      title: >-
+        列出附加在主 VLESS/Trojan TCP-TLS 入站上的回落（fallback）规则。每条规则将一个子入站（dest）关联到可选的
+        SNI/ALPN/path/dest/xver 匹配条件。当 dest 为空时，使用子入站的 listen+port。
+      url: >-
+        #list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used
+    - depth: 2
+      title: >-
+        替换主入站的整个回落（fallback）列表。请求体为 JSON。会触发 Xray 重启。
+      url: >-
+        #replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
+  structuredData:
+    headings:
+      - content: >-
+          列出已认证用户拥有的每个入站，包括每个入站的 clientStats 流量计数器。settings、streamSettings 和
+          sniffing 以嵌套的 JSON 对象形式返回（不含转义字符串）；写入时仍接受以 JSON 编码字符串形式回传这些字段的旧版调用方。
+        id: >-
+          list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write
+      - content: >-
+          与 /list 结构相同，但 settings.clients[] 精简为 {email, enable, comment}，且
+          ClientStats 不附带 UUID/SubId。请将其用于列表页面；当你需要完整的单客户端数据（uuid、password、flow……）时，请调用
+          /get/:id。
+        id: >-
+          same-shape-as-list-but-with-settingsclients-stripped-down-to-email-enable-comment-and-clientstats-not-enriched-with-uuidsubid-use-this-for-list-pages-fetch-getid-when-you-need-the-full-per-client-payload-uuid-password-flow-
+      - content: >-
+          已认证用户入站的轻量级选择器投影。返回 id、remark、tag、protocol、port、由服务端计算的
+          tlsFlowCapable 标志（当 VLESS 在 TCP 上使用 tls 或 reality，或在 XHTTP 上启用 VLESS
+          encryption / vlessenc 时为 true），以及 ssMethod（Shadowsocks 加密方式，非 Shadowsocks
+          入站为空——客户端 UI 用它生成有效的 Shadowsocks 2022 PSK）。请将其用于下拉菜单和附加选择器——它会跳过
+          settings、streamSettings 和 clientStats，因此即便在拥有数千客户端的面板上，数据负载也能保持精简。
+        id: >-
+          lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+      - content: 按数字 ID 获取单个入站。
+        id: fetch-a-single-inbound-by-numeric-id
+      - content: >-
+          创建一个新入站。发送完整的入站数据（protocol、port、settings、streamSettings、sniffing、remark、expiryTime、total、enable）。settings、streamSettings
+          和 sniffing 可以嵌套 JSON 对象形式发送（推荐），也可以 JSON 编码字符串形式发送（旧版）。
+        id: >-
+          create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy
+      - content: >-
+          按 ID 删除一个入站。同时会移除其关联的客户端统计记录行。
+        id: delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows
+      - content: >-
+          在一次调用中删除多个入站。按顺序逐个处理列表；失败会按 id 逐一报告，其余的仍会继续执行。最多重启 xray 一次。
+        id: >-
+          delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once
+      - content: >-
+          替换一个入站的配置。请求体结构与 /add 相同。对于拥有数千客户端的入站开销较大——若仅切换 enable，请优先使用
+          /setEnable。
+        id: >-
+          replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
+      - content: >-
+          仅切换 enable 标志，而无需序列化整个 settings JSON。推荐用于大型入站上的 UI 开关。
+        id: >-
+          toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
+      - content: >-
+          将单个入站的上传 + 下载计数器清零。不会影响单客户端的计数器。
+        id: >-
+          zero-out-upload--download-counters-for-a-single-inbound-does-not-touch-per-client-counters
+      - content: >-
+          移除某个入站上附加的所有客户端，同时保留入站本身。它会从 settings.clients[] 收集 email，并将其送入优化过的批量删除流程（运行时用户移除
+          + 流量记录行清理 + SyncInbound）。此操作具有破坏性且无法撤销。
+        id: >-
+          remove-every-client-attached-to-a-single-inbound-while-keeping-the-inbound-itself-collects-emails-from-settingsclients-and-feeds-them-into-the-optimized-bulk-delete-path-runtime-user-removal--traffic-row-cleanup--syncinbound-destructive-and-cannot-be-undone
+      - content: >-
+          重置每个入站的上传 + 下载计数器。此操作具有破坏性——统计历史将丢失。
+        id: >-
+          reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost
+      - content: >-
+          从一段 JSON 数据（例如通过 UI 导出的数据）批量导入一个入站。请求体使用表单编码，仅含一个 "data" 字段。
+        id: >-
+          bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
+      - content: >-
+          接收主面板聚合后的单客户端用量，以主面板的 GUID 为键。存储在一个仅用于 UI 显示叠加层和本地配额执行的辅助表中——绝不会并入主面板轮询的本地计数器，因此增量统计保持完整。由节点流量同步任务在面板间调用。
+        id: >-
+          receive-a-master-panels-aggregated-per-client-usage-keyed-by-the-masters-guid-stored-in-a-side-table-used-only-for-the-ui-display-overlay-and-local-quota-enforcement--never-folded-into-the-local-counters-that-masters-poll-so-delta-accounting-stays-intact-called-panel-to-panel-by-the-node-traffic-sync-job
+      - content: >-
+          列出附加在主 VLESS/Trojan TCP-TLS 入站上的回落（fallback）规则。每条规则将一个子入站（dest）关联到可选的
+          SNI/ALPN/path/dest/xver 匹配条件。当 dest 为空时，使用子入站的 listen+port。
+        id: >-
+          list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used
+      - content: >-
+          替换主入站的整个回落（fallback）列表。请求体为 JSON。会触发 Xray 重启。
+        id: >-
+          replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
+    </>
+  );
+}

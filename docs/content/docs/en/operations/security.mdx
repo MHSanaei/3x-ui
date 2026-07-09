@@ -1,0 +1,66 @@
+---
+title: Security
+description: Harden 3x-ui — panel auth and 2FA, Fail2ban IP limits, firewall rules, BBR, and staying current.
+icon: ShieldCheck
+---
+
+A proxy panel is a high-value target. A few layers of hardening go a long way.
+
+## Panel hardening
+
+- Strong, unique credentials and **two-factor auth** (TOTP).
+- A non-default panel port and a long, random web base path.
+- TLS on the panel (directly or via a [reverse proxy](/docs/operations/reverse-proxy)).
+- The built-in **login limiter** blocks an IP/username after 5 failed attempts
+  in 5 minutes (for 15 minutes), and the panel can route its own egress through
+  an outbound.
+
+See [First login](/docs/guide/first-login) for the full checklist.
+
+## Fail2ban & IP limits
+
+Set an **IP limit** per client (see [Clients](/docs/config/clients)) to cap the
+number of simultaneous source IPs. Enforcement is handled by **Fail2ban**, which
+3x-ui installs and configures for you (enabled by default on script installs, and
+on Docker via `XUI_ENABLE_FAIL2BAN=true`).
+
+Manage it from the `x-ui` menu (**22 — IP Limit Management**): install/configure,
+change the ban duration (default **30 minutes**), ban/unban an IP, view ban logs,
+and check status. Under the hood:
+
+- The jail is named **`3x-ipl`**; ban logs live at `/var/log/x-ui/3xipl.log` and
+  `/var/log/x-ui/3xipl-banned.log` (also via `x-ui banlog`).
+- Bans cover all TCP/UDP **except** your SSH and panel ports, so a ban can't lock
+  you out of the server or panel.
+
+<Callout type="warn">
+  On Docker, Fail2ban bans with `iptables`, which needs the `NET_ADMIN` (and
+  `NET_RAW`) capability — `docker-compose.yml` grants them. With a bare
+  `docker run`, add `--cap-add=NET_ADMIN --cap-add=NET_RAW` or bans are logged
+  but never applied.
+</Callout>
+
+## Firewall
+
+Open only the ports you actually use: SSH, the panel port, the subscription
+port, and your inbound ports. The `x-ui` menu (**23 — Firewall Management**) wraps
+`ufw`, or generate rules here:
+
+<FirewallRulesGenerator />
+
+<Callout type="warn">
+  Make sure SSH stays allowed before enabling a default-deny firewall, or you can
+  lock yourself out. Test with a second session open.
+</Callout>
+
+## Network tuning (BBR)
+
+The `x-ui` menu (**26 — Enable BBR**) toggles Google's BBR congestion control
+(`net.ipv4.tcp_congestion_control = bbr`, `net.core.default_qdisc = fq`), which
+often improves throughput on congested links.
+
+## Keep current
+
+Update 3x-ui and Xray-core regularly — security fixes land in new releases. Watch
+the [releases page](https://github.com/MHSanaei/3x-ui/releases) and see
+[Update & uninstall](/docs/guide/update-uninstall).

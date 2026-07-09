@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 
 import type { Status } from '@/models/status';
+import { activateOnKey } from '@/utils/a11y';
 import './XrayStatusCard.css';
 
 interface XrayStatusCardProps {
@@ -67,7 +68,7 @@ export default function XrayStatusCard({
               <span>{t('pages.index.xrayStatusError')}</span>
             </Col>
             <Col>
-              <BarsOutlined className="cursor-pointer" onClick={onOpenLogs} />
+              <BarsOutlined className="cursor-pointer" role="button" tabIndex={0} aria-label={t('pages.index.logs')} onClick={onOpenLogs} onKeyDown={activateOnKey(onOpenLogs)} />
             </Col>
           </Row>
         }
@@ -90,21 +91,21 @@ export default function XrayStatusCard({
     // sense when one is configured (unlike IP limit, which no longer needs it)
     ...(accessLogEnable
       ? [
-          <Space className="action" key="xraylogs" onClick={onOpenXrayLogs}>
+          <Space className="action" key="xraylogs" role="button" tabIndex={0} aria-label={t('pages.index.accessLogs')} onClick={onOpenXrayLogs} onKeyDown={activateOnKey(onOpenXrayLogs)}>
             <BarsOutlined />
             {!isMobile && <span>{t('pages.index.accessLogs')}</span>}
           </Space>,
         ]
       : []),
-    <Space className="action" key="stop" onClick={onStopXray}>
+    <Space className="action" key="stop" role="button" tabIndex={0} aria-label={t('pages.index.stopXray')} onClick={onStopXray} onKeyDown={activateOnKey(onStopXray)}>
       <PoweroffOutlined />
       {!isMobile && <span>{t('pages.index.stopXray')}</span>}
     </Space>,
-    <Space className="action" key="restart" onClick={onRestartXray}>
+    <Space className="action" key="restart" role="button" tabIndex={0} aria-label={t('pages.index.restartXray')} onClick={onRestartXray} onKeyDown={activateOnKey(onRestartXray)}>
       <ReloadOutlined />
       {!isMobile && <span>{t('pages.index.restartXray')}</span>}
     </Space>,
-    <Space className="action" key="switch" onClick={onOpenVersionSwitch}>
+    <Space className="action" key="switch" role="button" tabIndex={0} aria-label={t('pages.index.xraySwitch')} onClick={onOpenVersionSwitch} onKeyDown={activateOnKey(onOpenVersionSwitch)}>
       <ToolOutlined />
       {!isMobile && (
         <span>

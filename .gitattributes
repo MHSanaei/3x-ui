@@ -1,9 +1,6 @@
 *.sh text eol=lf
-DockerInit.sh text eol=lf
-DockerEntrypoint.sh text eol=lf
 frontend/src/generated/** text eol=lf
 frontend/public/openapi.json text eol=lf
 frontend/src/test/__snapshots__/** text eol=lf
-
-# Cloud-init deploy assets are consumed on Linux — force LF regardless of host.
+*.go text eol=lf
 deploy/**/*.yaml text eol=lf

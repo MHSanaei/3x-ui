@@ -16,22 +16,23 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
-import { isUdpOutbound } from '@/hooks/useXraySetting';
-import type { OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 import TestResultPopover from './TestResultPopover';
 import {
+  effectiveTestMode,
   isTesting,
   isUntestable,
   outboundAddresses,
   showSecurity,
+  testModeLabel,
   testResult,
   trafficFor,
 } from './outbounds-tab-helpers';
 
 interface OutboundColumnsParams {
-  testMode: 'tcp' | 'http';
+  testMode: OutboundTestMode;
   rows: OutboundRow[];
   outboundsTraffic: OutboundTrafficRow[];
   outboundTestStates: Record<number, OutboundTestState>;
@@ -69,24 +70,24 @@ export function useOutboundColumns({
           <div className="action-cell">
             <span className="row-index">{index + 1}</span>
             <div className="action-buttons">
-              <Button shape="circle" size="small" icon={<EditOutlined />} onClick={() => openEdit(index)} />
+              <Button shape="circle" size="small" icon={<EditOutlined />} aria-label={t('edit')} onClick={() => openEdit(index)} />
               <Dropdown
                 trigger={['click']}
                 menu={{
                   items: [
                     ...(index > 0
                       ? [
-                          { key: 'top', label: <><VerticalAlignTopOutlined /> Move to top</>, onClick: () => setFirst(index) },
+                          { key: 'top', label: <><VerticalAlignTopOutlined /> {t('pages.xray.outbound.moveToTop')}</>, onClick: () => setFirst(index) },
                         ]
                       : []),
-                    { key: 'up', label: <ArrowUpOutlined />, disabled: index === 0, onClick: () => moveUp(index) },
-                    { key: 'down', label: <ArrowDownOutlined />, disabled: index === rows.length - 1, onClick: () => moveDown(index) },
-                    { key: 'reset', label: <><RetweetOutlined /> Reset traffic</>, onClick: () => onResetTraffic(rows[index].tag || '') },
-                    { key: 'del', danger: true, label: <><DeleteOutlined /> Delete</>, onClick: () => confirmDelete(index) },
+                    { key: 'up', label: <><ArrowUpOutlined /> {t('pages.inbounds.form.moveUp')}</>, disabled: index === 0, onClick: () => moveUp(index) },
+                    { key: 'down', label: <><ArrowDownOutlined /> {t('pages.inbounds.form.moveDown')}</>, disabled: index === rows.length - 1, onClick: () => moveDown(index) },
+                    { key: 'reset', label: <><RetweetOutlined /> {t('pages.inbounds.resetTraffic')}</>, onClick: () => onResetTraffic(rows[index].tag || '') },
+                    { key: 'del', danger: true, label: <><DeleteOutlined /> {t('delete')}</>, onClick: () => confirmDelete(index) },
                   ],
                 }}
               >
-                <Button shape="circle" size="small" icon={<MoreOutlined />} />
+                <Button shape="circle" size="small" icon={<MoreOutlined />} aria-label={t('more')} />
               </Dropdown>
             </div>
           </div>
@@ -167,13 +168,14 @@ export function useOutboundColumns({
         align: 'center',
         width: 80,
         render: (_v, record, index) => (
-          <Tooltip title={`${t('check')} (${(isUdpOutbound(record) ? 'http' : testMode).toUpperCase()})`}>
+          <Tooltip title={`${t('check')} (${testModeLabel(effectiveTestMode(record, testMode), t)})`}>
             <Button
               type="primary"
               shape="circle"
               loading={isTesting(outboundTestStates, index)}
               disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
               icon={<ThunderboltOutlined />}
+              aria-label={t('check')}
               onClick={() => onTest(index, testMode)}
             />
           </Tooltip>

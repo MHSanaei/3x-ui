@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
 
 export default [
@@ -42,6 +43,14 @@ export default [
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/immutability': 'off',
       'react-hooks/refs': 'off',
+    },
+  },
+  {
+    files: ['**/*.tsx'],
+    plugins: { 'jsx-a11y': jsxA11y },
+    rules: {
+      ...jsxA11y.flatConfigs.recommended.rules,
+      'jsx-a11y/no-autofocus': 'off',
     },
   },
 ];

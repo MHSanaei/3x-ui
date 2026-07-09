@@ -1,0 +1,44 @@
+---
+title: 反向代理
+description: 通过 Nginx 或 Caddy 为 3x-ui 面板和订阅提供 Let's Encrypt TLS 保护。
+icon: Waypoints
+---
+
+反向代理让你能够在一个简洁的域名上提供面板和订阅服务，并自动启用 HTTPS，同时将真实端口隐藏在 80/443 端口之后。更希望让面板直接终结 TLS？可以改用
+[`x-ui` SSL 菜单](/docs/config/ssl-certificates)来获取证书。
+
+## 生成配置
+
+<ReverseProxyGenerator />
+
+<Callout type="info">
+  面板使用 WebSocket 来实时更新，因此代理必须传递
+  `Upgrade`/`Connection` 头（上面的 Nginx 输出已经做到了这一点）。Caddy
+  会自动处理 WebSocket 升级。
+</Callout>
+
+## Nginx + 证书
+
+使用 Nginx 时，请通过 `certbot`（或 `acme.sh`）获取证书，并在 server 块中引用它：
+
+```bash title="certbot"
+certbot certonly --nginx -d panel.example.com
+```
+
+安装证书后请重新加载 Nginx，并设置自动续期（`certbot renew` 默认通过定时器运行）。
+
+## Caddy
+
+Caddy 会为你获取并续期证书——只需让 Caddyfile 指向面板，它便能正常工作：
+
+```text title="Caddyfile"
+panel.example.com {
+    reverse_proxy 127.0.0.1:2053
+}
+```
+
+## 小贴士
+
+- 即使在代理之后，也请保留面板的 **Web 基础路径**；这是纵深防御。
+- 如果你在代理处终结 TLS，可能需要在面板上设置 `XUI_SKIP_HSTS=true`——参见[环境变量参考](/docs/reference/env-vars)。
+- 也请代理[订阅](/docs/config/subscription)服务器，使其内容通过 HTTPS 提供。

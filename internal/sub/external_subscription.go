@@ -49,7 +49,6 @@ func fetchSubscriptionLinks(rowID int, rawURL string) []string {
 	cached, ok := subscriptionCache.m[rawURL]
 	subscriptionCache.Unlock()
 	if ok && time.Since(cached.fetchedAt) < subscriptionCacheTTL {
-		updateExternalSubscriptionFetchState(rowID, cached.fetchedAt, nil)
 		return cached.links
 	}
 

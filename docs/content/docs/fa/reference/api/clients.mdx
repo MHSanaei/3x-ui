@@ -1,0 +1,628 @@
+---
+title: کلاینت‌ها
+description: >-
+  کلاینت‌ها را به‌عنوان موجودیت‌های مستقل مدیریت کنید که می‌توانند به یک یا چند
+  inbound متصل شوند. هر رکورد کلاینت، ورودی settings.clients را در تمام
+  inboundهایی که به آن‌ها تعلق دارد هدایت می‌کند. این endpointها زیر مسیر
+  /panel/api/clients قرار دارند.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: >-
+        List every client with its attached inbound IDs and traffic record. The
+        reverse field, if set, is returned as a nested JSON object (legacy
+        JSON-encoded-string form is still accepted on write).
+      url: >-
+        #list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
+    - depth: 2
+      title: >-
+        Filter, sort, and paginate clients on the server. Each item is a slim
+        row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
+        page can ship 25-ish rows in a few KB instead of the full table. The
+        response also includes a summary computed across the full DB row set so
+        dashboard counters stay stable as the user paginates or filters. Page
+        size capped at 200; fetch /get/:email to obtain the full per-client
+        payload for an edit/info modal.
+      url: >-
+        #filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
+    - depth: 2
+      title: >-
+        Fetch one client by email, including the inbound IDs and external config
+        IDs it is attached to.
+      url: >-
+        #fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+    - depth: 2
+      title: >-
+        Create a new client and attach it to one or more inbounds in a single
+        call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password
+        for Trojan/Shadowsocks, auth for Hysteria) are generated server-side
+        when omitted, so callers can send only the universal fields.
+      url: >-
+        #create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+    - depth: 2
+      title: >-
+        Update an existing client by email. Changes propagate to every attached
+        inbound. Body is the JSON client payload — supply the full set of fields
+        you want to keep (the server replaces the row, it does not patch).
+      url: >-
+        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+    - depth: 2
+      title: >-
+        Delete a client by email. Removes it from every attached inbound and
+        drops its traffic record unless keepTraffic=1 is passed.
+      url: >-
+        #delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+    - depth: 2
+      title: >-
+        Attach an existing client to one or more additional inbounds. Body is
+        JSON.
+      url: >-
+        #attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
+    - depth: 2
+      title: Detach a client from one or more inbounds without deleting the client.
+      url: '#detach-a-client-from-one-or-more-inbounds-without-deleting-the-client'
+    - depth: 2
+      title: >-
+        Replace a client's external links (per-client share links and remote
+        subscription URLs surfaced in their subscription). Sends the full set;
+        the server replaces all rows.
+      url: >-
+        #replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+    - depth: 2
+      title: >-
+        Reset the up/down counters for every client globally. Quotas and expiry
+        are not affected. Triggers an Xray restart if any counter actually
+        moved.
+      url: >-
+        #reset-the-updown-counters-for-every-client-globally-quotas-and-expiry-are-not-affected-triggers-an-xray-restart-if-any-counter-actually-moved
+    - depth: 2
+      title: >-
+        Delete every client whose traffic quota is exhausted (used >= total,
+        when reset is disabled) or whose expiry has passed. Returns the deleted
+        count and triggers an Xray restart when any client was on a running
+        inbound.
+      url: >-
+        #delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
+    - depth: 2
+      title: >-
+        Delete every client that is not attached to any inbound, along with its
+        traffic record, IP log, and external links. Useful for clearing clients
+        left unattached after their inbounds were removed. Returns the deleted
+        count. Cannot be undone.
+      url: >-
+        #delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+    - depth: 2
+      title: >-
+        Return every client as a {client, inboundIds} array — the same shape
+        /bulkCreate and /import accept — so the payload round-trips straight
+        back through /import. Clients with no inbound attachment are included
+        with an empty inboundIds list. The UI shows this in a CodeMirror viewer
+        (copy / download); programmatic callers get the array in obj.
+      url: >-
+        #return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+    - depth: 2
+      title: >-
+        Import clients from a JSON body { "data": "<json>" }, where data is a
+        string-encoded array produced by /export ([{client, inboundIds}]). Items
+        with inboundIds are created and attached to those inbounds; items with
+        an empty inboundIds list are restored as unattached client records.
+        Existing emails are never overwritten — they are returned in skipped.
+        Triggers a single Xray restart at the end if any target inbound was
+        running.
+      url: >-
+        #import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        Shift expiry and/or traffic quota for many clients in one call.
+        addDays/addBytes may be negative. Clients with unlimited expiry
+        (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the
+        corresponding field — bulk extend never converts unlimited to limited.
+        The optional flow directive sets the XTLS flow on every client: "none"
+        clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the
+        inbound supports it (omit or "" to leave it unchanged). Returns the
+        adjusted count and per-email skip reasons.
+      url: >-
+        #shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        Enable many clients in one call. Emails are grouped by inbound and
+        applied with a single read-modify-write per inbound; the running Xray
+        (local or remote node) is updated to add each user. Note that enabling a
+        client whose quota is exhausted or whose expiry has passed only flips
+        the flag — the traffic loop will disable it again on the next tick.
+        Returns the changed count and per-email skip reasons.
+      url: >-
+        #enable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-add-each-user-note-that-enabling-a-client-whose-quota-is-exhausted-or-whose-expiry-has-passed-only-flips-the-flag--the-traffic-loop-will-disable-it-again-on-the-next-tick-returns-the-changed-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        Disable many clients in one call. Emails are grouped by inbound and
+        applied with a single read-modify-write per inbound; the running Xray
+        (local or remote node) is updated to remove each user. Returns the
+        changed count and per-email skip reasons.
+      url: >-
+        #disable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-remove-each-user-returns-the-changed-count-and-per-email-skip-reasons
+    - depth: 2
+      title: >-
+        Delete many clients in one call. The server processes the list
+        sequentially so each delete sees the committed state of the previous one
+        — avoids the race the per-email fan-out had on the panel side. Pass
+        keepTraffic=true to retain the xray_client_traffic rows after deletion.
+      url: >-
+        #delete-many-clients-in-one-call-the-server-processes-the-list-sequentially-so-each-delete-sees-the-committed-state-of-the-previous-one--avoids-the-race-the-per-email-fan-out-had-on-the-panel-side-pass-keeptraffictrue-to-retain-the-xray_client_traffic-rows-after-deletion
+    - depth: 2
+      title: >-
+        Create many clients in one call. Body is a JSON array of {client,
+        inboundIds} payloads — the same shape /add accepts. Items are processed
+        sequentially; per-email skip reasons are returned for items that fail
+        (e.g., duplicate email). Triggers a single Xray restart at the end if
+        any inbound was running.
+      url: >-
+        #create-many-clients-in-one-call-body-is-a-json-array-of-client-inboundids-payloads--the-same-shape-add-accepts-items-are-processed-sequentially-per-email-skip-reasons-are-returned-for-items-that-fail-eg-duplicate-email-triggers-a-single-xray-restart-at-the-end-if-any-inbound-was-running
+    - depth: 2
+      title: >-
+        Add many clients to a group in one call. Updates clients.group_name and
+        patches the matching client entry inside every owning inbound's settings
+        JSON in a single transaction. If the group name does not yet exist (in
+        client_groups or as a derived label), it is auto-created as a persistent
+        group. To clear the group label, use /groups/bulkRemove instead.
+      url: >-
+        #add-many-clients-to-a-group-in-one-call-updates-clientsgroup_name-and-patches-the-matching-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-if-the-group-name-does-not-yet-exist-in-client_groups-or-as-a-derived-label-it-is-auto-created-as-a-persistent-group-to-clear-the-group-label-use-groupsbulkremove-instead
+    - depth: 2
+      title: >-
+        Clear the group label on many clients in one call. Inverse of
+        /groups/bulkAdd. Clients themselves are kept — only the group label is
+        cleared from clients.group_name and from each owning inbound's settings
+        JSON. Groups become empty if all their members are removed.
+      url: >-
+        #clear-the-group-label-on-many-clients-in-one-call-inverse-of-groupsbulkadd-clients-themselves-are-kept--only-the-group-label-is-cleared-from-clientsgroup_name-and-from-each-owning-inbounds-settings-json-groups-become-empty-if-all-their-members-are-removed
+    - depth: 2
+      title: >-
+        Attach many existing clients to many inbounds in one call. Each client
+        keeps its identity (email/UUID/password/subId) and a shared traffic row;
+        all clients are added to a target inbound in a single AddInboundClient
+        call. Clients already present on a target are reported under skipped.
+        Returns per-email attached/skipped/errors lists and triggers a single
+        Xray restart if any target inbound was running.
+      url: >-
+        #attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        Mirror of bulkAttach: detach many existing clients from many inbounds in
+        one call. For each email, intersects the client's current inbounds with
+        the requested set and detaches from those only; (email, inbound) pairs
+        where the client is not currently attached are silently no-ops. Emails
+        not attached to any of the requested inbounds are reported under
+        skipped. Client records are kept even if they become orphaned — use
+        bulkDel for full removal. Returns per-email detached/skipped/errors
+        lists and triggers a single Xray restart if any target inbound was
+        running.
+      url: >-
+        #mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+    - depth: 2
+      title: >-
+        Zero up/down counters for many clients in one call. Loops the
+        single-reset path so each client is re-enabled across its attached
+        inbounds and pushed to Xray/remote nodes. Returns the count of
+        successfully reset clients.
+      url: >-
+        #zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients
+    - depth: 2
+      title: >-
+        List all client groups with their member counts. Merges persisted groups
+        (rows in client_groups, including empty placeholders) with the distinct
+        group_name values currently set on clients. Sorted alphabetically
+        (case-insensitive).
+      url: >-
+        #list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+    - depth: 2
+      title: >-
+        Return just the email list of clients that currently belong to the given
+        group. Useful for fanning a single bulk action over an entire group
+        without round-tripping the full client list.
+      url: >-
+        #return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
+    - depth: 2
+      title: >-
+        Create a new empty (placeholder) group. The group becomes selectable in
+        client forms and the filter drawer even before any client is added to
+        it. Errors if a group with the same name already exists.
+      url: >-
+        #create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+    - depth: 2
+      title: >-
+        Rename a group. The new name is applied to the client_groups row AND
+        propagated to every matching client (both clients.group_name and the
+        client entry inside every owning inbound's settings JSON) in a single
+        transaction. Returns the number of clients whose label was updated.
+      url: >-
+        #rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+    - depth: 2
+      title: >-
+        Remove a group. Deletes the client_groups row and clears the group label
+        from every matching client (both clients.group_name and the inbound
+        settings JSON). The clients themselves are NOT deleted — use /bulkDel
+        after filtering by group for that. Returns the count of clients whose
+        label was cleared.
+      url: >-
+        #remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared
+    - depth: 2
+      title: >-
+        Zero out a single client’s up/down counters. Re-enables the client
+        across every attached inbound and pushes the change to Xray (or the
+        remote node) so depleted users can connect again immediately.
+      url: >-
+        #zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately
+    - depth: 2
+      title: >-
+        Manually adjust a client’s upload + download counters. Useful for
+        migrations from external accounting systems.
+      url: >-
+        #manually-adjust-a-clients-upload--download-counters-useful-for-migrations-from-external-accounting-systems
+    - depth: 2
+      title: >-
+        List source IPs that have connected with the given client’s credentials.
+        Returns an array of "ip (timestamp)" strings.
+      url: >-
+        #list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
+    - depth: 2
+      title: Reset the recorded IP list for a client.
+      url: '#reset-the-recorded-ip-list-for-a-client'
+    - depth: 2
+      title: >-
+        List the emails of currently connected clients (last seen within the
+        heartbeat window), deduped across every node.
+      url: >-
+        #list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
+    - depth: 2
+      title: >-
+        Online client emails grouped by the panelGuid of the node that
+        physically hosts each client. The local panel uses its own GUID; each
+        node (at any depth in a chain) uses its GUID. Lets the inbounds page
+        attribute online status to the real node instead of the intermediate one
+        it syncs through.
+      url: >-
+        #online-client-emails-grouped-by-the-panelguid-of-the-node-that-physically-hosts-each-client-the-local-panel-uses-its-own-guid-each-node-at-any-depth-in-a-chain-uses-its-guid-lets-the-inbounds-page-attribute-online-status-to-the-real-node-instead-of-the-intermediate-one-it-syncs-through
+    - depth: 2
+      title: >-
+        Per-client source IPs grouped by the panelGuid of the node that observed
+        them. Lets the central panel attribute and enforce per-client IP limits
+        using the real visitor IPs each node sees, instead of the address of the
+        intermediate panel it syncs through.
+      url: >-
+        #per-client-source-ips-grouped-by-the-panelguid-of-the-node-that-observed-them-lets-the-central-panel-attribute-and-enforce-per-client-ip-limits-using-the-real-visitor-ips-each-node-sees-instead-of-the-address-of-the-intermediate-panel-it-syncs-through
+    - depth: 2
+      title: >-
+        Inbound tags that carried traffic within the heartbeat window, grouped
+        by the hosting node's panelGuid. Pairs with onlinesByGuid so the
+        inbounds page only marks a multi-inbound client online on the inbounds
+        it actually used. Nodes that do not report per-inbound activity are
+        absent.
+      url: >-
+        #inbound-tags-that-carried-traffic-within-the-heartbeat-window-grouped-by-the-hosting-nodes-panelguid-pairs-with-onlinesbyguid-so-the-inbounds-page-only-marks-a-multi-inbound-client-online-on-the-inbounds-it-actually-used-nodes-that-do-not-report-per-inbound-activity-are-absent
+    - depth: 2
+      title: Map of client email → last-seen unix timestamp.
+      url: '#map-of-client-email--last-seen-unix-timestamp'
+    - depth: 2
+      title: Traffic counters for a client identified by email.
+      url: '#traffic-counters-for-a-client-identified-by-email'
+    - depth: 2
+      title: >-
+        Return every protocol URL (vless://, vmess://, trojan://, ss://,
+        hysteria://, hy2://) for clients matching the subscription ID. Same
+        result set as /sub/<subId>, but as a JSON array — no base64. When an
+        inbound has streamSettings.externalProxy set, one URL is emitted per
+        external proxy. Empty array when the subId has no enabled clients.
+      url: >-
+        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+    - depth: 2
+      title: >-
+        Return every URL for one client across all attached inbounds — the same
+        strings the Copy URL button copies in the panel UI. Supported protocols:
+        vmess, vless, trojan, shadowsocks, hysteria. If
+        streamSettings.externalProxy is set, returns one URL per external proxy.
+        Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
+        tunnel) contribute nothing.
+      url: >-
+        #return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+  structuredData:
+    headings:
+      - content: >-
+          List every client with its attached inbound IDs and traffic record.
+          The reverse field, if set, is returned as a nested JSON object (legacy
+          JSON-encoded-string form is still accepted on write).
+        id: >-
+          list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
+      - content: >-
+          Filter, sort, and paginate clients on the server. Each item is a slim
+          row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
+          page can ship 25-ish rows in a few KB instead of the full table. The
+          response also includes a summary computed across the full DB row set
+          so dashboard counters stay stable as the user paginates or filters.
+          Page size capped at 200; fetch /get/:email to obtain the full
+          per-client payload for an edit/info modal.
+        id: >-
+          filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
+      - content: >-
+          Fetch one client by email, including the inbound IDs and external
+          config IDs it is attached to.
+        id: >-
+          fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+      - content: >-
+          Create a new client and attach it to one or more inbounds in a single
+          call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess,
+          password for Trojan/Shadowsocks, auth for Hysteria) are generated
+          server-side when omitted, so callers can send only the universal
+          fields.
+        id: >-
+          create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: >-
+          Update an existing client by email. Changes propagate to every
+          attached inbound. Body is the JSON client payload — supply the full
+          set of fields you want to keep (the server replaces the row, it does
+          not patch).
+        id: >-
+          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+      - content: >-
+          Delete a client by email. Removes it from every attached inbound and
+          drops its traffic record unless keepTraffic=1 is passed.
+        id: >-
+          delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+      - content: >-
+          Attach an existing client to one or more additional inbounds. Body is
+          JSON.
+        id: >-
+          attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
+      - content: Detach a client from one or more inbounds without deleting the client.
+        id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
+      - content: >-
+          Replace a client's external links (per-client share links and remote
+          subscription URLs surfaced in their subscription). Sends the full set;
+          the server replaces all rows.
+        id: >-
+          replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+      - content: >-
+          Reset the up/down counters for every client globally. Quotas and
+          expiry are not affected. Triggers an Xray restart if any counter
+          actually moved.
+        id: >-
+          reset-the-updown-counters-for-every-client-globally-quotas-and-expiry-are-not-affected-triggers-an-xray-restart-if-any-counter-actually-moved
+      - content: >-
+          Delete every client whose traffic quota is exhausted (used >= total,
+          when reset is disabled) or whose expiry has passed. Returns the
+          deleted count and triggers an Xray restart when any client was on a
+          running inbound.
+        id: >-
+          delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
+      - content: >-
+          Delete every client that is not attached to any inbound, along with
+          its traffic record, IP log, and external links. Useful for clearing
+          clients left unattached after their inbounds were removed. Returns the
+          deleted count. Cannot be undone.
+        id: >-
+          delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+      - content: >-
+          Return every client as a {client, inboundIds} array — the same shape
+          /bulkCreate and /import accept — so the payload round-trips straight
+          back through /import. Clients with no inbound attachment are included
+          with an empty inboundIds list. The UI shows this in a CodeMirror
+          viewer (copy / download); programmatic callers get the array in obj.
+        id: >-
+          return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+      - content: >-
+          Import clients from a JSON body { "data": "<json>" }, where data is a
+          string-encoded array produced by /export ([{client, inboundIds}]).
+          Items with inboundIds are created and attached to those inbounds;
+          items with an empty inboundIds list are restored as unattached client
+          records. Existing emails are never overwritten — they are returned in
+          skipped. Triggers a single Xray restart at the end if any target
+          inbound was running.
+        id: >-
+          import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+      - content: >-
+          Shift expiry and/or traffic quota for many clients in one call.
+          addDays/addBytes may be negative. Clients with unlimited expiry
+          (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the
+          corresponding field — bulk extend never converts unlimited to limited.
+          The optional flow directive sets the XTLS flow on every client: "none"
+          clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where
+          the inbound supports it (omit or "" to leave it unchanged). Returns
+          the adjusted count and per-email skip reasons.
+        id: >-
+          shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+      - content: >-
+          Enable many clients in one call. Emails are grouped by inbound and
+          applied with a single read-modify-write per inbound; the running Xray
+          (local or remote node) is updated to add each user. Note that enabling
+          a client whose quota is exhausted or whose expiry has passed only
+          flips the flag — the traffic loop will disable it again on the next
+          tick. Returns the changed count and per-email skip reasons.
+        id: >-
+          enable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-add-each-user-note-that-enabling-a-client-whose-quota-is-exhausted-or-whose-expiry-has-passed-only-flips-the-flag--the-traffic-loop-will-disable-it-again-on-the-next-tick-returns-the-changed-count-and-per-email-skip-reasons
+      - content: >-
+          Disable many clients in one call. Emails are grouped by inbound and
+          applied with a single read-modify-write per inbound; the running Xray
+          (local or remote node) is updated to remove each user. Returns the
+          changed count and per-email skip reasons.
+        id: >-
+          disable-many-clients-in-one-call-emails-are-grouped-by-inbound-and-applied-with-a-single-read-modify-write-per-inbound-the-running-xray-local-or-remote-node-is-updated-to-remove-each-user-returns-the-changed-count-and-per-email-skip-reasons
+      - content: >-
+          Delete many clients in one call. The server processes the list
+          sequentially so each delete sees the committed state of the previous
+          one — avoids the race the per-email fan-out had on the panel side.
+          Pass keepTraffic=true to retain the xray_client_traffic rows after
+          deletion.
+        id: >-
+          delete-many-clients-in-one-call-the-server-processes-the-list-sequentially-so-each-delete-sees-the-committed-state-of-the-previous-one--avoids-the-race-the-per-email-fan-out-had-on-the-panel-side-pass-keeptraffictrue-to-retain-the-xray_client_traffic-rows-after-deletion
+      - content: >-
+          Create many clients in one call. Body is a JSON array of {client,
+          inboundIds} payloads — the same shape /add accepts. Items are
+          processed sequentially; per-email skip reasons are returned for items
+          that fail (e.g., duplicate email). Triggers a single Xray restart at
+          the end if any inbound was running.
+        id: >-
+          create-many-clients-in-one-call-body-is-a-json-array-of-client-inboundids-payloads--the-same-shape-add-accepts-items-are-processed-sequentially-per-email-skip-reasons-are-returned-for-items-that-fail-eg-duplicate-email-triggers-a-single-xray-restart-at-the-end-if-any-inbound-was-running
+      - content: >-
+          Add many clients to a group in one call. Updates clients.group_name
+          and patches the matching client entry inside every owning inbound's
+          settings JSON in a single transaction. If the group name does not yet
+          exist (in client_groups or as a derived label), it is auto-created as
+          a persistent group. To clear the group label, use /groups/bulkRemove
+          instead.
+        id: >-
+          add-many-clients-to-a-group-in-one-call-updates-clientsgroup_name-and-patches-the-matching-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-if-the-group-name-does-not-yet-exist-in-client_groups-or-as-a-derived-label-it-is-auto-created-as-a-persistent-group-to-clear-the-group-label-use-groupsbulkremove-instead
+      - content: >-
+          Clear the group label on many clients in one call. Inverse of
+          /groups/bulkAdd. Clients themselves are kept — only the group label is
+          cleared from clients.group_name and from each owning inbound's
+          settings JSON. Groups become empty if all their members are removed.
+        id: >-
+          clear-the-group-label-on-many-clients-in-one-call-inverse-of-groupsbulkadd-clients-themselves-are-kept--only-the-group-label-is-cleared-from-clientsgroup_name-and-from-each-owning-inbounds-settings-json-groups-become-empty-if-all-their-members-are-removed
+      - content: >-
+          Attach many existing clients to many inbounds in one call. Each client
+          keeps its identity (email/UUID/password/subId) and a shared traffic
+          row; all clients are added to a target inbound in a single
+          AddInboundClient call. Clients already present on a target are
+          reported under skipped. Returns per-email attached/skipped/errors
+          lists and triggers a single Xray restart if any target inbound was
+          running.
+        id: >-
+          attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+      - content: >-
+          Mirror of bulkAttach: detach many existing clients from many inbounds
+          in one call. For each email, intersects the client's current inbounds
+          with the requested set and detaches from those only; (email, inbound)
+          pairs where the client is not currently attached are silently no-ops.
+          Emails not attached to any of the requested inbounds are reported
+          under skipped. Client records are kept even if they become orphaned —
+          use bulkDel for full removal. Returns per-email
+          detached/skipped/errors lists and triggers a single Xray restart if
+          any target inbound was running.
+        id: >-
+          mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+      - content: >-
+          Zero up/down counters for many clients in one call. Loops the
+          single-reset path so each client is re-enabled across its attached
+          inbounds and pushed to Xray/remote nodes. Returns the count of
+          successfully reset clients.
+        id: >-
+          zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients
+      - content: >-
+          List all client groups with their member counts. Merges persisted
+          groups (rows in client_groups, including empty placeholders) with the
+          distinct group_name values currently set on clients. Sorted
+          alphabetically (case-insensitive).
+        id: >-
+          list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: >-
+          Return just the email list of clients that currently belong to the
+          given group. Useful for fanning a single bulk action over an entire
+          group without round-tripping the full client list.
+        id: >-
+          return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
+      - content: >-
+          Create a new empty (placeholder) group. The group becomes selectable
+          in client forms and the filter drawer even before any client is added
+          to it. Errors if a group with the same name already exists.
+        id: >-
+          create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+      - content: >-
+          Rename a group. The new name is applied to the client_groups row AND
+          propagated to every matching client (both clients.group_name and the
+          client entry inside every owning inbound's settings JSON) in a single
+          transaction. Returns the number of clients whose label was updated.
+        id: >-
+          rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+      - content: >-
+          Remove a group. Deletes the client_groups row and clears the group
+          label from every matching client (both clients.group_name and the
+          inbound settings JSON). The clients themselves are NOT deleted — use
+          /bulkDel after filtering by group for that. Returns the count of
+          clients whose label was cleared.
+        id: >-
+          remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared
+      - content: >-
+          Zero out a single client’s up/down counters. Re-enables the client
+          across every attached inbound and pushes the change to Xray (or the
+          remote node) so depleted users can connect again immediately.
+        id: >-
+          zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately
+      - content: >-
+          Manually adjust a client’s upload + download counters. Useful for
+          migrations from external accounting systems.
+        id: >-
+          manually-adjust-a-clients-upload--download-counters-useful-for-migrations-from-external-accounting-systems
+      - content: >-
+          List source IPs that have connected with the given client’s
+          credentials. Returns an array of "ip (timestamp)" strings.
+        id: >-
+          list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
+      - content: Reset the recorded IP list for a client.
+        id: reset-the-recorded-ip-list-for-a-client
+      - content: >-
+          List the emails of currently connected clients (last seen within the
+          heartbeat window), deduped across every node.
+        id: >-
+          list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
+      - content: >-
+          Online client emails grouped by the panelGuid of the node that
+          physically hosts each client. The local panel uses its own GUID; each
+          node (at any depth in a chain) uses its GUID. Lets the inbounds page
+          attribute online status to the real node instead of the intermediate
+          one it syncs through.
+        id: >-
+          online-client-emails-grouped-by-the-panelguid-of-the-node-that-physically-hosts-each-client-the-local-panel-uses-its-own-guid-each-node-at-any-depth-in-a-chain-uses-its-guid-lets-the-inbounds-page-attribute-online-status-to-the-real-node-instead-of-the-intermediate-one-it-syncs-through
+      - content: >-
+          Per-client source IPs grouped by the panelGuid of the node that
+          observed them. Lets the central panel attribute and enforce per-client
+          IP limits using the real visitor IPs each node sees, instead of the
+          address of the intermediate panel it syncs through.
+        id: >-
+          per-client-source-ips-grouped-by-the-panelguid-of-the-node-that-observed-them-lets-the-central-panel-attribute-and-enforce-per-client-ip-limits-using-the-real-visitor-ips-each-node-sees-instead-of-the-address-of-the-intermediate-panel-it-syncs-through
+      - content: >-
+          Inbound tags that carried traffic within the heartbeat window, grouped
+          by the hosting node's panelGuid. Pairs with onlinesByGuid so the
+          inbounds page only marks a multi-inbound client online on the inbounds
+          it actually used. Nodes that do not report per-inbound activity are
+          absent.
+        id: >-
+          inbound-tags-that-carried-traffic-within-the-heartbeat-window-grouped-by-the-hosting-nodes-panelguid-pairs-with-onlinesbyguid-so-the-inbounds-page-only-marks-a-multi-inbound-client-online-on-the-inbounds-it-actually-used-nodes-that-do-not-report-per-inbound-activity-are-absent
+      - content: Map of client email → last-seen unix timestamp.
+        id: map-of-client-email--last-seen-unix-timestamp
+      - content: Traffic counters for a client identified by email.
+        id: traffic-counters-for-a-client-identified-by-email
+      - content: >-
+          Return every protocol URL (vless://, vmess://, trojan://, ss://,
+          hysteria://, hy2://) for clients matching the subscription ID. Same
+          result set as /sub/<subId>, but as a JSON array — no base64. When an
+          inbound has streamSettings.externalProxy set, one URL is emitted per
+          external proxy. Empty array when the subId has no enabled clients.
+        id: >-
+          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+      - content: >-
+          Return every URL for one client across all attached inbounds — the
+          same strings the Copy URL button copies in the panel UI. Supported
+          protocols: vmess, vless, trojan, shadowsocks, hysteria. If
+          streamSettings.externalProxy is set, returns one URL per external
+          proxy. Protocols without a URL form (socks, http, mixed, wireguard,
+          dokodemo, tunnel) contribute nothing.
+        id: >-
+          return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+    </>
+  );
+}

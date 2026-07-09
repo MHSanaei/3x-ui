@@ -69,7 +69,7 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
-      <Button type="text" size="small" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => onClick('edit')} />
+      <Button type="text" size="small" style={{ fontSize: 16 }} icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onClick('edit')} />
       <Dropdown
         trigger={['click']}
         menu={{
@@ -77,7 +77,7 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >
-        <Button type="text" size="small" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
+        <Button type="text" size="small" style={{ fontSize: 16 }} icon={<MoreOutlined />} aria-label={t('more')} />
       </Dropdown>
     </div>
   );

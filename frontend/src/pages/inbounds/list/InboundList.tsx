@@ -5,6 +5,7 @@ import {
   Card,
   Checkbox,
   Dropdown,
+  Input,
   Select,
   Space,
   Switch,
@@ -22,9 +23,11 @@ import {
   ReloadOutlined,
   InfoCircleOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 
 import { buildRowActionsMenu } from './RowActions';
 import { useInboundColumns } from './useInboundColumns';
@@ -55,6 +58,7 @@ export default function InboundList({
   // Node filter (#4997): 'all' shows everything, 0 is the local-panel
   // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
   const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
+  const [searchKey, setSearchKey] = useState('');
 
   const showNodeFilter = useMemo(
     () => nodesById.size > 0 || dbInbounds.some((ib) => ib.nodeId != null),
@@ -71,10 +75,17 @@ export default function InboundList({
   );
 
   const visibleInbounds = useMemo(() => {
-    if (nodeFilter === 'all') return dbInbounds;
-    if (nodeFilter === 0) return dbInbounds.filter((ib) => ib.nodeId == null);
-    return dbInbounds.filter((ib) => ib.nodeId === nodeFilter);
-  }, [dbInbounds, nodeFilter]);
+    let list = dbInbounds;
+    if (nodeFilter === 0) list = list.filter((ib) => ib.nodeId == null);
+    else if (nodeFilter !== 'all') list = list.filter((ib) => ib.nodeId === nodeFilter);
+    const q = searchKey.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((ib) => (
+      (ib.remark || '').toLowerCase().includes(q)
+      || String(ib.port).includes(q)
+      || (ib.protocol || '').toLowerCase().includes(q)
+    ));
+  }, [dbInbounds, nodeFilter, searchKey]);
 
   const onSwitchEnable = useCallback(async (dbInbound: DBInboundRecord, next: boolean) => {
     const previous = dbInbound.enable;
@@ -160,11 +171,11 @@ export default function InboundList({
       hoverable
       title={(
         <Space>
-          <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />}>
+          <Button type="primary" onClick={onAddInbound} icon={<PlusOutlined />} aria-label={t('pages.inbounds.addInbound')}>
             {!isMobile && t('pages.inbounds.addInbound')}
           </Button>
           <Dropdown trigger={['click']} menu={generalActionsMenu}>
-            <Button type="primary" icon={<MenuOutlined />}>
+            <Button type="primary" icon={<MenuOutlined />} aria-label={t('pages.inbounds.generalActions')}>
               {!isMobile && t('pages.inbounds.generalActions')}
             </Button>
           </Dropdown>
@@ -173,16 +184,27 @@ export default function InboundList({
               value={nodeFilter}
               onChange={(v) => setNodeFilter(v)}
               options={nodeFilterOptions}
+              showSearch
               popupMatchSelectWidth={false}
               style={{ minWidth: isMobile ? 90 : 140 }}
+              aria-label={t('pages.clients.filters.nodes')}
             />
           )}
+          <Input
+            value={searchKey}
+            onChange={(e) => setSearchKey(e.target.value)}
+            placeholder={t('search')}
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ maxWidth: isMobile ? 110 : 200 }}
+            aria-label={t('search')}
+          />
           {selectedRowKeys.length > 0 && (
             <>
               <Tag color="blue" closable onClose={() => setSelectedRowKeys([])} style={{ marginInlineEnd: 0 }}>
                 {t('pages.inbounds.selectedCount', { count: selectedRowKeys.length })}
               </Tag>
-              <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
+              <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete} aria-label={t('delete')}>
                 {!isMobile && t('delete')}
               </Button>
             </>
@@ -221,9 +243,16 @@ export default function InboundList({
                     />
                     <span className="card-id">#{record.id}</span>
                     <span className="tag-name">{record.remark}</span>
-                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="card-actions">
                       <Tooltip title={t('pages.inbounds.inboundInfo')}>
-                        <InfoCircleOutlined className="row-action-trigger" onClick={() => setStatsRecord(record)} />
+                        <InfoCircleOutlined
+                          className="row-action-trigger"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('pages.inbounds.inboundInfo')}
+                          onClick={() => setStatsRecord(record)}
+                          onKeyDown={activateOnKey(() => setStatsRecord(record))}
+                        />
                       </Tooltip>
                       <Switch
                         checked={record.enable}
@@ -238,7 +267,7 @@ export default function InboundList({
                           onClick: ({ key }) => onRowAction({ key: key as RowAction, dbInbound: record }),
                         }}
                       >
-                        <MoreOutlined className="row-action-trigger" onClick={(e) => e.preventDefault()} />
+                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
                       </Dropdown>
                     </div>
                   </div>

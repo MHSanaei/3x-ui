@@ -37,6 +37,39 @@ jobs:
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
           go test -shuffle=on -count=1 $(cat /tmp/go-packages.txt)
 
+  postgres-durable-first:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: xui_durable
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d xui_durable"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: PostgreSQL durable-first tests
+        run: |
+          set -o pipefail
+          XUI_DB_TYPE=postgres XUI_DB_DSN="host=127.0.0.1 port=5432 user=postgres password=postgres dbname=xui_durable sslmode=disable" \
+            go test ./internal/web/service -run 'PostgresCommitFailure' -count=1 -v | tee /tmp/postgres-durable-first.log
+          if grep -q -- '--- SKIP' /tmp/postgres-durable-first.log; then
+            exit 1
+          fi
+
   codegen:
     runs-on: ubuntu-latest
     steps:

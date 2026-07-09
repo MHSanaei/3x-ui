@@ -3,3 +3,4 @@ node_modules/
 *.log
 *.tsbuildinfo
 coverage/
+storybook-static/

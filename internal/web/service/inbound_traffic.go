@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,19 +22,15 @@ import (
 )
 
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
-	var disabledNodeIDs []int
 	err = submitTrafficWrite(func() error {
 		var inner error
-		needRestart, clientsDisabled, disabledNodeIDs, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
+		needRestart, clientsDisabled, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
 		return inner
 	})
-	if err == nil && len(disabledNodeIDs) > 0 {
-		s.restartRemoteNodesOnDisable(disabledNodeIDs)
-	}
 	return
 }
 
-func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, error) {
+func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
 	var err error
 	db := database.GetDB()
 	tx := db.Begin()
@@ -45,11 +44,11 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 	}()
 	err = s.addInboundTraffic(tx, inboundTraffics)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, err
 	}
 	err = s.addClientTraffic(tx, clientTraffics)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, err
 	}
 
 	needRestart0, count, err := s.autoRenewClients(tx)
@@ -60,7 +59,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 	}
 
 	disabledClientsCount := int64(0)
-	needRestart1, count, disabledNodeIDs, err := s.disableInvalidClients(tx)
+	needRestart1, count, err := s.disableInvalidClients(tx)
 	if err != nil {
 		logger.Warning("Error in disabling invalid clients:", err)
 	} else if count > 0 {
@@ -74,7 +73,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
-	return needRestart0 || needRestart1 || needRestart2, disabledClientsCount > 0, disabledNodeIDs, nil
+	return needRestart0 || needRestart1 || needRestart2, disabledClientsCount > 0, nil
 }
 
 func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
@@ -88,8 +87,8 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 		if traffic.IsInbound {
 			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
-					"up":   gorm.Expr("up + ?", traffic.Up),
-					"down": gorm.Expr("down + ?", traffic.Down),
+					"up":   gorm.Expr(database.ClampedAddExpr("up"), traffic.Up),
+					"down": gorm.Expr(database.ClampedAddExpr("down"), traffic.Down),
 				}).Error
 			if err != nil {
 				return err
@@ -129,7 +128,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return nil
 	}
 
-	dbClientTraffics, err = s.adjustTraffics(tx, dbClientTraffics)
+	dbClientTraffics, convertedExpiryByEmail, err := s.adjustTraffics(tx, dbClientTraffics)
 	if err != nil {
 		return err
 	}
@@ -154,7 +153,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		}
 		if err = tx.Exec(
 			fmt.Sprintf(
-				`UPDATE client_traffics SET up = up + ?, down = down + ?, last_online = %s WHERE email = ?`,
+				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s WHERE email = ?`,
+				database.ClampedAddExpr("up"),
+				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
 			),
 			t.Up, t.Down, now, ct.Email,
@@ -165,22 +166,22 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 
 	// adjustTraffics converts delayed-start rows (negative ExpiryTime → absolute
 	// deadline) in-memory. Persist that conversion now since the traffic UPDATE
-	// above only touches up/down/last_online.
-	for _, ct := range dbClientTraffics {
-		if ct.ExpiryTime > 0 {
-			if err = tx.Exec(
-				`UPDATE client_traffics SET expiry_time = ? WHERE email = ? AND expiry_time < 0`,
-				ct.ExpiryTime, ct.Email,
-			).Error; err != nil {
-				logger.Warning("AddClientTraffic update expiry_time ", err)
-			}
+	// above only touches up/down/last_online. Only converted emails are written:
+	// updating every polled row issued one no-op UPDATE per active client per
+	// poll. Sorted order keeps concurrent writers lock-compatible on Postgres.
+	for _, email := range slices.Sorted(maps.Keys(convertedExpiryByEmail)) {
+		if err = tx.Exec(
+			`UPDATE client_traffics SET expiry_time = ? WHERE email = ? AND expiry_time < 0`,
+			convertedExpiryByEmail[email], email,
+		).Error; err != nil {
+			logger.Warning("AddClientTraffic update expiry_time ", err)
 		}
 	}
 
 	return nil
 }
 
-func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, error) {
+func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, map[string]int64, error) {
 	now := time.Now().UnixMilli()
 
 	// "Start After First Use" stores a negative expiry (the duration). On the
@@ -194,7 +195,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		}
 	}
 	if len(newExpiryByEmail) == 0 {
-		return dbClientTraffics, nil
+		return dbClientTraffics, nil, nil
 	}
 
 	delayedEmails := make([]string, 0, len(newExpiryByEmail))
@@ -212,16 +213,16 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		Distinct().
 		Pluck("client_inbounds.inbound_id", &inboundIds).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(inboundIds) == 0 {
-		return dbClientTraffics, nil
+		return dbClientTraffics, nil, nil
 	}
 
 	var inbounds []*model.Inbound
 	err = tx.Model(model.Inbound{}).Where("id IN (?)", inboundIds).Find(&inbounds).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
@@ -247,7 +248,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 			settings["clients"] = newClients
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			inbounds[inbound_index].Settings = string(modifiedSettings)
@@ -280,7 +281,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		}
 	}
 
-	return dbClientTraffics, nil
+	return dbClientTraffics, newExpiryByEmail, nil
 }
 
 func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
@@ -474,6 +475,9 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 }
 
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
+	if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{email}); err != nil {
+		return err
+	}
 	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
 		return err
 	}
@@ -484,6 +488,9 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 }
 
 func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) error {
+	if err := adjustGroupBaselinesForRemovedTraffic(tx, emails); err != nil {
+		return err
+	}
 	const chunk = 400
 	for start := 0; start < len(emails); start += chunk {
 		end := min(start+chunk, len(emails))
@@ -502,18 +509,26 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
-	return submitTrafficWrite(func() error {
-		db := database.GetDB()
-		if err := clearGlobalTraffic(db, clientEmail); err != nil {
-			return err
-		}
-		if err := db.Model(xray.ClientTraffic{}).
-			Where("email = ?", clientEmail).
-			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
-			return err
-		}
-		return db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
+	err := submitTrafficWrite(func() error {
+		return database.GetDB().Transaction(func(tx *gorm.DB) error {
+			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+				return err
+			}
+			if err := clearGlobalTraffic(tx, clientEmail); err != nil {
+				return err
+			}
+			if err := tx.Model(xray.ClientTraffic{}).
+				Where("email = ?", clientEmail).
+				Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
+				return err
+			}
+			return tx.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
+		})
 	})
+	if err == nil {
+		s.resetMtprotoClientQuota(clientEmail)
+	}
+	return err
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRestart bool, err error) {
@@ -522,6 +537,9 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRes
 		needRestart, inner = s.resetClientTrafficLocked(id, clientEmail)
 		return inner
 	})
+	if err == nil {
+		s.resetMtprotoClientQuota(clientEmail)
+	}
 	return
 }
 
@@ -596,6 +614,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		return false, err
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+			return err
+		}
 		if err := tx.Save(traffic).Error; err != nil {
 			return err
 		}
@@ -632,9 +653,13 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 }
 
 func (s *InboundService) ResetAllTraffics() error {
-	return submitTrafficWrite(func() error {
+	err := submitTrafficWrite(func() error {
 		return s.resetAllTrafficsLocked()
 	})
+	if err == nil {
+		s.resetAllMtprotoQuotas()
+	}
+	return err
 }
 
 func (s *InboundService) resetAllTrafficsLocked() error {
@@ -826,13 +851,25 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
 
-	// Retrieve inbounds where settings contain the given tgId
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	idQuery := fmt.Sprintf(
+		"SELECT DISTINCT inbounds.id %s WHERE %s = ?",
+		database.JSONClientsFromInbound(),
+		database.JSONFieldText("client.value", "tgId"),
+	)
+	var inboundIds []int
+	if err := db.Raw(idQuery, strconv.FormatInt(tgId, 10)).Scan(&inboundIds).Error; err != nil {
 		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
 		return nil, err
+	}
+
+	var inbounds []*model.Inbound
+	if len(inboundIds) > 0 {
+		err := db.Model(model.Inbound{}).Where("id IN ?", inboundIds).Find(&inbounds).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
+			return nil, err
+		}
 	}
 
 	var emails []string
@@ -855,7 +892,7 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
 	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
 		var page []*xray.ClientTraffic
-		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			}
@@ -917,14 +954,18 @@ func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.Clien
 		}
 		traffics = append(traffics, page...)
 	}
+	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
 }
 
 // GetAllClientTraffics returns the full set of client_traffics rows so the
-// websocket broadcasters can ship a complete snapshot every cycle. The old
-// delta-only path (GetActiveClientTraffics on activeEmails) silently dropped
-// the per-client section whenever no client moved bytes in the cycle or a
-// node sync failed, leaving client rows in the UI stuck at stale numbers.
+// websocket broadcasters can ship a complete snapshot every cycle. A pure
+// delta path silently dropped the per-client section whenever no client moved
+// bytes in the cycle or a node sync failed, leaving client rows in the UI
+// stuck at stale numbers — so small installs broadcast this snapshot, and only
+// above the traffic job's snapshot threshold (where the marshaled snapshot
+// would exceed the hub's payload cap and be dropped wholesale) does the job
+// fall back to active-row deltas.
 func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
@@ -933,6 +974,13 @@ func (s *InboundService) GetAllClientTraffics() ([]*xray.ClientTraffic, error) {
 	}
 	overlayGlobalTraffic(db, traffics)
 	return traffics, nil
+}
+
+func (s *InboundService) CountClientTraffics() (int64, error) {
+	db := database.GetDB()
+	var count int64
+	err := db.Model(xray.ClientTraffic{}).Count(&count).Error
+	return count, err
 }
 
 type InboundTrafficSummary struct {
@@ -1021,14 +1069,12 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 
 	traffic.InboundId = inbound.Id
 
-	// Unmarshal settings to get clients
-	settings := map[string][]model.Client{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+	clients, err := ParseInboundSettingsClients(inbound.Settings)
+	if err != nil {
 		logger.Errorf("Error unmarshalling inbound settings for inbound ID %d: %v", inbound.Id, err)
 		return nil, err
 	}
 
-	clients := settings["clients"]
 	for _, client := range clients {
 		if (client.ID == query || client.Password == query) && client.Email != "" {
 			traffic.Email = client.Email

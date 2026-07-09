@@ -8,6 +8,7 @@ import { SettingListItem } from '@/components/ui';
 import { EmailNotifications } from '@/components/ui/notifications/EmailNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
+import SecretInput from './SecretInput';
 
 interface EmailTabProps {
   allSetting: AllSetting;
@@ -72,10 +73,13 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpPassword')}
-              description={allSetting.hasSmtpPassword ? t('pages.settings.smtpPasswordConfigured') : t('pages.settings.smtpPasswordDesc')}>
-              <Input.Password value={allSetting.smtpPassword}
-                placeholder={allSetting.hasSmtpPassword ? t('pages.settings.smtpPasswordPlaceholder') : ''}
-                onChange={(e) => updateSetting({ smtpPassword: e.target.value })} />
+              description={allSetting.hasSmtpPassword && !allSetting.clearSmtpPassword ? t('pages.settings.smtpPasswordConfigured') : t('pages.settings.smtpPasswordDesc')}>
+              <SecretInput value={allSetting.smtpPassword}
+                configured={allSetting.hasSmtpPassword}
+                clearArmed={allSetting.clearSmtpPassword}
+                placeholder={t('pages.settings.smtpPasswordPlaceholder')}
+                onChange={(v) => updateSetting({ smtpPassword: v })}
+                onClearArmedChange={(armed) => updateSetting({ clearSmtpPassword: armed })} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpTo')} description={t('pages.settings.smtpToDesc')}>

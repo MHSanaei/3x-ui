@@ -8,7 +8,7 @@ exports[`genInboundLinks orchestrator > shadowsocks-tcp-2022: byte-stable 1`] = 
 
 exports[`genInboundLinks orchestrator > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@override.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test"`;
 
-exports[`genInboundLinks orchestrator > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@override.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sni=yahoo.com&sid=a3f1&spx=%2F&flow=xtls-rprx-vision#parity-test"`;
+exports[`genInboundLinks orchestrator > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@override.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sni=yahoo.com&sid=a3f1&spx=%2Fdafd018f50a389b&flow=xtls-rprx-vision#parity-test"`;
 
 exports[`genInboundLinks orchestrator > vless-ws-tls: byte-stable 1`] = `"vless://8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02@override.test:443?type=ws&encryption=none&path=%2Fws&host=cdn.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=cdn.example.test#parity-test"`;
 
@@ -36,7 +36,7 @@ exports[`genShadowsocksLink > shadowsocks-tcp-2022: byte-stable 1`] = `"ss://202
 
 exports[`genTrojanLink > trojan-ws-tls: byte-stable 1`] = `"trojan://trojan-test-pw-XYZ@example.test:443?type=ws&path=%2Ftrojan&host=trojan.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=trojan.example.test#parity-test"`;
 
-exports[`genVlessLink > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@example.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sni=yahoo.com&sid=a3f1&spx=%2F&flow=xtls-rprx-vision#parity-test"`;
+exports[`genVlessLink > vless-tcp-reality: byte-stable 1`] = `"vless://22222222-3333-4444-9555-666666666666@example.test:443?type=tcp&encryption=none&security=reality&pbk=Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o&fp=chrome&sni=yahoo.com&sid=a3f1&spx=%2Fd08ed99bd9afc60&flow=xtls-rprx-vision#parity-test"`;
 
 exports[`genVlessLink > vless-ws-tls: byte-stable 1`] = `"vless://8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02@example.test:443?type=ws&encryption=none&path=%2Fws&host=cdn.example.test&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=cdn.example.test#parity-test"`;
 

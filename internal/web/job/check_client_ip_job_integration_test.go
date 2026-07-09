@@ -95,7 +95,7 @@ func seedInboundOnlyWithClient(t *testing.T, tag, email string, limitIp int) *mo
 func seedLinkedInboundWithClient(t *testing.T, tag, email string, limitIp int) *model.Inbound {
 	t.Helper()
 	inbound := seedInboundOnlyWithClient(t, tag, email, limitIp)
-	client := &model.ClientRecord{Email: email}
+	client := &model.ClientRecord{Email: email, LimitIP: limitIp}
 	if err := database.GetDB().Create(client).Error; err != nil {
 		t.Fatalf("seed client record: %v", err)
 	}
@@ -206,10 +206,13 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true, false)
+	shouldCleanLog, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 3, live, true, false)
 
 	if shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be false, nothing should have been banned with 1 live ip under limit 3")
+	}
+	if banned {
+		t.Fatalf("banned must be false with 1 live ip under limit 3")
 	}
 	if len(j.disAllowedIps) != 0 {
 		t.Fatalf("disAllowedIps must be empty, got %v", j.disAllowedIps)
@@ -259,10 +262,13 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog := j.updateInboundClientIps(row, inbound, email, live, true, false)
+	shouldCleanLog, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, false)
 
 	if !shouldCleanLog {
 		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")
+	}
+	if !banned {
+		t.Fatalf("banned must be true when the live set exceeds the limit")
 	}
 	if len(j.disAllowedIps) != 1 || j.disAllowedIps[0] != "10.1.0.1" {
 		t.Fatalf("expected 10.1.0.1 to be banned; disAllowedIps = %v", j.disAllowedIps)
@@ -386,5 +392,30 @@ func TestGetInboundByEmailRejectsSubstringFallbackMatch(t *testing.T) {
 
 	if got, err := (&CheckClientIpJob{}).getInboundByEmail("ann@example.com"); err == nil {
 		t.Fatalf("substring email matched inbound %d; want no exact match", got.Id)
+	}
+}
+
+// hasLimitIp gates every 10s scan on the normalized clients table: a bare
+// "limitIp":0 in settings JSON (which the old LIKE scan matched and parsed)
+// must not enable enforcement, while a single clients.limit_ip > 0 row must.
+func TestHasLimitIp_ProbesClientRecords(t *testing.T) {
+	setupIntegrationDB(t)
+	j := &CheckClientIpJob{}
+
+	if j.hasLimitIp() {
+		t.Fatal("hasLimitIp = true on an empty database")
+	}
+
+	seedLinkedInboundWithClient(t, "no-limit", "nolimit@example.com", 0)
+	if j.hasLimitIp() {
+		t.Fatal("hasLimitIp = true with only limit_ip=0 clients")
+	}
+
+	limited := &model.ClientRecord{Email: "limited@example.com", LimitIP: 2}
+	if err := database.GetDB().Create(limited).Error; err != nil {
+		t.Fatalf("seed limited client: %v", err)
+	}
+	if !j.hasLimitIp() {
+		t.Fatal("hasLimitIp = false with a limit_ip=2 client present")
 	}
 }

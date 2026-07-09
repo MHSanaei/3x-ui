@@ -148,8 +148,8 @@ func TestComputeHotDiff_StaticSectionChangeNeedsRestart(t *testing.T) {
 func TestComputeHotDiff_InboundAddRemoveChange(t *testing.T) {
 	oldCfg := makeHotConfig()
 	newCfg := makeHotConfig()
-	// change existing
-	newCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"a"}]}`)
+	// change existing beyond the clients list, so no user-level shortcut applies
+	newCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[],"decryption":"none"}`)
 	// add new
 	newCfg.InboundConfigs = append(newCfg.InboundConfigs, InboundConfig{
 		Port: 2080, Protocol: "vmess", Tag: "inbound-2080",
@@ -168,6 +168,80 @@ func TestComputeHotDiff_InboundAddRemoveChange(t *testing.T) {
 	}
 	if diff.RoutingConfig != nil || len(diff.AddedOutbounds) != 0 || len(diff.RemovedOutboundTags) != 0 {
 		t.Fatalf("unexpected non-inbound operations: %+v", diff)
+	}
+}
+
+func TestComputeHotDiff_ClientOnlyChangeUsesUserOps(t *testing.T) {
+	oldCfg := makeHotConfig()
+	oldCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"a","id":"uuid-a"},{"email":"b","id":"uuid-b"}],"decryption":"none"}`)
+	newCfg := makeHotConfig()
+	// b expired and is stripped from the generated config (#5712); a's id rotated.
+	newCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"a","id":"uuid-a2"},{"email":"c","id":"uuid-c"}],"decryption":"none"}`)
+
+	diff, ok := ComputeHotDiff(oldCfg, newCfg)
+	if !ok {
+		t.Fatal("client-only change must be hot-appliable")
+	}
+	if len(diff.RemovedInboundTags) != 0 || len(diff.AddedInbounds) != 0 {
+		t.Fatalf("client-only change must not replace the handler, got %+v", diff)
+	}
+	removed := map[string]bool{}
+	for _, u := range diff.RemovedUsers {
+		if u.Tag != "inbound-1080" || u.Protocol != "vless" {
+			t.Fatalf("removed user op has wrong target: %+v", u)
+		}
+		removed[u.Email] = true
+	}
+	if len(removed) != 2 || !removed["a"] || !removed["b"] {
+		t.Fatalf("expected users a (changed) and b (gone) removed, got %v", removed)
+	}
+	added := map[string]string{}
+	for _, u := range diff.AddedUsers {
+		id, _ := u.User["id"].(string)
+		added[u.Email] = id
+	}
+	if len(added) != 2 || added["a"] != "uuid-a2" || added["c"] != "uuid-c" {
+		t.Fatalf("expected users a (new id) and c added, got %v", added)
+	}
+}
+
+func TestComputeHotDiff_ClientChangeFallsBackToReplace(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(cfg *Config)
+	}{
+		{
+			name: "unsupported protocol",
+			mutate: func(cfg *Config) {
+				cfg.InboundConfigs[1].Protocol = "shadowsocks"
+			},
+		},
+		{
+			name: "client without email",
+			mutate: func(cfg *Config) {
+				cfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"id":"uuid-a"}]}`)
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			oldCfg := makeHotConfig()
+			newCfg := makeHotConfig()
+			tc.mutate(oldCfg)
+			tc.mutate(newCfg)
+			newCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"x","id":"uuid-x","password":"pw"}]}`)
+
+			diff, ok := ComputeHotDiff(oldCfg, newCfg)
+			if !ok {
+				t.Fatal("change must still be hot-appliable via handler replacement")
+			}
+			if len(diff.RemovedUsers) != 0 || len(diff.AddedUsers) != 0 {
+				t.Fatalf("expected no user ops, got %+v", diff)
+			}
+			if len(diff.RemovedInboundTags) != 1 || len(diff.AddedInbounds) != 1 {
+				t.Fatalf("expected handler replacement, got %+v", diff)
+			}
+		})
 	}
 }
 

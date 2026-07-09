@@ -187,6 +187,9 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 	tombstoneClientEmails(emails)
 
 	if err := runSerializedTx(func(tx *gorm.DB) error {
+		if e := adjustGroupBaselinesForRemovedTraffic(tx, emails); e != nil {
+			return e
+		}
 		for _, batch := range chunkInts(ids, sqlInChunk) {
 			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
 				return e

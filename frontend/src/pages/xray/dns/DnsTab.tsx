@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
+import { Alert, Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
 import {
   DatabaseOutlined,
   DeleteOutlined,
@@ -237,6 +237,12 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
             />
             {dnsEnabled && (
               <>
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={t('pages.xray.dns.dnsLeakWarning')}
+                  style={{ marginBottom: 12 }}
+                />
                 <SettingListItem
                   paddings="small"
                   title={t('pages.xray.dns.tag')}
@@ -335,6 +341,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
               <div key={`h${idx}`} className="hosts-row">
                 <Input
                   value={row.domain}
+                  aria-label={t('pages.xray.dns.hostsDomain')}
                   placeholder={t('pages.xray.dns.hostsDomain')}
                   style={{ flex: '1 1 220px' }}
                   onChange={(e) => {
@@ -345,6 +352,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                 <Select
                   mode="tags"
                   value={row.values}
+                  aria-label={t('pages.xray.dns.hostsValues')}
                   placeholder={t('pages.xray.dns.hostsValues')}
                   style={{ flex: '2 1 320px' }}
                   tokenSeparators={[',', ' ']}
@@ -353,7 +361,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                     syncHosts(next);
                   }}
                 />
-                <Button danger icon={<DeleteOutlined />} onClick={() => syncHosts(hostsList.filter((_, i) => i !== idx))} />
+                <Button danger aria-label={t('delete')} icon={<DeleteOutlined />} onClick={() => syncHosts(hostsList.filter((_, i) => i !== idx))} />
               </div>
             ))}
           </Space>
