@@ -290,6 +290,12 @@ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 			return true
 		}
 	}
+	// TgID is numeric (0 means unset) so it can't sit in the string
+	// candidates array above; matched separately and skipped when unset to
+	// avoid "0" spuriously matching every client without a Telegram ID.
+	if c.TgID != 0 && strings.Contains(strconv.FormatInt(c.TgID, 10), needle) {
+		return true
+	}
 	return false
 }
 
