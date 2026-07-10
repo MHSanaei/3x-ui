@@ -85,7 +85,6 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			proxyNames = append(proxyNames, name)
 		}
 	}
-	proxyNames = append(proxyNames, "DIRECT")
 
 	config := map[string]any{
 		"proxies": proxies,
