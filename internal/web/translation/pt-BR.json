@@ -775,7 +775,7 @@
       "renew": "Renovação automática",
       "renewDesc": "Renovação automática após a expiração. (0 = desativar) (unidade: dia)",
       "renewDays": "Renovação automática (dias)",
-      "searchPlaceholder": "Buscar email, comentário, sub ID, UUID, senha, auth…",
+      "searchPlaceholder": "Buscar email, comentário, sub ID, UUID, senha, auth, Telegram ID…",
       "filterTitle": "Filtrar clientes",
       "clearAllFilters": "Limpar tudo",
       "filters": {

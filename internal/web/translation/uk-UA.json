@@ -775,7 +775,7 @@
       "renew": "Авто-продовження",
       "renewDesc": "Автоматичне продовження після закінчення. (0 = вимкнено) (одиниця: день)",
       "renewDays": "Авто-продовження (днів)",
-      "searchPlaceholder": "Пошук email, коментаря, sub ID, UUID, паролю, auth…",
+      "searchPlaceholder": "Пошук email, коментаря, sub ID, UUID, паролю, auth, Telegram ID…",
       "filterTitle": "Фільтр клієнтів",
       "clearAllFilters": "Очистити все",
       "filters": {

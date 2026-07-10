@@ -775,7 +775,7 @@
       "renew": "Otomatik Yenileme",
       "renewDesc": "Süre dolduktan sonra otomatik yeniler. (0 = devre dışı) (birim: gün)",
       "renewDays": "Otomatik Yenileme (gün)",
-      "searchPlaceholder": "E-posta, yorum, sub ID, UUID, parola, auth ara…",
+      "searchPlaceholder": "E-posta, yorum, sub ID, UUID, parola, auth, Telegram ID ara…",
       "filterTitle": "Kullanıcıları Filtrele",
       "clearAllFilters": "Tümünü Temizle",
       "filters": {

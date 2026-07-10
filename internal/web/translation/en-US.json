@@ -775,7 +775,7 @@
       "renew": "Auto Renew",
       "renewDesc": "Auto-renewal after expiration. (0 = disable)(unit: day)",
       "renewDays": "Auto Renew (days)",
-      "searchPlaceholder": "Search email, comment, sub ID, UUID, password, auth…",
+      "searchPlaceholder": "Search email, comment, sub ID, UUID, password, auth, Telegram ID…",
       "filterTitle": "Filter clients",
       "clearAllFilters": "Clear all",
       "filters": {

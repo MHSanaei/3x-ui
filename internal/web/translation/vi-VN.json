@@ -775,7 +775,7 @@
       "renew": "Tự động gia hạn",
       "renewDesc": "Tự động gia hạn sau khi hết hạn. (0 = tắt) (đơn vị: ngày)",
       "renewDays": "Tự động gia hạn (ngày)",
-      "searchPlaceholder": "Tìm email, ghi chú, sub ID, UUID, mật khẩu, auth…",
+      "searchPlaceholder": "Tìm email, ghi chú, sub ID, UUID, mật khẩu, auth, Telegram ID…",
       "filterTitle": "Lọc client",
       "clearAllFilters": "Xóa tất cả",
       "filters": {

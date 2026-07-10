@@ -775,7 +775,7 @@
       "renew": "تمدید خودکار",
       "renewDesc": "تمدید خودکار پس از انقضا. (۰ = غیرفعال) (واحد: روز)",
       "renewDays": "تمدید خودکار (روز)",
-      "searchPlaceholder": "جستجوی ایمیل، توضیح، Sub ID، UUID، رمز، احراز...",
+      "searchPlaceholder": "جستجوی ایمیل، توضیح، Sub ID، UUID، رمز، احراز، Telegram ID...",
       "filterTitle": "فیلتر کاربران",
       "clearAllFilters": "پاک کردن همه",
       "filters": {
