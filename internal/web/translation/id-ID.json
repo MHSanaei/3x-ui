@@ -775,7 +775,7 @@
       "renew": "Perpanjangan otomatis",
       "renewDesc": "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif) (satuan: hari)",
       "renewDays": "Perpanjangan otomatis (hari)",
-      "searchPlaceholder": "Cari email, komentar, sub ID, UUID, kata sandi, auth…",
+      "searchPlaceholder": "Cari email, komentar, sub ID, UUID, kata sandi, auth, Telegram ID…",
       "filterTitle": "Filter klien",
       "clearAllFilters": "Hapus semua",
       "filters": {

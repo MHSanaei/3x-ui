@@ -775,7 +775,7 @@
       "renew": "Автопродление",
       "renewDesc": "Автоматическое продление после окончания. (0 = отключено) (единица: день)",
       "renewDays": "Автопродление (дней)",
-      "searchPlaceholder": "Поиск email, комментария, sub ID, UUID, пароля, auth…",
+      "searchPlaceholder": "Поиск email, комментария, sub ID, UUID, пароля, auth, Telegram ID…",
       "filterTitle": "Фильтр клиентов",
       "clearAllFilters": "Очистить все",
       "filters": {

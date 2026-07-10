@@ -775,7 +775,7 @@
       "renew": "自动续期",
       "renewDesc": "到期后自动续期。(0 = 禁用) (单位: 天)",
       "renewDays": "自动续期 (天)",
-      "searchPlaceholder": "搜索邮箱、备注、sub ID、UUID、密码、auth…",
+      "searchPlaceholder": "搜索邮箱、备注、sub ID、UUID、密码、auth、Telegram ID…",
       "filterTitle": "筛选客户端",
       "clearAllFilters": "清除全部",
       "filters": {

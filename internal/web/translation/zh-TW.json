@@ -775,7 +775,7 @@
       "renew": "自動續期",
       "renewDesc": "到期後自動續期。(0 = 停用) (單位: 天)",
       "renewDays": "自動續期 (天)",
-      "searchPlaceholder": "搜尋電子郵件、備註、sub ID、UUID、密碼、auth…",
+      "searchPlaceholder": "搜尋電子郵件、備註、sub ID、UUID、密碼、auth、Telegram ID…",
       "filterTitle": "篩選客戶端",
       "clearAllFilters": "清除全部",
       "filters": {

@@ -775,7 +775,7 @@
       "renew": "自動更新",
       "renewDesc": "有効期限切れ後に自動更新します。(0 = 無効) (単位: 日)",
       "renewDays": "自動更新 (日)",
-      "searchPlaceholder": "メール、コメント、sub ID、UUID、パスワード、auth を検索…",
+      "searchPlaceholder": "メール、コメント、sub ID、UUID、パスワード、auth、Telegram ID を検索…",
       "filterTitle": "クライアントをフィルタ",
       "clearAllFilters": "すべてクリア",
       "filters": {
