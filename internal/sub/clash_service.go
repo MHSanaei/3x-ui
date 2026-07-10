@@ -98,7 +98,8 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 
 	if s.enableRouting {
-		if err := mergeClashRulesYAML(config, s.clashRules); err != nil {
+		// ПЕРЕДАЕМ proxyNames ТРЕТЬИМ АРГУМЕНТОМ
+		if err := mergeClashRulesYAML(config, s.clashRules, proxyNames); err != nil {
 			return "", "", err
 		}
 	}
@@ -777,7 +778,7 @@ func cloneMap(src map[string]any) map[string]any {
 	return dst
 }
 
-func mergeClashRulesYAML(base map[string]any, raw string) error {
+func mergeClashRulesYAML(base map[string]any, raw string, proxyNames []string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil
@@ -800,6 +801,42 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 				}
 				continue
 			}
+
+			// СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ proxy-groups
+			if key == "proxy-groups" {
+				if templateGroups, ok := asAnySlice(value); ok {
+					hasProxyGroup := false
+					for _, g := range templateGroups {
+						if group, ok := g.(map[string]any); ok {
+							if name, _ := group["name"].(string); name == "PROXY" {
+								hasProxyGroup = true
+							}
+
+							// Автоматически подставляем список прокси,
+							// если он не задан явно и не используется директива use
+							if _, hasProxies := group["proxies"]; !hasProxies {
+								if _, hasUse := group["use"]; !hasUse {
+									group["proxies"] = proxyNames
+								}
+							}
+						}
+					}
+
+					// Если группы PROXY нет в шаблоне, добавляем стандартную,
+					// чтобы правила вида RULE-SET,...,PROXY не ломали конфиг
+					if !hasProxyGroup {
+						templateGroups = append(templateGroups, map[string]any{
+							"name":    "PROXY",
+							"type":    "select",
+							"proxies": proxyNames,
+						})
+					}
+					base[key] = templateGroups
+				}
+				continue
+			}
+
+			// Все остальные ключи (dns, rule-providers и т.д.) просто перезаписываем
 			base[key] = value
 		}
 	default:
