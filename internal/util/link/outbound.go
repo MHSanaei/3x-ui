@@ -338,12 +338,15 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		remark, _ = url.QueryUnescape(link[i+1:])
 		link = link[:i]
 	}
+	if i := strings.Index(link, "?"); i >= 0 {
+		link = link[:i]
+	}
 	core := strings.TrimPrefix(link, "ss://")
 	at := strings.Index(core, "@")
 	if at >= 0 {
 		// modern
 		userB64 := core[:at]
-		hp := core[at+1:]
+		hp := strings.TrimRight(core[at+1:], "/")
 		userInfo, err := base64DecodeFlexible(userB64)
 		if err != nil {
 			// SIP022 (2022-blake3-*) userinfo is percent-encoded, not base64.
