@@ -208,6 +208,21 @@ func TestParseShadowsocks(t *testing.T) {
 	}
 }
 
+func TestParseShadowsocksBadPort(t *testing.T) {
+	user := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
+	cases := map[string]string{
+		"modern": "ss://" + user + "@1.2.3.4:notaport#node",
+		"legacy": "ss://" + base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass@1.2.3.4:notaport")) + "#node",
+	}
+	for name, link := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := ParseLink(link); err == nil {
+				t.Errorf("expected parse error for non-numeric port, got nil")
+			}
+		})
+	}
+}
+
 func TestParseSubscriptionBody_Base64(t *testing.T) {
 	// base64 of the two joined links:
 	// vless://u@h:443?type=tcp#A\nvless://u2@h2:443?type=tcp#B

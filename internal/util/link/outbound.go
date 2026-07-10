@@ -361,7 +361,10 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 			return nil, fmt.Errorf("bad ss host:port")
 		}
 		host := hp[:colon]
-		port, _ := strconv.Atoi(hp[colon+1:])
+		port, err := strconv.Atoi(hp[colon+1:])
+		if err != nil {
+			return nil, fmt.Errorf("bad ss port %q: %w", hp[colon+1:], err)
+		}
 		method, pass := splitMethodPass(userInfo)
 		identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
 		ob := Outbound{
@@ -391,7 +394,10 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		return nil, fmt.Errorf("bad legacy ss hp")
 	}
 	host := hp[:colon]
-	port, _ := strconv.Atoi(hp[colon+1:])
+	port, err := strconv.Atoi(hp[colon+1:])
+	if err != nil {
+		return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
+	}
 	method, pass := splitMethodPass(userInfo)
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
 	ob := Outbound{
