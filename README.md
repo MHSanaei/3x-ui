@@ -187,6 +187,7 @@ Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md
 Tools and integrations built by the community around 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (License: **MIT**): _Native Android app ([on F-Droid](https://f-droid.org/packages/net.yukh.xui)) for managing 3x-ui panels on the go — dashboard, inbounds, clients with QR sharing, nodes, and multi-panel support._
 
 ## Support project
 
