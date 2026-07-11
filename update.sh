@@ -667,6 +667,22 @@ prompt_and_setup_ssl() {
             # User chose Let's Encrypt IP certificate option
             echo -e "${green}Using Let's Encrypt for IP certificate (shortlived profile)...${plain}"
 
+            # Confirm the auto-detected IP before issuing for it: with asymmetric
+            # routing / multi-WAN the echo services can return a transit address.
+            local ip_confirm=""
+            read -rp "Is ${server_ip} the correct incoming public IPv4 address for this server? [Default y]: " ip_confirm
+            if [[ -n "$ip_confirm" && "$ip_confirm" != "y" && "$ip_confirm" != "Y" ]]; then
+                server_ip=""
+                while [[ -z "$server_ip" ]]; do
+                    read -rp "Please enter your server's public IPv4 address: " server_ip
+                    server_ip="${server_ip// /}"
+                    if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                        echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
+                        server_ip=""
+                    fi
+                done
+            fi
+
             # Ask for optional IPv6
             local ipv6_addr=""
             read -rp "Do you have an IPv6 address to include? (leave empty to skip): " ipv6_addr
