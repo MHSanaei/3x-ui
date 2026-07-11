@@ -493,12 +493,14 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	}
 
 	needRestart := false
+	var delErrs []error
 	for _, ibId := range inboundIds {
 		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
 				continue
 			}
-			return needRestart, getErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, getErr))
+			continue
 		}
 
 		// Always delete by email — the client's stable identity. This removes
@@ -515,11 +517,17 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
 			}
-			return needRestart, delErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, delErr))
+			continue
 		}
 		if nr {
 			needRestart = true
 		}
+	}
+	// A failed inbound still holds the client in its settings JSON: keep the
+	// record so the next delete retries exactly the leftovers, and report it.
+	if len(delErrs) > 0 {
+		return needRestart, errors.Join(delErrs...)
 	}
 
 	db := database.GetDB()
@@ -668,17 +676,22 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 		return false, common.NewError(fmt.Sprintf("client %q not found in any inbound or client record", email))
 	}
 	needRestart := false
+	var delErrs []error
 	for _, ibId := range inboundIds {
 		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false, true)
 		if delErr != nil {
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
 			}
-			return needRestart, delErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, delErr))
+			continue
 		}
 		if nr {
 			needRestart = true
 		}
+	}
+	if len(delErrs) > 0 {
+		return needRestart, errors.Join(delErrs...)
 	}
 	if !keepTraffic {
 		db := database.GetDB()
