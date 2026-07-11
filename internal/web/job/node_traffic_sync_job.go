@@ -399,6 +399,11 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if changed {
 		j.structural.set()
 	}
+	if !dirty && n.InboundsAdoptedAt == 0 {
+		if markErr := j.nodeService.MarkNodeInboundsAdopted(n.Id); markErr != nil {
+			logger.Warningf("node traffic sync: mark inbounds adopted for %s failed: %v", n.Name, markErr)
+		}
+	}
 
 	active := make([]string, 0, len(snap.OnlineEmails))
 	active = append(active, snap.OnlineEmails...)
