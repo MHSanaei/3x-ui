@@ -2272,24 +2272,28 @@ setup_fail2ban_iplimit() {
         case "${release}" in
             ubuntu|debian|armbian)
                 apt-get update
-                if [[ "$backend" == "nftables" ]]; then
-                    apt-get install -y fail2ban nftables
-                else
-                    apt-get install -y fail2ban iptables
-                fi
+                # Always install nftables (recent fail2ban defaults to nftables-multiport)
+                apt-get install -y fail2ban nftables
                 ;;
-            fedora|amzn|virtuozzo|rhel|almalinux|rocky|ol|centos)
-                if [[ "$backend" == "nftables" ]]; then
-                    dnf install -y fail2ban nftables
-                else
-                    dnf install -y fail2ban iptables
-                fi
+            fedora)
+                # Fedora has fail2ban in main repos
+                dnf install -y fail2ban nftables
+                ;;
+            amzn|virtuozzo|rhel|almalinux|rocky|ol)
+                # RHEL-family: enable EPEL, use dnf (dnf available on all these)
+                dnf install -y epel-release
+                dnf install -y fail2ban nftables
+                ;;
+            centos)
+                # CentOS 7 doesn't have dnf, use yum and enable EPEL
+                yum install -y epel-release
+                yum install -y fail2ban nftables
                 ;;
             arch|manjaro|parch)
-                pacman -Sy --noconfirm fail2ban ${backend}
+                pacman -Sy --noconfirm fail2ban nftables
                 ;;
             alpine)
-                apk add fail2ban ${backend}
+                apk add fail2ban nftables
                 ;;
             *)
                 echo -e "${red}Unsupported OS. Please install fail2ban manually.${plain}"
@@ -2305,14 +2309,20 @@ setup_fail2ban_iplimit() {
 
     # Remove old conflicting 3x-ipl configs (safe on reinstall)
     echo -e "${yellow}Preparing fresh IP Limit configuration...${plain}"
-    iplimit_remove_conflicts
-    rm -f /etc/fail2ban/action.d/3x-ipl.conf
+    rm -f /etc/fail2ban/jail.d/3x-ipl.conf 2>/dev/null
+    rm -f /etc/fail2ban/action.d/3x-ipl.conf 2>/dev/null
+    rm -f /etc/fail2ban/filter.d/3x-ipl.conf 2>/dev/null
 
     # Ensure log files exist
     touch "${iplimit_banned_log_path}" "${iplimit_log_path}" 2>/dev/null || true
 
     # Create configuration with selected backend
     create_iplimit_jails 30 "$backend"
+
+    # Persist chosen backend for future menu operations
+    mkdir -p /etc/x-ui
+    echo "$backend" > /etc/x-ui/fail2ban_backend
+    chmod 600 /etc/x-ui/fail2ban_backend
 
     # Restart service
     if [[ $release == "alpine" ]]; then
@@ -2447,6 +2457,11 @@ create_iplimit_jails() {
     # backend can be "iptables" (default) or "nftables"
     local backend="${2:-iptables}"
 
+    # Load persisted backend choice from prior install (if not passed as argument)
+    if [[ $# -lt 2 && -f /etc/x-ui/fail2ban_backend ]]; then
+        backend=$(cat /etc/x-ui/fail2ban_backend)
+    fi
+
     # Common configuration
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
@@ -2487,19 +2502,29 @@ EOF
 
     # === Backend-specific action configuration ===
     if [[ "$backend" == "nftables" ]]; then
-        cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+        cat << 'EOF' > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
-before = nftables-multiport.conf
+before = nftables-common.conf
 
 [Definition]
-actionstart = <nftables> add chain ip f2b-<name> { type filter hook input priority 0 \; }
-actionstop  = <nftables> delete chain ip f2b-<name>
+actionban = nft add element ip f2b 3x-ipl { <ip> }
+            echo "$(date +"%Y/%m/%d %H:%M:%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned." >> /var/log/fail2ban-iplimit.log
 
-actionban = <nftables> add rule ip f2b-<name> ip saddr <ip> tcp dport != { <exemptports> } reject
-            <nftables> add rule ip f2b-<name> ip saddr <ip> udp dport != { <exemptports> } reject
-            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> ..." >> ${iplimit_banned_log_path}
+actionunban = nft delete element ip f2b 3x-ipl { <ip> }
+              echo "$(date +"%Y/%m/%d %H:%M:%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> /var/log/fail2ban-iplimit.log
 
-actionunban = <nftables> delete rule ip f2b-<name> ip saddr <ip> ...
+actionflush = nft flush set ip f2b 3x-ipl
+
+actionstart =
+    nft add table ip f2b 2>/dev/null || true
+    nft add set ip f2b 3x-ipl { type ipv4_addr; } 2>/dev/null || true
+    nft add chain ip f2b 3x-ipl { type filter hook input priority 0; } 2>/dev/null || true
+    nft add rule ip f2b 3x-ipl ip saddr @3x-ipl drop
+
+actionstop =
+    nft delete chain ip f2b 3x-ipl 2>/dev/null || true
+    nft delete set ip f2b 3x-ipl 2>/dev/null || true
+    nft delete table ip f2b 2>/dev/null || true
 EOF
     else
         # iptables — original behavior preserved
