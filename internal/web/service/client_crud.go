@@ -82,6 +82,20 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if existing.SubID == "" || existing.SubID != client.SubID {
 			return false, common.NewError("email already in use:", client.Email)
 		}
+		// Reuse stored credentials when re-adding an existing identity, or
+		// fillProtocolDefaults mints a fresh UUID that desyncs other inbounds.
+		if client.ID == "" {
+			client.ID = existing.UUID
+		}
+		if client.Password == "" {
+			client.Password = existing.Password
+		}
+		if client.Auth == "" {
+			client.Auth = existing.Auth
+		}
+		if client.Secret == "" {
+			client.Secret = existing.Secret
+		}
 	}
 
 	if client.SubID != "" {
@@ -344,6 +358,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	if updated.Auth == "" {
 		updated.Auth = existing.Auth
+	}
+	if updated.Secret == "" {
+		updated.Secret = existing.Secret
 	}
 
 	if updated.Email != existing.Email {
