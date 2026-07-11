@@ -805,6 +805,19 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
+		// Rename the client record in the same transaction as the settings JSON
+		// so no concurrent SyncInbound can see one renamed without the other.
+		if len(oldEmail) > 0 && !strings.EqualFold(oldEmail, clients[0].Email) {
+			var renameTaken int64
+			if e := tx.Model(&model.ClientRecord{}).Where("email = ?", clients[0].Email).Count(&renameTaken).Error; e != nil {
+				return e
+			}
+			if renameTaken == 0 {
+				if e := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email).Error; e != nil {
+					return e
+				}
+			}
+		}
 		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
 		if gcErr != nil {
 			return gcErr

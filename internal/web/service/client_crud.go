@@ -373,11 +373,6 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if collisionCount > 0 {
 			return false, common.NewError("Duplicate email:", updated.Email)
 		}
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("id = ?", id).
-			Update("email", updated.Email).Error; err != nil {
-			return false, err
-		}
 	}
 
 	if updated.SubID != "" {
@@ -425,6 +420,16 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 		if nr {
 			needRestart = true
+		}
+	}
+
+	// UpdateInboundClient renames the record atomically with each inbound's
+	// settings JSON; this direct write only covers records with no inbound left.
+	if updated.Email != existing.Email {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ? AND email = ?", id, existing.Email).
+			Update("email", updated.Email).Error; err != nil {
+			return needRestart, err
 		}
 	}
 
