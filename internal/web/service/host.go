@@ -154,6 +154,21 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 	return rows
 }
 
+// adoptedHostRows projects a node's host groups onto a freshly adopted central
+// inbound so TLS/SNI/fingerprint overrides survive the node-to-master import.
+func adoptedHostRows(groups []*entity.HostGroup, nodeInboundId, centralInboundId int) []*model.Host {
+	var rows []*model.Host
+	for _, g := range groups {
+		if g == nil || !slices.Contains(g.InboundIds, nodeInboundId) {
+			continue
+		}
+		scoped := *g
+		scoped.InboundIds = []int{centralInboundId}
+		rows = append(rows, buildHostRows(g.GroupId, &scoped)...)
+	}
+	return rows
+}
+
 func validateInboundsExist(tx *gorm.DB, inboundIds []int) error {
 	for _, inboundId := range inboundIds {
 		var count int64

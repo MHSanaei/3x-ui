@@ -224,6 +224,41 @@ func liftActivatedClientRecordExpiries(tx *gorm.DB) error {
 	).Error
 }
 
+// SnapshotHasUnadoptedInbounds reports whether the snapshot carries a tag with
+// no central row yet, i.e. the next merge would adopt a new inbound.
+func (s *InboundService) SnapshotHasUnadoptedInbounds(nodeID int, snap *runtime.TrafficSnapshot) (bool, error) {
+	if snap == nil || len(snap.Inbounds) == 0 {
+		return false, nil
+	}
+	var tags []string
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("node_id = ?", nodeID).
+		Pluck("tag", &tags).Error; err != nil {
+		return false, err
+	}
+	prefix := nodeTagPrefix(&nodeID)
+	known := make(map[string]struct{}, len(tags)*2)
+	for _, tag := range tags {
+		known[tag] = struct{}{}
+		if prefix != "" {
+			if stripped, found := strings.CutPrefix(tag, prefix); found {
+				known[stripped] = struct{}{}
+			} else {
+				known[prefix+tag] = struct{}{}
+			}
+		}
+	}
+	for _, ib := range snap.Inbounds {
+		if ib == nil {
+			continue
+		}
+		if _, ok := known[ib.Tag]; !ok {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
@@ -536,6 +571,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			tagToCentral[snapIb.Tag] = &newIb
 			if newIb.Tag != snapIb.Tag {
 				tagToCentral[newIb.Tag] = &newIb
+			}
+			if rows := adoptedHostRows(snap.HostGroups, snapIb.Id, newIb.Id); len(rows) > 0 {
+				if err := tx.Create(&rows).Error; err != nil {
+					logger.Warningf("setRemoteTraffic: adopt host rows for tag %q failed: %v", newIb.Tag, err)
+				}
 			}
 			newInboundIDs[newIb.Id] = struct{}{}
 			structuralChange = true
