@@ -91,6 +91,9 @@ func initModels() error {
 			return err
 		}
 	}
+	if err := dropLegacyInboundPortUnique(); err != nil {
+		return err
+	}
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}
@@ -158,6 +161,121 @@ func dropLegacyForeignKeys() error {
 		return err
 	}
 	return nil
+}
+
+type sqliteIndexListRow struct {
+	Name   string `gorm:"column:name"`
+	Unique int    `gorm:"column:unique"`
+	Origin string `gorm:"column:origin"`
+}
+
+func sqliteUniquePortIndexes() (autoIndexes, explicitIndexes []string, err error) {
+	var list []sqliteIndexListRow
+	if err = db.Raw(`PRAGMA index_list('inbounds')`).Scan(&list).Error; err != nil {
+		return nil, nil, err
+	}
+	for _, idx := range list {
+		if idx.Unique != 1 {
+			continue
+		}
+		var cols []struct {
+			Name string `gorm:"column:name"`
+		}
+		if err = db.Raw(`PRAGMA index_info("` + idx.Name + `")`).Scan(&cols).Error; err != nil {
+			return nil, nil, err
+		}
+		if len(cols) != 1 || cols[0].Name != "port" {
+			continue
+		}
+		if idx.Origin == "c" {
+			explicitIndexes = append(explicitIndexes, idx.Name)
+		} else {
+			autoIndexes = append(autoIndexes, idx.Name)
+		}
+	}
+	return autoIndexes, explicitIndexes, nil
+}
+
+// dropLegacyInboundPortUnique removes the pre-multi-node UNIQUE on inbounds.port,
+// which AutoMigrate never drops and which blocks cross-node port reuse on old SQLite DBs.
+func dropLegacyInboundPortUnique() error {
+	if IsPostgres() {
+		return nil
+	}
+	autoIndexes, explicitIndexes, err := sqliteUniquePortIndexes()
+	if err != nil {
+		return err
+	}
+	for _, name := range explicitIndexes {
+		if err := db.Exec(`DROP INDEX IF EXISTS "` + name + `"`).Error; err != nil {
+			return err
+		}
+	}
+	if len(autoIndexes) == 0 {
+		return nil
+	}
+	log.Printf("Rebuilding inbounds table to drop the legacy UNIQUE constraint on port")
+	return rebuildInboundsWithoutInlineUniquePort()
+}
+
+func sqliteTableColumns(tx *gorm.DB, table string) ([]string, error) {
+	var rows []struct {
+		Name string `gorm:"column:name"`
+	}
+	if err := tx.Raw(`PRAGMA table_info("` + table + `")`).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	cols := make([]string, 0, len(rows))
+	for _, r := range rows {
+		cols = append(cols, r.Name)
+	}
+	return cols, nil
+}
+
+func rebuildInboundsWithoutInlineUniquePort() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var list []sqliteIndexListRow
+		if err := tx.Raw(`PRAGMA index_list('inbounds')`).Scan(&list).Error; err != nil {
+			return err
+		}
+		for _, idx := range list {
+			if idx.Origin != "c" {
+				continue
+			}
+			if err := tx.Exec(`DROP INDEX IF EXISTS "` + idx.Name + `"`).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Exec(`ALTER TABLE inbounds RENAME TO inbounds_legacy_rebuild`).Error; err != nil {
+			return err
+		}
+		if err := tx.Migrator().CreateTable(&model.Inbound{}); err != nil {
+			return err
+		}
+		newCols, err := sqliteTableColumns(tx, "inbounds")
+		if err != nil {
+			return err
+		}
+		oldCols, err := sqliteTableColumns(tx, "inbounds_legacy_rebuild")
+		if err != nil {
+			return err
+		}
+		oldSet := make(map[string]struct{}, len(oldCols))
+		for _, c := range oldCols {
+			oldSet[c] = struct{}{}
+		}
+		shared := make([]string, 0, len(newCols))
+		for _, c := range newCols {
+			if _, ok := oldSet[c]; ok {
+				shared = append(shared, `"`+c+`"`)
+			}
+		}
+		colList := strings.Join(shared, ", ")
+		if err := tx.Exec(`INSERT INTO inbounds (` + colList + `) SELECT ` + colList + ` FROM inbounds_legacy_rebuild`).Error; err != nil {
+			return err
+		}
+		return tx.Exec(`DROP TABLE inbounds_legacy_rebuild`).Error
+	})
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
