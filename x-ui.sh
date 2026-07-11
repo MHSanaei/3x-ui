@@ -2249,119 +2249,81 @@ iplimit_main() {
 }
 
 setup_fail2ban_iplimit() {
-    # Honor the same toggle the panel uses (isFail2BanEnabled): enabled when the
-    # var is unset or exactly "true"; any other explicit value means the operator
-    # opted out, so do nothing rather than install a fail2ban the panel ignores.
+    # XUI_FAIL2BAN_BACKEND is set in install.sh during initial setup.
+    # Possible values: iptables (default), nftables, none
+    local backend="${XUI_FAIL2BAN_BACKEND:-iptables}"
+
+    if [[ "$backend" == "none" ]]; then
+        echo -e "${yellow}Fail2ban/IP Limit skipped by user choice.${plain}\n"
+        return 0
+    fi
+
     if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
         echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban setup.${plain}\n"
         return 0
     fi
 
-    if ! command -v fail2ban-client &> /dev/null; then
-        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+    echo -e "${green}Setting up Fail2ban (backend: ${backend})...${plain}\n"
 
-        # Install fail2ban together with nftables. Recent fail2ban packages
-        # default to `banaction = nftables-multiport` in /etc/fail2ban/jail.conf,
-        # but the `nftables` package isn't pulled in as a dependency on most
-        # minimal server images (Debian 12+, Ubuntu 24+, fresh RHEL-family).
-        # Without `nft` in PATH the default sshd jail fails to ban with
-        #   stderr: '/bin/sh: 1: nft: not found'
-        # even though our own 3x-ipl jail uses iptables. Bundling the binary
-        # at install time prevents that confusing log spam for new installs.
+    # Install fail2ban if missing
+    if ! command -v fail2ban-client &> /dev/null; then
+        echo -e "${green}Fail2ban is not installed. Installing now...${plain}"
+
         case "${release}" in
-            ubuntu)
+            ubuntu|debian|armbian)
                 apt-get update
-                if [[ "${os_version}" -ge 2400 ]]; then
-                    apt-get install python3-pip -y
-                    python3 -m pip install pyasynchat --break-system-packages
-                fi
-                apt-get install fail2ban nftables -y
-                ;;
-            debian)
-                apt-get update
-                if [ "$os_version" -ge 12 ]; then
-                    apt-get install -y python3-systemd
-                fi
-                apt-get install -y fail2ban nftables
-                ;;
-            armbian)
-                apt-get update && apt-get install fail2ban nftables -y
-                ;;
-            fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-                if [[ "${release}" != "fedora" ]] && ! dnf repolist enabled 2> /dev/null | grep -qiw epel; then
-                    dnf install -y epel-release \
-                        || dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm" \
-                        || echo -e "${yellow}Could not enable the EPEL repository; fail2ban is only available from EPEL on this distro.${plain}"
-                fi
-                dnf makecache -y && dnf -y install fail2ban nftables
-                ;;
-            centos)
-                if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                    yum makecache -y && yum install epel-release -y
-                    yum -y install fail2ban nftables
+                if [[ "$backend" == "nftables" ]]; then
+                    apt-get install -y fail2ban nftables
                 else
-                    dnf makecache -y && dnf -y install fail2ban nftables
+                    apt-get install -y fail2ban iptables
                 fi
                 ;;
-            arch | manjaro | parch)
-                pacman -Sy --noconfirm fail2ban nftables
+            fedora|amzn|virtuozzo|rhel|almalinux|rocky|ol|centos)
+                if [[ "$backend" == "nftables" ]]; then
+                    dnf install -y fail2ban nftables
+                else
+                    dnf install -y fail2ban iptables
+                fi
+                ;;
+            arch|manjaro|parch)
+                pacman -Sy --noconfirm fail2ban ${backend}
                 ;;
             alpine)
-                apk add fail2ban nftables
+                apk add fail2ban ${backend}
                 ;;
             *)
-                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+                echo -e "${red}Unsupported OS. Please install fail2ban manually.${plain}"
                 return 1
                 ;;
         esac
 
         if ! command -v fail2ban-client &> /dev/null; then
-            echo -e "${red}Fail2ban installation failed.${plain}\n"
+            echo -e "${red}Fail2ban installation failed.${plain}"
             return 1
         fi
-
-        echo -e "${green}Fail2ban installed successfully!${plain}\n"
-    else
-        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
     fi
 
-    echo -e "${green}Configuring IP Limit...${plain}\n"
-
-    # make sure there's no conflict for jail files
+    # Remove old conflicting 3x-ipl configs (safe on reinstall)
+    echo -e "${yellow}Preparing fresh IP Limit configuration...${plain}"
     iplimit_remove_conflicts
+    rm -f /etc/fail2ban/action.d/3x-ipl.conf
 
-    # Check if log file exists
-    if ! test -f "${iplimit_banned_log_path}"; then
-        touch ${iplimit_banned_log_path}
-    fi
+    # Ensure log files exist
+    touch "${iplimit_banned_log_path}" "${iplimit_log_path}" 2>/dev/null || true
 
-    # Check if service log file exists so fail2ban won't return error
-    if ! test -f "${iplimit_log_path}"; then
-        touch ${iplimit_log_path}
-    fi
+    # Create configuration with selected backend
+    create_iplimit_jails 30 "$backend"
 
-    # Create the iplimit jail files
-    # we didn't pass the bantime here to use the default value
-    create_iplimit_jails
-
-    # Launching fail2ban
+    # Restart service
     if [[ $release == "alpine" ]]; then
-        if [[ $(rc-service fail2ban status | grep -F 'status: started' -c) == 0 ]]; then
-            rc-service fail2ban start
-        else
-            rc-service fail2ban restart
-        fi
+        rc-service fail2ban restart || rc-service fail2ban start
         rc-update add fail2ban
     else
-        if ! systemctl is-active --quiet fail2ban; then
-            systemctl start fail2ban
-        else
-            systemctl restart fail2ban
-        fi
+        systemctl restart fail2ban || systemctl start fail2ban
         systemctl enable fail2ban
     fi
 
-    echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
+    echo -e "${green}IP Limit installed and configured successfully (backend: ${backend})!${plain}\n"
     return 0
 }
 
@@ -2482,15 +2444,18 @@ show_banlog() {
 create_iplimit_jails() {
     # Use default bantime if not passed => 30 minutes
     local bantime="${1:-30}"
+    # backend can be "iptables" (default) or "nftables"
+    local backend="${2:-iptables}"
 
-    # Uncomment 'allowipv6 = auto' in fail2ban.conf
+    # Common configuration
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # On Debian 12+ and Ubuntu 22.04+ fail2ban's default backend should be changed to systemd
+    # On Debian 12+ and Ubuntu 22.04+ change default backend to systemd
     if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]]; then
         sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
     fi
 
+    # Jail configuration (same for both backends)
     cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
 [3x-ipl]
 enabled=true
@@ -2503,6 +2468,7 @@ findtime=32
 bantime=${bantime}m
 EOF
 
+    # Filter definition
     cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
@@ -2510,10 +2476,7 @@ failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnect
 ignoreregex =
 EOF
 
-    # Ports to exempt from the ban so an over-limit proxy client can never lock
-    # the administrator out of SSH or the panel. The ban still covers every other
-    # TCP and UDP port (including all Xray inbounds, e.g. UDP-based Hysteria2), so
-    # IP-limit keeps working for inbounds added later without regenerating these files.
+    # Ports to exempt from the ban (SSH + panel port)
     local ssh_ports
     ssh_ports=$(grep -oP '^[[:space:]]*Port[[:space:]]+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | paste -sd, -)
     [[ -z "${ssh_ports}" ]] && ssh_ports="22"
@@ -2522,7 +2485,25 @@ EOF
     local exempt_ports="${ssh_ports}"
     [[ -n "${panel_port}" ]] && exempt_ports="${exempt_ports},${panel_port}"
 
-    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+    # === Backend-specific action configuration ===
+    if [[ "$backend" == "nftables" ]]; then
+        cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+[INCLUDES]
+before = nftables-multiport.conf
+
+[Definition]
+actionstart = <nftables> add chain ip f2b-<name> { type filter hook input priority 0 \; }
+actionstop  = <nftables> delete chain ip f2b-<name>
+
+actionban = <nftables> add rule ip f2b-<name> ip saddr <ip> tcp dport != { <exemptports> } reject
+            <nftables> add rule ip f2b-<name> ip saddr <ip> udp dport != { <exemptports> } reject
+            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> ..." >> ${iplimit_banned_log_path}
+
+actionunban = <nftables> delete rule ip f2b-<name> ip saddr <ip> ...
+EOF
+    else
+        # iptables — original behavior preserved
+        cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-allports.conf
 
@@ -2550,23 +2531,9 @@ name = default
 chain = INPUT
 exemptports = ${exempt_ports}
 EOF
+    fi
 
-    echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
-}
-
-iplimit_remove_conflicts() {
-    local jail_files=(
-        /etc/fail2ban/jail.conf
-        /etc/fail2ban/jail.local
-    )
-
-    for file in "${jail_files[@]}"; do
-        # Check for [3x-ipl] config in jail file then remove it
-        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
-            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
-            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
-        fi
-    done
+    echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes (backend: ${backend}).${plain}"
 }
 
 SSH_port_forwarding() {
