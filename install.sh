@@ -1333,15 +1333,52 @@ EOF
     fi
 
     ${xui_folder}/x-ui migrate
+    echo ""
+    echo -e "${green}═══════════════════════════════════════════${plain}"
+    echo -e "${green}     Fail2ban / IP Limit Configuration     ${plain}"
+    echo -e "${green}═══════════════════════════════════════════${plain}"
+    echo -e "1) iptables (legacy, recommended default)"
+    echo -e "2) nftables (modern)"
+    echo -e "3) Skip (IP Limit will be disabled)"
+
+    local fb_choice="1"
+    if [[ "$NONINTERACTIVE" == "1" ]]; then
+        case "${XUI_FAIL2BAN_BACKEND:-iptables}" in
+            nft|nftables) fb_choice="2" ;;
+            none|skip)    fb_choice="3" ;;
+            *)            fb_choice="1" ;;
+        esac
+    else
+        read -rp "Choose [1]: " fb_choice
+        fb_choice="${fb_choice:-1}"
+    fi
+
+    case "$fb_choice" in
+        2) export XUI_FAIL2BAN_BACKEND="nftables" ;;
+        3) export XUI_FAIL2BAN_BACKEND="none" ;;
+        *) export XUI_FAIL2BAN_BACKEND="iptables" ;;
+    esac
+
+    echo -e "${green}Selected backend: ${XUI_FAIL2BAN_BACKEND}${plain}"}
 }
 
-# setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
-# by invoking the freshly installed x-ui CLI. IP Limit is load-bearing on
-# fail2ban (without it the panel disables the limitIp field and zeroes existing
-# limits), so a fresh install should make it work out of the box, just like the
-# Docker image already does. Non-fatal by design: a fail2ban failure must never
-# abort the panel install.
+# setup_fail2ban auto-installs and configures fail2ban + IP Limit during installation.
+# It respects the XUI_FAIL2BAN_BACKEND environment variable (set in config_after_install):
+#   - "iptables" (default): uses legacy iptables backend
+#   - "nftables": uses modern nftables backend
+#   - "none": completely skips Fail2ban/IP Limit setup
+#
+# IP Limit feature depends on fail2ban. Without it the panel will disable the
+# limitIp field and zero existing limits. This function is non-fatal by design —
+# a failure here must never abort the overall panel installation.
+#
+# Called automatically after a fresh install (and via `x-ui setup-fail2ban`).
 setup_fail2ban() {
+    if [[ "${XUI_FAIL2BAN_BACKEND}" == "none" ]]; then
+        echo -e "${yellow}Fail2ban/IP Limit skipped by user choice.${plain}"
+        return 0
+    fi
+
     if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
         echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
         return 0
@@ -1356,7 +1393,7 @@ setup_fail2ban() {
     if /usr/bin/x-ui setup-fail2ban; then
         echo -e "${green}Fail2ban setup complete.${plain}"
     else
-        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' and open the IP Limit menu. Continuing.${plain}"
+        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' menu.${plain}"
     fi
     return 0
 }
