@@ -1359,7 +1359,8 @@ EOF
         *) export XUI_FAIL2BAN_BACKEND="iptables" ;;
     esac
 
-    echo -e "${green}Selected backend: ${XUI_FAIL2BAN_BACKEND}${plain}"}
+    echo -e "${green}Selected backend: ${XUI_FAIL2BAN_BACKEND}${plain}"
+
 }
 
 # setup_fail2ban auto-installs and configures fail2ban + IP Limit during installation.
