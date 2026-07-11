@@ -15,15 +15,29 @@ export type XHttpMode = z.infer<typeof XHttpModeSchema>;
 // XMUX is the connection-multiplexing layer xHTTP uses to fan out
 // parallel requests over a small pool of upstream connections. Fields
 // are strings because they accept dash-range values like '16-32'.
+// maxConcurrency and maxConnections are mutually exclusive strategies
+// (xray-core rejects a config that sets both), so the bare schema
+// default keeps only one of them non-zero — a non-zero maxConnections
+// default resurrected on load made every re-save silently delete the
+// user's maxConcurrency.
 export const XHttpXmuxSchema = z.object({
   maxConcurrency: z.string().default('16-32'),
-  maxConnections: z.union([z.string(), z.number()]).default(6),
+  maxConnections: z.union([z.string(), z.number()]).default(0),
   cMaxReuseTimes: z.union([z.string(), z.number()]).default(0),
   hMaxRequestTimes: z.string().default('600-900'),
   hMaxReusableSecs: z.string().default('1800-3000'),
   hKeepAlivePeriod: z.number().int().min(0).default(0),
 });
 export type XHttpXmux = z.infer<typeof XHttpXmuxSchema>;
+
+// Seed for freshly enabling XMUX on a config that had no xmux block:
+// mirrors xray-core v26.6.27's own anti-RKN maxConnections=6 fallback
+// rather than the concurrency strategy.
+export const XMUX_FRESH_DEFAULTS: XHttpXmux = {
+  ...XHttpXmuxSchema.parse({}),
+  maxConcurrency: '',
+  maxConnections: 6,
+};
 
 // Predefined sessionIDTable names xray-core accepts as a shorthand for a
 // charset (splithttp.PredefinedTable, xray-core #6258). A literal ASCII

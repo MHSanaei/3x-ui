@@ -353,3 +353,35 @@ describe('legacy xhttp session keys on edit (#5621)', () => {
     expect(out.sessionKey).toBeUndefined();
   });
 });
+
+describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
+  const xmuxRow: RawInboundRow = {
+    ...vlessRow,
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/xh',
+        mode: 'auto',
+        xmux: { maxConcurrency: '1-2' },
+      },
+    },
+  };
+
+  it('rawInboundToFormValues does not resurrect a non-zero maxConnections', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    expect(xhttp.enableXmux).toBe(true);
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+    expect(xmux.maxConnections).toBe(0);
+  });
+
+  it('formValuesToWirePayload keeps maxConcurrency on an unedited re-save', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const payload = formValuesToWirePayload(values);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
+    const xmux = stream.xhttpSettings.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+  });
+});

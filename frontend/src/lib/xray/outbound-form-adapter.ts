@@ -387,7 +387,7 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
-export const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
+const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   const next = { ...stream };

@@ -4,10 +4,9 @@ import { useFormContext, useWatch } from 'react-hook-form';
 
 import { HeaderMapEditor } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
-import { XHTTP_SESSION_ID_TABLES, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { XHTTP_SESSION_ID_TABLES, XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
-
-const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
+import { int32RangeUpper } from '@/lib/xray/stream-wire-normalize';
 
 function antdValidatorToRhf(fn: (rule: unknown, value: unknown) => Promise<void>) {
   return async (value: unknown): Promise<true | string> => {
@@ -36,7 +35,21 @@ export default function XhttpForm() {
     const existing = getValues('streamSettings.xhttpSettings.xmux');
     const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
     if (hasValues) return;
-    setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_DEFAULTS });
+    setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_FRESH_DEFAULTS });
+  }
+
+  function onXmuxMaxConcurrencyChange(value: unknown) {
+    if (int32RangeUpper(value) <= 0) return;
+    if (int32RangeUpper(getValues('streamSettings.xhttpSettings.xmux.maxConnections')) > 0) {
+      setValue('streamSettings.xhttpSettings.xmux.maxConnections', 0);
+    }
+  }
+
+  function onXmuxMaxConnectionsChange(value: unknown) {
+    if (int32RangeUpper(value) <= 0) return;
+    if (int32RangeUpper(getValues('streamSettings.xhttpSettings.xmux.maxConcurrency')) > 0) {
+      setValue('streamSettings.xhttpSettings.xmux.maxConcurrency', '');
+    }
   }
 
   return (
@@ -295,12 +308,14 @@ export default function XhttpForm() {
           <FormField
             label={t('pages.xray.outboundForm.maxConcurrency')}
             name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConcurrency']}
+            onAfterChange={onXmuxMaxConcurrencyChange}
           >
             <Input placeholder="16-32" />
           </FormField>
           <FormField
             label={t('pages.xray.outboundForm.maxConnections')}
             name={['streamSettings', 'xhttpSettings', 'xmux', 'maxConnections']}
+            onAfterChange={onXmuxMaxConnectionsChange}
           >
             <Input placeholder="0" />
           </FormField>

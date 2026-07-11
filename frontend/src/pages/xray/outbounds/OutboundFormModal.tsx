@@ -17,11 +17,11 @@ import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import {
-  XMUX_DEFAULTS,
   formValuesToWirePayload,
   rawOutboundToFormValues,
 } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import { XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 import {
   OutboundFormBaseSchema,
   type OutboundFormValues,
@@ -255,7 +255,7 @@ export default function OutboundFormModal({
     const existing = methods.getValues('streamSettings.xhttpSettings.xmux');
     const hasValues = existing && typeof existing === 'object' && Object.keys(existing).length > 0;
     if (hasValues) return;
-    methods.setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_DEFAULTS });
+    methods.setValue('streamSettings.xhttpSettings.xmux', { ...XMUX_FRESH_DEFAULTS });
   }
 
   const duplicateTag = useMemo(() => {
