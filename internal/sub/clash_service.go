@@ -236,11 +236,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["type"] = "vmess"
 		proxy["uuid"] = client.ID
 		proxy["alterId"] = 0
-		cipher := client.Security
-		if cipher == "" {
-			cipher = "auto"
-		}
-		proxy["cipher"] = cipher
+		proxy["cipher"] = normalizeVmessSecurity(client.Security)
 	case model.VLESS:
 		proxy["type"] = "vless"
 		proxy["uuid"] = applyVlessRoute(client.ID, hostVlessRoute(ep))

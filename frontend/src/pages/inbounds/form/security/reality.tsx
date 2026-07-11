@@ -128,7 +128,7 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'minClientVer']}
         label={t('pages.inbounds.form.minClientVer')}
       >
-        <Input placeholder="25.9.11" />
+        <Input placeholder="26.3.27" />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'maxClientVer']}

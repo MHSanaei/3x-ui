@@ -143,6 +143,12 @@ func TestComputeHotDiff_StaticSectionChangeNeedsRestart(t *testing.T) {
 	if _, ok := ComputeHotDiff(makeHotConfig(), newCfg); ok {
 		t.Fatal("observatory change must force a restart")
 	}
+
+	newCfg = makeHotConfig()
+	newCfg.Env = json_util.RawMessage(`{"XRAY_DNS_PATH":"/tmp/dns"}`)
+	if _, ok := ComputeHotDiff(makeHotConfig(), newCfg); ok {
+		t.Fatal("env change must force a restart: env vars are read only at process start")
+	}
 }
 
 func TestComputeHotDiff_InboundAddRemoveChange(t *testing.T) {

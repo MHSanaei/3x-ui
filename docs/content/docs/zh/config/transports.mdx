@@ -117,7 +117,8 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 **FinalMask** 在传输方式和安全层**之后**包裹流量，因此它既能伪装那些承载不了 TLS 的
 传输（如 mKCP），也能在 TLS 之上再加一层外壳。掩码按方向分别配置：
 
-- **TCP 掩码** — `fragment`、`sudoku`、`header-custom`。
+- **TCP 掩码** — `fragment`、`sudoku`、`header-custom`、`xmc`（把流量伪装成
+  Minecraft 协议；密码必填，主机名和玩家用户名可选）。
 - **UDP 掩码** — `salamander`、`mkcp-legacy`、`header-custom`、`xdns`、`xicmp`、
   `noise`、`sudoku`、`realm`。（`mkcp-legacy` 重现旧版 mKCP 的头部混淆。）
 - **QUIC 参数** — 拥塞控制（`reno`、`bbr`、`brutal`、`force-brutal`）、Brutal 上/下行

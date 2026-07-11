@@ -384,10 +384,7 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 	}
 	outbound.StreamSettings = streamSettings
 
-	security := client.Security
-	if security == "" {
-		security = "auto"
-	}
+	security := normalizeVmessSecurity(client.Security)
 	outbound.Settings = map[string]any{
 		"address":  inbound.Listen,
 		"port":     inbound.Port,

@@ -121,6 +121,12 @@ func initModels() error {
 	if err := migrateLegacySocksInboundsToMixed(); err != nil {
 		return err
 	}
+	if err := migrateShadowsocksRemovedCiphers(); err != nil {
+		return err
+	}
+	if err := migrateVmessRemovedSecurities(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -750,6 +756,125 @@ func migrateLegacySocksInboundsToMixed() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Migrated %d legacy socks inbound(s) to mixed", res.RowsAffected)
+	}
+	return nil
+}
+
+// migrateShadowsocksRemovedCiphers rewrites shadowsocks inbounds still using
+// the "none"/"plain" ciphers that xray-core v26.7.11 removed; one such row
+// makes the whole generated config unbuildable and keeps xray from starting.
+func migrateShadowsocksRemovedCiphers() error {
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.Shadowsocks).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	migrated := int64(0)
+	for _, inbound := range inbounds {
+		if strings.TrimSpace(inbound.Settings) == "" {
+			continue
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		changed := false
+		if method, _ := settings["method"].(string); method != "" {
+			if replacement, removed := model.ReplaceRemovedShadowsocksCipher(method); removed {
+				settings["method"] = replacement
+				changed = true
+			}
+		}
+		if clients, ok := settings["clients"].([]any); ok {
+			for i := range clients {
+				cm, ok := clients[i].(map[string]any)
+				if !ok {
+					continue
+				}
+				method, _ := cm["method"].(string)
+				if replacement, removed := model.ReplaceRemovedShadowsocksCipher(method); removed {
+					cm["method"] = replacement
+					clients[i] = cm
+					changed = true
+				}
+			}
+		}
+		if !changed {
+			continue
+		}
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			log.Printf("migrateShadowsocksRemovedCiphers: skip inbound %d (marshal failed): %v", inbound.Id, err)
+			continue
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		migrated++
+	}
+	if migrated > 0 {
+		log.Printf("Rewrote removed shadowsocks cipher on %d inbound(s)", migrated)
+	}
+	return nil
+}
+
+// migrateVmessRemovedSecurities rewrites the vmess "none"/"zero" security
+// values that xray-core v26.7.11 removed to "auto" (what the core now treats
+// them as), on both the clients column and each vmess inbound's settings.
+func migrateVmessRemovedSecurities() error {
+	res := db.Exec("UPDATE clients SET security = 'auto' WHERE security IN ('none', 'zero')")
+	if res.Error != nil {
+		log.Printf("Error migrating removed vmess security values on clients: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Migrated %d client(s) off removed vmess security values", res.RowsAffected)
+	}
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.VMESS).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	migrated := int64(0)
+	for _, inbound := range inbounds {
+		if strings.TrimSpace(inbound.Settings) == "" {
+			continue
+		}
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		changed := false
+		for i := range clients {
+			cm, ok := clients[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			if security, _ := cm["security"].(string); security == "none" || security == "zero" {
+				cm["security"] = "auto"
+				clients[i] = cm
+				changed = true
+			}
+		}
+		if !changed {
+			continue
+		}
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			log.Printf("migrateVmessRemovedSecurities: skip inbound %d (marshal failed): %v", inbound.Id, err)
+			continue
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		migrated++
+	}
+	if migrated > 0 {
+		log.Printf("Rewrote removed vmess security values on %d inbound(s)", migrated)
 	}
 	return nil
 }

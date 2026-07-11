@@ -24,3 +24,16 @@ describe('NetworkSettingsSchema fixtures', () => {
     });
   }
 });
+
+describe('NetworkSettingsSchema method alias', () => {
+  it('folds xray-core v26.7.11 method alias back into network', () => {
+    const parsed = NetworkSettingsSchema.parse({ method: 'ws', wsSettings: {} });
+    expect((parsed as { network?: string }).network).toBe('ws');
+    expect((parsed as Record<string, unknown>).method).toBeUndefined();
+  });
+
+  it('prefers method over network when both are present', () => {
+    const parsed = NetworkSettingsSchema.parse({ method: 'grpc', network: 'tcp', grpcSettings: {} });
+    expect((parsed as { network?: string }).network).toBe('grpc');
+  });
+});

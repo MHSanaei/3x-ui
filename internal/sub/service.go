@@ -714,7 +714,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		return ""
 	}
 	obj["id"] = client.ID
-	obj["scy"] = client.Security
+	obj["scy"] = normalizeVmessSecurity(client.Security)
 
 	externalProxies, _ := stream["externalProxy"].([]any)
 
@@ -724,6 +724,18 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 
 	obj["ps"] = s.genRemark(inbound, email, "", network)
 	return buildVmessLink(obj)
+}
+
+// normalizeVmessSecurity maps the vmess security values xray-core v26.7.11
+// removed ("none"/"zero"), plus the legacy empty string, to "auto" so links
+// and subscriptions stop advertising values the upgraded server rejects on
+// the wire.
+func normalizeVmessSecurity(security string) string {
+	switch security {
+	case "", "none", "zero":
+		return "auto"
+	}
+	return security
 }
 
 // vlessEncryptionEnabled reports whether the VLESS inbound settings enable
@@ -2131,6 +2143,7 @@ var validFinalMaskTCPTypes = map[string]struct{}{
 	"header-custom": {},
 	"fragment":      {},
 	"sudoku":        {},
+	"xmc":           {},
 }
 
 // applyKcpShareParams reconstructs legacy KCP share-link fields from either

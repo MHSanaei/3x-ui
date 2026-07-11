@@ -125,7 +125,9 @@ HTTPUpgrade — это одноразовый HTTP/1.1 `Upgrade` без фрей
 поэтому он может замаскировать транспорты, не несущие TLS (например, mKCP), или
 добавить вторую оболочку поверх TLS. Маски настраиваются по направлениям:
 
-- **TCP-маски** — `fragment`, `sudoku`, `header-custom`.
+- **TCP-маски** — `fragment`, `sudoku`, `header-custom`, `xmc` (маскирует поток
+  под трафик протокола Minecraft; требуется пароль, имя хоста и имена игроков
+  опциональны).
 - **UDP-маски** — `salamander`, `mkcp-legacy`, `header-custom`, `xdns`, `xicmp`,
   `noise`, `sudoku`, `realm`. (`mkcp-legacy` воспроизводит старую обфускацию
   заголовка mKCP.)
