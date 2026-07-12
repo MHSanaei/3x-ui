@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Tag, Tooltip } from 'antd';
 import {
@@ -11,17 +11,23 @@ import {
   LoadingOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
+import CountryPill from './CountryPill';
 import TestResultPopover from './TestResultPopover';
 import {
   effectiveTestMode,
+  countryFlag,
+  countryName,
   isTesting,
   isUntestable,
   outboundAddresses,
@@ -58,7 +64,8 @@ export function useOutboundColumns({
   onResetTraffic,
   onTest,
 }: OutboundColumnsParams): ColumnsType<OutboundRow> {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [showEgressIp, setShowEgressIp] = useState(false);
   return useMemo(
     () => [
       {
@@ -136,6 +143,72 @@ export function useOutboundColumns({
         },
       },
       {
+        title: (
+          <span className="egress-header">
+            {t('pages.xray.outbound.egress')}
+            <Tooltip title={t('pages.index.toggleIpVisibility')}>
+              {showEgressIp ? (
+                <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(false)} onKeyDown={activateOnKey(() => setShowEgressIp(false))} />
+              ) : (
+                <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowEgressIp(true)} onKeyDown={activateOnKey(() => setShowEgressIp(true))} />
+              )}
+            </Tooltip>
+          </span>
+        ),
+        key: 'egress',
+        align: 'left',
+        width: 210,
+        render: (_v, _record, index) => {
+          const egress = testResult(outboundTestStates, index)?.egress;
+          const addresses = [
+            egress?.ipv4 ? { label: 'v4', value: egress.ipv4 } : null,
+            egress?.ipv6 ? { label: 'v6', value: egress.ipv6 } : null,
+          ].filter((item): item is { label: string; value: string } => Boolean(item));
+          if (addresses.length === 0) {
+            return (
+              <Tooltip title={t('pages.xray.outbound.egressHint')}>
+                <span className="empty">—</span>
+              </Tooltip>
+            );
+          }
+          return (
+            <div className="egress-stack">
+              {addresses.map((addr) => (
+                <Tooltip key={addr.label} title={addr.value}>
+                  <span className="egress-address">
+                    <span className="egress-family">{addr.label}</span>
+                    <span className={showEgressIp ? 'address-visible egress-ip' : 'address-hidden egress-ip'}>{addr.value}</span>
+                  </span>
+                </Tooltip>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: t('pages.xray.outbound.country'),
+        key: 'egressCountry',
+        align: 'left',
+        width: 160,
+        render: (_v, _record, index) => {
+          const egress = testResult(outboundTestStates, index)?.egress;
+          if (!egress?.country) {
+            return (
+              <Tooltip title={t('pages.xray.outbound.egressHint')}>
+                <span className="empty">—</span>
+              </Tooltip>
+            );
+          }
+          const flag = countryFlag(egress.country);
+          const name = countryName(egress.country, i18n.language);
+          return (
+            <Tooltip title={egress.warp ? `Cloudflare trace · WARP ${egress.warp}` : 'Cloudflare trace'}>
+              <CountryPill flag={flag} name={name || egress.country} warp={egress.warp} />
+            </Tooltip>
+          );
+        },
+      },
+      {
         title: t('pages.inbounds.traffic'),
         key: 'traffic',
         align: 'left',
@@ -183,6 +256,6 @@ export function useOutboundColumns({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, testMode, rows, outboundTestStates, outboundsTraffic],
+    [t, i18n.language, testMode, rows, outboundTestStates, outboundsTraffic, showEgressIp],
   );
 }

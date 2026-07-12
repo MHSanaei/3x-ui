@@ -56,8 +56,8 @@ const (
 	defaultPassword = "admin"
 )
 
-func initModels() error {
-	models := []any{
+func allModels() []any {
+	return []any{
 		&model.User{},
 		&model.Inbound{},
 		&model.OutboundTraffics{},
@@ -78,12 +78,16 @@ func initModels() error {
 		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
+}
+
+func initModels() error {
+	models := allModels()
 	for _, mdl := range models {
 		if IsPostgres() && postgresModelSettled(mdl) {
 			continue
 		}
 		if err := db.AutoMigrate(mdl); err != nil {
-			if isIgnorableDuplicateColumnErr(err, mdl) {
+			if isIgnorableDuplicateColumnErr(db, err, mdl) {
 				log.Printf("Ignoring duplicate column during auto migration for %T: %v", mdl, err)
 				continue
 			}
@@ -999,7 +1003,7 @@ func dedupeInboundSettingsClients() error {
 	return nil
 }
 
-func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
+func isIgnorableDuplicateColumnErr(gdb *gorm.DB, err error, mdl any) bool {
 	if err == nil {
 		return false
 	}
@@ -1009,14 +1013,14 @@ func isIgnorableDuplicateColumnErr(err error, mdl any) bool {
 	if _, after, ok := strings.Cut(errMsg, sqlitePrefix); ok {
 		col := strings.TrimSpace(after)
 		col = strings.Trim(col, "`\"[]")
-		return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
+		return col != "" && gdb != nil && gdb.Migrator().HasColumn(mdl, col)
 	}
 	if strings.Contains(errMsg, "already exists") && strings.Contains(errMsg, "column ") {
 		if _, after, ok := strings.Cut(errMsg, "column \""); ok {
 			rest := after
 			if e := strings.Index(rest, "\""); e > 0 {
 				col := rest[:e]
-				return col != "" && db != nil && db.Migrator().HasColumn(mdl, col)
+				return col != "" && gdb != nil && gdb.Migrator().HasColumn(mdl, col)
 			}
 		}
 	}

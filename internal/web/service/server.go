@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -1425,44 +1426,26 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	if database.IsPostgres() {
 		return s.importPostgresDB(file)
 	}
-	// Check if the file is a SQLite database
-	isValidDb, err := database.IsSQLiteDB(file)
+	kind, err := sniffUploadKind(file)
 	if err != nil {
-		return common.NewErrorf("Error checking db file format: %v", err)
+		return common.NewErrorf("Error reading uploaded file: %v", err)
 	}
-	if !isValidDb {
-		return common.NewError("Invalid db file format")
+	switch kind {
+	case importKindSQLiteDB, importKindSQLiteDump:
+	case importKindPgDump:
+		return common.NewError("This file is a PostgreSQL backup; it can only be restored on a panel running PostgreSQL")
+	default:
+		return common.NewError("Invalid file: expected a SQLite database (.db) from Back Up or a SQLite migration dump (.dump)")
 	}
 
-	// Reset the file reader to the beginning
-	_, err = file.Seek(0, 0)
-	if err != nil {
-		return common.NewErrorf("Error resetting file reader: %v", err)
-	}
-
-	// Save the file as a temporary file
 	tempPath := fmt.Sprintf("%s.temp", config.GetDBPath())
 
-	// Remove the existing temporary file (if any)
 	if _, err := os.Stat(tempPath); err == nil {
 		if errRemove := os.Remove(tempPath); errRemove != nil {
 			return common.NewErrorf("Error removing existing temporary db file: %v", errRemove)
 		}
 	}
-
-	// Create the temporary file
-	tempFile, err := os.Create(tempPath)
-	if err != nil {
-		return common.NewErrorf("Error creating temporary db file: %v", err)
-	}
-
-	// Robust deferred cleanup for the temporary file
 	defer func() {
-		if tempFile != nil {
-			if cerr := tempFile.Close(); cerr != nil {
-				logger.Warningf("Warning: failed to close temp file: %v", cerr)
-			}
-		}
 		if _, err := os.Stat(tempPath); err == nil {
 			if rerr := os.Remove(tempPath); rerr != nil {
 				logger.Warningf("Warning: failed to remove temp file: %v", rerr)
@@ -1470,20 +1453,15 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		}
 	}()
 
-	// Save uploaded file to temporary file
-	if _, err = io.Copy(tempFile, file); err != nil {
-		return common.NewErrorf("Error saving db: %v", err)
+	if err := stageSQLiteUpload(file, kind, tempPath); err != nil {
+		return err
 	}
 
-	// Close temp file before opening via sqlite
-	if err = tempFile.Close(); err != nil {
-		return common.NewErrorf("Error closing temporary db file: %v", err)
-	}
-	tempFile = nil
-
-	// Validate integrity (no migrations / side effects)
 	if err = database.ValidateSQLiteDB(tempPath); err != nil {
 		return common.NewErrorf("Invalid or corrupt db file: %v", err)
+	}
+	if err = database.PrepareSQLiteForMigration(tempPath); err != nil {
+		return common.NewErrorf("This file cannot be imported: %v", err)
 	}
 
 	xrayStopped := true
@@ -1502,6 +1480,19 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		logger.Warningf("Failed to close existing DB before replacement: %v", errClose)
 	}
 
+	// Registered after the xray-restart defer so it runs first (LIFO): every
+	// error return below leaves a database file at the configured path, and the
+	// restart needs an open pool to build the xray config from it.
+	dbReopened := false
+	defer func() {
+		if dbReopened {
+			return
+		}
+		if errReopen := database.InitDB(config.GetDBPath()); errReopen != nil {
+			logger.Warningf("Failed to reopen the database after import error: %v", errReopen)
+		}
+	}()
+
 	// Backup the current database for fallback
 	fallbackPath := fmt.Sprintf("%s.backup", config.GetDBPath())
 
@@ -1517,15 +1508,6 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error backing up current db file: %v", err)
 	}
 
-	// Defer fallback cleanup ONLY if everything goes well
-	defer func() {
-		if _, err := os.Stat(fallbackPath); err == nil {
-			if rerr := os.Remove(fallbackPath); rerr != nil {
-				logger.Warningf("Warning: failed to remove fallback file: %v", rerr)
-			}
-		}
-	}()
-
 	// Move temp to DB path
 	if err = os.Rename(tempPath, config.GetDBPath()); err != nil {
 		// Restore from fallback
@@ -1537,19 +1519,30 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	// Open & migrate new DB
 	if err = database.InitDB(config.GetDBPath()); err != nil {
+		// A failed InitDB still holds the imported file open; close before the
+		// rename or Windows refuses to replace it.
+		if errClose := database.CloseDB(); errClose != nil {
+			logger.Warningf("Failed to close the imported DB before restoring fallback: %v", errClose)
+		}
 		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
 			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
 		}
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
+	dbReopened = true
 
 	s.inboundService.MigrateDB()
 
 	xrayStopped = false
 	if err = s.RestartXrayService(); err != nil {
-		return common.NewErrorf("Imported DB but failed to start Xray: %v", err)
+		return common.NewErrorf("Imported DB but failed to start Xray: %v; the previous database was kept at %s", err, fallbackPath)
 	}
 
+	if _, err := os.Stat(fallbackPath); err == nil {
+		if rerr := os.Remove(fallbackPath); rerr != nil {
+			logger.Warningf("Warning: failed to remove fallback file: %v", rerr)
+		}
+	}
 	return nil
 }
 
@@ -1657,18 +1650,59 @@ func parsePgToolVersion(versionOutput string) string {
 	return pgToolVersionPattern.FindString(versionOutput)
 }
 
-func (s *ServerService) importPostgresDB(file multipart.File) error {
-	header := make([]byte, 5)
-	if _, err := file.ReadAt(header, 0); err != nil {
-		return common.NewErrorf("Error reading dump file: %v", err)
+const (
+	importKindUnknown = iota
+	importKindPgDump
+	importKindSQLiteDB
+	importKindSQLiteDump
+)
+
+// sniffImportKind classifies an uploaded restore file by its leading bytes:
+// a pg_dump custom archive, a raw SQLite database, or a SQLite SQL text dump.
+func sniffImportKind(header []byte) int {
+	if bytes.HasPrefix(header, []byte("PGDMP")) {
+		return importKindPgDump
 	}
-	if string(header) != "PGDMP" {
-		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) created by this panel's Back Up")
+	if bytes.HasPrefix(header, []byte("SQLite format 3\x00")) {
+		return importKindSQLiteDB
+	}
+	text := bytes.TrimLeft(bytes.TrimPrefix(header, []byte("\xef\xbb\xbf")), " \t\r\n")
+	if bytes.HasPrefix(text, []byte("PRAGMA")) || bytes.HasPrefix(text, []byte("BEGIN TRANSACTION")) {
+		return importKindSQLiteDump
+	}
+	return importKindUnknown
+}
+
+func sniffUploadKind(file multipart.File) (int, error) {
+	header := make([]byte, 64)
+	n, err := file.ReadAt(header, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return importKindUnknown, err
 	}
 	if _, err := file.Seek(0, 0); err != nil {
-		return common.NewErrorf("Error resetting file reader: %v", err)
+		return importKindUnknown, err
 	}
+	return sniffImportKind(header[:n]), nil
+}
 
+func (s *ServerService) importPostgresDB(file multipart.File) error {
+	kind, err := sniffUploadKind(file)
+	if err != nil {
+		return common.NewErrorf("Error reading uploaded file: %v", err)
+	}
+	switch kind {
+	case importKindPgDump:
+		return s.restorePostgresDump(file)
+	case importKindSQLiteDB:
+		return s.migrateSQLiteIntoPostgres(file, false)
+	case importKindSQLiteDump:
+		return s.migrateSQLiteIntoPostgres(file, true)
+	default:
+		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) from this panel's Back Up, a SQLite database (.db), or a SQLite migration dump")
+	}
+}
+
+func (s *ServerService) restorePostgresDump(file multipart.File) error {
 	bin, err := exec.LookPath("pg_restore")
 	if err != nil {
 		return common.NewError("pg_restore not found on the server; install the postgresql-client package to restore a PostgreSQL database")
@@ -1733,6 +1767,99 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 	xrayStopped = false
 	if err := s.RestartXrayService(); err != nil {
 		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
+	}
+	return nil
+}
+
+func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump bool) error {
+	tempDir, err := os.MkdirTemp("", "x-ui-pg-migrate-*")
+	if err != nil {
+		return common.NewErrorf("Error creating temporary folder: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	uploadPath := filepath.Join(tempDir, "upload.db")
+	if isSQLDump {
+		uploadPath = filepath.Join(tempDir, "upload.dump")
+	}
+	if err := saveUploadedFile(file, uploadPath); err != nil {
+		return common.NewErrorf("Error saving uploaded file: %v", err)
+	}
+
+	dbPath := uploadPath
+	if isSQLDump {
+		dbPath = filepath.Join(tempDir, "restored.db")
+		if err := database.RestoreSQLite(uploadPath, dbPath); err != nil {
+			return common.NewErrorf("Error rebuilding a SQLite database from the migration dump: %v", err)
+		}
+	}
+	if err := database.ValidateSQLiteDB(dbPath); err != nil {
+		return common.NewErrorf("Invalid or corrupt db file: %v", err)
+	}
+	if err := database.PrepareSQLiteForMigration(dbPath); err != nil {
+		return common.NewErrorf("This file cannot be imported: %v", err)
+	}
+
+	xrayStopped := true
+	defer func() {
+		if xrayStopped {
+			if errR := s.RestartXrayService(); errR != nil {
+				logger.Warningf("Failed to restart Xray after DB restore error: %v", errR)
+			}
+		}
+	}()
+	if errStop := s.StopXrayService(); errStop != nil {
+		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
+	}
+
+	if errClose := database.CloseDB(); errClose != nil {
+		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
+	}
+
+	migrateErr := database.MigrateData(dbPath, config.GetDBDSN())
+
+	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
+		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	s.inboundService.MigrateDB()
+
+	if migrateErr != nil {
+		return common.NewErrorf("Importing the SQLite data into PostgreSQL failed: %v; the import runs in a single transaction, so the database was left unchanged", migrateErr)
+	}
+
+	xrayStopped = false
+	if err := s.RestartXrayService(); err != nil {
+		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
+	}
+	return nil
+}
+
+func saveUploadedFile(file multipart.File, dstPath string) error {
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		dst.Close()
+		return err
+	}
+	return dst.Close()
+}
+
+func stageSQLiteUpload(file multipart.File, kind int, tempPath string) error {
+	if kind == importKindSQLiteDump {
+		dumpPath := tempPath + ".dump"
+		defer os.Remove(dumpPath)
+		if err := saveUploadedFile(file, dumpPath); err != nil {
+			return common.NewErrorf("Error saving migration dump: %v", err)
+		}
+		if err := database.RestoreSQLite(dumpPath, tempPath); err != nil {
+			return common.NewErrorf("Error rebuilding a SQLite database from the migration dump: %v", err)
+		}
+		return nil
+	}
+	if err := saveUploadedFile(file, tempPath); err != nil {
+		return common.NewErrorf("Error saving db: %v", err)
 	}
 	return nil
 }

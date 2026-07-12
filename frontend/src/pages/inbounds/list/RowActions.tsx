@@ -43,7 +43,7 @@ export function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients
         label: `${t('pages.inbounds.export')} — ${t('pages.settings.subSettings')}`,
       });
     }
-  } else if (!record.isWireguard) {
+  } else {
     items.push({ key: 'showInfo', icon: <InfoCircleOutlined />, label: t('pages.inbounds.inboundInfo') });
   }
   items.push({ key: 'clipboard', icon: <CopyOutlined />, label: t('pages.inbounds.exportInbound') });

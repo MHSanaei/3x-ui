@@ -61,6 +61,22 @@ export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRo
   return { up: tr?.up || 0, down: tr?.down || 0 };
 }
 
+export function countryFlag(country?: string): string {
+  const code = (country || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '';
+  return String.fromCodePoint(...[...code].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
+}
+
+export function countryName(country?: string, locale?: string): string {
+  const code = (country || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '';
+  try {
+    return new Intl.DisplayNames(locale ? [locale] : undefined, { type: 'region' }).of(code) || code;
+  } catch {
+    return code;
+  }
+}
+
 export function isTesting<K extends string | number>(states: Record<K, OutboundTestState>, idx: K): boolean {
   return !!states?.[idx]?.testing;
 }
