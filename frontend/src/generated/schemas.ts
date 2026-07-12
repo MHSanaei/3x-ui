@@ -855,6 +855,7 @@ export const SCHEMAS: Record<string, unknown> = {
   "ApiToken": {
     "properties": {
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "enabled": {
@@ -884,6 +885,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "properties": {
       "createdAt": {
         "example": 1736000000,
+        "format": "int64",
         "type": "integer"
       },
       "enabled": {
@@ -934,6 +936,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "created_at": {
         "description": "Creation timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -946,6 +949,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "description": "Expiration timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "flow": {
@@ -1007,14 +1011,17 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "tgId": {
         "description": "Telegram user ID for notifications",
+        "format": "int64",
         "type": "integer"
       },
       "totalGB": {
         "description": "Total traffic limit in GB",
+        "format": "int64",
         "type": "integer"
       },
       "updated_at": {
         "description": "Last update timestamp",
+        "format": "int64",
         "type": "integer"
       }
     },
@@ -1038,6 +1045,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "flowOverride": {
@@ -1070,6 +1078,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -1079,6 +1088,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "expiryTime": {
+        "format": "int64",
         "type": "integer"
       },
       "flow": {
@@ -1122,12 +1132,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "tgId": {
+        "format": "int64",
         "type": "integer"
       },
       "totalGB": {
+        "format": "int64",
         "type": "integer"
       },
       "updatedAt": {
+        "format": "int64",
         "type": "integer"
       },
       "uuid": {
@@ -1180,6 +1193,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "properties": {
       "down": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -1192,6 +1206,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "example": 1735689600000,
+        "format": "int64",
         "type": "integer"
       },
       "id": {
@@ -1204,6 +1219,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastOnline": {
         "example": 1735680000000,
+        "format": "int64",
         "type": "integer"
       },
       "reset": {
@@ -1216,10 +1232,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "total": {
         "example": 10737418240,
+        "format": "int64",
         "type": "integer"
       },
       "up": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "uuid": {
@@ -1290,6 +1308,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "array"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "echConfigList": {
@@ -1405,6 +1424,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "array"
       },
       "updatedAt": {
+        "format": "int64",
         "type": "integer"
       },
       "verifyPeerCertByName": {
@@ -1634,6 +1654,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "down": {
         "description": "Download traffic in bytes",
+        "format": "int64",
         "type": "integer"
       },
       "enable": {
@@ -1643,6 +1664,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "description": "Expiration timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "fallbackParent": {
@@ -1661,6 +1683,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastTrafficResetTime": {
         "description": "Last traffic reset timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "listen": {
@@ -1729,6 +1752,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "total": {
         "description": "Total traffic limit in bytes",
+        "format": "int64",
         "type": "integer"
       },
       "trafficReset": {
@@ -1744,6 +1768,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "up": {
         "description": "Upload traffic in bytes",
+        "format": "int64",
         "type": "integer"
       }
     },
@@ -1955,6 +1980,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "configDirtyAt": {
+        "format": "int64",
         "type": "integer"
       },
       "cpuPct": {
@@ -1963,6 +1989,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "createdAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "depletedCount": {
@@ -2008,6 +2035,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastHeartbeat": {
         "description": "unix seconds, 0 = never",
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "latencyMs": {
@@ -2024,10 +2052,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "netDown": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "netUp": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "onlineCount": {
@@ -2084,10 +2114,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "updatedAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {
@@ -2149,6 +2181,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "description": "OutboundTraffics tracks traffic statistics for Xray outbound connections.",
     "properties": {
       "down": {
+        "format": "int64",
         "type": "integer"
       },
       "id": {
@@ -2158,9 +2191,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "total": {
+        "format": "int64",
         "type": "integer"
       },
       "up": {
+        "format": "int64",
         "type": "integer"
       }
     },
@@ -2182,6 +2217,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "finishedAt": {
         "example": 1735689612,
+        "format": "int64",
         "type": "integer"
       },
       "runId": {
@@ -2228,6 +2264,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {

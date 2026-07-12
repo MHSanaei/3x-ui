@@ -78,6 +78,15 @@ export const OutboundTestResultSchema = z.object({
       }).loose(),
     )
     .optional(),
+  egress: z
+    .object({
+      ipv4: z.string().optional(),
+      ipv6: z.string().optional(),
+      country: z.string().optional(),
+      warp: z.string().optional(),
+    })
+    .loose()
+    .optional(),
 }).loose();
 
 // Batch results from /xray/testOutbounds, aligned with the request order.

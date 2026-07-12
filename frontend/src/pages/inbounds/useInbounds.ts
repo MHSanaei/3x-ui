@@ -60,6 +60,8 @@ const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.TROJAN,
   Protocols.SHADOWSOCKS,
   Protocols.HYSTERIA,
+  Protocols.WIREGUARD,
+  Protocols.MTPROTO,
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
