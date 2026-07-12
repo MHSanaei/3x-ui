@@ -124,6 +124,10 @@ const NETWORK_SETTINGS_KEY: Record<string, string> = {
 };
 
 function healStreamNetworkKey(stream: Record<string, unknown>): void {
+  if (typeof stream.method === 'string' && stream.method !== '') {
+    stream.network = stream.method;
+  }
+  delete stream.method;
   const network = typeof stream.network === 'string' ? stream.network : '';
   const key = NETWORK_SETTINGS_KEY[network];
   if (!key) return;

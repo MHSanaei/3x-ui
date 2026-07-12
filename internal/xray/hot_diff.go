@@ -70,6 +70,7 @@ func ComputeHotDiff(oldCfg, newCfg *Config) (*HotDiff, bool) {
 		{"burstObservatory", oldCfg.BurstObservatory, newCfg.BurstObservatory},
 		{"metrics", oldCfg.Metrics, newCfg.Metrics},
 		{"geodata", oldCfg.Geodata, newCfg.Geodata},
+		{"env", oldCfg.Env, newCfg.Env},
 	}
 	for _, section := range static {
 		if !rawEqualNormalized(section.old, section.new) {

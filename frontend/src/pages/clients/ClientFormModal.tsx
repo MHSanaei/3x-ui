@@ -36,7 +36,7 @@ import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
-const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
+const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto',
@@ -217,7 +217,9 @@ export default function ClientFormModal({
         password: client.password || '',
         auth: client.auth || '',
         flow: client.flow || '',
-        security: client.security || 'auto',
+        security: !client.security || client.security === 'none' || client.security === 'zero'
+          ? 'auto'
+          : client.security,
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,

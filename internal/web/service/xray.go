@@ -158,15 +158,28 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 		var finalClients []any
 		var wgPeers []any
+		// Track processed emails to avoid duplicates in the final clients list.
+		processed := make(map[string]bool)
+
 		for i := range dbClients {
 			c := dbClients[i]
-			if enable, exists := enableMap[c.Email]; exists && !enable {
-				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+
+			if processed[c.Email] {
 				continue
 			}
+
+			if enable, exists := enableMap[c.Email]; exists && !enable {
+				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+				processed[c.Email] = true
+				continue
+			}
+
 			if !c.Enable {
 				continue
 			}
+
+			processed[c.Email] = true
+
 			flow := c.Flow
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"

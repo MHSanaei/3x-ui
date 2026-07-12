@@ -171,6 +171,19 @@ func (x *XrayAPI) DelInbound(tag string) error {
 	return err
 }
 
+// ValidateOutboundConfig builds an outbound JSON object through the vendored
+// xray-core config loader, surfacing the exact error the core would raise at
+// startup — notably v26.7.11's refusal of unencrypted vless/trojan outbounds
+// whose server address is a public IP or domain.
+func ValidateOutboundConfig(outbound []byte) error {
+	detour := new(conf.OutboundDetourConfig)
+	if err := json.Unmarshal(outbound, detour); err != nil {
+		return err
+	}
+	_, err := detour.Build()
+	return err
+}
+
 // AddOutbound adds a new outbound configuration to the Xray core via gRPC.
 func (x *XrayAPI) AddOutbound(outbound []byte) error {
 	if x.HandlerServiceClient == nil {
@@ -518,6 +531,8 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 
 		var ssCipherType shadowsocks.CipherType
 		switch cipher {
+		case "aes-128-gcm":
+			ssCipherType = shadowsocks.CipherType_AES_128_GCM
 		case "aes-256-gcm":
 			ssCipherType = shadowsocks.CipherType_AES_256_GCM
 		case "chacha20-poly1305", "chacha20-ietf-poly1305":
@@ -525,10 +540,10 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
 			ssCipherType = shadowsocks.CipherType_XCHACHA20_POLY1305
 		default:
-			ssCipherType = shadowsocks.CipherType_NONE
+			ssCipherType = shadowsocks.CipherType_UNKNOWN
 		}
 
-		if ssCipherType != shadowsocks.CipherType_NONE {
+		if ssCipherType != shadowsocks.CipherType_UNKNOWN {
 			return serial.ToTypedMessage(&shadowsocks.Account{
 				Password:   password,
 				CipherType: ssCipherType,
