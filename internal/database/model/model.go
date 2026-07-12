@@ -924,6 +924,19 @@ type ClientExternalLink struct {
 
 func (ClientExternalLink) TableName() string { return "client_external_links" }
 
+type Link struct {
+	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Kind       string `json:"kind" form:"kind" gorm:"column:kind;index" validate:"required,oneof=link subscription"`
+	Value      string `json:"value" form:"value" gorm:"type:text;column:value" validate:"required"`
+	Remark     string `json:"remark" form:"remark" gorm:"column:remark" validate:"omitempty,max=256"`
+	IsDisabled bool   `json:"isDisabled" form:"isDisabled" gorm:"default:false;column:is_disabled"`
+	SortIndex  int    `json:"sortIndex" form:"sortIndex" gorm:"column:sort_index;default:0"`
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (Link) TableName() string { return "links" }
+
 // External link kinds.
 const (
 	ExternalLinkKindLink         = "link"

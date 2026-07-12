@@ -33,6 +33,7 @@ import { FormField } from '@/components/form/rhf';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
+import { useLinksQuery } from '@/api/queries/useLinksQuery';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -48,6 +49,8 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 interface ExternalLinkRow {
   kind: 'link' | 'subscription';
   value: string;
+  remark?: string;
+  managedLinkId?: number;
 }
 
 interface ApiMsg<T = unknown> {
@@ -138,7 +141,12 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
   return (links || []).map((l) => ({
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
+    remark: l.remark || '',
   }));
+}
+
+function sameNumberArray(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
 }
 
 function bytesToGB(bytes: number): number {
@@ -183,10 +191,12 @@ export default function ClientFormModal({
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
+  const externalLinks = useWatch({ control: methods.control, name: 'externalLinks' }) ?? [];
   const {
     fields: externalLinkFields,
     append: appendExternalLink,
     remove: removeExternalLink,
+    replace: replaceExternalLinks,
   } = useFieldArray({ control: methods.control, name: 'externalLinks' });
 
   const [submitting, setSubmitting] = useState(false);
@@ -195,6 +205,8 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [selectedManagedLinkIds, setSelectedManagedLinkIds] = useState<number[]>([]);
+  const { links: managedLinks, loading: managedLinksLoading } = useLinksQuery();
   const fail2ban = useFail2banStatusQuery();
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
@@ -203,9 +215,18 @@ export default function ClientFormModal({
     appendExternalLink({ kind, value: '' });
   }
 
+  function removeExternalLinkRow(index: number) {
+    const removed = externalLinks[index];
+    removeExternalLink(index);
+    if (removed?.managedLinkId) {
+      setSelectedManagedLinkIds((prev) => prev.filter((id) => id !== removed.managedLinkId));
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     setIpsModalOpen(false);
+    setSelectedManagedLinkIds([]);
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
@@ -264,6 +285,36 @@ export default function ClientFormModal({
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEdit]);
+
+  useEffect(() => {
+    if (!open || managedLinks.length === 0) return;
+    const matchedIds = new Set<number>();
+    let changed = false;
+    const nextExternalLinks = externalLinks.map((row) => {
+      if (row.managedLinkId) {
+        matchedIds.add(row.managedLinkId);
+        return row;
+      }
+      const match = managedLinks.find((link) => (
+        !link.isDisabled
+        && link.kind === row.kind
+        && link.value === row.value
+      ));
+      if (!match) return row;
+      changed = true;
+      matchedIds.add(match.id);
+      return {
+        ...row,
+        remark: row.remark || match.remark || '',
+        managedLinkId: match.id,
+      };
+    });
+    if (changed) replaceExternalLinks(nextExternalLinks);
+    if (matchedIds.size > 0) {
+      const ids = Array.from(new Set([...selectedManagedLinkIds, ...matchedIds]));
+      if (!sameNumberArray(ids, selectedManagedLinkIds)) setSelectedManagedLinkIds(ids);
+    }
+  }, [open, managedLinks, externalLinks, selectedManagedLinkIds, replaceExternalLinks]);
 
   const flowCapableIds = useMemo(() => {
     const ids = new Set<number>();
@@ -401,6 +452,23 @@ export default function ClientFormModal({
     [inbounds, inboundIds],
   );
 
+  const managedLinkOptions = useMemo(
+    () => managedLinks
+      .filter((link) => !link.isDisabled)
+      .map((link) => {
+        const labelPrefix = link.kind === 'subscription'
+          ? t('pages.clients.addExternalSubscription')
+          : t('pages.clients.addExternalLink');
+        const labelText = link.remark || link.value;
+        return {
+          label: `${labelText} · ${labelPrefix}`,
+          value: link.id,
+          title: link.value,
+        };
+      }),
+    [managedLinks, t],
+  );
+
   const expiryDayjs = useMemo<Dayjs | null>(
     () => (expiryDate > 0 ? dayjs(expiryDate) : null),
     [expiryDate],
@@ -412,6 +480,29 @@ export default function ClientFormModal({
   const subscriptionRows = externalLinkFields
     .map((field, index) => ({ field, index }))
     .filter((row) => row.field.kind === 'subscription');
+
+  function syncManagedLinks(ids: number[]) {
+    const selected = new Set(ids);
+    const selectedLinks = managedLinks.filter((link) => selected.has(link.id) && !link.isDisabled);
+
+    setSelectedManagedLinkIds(selectedLinks.map((link) => link.id));
+    const existingManagedIds = new Set(
+      externalLinks
+        .map((row) => row.managedLinkId)
+        .filter((id): id is number => typeof id === 'number'),
+    );
+    const manualRows = externalLinks.filter((row) => !row.managedLinkId || selected.has(row.managedLinkId));
+    const rowsToAdd = selectedLinks
+      .filter((link) => !existingManagedIds.has(link.id))
+      .filter((link) => !manualRows.some((row) => row.kind === link.kind && row.value === link.value))
+      .map((link) => ({
+        kind: link.kind,
+        value: link.value,
+        remark: link.remark || '',
+        managedLinkId: link.id,
+      }));
+    replaceExternalLinks([...manualRows, ...rowsToAdd]);
+  }
 
   async function loadIps() {
     if (!isEdit || !client?.email) return;
@@ -539,7 +630,7 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
+      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: r.remark || '' }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -894,6 +985,31 @@ export default function ClientFormModal({
                         {t('pages.clients.linksHint')}
                       </Typography.Paragraph>
 
+                      <Form.Item label={t('pages.clients.externalLinksAndSubscriptions')}>
+                        <SelectAllClearButtons
+                          options={managedLinkOptions}
+                          value={selectedManagedLinkIds}
+                          onChange={syncManagedLinks}
+                        />
+                        <Select
+                          mode="multiple"
+                          value={selectedManagedLinkIds}
+                          onChange={syncManagedLinks}
+                          options={managedLinkOptions}
+                          loading={managedLinksLoading}
+                          placeholder={t('menu.links')}
+                          maxTagCount="responsive"
+                          placement="topLeft"
+                          listHeight={220}
+                          showSearch={{
+                            filterOption: (input, option) => {
+                              const haystack = `${option?.label || ''} ${option?.title || ''}`.toLowerCase();
+                              return haystack.includes(input.toLowerCase());
+                            },
+                          }}
+                        />
+                      </Form.Item>
+
                       <Button type="primary" icon={<PlusOutlined />} onClick={() => addExternalLinkRow('link')}>
                         {t('pages.clients.addExternalLink')}
                       </Button>
@@ -910,7 +1026,7 @@ export default function ClientFormModal({
                               />
                             </FormField>
                             <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(index)} />
                             </Tooltip>
                           </div>
                         ))}
@@ -932,7 +1048,7 @@ export default function ClientFormModal({
                               />
                             </FormField>
                             <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLinkRow(index)} />
                             </Tooltip>
                           </div>
                         ))}
