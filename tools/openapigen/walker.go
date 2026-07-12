@@ -197,8 +197,10 @@ func identType(name string) TypeRef {
 		return TypeRef{Kind: KindString}
 	case "bool":
 		return TypeRef{Kind: KindBool}
-	case "int", "int8", "int16", "int32", "int64",
-		"uint", "uint8", "uint16", "uint32", "uint64":
+	case "int64", "uint64":
+		return TypeRef{Kind: KindInt, Name: "int64"}
+	case "int", "int8", "int16", "int32",
+		"uint", "uint8", "uint16", "uint32":
 		return TypeRef{Kind: KindInt}
 	case "float32", "float64":
 		return TypeRef{Kind: KindNumber}
