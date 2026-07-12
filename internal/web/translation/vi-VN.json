@@ -1622,6 +1622,8 @@
         "tag": "Tag",
         "tagDesc": "thẻ duy nhất",
         "address": "Địa chỉ",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "Đảo ngược",
         "domain": "Tên miền",
         "type": "Loại",

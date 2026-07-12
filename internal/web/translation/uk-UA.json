@@ -1622,6 +1622,8 @@
         "tag": "Тег",
         "tagDesc": "Унікальний тег",
         "address": "Адреса",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "Зворотний",
         "domain": "Домен",
         "type": "Тип",

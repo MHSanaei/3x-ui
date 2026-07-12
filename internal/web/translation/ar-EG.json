@@ -1622,6 +1622,8 @@
         "tag": "الوسم",
         "tagDesc": "تاج فريد",
         "address": "العنوان",
+        "egress": "Egress",
+        "egressHint": "Run an HTTP test to show egress IP and country.",
         "reverse": "عكسي",
         "domain": "النطاق",
         "type": "النوع",
