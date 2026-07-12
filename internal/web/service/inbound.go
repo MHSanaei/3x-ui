@@ -503,7 +503,9 @@ func (s *InboundService) getAllEmailSubIDs() (map[string]string, error) {
 // Only vmess, vless, trojan, shadowsocks, hysteria, wireguard, and tunnel
 // protocols use streamSettings (wireguard for finalmask UDP masks and sockopt on
 // its listener; tunnel for sockopt, notably sockopt.tproxy for its TProxy/redirect
-// mode).
+// mode). Streams keyed on "method" — xray-core v26.7.11's preferred alias for
+// "network" — are canonicalized to "network", which every panel reader (link
+// generation, port-conflict detection, flow eligibility) keys on.
 func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	protocolsWithStream := map[model.Protocol]bool{
 		model.VMESS:       true,
@@ -517,7 +519,33 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 
 	if !protocolsWithStream[inbound.Protocol] {
 		inbound.StreamSettings = ""
+		return
 	}
+	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
+}
+
+// canonicalizeStreamNetworkKey rewrites a streamSettings JSON that names its
+// transport under "method" to the panel-canonical "network" key. When both
+// keys are present, "method" wins — matching xray-core's own precedence.
+func canonicalizeStreamNetworkKey(streamSettings string) string {
+	if streamSettings == "" {
+		return streamSettings
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings
+	}
+	method, ok := stream["method"].(string)
+	if !ok || method == "" {
+		return streamSettings
+	}
+	stream["network"] = method
+	delete(stream, "method")
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
 
 // finalMaskRealityTcpMasks returns the stream's finalmask.tcp masks when the

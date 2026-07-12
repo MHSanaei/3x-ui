@@ -1016,6 +1016,21 @@ func TestMarshalFinalMask_UnknownTypeIsDropped(t *testing.T) {
 	}
 }
 
+func TestMarshalFinalMask_KeepsXmcTcpMask(t *testing.T) {
+	fm := map[string]any{
+		"tcp": []any{
+			map[string]any{"type": "xmc", "settings": map[string]any{"password": "p"}},
+		},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for an xmc tcp mask")
+	}
+	if !strings.Contains(out, "xmc") {
+		t.Fatalf("marshaled finalmask dropped the xmc mask: %s", out)
+	}
+}
+
 func TestHasFinalMaskContent(t *testing.T) {
 	if hasFinalMaskContent(nil) {
 		t.Fatal("nil should not count as content")

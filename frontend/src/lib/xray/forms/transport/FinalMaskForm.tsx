@@ -81,6 +81,8 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
       };
     case 'header-custom':
       return { clients: [], servers: [] };
+    case 'xmc':
+      return { hostname: '', usernames: [], password: RandomUtil.randomLowerAndNum(16) };
     default:
       return {};
   }
@@ -294,6 +296,7 @@ function TcpMaskItem({
             { value: 'fragment', label: 'Fragment' },
             { value: 'header-custom', label: 'Header Custom' },
             { value: 'sudoku', label: 'Sudoku' },
+            { value: 'xmc', label: 'XMC (Minecraft)' },
           ]}
         />
       </Form.Item>
@@ -369,6 +372,41 @@ function TcpMaskItem({
                 form={form}
                 absoluteSettingsPath={[...absolutePath, 'settings']}
               />
+            );
+          }
+          if (type === 'xmc') {
+            return (
+              <>
+                <Form.Item label="Hostname" name={[fieldName, 'settings', 'hostname']}>
+                  <Input placeholder="Server address mimicked in the handshake" />
+                </Form.Item>
+                <Form.Item
+                  label="Usernames"
+                  name={[fieldName, 'settings', 'usernames']}
+                  extra="Player names offered to probes; core defaults to Dream when empty."
+                >
+                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+                </Form.Item>
+                <Form.Item label="Password" required>
+                  <Space.Compact block>
+                    <Form.Item
+                      name={[fieldName, 'settings', 'password']}
+                      noStyle
+                      rules={[{ required: true, message: 'Password is required' }]}
+                    >
+                      <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+                    </Form.Item>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      aria-label={t('regenerate')}
+                      onClick={() => form.setFieldValue(
+                        [...absolutePath, 'settings', 'password'],
+                        RandomUtil.randomLowerAndNum(16),
+                      )}
+                    />
+                  </Space.Compact>
+                </Form.Item>
+              </>
             );
           }
           return null;

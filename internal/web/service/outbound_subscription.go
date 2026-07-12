@@ -17,7 +17,33 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+// filterOutboundsRejectedByCore drops outbounds the vendored xray-core config
+// loader refuses to build — since v26.7.11 that includes unencrypted
+// vless/trojan outbounds to public addresses — because one such outbound in
+// the merged config would keep the whole core from starting.
+func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
+	kept := make([]any, 0, len(outbounds))
+	var dropped []string
+	for _, ob := range outbounds {
+		raw, err := json.Marshal(ob)
+		if err == nil {
+			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil {
+				tag := ""
+				if m, ok := ob.(map[string]any); ok {
+					tag, _ = m["tag"].(string)
+				}
+				logger.Warningf("%s: dropping outbound %q rejected by xray-core: %v", label, tag, buildErr)
+				dropped = append(dropped, fmt.Sprintf("%s: %v", tag, buildErr))
+				continue
+			}
+		}
+		kept = append(kept, ob)
+	}
+	return kept, dropped
+}
 
 // maxOutboundSubscriptionBytes caps a single outbound subscription response.
 // It is larger than the 2 MiB user-facing subscription cap because an outbound
@@ -347,24 +373,28 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	identJSON, _ := json.Marshal(newIdent)
 
+	asAny := make([]any, len(parsed))
+	for i := range parsed {
+		asAny[i] = map[string]any(parsed[i])
+	}
+	kept, droppedByCore := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), asAny)
+
 	// Persist the outbounds (as compact JSON array)
-	obsJSON, _ := json.Marshal(parsed)
+	obsJSON, _ := json.Marshal(kept)
 
 	sub.LastFetchedOutbounds = string(obsJSON)
 	sub.LinkIdentities = string(identJSON)
 	sub.LastUpdated = time.Now().Unix()
 	sub.LastError = ""
+	if len(droppedByCore) > 0 {
+		sub.LastError = fmt.Sprintf("dropped %d outbound(s) the xray core rejects: %s", len(droppedByCore), droppedByCore[0])
+	}
 
 	if err := database.GetDB().Save(sub).Error; err != nil {
 		return nil, err
 	}
 
-	// Return as []any for the config merger
-	result := make([]any, len(parsed))
-	for i := range parsed {
-		result[i] = parsed[i]
-	}
-	return result, nil
+	return kept, nil
 }
 
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
@@ -456,6 +486,7 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			logger.Warningf("outbound sub %d has corrupt LastFetchedOutbounds: %v", sub.Id, err)
 			continue
 		}
+		arr, _ = filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), arr)
 		if sub.Prepend {
 			prepend = append(prepend, arr...)
 		} else {

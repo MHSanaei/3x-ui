@@ -208,6 +208,10 @@ func parseVmess(link string) (*ParseResult, error) {
 	}
 
 	port := num(j["port"])
+	scy := getString(j, "scy", "auto")
+	if scy == "none" || scy == "zero" {
+		scy = "auto"
+	}
 	ob := Outbound{
 		"protocol": "vmess",
 		"tag":      getString(j, "ps", ""),
@@ -219,7 +223,7 @@ func parseVmess(link string) (*ParseResult, error) {
 					"users": []any{
 						map[string]any{
 							"id":       getString(j, "id", ""),
-							"security": getString(j, "scy", "auto"),
+							"security": scy,
 						},
 					},
 				},

@@ -25,6 +25,14 @@
         ],
         "errors": []
       }
+    },
+    {
+      "type": "xmc",
+      "settings": {
+        "hostname": "mc.example.com",
+        "usernames": ["Dream"],
+        "password": "s3cr3t"
+      }
     }
   ]
 }

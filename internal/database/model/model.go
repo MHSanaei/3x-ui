@@ -442,8 +442,23 @@ func StripVlessInboundEncryption(settings string) (string, bool) {
 	return string(out), true
 }
 
-// HealShadowsocksClientMethods normalises the per-client `method` field
-// on a shadowsocks inbound's settings JSON before it leaves for xray-core:
+// ReplaceRemovedShadowsocksCipher maps ciphers that xray-core v26.7.11
+// deleted ("none"/"plain" make the whole config fail with "unknown cipher
+// method") to a still-supported replacement. Returns the replacement and
+// true when the given method is one of the removed ciphers.
+func ReplaceRemovedShadowsocksCipher(method string) (string, bool) {
+	switch method {
+	case "none", "plain":
+		return "chacha20-ietf-poly1305", true
+	}
+	return method, false
+}
+
+// HealShadowsocksClientMethods normalises the `method` fields on a
+// shadowsocks inbound's settings JSON before it leaves for xray-core:
+//   - Ciphers removed upstream (none/plain): rewritten via
+//     ReplaceRemovedShadowsocksCipher so one legacy row cannot prevent
+//     xray from starting.
 //   - Legacy ciphers (aes-*, chacha20-*): every client must carry a
 //     per-user `method` matching the inbound's top-level method, otherwise
 //     xray fails with "unsupported cipher method:".
@@ -462,12 +477,24 @@ func HealShadowsocksClientMethods(settings string) (string, bool) {
 		return settings, false
 	}
 	method, _ := parsed["method"].(string)
+	changed := false
+	if replacement, removed := ReplaceRemovedShadowsocksCipher(method); removed {
+		method = replacement
+		parsed["method"] = method
+		changed = true
+	}
 	clients, ok := parsed["clients"].([]any)
 	if !ok {
-		return settings, false
+		if !changed {
+			return settings, false
+		}
+		out, err := json.MarshalIndent(parsed, "", "  ")
+		if err != nil {
+			return settings, false
+		}
+		return string(out), true
 	}
 	is2022 := strings.HasPrefix(method, "2022-blake3-")
-	changed := false
 	for i := range clients {
 		cm, ok := clients[i].(map[string]any)
 		if !ok {
