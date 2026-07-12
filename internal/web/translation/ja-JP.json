@@ -261,9 +261,9 @@
       "backup": "バックアップ",
       "backupTitle": "バックアップと復元",
       "exportDatabase": "バックアップ",
-      "exportDatabaseDesc": "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。",
+      "exportDatabaseDesc": "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。同じファイルは PostgreSQL で動作するパネルにも復元できます。",
       "importDatabase": "復元",
-      "importDatabaseDesc": "クリックして、デバイスから .db ファイルを選択し、アップロードしてバックアップからデータベースを復元します。",
+      "importDatabaseDesc": "クリックして、デバイスから .db バックアップまたは移行ダンプ (.dump) を選択し、アップロードしてデータベースを復元します。",
       "importDatabaseSuccess": "データベースのインポートに成功しました",
       "importDatabaseError": "データベースのインポート中にエラーが発生しました",
       "readDatabaseError": "データベースの読み取り中にエラーが発生しました",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "現在のデータベースの PostgreSQL ダンプ (.dump) を端末にダウンロードするにはクリックしてください。",
       "importDatabasePgDesc": "データベースを復元するために PostgreSQL バックアップ (.dump)、SQLite データベース (.db)、または SQLite 移行ダンプを選択してアップロードするにはクリックしてください。現在のすべてのデータが置き換えられます。",
       "migrationDownload": "移行ファイルをダウンロード",
-      "migrationDownloadDesc": "SQLite データベースのポータブルな .dump（SQL テキスト）エクスポートをダウンロードするにはクリックします。PostgreSQL で動作するパネルに「復元」から取り込めます。",
       "migrationDownloadPgDesc": "PostgreSQL のデータから作成した .db SQLite データベースをダウンロードします。このパネルを SQLite で実行する準備が整います。"
     },
     "inbounds": {

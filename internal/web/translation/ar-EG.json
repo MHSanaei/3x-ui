@@ -261,9 +261,9 @@
       "backup": "نسخ احتياطي",
       "backupTitle": "نسخ احتياطي واستعادة",
       "exportDatabase": "اخزن نسخة",
-      "exportDatabaseDesc": "اضغط عشان تحمل ملف .db يحتوي على نسخة احتياطية لقاعدة البيانات الحالية على جهازك.",
+      "exportDatabaseDesc": "اضغط عشان تحمل ملف .db يحتوي على نسخة احتياطية لقاعدة البيانات الحالية على جهازك. نفس الملف ممكن كمان يترجع على لوحة شغالة بـ PostgreSQL.",
       "importDatabase": "استرجاع",
-      "importDatabaseDesc": "اضغط عشان تختار وتحمل ملف .db من جهازك لاسترجاع قاعدة البيانات من نسخة احتياطية.",
+      "importDatabaseDesc": "اضغط عشان تختار وتحمل نسخة احتياطية .db أو ملف ترحيل (.dump) من جهازك لاسترجاع قاعدة البيانات.",
       "importDatabaseSuccess": "تم استيراد قاعدة البيانات بنجاح",
       "importDatabaseError": "حدث خطأ أثناء استيراد قاعدة البيانات",
       "readDatabaseError": "حدث خطأ أثناء قراءة قاعدة البيانات",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "انقر لتنزيل نسخة PostgreSQL (.dump) من قاعدة بياناتك الحالية إلى جهازك.",
       "importDatabasePgDesc": "انقر لاختيار ورفع نسخة احتياطية من PostgreSQL (.dump) أو قاعدة بيانات SQLite (.db) أو ملف ترحيل SQLite لاستعادة قاعدة البيانات. سيؤدي هذا إلى استبدال جميع البيانات الحالية.",
       "migrationDownload": "تنزيل ملف الترحيل",
-      "migrationDownloadDesc": "انقر لتنزيل تصدير .dump محمول (نص SQL) لقاعدة بيانات SQLite الخاصة بك. يمكن استعادته إلى لوحة تعمل على PostgreSQL عبر «الاستعادة».",
       "migrationDownloadPgDesc": "انقر لتنزيل قاعدة بيانات SQLite بامتداد .db مبنية من بيانات PostgreSQL الخاصة بك، جاهزة لتشغيل هذه اللوحة على SQLite."
     },
     "inbounds": {

@@ -261,9 +261,9 @@
       "backup": "Yedek",
       "backupTitle": "Yedekleme ve Geri Yükleme",
       "exportDatabase": "Yedekle",
-      "exportDatabaseDesc": "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın.",
+      "exportDatabaseDesc": "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın. Aynı dosya PostgreSQL üzerinde çalışan bir panele de geri yüklenebilir.",
       "importDatabase": "Geri Yükle",
-      "importDatabaseDesc": "Cihazınızdan bir .db dosyası seçip yükleyerek veritabanınızı yedekten geri yüklemek için tıklayın.",
+      "importDatabaseDesc": "Cihazınızdan bir .db yedeği veya taşıma dökümü (.dump) seçip yükleyerek veritabanınızı geri yüklemek için tıklayın.",
       "importDatabaseSuccess": "Veritabanı başarıyla içe aktarıldı.",
       "importDatabaseError": "Veritabanı içe aktarılırken bir hata oluştu.",
       "readDatabaseError": "Veritabanı okunurken bir hata oluştu.",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "Mevcut veritabanınızın PostgreSQL dökümünü (.dump) cihazınıza indirmek için tıklayın.",
       "importDatabasePgDesc": "Veritabanınızı geri yüklemek için bir PostgreSQL yedeği (.dump), SQLite veritabanı (.db) veya SQLite taşıma dökümü seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
       "migrationDownload": "Geçiş Dosyasını İndir",
-      "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) yedeğini indirmek için tıklayın. PostgreSQL üzerinde çalışan bir panele 'Geri Yükle' ile geri yüklenebilir.",
       "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın."
     },
     "inbounds": {

@@ -261,9 +261,9 @@
       "backup": "Cadangan",
       "backupTitle": "Cadangan & Pulihkan",
       "exportDatabase": "Cadangkan",
-      "exportDatabaseDesc": "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda.",
+      "exportDatabaseDesc": "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda. Berkas yang sama juga dapat dipulihkan ke panel yang berjalan di PostgreSQL.",
       "importDatabase": "Pulihkan",
-      "importDatabaseDesc": "Klik untuk memilih dan mengunggah file .db dari perangkat Anda untuk memulihkan database dari cadangan.",
+      "importDatabaseDesc": "Klik untuk memilih dan mengunggah cadangan .db atau dump migrasi (.dump) dari perangkat Anda untuk memulihkan database.",
       "importDatabaseSuccess": "Database berhasil diimpor",
       "importDatabaseError": "Terjadi kesalahan saat mengimpor database",
       "readDatabaseError": "Terjadi kesalahan saat membaca database",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "Klik untuk mengunduh dump PostgreSQL (.dump) dari basis data Anda saat ini ke perangkat Anda.",
       "importDatabasePgDesc": "Klik untuk memilih dan mengunggah cadangan PostgreSQL (.dump), basis data SQLite (.db), atau dump migrasi SQLite guna memulihkan basis data Anda. Ini menggantikan semua data saat ini.",
       "migrationDownload": "Unduh migrasi",
-      "migrationDownloadDesc": "Klik untuk mengunduh ekspor .dump (teks SQL) portabel dari basis data SQLite Anda. Berkas ini dapat dipulihkan ke panel yang berjalan di PostgreSQL melalui «Pulihkan».",
       "migrationDownloadPgDesc": "Klik untuk mengunduh basis data SQLite .db yang dibuat dari data PostgreSQL Anda, siap menjalankan panel ini di SQLite."
     },
     "inbounds": {

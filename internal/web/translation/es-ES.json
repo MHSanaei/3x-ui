@@ -261,9 +261,9 @@
       "backup": "Copia de seguridad",
       "backupTitle": "Copia & Restauración",
       "exportDatabase": "Copia de seguridad",
-      "exportDatabaseDesc": "Haz clic para descargar un archivo .db que contiene una copia de seguridad de tu base de datos actual en tu dispositivo.",
+      "exportDatabaseDesc": "Haz clic para descargar un archivo .db que contiene una copia de seguridad de tu base de datos actual en tu dispositivo. El mismo archivo también puede restaurarse en un panel que funcione con PostgreSQL.",
       "importDatabase": "Restaurar",
-      "importDatabaseDesc": "Haz clic para seleccionar y cargar un archivo .db desde tu dispositivo para restaurar tu base de datos desde una copia de seguridad.",
+      "importDatabaseDesc": "Haz clic para seleccionar y cargar una copia de seguridad .db o un volcado de migración (.dump) desde tu dispositivo para restaurar tu base de datos.",
       "importDatabaseSuccess": "La base de datos se ha importado correctamente",
       "importDatabaseError": "Ocurrió un error al importar la base de datos",
       "readDatabaseError": "Ocurrió un error al leer la base de datos",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "Haz clic para descargar un volcado de PostgreSQL (.dump) de tu base de datos actual en tu dispositivo.",
       "importDatabasePgDesc": "Haz clic para seleccionar y subir una copia de seguridad de PostgreSQL (.dump), una base de datos SQLite (.db) o un volcado de migración de SQLite para restaurar tu base de datos. Esto reemplaza todos los datos actuales.",
       "migrationDownload": "Descargar migración",
-      "migrationDownloadDesc": "Haz clic para descargar una exportación portable .dump (texto SQL) de tu base de datos SQLite. Puede restaurarse en un panel que funcione con PostgreSQL mediante «Restaurar».",
       "migrationDownloadPgDesc": "Haz clic para descargar una base de datos SQLite .db creada a partir de tus datos de PostgreSQL, lista para ejecutar este panel en SQLite."
     },
     "inbounds": {

@@ -261,9 +261,9 @@
       "backup": "備份",
       "backupTitle": "備份和恢復",
       "exportDatabase": "備份",
-      "exportDatabaseDesc": "點擊下載包含當前資料庫備份的 .db 文件到您的設備。",
+      "exportDatabaseDesc": "點擊下載包含當前資料庫備份的 .db 文件到您的設備。同一檔案也可以還原到執行 PostgreSQL 的面板中。",
       "importDatabase": "恢復",
-      "importDatabaseDesc": "點擊選擇並上傳設備中的 .db 文件以從備份恢復資料庫。",
+      "importDatabaseDesc": "點擊選擇並上傳設備中的 .db 備份或遷移匯出檔（.dump）以還原資料庫。",
       "importDatabaseSuccess": "資料庫匯入成功",
       "importDatabaseError": "匯入資料庫時發生錯誤",
       "readDatabaseError": "讀取資料庫時發生錯誤",
@@ -273,7 +273,6 @@
       "exportDatabasePgDesc": "點擊將目前資料庫的 PostgreSQL 傾印（.dump）下載到您的裝置。",
       "importDatabasePgDesc": "點擊選擇並上傳 PostgreSQL 備份（.dump）、SQLite 資料庫（.db）或 SQLite 遷移匯出檔以還原您的資料庫。此操作將取代所有目前的資料。",
       "migrationDownload": "下載遷移檔案",
-      "migrationDownloadDesc": "點擊下載目前 SQLite 資料庫的可攜式 .dump（SQL 文字）匯出檔。它可以透過「還原」還原到執行 PostgreSQL 的面板中。",
       "migrationDownloadPgDesc": "點擊下載由 PostgreSQL 資料建立的 .db SQLite 資料庫，可用於在 SQLite 上執行本面板。"
     },
     "inbounds": {
