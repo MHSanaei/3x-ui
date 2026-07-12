@@ -269,11 +269,11 @@
       "readDatabaseError": "Veritabanı okunurken bir hata oluştu.",
       "getDatabaseError": "Veritabanı alınırken bir hata oluştu.",
       "getConfigError": "Yapılandırma dosyası alınırken bir hata oluştu.",
-      "backupPostgresNote": "Bu panel PostgreSQL üzerinde çalışıyor. 'Yedekle' bir pg_dump arşivi (.dump) indirir, 'Geri Yükle' ise onu pg_restore ile geri yükler. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.",
+      "backupPostgresNote": "Bu panel PostgreSQL üzerinde çalışıyor. 'Yedekle' bir pg_dump arşivi (.dump) indirir, 'Geri Yükle' ise onu pg_restore ile geri yükler. 'Geri Yükle' ayrıca bir SQLite veritabanını (.db) veya SQLite taşıma dökümünü kabul eder ve verilerini PostgreSQL'e aktarır. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.",
       "exportDatabasePgDesc": "Mevcut veritabanınızın PostgreSQL dökümünü (.dump) cihazınıza indirmek için tıklayın.",
-      "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
+      "importDatabasePgDesc": "Veritabanınızı geri yüklemek için bir PostgreSQL yedeği (.dump), SQLite veritabanı (.db) veya SQLite taşıma dökümü seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır.",
       "migrationDownload": "Geçiş Dosyasını İndir",
-      "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) yedeğini indirmek için tıklayın.",
+      "migrationDownloadDesc": "SQLite veritabanınızın taşınabilir .dump (SQL metni) yedeğini indirmek için tıklayın. PostgreSQL üzerinde çalışan bir panele 'Geri Yükle' ile geri yüklenebilir.",
       "migrationDownloadPgDesc": "PostgreSQL verilerinizden oluşturulan ve bu paneli SQLite üzerinde çalıştırmaya hazır bir .db SQLite veritabanı indirmek için tıklayın."
     },
     "inbounds": {

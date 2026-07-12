@@ -468,9 +468,9 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/importDB',
-        summary: 'Restore the panel DB from an uploaded SQLite file (multipart form, field name "db"). The panel restarts after restore. Destructive.',
+        summary: 'Restore the panel DB from an uploaded backup (multipart form, field name "db"). SQLite panels accept a .db file; PostgreSQL panels accept a pg_dump archive (.dump), a SQLite database (.db), or a SQLite migration dump. The panel restarts after restore. Destructive.',
         params: [
-          { name: 'db', in: 'body (multipart)', type: 'file', desc: 'SQLite database file to upload.' },
+          { name: 'db', in: 'body (multipart)', type: 'file', desc: 'Database backup or migration file to upload.' },
         ],
       },
       {

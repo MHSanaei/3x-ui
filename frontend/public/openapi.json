@@ -4844,7 +4844,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Restore the panel DB from an uploaded SQLite file (multipart form, field name \"db\"). The panel restarts after restore. Destructive.",
+        "summary": "Restore the panel DB from an uploaded backup (multipart form, field name \"db\"). SQLite panels accept a .db file; PostgreSQL panels accept a pg_dump archive (.dump), a SQLite database (.db), or a SQLite migration dump. The panel restarts after restore. Destructive.",
         "operationId": "post_panel_api_server_importDB",
         "responses": {
           "200": {

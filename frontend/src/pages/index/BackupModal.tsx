@@ -32,7 +32,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
   function importDb() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = isPostgres ? '.dump' : '.db';
+    fileInput.accept = isPostgres ? '.dump,.db' : '.db';
     fileInput.addEventListener('change', async (e) => {
       const dbFile = (e.target as HTMLInputElement).files?.[0];
       if (!dbFile) return;

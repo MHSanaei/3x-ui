@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -1657,18 +1658,51 @@ func parsePgToolVersion(versionOutput string) string {
 	return pgToolVersionPattern.FindString(versionOutput)
 }
 
-func (s *ServerService) importPostgresDB(file multipart.File) error {
-	header := make([]byte, 5)
-	if _, err := file.ReadAt(header, 0); err != nil {
-		return common.NewErrorf("Error reading dump file: %v", err)
+const (
+	pgImportUnknown = iota
+	pgImportPgDump
+	pgImportSQLiteDB
+	pgImportSQLiteDump
+)
+
+// sniffPgImportKind classifies an uploaded restore file by its leading bytes:
+// a pg_dump custom archive, a raw SQLite database, or a SQLite SQL text dump.
+func sniffPgImportKind(header []byte) int {
+	if bytes.HasPrefix(header, []byte("PGDMP")) {
+		return pgImportPgDump
 	}
-	if string(header) != "PGDMP" {
-		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) created by this panel's Back Up")
+	if bytes.HasPrefix(header, []byte("SQLite format 3\x00")) {
+		return pgImportSQLiteDB
+	}
+	text := bytes.TrimLeft(bytes.TrimPrefix(header, []byte("\xef\xbb\xbf")), " \t\r\n")
+	if bytes.HasPrefix(text, []byte("PRAGMA")) || bytes.HasPrefix(text, []byte("BEGIN TRANSACTION")) {
+		return pgImportSQLiteDump
+	}
+	return pgImportUnknown
+}
+
+func (s *ServerService) importPostgresDB(file multipart.File) error {
+	header := make([]byte, 64)
+	n, err := file.ReadAt(header, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return common.NewErrorf("Error reading dump file: %v", err)
 	}
 	if _, err := file.Seek(0, 0); err != nil {
 		return common.NewErrorf("Error resetting file reader: %v", err)
 	}
+	switch sniffPgImportKind(header[:n]) {
+	case pgImportPgDump:
+		return s.restorePostgresDump(file)
+	case pgImportSQLiteDB:
+		return s.migrateSQLiteIntoPostgres(file, false)
+	case pgImportSQLiteDump:
+		return s.migrateSQLiteIntoPostgres(file, true)
+	default:
+		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) from this panel's Back Up, a SQLite database (.db), or a SQLite migration dump from Download Migration")
+	}
+}
 
+func (s *ServerService) restorePostgresDump(file multipart.File) error {
 	bin, err := exec.LookPath("pg_restore")
 	if err != nil {
 		return common.NewError("pg_restore not found on the server; install the postgresql-client package to restore a PostgreSQL database")
@@ -1735,6 +1769,78 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
 	}
 	return nil
+}
+
+func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump bool) error {
+	tempDir, err := os.MkdirTemp("", "x-ui-pg-migrate-*")
+	if err != nil {
+		return common.NewErrorf("Error creating temporary folder: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	uploadPath := filepath.Join(tempDir, "upload.db")
+	if isSQLDump {
+		uploadPath = filepath.Join(tempDir, "upload.dump")
+	}
+	if err := saveUploadedFile(file, uploadPath); err != nil {
+		return common.NewErrorf("Error saving uploaded file: %v", err)
+	}
+
+	dbPath := uploadPath
+	if isSQLDump {
+		dbPath = filepath.Join(tempDir, "restored.db")
+		if err := database.RestoreSQLite(uploadPath, dbPath); err != nil {
+			return common.NewErrorf("Error rebuilding a SQLite database from the migration dump: %v", err)
+		}
+	}
+	if err := database.ValidateSQLiteDB(dbPath); err != nil {
+		return common.NewErrorf("Invalid or corrupt db file: %v", err)
+	}
+
+	xrayStopped := true
+	defer func() {
+		if xrayStopped {
+			if errR := s.RestartXrayService(); errR != nil {
+				logger.Warningf("Failed to restart Xray after DB restore error: %v", errR)
+			}
+		}
+	}()
+	if errStop := s.StopXrayService(); errStop != nil {
+		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
+	}
+
+	if errClose := database.CloseDB(); errClose != nil {
+		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
+	}
+
+	migrateErr := database.MigrateData(dbPath, config.GetDBDSN())
+
+	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
+		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	s.inboundService.MigrateDB()
+
+	if migrateErr != nil {
+		return common.NewErrorf("Importing the SQLite data into PostgreSQL failed: %v; the destination tables are cleared on every attempt, so fixing the issue and retrying is safe", migrateErr)
+	}
+
+	xrayStopped = false
+	if err := s.RestartXrayService(); err != nil {
+		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
+	}
+	return nil
+}
+
+func saveUploadedFile(file multipart.File, dstPath string) error {
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		dst.Close()
+		return err
+	}
+	return dst.Close()
 }
 
 // IsValidGeofileName validates that the filename is safe for geofile operations.

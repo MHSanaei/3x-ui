@@ -269,11 +269,11 @@
       "readDatabaseError": "An error occurred while reading the database.",
       "getDatabaseError": "An error occurred while retrieving the database.",
       "getConfigError": "An error occurred while retrieving the config file.",
-      "backupPostgresNote": "This panel runs on PostgreSQL. Back Up downloads a pg_dump archive (.dump) and Restore loads it back with pg_restore. The server needs the PostgreSQL client tools (pg_dump and pg_restore) installed.",
+      "backupPostgresNote": "This panel runs on PostgreSQL. Back Up downloads a pg_dump archive (.dump) and Restore loads it back with pg_restore. Restore also accepts a SQLite database (.db) or a SQLite migration dump and imports its data into PostgreSQL. The server needs the PostgreSQL client tools (pg_dump and pg_restore) installed.",
       "exportDatabasePgDesc": "Click to download a PostgreSQL dump (.dump) of your current database to your device.",
-      "importDatabasePgDesc": "Click to select and upload a .dump file to restore your PostgreSQL database. This replaces all current data.",
+      "importDatabasePgDesc": "Click to select and upload a PostgreSQL backup (.dump), a SQLite database (.db), or a SQLite migration dump to restore your database. This replaces all current data.",
       "migrationDownload": "Download Migration",
-      "migrationDownloadDesc": "Click to download a portable .dump (SQL text) export of your SQLite database.",
+      "migrationDownloadDesc": "Click to download a portable .dump (SQL text) export of your SQLite database. It can be restored into a panel running on PostgreSQL via Restore.",
       "migrationDownloadPgDesc": "Click to download a .db SQLite database built from your PostgreSQL data, ready to run this panel on SQLite."
     },
     "inbounds": {

@@ -269,11 +269,11 @@
       "readDatabaseError": "Lỗi xảy ra khi đọc cơ sở dữ liệu",
       "getDatabaseError": "Lỗi xảy ra khi truy xuất cơ sở dữ liệu",
       "getConfigError": "Lỗi xảy ra khi truy xuất tệp cấu hình",
-      "backupPostgresNote": "Bảng điều khiển này chạy trên PostgreSQL. «Sao lưu» tải xuống một tệp lưu trữ pg_dump (.dump) và «Khôi phục» nạp lại bằng pg_restore. Máy chủ cần cài đặt các công cụ máy khách PostgreSQL (pg_dump và pg_restore).",
+      "backupPostgresNote": "Bảng điều khiển này chạy trên PostgreSQL. «Sao lưu» tải xuống một tệp lưu trữ pg_dump (.dump) và «Khôi phục» nạp lại bằng pg_restore. «Khôi phục» cũng chấp nhận cơ sở dữ liệu SQLite (.db) hoặc tệp kết xuất di trú SQLite và nhập dữ liệu của chúng vào PostgreSQL. Máy chủ cần cài đặt các công cụ máy khách PostgreSQL (pg_dump và pg_restore).",
       "exportDatabasePgDesc": "Nhấn để tải xuống bản kết xuất PostgreSQL (.dump) của cơ sở dữ liệu hiện tại về thiết bị của bạn.",
-      "importDatabasePgDesc": "Nhấn để chọn và tải lên một tệp .dump nhằm khôi phục cơ sở dữ liệu PostgreSQL của bạn. Thao tác này sẽ thay thế toàn bộ dữ liệu hiện tại.",
+      "importDatabasePgDesc": "Nhấn để chọn và tải lên bản sao lưu PostgreSQL (.dump), cơ sở dữ liệu SQLite (.db) hoặc tệp kết xuất di trú SQLite nhằm khôi phục cơ sở dữ liệu của bạn. Thao tác này sẽ thay thế toàn bộ dữ liệu hiện tại.",
       "migrationDownload": "Tải tệp di trú",
-      "migrationDownloadDesc": "Nhấp để tải xuống bản xuất .dump (văn bản SQL) di động của cơ sở dữ liệu SQLite của bạn.",
+      "migrationDownloadDesc": "Nhấp để tải xuống bản xuất .dump (văn bản SQL) di động của cơ sở dữ liệu SQLite của bạn. Tệp này có thể được khôi phục vào bảng điều khiển chạy PostgreSQL qua «Khôi phục».",
       "migrationDownloadPgDesc": "Nhấp để tải xuống cơ sở dữ liệu SQLite .db được tạo từ dữ liệu PostgreSQL của bạn, sẵn sàng chạy bảng điều khiển này trên SQLite."
     },
     "inbounds": {
