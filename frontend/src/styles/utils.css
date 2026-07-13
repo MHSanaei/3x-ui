@@ -50,6 +50,19 @@
   .online-dot { animation: none; }
 }
 
+/* Fixed-width live speed tags: rate text (B/KB/MB) must not reflow table columns. */
+.speed-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 148px;
+  margin-inline-end: 0;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
 /* Purple indicator for nodes that are reachable via the panel API (status=online)
    but have Xray core in "error" or "stop" state. This is the new "xray failed on node"
    monitoring state. */
