@@ -1,13 +1,14 @@
 type ClientCardCommentProps = {
   comment?: string;
+  className?: string;
 };
 
-export default function ClientCardComment({ comment }: ClientCardCommentProps) {
+export default function ClientCardComment({ comment, className = 'client-card-comment' }: ClientCardCommentProps) {
   if (!comment) return null;
 
   return (
-    <div className="client-card-comment" title={comment}>
+    <span className={className} title={comment}>
       {comment}
-    </div>
+    </span>
   );
 }
