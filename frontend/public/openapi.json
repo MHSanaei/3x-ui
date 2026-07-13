@@ -142,6 +142,12 @@
           "smtpEncryptionType": {
             "type": "string"
           },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
+            "type": "string"
+          },
           "smtpHost": {
             "type": "string"
           },
@@ -375,6 +381,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",
@@ -573,6 +581,12 @@
             "type": "string"
           },
           "smtpEncryptionType": {
+            "type": "string"
+          },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
             "type": "string"
           },
           "smtpHost": {
@@ -815,6 +829,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",

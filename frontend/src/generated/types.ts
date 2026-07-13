@@ -41,6 +41,8 @@ export interface AllSetting {
   smtpEnable: boolean;
   smtpEnabledEvents: string;
   smtpEncryptionType: string;
+  smtpFrom: string;
+  smtpFromName: string;
   smtpHost: string;
   smtpMemory: number;
   smtpPassword: string;
@@ -145,6 +147,8 @@ export interface AllSettingView {
   smtpEnable: boolean;
   smtpEnabledEvents: string;
   smtpEncryptionType: string;
+  smtpFrom: string;
+  smtpFromName: string;
   smtpHost: string;
   smtpMemory: number;
   smtpPassword: string;
