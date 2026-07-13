@@ -62,6 +62,7 @@ import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import ClientSpeedTag, { isActiveSpeed } from '@/components/clients/ClientSpeedTag';
+import ClientCardComment from '@/components/clients/ClientCardComment';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -1433,6 +1434,7 @@ export default function ClientsPage() {
                                       </Dropdown>
                                     </div>
                                   </div>
+                                  <ClientCardComment comment={row.comment} />
                                   <ClientTrafficCell
                                     compact
                                     up={row.traffic?.up}
