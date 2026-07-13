@@ -66,6 +66,7 @@ import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
+import { SPEED_COLUMN_WIDTH, SPEED_TAG_CLASS_NAME, SPEED_TAG_STYLE } from '@/components/utility/speedTagStyle';
 const ClientFormModal = lazy(() => import('./ClientFormModal'));
 const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
@@ -907,11 +908,13 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.speed'),
       key: 'speed',
-      width: 110,
+      width: SPEED_COLUMN_WIDTH,
       align: 'center',
       render: (_v, record) => {
         const speed = clientSpeed[record.email];
-        if (!isActiveSpeed(speed)) return <Tag color="default">—</Tag>;
+        if (!isActiveSpeed(speed)) {
+          return <Tag color="default" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>—</Tag>;
+        }
         return <ClientSpeedTag speed={speed} />;
       },
     },
