@@ -2007,6 +2007,15 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 			}
 		}
 	}
+	// Older clients still read the pre-#6258 names from the subscription
+	// extra JSON. Emit aliases after lifting legacy inputs so both old and
+	// new clients can consume the same link.
+	if v, ok := extra["sessionIDPlacement"].(string); ok && len(v) > 0 {
+		extra["sessionPlacement"] = v
+	}
+	if v, ok := extra["sessionIDKey"].(string); ok && len(v) > 0 {
+		extra["sessionKey"] = v
+	}
 
 	for _, field := range []string{"uplinkChunkSize"} {
 		if v, ok := nonZeroShareValue(xhttp[field]); ok {
