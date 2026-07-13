@@ -48,6 +48,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/list/paged", a.listPaged)
 	g.GET("/get/:email", a.get)
+	g.GET("/getByTgId/:tgId", a.getByTgId)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
@@ -136,6 +137,50 @@ func (a *ClientController) get(c *gin.Context) {
 		usedTraffic = t.Up + t.Down
 	}
 	jsonObj(c, gin.H{"client": rec, "inboundIds": inboundIds, "externalLinks": externalLinks, "usedTraffic": usedTraffic}, nil)
+}
+
+func (a *ClientController) getByTgId(c *gin.Context) {
+	tgIdStr := c.Param("tgId")
+	tgId, err := strconv.ParseInt(tgIdStr, 10, 64)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	records, err := a.clientService.GetRecordsByTgID(tgId)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	results := make([]gin.H, 0, len(records))
+	for _, rec := range records {
+		inboundIds, err := a.clientService.GetInboundIdsForRecord(rec.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "get"), err)
+			return
+		}
+		externalLinks, err := a.clientService.GetExternalLinksForRecord(rec.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "get"), err)
+			return
+		}
+		flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "get"), err)
+			return
+		}
+		rec.Flow = flow
+		var usedTraffic int64
+		if t, tErr := a.inboundService.GetClientTrafficByEmail(rec.Email); tErr == nil && t != nil {
+			usedTraffic = t.Up + t.Down
+		}
+		results = append(results, gin.H{
+			"client":        rec,
+			"inboundIds":    inboundIds,
+			"externalLinks": externalLinks,
+			"usedTraffic":   usedTraffic,
+		})
+	}
+	jsonObj(c, results, nil)
 }
 
 func (a *ClientController) create(c *gin.Context) {
