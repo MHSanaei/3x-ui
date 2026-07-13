@@ -54,13 +54,17 @@ func TestGetRecordsByTgID(t *testing.T) {
 		}
 	})
 
-	t.Run("tgId zero returns own record", func(t *testing.T) {
-		got, err := svc.GetRecordsByTgID(0)
-		if err != nil {
-			t.Fatalf("GetRecordsByTgID(0): %v", err)
+	t.Run("tgId zero rejected as sentinel", func(t *testing.T) {
+		_, err := svc.GetRecordsByTgID(0)
+		if err == nil {
+			t.Fatal("expected error for tgId=0")
 		}
-		if len(got) != 1 || got[0].Email != "dave@x" {
-			t.Fatalf("expected dave@x for tgId=0, got %v", got)
+	})
+
+	t.Run("negative tgId rejected", func(t *testing.T) {
+		_, err := svc.GetRecordsByTgID(-5)
+		if err == nil {
+			t.Fatal("expected error for tgId=-5")
 		}
 	})
 
