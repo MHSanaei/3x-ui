@@ -1431,6 +1431,8 @@
       "eventMemoryHigh": "Uso de memória alto (%)",
       "remarkTemplate": "Modelo de Observação",
       "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima.",
+      "subShowIdentityOnAllLinks": "Mostrar identidade em todos os links",
+      "subShowIdentityOnAllLinksDesc": "Quando ativado, {{EMAIL}} e {{USERNAME}} permanecem na observação de cada link do corpo da assinatura. Tokens de uso continuam só no primeiro link.",
       "validation": {
         "pathLeadingSlash": "O caminho deve começar com /"
       },

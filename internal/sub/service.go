@@ -40,9 +40,10 @@ type SubService struct {
 	// usageShown tracks, per client email, whether the info part of the template
 	// has already been emitted this request, so it appears on the first body
 	// link only. Per-request state; reset in PrepareForRequest.
-	usageShown     map[string]bool
-	inboundService service.InboundService
-	settingService service.SettingService
+	usageShown             map[string]bool
+	showIdentityOnAllLinks bool
+	inboundService         service.InboundService
+	settingService         service.SettingService
 	// nodesByID is populated per request from the Node table so
 	// resolveInboundAddress can return the node's address for any
 	// inbound whose NodeID is set. Keeps the per-link host derivation
@@ -196,6 +197,10 @@ func (s *SubService) loadRemarkSettings() {
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
 		s.datepicker = "gregorian"
+	}
+	s.showIdentityOnAllLinks, err = s.settingService.GetSubShowIdentityOnAllLinks()
+	if err != nil {
+		s.showIdentityOnAllLinks = false
 	}
 }
 

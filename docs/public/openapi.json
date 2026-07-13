@@ -411,6 +411,9 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -479,6 +482,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -916,6 +920,9 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -991,6 +998,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",

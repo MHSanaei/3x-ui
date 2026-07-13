@@ -66,6 +66,7 @@ var defaultValueMap = map[string]string{
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
 	"remarkTemplate":              DefaultRemarkTemplate,
+	"subShowIdentityOnAllLinks":   "false",
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -644,6 +645,10 @@ func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 
 func (s *SettingService) GetRemarkTemplate() (string, error) {
 	return s.getString("remarkTemplate")
+}
+
+func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
+	return s.getBool("subShowIdentityOnAllLinks")
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

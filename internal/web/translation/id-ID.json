@@ -1431,6 +1431,8 @@
       "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
       "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
+      "subShowIdentityOnAllLinks": "Tampilkan identitas di setiap tautan",
+      "subShowIdentityOnAllLinksDesc": "Jika diaktifkan, {{EMAIL}} dan {{USERNAME}} tetap ada di catatan setiap tautan isi langganan. Token penggunaan tetap hanya di tautan pertama.",
       "validation": {
         "pathLeadingSlash": "Path harus diawali dengan /"
       },

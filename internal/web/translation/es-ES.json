@@ -1431,6 +1431,8 @@
       "eventMemoryHigh": "Uso de memoria alto (%)",
       "remarkTemplate": "Plantilla de notas",
       "remarkTemplateDesc": "Cuando se define, esto reemplaza el modelo de notas para cada enlace de suscripción — escribe tu propio formato con los tokens de variable (usa el botón para insertarlos). Déjalo vacío para usar el modelo anterior.",
+      "subShowIdentityOnAllLinks": "Mostrar identidad en cada enlace",
+      "subShowIdentityOnAllLinksDesc": "Si está activado, {{EMAIL}} y {{USERNAME}} permanecen en la nota de cada enlace del cuerpo de la suscripción. Los tokens de uso siguen solo en el primer enlace.",
       "validation": {
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
