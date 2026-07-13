@@ -1,14 +1,11 @@
 import type { CSSProperties } from 'react';
 
-/** Shared class for live speed tags (also defined in styles/utils.css). */
-export const SPEED_TAG_CLASS_NAME = 'speed-tag' as const;
+export const SPEED_TAG_CLASS_NAME = 'table-speed-tag' as const;
+export const SPEED_TAG_WIDTH = 200 as const;
+export const SPEED_TABLE_CELL_INLINE_PADDING = 8 as const;
 
-/**
- * Fixed layout for up/down rate tags.
- * Live B/KB/MB text changes must not reflow the Speed column (issue #5912).
- */
 export const SPEED_TAG_STYLE = {
-  width: '148px',
+  width: SPEED_TAG_WIDTH,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -17,7 +14,8 @@ export const SPEED_TAG_STYLE = {
   fontVariantNumeric: 'tabular-nums',
   marginInlineEnd: 0,
   boxSizing: 'border-box',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 } as const satisfies CSSProperties;
 
-/** Ant Design table column width aligned with SPEED_TAG_STYLE.width + cell padding. */
-export const SPEED_COLUMN_WIDTH = 160 as const;
+export const SPEED_COLUMN_WIDTH = SPEED_TAG_WIDTH + SPEED_TABLE_CELL_INLINE_PADDING * 2;

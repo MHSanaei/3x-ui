@@ -915,7 +915,7 @@ export default function ClientsPage() {
         if (!isActiveSpeed(speed)) {
           return <Tag color="default" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>—</Tag>;
         }
-        return <ClientSpeedTag speed={speed} />;
+        return <ClientSpeedTag speed={speed} tableCell />;
       },
     },
     {

@@ -12,11 +12,16 @@ export function isActiveSpeed(speed?: ClientSpeedEntry): speed is ClientSpeedEnt
 
 interface ClientSpeedTagProps {
   speed: ClientSpeedEntry;
+  tableCell?: boolean;
 }
 
-export function ClientSpeedTag({ speed }: ClientSpeedTagProps) {
+export function ClientSpeedTag({ speed, tableCell = false }: ClientSpeedTagProps) {
   return (
-    <Tag color="blue" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>
+    <Tag
+      color="blue"
+      className={tableCell ? SPEED_TAG_CLASS_NAME : undefined}
+      style={tableCell ? SPEED_TAG_STYLE : undefined}
+    >
       ↑ {SizeFormatter.speedFormat(speed.up)}
       {' / '}
       ↓ {SizeFormatter.speedFormat(speed.down)}

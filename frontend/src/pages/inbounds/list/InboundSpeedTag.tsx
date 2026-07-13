@@ -13,12 +13,17 @@ export function isActiveSpeed(speed?: InboundSpeedEntry): speed is InboundSpeedE
 interface InboundSpeedTagProps {
   speed: InboundSpeedEntry;
   withTooltip?: boolean;
+  tableCell?: boolean;
 }
 
 // Blue "↑ up / ↓ down" rate tag, optionally with a stacked breakdown tooltip.
-export function InboundSpeedTag({ speed, withTooltip = false }: InboundSpeedTagProps) {
+export function InboundSpeedTag({ speed, withTooltip = false, tableCell = false }: InboundSpeedTagProps) {
   const tag = (
-    <Tag color="blue" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>
+    <Tag
+      color="blue"
+      className={tableCell ? SPEED_TAG_CLASS_NAME : undefined}
+      style={tableCell ? SPEED_TAG_STYLE : undefined}
+    >
       ↑ {SizeFormatter.speedFormat(speed.up)}
       {' / '}
       ↓ {SizeFormatter.speedFormat(speed.down)}

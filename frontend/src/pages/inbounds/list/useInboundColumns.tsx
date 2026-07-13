@@ -332,7 +332,7 @@ export function useInboundColumns({
           if (!isActiveSpeed(speed)) {
             return <Tag color="default" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>—</Tag>;
           }
-          return <InboundSpeedTag speed={speed} withTooltip />;
+          return <InboundSpeedTag speed={speed} withTooltip tableCell />;
         },
       },
       {
