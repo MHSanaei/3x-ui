@@ -58,7 +58,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
-func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
+func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
 	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
@@ -125,9 +125,8 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 
-	// Combile outbounds
 	var finalJson []byte
-	if len(configArray) == 1 {
+	if len(configArray) == 1 && !alwaysReturnArray {
 		finalJson, _ = json.MarshalIndent(configArray[0], "", "  ")
 	} else {
 		finalJson, _ = json.MarshalIndent(configArray, "", "  ")

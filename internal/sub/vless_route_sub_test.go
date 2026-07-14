@@ -52,7 +52,7 @@ func TestSub_HostVlessRoute_JSON(t *testing.T) {
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "J", Address: "j.cdn.com", Port: 8443, Security: "tls", VlessRoute: "443"})
 
 	js := NewSubJsonService("", "", "", NewSubService(""))
-	out, _, err := js.GetJson("s1", "req.example.com")
+	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
 	}

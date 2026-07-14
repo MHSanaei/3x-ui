@@ -150,6 +150,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subCertFile": {
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "type": "boolean"
+      },
       "subClashEnable": {
         "type": "boolean"
       },
@@ -163,6 +166,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subClashURI": {
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
         "type": "string"
       },
       "subDomain": {
@@ -186,6 +192,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -202,6 +214,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonURI": {
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
         "type": "string"
       },
       "subKeyFile": {
@@ -365,11 +380,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -377,12 +394,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",
@@ -591,6 +611,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subCertFile": {
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "type": "boolean"
+      },
       "subClashEnable": {
         "type": "boolean"
       },
@@ -604,6 +627,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subClashURI": {
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
         "type": "string"
       },
       "subDomain": {
@@ -627,6 +653,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -643,6 +675,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonURI": {
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
         "type": "string"
       },
       "subKeyFile": {
@@ -813,11 +848,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -825,12 +862,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",

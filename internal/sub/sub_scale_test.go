@@ -212,7 +212,7 @@ func TestGetSubsScale(t *testing.T) {
 			jsonSvc := NewSubJsonService("", "", "", &SubService{})
 			start = time.Now()
 			for range reps {
-				body, _, err := jsonSvc.GetJson(scaleTargetSubId, "sub.example.com")
+				body, _, err := jsonSvc.GetJson(scaleTargetSubId, "sub.example.com", false)
 				if err != nil {
 					t.Fatalf("GetJson: %v", err)
 				}

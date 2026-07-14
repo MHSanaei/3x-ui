@@ -65,6 +65,11 @@ type AllSetting struct {
 
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`
+	SubJsonAutoDetect           bool   `json:"subJsonAutoDetect" form:"subJsonAutoDetect"`
+	SubJsonAlwaysArray          bool   `json:"subJsonAlwaysArray" form:"subJsonAlwaysArray"`
+	SubJsonUserAgentRegex       string `json:"subJsonUserAgentRegex" form:"subJsonUserAgentRegex"`
+	SubClashAutoDetect          bool   `json:"subClashAutoDetect" form:"subClashAutoDetect"`
+	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`

@@ -29,6 +29,11 @@ export class AllSetting {
   xrayTemplateConfig = '';
   subEnable = true;
   subJsonEnable = false;
+  subJsonAutoDetect = false;
+  subJsonAlwaysArray = false;
+  subJsonUserAgentRegex = '';
+  subClashAutoDetect = false;
+  subClashUserAgentRegex = '';
   subTitle = '';
   subSupportUrl = '';
   subProfileUrl = '';
