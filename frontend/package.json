@@ -5,7 +5,7 @@
   "type": "module",
   "description": "3x-ui panel frontend (React 19 + Ant Design 6 + Vite 8).",
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=24.0.0",
     "npm": ">=10.0.0"
   },
   "scripts": {
@@ -19,7 +19,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "gen": "npm run gen:zod && npm run gen:api",
-    "gen:api": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/build-openapi.mjs",
+    "gen:api": "node scripts/build-openapi.mjs",
     "gen:zod": "cd .. && go run ./tools/openapigen",
     "prepare": "cd .. && husky frontend/.husky || true"
   },
@@ -34,7 +34,7 @@
     "@noble/hashes": "^2.2.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-query-devtools": "^5.101.2",
-    "antd": "^6.5.0",
+    "antd": "^6.5.1",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.21",
     "i18next": "^26.3.6",
@@ -53,6 +53,7 @@
     "@eslint/js": "^10.0.1",
     "@storybook/addon-a11y": "^10.5.0",
     "@storybook/addon-docs": "^10.5.0",
+    "@storybook/addon-vitest": "^10.5.0",
     "@storybook/react-vite": "^10.5.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
@@ -71,9 +72,11 @@
     "msw": "^2.15.0",
     "storybook": "^10.5.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.63.0",
+    "typescript-eslint": "^8.64.0",
     "vite": "8.1.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "@vitest/browser-playwright": "4.1.10",
+    "playwright": "^1.61.1"
   },
   "overrides": {
     "eslint-plugin-jsx-a11y": {

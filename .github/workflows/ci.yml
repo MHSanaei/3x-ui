@@ -168,11 +168,17 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
         working-directory: frontend
+      - name: Install Playwright Chromium (Storybook story tests)
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
       - name: Test
         run: npm test
         working-directory: frontend
       - name: Build
         run: npm run build
+        working-directory: frontend
+      - name: Build Storybook
+        run: npm run build-storybook
         working-directory: frontend
       - name: Audit
         run: npm audit --audit-level=high

@@ -63,5 +63,9 @@ Only standalone bundles (login/subpage) need a new `.html` + `src/entries/*` +
 - `npm run typecheck` / `npm run lint` / `npm run test` / `npm run build`.
 - `npm run gen` = `gen:zod` (Go → `src/generated/`) + `gen:api`
   (`build-openapi.mjs` → `public/openapi.json`).
+- `npm run storybook` (workbench on :6006) / `npm run build-storybook` (CI
+  compile-checks every story). Reusable `src/components/` get a co-located
+  `<Component>.stories.tsx` with `tags: ['autodocs']`; document props via
+  `argTypes` / `parameters.docs` string metadata, never JSDoc.
 - After `npm run build`, RESTART `go run .` (see the XUI_DEBUG gotcha in root
   CLAUDE.md) before checking the panel.
