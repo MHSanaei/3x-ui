@@ -57,6 +57,7 @@ func (s *EmailService) Send(subject, body string) error {
 	if from == "" {
 		return fmt.Errorf("smtp from not configured")
 	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -116,6 +117,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	if from == "" {
 		from = username
 	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -303,6 +305,17 @@ func parseRecipients(toStr string) []string {
 // header lines. Configured addresses are already validated at save time
 // (entity.AllSetting.CheckValid), this is defense in depth for buildMessage.
 var headerSanitizer = strings.NewReplacer("\r", "", "\n", "")
+
+func resolveFrom(from, fromName string) (string, string) {
+	parsed, err := mail.ParseAddress(from)
+	if err != nil {
+		return from, fromName
+	}
+	if fromName == "" {
+		fromName = parsed.Name
+	}
+	return parsed.Address, fromName
+}
 
 func buildMessage(fromAddr, fromName string, to []string, subject, body string) []byte {
 	fromAddr = headerSanitizer.Replace(fromAddr)
