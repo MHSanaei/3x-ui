@@ -2,9 +2,13 @@ package email
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
+	"mime"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strings"
 	"time"
@@ -41,10 +45,15 @@ func (s *EmailService) Send(subject, body string) error {
 	}
 	username, _ := s.settingService.GetSmtpUsername()
 	password, _ := s.settingService.GetSmtpPassword()
+	fromAddr, _ := s.settingService.GetSmtpFrom()
+	fromName, _ := s.settingService.GetSmtpFromName()
 	toStr, _ := s.settingService.GetSmtpTo()
 	encryptionType, _ := s.settingService.GetSmtpEncryptionType()
 
-	from := username
+	from := fromAddr
+	if from == "" {
+		from = username
+	}
 	if from == "" {
 		return fmt.Errorf("smtp from not configured")
 	}
@@ -55,7 +64,7 @@ func (s *EmailService) Send(subject, body string) error {
 	}
 
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	msg := buildMessage(from, recipients, subject, body)
+	msg := buildMessage(from, fromName, recipients, subject, body)
 
 	// Authenticate only when credentials are set. Go's PlainAuth refuses to run
 	// over the unencrypted "none" transport, so an open relay must use nil auth.
@@ -98,10 +107,15 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	}
 	username, _ := s.settingService.GetSmtpUsername()
 	password, _ := s.settingService.GetSmtpPassword()
+	fromAddr, _ := s.settingService.GetSmtpFrom()
+	fromName, _ := s.settingService.GetSmtpFromName()
 	toStr, _ := s.settingService.GetSmtpTo()
 	encryptionType, _ := s.settingService.GetSmtpEncryptionType()
 
-	from := username
+	from := fromAddr
+	if from == "" {
+		from = username
+	}
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -166,7 +180,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 		}
 	}
 
-	msg := buildMessage(from, recipients, "[3x-ui] Test email",
+	msg := buildMessage(from, fromName, recipients, "[3x-ui] Test email",
 		`<html><body style="font-family:monospace;font-size:14px">
 <h2>Test email from 3x-ui</h2>
 <p>If you received this, SMTP is configured correctly.</p>
@@ -280,18 +294,37 @@ func parseRecipients(toStr string) []string {
 	return out
 }
 
-func buildMessage(from string, to []string, subject, body string) []byte {
-	headers := map[string]string{
-		"From":         from,
-		"To":           strings.Join(to, ","),
-		"Subject":      subject,
-		"MIME-Version": "1.0",
-		"Content-Type": "text/html; charset=utf-8",
+// buildMessage assembles an RFC 5322 message. It emits the two mandatory
+// header fields (Date, From) plus Message-ID, so strict receivers such as Gmail
+// accept it and spam filters do not penalize a missing date or message id. The
+// From header is a proper name-addr ("Name" <addr>) via net/mail, and a
+// non-ASCII subject is RFC 2047 encoded.
+// headerSanitizer drops CR/LF so a crafted address or name cannot inject extra
+// header lines. Configured addresses are already validated at save time
+// (entity.AllSetting.CheckValid), this is defense in depth for buildMessage.
+var headerSanitizer = strings.NewReplacer("\r", "", "\n", "")
+
+func buildMessage(fromAddr, fromName string, to []string, subject, body string) []byte {
+	fromAddr = headerSanitizer.Replace(fromAddr)
+	fromName = headerSanitizer.Replace(fromName)
+	from := (&mail.Address{Name: fromName, Address: fromAddr}).String()
+
+	domain := "localhost"
+	if at := strings.LastIndex(fromAddr, "@"); at >= 0 && at+1 < len(fromAddr) {
+		domain = fromAddr[at+1:]
 	}
+	var token [16]byte
+	_, _ = rand.Read(token[:])
+	messageID := fmt.Sprintf("<%s@%s>", hex.EncodeToString(token[:]), domain)
+
 	var msg strings.Builder
-	for k, v := range headers {
-		fmt.Fprintf(&msg, "%s: %s\r\n", k, v)
-	}
+	fmt.Fprintf(&msg, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
+	fmt.Fprintf(&msg, "From: %s\r\n", from)
+	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(to, ", "))
+	fmt.Fprintf(&msg, "Message-ID: %s\r\n", messageID)
+	fmt.Fprintf(&msg, "Subject: %s\r\n", mime.QEncoding.Encode("utf-8", subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/html; charset=utf-8\r\n")
 	msg.WriteString("\r\n")
 	msg.WriteString(body)
 	return []byte(msg.String())

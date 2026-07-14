@@ -148,6 +148,8 @@ var defaultValueMap = map[string]string{
 	"smtpPort":           "587",
 	"smtpUsername":       "",
 	"smtpPassword":       "",
+	"smtpFrom":           "",
+	"smtpFromName":       "",
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
 }
@@ -1043,6 +1045,22 @@ func (s *SettingService) GetSmtpUsername() (string, error) {
 
 func (s *SettingService) SetSmtpUsername(value string) error {
 	return s.setString("smtpUsername", value)
+}
+
+func (s *SettingService) GetSmtpFrom() (string, error) {
+	return s.getString("smtpFrom")
+}
+
+func (s *SettingService) SetSmtpFrom(value string) error {
+	return s.setString("smtpFrom", value)
+}
+
+func (s *SettingService) GetSmtpFromName() (string, error) {
+	return s.getString("smtpFromName")
+}
+
+func (s *SettingService) SetSmtpFromName(value string) error {
+	return s.setString("smtpFromName", value)
 }
 
 func (s *SettingService) GetSmtpPassword() (string, error) {

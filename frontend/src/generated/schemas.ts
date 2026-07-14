@@ -116,6 +116,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEncryptionType": {
         "type": "string"
       },
+      "smtpFrom": {
+        "type": "string"
+      },
+      "smtpFromName": {
+        "type": "string"
+      },
       "smtpHost": {
         "type": "string"
       },
@@ -349,6 +355,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnable",
       "smtpEnabledEvents",
       "smtpEncryptionType",
+      "smtpFrom",
+      "smtpFromName",
       "smtpHost",
       "smtpMemory",
       "smtpPassword",
@@ -547,6 +555,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "smtpEncryptionType": {
+        "type": "string"
+      },
+      "smtpFrom": {
+        "type": "string"
+      },
+      "smtpFromName": {
         "type": "string"
       },
       "smtpHost": {
@@ -789,6 +803,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnable",
       "smtpEnabledEvents",
       "smtpEncryptionType",
+      "smtpFrom",
+      "smtpFromName",
       "smtpHost",
       "smtpMemory",
       "smtpPassword",
