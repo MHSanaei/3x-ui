@@ -340,14 +340,12 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c) {
 		logSubscriptionRoute(userAgent, "clash")
-		a.subClashs(c)
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8") {
 		logSubscriptionRoute(userAgent, "json")
-		a.serveJson(c, true, "application/json; charset=utf-8")
 		return
 	}
 	logSubscriptionRoute(userAgent, "raw")
@@ -605,43 +603,63 @@ func (a *SUBController) subJsons(c *gin.Context) {
 }
 
 func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, contentType string) {
+	if !a.serveJsonBody(c, alwaysReturnArray, contentType) {
+		writeSubError(c, nil)
+	}
+}
+
+func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
-	if err != nil || len(jsonSub) == 0 {
+	if err != nil {
 		writeSubError(c, err)
-	} else {
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
-
-		c.Data(200, contentType, []byte(jsonSub))
+		return true
 	}
+	if len(jsonSub) == 0 {
+		return false
+	}
+	profileUrl := a.subProfileUrl
+	if profileUrl == "" {
+		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	}
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+
+	c.Data(200, contentType, []byte(jsonSub))
+	return true
 }
 
 func (a *SUBController) subClashs(c *gin.Context) {
 	if a.maybeServeSubPage(c) {
 		return
 	}
+	if !a.serveClashBody(c) {
+		writeSubError(c, nil)
+	}
+}
+
+func (a *SUBController) serveClashBody(c *gin.Context) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)
-	if err != nil || len(clashSub) == 0 {
+	if err != nil {
 		writeSubError(c, err)
-	} else {
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
-		if a.subTitle != "" {
-			// Clash clients commonly use Content-Disposition to choose the imported profile name.
-			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
-		}
-		c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
+		return true
 	}
+	if len(clashSub) == 0 {
+		return false
+	}
+	profileUrl := a.subProfileUrl
+	if profileUrl == "" {
+		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	}
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	if a.subTitle != "" {
+		// Clash clients commonly use Content-Disposition to choose the imported profile name.
+		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
+	}
+	c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
+	return true
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
