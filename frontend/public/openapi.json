@@ -5444,13 +5444,13 @@
         }
       }
     },
-    "/panel/api/clients/getByTgId/{tgId}": {
+    "/panel/api/clients/get/tgId/{tgId}": {
       "get": {
         "tags": [
           "Clients"
         ],
         "summary": "Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.",
-        "operationId": "get_panel_api_clients_getByTgId_tgId",
+        "operationId": "get_panel_api_clients_get_tgId_tgId",
         "parameters": [
           {
             "name": "tgId",

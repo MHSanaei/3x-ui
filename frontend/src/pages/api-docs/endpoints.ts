@@ -584,7 +584,7 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
-        path: '/panel/api/clients/getByTgId/:tgId',
+        path: '/panel/api/clients/get/tgId/:tgId',
         summary: 'Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.',
         params: [
           { name: 'tgId', in: 'path', type: 'integer', desc: 'Telegram user ID (numeric).' },
