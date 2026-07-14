@@ -51,3 +51,30 @@ func TestUpdateInboundLocalMtprotoDefersPushUntilCommit(t *testing.T) {
 		t.Fatalf("the MTProto sidecar push ran %d time(s) inside the failed transaction; it must be deferred until the commit succeeds", n)
 	}
 }
+
+// Re-enabling a routed MTProto inbound must request an xray restart: the egress
+// SOCKS bridge is only injected for enabled inbounds, so the running config
+// needs regenerating or the sidecar dials a bridge that is not there.
+func TestSetInboundEnableRoutedMtprotoRequestsRestart(t *testing.T) {
+	setupConflictDB(t)
+
+	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }})
+	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	runtime.SetManager(mgr)
+	t.Cleanup(func() { runtime.SetManager(nil) })
+
+	seedInboundConflict(t, "mt-route", "", 46160, model.MTProto, "",
+		`{"clients":[{"email":"mtr","secret":"`+mtprotoTestSecretA+`","enable":true}],"routeThroughXray":true,"routeXrayPort":12345}`)
+	seeded := loadInboundByTag(t, "mt-route")
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", seeded.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("force disable: %v", err)
+	}
+
+	needRestart, err := (&InboundService{}).SetInboundEnable(seeded.Id, true)
+	if err != nil {
+		t.Fatalf("SetInboundEnable: %v", err)
+	}
+	if !needRestart {
+		t.Fatal("re-enabling a routed MTProto inbound must request an xray restart to re-inject the egress bridge")
+	}
+}

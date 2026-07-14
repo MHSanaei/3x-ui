@@ -1103,6 +1103,10 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return false, nil
 	}
 
+	if mtprotoRoutesThroughXray(inbound) {
+		needRestart = true
+	}
+
 	if !push {
 		return true, nil
 	}
