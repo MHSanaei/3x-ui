@@ -96,7 +96,7 @@ export default function BulkAttachInboundsModal({
               onChange={setTargetIds}
               options={targetOptions}
               placeholder={t('pages.clients.attachToInboundsTargets')}
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
               autoFocus
             />
           </>

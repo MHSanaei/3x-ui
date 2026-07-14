@@ -1212,7 +1212,7 @@ export default function ClientsPage() {
                           value={sortValueFor(sortColumn, sortOrder)}
                           aria-label={t('sort')}
                           size={isMobile ? 'small' : 'middle'}
-                          suffixIcon={<SortAscendingOutlined />}
+                          suffix={<SortAscendingOutlined />}
                           style={{ minWidth: isMobile ? 130 : 200 }}
                           onChange={(value) => {
                             const opt = SORT_OPTIONS.find((o) => o.value === value);

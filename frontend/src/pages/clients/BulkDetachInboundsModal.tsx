@@ -96,7 +96,7 @@ export default function BulkDetachInboundsModal({
               onChange={setTargetIds}
               options={targetOptions}
               placeholder={t('pages.clients.detachFromInboundsTargets')}
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
               autoFocus
             />
           </>

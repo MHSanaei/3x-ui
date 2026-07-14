@@ -113,8 +113,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                       : <span><b>{stageLabel[testResult.stage || ''] || testResult.stage}:</b> {t('pages.settings.' + testResult.msg)}</span>
                   }
                   showIcon
-                  closable
-                  onClose={() => setTestResult(null)}
+                  closable={{ onClose: () => setTestResult(null) }}
                 />
               )}
             </Space>

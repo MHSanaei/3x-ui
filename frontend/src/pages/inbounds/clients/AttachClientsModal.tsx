@@ -203,7 +203,7 @@ export default function AttachClientsModal({
           onChange={setTargetIds}
           options={targetOptions}
           placeholder={t('pages.inbounds.attachClientsTargets')}
-          optionFilterProp="label"
+          showSearch={{ optionFilterProp: 'label' }}
         />
       )}
     </Modal>

@@ -286,7 +286,7 @@ export default function SubPage() {
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
                 {announce && (
-                  <Alert type="info" showIcon message={announce} style={{ marginBottom: 16 }} />
+                  <Alert type="info" showIcon title={announce} style={{ marginBottom: 16 }} />
                 )}
                 <Descriptions
                   bordered
