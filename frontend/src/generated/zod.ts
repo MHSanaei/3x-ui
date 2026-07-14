@@ -289,6 +289,7 @@ export const ClientRecordSchema = z.object({
   group: z.string(),
   id: z.number().int(),
   keepAlive: z.number().int(),
+  limitHwid: z.number().int(),
   limitIp: z.number().int(),
   password: z.string(),
   preSharedKey: z.string(),

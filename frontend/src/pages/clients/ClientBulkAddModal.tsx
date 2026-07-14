@@ -33,6 +33,7 @@ const EMPTY: ClientBulkAddFormValues = {
   comment: '',
   flow: '',
   limitIp: 0,
+  limitHwid: 0,
   totalGB: 0,
   expiryTime: 0,
   reset: 0,
@@ -176,6 +177,7 @@ export default function ClientBulkAddModal({
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
           limitIp: Number(current.limitIp) || 0,
+          limitHwid: Number(current.limitHwid) || 0,
           group: current.group,
           comment: current.comment,
           enable: true,
@@ -326,6 +328,15 @@ export default function ClientBulkAddModal({
                 </span>
               </Tooltip>
             </Form.Item>
+
+            <FormField
+              name="limitHwid"
+              label={t('pages.clients.limitHwid')}
+              tooltip={t('pages.clients.limitHwidDesc')}
+              transform={{ output: (v) => Number(v) || 0 }}
+            >
+              <InputNumber min={0} />
+            </FormField>
 
             <FormField name="totalGB" label={t('pages.clients.totalGB')} transform={{ output: (v) => Number(v) || 0 }}>
               <InputNumber min={0} step={1} />

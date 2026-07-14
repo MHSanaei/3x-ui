@@ -99,6 +99,22 @@ export class HttpUtil {
     }
   }
 
+  static async delete<T = unknown>(url: string, options: HttpOptions = {}): Promise<Msg<T>> {
+    const { silent, silentSuccess, ...rest } = options;
+    try {
+      const resp = await httpRequest('DELETE', url, undefined, rest);
+      const msg = this._respToMsg(resp) as Msg<T>;
+      if (!silent) this._handleMsg(msg, silentSuccess);
+      return msg;
+    } catch (error) {
+      console.error('DELETE request failed:', error);
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMsg = new Msg<T>(false, err.response?.data?.message || err.message || 'Request failed');
+      if (!silent) this._handleMsg(errorMsg);
+      return errorMsg;
+    }
+  }
+
   static async postWithModal<T = unknown>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
     if (modal) {
       modal.loading(true);

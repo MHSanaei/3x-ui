@@ -26,7 +26,7 @@ func TestUpdate_PersistsRecordEnable_True(t *testing.T) {
 	}
 	updated := rec.ToClient()
 	updated.Enable = true
-	if _, err := svc.Update(inboundSvc, rec.Id, *updated); err != nil {
+	if _, err := svc.Update(inboundSvc, rec.Id, *updated, 0); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
@@ -60,7 +60,7 @@ func TestUpdate_PersistsRecordEnable_False(t *testing.T) {
 	}
 	updated := rec.ToClient()
 	updated.Enable = false
-	if _, err := svc.Update(inboundSvc, rec.Id, *updated); err != nil {
+	if _, err := svc.Update(inboundSvc, rec.Id, *updated, 0); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestUpdate_PersistsRecordEnable_NoInbound(t *testing.T) {
 
 	updated := rec.ToClient()
 	updated.Enable = true
-	if _, err := svc.Update(inboundSvc, rec.Id, *updated); err != nil {
+	if _, err := svc.Update(inboundSvc, rec.Id, *updated, 0); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 

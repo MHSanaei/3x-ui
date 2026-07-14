@@ -113,7 +113,7 @@ func TestAllAPIsPostgresScale(t *testing.T) {
 			run("UpdateByEmail", func() error {
 				upd := clients[n/3]
 				upd.Comment = "touched"
-				_, err := svc.UpdateByEmail(inboundSvc, upd.Email, upd)
+				_, err := svc.UpdateByEmail(inboundSvc, upd.Email, upd, 0)
 				return err
 			})
 			run("AttachByEmail", func() error { _, err := svc.AttachByEmail(inboundSvc, emails[n/3], []int{ib2.Id}); return err })

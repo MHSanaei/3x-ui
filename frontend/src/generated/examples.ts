@@ -261,6 +261,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "group": "",
     "id": 0,
     "keepAlive": 0,
+    "limitHwid": 0,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",

@@ -65,6 +65,7 @@ type SUBController struct {
 	subService      *SubService
 	subJsonService  *SubJsonService
 	subClashService *SubClashService
+	clientService   service.ClientService
 	settingService  service.SettingService
 
 	subTemplateMu    sync.RWMutex
@@ -187,6 +188,9 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	if a.maybeServeSubPage(c) {
+		return
+	}
+	if !a.enforceHwid(c) {
 		return
 	}
 	subId := c.Param("subid")
@@ -331,6 +335,41 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
 }
 
+func (a *SUBController) enforceHwid(c *gin.Context) bool {
+	result, err := a.clientService.EnforceHwidForSubID(c.Param("subid"), service.HwidRequest{
+		Hwid:        c.GetHeader("X-HWID"),
+		UserAgent:   c.GetHeader("User-Agent"),
+		DeviceOS:    c.GetHeader("X-Device-OS"),
+		OsVersion:   c.GetHeader("X-Ver-OS"),
+		DeviceModel: c.GetHeader("X-Device-Model"),
+	})
+	if err != nil {
+		writeSubError(c, err)
+		return false
+	}
+	applyHwidHeaders(c, result)
+	if !result.Allowed {
+		c.Status(http.StatusNotFound)
+		return false
+	}
+	return true
+}
+
+func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
+	if result.Active {
+		c.Header("X-Hwid-Active", "true")
+	}
+	if result.NotSupported {
+		c.Header("X-Hwid-Not-Supported", "true")
+	}
+	if result.LimitReached {
+		c.Header("X-Hwid-Limit", "true")
+	}
+	if result.MaxDevicesReached {
+		c.Header("X-Hwid-Max-Devices-Reached", "true")
+	}
+}
+
 // setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
 // clients and browsers always fetch fresh traffic/expiry data.
 func setNoCacheHeaders(c *gin.Context) {
@@ -387,6 +426,9 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	if a.maybeServeSubPage(c) {
 		return
 	}
+	if !a.enforceHwid(c) {
+		return
+	}
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
@@ -405,6 +447,9 @@ func (a *SUBController) subJsons(c *gin.Context) {
 
 func (a *SUBController) subClashs(c *gin.Context) {
 	if a.maybeServeSubPage(c) {
+		return
+	}
+	if !a.enforceHwid(c) {
 		return
 	}
 	subId := c.Param("subid")
