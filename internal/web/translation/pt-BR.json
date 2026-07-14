@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "E-mail de teste enviado com sucesso",
       "smtpHostNotConfigured": "Servidor SMTP não configurado",
       "smtpNoRecipients": "Nenhum destinatário configurado",
+      "smtpFromNotConfigured": "Endereço do remetente SMTP não configurado",
       "eventLoginAttempt": "Tentativa de login",
       "telegramTokenConfigured": "Configurado; deixe em branco para manter o token atual.",
       "telegramTokenPlaceholder": "Configurado - insira um novo token para substituir",

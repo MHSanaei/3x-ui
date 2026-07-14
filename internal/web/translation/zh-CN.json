@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "测试邮件发送成功",
       "smtpHostNotConfigured": "尚未配置 SMTP 主机",
       "smtpNoRecipients": "尚未配置收件人",
+      "smtpFromNotConfigured": "未配置 SMTP 发件人地址",
       "eventLoginAttempt": "登录尝试",
       "telegramTokenConfigured": "已配置；留空则保留当前令牌。",
       "telegramTokenPlaceholder": "已配置——输入新令牌以替换",

@@ -1412,6 +1412,7 @@
       "smtpTestSuccess": "ایمیل آزمایشی با موفقیت ارسال شد",
       "smtpHostNotConfigured": "میزبان SMTP پیکربندی نشده است",
       "smtpNoRecipients": "هیچ گیرنده‌ای پیکربندی نشده است",
+      "smtpFromNotConfigured": "آدرس فرستنده SMTP پیکربندی نشده است",
       "eventLoginAttempt": "تلاش برای ورود",
       "telegramTokenConfigured": "پیکربندی شده؛ برای حفظ توکن فعلی خالی بگذارید.",
       "telegramTokenPlaceholder": "پیکربندی شده - برای جایگزینی، توکن جدید وارد کنید",

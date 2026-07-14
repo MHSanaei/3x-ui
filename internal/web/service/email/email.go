@@ -117,6 +117,9 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	if from == "" {
 		from = username
 	}
+	if from == "" {
+		return SMTPTestResult{false, "send", "smtpFromNotConfigured"}
+	}
 	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)

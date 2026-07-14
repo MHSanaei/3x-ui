@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "Email uji berhasil dikirim",
       "smtpHostNotConfigured": "Host SMTP belum dikonfigurasi",
       "smtpNoRecipients": "Tidak ada penerima yang dikonfigurasi",
+      "smtpFromNotConfigured": "Alamat pengirim SMTP belum dikonfigurasi",
       "eventLoginAttempt": "Percobaan masuk",
       "telegramTokenConfigured": "Terkonfigurasi; kosongkan untuk mempertahankan token saat ini.",
       "telegramTokenPlaceholder": "Terkonfigurasi - masukkan token baru untuk mengganti",

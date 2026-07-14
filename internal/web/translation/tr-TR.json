@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "Test e-postası başarıyla gönderildi",
       "smtpHostNotConfigured": "SMTP sunucusu yapılandırılmamış",
       "smtpNoRecipients": "Yapılandırılmış alıcı yok",
+      "smtpFromNotConfigured": "SMTP gönderen adresi yapılandırılmamış",
       "eventLoginAttempt": "Oturum açma denemesi",
       "telegramTokenConfigured": "Yapılandırıldı; mevcut belirteci korumak için boş bırakın.",
       "telegramTokenPlaceholder": "Yapılandırıldı - değiştirmek için yeni bir belirteç girin",

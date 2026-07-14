@@ -180,6 +180,31 @@ func TestSendUsesBareAddressFromNameAddrSmtpFrom(t *testing.T) {
 	}
 }
 
+func TestConnectionReportsMissingFrom(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	settingService := service.SettingService{}
+	mustSet := func(name string, err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("set %s: %v", name, err)
+		}
+	}
+	mustSet("host", settingService.SetSmtpHost("127.0.0.1"))
+	mustSet("port", settingService.SetSmtpPort(1))
+	mustSet("to", settingService.SetSmtpTo("admin@example.com"))
+	mustSet("encryption", settingService.SetSmtpEncryptionType("none"))
+
+	got := NewEmailService(settingService).TestConnection()
+	want := SMTPTestResult{Success: false, Stage: "send", Message: "smtpFromNotConfigured"}
+	if got != want {
+		t.Errorf("TestConnection() = %+v, want %+v", got, want)
+	}
+}
+
 func TestBuildMessageStripsHeaderInjection(t *testing.T) {
 	raw := buildMessage(
 		"panel@example.com\r\nBcc: evil@example.com",
