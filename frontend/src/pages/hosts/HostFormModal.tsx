@@ -191,8 +191,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
                       <Select
                         mode="multiple"
                         options={inboundSelectOptions}
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder={t('pages.hosts.selectInbound')}
                       />
                     </FormField>
@@ -211,7 +210,7 @@ export default function HostFormModal({ open, mode, host, inboundOptions, existi
                       <Select mode="tags" allowClear tokenSeparators={[',']} />
                     </FormField>
                     <FormField name="nodeGuids" label={t('pages.hosts.fields.nodeGuids')} tooltip={t('pages.hosts.hints.nodeGuids')}>
-                      <Select mode="multiple" allowClear options={nodeSelectOptions} optionFilterProp="label" />
+                      <Select mode="multiple" allowClear options={nodeSelectOptions} showSearch={{ optionFilterProp: 'label' }} />
                     </FormField>
                     <FormField name="enable" label={t('pages.hosts.fields.enable')} valueProp="checked">
                       <Switch />

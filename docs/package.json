@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "postinstall": "fumadocs-mdx",
-    "gen:api": "node --experimental-strip-types scripts/gen-openapi.ts",
+    "gen:api": "node scripts/gen-openapi.ts",
     "typecheck": "fumadocs-mdx && next typegen && tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

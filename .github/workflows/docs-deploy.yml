@@ -9,6 +9,9 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'frontend/src/components/**'
+      - 'frontend/.storybook/**'
+      - 'frontend/package-lock.json'
       - '.github/workflows/docs-deploy.yml'
   workflow_dispatch:
 
@@ -32,10 +35,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          version: 11
+          package_json_file: docs/package.json
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: docs/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
@@ -52,6 +55,13 @@ jobs:
         # in place. That way both /docs/... and /en/docs/... resolve. Other
         # locales stay under /fa, /ru, /zh.
         run: cp -a out/en/. out/
+      - name: Build the component Storybook (frontend/)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build-storybook
+      - name: Bundle Storybook at /storybook
+        run: cp -a ../frontend/storybook-static out/storybook
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/out

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"math"
 	"net"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -50,6 +51,8 @@ type AllSetting struct {
 	SmtpPort           int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"`
 	SmtpUsername       string `json:"smtpUsername" form:"smtpUsername"`
 	SmtpPassword       string `json:"smtpPassword" form:"smtpPassword"`
+	SmtpFrom           string `json:"smtpFrom" form:"smtpFrom"`
+	SmtpFromName       string `json:"smtpFromName" form:"smtpFromName"`
 	SmtpTo             string `json:"smtpTo" form:"smtpTo"`
 	SmtpEncryptionType string `json:"smtpEncryptionType" form:"smtpEncryptionType"`
 	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`
@@ -62,6 +65,11 @@ type AllSetting struct {
 
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`
+	SubJsonAutoDetect           bool   `json:"subJsonAutoDetect" form:"subJsonAutoDetect"`
+	SubJsonAlwaysArray          bool   `json:"subJsonAlwaysArray" form:"subJsonAlwaysArray"`
+	SubJsonUserAgentRegex       string `json:"subJsonUserAgentRegex" form:"subJsonUserAgentRegex"`
+	SubClashAutoDetect          bool   `json:"subClashAutoDetect" form:"subClashAutoDetect"`
+	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`
@@ -239,6 +247,12 @@ func (s *AllSetting) CheckValid() error {
 	_, err := time.LoadLocation(s.TimeLocation)
 	if err != nil {
 		return common.NewError("time location not exist:", s.TimeLocation)
+	}
+
+	if s.SmtpFrom != "" {
+		if _, err := mail.ParseAddress(s.SmtpFrom); err != nil {
+			return common.NewError("SMTP from address is not valid:", s.SmtpFrom)
+		}
 	}
 
 	return nil

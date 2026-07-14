@@ -2,16 +2,345 @@ package sub
 
 import (
 	"bytes"
+	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // newTestSUBController builds a controller with just the bits loadSubTemplate
 // needs, so the template tests don't require a database.
 func newTestSUBController() *SUBController {
 	return &SUBController{subTemplateCache: map[string]*cachedSubTemplate{}}
+}
+
+type subscriptionTestRouterConfig struct {
+	clashAutoDetect     bool
+	clashUserAgentRegex string
+	jsonAutoDetect      bool
+	jsonUserAgentRegex  string
+	jsonAlwaysArray     bool
+}
+
+func newSubscriptionTestRouter(config subscriptionTestRouterConfig) *gin.Engine {
+	router := gin.New()
+	options := []SUBControllerOption{
+		WithSUBJsonEnabled(true),
+		WithSUBClashEnabled(true),
+	}
+	if config.clashAutoDetect {
+		options = append(options, WithSUBClashAutoDetect(true))
+	}
+	if config.clashUserAgentRegex != "" {
+		options = append(options, WithSUBClashUserAgentRegex(config.clashUserAgentRegex))
+	}
+	if config.jsonAutoDetect {
+		options = append(options, WithSUBJsonAutoDetect(true))
+	}
+	if config.jsonUserAgentRegex != "" {
+		options = append(options, WithSUBJsonUserAgentRegex(config.jsonUserAgentRegex))
+	}
+	if config.jsonAlwaysArray {
+		options = append(options, WithSUBJsonAlwaysArray(true))
+	}
+	NewSUBController(router.Group("/"), options...)
+	return router
+}
+
+func TestNewSUBControllerOptions(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	defaults := NewSUBController(gin.New().Group("/"))
+	if defaults.subPath != "/sub/" || defaults.subJsonPath != "/json/" || defaults.subClashPath != "/clash/" {
+		t.Fatalf("default paths = %q, %q, %q", defaults.subPath, defaults.subJsonPath, defaults.subClashPath)
+	}
+	if !defaults.subEncrypt || defaults.updateInterval != "12" {
+		t.Fatalf("default encryption/update = %v, %q", defaults.subEncrypt, defaults.updateInterval)
+	}
+	if defaults.subService.remarkTemplate != service.DefaultRemarkTemplate {
+		t.Fatalf("default remark template = %q", defaults.subService.remarkTemplate)
+	}
+	if defaults.jsonEnabled || defaults.clashEnabled {
+		t.Fatalf("format endpoints enabled by default: json=%v clash=%v", defaults.jsonEnabled, defaults.clashEnabled)
+	}
+
+	configured := NewSUBController(
+		gin.New().Group("/"),
+		WithSUBPath("/custom/"),
+		WithSUBJsonEnabled(true),
+		WithSUBEncryption(false),
+		WithSUBUpdateInterval("24"),
+	)
+	if configured.subPath != "/custom/" || !configured.jsonEnabled || configured.subEncrypt || configured.updateInterval != "24" {
+		t.Fatalf("configured values were not applied: path=%q json=%v encrypt=%v update=%q",
+			configured.subPath, configured.jsonEnabled, configured.subEncrypt, configured.updateInterval)
+	}
+}
+
+func TestShouldAutoServeClash(t *testing.T) {
+	tests := []struct {
+		name         string
+		autoDetect   bool
+		clashEnabled bool
+		wantsHTML    bool
+		userAgent    string
+		pattern      string
+		want         bool
+	}{
+		{name: "clash verge", autoDetect: true, clashEnabled: true, userAgent: "Clash-Verge/v2.4.2", want: true},
+		{name: "mihomo", autoDetect: true, clashEnabled: true, userAgent: "mihomo/1.19.12", want: true},
+		{name: "clash case insensitive", autoDetect: true, clashEnabled: true, userAgent: "CLASH-META/1.0", want: true},
+		{name: "flclash covered by clash", autoDetect: true, clashEnabled: true, userAgent: "FlClash/0.8.91", want: true},
+		{name: "generic client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "GenericClient/1.10.0"},
+		{name: "other client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "OtherClient/2.2"},
+		{name: "unknown raw fallback", autoDetect: true, clashEnabled: true, userAgent: "CustomClient/1.0"},
+		{name: "empty raw fallback", autoDetect: true, clashEnabled: true},
+		{name: "browser HTML wins", autoDetect: true, clashEnabled: true, wantsHTML: true, userAgent: "Clash-Verge/v2.4.2"},
+		{name: "disabled by default", clashEnabled: true, userAgent: "mihomo/1.19.12"},
+		{name: "clash endpoint disabled", autoDetect: true, userAgent: "mihomo/1.19.12"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldAutoServeClash(tt.autoDetect, tt.clashEnabled, tt.wantsHTML, tt.userAgent, compileUserAgentRegex("Clash/Mihomo", tt.pattern, service.DefaultSubClashUserAgentRegex))
+			if got != tt.want {
+				t.Fatalf("shouldAutoServeClash() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestShouldAutoServeClashUsesConfiguredRegex(t *testing.T) {
+	configured := compileUserAgentRegex("Clash/Mihomo", `(?i)^custom-client/`, service.DefaultSubClashUserAgentRegex)
+	if !shouldAutoServeClash(true, true, false, "Custom-Client/1.0", configured) {
+		t.Fatal("configured User-Agent regex did not match")
+	}
+	if shouldAutoServeClash(true, true, false, "Mihomo/1.19", configured) {
+		t.Fatal("built-in User-Agent matched after a custom regex replaced it")
+	}
+}
+
+func TestShouldAutoServeJson(t *testing.T) {
+	configured := compileUserAgentRegex("Xray JSON", `(?i)^jsonclient([ /]|$)`, service.DefaultSubJsonUserAgentRegex)
+	for _, userAgent := range []string{"JsonClient/1.6.32", "jsonclient 1.6.32"} {
+		if !shouldAutoServeJson(true, true, false, userAgent, configured) {
+			t.Errorf("configured Xray JSON regex did not match %q", userAgent)
+		}
+	}
+	for _, userAgent := range []string{"GenericClient/1.10.0", "OtherClient/2.2", "ThirdClient/7.0", "CustomClient/1.0"} {
+		if shouldAutoServeJson(true, true, false, userAgent, configured) {
+			t.Errorf("configured Xray JSON regex unexpectedly matched %q", userAgent)
+		}
+	}
+	if shouldAutoServeJson(false, true, false, "JsonClient/1.6.32", configured) {
+		t.Fatal("disabled Xray JSON auto-detection matched")
+	}
+	if shouldAutoServeJson(true, false, false, "JsonClient/1.6.32", configured) {
+		t.Fatal("disabled JSON endpoint matched")
+	}
+	if shouldAutoServeJson(true, true, true, "JsonClient/1.6.32", configured) {
+		t.Fatal("browser HTML request matched Xray JSON")
+	}
+
+	empty := compileUserAgentRegex("Xray JSON", "", service.DefaultSubJsonUserAgentRegex)
+	if empty != nil {
+		t.Fatal("empty Xray JSON default should not compile to a matcher")
+	}
+	if shouldAutoServeJson(true, true, false, "JsonClient/1.6.32", empty) {
+		t.Fatal("empty Xray JSON default should not auto-serve")
+	}
+}
+
+func TestShouldAutoServeJsonUsesConfiguredRegex(t *testing.T) {
+	configured := compileUserAgentRegex("Xray JSON", `(?i)^custom-json/`, service.DefaultSubJsonUserAgentRegex)
+	if !shouldAutoServeJson(true, true, false, "Custom-JSON/1.0", configured) {
+		t.Fatal("configured Xray JSON User-Agent regex did not match")
+	}
+	if shouldAutoServeJson(true, true, false, "OtherClient/1.10.0", configured) {
+		t.Fatal("unrelated User-Agent matched after a custom regex was configured")
+	}
+}
+
+func TestCompileUserAgentRegexFallsBackForInvalidPattern(t *testing.T) {
+	compiled := compileUserAgentRegex("Clash/Mihomo", "[", service.DefaultSubClashUserAgentRegex)
+	if !compiled.MatchString("Mihomo/1.19") {
+		t.Fatal("invalid regex did not fall back to the default pattern")
+	}
+}
+
+func TestSanitizeUserAgentForLog(t *testing.T) {
+	if got := sanitizeUserAgentForLog("client/1.0\r\nforged\tline"); got != "client/1.0  forged line" {
+		t.Fatalf("sanitizeUserAgentForLog() = %q", got)
+	}
+	long := strings.Repeat("界", 513)
+	if got := sanitizeUserAgentForLog(long); len([]rune(got)) != 512 {
+		t.Fatalf("sanitized User-Agent length = %d runes, want 512", len([]rune(got)))
+	}
+}
+
+func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "auto", 4480, 1, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+
+	t.Run("recognized client receives YAML", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{clashAutoDetect: true}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/yaml; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want YAML", got)
+		}
+		if body := resp.Body.String(); !strings.Contains(body, "proxies:") || !strings.Contains(body, "type: vless") {
+			t.Fatalf("auto-detected body is not Clash YAML:\n%s", body)
+		}
+	})
+
+	t.Run("Clash wins when both format regexes match", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "Hybrid/1.0")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect:     true,
+			clashUserAgentRegex: `(?i)^hybrid/`,
+			jsonAutoDetect:      true,
+			jsonUserAgentRegex:  `(?i)^hybrid/`,
+		}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/yaml; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want Clash YAML", got)
+		}
+	})
+
+	t.Run("disabled setting preserves raw base64", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		decoded, err := base64.StdEncoding.DecodeString(resp.Body.String())
+		if err != nil {
+			t.Fatalf("raw response is not base64: %v", err)
+		}
+		if !strings.Contains(string(decoded), "vless://") {
+			t.Fatalf("decoded raw response lacks VLESS link: %s", decoded)
+		}
+	})
+
+	t.Run("configured regex controls detection", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "Mihomo/1.19")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect:     true,
+			clashUserAgentRegex: `(?i)^custom-client/`,
+		}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got == "application/yaml; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, custom regex should preserve raw response", got)
+		}
+	})
+
+	t.Run("unrecognized client preserves raw base64", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "GenericClient/1.10.0")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			clashAutoDetect: true,
+			jsonAutoDetect:  true,
+		}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		decoded, err := base64.StdEncoding.DecodeString(resp.Body.String())
+		if err != nil {
+			t.Fatalf("raw response is not base64: %v", err)
+		}
+		if !strings.Contains(string(decoded), "vless://") {
+			t.Fatalf("decoded raw response lacks VLESS link: %s", decoded)
+		}
+	})
+
+	t.Run("recognized Xray JSON client receives configuration array", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+		req.Header.Set("User-Agent", "JsonClient/1.6.32")
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{
+			jsonAutoDetect:     true,
+			jsonUserAgentRegex: `(?i)^jsonclient([ /]|$)`,
+		}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want JSON", got)
+		}
+		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") || !strings.Contains(body, `"outbounds"`) {
+			t.Fatalf("auto-detected body is not an Xray JSON configuration array:\n%s", body)
+		}
+	})
+
+	t.Run("explicit JSON endpoint preserves legacy single object by default", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want legacy text/plain", got)
+		}
+		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "{") {
+			t.Fatalf("legacy explicit JSON body is not an object: %s", body)
+		}
+	})
+
+	t.Run("explicit JSON endpoint can follow XTLS array standard", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/json/s1", nil)
+		resp := httptest.NewRecorder()
+
+		newSubscriptionTestRouter(subscriptionTestRouterConfig{jsonAlwaysArray: true}).ServeHTTP(resp, req)
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+		}
+		if got := resp.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+			t.Fatalf("Content-Type = %q, want legacy text/plain", got)
+		}
+		if body := strings.TrimSpace(resp.Body.String()); !strings.HasPrefix(body, "[") {
+			t.Fatalf("standards-compliant explicit JSON body is not an array: %s", body)
+		}
+	})
 }
 
 func writeFile(t *testing.T, path, content string) {

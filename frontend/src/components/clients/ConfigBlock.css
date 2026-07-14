@@ -12,6 +12,10 @@
   min-width: 0;
 }
 
+body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
+  color: #874d00;
+}
+
 .config-block .ant-collapse-extra {
   display: flex;
   align-items: center;

@@ -162,6 +162,17 @@
   background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
 }
 
+.client-card-comment {
+  display: block;
+  margin-top: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  max-height: 4.5em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .client-card-speed {
   margin-top: 6px;
   font-size: 12px;
