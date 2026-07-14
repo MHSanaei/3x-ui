@@ -804,6 +804,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "wireguard":
+			if client.PublicKey == "" {
+				return inbound, false, common.NewError("wireguard client requires a key")
+			}
 		case "mtproto":
 			if client.Secret == "" {
 				return inbound, false, common.NewError("mtproto client requires a secret")

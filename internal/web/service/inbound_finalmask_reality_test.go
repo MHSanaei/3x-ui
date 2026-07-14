@@ -127,6 +127,36 @@ func TestAddInbound_IgnoresBoundIdAndCreatesNewRow(t *testing.T) {
 	}
 }
 
+// A WireGuard inbound carrying clients (an imported config, or a node-reconcile
+// re-add) must be accepted: WG clients are keyed by their public key and have no
+// `id`, so the generic default validation branch wrongly rejected them with
+// "empty client ID".
+func TestAddInbound_AcceptsWireguardClientWithKey(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	settings := `{"secretKey":"` + wgTestSecretKey() + `","mtu":1420,"clients":[{"email":"wgimp@x","enable":true,"privateKey":"keep-priv","publicKey":"keep-pub","allowedIPs":["10.0.0.50/32"]}]}`
+	in := &model.Inbound{
+		Tag:      "in-45200-wg",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     45200,
+		Protocol: model.WireGuard,
+		Settings: settings,
+	}
+	if _, _, err := svc.AddInbound(in); err != nil {
+		t.Fatalf("AddInbound rejected a keyed WireGuard client: %v", err)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "in-45200-wg").Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("WireGuard inbound with a keyed client was not created, row count = %d", count)
+	}
+}
+
 // end-to-end: same guard on the update path, on a row that was valid before
 // the edit — the rejected StreamSettings must not overwrite the stored row.
 func TestUpdateInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
