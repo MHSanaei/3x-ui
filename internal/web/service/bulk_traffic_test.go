@@ -146,6 +146,35 @@ func TestClientDeleteKeepTrafficPreservesRowForAttachedClient(t *testing.T) {
 	}
 }
 
+func TestBulkDeleteRemovesClientExternalLinks(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	email := "extlink@x"
+	c := model.Client{Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email, Enable: true}
+	ib := mkInbound(t, 52040, model.VLESS, clientsSettings(t, []model.Client{c}))
+	if err := svc.SyncInbound(nil, ib.Id, []model.Client{c}); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	rec := lookupClientRecord(t, email)
+	if err := database.GetDB().Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: "sub", Value: "https://example.com/x"}).Error; err != nil {
+		t.Fatalf("seed external link: %v", err)
+	}
+
+	if _, _, err := svc.BulkDelete(inboundSvc, []string{email}, false); err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+
+	var cnt int64
+	if err := database.GetDB().Model(&model.ClientExternalLink{}).Where("client_id = ?", rec.Id).Count(&cnt).Error; err != nil {
+		t.Fatalf("count external links: %v", err)
+	}
+	if cnt != 0 {
+		t.Fatalf("BulkDelete left %d orphan external-link row(s) behind", cnt)
+	}
+}
+
 func TestGetClientTrafficByEmailReadsClientsTable(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
