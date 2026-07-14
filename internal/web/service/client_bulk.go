@@ -409,6 +409,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	needRestart := false
 	flowHonored := map[string]bool{}
 	flowIneligible := map[string]bool{}
+	execFailed := map[string]bool{}
 	for inboundId, ibEmails := range emailsByInbound {
 		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan, flow)
 		if ibRes.needRestart {
@@ -421,6 +422,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			flowIneligible[email] = true
 		}
 		for email, reason := range ibRes.perEmailSkipped {
+			execFailed[email] = true
 			if _, already := skippedReasons[email]; !already {
 				skippedReasons[email] = reason
 			}
@@ -450,7 +452,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 	adjusted := map[string]struct{}{}
 	for email, entry := range plan {
-		if _, skipped := skippedReasons[email]; skipped {
+		if execFailed[email] {
 			continue
 		}
 		updates := map[string]any{}
