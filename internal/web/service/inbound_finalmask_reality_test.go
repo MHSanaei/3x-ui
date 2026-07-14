@@ -91,6 +91,42 @@ func TestAddInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
 	}
 }
 
+// AddInbound must always create a new row. The add controller binds the model's
+// `id` form field and never clears it, so a client that reuses an existing id
+// (e.g. duplicating an inbound fetched from /get) must not silently overwrite
+// that stored row via GORM Save's upsert-on-primary-key behavior.
+func TestAddInbound_IgnoresBoundIdAndCreatesNewRow(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	first := &model.Inbound{Tag: "in-45100-tcp", Enable: true, Listen: "0.0.0.0", Port: 45100, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	created, _, err := svc.AddInbound(first)
+	if err != nil {
+		t.Fatalf("AddInbound first: %v", err)
+	}
+
+	second := &model.Inbound{Id: created.Id, Tag: "in-45101-tcp", Enable: true, Listen: "0.0.0.0", Port: 45101, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if _, _, err := svc.AddInbound(second); err != nil {
+		t.Fatalf("AddInbound second: %v", err)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 inbound rows, got %d: a bound id overwrote the first row instead of creating a new one", count)
+	}
+
+	var reloaded model.Inbound
+	if err := database.GetDB().First(&reloaded, created.Id).Error; err != nil {
+		t.Fatalf("reload first: %v", err)
+	}
+	if reloaded.Port != 45100 {
+		t.Fatalf("first inbound port = %d, want 45100 (the second add overwrote it)", reloaded.Port)
+	}
+}
+
 // end-to-end: same guard on the update path, on a row that was valid before
 // the edit — the rejected StreamSettings must not overwrite the stored row.
 func TestUpdateInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
