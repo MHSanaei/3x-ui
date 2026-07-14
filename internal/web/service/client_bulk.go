@@ -359,9 +359,15 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 					skippedReasons[email] = "unlimited traffic"
 				}
 			} else {
-				next := max(rec.TotalGB+addBytes, 0)
-				entry.applyTotal = true
-				entry.newTotal = next
+				next := rec.TotalGB + addBytes
+				if next <= 0 {
+					if _, exists := skippedReasons[email]; !exists {
+						skippedReasons[email] = "reduction exceeds remaining quota"
+					}
+				} else {
+					entry.applyTotal = true
+					entry.newTotal = next
+				}
 			}
 		}
 		if entry.applyExpiry || entry.applyTotal || adjustFlow {

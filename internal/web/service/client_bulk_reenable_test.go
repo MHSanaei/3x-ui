@@ -164,6 +164,31 @@ func TestBulkAdjust_ReenablesOverQuota_WhenAddBytesClearsQuota(t *testing.T) {
 	}
 }
 
+func TestBulkAdjust_QuotaReductionBelowZeroSkipsInsteadOfUnlimited(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	email := "qr@x"
+	c := model.Client{Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email, Enable: true, TotalGB: 10}
+	ib := mkInbound(t, 52020, model.VLESS, clientsSettings(t, []model.Client{c}))
+	if err := svc.SyncInbound(nil, ib.Id, []model.Client{c}); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	mkTraffic(t, ib.Id, email, 0, 0, 10, 0, true)
+
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, -20, "")
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if res.Adjusted != 0 {
+		t.Fatalf("over-reduction should not adjust, got Adjusted=%d skipped=%v", res.Adjusted, res.Skipped)
+	}
+	if got := trafficOf(t, email).Total; got != 10 {
+		t.Fatalf("quota reduced past zero was written as %d (0 means unlimited); want it left at 10", got)
+	}
+}
+
 func TestBulkAdjust_OverQuota_DaysOnly_StaysDisabled(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
