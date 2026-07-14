@@ -1303,13 +1303,16 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						pushable = false
 					}
 				}
+				newProtocolIsMtproto := oldInbound.Protocol == model.MTProto
 				if pushable {
-					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
-						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
-					} else {
-						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
-						if oldInbound.Protocol != model.MTProto {
-							needRestart = true
+					postCommitApply = func() {
+						if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+							logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+						} else {
+							logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+							if !newProtocolIsMtproto {
+								needRestart = true
+							}
 						}
 					}
 				}
