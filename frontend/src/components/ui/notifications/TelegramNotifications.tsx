@@ -37,16 +37,16 @@ const GROUPS: NotificationGroupConfig[] = [
         key: 'cpu.high',
         label: 'eventCPUHigh',
         settingKey: 'tgCpu',
-        extra: ({ value, onChange }) => (
-          <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 80 }} />
+        extra: ({ value, onChange, ariaLabel }) => (
+          <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} aria-label={ariaLabel} style={{ width: 80 }} />
         ),
       },
       {
         key: 'memory.high',
         label: 'eventMemoryHigh',
         settingKey: 'tgMemory',
-        extra: ({ value, onChange }) => (
-          <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 80 }} />
+        extra: ({ value, onChange, ariaLabel }) => (
+          <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} aria-label={ariaLabel} style={{ width: 80 }} />
         ),
       },
     ],
