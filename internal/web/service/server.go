@@ -1132,6 +1132,40 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
+// parseAccessLogFields extracts the structured fields from one Xray access-log
+// line. Lines are attacker-influenced (a client's requested destination lands in
+// the log verbatim) and may be truncated, so every positional lookup is length
+// guarded: a malformed line yields a partial entry rather than panicking.
+func parseAccessLogFields(line string) LogEntry {
+	var entry LogEntry
+	parts := strings.Fields(line)
+
+	for i, part := range parts {
+
+		if i == 0 && len(parts) > 1 {
+			dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
+			if err != nil {
+				continue
+			}
+			entry.DateTime = dateTime.UTC()
+		}
+
+		if part == "from" && i+1 < len(parts) {
+			entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+		} else if part == "accepted" && i+1 < len(parts) {
+			entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+		} else if strings.HasPrefix(part, "[") {
+			entry.Inbound = part[1:]
+		} else if strings.HasSuffix(part, "]") {
+			entry.Outbound = part[:len(part)-1]
+		} else if part == "email:" && i+1 < len(parts) {
+			entry.Email = parts[i+1]
+		}
+	}
+
+	return entry
+}
+
 func (s *ServerService) GetXrayLogs(
 	count string,
 	filter string,
@@ -1176,31 +1210,7 @@ func (s *ServerService) GetXrayLogs(
 			continue
 		}
 
-		var entry LogEntry
-		parts := strings.Fields(line)
-
-		for i, part := range parts {
-
-			if i == 0 {
-				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
-				if err != nil {
-					continue
-				}
-				entry.DateTime = dateTime.UTC()
-			}
-
-			if part == "from" {
-				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
-			} else if part == "accepted" {
-				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
-			} else if strings.HasPrefix(part, "[") {
-				entry.Inbound = part[1:]
-			} else if strings.HasSuffix(part, "]") {
-				entry.Outbound = part[:len(part)-1]
-			} else if part == "email:" {
-				entry.Email = parts[i+1]
-			}
-		}
+		entry := parseAccessLogFields(line)
 
 		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
