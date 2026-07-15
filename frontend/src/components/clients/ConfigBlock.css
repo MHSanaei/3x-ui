@@ -38,6 +38,7 @@ body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
+  color: var(--ant-color-text);
   background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   user-select: all;
