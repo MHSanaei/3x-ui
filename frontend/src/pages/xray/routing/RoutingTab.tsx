@@ -21,7 +21,7 @@ import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import RuleCardList from './RuleCardList';
 import { useRoutingColumns } from './useRoutingColumns';
-import { arrJoin } from './helpers';
+import { arrJoin, originalRuleIndex } from './helpers';
 import type { RuleRow } from './types';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import type { RuleObject } from '@/schemas/routing';
@@ -64,6 +64,7 @@ export default function RoutingTab({
   );
   const rulesRef = useRef(rules);
   rulesRef.current = rules;
+  const rowsRef = useRef<RuleRow[]>([]);
 
   const rows: RuleRow[] = useMemo(
     () =>
@@ -94,6 +95,7 @@ export default function RoutingTab({
         }),
     [rules],
   );
+  rowsRef.current = rows;
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -193,8 +195,9 @@ export default function RoutingTab({
     setRuleModalOpen(true);
   }
   function openEdit(idx: number) {
-    setEditingRule(rulesRef.current[idx]);
-    setEditingIndex(idx);
+    const target = originalRuleIndex(rowsRef.current, idx);
+    setEditingRule(rulesRef.current[target]);
+    setEditingIndex(target);
     setRuleModalOpen(true);
   }
   function onRuleConfirm(rule: Record<string, unknown>) {
@@ -213,37 +216,44 @@ export default function RoutingTab({
   }
 
   function confirmDelete(idx: number) {
+    const target = originalRuleIndex(rowsRef.current, idx);
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Routings')} #${idx + 1}?`,
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
       onOk: () => mutate((tt) => {
-        tt.routing?.rules?.splice(idx, 1);
+        tt.routing?.rules?.splice(target, 1);
       }),
     });
   }
 
   function moveUp(idx: number) {
     if (idx <= 0) return;
+    const target = originalRuleIndex(rowsRef.current, idx);
+    const prev = originalRuleIndex(rowsRef.current, idx - 1);
     mutate((tt) => {
       const list = tt.routing?.rules;
-      if (!list) return;
-      [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+      if (!list || !list[target] || !list[prev]) return;
+      [list[prev], list[target]] = [list[target], list[prev]];
     });
   }
   function moveDown(idx: number) {
+    if (idx >= rowsRef.current.length - 1) return;
+    const target = originalRuleIndex(rowsRef.current, idx);
+    const next = originalRuleIndex(rowsRef.current, idx + 1);
     mutate((tt) => {
       const list = tt.routing?.rules;
-      if (!list || idx >= list.length - 1) return;
-      [list[idx + 1], list[idx]] = [list[idx], list[idx + 1]];
+      if (!list || !list[target] || !list[next]) return;
+      [list[next], list[target]] = [list[target], list[next]];
     });
   }
   function toggleRule(idx: number, enabled: boolean) {
+    const target = originalRuleIndex(rowsRef.current, idx);
     mutate((tt) => {
       const list = tt.routing?.rules;
-      if (!list || !list[idx]) return;
-      list[idx].enabled = enabled;
+      if (!list || !list[target]) return;
+      list[target].enabled = enabled;
     });
   }
 
@@ -282,11 +292,13 @@ export default function RoutingTab({
       setDraggedIndex(null);
       setDropTargetIndex(null);
       if (!moved || from == null || to == null || from === to) return;
+      const fromOrig = originalRuleIndex(rowsRef.current, from);
+      const toOrig = originalRuleIndex(rowsRef.current, to);
       mutate((tt) => {
         const list = tt.routing?.rules;
         if (!list) return;
-        const [movedItem] = list.splice(from, 1);
-        list.splice(to, 0, movedItem);
+        const [movedItem] = list.splice(fromOrig, 1);
+        list.splice(toOrig, 0, movedItem);
       });
     };
 
