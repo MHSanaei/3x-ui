@@ -1,9 +1,28 @@
 package controller
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
+
+// An unauthenticated attacker can flood /login with fresh usernames, each of
+// which seeds a record keyed on that username. The attempts map must stay
+// bounded rather than growing until the process OOMs.
+func TestLoginLimiterBoundsMemoryUnderUsernameFlood(t *testing.T) {
+	limiter := newLoginLimiter(5, 5*time.Minute, 15*time.Minute)
+	for i := 0; i < loginLimitMaxRecords+100; i++ {
+		limiter.registerFailure("1.2.3.4", "user-"+strconv.Itoa(i))
+	}
+
+	limiter.mu.Lock()
+	n := len(limiter.attempts)
+	limiter.mu.Unlock()
+
+	if n > loginLimitMaxRecords {
+		t.Fatalf("attempts map grew to %d, exceeding the %d ceiling under a username flood", n, loginLimitMaxRecords)
+	}
+}
 
 func TestLoginLimiterBlocksAfterConfiguredFailures(t *testing.T) {
 	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
