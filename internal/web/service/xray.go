@@ -1188,6 +1188,20 @@ func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
 }
 
+// ApplyPendingRestart consumes the need-restart flag and restarts Xray. If the
+// restart fails (for example GetXrayConfig hits a transient DB error and leaves
+// the old process running), it re-arms the flag so the next tick retries instead
+// of silently dropping the pending config change.
+func (s *XrayService) ApplyPendingRestart() {
+	if !s.IsNeedRestartAndSetFalse() {
+		return
+	}
+	if err := s.RestartXray(false); err != nil {
+		logger.Error("restart xray failed:", err)
+		s.SetToNeedRestart()
+	}
+}
+
 // DidXrayCrash checks if Xray crashed by verifying it's not running and wasn't manually stopped.
 func (s *XrayService) DidXrayCrash() bool {
 	return !s.IsXrayRunning() && !isManuallyStopped.Load()
