@@ -38,4 +38,9 @@ export const keys = {
     config: () => ['xray', 'config'] as const,
     outboundsTraffic: () => ['xray', 'outboundsTraffic'] as const,
   },
+  naive: {
+    status: () => ['naive', 'status'] as const,
+    releases: () => ['naive', 'releases'] as const,
+    logs: (tag: string, rows: number) => ['naive', 'logs', tag, rows] as const,
+  },
 } as const;

@@ -16,6 +16,7 @@ tmp/
 # Ignore build and distribution directories
 backup/
 bin/
+x-ui
 x-ui/
 dist/
 !internal/web/dist/

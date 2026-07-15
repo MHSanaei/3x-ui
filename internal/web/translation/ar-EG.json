@@ -1675,6 +1675,22 @@
         "load": "الحمل",
         "moveToTop": "نقل إلى الأعلى"
       },
+      "naiveForm": {
+        "advancedOptions": "خيارات متقدمة",
+        "tunnelTimeoutHint": "عدد الثواني قبل إنهاء اتصال النفق (الافتراضي: 1800). يساعد مع CGNAT لكنه قد يقطع بروتوكولات TCP طويلة العمر مثل SSH.",
+        "httpWarning": "نقل HTTP غير مشفر. استخدمه فقط للاختبار أو داخل الشبكات الموثوقة."
+      },
+      "naive": {
+        "notInstalled": "غير مثبت",
+        "install": "تثبيت",
+        "uninstall": "إلغاء التثبيت",
+        "restartAll": "إعادة تشغيل الكل",
+        "instances": "عدد المثيلات: {count}",
+        "uninstallConfirm": "سيؤدي هذا إلى إيقاف جميع مخارج naive. متابعة؟",
+        "stop": "إيقاف",
+        "sectionTitle": "Naive",
+        "versionWarning": "مهم: قد لا تكون الإصدارات القديمة متوافقة مع الإعدادات الحالية."
+      },
       "outboundSub": {
         "manage": "الاشتراكات",
         "title": "اشتراكات الصادرات",

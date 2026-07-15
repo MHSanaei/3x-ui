@@ -1675,6 +1675,22 @@
         "load": "负载",
         "moveToTop": "移到顶部"
       },
+      "naiveForm": {
+        "advancedOptions": "高级选项",
+        "tunnelTimeoutHint": "在淘汰隧道连接前等待的秒数（默认：1800）。对 CGNAT 有帮助，但可能会中断 SSH 等长连接 TCP 协议。",
+        "httpWarning": "HTTP 传输未加密。仅用于测试或可信网络。"
+      },
+      "naive": {
+        "notInstalled": "未安装",
+        "install": "安装",
+        "uninstall": "卸载",
+        "restartAll": "重启全部",
+        "instances": "实例数: {count}",
+        "uninstallConfirm": "这将停止所有 naive 出站。是否继续？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要：旧版本可能与当前配置不兼容。"
+      },
       "outboundSub": {
         "manage": "订阅",
         "title": "出站订阅",

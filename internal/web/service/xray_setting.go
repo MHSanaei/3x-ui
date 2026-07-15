@@ -32,7 +32,7 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	if synced, err := EnsureDnsServerRouting(newXraySettings); err == nil {
 		newXraySettings = synced
 	}
-	return s.saveSetting("xrayTemplateConfig", newXraySettings)
+	return s.saveTemplateAndSyncNaive(newXraySettings)
 }
 
 func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
@@ -47,6 +47,16 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 			return common.NewError("xray template config invalid: outbounds is not an array:", err)
 		}
 		for _, outbound := range outbounds {
+			var meta struct {
+				Protocol string `json:"protocol"`
+			}
+			_ = json.Unmarshal(outbound, &meta)
+			if meta.Protocol == "naive" {
+				if err := validateNaiveStub(outbound); err != nil {
+					return common.NewError("xray template config invalid naive outbound:", err)
+				}
+				continue
+			}
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
 				tagged := struct {
 					Tag string `json:"tag"`

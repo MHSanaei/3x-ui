@@ -13,6 +13,7 @@ import type {
   HttpOutboundFormSettings,
   HysteriaOutboundFormSettings,
   LoopbackOutboundFormSettings,
+  NaiveOutboundFormSettings,
   MuxForm,
   OutboundFormSettings,
   OutboundFormValues,
@@ -364,6 +365,31 @@ function loopbackFromWire(raw: Raw): LoopbackOutboundFormSettings {
   };
 }
 
+function naiveFromWire(raw: Raw): NaiveOutboundFormSettings {
+  const proxy = asString(raw.proxy);
+  const parsed = (() => {
+    try {
+      return new URL(proxy);
+    } catch {
+      return null;
+    }
+  })();
+  return {
+    scheme: (parsed?.protocol.replace(':', '') || 'https') as NaiveOutboundFormSettings['scheme'],
+    user: parsed?.username ?? '',
+    pass: parsed?.password ?? '',
+    host: parsed?.hostname ?? '',
+    port: parsed?.port ? Number(parsed.port) : 443,
+    insecureConcurrency: asNumber(raw.insecureConcurrency, 0) || undefined,
+    tunnelTimeout: asNumber(raw.tunnelTimeout, 0) || undefined,
+    idleTimeout: asNumber(raw.idleTimeout, 0) || undefined,
+    extraHeaders: asString(raw.extraHeaders) || undefined,
+    hostResolverRules: asString(raw.hostResolverRules) || undefined,
+    resolverRange: asString(raw.resolverRange) || undefined,
+    noPostQuantum: asBool(raw.noPostQuantum) || undefined,
+  };
+}
+
 function muxFromWire(raw: unknown): MuxForm {
   const m = asObject(raw);
   return {
@@ -436,6 +462,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'blackhole':   typed = { protocol: 'blackhole',   settings: blackholeFromWire(settings) }; break;
     case 'dns':         typed = { protocol: 'dns',         settings: dnsFromWire(settings) }; break;
     case 'loopback':    typed = { protocol: 'loopback',    settings: loopbackFromWire(settings) }; break;
+    case 'naive':       typed = { protocol: 'naive',       settings: naiveFromWire(settings) }; break;
     default:            typed = { protocol: 'vless',       settings: vlessFromWire(settings) };
   }
 
@@ -617,11 +644,26 @@ function dnsToWire(s: DnsOutboundFormSettings) {
 
 function loopbackToWire(s: LoopbackOutboundFormSettings) {
   const result: Raw = { inboundTag: s.inboundTag || undefined };
-  // Sniffing rides only when enabled — a disabled block is a no-op for
-  // xray's BuildSniffingRequest, so omitting it keeps the wire minimal.
   if (s.sniffing.enabled) {
     result.sniffing = sniffingToWire(s.sniffing);
   }
+  return result;
+}
+
+function naiveToWire(s: NaiveOutboundFormSettings) {
+  const user = encodeURIComponent(s.user);
+  const pass = encodeURIComponent(s.pass);
+
+  const result: Raw = {
+    proxy: `${s.scheme}://${user}:${pass}@${s.host}:${s.port}`,
+  };
+  if (s.insecureConcurrency) result.insecureConcurrency = s.insecureConcurrency;
+  if (s.tunnelTimeout !== undefined) result.tunnelTimeout = s.tunnelTimeout;
+  if (s.idleTimeout !== undefined) result.idleTimeout = s.idleTimeout;
+  if (s.extraHeaders) result.extraHeaders = s.extraHeaders;
+  if (s.hostResolverRules) result.hostResolverRules = s.hostResolverRules;
+  if (s.resolverRange) result.resolverRange = s.resolverRange;
+  if (s.noPostQuantum) result.noPostQuantum = s.noPostQuantum;
   return result;
 }
 
@@ -681,6 +723,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     case 'blackhole':   settings = blackholeToWire(values.settings); break;
     case 'dns':         settings = dnsToWire(values.settings); break;
     case 'loopback':    settings = loopbackToWire(values.settings); break;
+    case 'naive':       settings = naiveToWire(values.settings); break;
   }
 
   const result: Raw = {

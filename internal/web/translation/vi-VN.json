@@ -1675,6 +1675,22 @@
         "load": "Tải",
         "moveToTop": "Chuyển lên đầu"
       },
+      "naiveForm": {
+        "advancedOptions": "Tùy chọn nâng cao",
+        "tunnelTimeoutHint": "Số giây trước khi ngừng một kết nối đường hầm (mặc định: 1800). Hữu ích với CGNAT nhưng có thể làm gián đoạn các giao thức TCP lâu dài như SSH.",
+        "httpWarning": "Giao thức truyền HTTP không được mã hóa. Chỉ dùng để thử nghiệm hoặc trong mạng tin cậy."
+      },
+      "naive": {
+        "notInstalled": "Chưa cài đặt",
+        "install": "Cài đặt",
+        "uninstall": "Gỡ cài đặt",
+        "restartAll": "Khởi động lại tất cả",
+        "instances": "{count} phiên bản",
+        "uninstallConfirm": "Thao tác này sẽ dừng tất cả outbound naive. Tiếp tục?",
+        "stop": "Dừng",
+        "sectionTitle": "Naive",
+        "versionWarning": "Quan trọng: các phiên bản cũ có thể không tương thích với cấu hình hiện tại."
+      },
       "outboundSub": {
         "manage": "Đăng ký",
         "title": "Đăng ký Outbound",

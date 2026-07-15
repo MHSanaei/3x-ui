@@ -1285,6 +1285,13 @@ func (s *ServerService) GetConfigJson() (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if payload, ok := jsonData.(map[string]any); ok {
+		items, itemErr := naiveConfigMetadata()
+		if itemErr != nil {
+			return nil, itemErr
+		}
+		payload["_naiveOutbounds"] = items
+	}
 
 	return jsonData, nil
 }

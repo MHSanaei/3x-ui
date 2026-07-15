@@ -1675,6 +1675,22 @@
         "load": "Carga",
         "moveToTop": "Mover para o topo"
       },
+      "naiveForm": {
+        "advancedOptions": "Opções avançadas",
+        "tunnelTimeoutHint": "Segundos antes de aposentar uma conexão de túnel (padrão: 1800). Ajuda com CGNAT, mas pode quebrar protocolos TCP de longa duração, como SSH.",
+        "httpWarning": "O transporte HTTP não é criptografado. Use apenas para testes ou em redes confiáveis."
+      },
+      "naive": {
+        "notInstalled": "Não instalado",
+        "install": "Instalar",
+        "uninstall": "Desinstalar",
+        "restartAll": "Reiniciar tudo",
+        "instances": "{count} instâncias",
+        "uninstallConfirm": "Isso irá parar todos os outbounds naive. Continuar?",
+        "stop": "Parar",
+        "sectionTitle": "Naive",
+        "versionWarning": "Importante: versões antigas podem não ser compatíveis com as configurações atuais."
+      },
       "outboundSub": {
         "manage": "Assinaturas",
         "title": "Assinaturas de Saída",

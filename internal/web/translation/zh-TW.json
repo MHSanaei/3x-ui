@@ -1675,6 +1675,22 @@
         "load": "負載",
         "moveToTop": "移到頂部"
       },
+      "naiveForm": {
+        "advancedOptions": "進階選項",
+        "tunnelTimeoutHint": "淘汰隧道連線前等待的秒數（預設：1800）。可改善 CGNAT 情況，但可能中斷如 SSH 這類長連線 TCP 協定。",
+        "httpWarning": "HTTP 傳輸未加密。僅建議用於測試或受信任網路。"
+      },
+      "naive": {
+        "notInstalled": "未安裝",
+        "install": "安裝",
+        "uninstall": "解除安裝",
+        "restartAll": "全部重啟",
+        "instances": "實例數：{count}",
+        "uninstallConfirm": "這將停止所有 naive 出站。是否繼續？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要：舊版本可能與目前設定不相容。"
+      },
       "outboundSub": {
         "manage": "訂閱",
         "title": "出站訂閱",

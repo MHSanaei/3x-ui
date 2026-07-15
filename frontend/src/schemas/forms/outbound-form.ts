@@ -182,6 +182,22 @@ export const LoopbackOutboundFormSettingsSchema = z.object({
 });
 export type LoopbackOutboundFormSettings = z.infer<typeof LoopbackOutboundFormSettingsSchema>;
 
+export const NaiveOutboundFormSettingsSchema = z.object({
+  scheme: z.enum(['https', 'quic', 'http']).default('https'),
+  user: z.string().default(''),
+  pass: z.string().default(''),
+  host: z.string().default(''),
+  port: PortSchema.default(443),
+  insecureConcurrency: z.number().int().min(1).max(8).optional(),
+  tunnelTimeout: z.number().int().min(0).optional(),
+  idleTimeout: z.number().int().min(0).optional(),
+  extraHeaders: z.string().optional(),
+  hostResolverRules: z.string().optional(),
+  resolverRange: z.string().optional(),
+  noPostQuantum: z.boolean().optional(),
+});
+export type NaiveOutboundFormSettings = z.infer<typeof NaiveOutboundFormSettingsSchema>;
+
 // Discriminated union on `protocol`. Same tagged-wrapper pattern as the
 // inbound side: each branch is { protocol: literal, settings: <flat> }.
 export const OutboundFormSettingsSchema = z.discriminatedUnion('protocol', [
@@ -197,6 +213,7 @@ export const OutboundFormSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('blackhole'), settings: BlackholeOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('dns'), settings: DnsOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('loopback'), settings: LoopbackOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('naive'), settings: NaiveOutboundFormSettingsSchema }),
 ]);
 export type OutboundFormSettings = z.infer<typeof OutboundFormSettingsSchema>;
 
