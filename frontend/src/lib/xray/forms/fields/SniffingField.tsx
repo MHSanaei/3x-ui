@@ -27,6 +27,14 @@ export default function SniffingField({ value, onChange, enableLabel }: Sniffing
     onChangeRef.current?.(sniffing);
   }, [sniffing]);
 
+  useEffect(() => {
+    if (value === undefined) return;
+    const serialized = JSON.stringify(value);
+    if (serialized === lastEmitted.current) return;
+    lastEmitted.current = serialized;
+    form.setFieldsValue({ sniffing: value });
+  }, [value, form]);
+
   return (
     <Form
       form={form}
