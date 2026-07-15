@@ -51,25 +51,25 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		return false, false, err
 	}
 
-	needRestart0, count, err := s.autoRenewClients(tx)
-	if err != nil {
-		logger.Warning("Error in renew clients:", err)
+	needRestart0, count, renewErr := s.autoRenewClients(tx)
+	if renewErr != nil {
+		logger.Warning("Error in renew clients:", renewErr)
 	} else if count > 0 {
 		logger.Debugf("%v clients renewed", count)
 	}
 
 	disabledClientsCount := int64(0)
-	needRestart1, count, err := s.disableInvalidClients(tx)
-	if err != nil {
-		logger.Warning("Error in disabling invalid clients:", err)
+	needRestart1, count, disableClientsErr := s.disableInvalidClients(tx)
+	if disableClientsErr != nil {
+		logger.Warning("Error in disabling invalid clients:", disableClientsErr)
 	} else if count > 0 {
 		logger.Debugf("%v clients disabled", count)
 		disabledClientsCount = count
 	}
 
-	needRestart2, count, err := s.disableInvalidInbounds(tx)
-	if err != nil {
-		logger.Warning("Error in disabling invalid inbounds:", err)
+	needRestart2, count, disableInboundsErr := s.disableInvalidInbounds(tx)
+	if disableInboundsErr != nil {
+		logger.Warning("Error in disabling invalid inbounds:", disableInboundsErr)
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
