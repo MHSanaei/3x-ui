@@ -135,7 +135,7 @@ func expandSegment(seg string, ctx remarkContext) (string, bool) {
 		hasToken = true
 		token := m[2 : len(m)-2]
 		val := remarkVarValue(token, ctx)
-		if val != "" && !(unlimitedDropTokens[token] && val == unlimitedMark) {
+		if val != "" && (!unlimitedDropTokens[token] || val != unlimitedMark) {
 			hasOtherValue = true
 		}
 		return val
