@@ -1675,6 +1675,22 @@
         "load": "Yükle",
         "moveToTop": "En üste taşı"
       },
+      "naiveForm": {
+        "advancedOptions": "Gelişmiş seçenekler",
+        "tunnelTimeoutHint": "Bir tünel bağlantısını sonlandırmadan önce beklenecek saniye (varsayılan: 1800). CGNAT için yardımcıdır ancak SSH gibi uzun ömürlü TCP protokollerini bozabilir.",
+        "httpWarning": "HTTP taşıması şifrelenmez. Yalnızca test için veya güvenilir ağlarda kullanın."
+      },
+      "naive": {
+        "notInstalled": "Yüklü değil",
+        "install": "Yükle",
+        "uninstall": "Kaldır",
+        "restartAll": "Tümünü yeniden başlat",
+        "instances": "{count} örnek",
+        "uninstallConfirm": "Bu işlem tüm naive çıkışlarını durduracak. Devam edilsin mi?",
+        "stop": "Durdur",
+        "sectionTitle": "Naive",
+        "versionWarning": "Önemli: eski sürümler mevcut yapılandırmalarla uyumlu olmayabilir."
+      },
       "outboundSub": {
         "manage": "Abonelikler",
         "title": "Giden Bağlantı Abonelikleri",

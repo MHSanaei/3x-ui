@@ -1792,6 +1792,22 @@
         "load": "Load",
         "moveToTop": "Move to top"
       },
+      "naiveForm": {
+        "advancedOptions": "Advanced Options",
+        "tunnelTimeoutHint": "Seconds before retiring a tunnel connection (default: 1800). Helps with CGNAT but breaks long-lived TCP protocols like SSH.",
+        "httpWarning": "HTTP transport is unencrypted. Use only for testing or on trusted networks."
+      },
+      "naive": {
+        "notInstalled": "Not Installed",
+        "install": "Install",
+        "uninstall": "Uninstall",
+        "restartAll": "Restart All",
+        "instances": "{count} instances",
+        "uninstallConfirm": "This will stop all naive outbounds. Proceed?",
+        "stop": "Stop",
+        "sectionTitle": "Naive",
+        "versionWarning": "Important: older versions may not be compatible with current configurations."
+      },
       "outboundSub": {
         "manage": "Subscriptions",
         "title": "Outbound Subscriptions",

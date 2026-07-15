@@ -47,9 +47,11 @@ import AppSidebar from '@/layouts/AppSidebar';
 import { LazyMount } from '@/components/utility';
 import { setMessageInstance } from '@/utils/messageBus';
 import StatusCard from './StatusCard';
+import NaiveStatusCard from './NaiveStatusCard';
 import XrayStatusCard from './XrayStatusCard';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
 const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
+const NaiveVersionModal = lazy(() => import('./NaiveVersionModal'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
 const LogModal = lazy(() => import('./LogModal'));
 const BackupModal = lazy(() => import('./BackupModal'));
@@ -85,6 +87,7 @@ export default function IndexPage() {
   const [xrayMetricsOpen, setXrayMetricsOpen] = useState(false);
   const [xrayLogsOpen, setXrayLogsOpen] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
+  const [naiveVersionOpen, setNaiveVersionOpen] = useState(false);
   const [configTextOpen, setConfigTextOpen] = useState(false);
   const [configText, setConfigText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -205,6 +208,14 @@ export default function IndexPage() {
                       onOpenXrayLogs={() => setXrayLogsOpen(true)}
                       onOpenLogs={() => setLogsOpen(true)}
                       onOpenVersionSwitch={() => setVersionOpen(true)}
+                    />
+                  </Col>
+
+                  <Col xs={24} lg={12}>
+                    <NaiveStatusCard
+                      isMobile={isMobile}
+                      onOpenVersionModal={() => setNaiveVersionOpen(true)}
+                      onBusy={setBusy}
                     />
                   </Col>
 
@@ -505,6 +516,14 @@ export default function IndexPage() {
             open={versionOpen}
             status={status}
             onClose={() => setVersionOpen(false)}
+            onBusy={setBusy}
+          />
+        </LazyMount>
+
+        <LazyMount when={naiveVersionOpen}>
+          <NaiveVersionModal
+            open={naiveVersionOpen}
+            onClose={() => setNaiveVersionOpen(false)}
             onBusy={setBusy}
           />
         </LazyMount>

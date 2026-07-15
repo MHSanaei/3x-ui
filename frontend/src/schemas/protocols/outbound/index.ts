@@ -6,6 +6,7 @@ import { FreedomOutboundSettingsSchema } from './freedom';
 import { HttpOutboundSettingsSchema } from './http';
 import { HysteriaOutboundSettingsSchema } from './hysteria';
 import { LoopbackOutboundSettingsSchema } from './loopback';
+import { NaiveOutboundSettingsSchema } from './naive';
 import { ShadowsocksOutboundSettingsSchema } from './shadowsocks';
 import { SocksOutboundSettingsSchema } from './socks';
 import { TrojanOutboundSettingsSchema } from './trojan';
@@ -19,6 +20,7 @@ export * from './freedom';
 export * from './http';
 export * from './hysteria';
 export * from './loopback';
+export * from './naive';
 export * from './shadowsocks';
 export * from './socks';
 export * from './trojan';
@@ -39,5 +41,6 @@ export const OutboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('blackhole'),   settings: BlackholeOutboundSettingsSchema }),
   z.object({ protocol: z.literal('dns'),         settings: DNSOutboundSettingsSchema }),
   z.object({ protocol: z.literal('loopback'),    settings: LoopbackOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('naive'),       settings: NaiveOutboundSettingsSchema }),
 ]);
 export type OutboundSettings = z.infer<typeof OutboundSettingsSchema>;

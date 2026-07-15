@@ -2537,6 +2537,10 @@
       "description": "System status, log retrieval, certificate generators, Xray binary management, and backup/restore. All under /panel/api/server."
     },
     {
+      "name": "Naive",
+      "description": "Naive proxy sidecar installation, status, restart, and log endpoints."
+    },
+    {
       "name": "Clients",
       "description": "Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients."
     },
@@ -5246,6 +5250,219 @@
         ],
         "summary": "Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.",
         "operationId": "post_panel_api_server_clientIps",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/status": {
+      "get": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Return whether the naive binary is installed plus the known instance list and runtime state.",
+        "operationId": "get_panel_api_naive_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/releases": {
+      "get": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Proxy the upstream GitHub releases list for naiveproxy.",
+        "operationId": "get_panel_api_naive_releases",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/logs/{tag}/{rows}": {
+      "get": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Read the most recent lines from one naive instance log file.",
+        "operationId": "get_panel_api_naive_logs_tag_rows",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "description": "Naive outbound tag.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rows",
+            "in": "path",
+            "required": true,
+            "description": "Number of log lines to return.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/install": {
+      "post": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Download and install a specific naiveproxy release for the current platform.",
+        "operationId": "post_panel_api_naive_install",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "version": "v130.0.6723.91-1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/restart-all": {
+      "post": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Restart every configured naive instance.",
+        "operationId": "post_panel_api_naive_restart_all",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/naive/binary": {
+      "delete": {
+        "tags": [
+          "Naive"
+        ],
+        "summary": "Stop all naive instances and remove the installed naive binary while keeping DB records.",
+        "operationId": "delete_panel_api_naive_binary",
         "responses": {
           "200": {
             "description": "Successful response",

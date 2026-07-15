@@ -341,6 +341,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	} else {
 		injectNodeEgresses(xrayConfig, nodes)
 	}
+	if err := injectNaiveOutbounds(xrayConfig); err != nil {
+		return nil, err
+	}
 
 	return xrayConfig, nil
 }

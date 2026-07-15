@@ -1675,6 +1675,22 @@
         "load": "Beban",
         "moveToTop": "Pindahkan ke atas"
       },
+      "naiveForm": {
+        "advancedOptions": "Opsi lanjutan",
+        "tunnelTimeoutHint": "Detik sebelum koneksi tunnel dihentikan (default: 1800). Membantu pada CGNAT, tetapi bisa memutus protokol TCP jangka panjang seperti SSH.",
+        "httpWarning": "Transport HTTP tidak terenkripsi. Gunakan hanya untuk pengujian atau pada jaringan tepercaya."
+      },
+      "naive": {
+        "notInstalled": "Belum terpasang",
+        "install": "Pasang",
+        "uninstall": "Copot",
+        "restartAll": "Mulai ulang semua",
+        "instances": "{count} instance",
+        "uninstallConfirm": "Ini akan menghentikan semua outbound naive. Lanjutkan?",
+        "stop": "Hentikan",
+        "sectionTitle": "Naive",
+        "versionWarning": "Penting: versi lama mungkin tidak kompatibel dengan konfigurasi saat ini."
+      },
       "outboundSub": {
         "manage": "Langganan",
         "title": "Langganan Outbound",

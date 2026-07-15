@@ -544,6 +544,59 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'naive',
+    title: 'Naive',
+    description: 'Naive proxy sidecar installation, status, restart, and log endpoints.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/naive/status',
+        summary: 'Return whether the naive binary is installed plus the known instance list and runtime state.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/naive/releases',
+        summary: 'Proxy the upstream GitHub releases list for naiveproxy.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/naive/logs/:tag/:rows',
+        summary: 'Read the most recent lines from one naive instance log file.',
+        params: [
+          { name: 'tag', in: 'path', type: 'string', desc: 'Naive outbound tag.' },
+          { name: 'rows', in: 'path', type: 'integer', desc: 'Number of log lines to return.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/naive/install',
+        summary: 'Download and install a specific naiveproxy release for the current platform.',
+        body: '{\n  "version": "v130.0.6723.91-1"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/naive/restart-all',
+        summary: 'Restart every configured naive instance.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/naive/stop-all',
+        summary: 'Stop every configured naive instance.',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/naive/binary',
+        summary: 'Stop all naive instances and remove the installed naive binary while keeping DB records.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/naive/binary/delete',
+        summary: 'Stop all naive instances and remove the installed naive binary while keeping DB records. Alias for DELETE /panel/api/naive/binary.',
+      },
+    ],
+  },
+
+  {
     id: 'clients',
     title: 'Clients',
     description:

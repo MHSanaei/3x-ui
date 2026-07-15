@@ -53,6 +53,7 @@ import {
   FreedomFields,
   HttpFields,
   LoopbackFields,
+  NaiveFields,
   ServerTarget,
   ShadowsocksFields,
   SocksFields,
@@ -433,6 +434,7 @@ export default function OutboundFormModal({
                       {protocol === 'loopback' && <LoopbackFields />}
                       {protocol === 'blackhole' && <BlackholeFields />}
                       {protocol === 'dns' && <DnsFields />}
+                      {protocol === 'naive' && <NaiveFields />}
 
                       {protocol === 'freedom' && <FreedomFields />}
 
@@ -529,25 +531,27 @@ export default function OutboundFormModal({
 
                       {security === 'reality' && realityAllowed && <RealityForm />}
 
-                      {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
+                      {protocol !== 'naive' && (((streamAllowed && network) || !streamAllowed || protocol === 'wireguard')) && (
                         <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
                       )}
 
-                      <Controller
-                        control={methods.control}
-                        name="streamSettings.finalmask"
-                        render={({ field }) => (
-                          <FinalMaskField
-                            key={`${protocol}:${network}`}
-                            value={field.value}
-                            onChange={field.onChange}
-                            network={network}
-                            protocol={protocol}
-                          />
-                        )}
-                      />
+                      {protocol !== 'naive' && (
+                        <Controller
+                          control={methods.control}
+                          name="streamSettings.finalmask"
+                          render={({ field }) => (
+                            <FinalMaskField
+                              key={`${protocol}:${network}`}
+                              value={field.value}
+                              onChange={field.onChange}
+                              network={network}
+                              protocol={protocol}
+                            />
+                          )}
+                        />
+                      )}
 
-                      <MuxForm protocol={protocol} network={network} />
+                      {protocol !== 'naive' && <MuxForm protocol={protocol} network={network} />}
                     </>
                   ),
                 },

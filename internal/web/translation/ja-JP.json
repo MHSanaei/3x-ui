@@ -1675,6 +1675,22 @@
         "load": "負荷",
         "moveToTop": "先頭に移動"
       },
+      "naiveForm": {
+        "advancedOptions": "詳細オプション",
+        "tunnelTimeoutHint": "トンネル接続を終了するまでの秒数（デフォルト: 1800）。CGNAT には有効ですが、SSH のような長時間接続の TCP プロトコルを壊す可能性があります。",
+        "httpWarning": "HTTP トランスポートは暗号化されません。テスト用途または信頼できるネットワークでのみ使用してください。"
+      },
+      "naive": {
+        "notInstalled": "未インストール",
+        "install": "インストール",
+        "uninstall": "アンインストール",
+        "restartAll": "すべて再起動",
+        "instances": "{count} インスタンス",
+        "uninstallConfirm": "これによりすべての naive outbound が停止します。続行しますか？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要: 古いバージョンは現在の設定と互換性がない場合があります。"
+      },
       "outboundSub": {
         "manage": "サブスクリプション",
         "title": "アウトバウンドサブスクリプション",
