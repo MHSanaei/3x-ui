@@ -81,9 +81,11 @@ func (b *Bus) Publish(e Event) {
 	}
 }
 
-// dispatch is the fan-out loop. It reads events from the channel and calls
-// every subscriber's handler sequentially. Handlers run on the dispatch
-// goroutine — they must not block.
+// dispatch is the fan-out loop. It reads events from the channel and hands each
+// one to every subscriber's handler in its own goroutine, so a subscriber whose
+// handler blocks on network I/O (the email and Telegram notifiers can block for
+// tens of seconds) cannot stall delivery of unrelated, higher-value events such
+// as xray.crash or node.down.
 func (b *Bus) dispatch() {
 	defer b.wg.Done()
 	for {
@@ -97,7 +99,7 @@ func (b *Bus) dispatch() {
 			copy(subs, b.subs)
 			b.mu.RUnlock()
 			for _, s := range subs {
-				safeCall(s.handler, e)
+				go safeCall(s.handler, e)
 			}
 		case <-b.done:
 			return
@@ -115,8 +117,9 @@ func safeCall(fn func(Event), e Event) {
 	fn(e)
 }
 
-// Stop shuts down the bus: the dispatch goroutine exits, in-flight handlers
-// finish, and any events still buffered may be dropped. Safe to call once.
+// Stop shuts down the bus: the dispatch goroutine exits and any events still
+// buffered may be dropped. Handler goroutines already spawned for delivered
+// events run to completion on their own. Safe to call once.
 func (b *Bus) Stop() {
 	close(b.done)
 	b.wg.Wait()

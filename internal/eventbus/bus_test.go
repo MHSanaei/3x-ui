@@ -149,6 +149,31 @@ func TestBusPanicRecovery(t *testing.T) {
 	}
 }
 
+func TestBusBlockingSubscriberDoesNotStallOthers(t *testing.T) {
+	b := New(16)
+	defer b.Stop()
+
+	release := make(chan struct{})
+	b.Subscribe("blocking", func(e Event) {
+		<-release
+	})
+
+	fast := make(chan struct{}, 1)
+	b.Subscribe("fast", func(e Event) {
+		fast <- struct{}{}
+	})
+
+	b.Publish(Event{Type: EventXrayCrash})
+
+	select {
+	case <-fast:
+	case <-time.After(time.Second):
+		close(release)
+		t.Fatal("a blocking subscriber stalled event delivery to another subscriber")
+	}
+	close(release)
+}
+
 func TestBusBufferFull(t *testing.T) {
 	b := New(2)
 	defer b.Stop()
