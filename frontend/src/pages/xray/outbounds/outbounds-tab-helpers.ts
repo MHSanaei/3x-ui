@@ -6,6 +6,19 @@ import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/
 
 import type { OutboundRow } from './outbounds-tab-types';
 
+/**
+ * Translate a table row's positional index into that outbound's index in the
+ * full, unfiltered outbounds array. The table hides balancer-loopback outbounds
+ * but keeps each visible row's original index in `key`, so any handler that
+ * mutates the outbounds array (or probes an outbound by index) must map the
+ * positional index back through `key` or it operates on the wrong outbound once
+ * a hidden loopback precedes it.
+ */
+export function originalOutboundIndex(rows: OutboundRow[], positionalIndex: number): number {
+  const row = rows[positionalIndex];
+  return row ? row.key : positionalIndex;
+}
+
 export function outboundAddresses(o: OutboundRow): string[] {
   const settings = o.settings as Record<string, unknown> | undefined;
   switch (o.protocol) {
