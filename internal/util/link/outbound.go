@@ -157,9 +157,8 @@ func parseVmess(link string) (*ParseResult, error) {
 	// Map known fields (best effort, matching frontend parser coverage)
 	switch network {
 	case "ws":
-		if host, ok := j["host"].(string); ok {
-			setWS(stream, host, getString(j, "path", "/"))
-		}
+		host, _ := j["host"].(string)
+		setWS(stream, host, getString(j, "path", "/"))
 	case "grpc":
 		svc := getString(j, "path", "")
 		if auth, ok := j["authority"].(string); ok && auth != "" {
@@ -452,7 +451,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 			"alpn":                 splitCommaOrDefault(params.Get("alpn"), []string{"h3"}),
 			"fingerprint":          params.Get("fp"),
 			"echConfigList":        params.Get("ech"),
-			"verifyPeerCertByName": "",
+			"verifyPeerCertByName": params.Get("vcn"),
 			"pinnedPeerCertSha256": params.Get("pinSHA256"),
 		},
 	}
