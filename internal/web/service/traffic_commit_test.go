@@ -52,3 +52,27 @@ func TestAddTrafficCommitsDespiteDisableHelperError(t *testing.T) {
 		t.Fatalf("traffic tick was rolled back by a best-effort disable-helper error: up=%d down=%d, want 500/700", reloaded.Up, reloaded.Down)
 	}
 }
+
+// Reset All Client Traffic must re-enable clients that were auto-disabled for
+// exceeding their quota, matching every other reset path; otherwise a reset
+// leaves depleted clients cut with zero usage.
+func TestResetAllTrafficsReenablesDepletedClients(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &ClientService{}
+
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: "spent@x", Enable: false, Up: 60, Down: 60, Total: 100}).Error; err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	if _, err := svc.ResetAllTraffics(); err != nil {
+		t.Fatalf("ResetAllTraffics: %v", err)
+	}
+
+	row := readTraffic(t, db, "spent@x")
+	if row.Up != 0 || row.Down != 0 {
+		t.Fatalf("usage not reset: up=%d down=%d", row.Up, row.Down)
+	}
+	if !row.Enable {
+		t.Fatal("a depleted client must be re-enabled after Reset All Client Traffic, matching every other reset path")
+	}
+}
