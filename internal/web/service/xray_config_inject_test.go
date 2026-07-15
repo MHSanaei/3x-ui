@@ -127,7 +127,8 @@ func TestEnsureStatsPolicy(t *testing.T) {
 
 func egressTestConfig() *xray.Config {
 	return &xray.Config{
-		RouterConfig: json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[{"type":"field","inboundTag":["api"],"outboundTag":"api"}]}`),
+		RouterConfig:    json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[{"type":"field","inboundTag":["api"],"outboundTag":"api"}]}`),
+		OutboundConfigs: json_util.RawMessage(`[{"protocol":"freedom","tag":"direct"},{"protocol":"socks","tag":"warp"}]`),
 		InboundConfigs: []xray.InboundConfig{
 			{Port: 62789, Protocol: "tunnel", Tag: "api", Listen: json_util.RawMessage(`"127.0.0.1"`)},
 		},
@@ -275,6 +276,31 @@ func TestInjectPanelEgress_BadRoutingSkips(t *testing.T) {
 	}
 	if string(cfg.RouterConfig) != `{not json` {
 		t.Fatal("unparsable routing must be left untouched")
+	}
+}
+
+func TestInjectPanelEgress_MissingTargetSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.RouterConfig)
+	injectPanelEgress(cfg, "removed-subscription-outbound")
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("a missing target must not expose the panel bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("a missing target must leave routing untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectPanelEgress_BadOutboundsSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
+	before := string(cfg.RouterConfig)
+	injectPanelEgress(cfg, "direct")
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable outbounds must not expose the panel bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("unparsable outbounds must leave routing untouched, got %s", cfg.RouterConfig)
 	}
 }
 

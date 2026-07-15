@@ -375,6 +375,10 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 			return
 		}
 	}
+	if !routingTagIsBalancer(routing, outboundTag) && !outboundTagExists(cfg.OutboundConfigs, outboundTag) {
+		logger.Warning("panel egress: target tag [", outboundTag, "] not found, skipping injection")
+		return
+	}
 	rules, _ := routing["rules"].([]any)
 	rule := map[string]any{
 		"type":       "field",
@@ -416,6 +420,21 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
 	})
+}
+
+func outboundTagExists(outbounds json_util.RawMessage, tag string) bool {
+	var parsed []struct {
+		Tag string `json:"tag"`
+	}
+	if tag == "" || json.Unmarshal(outbounds, &parsed) != nil {
+		return false
+	}
+	for _, outbound := range parsed {
+		if outbound.Tag == tag {
+			return true
+		}
+	}
+	return false
 }
 
 // NodeEgressInboundTag returns the loopback SOCKS inbound tag for a given node.
