@@ -2,6 +2,7 @@ package sub
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -79,5 +80,23 @@ func TestGetJsonToleratesHysteriaWithoutHysteriaSettings(t *testing.T) {
 	}
 	if out == "" {
 		t.Fatal("GetJson returned empty for a hysteria inbound without hysteriaSettings")
+	}
+}
+
+// A Clash subscription must carry the pinned peer certificate SHA-256 when the
+// inbound configures one, matching the JSON subscription; dropping it silently
+// downgrades certificate pinning for Clash subscribers.
+func TestGetClashEmitsPinnedCertSha256(t *testing.T) {
+	seedSubDB(t)
+	const pin = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+	stream := `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"pin.sni","settings":{"pinnedPeerCertSha256":["` + pin + `"]}}}`
+	seedSubInbound(t, "pin1", "pin", 46300, 1, stream)
+
+	out, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("pin1", "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(out, "pin-sha256") {
+		t.Fatalf("Clash proxy dropped the pinned cert sha256:\n%s", out)
 	}
 }

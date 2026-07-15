@@ -684,6 +684,9 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 					proxy["skip-cert-verify"] = true
 				}
 			}
+			if pins, ok := tlsSettings["pin-sha256"].([]any); ok && len(pins) > 0 {
+				proxy["pin-sha256"] = pins
+			}
 		}
 		return true
 	case "reality":
