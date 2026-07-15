@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 // A subscription is built by iterating every client's share link with no
@@ -39,5 +42,42 @@ func TestGetSubsToleratesUnusualStreamSettings(t *testing.T) {
 				t.Fatalf("expected 1 share link, got %d", len(links))
 			}
 		})
+	}
+}
+
+// The JSON subscription generator for a Hysteria inbound whose StreamSettings
+// omit the hysteriaSettings key must not panic (which would 500 the whole JSON
+// subscription); the raw generator already tolerates this shape.
+func TestGetJsonToleratesHysteriaWithoutHysteriaSettings(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+
+	const subId = "hy1"
+	const email = "hy@e"
+	ib := &model.Inbound{
+		UserId: 1, Tag: "hy", Enable: true, Listen: "203.0.113.5", Port: 46200,
+		Protocol:       model.Hysteria,
+		Remark:         "hy",
+		Settings:       fmt.Sprintf(`{"version":2,"clients":[{"auth":"hyauth","email":%q,"subId":%q,"enable":true}]}`, email, subId),
+		StreamSettings: `{"security":"tls","tlsSettings":{"serverName":"hy.sni"}}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	client := &model.ClientRecord{Email: email, SubID: subId, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound: %v", err)
+	}
+
+	jsonService := NewSubJsonService("", "", "", NewSubService(""))
+	out, _, err := jsonService.GetJson(subId, "sub.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if out == "" {
+		t.Fatal("GetJson returned empty for a hysteria inbound without hysteriaSettings")
 	}
 }

@@ -496,7 +496,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	}
 
 	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
-	hyStream := stream["hysteriaSettings"].(map[string]any)
+	hyStream, _ := stream["hysteriaSettings"].(map[string]any)
 	outHyStream := map[string]any{
 		"version": int(version),
 		"auth":    client.Auth,
