@@ -174,6 +174,43 @@ func TestBusBlockingSubscriberDoesNotStallOthers(t *testing.T) {
 	close(release)
 }
 
+func TestBusSubscriberRunsSerially(t *testing.T) {
+	b := New(16)
+	defer b.Stop()
+
+	var inFlight atomic.Int32
+	var maxSeen atomic.Int32
+	var wg sync.WaitGroup
+	const n = 8
+	wg.Add(n)
+
+	b.Subscribe("serial", func(Event) {
+		cur := inFlight.Add(1)
+		for {
+			m := maxSeen.Load()
+			if cur <= m || maxSeen.CompareAndSwap(m, cur) {
+				break
+			}
+		}
+		time.Sleep(5 * time.Millisecond)
+		inFlight.Add(-1)
+		wg.Done()
+	})
+
+	for i := 0; i < n; i++ {
+		b.Publish(Event{Type: EventXrayCrash})
+	}
+
+	select {
+	case <-waitDone(&wg):
+	case <-time.After(2 * time.Second):
+		t.Fatal("subscriber did not process all events")
+	}
+	if got := maxSeen.Load(); got != 1 {
+		t.Fatalf("subscriber ran concurrently with itself: max in-flight = %d, want 1", got)
+	}
+}
+
 func TestBusBufferFull(t *testing.T) {
 	b := New(2)
 	defer b.Stop()
