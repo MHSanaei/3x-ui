@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// RemoveUser must return an error, not panic, when the handler client is not
+// initialized — matching every sibling API method. A depletion sweep can reach
+// it with a nil client during a restart window where Init(0) failed.
+func TestRemoveUserGuardsNilHandlerClient(t *testing.T) {
+	err := (&XrayAPI{}).RemoveUser("in-443-tcp", "user@example.com")
+	if err == nil {
+		t.Fatal("RemoveUser with an uninitialized HandlerServiceClient must return an error")
+	}
+}
+
 func TestGetRequiredUserString_Present(t *testing.T) {
 	user := map[string]any{"email": "alice@example.com"}
 	got, err := getRequiredUserString(user, "email")
