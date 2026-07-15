@@ -986,6 +986,12 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
 	logger.Debug("restart Xray, force:", isForce)
+	// A background reconcile (a pending config-change flag, warp/ldap/outbound
+	// jobs) must not revive an Xray the admin deliberately stopped; only an
+	// explicit forced restart clears the manual-stop state.
+	if !isForce && isManuallyStopped.Load() {
+		return nil
+	}
 	isManuallyStopped.Store(false)
 
 	xrayConfig, err := s.GetXrayConfig()
