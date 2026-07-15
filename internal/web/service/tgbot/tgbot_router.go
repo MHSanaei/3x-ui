@@ -1128,6 +1128,15 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	}
 
+	// The callbacks below sit outside the isAdmin block above, so a non-admin who
+	// can see an admin's inline keyboard (for example when the bot runs in a
+	// group) could otherwise trigger a database backup export, a mass traffic
+	// reset or client creation. Default-deny: a non-admin may only run the
+	// per-user client_* callbacks that key off their own Telegram id.
+	if !isAdmin && !isClientSelfCallback(callbackQuery.Data) {
+		return
+	}
+
 	switch callbackQuery.Data {
 	case "get_usage":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.serverUsage"))
@@ -1525,4 +1534,18 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 // checkAdmin checks if the given Telegram ID is an admin.
 func checkAdmin(tgId int64) bool {
 	return slices.Contains(adminIds, tgId)
+}
+
+// isClientSelfCallback reports whether a callback is one of the per-user client
+// actions that resolve their own data from the caller's Telegram id, and so are
+// safe to run for a non-admin. Every other callback is admin-only (default-deny).
+func isClientSelfCallback(data string) bool {
+	switch data {
+	case "client_traffic", "client_commands", "client_sub_links",
+		"client_individual_links", "client_qr_links":
+		return true
+	}
+	return strings.HasPrefix(data, "client_sub_links ") ||
+		strings.HasPrefix(data, "client_individual_links ") ||
+		strings.HasPrefix(data, "client_qr_links ")
 }
