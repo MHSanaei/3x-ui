@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Form } from 'antd';
 
 import SniffingFields from '@/lib/xray/forms/SniffingFields';
-import type { Sniffing } from '@/schemas/primitives/sniffing';
+import { SniffingSchema, type Sniffing } from '@/schemas/primitives/sniffing';
 
 interface SniffingFieldProps {
   value?: Sniffing;
@@ -12,12 +12,12 @@ interface SniffingFieldProps {
 
 export default function SniffingField({ value, onChange, enableLabel }: SniffingFieldProps) {
   const [form] = Form.useForm();
-  const [initial] = useState(() => value ?? ({} as Sniffing));
+  const [initial] = useState(() => value ?? SniffingSchema.parse({}));
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const lastEmitted = useRef(JSON.stringify(initial));
 
-  const sniffing = Form.useWatch('sniffing', form) as Sniffing | undefined;
+  const sniffing = Form.useWatch('sniffing', { form, preserve: true }) as Sniffing | undefined;
 
   useEffect(() => {
     if (sniffing === undefined) return;
