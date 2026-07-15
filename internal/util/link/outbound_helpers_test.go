@@ -178,8 +178,6 @@ func TestParse_XhttpExtraAndSnakeCaseFields(t *testing.T) {
 }
 
 func TestParse_VmessWSPathWithoutHostKey(t *testing.T) {
-	// Some generators omit "host" when it equals the address; the path must
-	// still be honored (matching the TS parser), not dropped to the default.
 	inner := `{"v":"2","add":"h","port":443,"id":"11111111-2222-4333-8444-555555555555","net":"ws","path":"/api","tls":"tls"}`
 	link := "vmess://" + base64.StdEncoding.EncodeToString([]byte(inner))
 	res, err := ParseLink(link)

@@ -7,11 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// On a fresh install the fast path marks the one-time migration seeders as done
-// without running them. ResetIpLimitNoFail2ban must be in that set: otherwise it
-// is skipped on the first boot and runs on the second, where — on a host without
-// fail2ban — it destructively zeroes every client's limitIp, including limits the
-// admin configured between the two boots.
 func TestFreshInstallFastPathMarksResetIpLimitSeeder(t *testing.T) {
 	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)

@@ -210,7 +210,10 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 				return res.Error
 			}
 			affected = res.RowsAffected
-			return tx.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error
+			if err := tx.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+				return err
+			}
+			return tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error
 		})
 	})
 	if err != nil {

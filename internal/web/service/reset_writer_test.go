@@ -21,9 +21,6 @@ func (b *blockingResetRuntime) ResetAllTraffics(context.Context) error {
 	return nil
 }
 
-// A "Reset All Traffics" that propagates to nodes must not hold the single serial
-// traffic writer across the remote HTTP calls: each can block for seconds, and
-// stalling the writer drops every concurrent poll's traffic deltas.
 func TestResetAllTrafficsDoesNotBlockWriterOnNodeCall(t *testing.T) {
 	db := initTrafficTestDB(t)
 	resetTrafficWriterForTest(t)

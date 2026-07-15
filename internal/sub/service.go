@@ -993,7 +993,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	alpns, _ := tlsSetting["alpn"].([]any)
 	var alpn []string
 	for _, a := range alpns {
-		alpn = append(alpn, a.(string))
+		if s, ok := a.(string); ok {
+			alpn = append(alpn, s)
+		}
 	}
 	if len(alpn) > 0 {
 		params["alpn"] = strings.Join(alpn, ",")
@@ -1180,7 +1182,7 @@ func unmarshalStreamSettings(streamSettings string) map[string]any {
 }
 
 func applyPathAndHostParams(settings map[string]any, params map[string]string) {
-	params["path"] = settings["path"].(string)
+	params["path"], _ = settings["path"].(string)
 	if host, ok := settings["host"].(string); ok && len(host) > 0 {
 		params["host"] = host
 	} else {
@@ -1190,7 +1192,7 @@ func applyPathAndHostParams(settings map[string]any, params map[string]string) {
 }
 
 func applyPathAndHostObj(settings map[string]any, obj map[string]any) {
-	obj["path"] = settings["path"].(string)
+	obj["path"], _ = settings["path"].(string)
 	if host, ok := settings["host"].(string); ok && len(host) > 0 {
 		obj["host"] = host
 	} else {
@@ -1312,7 +1314,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 	alpns, _ := tlsSetting["alpn"].([]any)
 	var alpn []string
 	for _, a := range alpns {
-		alpn = append(alpn, a.(string))
+		if s, ok := a.(string); ok {
+			alpn = append(alpn, s)
+		}
 	}
 	if len(alpn) > 0 {
 		params["alpn"] = strings.Join(alpn, ",")
@@ -1346,7 +1350,9 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 	if len(alpns) > 0 {
 		var alpn []string
 		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
+			if s, ok := a.(string); ok {
+				alpn = append(alpn, s)
+			}
 		}
 		obj["alpn"] = strings.Join(alpn, ",")
 	}

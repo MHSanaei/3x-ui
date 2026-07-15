@@ -277,7 +277,6 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 	return refreshed, nil
 }
 
-// fetchAndStore does the actual network + parse + stability + persist work.
 // subscriptionFetchClient builds the HTTP client used to fetch a subscription.
 // A configured panel egress proxy dials the loopback SOCKS bridge (xray handles
 // the real egress), so its localhost dial must not be SSRF-blocked. A direct
@@ -295,6 +294,7 @@ func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Durat
 	}
 }
 
+// fetchAndStore does the actual network + parse + stability + persist work.
 func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscription) ([]any, error) {
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
 	// any direct DB tampering). Private targets are blocked unless this

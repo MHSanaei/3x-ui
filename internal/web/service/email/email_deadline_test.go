@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-// A server that accepts the TCP connection but then never speaks must not block
-// the sender goroutine indefinitely: sendPlain arms a connection deadline so the
-// SMTP greeting read fails instead of hanging until the OS TCP timeout, long
-// after the caller's own 30s budget has passed.
 func TestSendPlainReturnsOnStalledServer(t *testing.T) {
 	orig := smtpDeadline
 	smtpDeadline = 300 * time.Millisecond

@@ -4,9 +4,6 @@ import (
 	"testing"
 )
 
-// A background (non-forced) restart — the pending-config-change cron, warp/ldap/
-// outbound reconcile jobs — must not revive an Xray the admin deliberately
-// stopped. Only an explicit forced restart clears the manual-stop state.
 func TestRestartXrayRespectsManualStop(t *testing.T) {
 	setupSettingTestDB(t)
 	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", "{ not valid json"); err != nil {
@@ -22,9 +19,6 @@ func TestRestartXrayRespectsManualStop(t *testing.T) {
 	}
 }
 
-// When the pending-restart reconcile consumes the need-restart flag but the
-// restart itself fails, the flag must be re-armed so the config change is
-// retried rather than silently dropped.
 func TestApplyPendingRestartReArmsFlagOnFailure(t *testing.T) {
 	setupSettingTestDB(t)
 	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", "{ not valid json"); err != nil {

@@ -168,16 +168,22 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 
 	proxies := make([]map[string]any, 0, len(externalProxies))
 	for _, ep := range externalProxies {
-		extPrxy := ep.(map[string]any)
+		extPrxy, ok := ep.(map[string]any)
+		if !ok {
+			continue
+		}
 		// Expand the host's {{VAR}} remark template for this client (no-op for
 		// the synthetic/legacy entry) before it becomes the proxy name.
 		subReq.renderHostRemark(inbound, client, extPrxy, network)
 		workingInbound := *inbound
-		workingInbound.Listen = extPrxy["dest"].(string)
-		workingInbound.Port = int(extPrxy["port"].(float64))
+		workingInbound.Listen, _ = extPrxy["dest"].(string)
+		if port, ok := extPrxy["port"].(float64); ok {
+			workingInbound.Port = int(port)
+		}
 		workingStream := cloneStreamForExternalProxy(stream)
 
-		switch extPrxy["forceTls"].(string) {
+		forceTls, _ := extPrxy["forceTls"].(string)
+		switch forceTls {
 		case "tls":
 			if workingStream["security"] != "tls" {
 				workingStream["security"] = "tls"

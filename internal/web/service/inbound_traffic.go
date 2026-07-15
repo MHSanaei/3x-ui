@@ -37,9 +37,11 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 
 	defer func() {
 		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
+			if rbErr := tx.Rollback().Error; rbErr != nil {
+				logger.Warning("Error rolling back traffic tx:", rbErr)
+			}
+		} else if cErr := tx.Commit().Error; cErr != nil {
+			logger.Warning("Error committing traffic tx:", cErr)
 		}
 	}()
 	err = s.addInboundTraffic(tx, inboundTraffics)

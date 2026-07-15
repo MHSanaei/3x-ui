@@ -6,12 +6,6 @@ import (
 	"github.com/mymmrac/telego"
 )
 
-// A non-admin callback must never reach a privileged handler. The second
-// callback switch runs outside the isAdmin guard, so without the default-deny
-// check a non-admin who can tap an admin's inline button (e.g. in a group) could
-// export the database backup or reset all traffic. Here the privileged handler
-// would panic on the nil bot/services of a bare Tgbot; the guard must return
-// first, so no panic occurs.
 func TestAnswerCallbackDeniesPrivilegedActionToNonAdmin(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

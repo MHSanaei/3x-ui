@@ -91,10 +91,6 @@ func TestAddInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
 	}
 }
 
-// AddInbound must always create a new row. The add controller binds the model's
-// `id` form field and never clears it, so a client that reuses an existing id
-// (e.g. duplicating an inbound fetched from /get) must not silently overwrite
-// that stored row via GORM Save's upsert-on-primary-key behavior.
 func TestAddInbound_IgnoresBoundIdAndCreatesNewRow(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
@@ -127,10 +123,6 @@ func TestAddInbound_IgnoresBoundIdAndCreatesNewRow(t *testing.T) {
 	}
 }
 
-// A WireGuard inbound carrying clients (an imported config, or a node-reconcile
-// re-add) must be accepted: WG clients are keyed by their public key and have no
-// `id`, so the generic default validation branch wrongly rejected them with
-// "empty client ID".
 func TestAddInbound_AcceptsWireguardClientWithKey(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}

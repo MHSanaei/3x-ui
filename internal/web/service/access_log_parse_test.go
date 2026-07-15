@@ -2,10 +2,6 @@ package service
 
 import "testing"
 
-// Xray access-log lines carry attacker-influenced content (a client's requested
-// destination is logged verbatim) and can be truncated. parseAccessLogFields
-// must never panic on a short or malformed line, and must still parse a
-// well-formed line correctly.
 func TestParseAccessLogFields(t *testing.T) {
 	malformed := []string{
 		"",

@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// lockInbound must not hold the global registry mutex while it waits on a busy
-// inbound's own mutex, otherwise one slow client operation on a single inbound
-// freezes client mutations on every other inbound panel-wide.
 func TestLockInboundReleasesRegistryMutexWhileWaiting(t *testing.T) {
 	const id = 990006
 	held := lockInbound(id)

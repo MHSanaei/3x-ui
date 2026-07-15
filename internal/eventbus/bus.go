@@ -29,11 +29,12 @@ type subscriber struct {
 // Producers call Publish (non-blocking) and every event is fanned out to all
 // subscribers; per-event filtering is the subscriber's responsibility.
 type Bus struct {
-	ch   chan Event
-	subs []*subscriber
-	mu   sync.RWMutex
-	done chan struct{}
-	wg   sync.WaitGroup
+	ch      chan Event
+	subs    []*subscriber
+	mu      sync.RWMutex
+	done    chan struct{}
+	wg      sync.WaitGroup
+	stopped bool
 }
 
 // New creates a Bus with the given buffer size. Use 0 for DefaultBufferSize.
@@ -57,6 +58,9 @@ func New(bufSize int) *Bus {
 func (b *Bus) Subscribe(id string, handler func(Event)) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if b.stopped {
+		return
+	}
 	for i, s := range b.subs {
 		if s.id == id {
 			close(s.quit)
@@ -159,8 +163,13 @@ func safeCall(fn func(Event), e Event) {
 
 // Stop shuts down the bus: the dispatch loop and every subscriber worker exit
 // after finishing any handler already in progress, and any events still buffered
-// or queued may be dropped. Safe to call once.
+// or queued may be dropped. Safe to call once. After Stop returns, Subscribe is
+// a no-op — this also keeps Subscribe's wg.Add from ever racing with Wait below,
+// since both are serialized through mu.
 func (b *Bus) Stop() {
+	b.mu.Lock()
+	b.stopped = true
+	b.mu.Unlock()
 	close(b.done)
 	b.wg.Wait()
 }

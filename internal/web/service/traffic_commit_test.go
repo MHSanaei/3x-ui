@@ -11,11 +11,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// The traffic tick stages inbound and client deltas, then runs three best-effort
-// maintenance helpers (renew, disable-depleted-clients, disable-depleted-inbounds)
-// that are meant to log and continue. A failure in one of them must not roll back
-// the already-staged traffic — xray has already advanced its baseline, so a
-// rolled-back tick loses that traffic permanently.
 func TestAddTrafficCommitsDespiteDisableHelperError(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -53,9 +48,6 @@ func TestAddTrafficCommitsDespiteDisableHelperError(t *testing.T) {
 	}
 }
 
-// Reset All Client Traffic must re-enable clients that were auto-disabled for
-// exceeding their quota, matching every other reset path; otherwise a reset
-// leaves depleted clients cut with zero usage.
 func TestResetAllTrafficsReenablesDepletedClients(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &ClientService{}
@@ -74,5 +66,29 @@ func TestResetAllTrafficsReenablesDepletedClients(t *testing.T) {
 	}
 	if !row.Enable {
 		t.Fatal("a depleted client must be re-enabled after Reset All Client Traffic, matching every other reset path")
+	}
+}
+
+func TestResetAllTrafficsClearsNodeBaselines(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &ClientService{}
+
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: "spent@x", Enable: true, Up: 60, Down: 60, Total: 100}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+	if err := db.Create(&model.NodeClientTraffic{NodeId: 1, Email: "spent@x", Up: 60, Down: 60}).Error; err != nil {
+		t.Fatalf("seed node baseline: %v", err)
+	}
+
+	if _, err := svc.ResetAllTraffics(); err != nil {
+		t.Fatalf("ResetAllTraffics: %v", err)
+	}
+
+	var cnt int64
+	if err := db.Model(&model.NodeClientTraffic{}).Where("email = ?", "spent@x").Count(&cnt).Error; err != nil {
+		t.Fatalf("count baselines: %v", err)
+	}
+	if cnt != 0 {
+		t.Fatalf("Reset All Client Traffic must clear node baselines like its sibling reset paths, found %d", cnt)
 	}
 }

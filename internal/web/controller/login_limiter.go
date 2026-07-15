@@ -110,11 +110,19 @@ func (l *loginLimiter) evictForRoom(now time.Time) {
 			delete(l.attempts, key)
 		}
 	}
-	if len(l.attempts) >= loginLimitMaxRecords {
-		for key := range l.attempts {
-			delete(l.attempts, key)
-			break
+	if len(l.attempts) < loginLimitMaxRecords {
+		return
+	}
+	for key, record := range l.attempts {
+		if now.Before(record.blockedUntil) {
+			continue
 		}
+		delete(l.attempts, key)
+		return
+	}
+	for key := range l.attempts {
+		delete(l.attempts, key)
+		return
 	}
 }
 

@@ -131,15 +131,11 @@ func TestExpandRemarkVars_DropUnlimitedSegments(t *testing.T) {
 func TestExpandRemarkVars_DropEmptySegments(t *testing.T) {
 	inbound := &model.Inbound{Remark: "host"}
 
-	// A client with no comment: the {{COMMENT}} segment resolves to empty and
-	// must be dropped, not left as a trailing "|".
 	noComment := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true}, inbound)
 	if got := expandRemarkVars("{{INBOUND}}|{{COMMENT}}", noComment); got != "host" {
 		t.Errorf("empty comment segment = %q, want %q (no trailing pipe)", got, "host")
 	}
 
-	// A decorated empty segment (emoji + empty token) drops whole, not leaving
-	// a dangling emoji.
 	if got := expandRemarkVars("{{INBOUND}}|📅{{EXPIRE_DATE}}", noComment); got != "host" {
 		t.Errorf("decorated empty segment = %q, want %q", got, "host")
 	}

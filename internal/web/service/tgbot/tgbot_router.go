@@ -1128,11 +1128,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	}
 
-	// The callbacks below sit outside the isAdmin block above, so a non-admin who
-	// can see an admin's inline keyboard (for example when the bot runs in a
-	// group) could otherwise trigger a database backup export, a mass traffic
-	// reset or client creation. Default-deny: a non-admin may only run the
-	// per-user client_* callbacks that key off their own Telegram id.
 	if !isAdmin && !isClientSelfCallback(callbackQuery.Data) {
 		return
 	}

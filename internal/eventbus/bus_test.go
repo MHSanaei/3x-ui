@@ -260,3 +260,17 @@ func waitDone(wg *sync.WaitGroup) <-chan struct{} {
 	}()
 	return ch
 }
+
+func TestBusSubscribeAfterStopIsNoop(t *testing.T) {
+	b := New(4)
+	b.Stop()
+
+	b.Subscribe("late", func(Event) {})
+
+	b.mu.RLock()
+	n := len(b.subs)
+	b.mu.RUnlock()
+	if n != 0 {
+		t.Fatalf("Subscribe after Stop registered %d subscriber(s), want 0 (a stopped bus must not accept new subscribers, and must not call wg.Add after wg.Wait has been entered)", n)
+	}
+}

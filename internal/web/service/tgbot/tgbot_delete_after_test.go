@@ -2,10 +2,6 @@ package tgbot
 
 import "testing"
 
-// A transient "delete after N seconds" message must not reset the conversation
-// state when its timer fires: the user may have advanced to the next wizard step
-// (setting a fresh state) within that window, and clearing it would silently
-// drop their next input.
 func TestDeleteMessageAfterDelayKeepsUserState(t *testing.T) {
 	userStateMgr.reset()
 	t.Cleanup(userStateMgr.reset)

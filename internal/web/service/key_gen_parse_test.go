@@ -2,10 +2,6 @@ package service
 
 import "testing"
 
-// The x25519 / mldsa65 / mlkem768 key generators parse xray's stdout by fixed
-// slice index. A short or reformatted output (a future xray release, or a
-// binary that failed silently) must yield an error, never an out-of-range
-// panic that 500s the handler.
 func TestParseXrayKeyPairOutput(t *testing.T) {
 	a, b, err := parseXrayKeyPairOutput("Private key: abc123\nPublic key: def456\n")
 	if err != nil {

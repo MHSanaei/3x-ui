@@ -88,9 +88,6 @@ func TestResetClientExpiryTimeByEmail_MultiInbound(t *testing.T) {
 	}
 }
 
-// A disable-by-email (Telegram bot / LDAP sync) must flip enable on every
-// inbound the client is attached to. Patching only the first inbound left the
-// client connecting through its siblings' running Xray.
 func TestSetClientEnableByEmail_MultiInbound(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)

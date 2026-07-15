@@ -252,8 +252,6 @@ describe('parseShadowsocksLink', () => {
   });
 
   it('decodes URL-safe base64 userinfo (as the emitter writes it)', () => {
-    // genShadowsocksLink emits Base64.encode(method:password, true) — URL-safe,
-    // so a password whose encoding contains - or _ must still round-trip.
     const method = 'aes-256-gcm';
     const password = '>>>';
     const userinfo = Base64.encode(`${method}:${password}`, true);

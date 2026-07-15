@@ -10,9 +10,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 )
 
-// A hostile egress proxy (or a MITM on the WARP endpoint) could stream an
-// arbitrarily large body; doWarpRequest must cap the read at maxResponseSize so
-// the panel cannot be forced into an unbounded allocation.
 func TestDoWarpRequestCapsResponseBody(t *testing.T) {
 	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)

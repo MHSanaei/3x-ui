@@ -11,11 +11,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// A subscription is built by iterating every client's share link with no
-// recover(), so any panic in the link generators 500s the whole subscription
-// for every client. Valid-but-unusual stream settings (an empty Reality
-// shortIds/serverNames array, a tcp-http header with no request, a grpc block
-// missing its keys) must therefore produce a link, not a panic.
 func TestGetSubsToleratesUnusualStreamSettings(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cases := []struct {
@@ -27,6 +22,9 @@ func TestGetSubsToleratesUnusualStreamSettings(t *testing.T) {
 		{"tcp http empty path", `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http","request":{"path":[]}}}}`},
 		{"grpc missing keys", `{"network":"grpc","security":"none","grpcSettings":{}}`},
 		{"empty stream settings", `{}`},
+		{"ws missing wsSettings", `{"network":"ws","security":"none"}`},
+		{"httpupgrade missing settings", `{"network":"httpupgrade","security":"none"}`},
+		{"tls alpn non-string element", `{"network":"tcp","security":"tls","tlsSettings":{"alpn":[123]}}`},
 	}
 
 	for i, tc := range cases {
@@ -46,9 +44,6 @@ func TestGetSubsToleratesUnusualStreamSettings(t *testing.T) {
 	}
 }
 
-// The JSON subscription generator for a Hysteria inbound whose StreamSettings
-// omit the hysteriaSettings key must not panic (which would 500 the whole JSON
-// subscription); the raw generator already tolerates this shape.
 func TestGetJsonToleratesHysteriaWithoutHysteriaSettings(t *testing.T) {
 	seedSubDB(t)
 	db := database.GetDB()
@@ -83,9 +78,21 @@ func TestGetJsonToleratesHysteriaWithoutHysteriaSettings(t *testing.T) {
 	}
 }
 
-// A Clash subscription must carry the pinned peer certificate SHA-256 when the
-// inbound configures one, matching the JSON subscription; dropping it silently
-// downgrades certificate pinning for Clash subscribers.
+func TestGetJsonToleratesNonStringRealityShortId(t *testing.T) {
+	seedSubDB(t)
+	stream := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["sni.example.com"],"shortIds":[42],"settings":{"publicKey":"pk"}}}`
+	seedSubInbound(t, "rlty1", "rlty", 46400, 1, stream)
+
+	jsonService := NewSubJsonService("", "", "", NewSubService(""))
+	out, _, err := jsonService.GetJson("rlty1", "sub.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if out == "" {
+		t.Fatal("GetJson returned empty for a reality inbound with a non-string shortId element")
+	}
+}
+
 func TestGetClashEmitsPinnedCertSha256(t *testing.T) {
 	seedSubDB(t)
 	const pin = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
@@ -98,5 +105,28 @@ func TestGetClashEmitsPinnedCertSha256(t *testing.T) {
 	}
 	if !strings.Contains(out, "pin-sha256") {
 		t.Fatalf("Clash proxy dropped the pinned cert sha256:\n%s", out)
+	}
+}
+
+func TestJsonAndClashTolerateExternalProxyMissingPort(t *testing.T) {
+	seedSubDB(t)
+	stream := `{"network":"tcp","security":"none","externalProxy":[{"forceTls":"same","dest":"cdn.example.com"}]}`
+	seedSubInbound(t, "extp1", "extp", 46500, 1, stream)
+
+	jsonService := NewSubJsonService("", "", "", NewSubService(""))
+	jsonOut, _, err := jsonService.GetJson("extp1", "sub.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if jsonOut == "" {
+		t.Fatal("GetJson returned empty for an externalProxy entry missing port")
+	}
+
+	clashOut, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("extp1", "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if clashOut == "" {
+		t.Fatal("GetClash returned empty for an externalProxy entry missing port")
 	}
 }

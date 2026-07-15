@@ -151,11 +151,6 @@ export function gbToBytes(gb: number): number {
   return Math.round(gb * 1024 * 1024 * 1024);
 }
 
-// The quota field displays whole/2-decimal GB, so a byte total that isn't
-// aligned to 0.01 GB (e.g. one set via the API or an import) would drift on a
-// save that never touched the field. Keep the original byte total when the
-// displayed GB still matches it, and only re-derive from GB when the user
-// actually changed the value.
 export function resolveTotalBytes(originalBytes: number | null | undefined, displayedGB: number): number {
   if (originalBytes != null && displayedGB === bytesToGB(originalBytes)) {
     return originalBytes;

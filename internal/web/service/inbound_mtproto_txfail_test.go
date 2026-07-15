@@ -11,11 +11,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
-// A local MTProto inbound edit must not push to the managed sidecar from inside
-// the serialized write transaction: that blocks the single traffic-writer
-// goroutine on process/network I/O, and a later step failing the transaction
-// would leave the sidecar ahead of the rolled-back database. The push belongs in
-// the post-commit hook, exactly as the xray branch already does it.
 func TestUpdateInboundLocalMtprotoDefersPushUntilCommit(t *testing.T) {
 	setupConflictDB(t)
 
@@ -52,9 +47,6 @@ func TestUpdateInboundLocalMtprotoDefersPushUntilCommit(t *testing.T) {
 	}
 }
 
-// Re-enabling a routed MTProto inbound must request an xray restart: the egress
-// SOCKS bridge is only injected for enabled inbounds, so the running config
-// needs regenerating or the sidecar dials a bridge that is not there.
 func TestSetInboundEnableRoutedMtprotoRequestsRestart(t *testing.T) {
 	setupConflictDB(t)
 
