@@ -53,4 +53,39 @@ describe('OutboundsTab hidden-loopback index mapping', () => {
     expect(onTest).toHaveBeenCalledTimes(1);
     expect(onTest.mock.calls[0][0]).toBe(2);
   });
+
+  it('probes the real array index from the mobile card list as well', () => {
+    const onTest = vi.fn();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    renderWithProviders(
+      <QueryClientProvider client={queryClient}>
+        <OutboundsTab
+          templateSettings={settingsWithHiddenLoopback()}
+          setTemplateSettings={vi.fn()}
+          outboundsTraffic={[]}
+          outboundTestStates={{}}
+          subscriptionTestStates={{}}
+          testingAll={false}
+          inboundTags={[]}
+          isMobile
+          onResetTraffic={vi.fn()}
+          onTest={onTest}
+          onTestSubscription={vi.fn()}
+          onTestAll={vi.fn()}
+          onShowWarp={vi.fn()}
+          onShowNord={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    const cards = document.querySelectorAll('.outbound-card');
+    expect(cards.length).toBe(2);
+
+    const checkButton = cards[1].querySelector('button[aria-label="Check"]') as HTMLButtonElement;
+    fireEvent.click(checkButton);
+
+    expect(onTest).toHaveBeenCalledTimes(1);
+    expect(onTest.mock.calls[0][0]).toBe(2);
+  });
 });
