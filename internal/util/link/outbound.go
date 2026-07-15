@@ -622,7 +622,22 @@ func applyTransport(stream map[string]any, p url.Values) {
 		if m := p.Get("mode"); m != "" {
 			xh["mode"] = m
 		}
-		// A few advanced xhttp fields that are commonly carried
+		// The panel's own emitters carry the advanced xhttp knobs as a
+		// snake_case x_padding_bytes plus an extra=<json> blob, not as top-level
+		// camelCase params. Mirror the TS parser's precedence (snake_case alias
+		// -> extra JSON -> explicit camelCase) so a re-imported share link keeps
+		// them instead of silently reverting to the stream defaults.
+		if v := p.Get("x_padding_bytes"); v != "" {
+			xh["xPaddingBytes"] = v
+		}
+		if extra := p.Get("extra"); extra != "" {
+			var parsed map[string]any
+			if err := json.Unmarshal([]byte(extra), &parsed); err == nil {
+				for k, v := range parsed {
+					xh[k] = v
+				}
+			}
+		}
 		for _, k := range []string{"xPaddingBytes", "scMaxEachPostBytes", "scMinPostsIntervalMs", "uplinkChunkSize"} {
 			if v := p.Get(k); v != "" {
 				xh[k] = v

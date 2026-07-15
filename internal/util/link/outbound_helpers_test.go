@@ -156,6 +156,27 @@ func TestParse_WSAndGRPCTransport(t *testing.T) {
 	}
 }
 
+func TestParse_XhttpExtraAndSnakeCaseFields(t *testing.T) {
+	q := url.Values{}
+	q.Set("type", "xhttp")
+	q.Set("encryption", "none")
+	q.Set("security", "none")
+	q.Set("mode", "auto")
+	q.Set("x_padding_bytes", "1-50")
+	q.Set("extra", `{"mode":"auto","xPaddingBytes":"1-50","scMaxEachPostBytes":"1000000"}`)
+	res, err := ParseLink("vless://uuid@h.com:443?" + q.Encode() + "#r")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	xh := streamSub(t, res, "xhttpSettings")
+	if xh["xPaddingBytes"] != "1-50" {
+		t.Errorf("xPaddingBytes = %v, want 1-50 (dropped from the snake_case/extra payload the emitter writes)", xh["xPaddingBytes"])
+	}
+	if xh["scMaxEachPostBytes"] != "1000000" {
+		t.Errorf("scMaxEachPostBytes = %v, want 1000000 (dropped from the extra blob)", xh["scMaxEachPostBytes"])
+	}
+}
+
 func TestParse_TCPHTTPHeader(t *testing.T) {
 	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&headerType=http&host=ex.com&path=%2F")
 	if err != nil {
