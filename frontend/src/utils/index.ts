@@ -641,8 +641,10 @@ export class Base64 {
   }
 
   static decode(content: string = ''): string {
+    const normalized = content.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
     return new TextDecoder().decode(
-      Uint8Array.from(window.atob(content), (c) => c.charCodeAt(0)),
+      Uint8Array.from(window.atob(padded), (c) => c.charCodeAt(0)),
     );
   }
 }
