@@ -372,7 +372,7 @@ jobs:
           retry() {
             for i in 1 2 3 4 5; do
               "$@" && return 0
-              echo "attempt $i failed: $1" >&2
+              echo "attempt $i failed: ${*:1:3}" >&2
               sleep $((i * 5))
             done
             return 1
@@ -389,10 +389,10 @@ jobs:
           git tag -f dev-latest "${COMMIT}"
           retry git push -f origin refs/tags/dev-latest
 
-          if gh release view dev-latest >/dev/null 2>&1; then
-            retry gh release edit dev-latest --prerelease --latest=false \
-              --title "Dev build ${short}" --notes "${notes}"
-          else
+          # The release exists on every run but the first; edit-first avoids an
+          # existence probe that can 503 and mis-route into create (422).
+          if ! retry gh release edit dev-latest --prerelease --latest=false \
+              --title "Dev build ${short}" --notes "${notes}"; then
             retry gh release create dev-latest --prerelease --latest=false \
               --target "${COMMIT}" --title "Dev build ${short}" --notes "${notes}"
           fi
