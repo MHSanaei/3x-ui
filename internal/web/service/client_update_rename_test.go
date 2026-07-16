@@ -46,7 +46,7 @@ func TestUpdateInboundClientRenameDoesNotDuplicateRecord(t *testing.T) {
 	}
 }
 
-func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
+func TestClientUpdateAllowsSharedSubID(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
@@ -60,21 +60,22 @@ func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
 		t.Fatalf("seed linkage: %v", err)
 	}
 	origId := lookupClientRecord(t, "keep@x").Id
-	origSettings := mustInboundSettings(t, inboundSvc, ib.Id)
 
 	updated := source[0]
-	updated.Email = "kept@x"
 	updated.SubID = "sub-other"
-	if _, err := svc.Update(inboundSvc, origId, updated); err == nil {
-		t.Fatalf("Update with colliding subId succeeded, want error")
+	if _, err := svc.Update(inboundSvc, origId, updated); err != nil {
+		t.Fatalf("Update with shared subId: %v", err)
 	}
 
 	rec := lookupClientRecord(t, "keep@x")
 	if rec.Id != origId {
-		t.Fatalf("record id changed after rejected update")
+		t.Fatalf("record id changed after update")
 	}
-	if got := mustInboundSettings(t, inboundSvc, ib.Id); got != origSettings {
-		t.Fatalf("inbound settings changed after rejected update")
+	if rec.SubID != "sub-other" {
+		t.Fatalf("subId after update = %q, want %q", rec.SubID, "sub-other")
+	}
+	if got := lookupClientRecord(t, "other@x").SubID; got != "sub-other" {
+		t.Fatalf("other client's subId = %q, want unchanged %q", got, "sub-other")
 	}
 }
 

@@ -1148,9 +1148,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	}
 	prep := make([]prepared, 0, len(payloads))
 	emails := make([]string, 0, len(payloads))
-	subIDs := make([]string, 0, len(payloads))
 	seenEmail := make(map[string]struct{}, len(payloads))
-	seenSubID := make(map[string]string, len(payloads))
 
 	for i := range payloads {
 		client := payloads[i].Client
@@ -1190,16 +1188,10 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			skip(email, "email already in use: "+email)
 			continue
 		}
-		if owner, ok := seenSubID[client.SubID]; ok && owner != le {
-			skip(email, "subId already in use: "+client.SubID)
-			continue
-		}
 		seenEmail[le] = struct{}{}
-		seenSubID[client.SubID] = le
 
 		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
 		emails = append(emails, email)
-		subIDs = append(subIDs, client.SubID)
 	}
 
 	if len(prep) == 0 {
@@ -1219,18 +1211,6 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			existingByEmail[strings.ToLower(rows[i].Email)] = rows[i]
 		}
 	}
-	existingSubOwner := make(map[string]string, len(subIDs))
-	for start := 0; start < len(subIDs); start += lookupChunk {
-		end := min(start+lookupChunk, len(subIDs))
-		var rows []model.ClientRecord
-		if e := db.Where("sub_id IN ?", subIDs[start:end]).Find(&rows).Error; e != nil {
-			return result, false, e
-		}
-		for i := range rows {
-			existingSubOwner[rows[i].SubID] = strings.ToLower(rows[i].Email)
-		}
-	}
-
 	inboundCache := make(map[int]*model.Inbound)
 	getIb := func(id int) (*model.Inbound, error) {
 		if ib, ok := inboundCache[id]; ok {
@@ -1271,12 +1251,6 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 				prep[idx].client.Secret = rec.Secret
 			}
 		}
-		if owner, ok := existingSubOwner[prep[idx].client.SubID]; ok && owner != le {
-			failed[idx] = true
-			reason[idx] = "subId already in use: " + prep[idx].client.SubID
-			continue
-		}
-
 		ok := true
 		for _, ibId := range prep[idx].inboundIds {
 			ib, e := getIb(ibId)
