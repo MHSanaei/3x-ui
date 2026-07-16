@@ -102,6 +102,38 @@ func TestExpandRemarkVars_EdgeCases(t *testing.T) {
 	}
 }
 
+// defaultRemarkTemplate mirrors the panel's shipped remark template, the one an
+// inbound with no remark used to render with a leading hyphen.
+const defaultRemarkTemplate = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+
+func TestExpandRemarkVars_DropsHyphenBetweenEmptyTokens(t *testing.T) {
+	cases := []struct {
+		name    string
+		tmpl    string
+		inbound string
+		email   string
+		want    string
+	}{
+		{name: "both values", tmpl: "{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "Germany-john"},
+		{name: "empty inbound", tmpl: "{{INBOUND}}-{{EMAIL}}", email: "john", want: "john"},
+		{name: "empty email", tmpl: "{{INBOUND}} - {{EMAIL}}", inbound: "Germany", want: "Germany"},
+		{name: "literal leading hyphen", tmpl: "-{{EMAIL}}", email: "john", want: "-john"},
+		{name: "literal leading hyphen before an empty token", tmpl: "-{{INBOUND}}-{{EMAIL}}", email: "john", want: "--john"},
+		{name: "empty var between two values keeps one separator", tmpl: "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}", email: "john", want: "john-john"},
+		{name: "default template, empty inbound", tmpl: defaultRemarkTemplate, email: "john", want: "john"},
+		{name: "default template, empty email", tmpl: defaultRemarkTemplate, inbound: "Germany", want: "Germany"},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := expandCtx(model.Client{Email: tt.email}, xray.ClientTraffic{Enable: true}, &model.Inbound{Remark: tt.inbound})
+			if got := expandRemarkVars(tt.tmpl, ctx); got != tt.want {
+				t.Errorf("expandRemarkVars(%q) = %q, want %q", tt.tmpl, got, tt.want)
+			}
+		})
+	}
+}
+
 // An unlimited client drops the quota/expiry segments whole — decoration and the
 // "|" separator included — instead of printing "📊∞|⏳∞D".
 func TestExpandRemarkVars_DropUnlimitedSegments(t *testing.T) {
