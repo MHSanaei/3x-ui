@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -675,7 +674,9 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 
 	// Advanced (Happ)
-	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
+	if profileEnableRouting {
+		c.Writer.Header().Set("Routing-Enable", "true")
+	}
 	if profileRoutingRules != "" {
 		c.Writer.Header().Set("Routing", profileRoutingRules)
 	}
