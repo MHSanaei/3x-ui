@@ -114,8 +114,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// attached to a local inbound. The old `inbound_id NOT IN (node inbounds)`
 	// filter dropped the local traffic of a client attached to both a node and the
 	// mother inbound whenever the node inbound happened to be attached first — its
-	// shared row then carried the node inbound's id (AddClientStat uses OnConflict
-	// DoNothing and never refreshes it), so the local poll skipped it entirely.
+	// shared row then carried the node inbound's id (AddClientStat used to use
+	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
+	// conflict, but this filter was removed rather than relying on that ordering).
 	err = tx.Model(xray.ClientTraffic{}).
 		Where("email IN (?)", emails).
 		Find(&dbClientTraffics).Error
