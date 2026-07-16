@@ -363,6 +363,62 @@ func TestInjectNodeEgresses_BalancerTarget(t *testing.T) {
 	}
 }
 
+func TestInjectNodeEgresses_TagCollisionSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.InboundConfigs = append(cfg.InboundConfigs,
+		xray.InboundConfig{Port: 1234, Protocol: "socks", Tag: NodeEgressInboundTag(1)},
+	)
+	before := string(cfg.RouterConfig)
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "direct"}})
+
+	if len(cfg.InboundConfigs) != 2 || string(cfg.RouterConfig) != before {
+		t.Fatal("an existing node egress tag must make that node injection a no-op")
+	}
+}
+
+func TestInjectNodeEgresses_PortCollision(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.InboundConfigs = append(cfg.InboundConfigs,
+		xray.InboundConfig{Port: nodeEgressBasePort + 1, Protocol: "vless", Tag: "in-1"},
+		xray.InboundConfig{Port: nodeEgressBasePort + 2, Protocol: "vless", Tag: "in-2"},
+	)
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "direct"}})
+
+	bridge := cfg.InboundConfigs[len(cfg.InboundConfigs)-1]
+	if bridge.Tag != NodeEgressInboundTag(1) || bridge.Port != nodeEgressBasePort+3 {
+		t.Fatalf("node egress must skip taken ports, got %+v", bridge)
+	}
+}
+
+func TestInjectNodeEgresses_NoRoutingSection(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = nil
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "direct"}})
+
+	var routing egressRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.InboundConfigs) != 2 || len(routing.Rules) != 1 ||
+		routing.Rules[0].OutboundTag != "direct" ||
+		len(routing.Rules[0].InboundTag) != 1 || routing.Rules[0].InboundTag[0] != NodeEgressInboundTag(1) {
+		t.Fatalf("a routing section must be created with the node egress rule, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectNodeEgresses_BadRoutingSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{not json`)
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "direct"}})
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable routing must not expose a node bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != `{not json` {
+		t.Fatalf("unparsable routing must be left untouched, got %s", cfg.RouterConfig)
+	}
+}
+
 func mtprotoInbound(tag string, settings string) *model.Inbound {
 	return &model.Inbound{Tag: tag, Protocol: model.MTProto, Enable: true, Settings: settings}
 }

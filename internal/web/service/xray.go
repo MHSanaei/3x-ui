@@ -354,10 +354,10 @@ const PanelEgressInboundTag = "panel-egress"
 // already taken by other inbounds in the generated config are skipped.
 const panelEgressBasePort = 62790
 
-// injectPanelEgress appends a loopback SOCKS inbound to the generated config
-// and prepends a routing rule sending it to outboundTag. Both live only in the
-// generated config — the stored template is never modified — and both are
-// hot-appliable, so changing the panel outbound never restarts the core.
+// injectPanelEgress appends a loopback SOCKS inbound and routing rule only when
+// outboundTag resolves in the final outbound or balancer set. Otherwise the
+// entire injection is skipped. Generated state is hot-appliable and never
+// modifies the stored template or restarts the core.
 func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	for i := range cfg.InboundConfigs {
 		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
@@ -556,11 +556,11 @@ func routingTagIsBalancer(routing map[string]any, tag string) bool {
 const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
 
 // injectMtprotoEgress wires one routed mtproto inbound into the generated
-// config: it appends a loopback SOCKS inbound (tagged with the inbound's own tag,
-// on the egress port persisted in settings) and, when an outbound is selected,
-// prepends a routing rule sending that tag to it. Both live only in the generated
-// config — the stored template is untouched — and both are hot-appliable, so
-// toggling routing never forces a full Xray restart. Mirrors injectPanelEgress.
+// config after any selected outbound resolves in the final target set. Invalid
+// selected targets or routing data skip the entire injection; without a selected
+// outbound, the bridge retains default-route behavior. Generated state remains
+// hot-appliable, leaves the stored template untouched, and never forces a full
+// Xray restart. Mirrors injectPanelEgress.
 func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	var parsed struct {
 		RouteThroughXray bool   `json:"routeThroughXray"`
