@@ -57,7 +57,7 @@ jobs:
       # at compile time. internal/web/dist/ is .gitignored, so on a fresh CI
       # checkout it doesn't exist until vite emits it.
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'npm'
@@ -220,7 +220,7 @@ jobs:
       # Linux job above. This step is identical except npm runs on the
       # Windows runner here.
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'npm'
