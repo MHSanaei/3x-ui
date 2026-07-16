@@ -166,11 +166,12 @@ jobs:
           # platform labels match our matrix, so download and unpack the matching
           # archive. Only the platforms the fork publishes are packaged — the tag
           # lookup lives inside that branch so unpackaged platforms (s390x) never
-          # depend on it. The tag is resolved from the fork's latest release so it
-          # never needs bumping here; the token only lifts the API rate limit.
+          # depend on it. The tag comes from the release-page redirect on
+          # github.com — the host the downloads need anyway — because api.github.com
+          # has 503'd whole release runs while asset downloads kept working.
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
-              MTG_MULTI_VER=$(curl -sfL $CURL_RETRY -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+              MTG_MULTI_VER=$(curl -sf $CURL_RETRY -o /dev/null -w '%{redirect_url}' "https://github.com/mhsanaei/mtg-multi/releases/latest" | sed -n 's#.*/releases/tag/##p')
               if [ -z "$MTG_MULTI_VER" ]; then echo "could not resolve the latest mtg-multi release tag"; exit 1; fi
               MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
               curl -sfLRO $CURL_RETRY "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
@@ -295,10 +296,11 @@ jobs:
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
-          # download and unpack it instead of compiling. The tag tracks the
-          # fork's latest release so it never needs bumping here.
-          $MTG_MULTI_VER = (Invoke-RestMethod @retry -Uri "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "User-Agent" = "x-ui-release" }).tag_name
-          if (-not $MTG_MULTI_VER) { throw "could not resolve the latest mtg-multi release tag" }
+          # download and unpack it instead of compiling. The tag comes from the
+          # release-page redirect on github.com — not api.github.com, whose
+          # outages have failed release runs while asset downloads kept working.
+          $MTG_MULTI_VER = (curl.exe -sf --retry 5 --retry-all-errors --retry-delay 3 -o NUL -w '%{redirect_url}' "https://github.com/mhsanaei/mtg-multi/releases/latest") -replace '^.*/releases/tag/', ''
+          if (-not $MTG_MULTI_VER -or $MTG_MULTI_VER -notmatch '^v[\d.]+$') { throw "could not resolve the latest mtg-multi release tag" }
           $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
           curl.exe -sfLRO --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
