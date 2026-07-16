@@ -304,6 +304,65 @@ func TestInjectPanelEgress_BadOutboundsSkips(t *testing.T) {
 	}
 }
 
+func TestInjectNodeEgresses_MissingTargetSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	injectNodeEgresses(cfg, []*model.Node{
+		{Id: 1, Enable: true, OutboundTag: "removed-subscription-outbound"},
+		{Id: 2, Enable: true, OutboundTag: "warp"},
+	})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("only the node with a valid target should get a bridge, got %+v", cfg.InboundConfigs)
+	}
+	bridge := cfg.InboundConfigs[1]
+	if bridge.Tag != NodeEgressInboundTag(2) || bridge.Port != nodeEgressBasePort+2 {
+		t.Fatalf("unexpected node egress bridge: %+v", bridge)
+	}
+
+	var routing egressRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 || routing.Rules[0].OutboundTag != "warp" ||
+		len(routing.Rules[0].InboundTag) != 1 || routing.Rules[0].InboundTag[0] != NodeEgressInboundTag(2) {
+		t.Fatalf("only the valid node egress rule should be prepended, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectNodeEgresses_BadOutboundsSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
+	before := string(cfg.RouterConfig)
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "direct"}})
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable outbounds must not expose a node bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("unparsable outbounds must leave routing untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectNodeEgresses_BalancerTarget(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+	injectNodeEgresses(cfg, []*model.Node{{Id: 1, Enable: true, OutboundTag: "lb"}})
+
+	var routing struct {
+		Rules []struct {
+			OutboundTag string `json:"outboundTag"`
+			BalancerTag string `json:"balancerTag"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.InboundConfigs) != 2 || len(routing.Rules) != 1 ||
+		routing.Rules[0].BalancerTag != "lb" || routing.Rules[0].OutboundTag != "" {
+		t.Fatalf("a valid balancer target must create the node bridge and rule, got %+v", routing.Rules)
+	}
+}
+
 func mtprotoInbound(tag string, settings string) *model.Inbound {
 	return &model.Inbound{Tag: tag, Protocol: model.MTProto, Enable: true, Settings: settings}
 }
@@ -397,5 +456,48 @@ func TestInjectMtprotoEgress_TagCollisionSkips(t *testing.T) {
 		`{"routeThroughXray":true,"routeXrayPort":50003,"outboundTag":"warp"}`))
 	if len(cfg.InboundConfigs) != 2 || string(cfg.RouterConfig) != before {
 		t.Fatal("a real inbound already owning the tag must make the bridge a no-op")
+	}
+}
+
+func TestInjectMtprotoEgress_MissingTargetSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.RouterConfig)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50004,"outboundTag":"removed-subscription-outbound"}`))
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("a missing target must not expose the mtproto bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("a missing target must leave routing untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectMtprotoEgress_BadOutboundsSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
+	before := string(cfg.RouterConfig)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50005,"outboundTag":"direct"}`))
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable outbounds must not expose the mtproto bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("unparsable outbounds must leave routing untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectMtprotoEgress_BadRoutingSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{not json`)
+	injectMtprotoEgress(cfg, mtprotoInbound("inbound-443",
+		`{"routeThroughXray":true,"routeXrayPort":50006,"outboundTag":"direct"}`))
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable routing must not expose the mtproto bridge, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != `{not json` {
+		t.Fatalf("unparsable routing must be left untouched, got %s", cfg.RouterConfig)
 	}
 }
