@@ -33,6 +33,15 @@ func NewEmailService(settingService service.SettingService) *EmailService {
 	return &EmailService{settingService: settingService}
 }
 
+// smtpConnectTimeout bounds the TCP dial. smtpDeadline bounds every SMTP
+// protocol step after the connection is up, so a server that accepts the socket
+// but then stalls cannot block the sender goroutine (and leak its socket) long
+// after the caller's own timeout has already fired. smtpDeadline is a var only
+// so tests can shorten it.
+const smtpConnectTimeout = 10 * time.Second
+
+var smtpDeadline = 30 * time.Second
+
 // Send sends an HTML email to all configured recipients.
 func (s *EmailService) Send(subject, body string) error {
 	host, err := s.settingService.GetSmtpHost()
@@ -57,6 +66,7 @@ func (s *EmailService) Send(subject, body string) error {
 	if from == "" {
 		return fmt.Errorf("smtp from not configured")
 	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -81,7 +91,7 @@ func (s *EmailService) Send(subject, body string) error {
 		case "tls":
 			ch <- result{s.sendWithTLS(addr, auth, from, recipients, msg, host)}
 		case "starttls", "none":
-			ch <- result{smtp.SendMail(addr, auth, from, recipients, msg)}
+			ch <- result{s.sendPlain(addr, auth, from, recipients, msg, host)}
 		default:
 			ch <- result{fmt.Errorf("unknown SMTP encryption type: %s", encryptionType)}
 		}
@@ -116,6 +126,10 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	if from == "" {
 		from = username
 	}
+	if from == "" {
+		return SMTPTestResult{false, "send", "smtpFromNotConfigured"}
+	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -142,6 +156,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 		return SMTPTestResult{false, "connect", classifySMTPError(err)}
 	}
 	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
 
 	// Stage 2: Handshake + Auth
 	client, err := smtp.NewClient(conn, host)
@@ -202,7 +217,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 
 func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
 	// Dial with explicit timeout
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	dialer := &net.Dialer{Timeout: smtpConnectTimeout}
 	conn, err := (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: false,
@@ -211,6 +226,7 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 		return err
 	}
 	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
 
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
@@ -220,6 +236,56 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 
 	if err = client.Hello("localhost"); err != nil {
 		return err
+	}
+	if auth != nil {
+		if err = client.Auth(auth); err != nil {
+			return err
+		}
+	}
+	if err = client.Mail(from); err != nil {
+		return err
+	}
+	for _, r := range to {
+		if err = client.Rcpt(r); err != nil {
+			return err
+		}
+	}
+	w, err := client.Data()
+	if err != nil {
+		return err
+	}
+	if _, err = w.Write(msg); err != nil {
+		return err
+	}
+	return w.Close()
+}
+
+// sendPlain delivers over a plain TCP connection, opportunistically upgrading
+// via STARTTLS when the server advertises it (the behavior net/smtp.SendMail
+// gives the "starttls" and "none" transports). Unlike SendMail it dials with a
+// timeout and arms a connection deadline, so a server that never speaks or
+// stalls mid-protocol cannot block the sender goroutine past smtpDeadline.
+func (s *EmailService) sendPlain(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
+	conn, err := (&net.Dialer{Timeout: smtpConnectTimeout}).Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
+
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if err = client.Hello("localhost"); err != nil {
+		return err
+	}
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		if err = client.StartTLS(&tls.Config{ServerName: host}); err != nil {
+			return err
+		}
 	}
 	if auth != nil {
 		if err = client.Auth(auth); err != nil {
@@ -303,6 +369,17 @@ func parseRecipients(toStr string) []string {
 // header lines. Configured addresses are already validated at save time
 // (entity.AllSetting.CheckValid), this is defense in depth for buildMessage.
 var headerSanitizer = strings.NewReplacer("\r", "", "\n", "")
+
+func resolveFrom(from, fromName string) (string, string) {
+	parsed, err := mail.ParseAddress(from)
+	if err != nil {
+		return from, fromName
+	}
+	if fromName == "" {
+		fromName = parsed.Name
+	}
+	return parsed.Address, fromName
+}
 
 func buildMessage(fromAddr, fromName string, to []string, subject, body string) []byte {
 	fromAddr = headerSanitizer.Replace(fromAddr)

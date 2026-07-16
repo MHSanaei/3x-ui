@@ -1132,6 +1132,40 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
+// parseAccessLogFields extracts the structured fields from one Xray access-log
+// line. Lines are attacker-influenced (a client's requested destination lands in
+// the log verbatim) and may be truncated, so every positional lookup is length
+// guarded: a malformed line yields a partial entry rather than panicking.
+func parseAccessLogFields(line string) LogEntry {
+	var entry LogEntry
+	parts := strings.Fields(line)
+
+	for i, part := range parts {
+
+		if i == 0 && len(parts) > 1 {
+			dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
+			if err != nil {
+				continue
+			}
+			entry.DateTime = dateTime.UTC()
+		}
+
+		if part == "from" && i+1 < len(parts) {
+			entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+		} else if part == "accepted" && i+1 < len(parts) {
+			entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+		} else if strings.HasPrefix(part, "[") {
+			entry.Inbound = part[1:]
+		} else if strings.HasSuffix(part, "]") {
+			entry.Outbound = part[:len(part)-1]
+		} else if part == "email:" && i+1 < len(parts) {
+			entry.Email = parts[i+1]
+		}
+	}
+
+	return entry
+}
+
 func (s *ServerService) GetXrayLogs(
 	count string,
 	filter string,
@@ -1176,31 +1210,7 @@ func (s *ServerService) GetXrayLogs(
 			continue
 		}
 
-		var entry LogEntry
-		parts := strings.Fields(line)
-
-		for i, part := range parts {
-
-			if i == 0 {
-				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
-				if err != nil {
-					continue
-				}
-				entry.DateTime = dateTime.UTC()
-			}
-
-			if part == "from" {
-				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
-			} else if part == "accepted" {
-				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
-			} else if strings.HasPrefix(part, "[") {
-				entry.Inbound = part[1:]
-			} else if strings.HasSuffix(part, "]") {
-				entry.Outbound = part[:len(part)-1]
-			} else if part == "email:" {
-				entry.Email = parts[i+1]
-			}
-		}
+		entry := parseAccessLogFields(line)
 
 		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
@@ -2013,6 +2023,24 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 	return nil
 }
 
+// parseXrayKeyPairOutput reads the two-line "Label: value" output that xray's
+// key-generation subcommands (x25519, mldsa65, mlkem768) print and returns the
+// two values. Short or label-less output yields an error instead of panicking
+// on an out-of-range slice index, so a future xray version that changes the
+// format degrades to a 500 with a message rather than a crash.
+func parseXrayKeyPairOutput(output string) (string, string, error) {
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		return "", "", common.NewError("unexpected key generator output")
+	}
+	first := strings.Split(lines[0], ":")
+	second := strings.Split(lines[1], ":")
+	if len(first) < 2 || len(second) < 2 {
+		return "", "", common.NewError("unexpected key generator output")
+	}
+	return strings.TrimSpace(first[1]), strings.TrimSpace(second[1]), nil
+}
+
 func (s *ServerService) GetNewX25519Cert() (any, error) {
 	// Run the command
 	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "x25519")
@@ -2023,13 +2051,10 @@ func (s *ServerService) GetNewX25519Cert() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
-
-	privateKeyLine := strings.Split(lines[0], ":")
-	publicKeyLine := strings.Split(lines[1], ":")
-
-	privateKey := strings.TrimSpace(privateKeyLine[1])
-	publicKey := strings.TrimSpace(publicKeyLine[1])
+	privateKey, publicKey, err := parseXrayKeyPairOutput(out.String())
+	if err != nil {
+		return nil, err
+	}
 
 	keyPair := map[string]any{
 		"privateKey": privateKey,
@@ -2049,13 +2074,10 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
-
-	SeedLine := strings.Split(lines[0], ":")
-	VerifyLine := strings.Split(lines[1], ":")
-
-	seed := strings.TrimSpace(SeedLine[1])
-	verify := strings.TrimSpace(VerifyLine[1])
+	seed, verify, err := parseXrayKeyPairOutput(out.String())
+	if err != nil {
+		return nil, err
+	}
 
 	keyPair := map[string]any{
 		"seed":   seed,
@@ -2371,13 +2393,10 @@ func (s *ServerService) GetNewmlkem768() (any, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(out.String(), "\n")
-
-	SeedLine := strings.Split(lines[0], ":")
-	ClientLine := strings.Split(lines[1], ":")
-
-	seed := strings.TrimSpace(SeedLine[1])
-	client := strings.TrimSpace(ClientLine[1])
+	seed, client, err := parseXrayKeyPairOutput(out.String())
+	if err != nil {
+		return nil, err
+	}
 
 	keyPair := map[string]any{
 		"seed":   seed,

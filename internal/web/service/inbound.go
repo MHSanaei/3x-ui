@@ -719,6 +719,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	inbound.Id = 0
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
@@ -802,6 +803,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "hysteria":
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		case "wireguard":
+			if client.PublicKey == "" {
+				return inbound, false, common.NewError("wireguard client requires a key")
 			}
 		case "mtproto":
 			if client.Secret == "" {
@@ -1098,6 +1103,10 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return false, nil
 	}
 
+	if mtprotoRoutesThroughXray(inbound) {
+		needRestart = true
+	}
+
 	if !push {
 		return true, nil
 	}
@@ -1298,13 +1307,16 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						pushable = false
 					}
 				}
+				newProtocolIsMtproto := oldInbound.Protocol == model.MTProto
 				if pushable {
-					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
-						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
-					} else {
-						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
-						if oldInbound.Protocol != model.MTProto {
-							needRestart = true
+					postCommitApply = func() {
+						if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+							logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+						} else {
+							logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+							if !newProtocolIsMtproto {
+								needRestart = true
+							}
 						}
 					}
 				}

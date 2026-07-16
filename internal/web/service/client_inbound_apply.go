@@ -1142,62 +1142,18 @@ func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, client
 }
 
 func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, clientEmail string) (bool, bool, error) {
-	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
+	current, err := s.CheckIsEnabledByEmail(inboundSvc, clientEmail)
 	if err != nil {
 		return false, false, err
 	}
-	if inbound == nil {
-		return false, false, common.NewError("Inbound Not Found For Email:", clientEmail)
-	}
-
-	oldClients, err := inboundSvc.GetClients(inbound)
-	if err != nil {
-		return false, false, err
-	}
-
-	found := false
-	clientOldEnabled := false
-
-	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
-			found = true
-			clientOldEnabled = oldClient.Enable
-			break
-		}
-	}
-
-	if !found {
-		return false, false, common.NewError("Client Not Found For Email:", clientEmail)
-	}
-
-	var settings map[string]any
-	err = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if err != nil {
-		return false, false, err
-	}
-	clients := settings["clients"].([]any)
-	var newClients []any
-	for client_index := range clients {
-		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
-			c["enable"] = !clientOldEnabled
-			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
-		}
-	}
-	settings["clients"] = newClients
-	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, false, err
-	}
-	inbound.Settings = string(modifiedSettings)
-
-	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
+	target := !current
+	needRestart, err := s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["enable"] = target
+	})
 	if err != nil {
 		return false, needRestart, err
 	}
-
-	return !clientOldEnabled, needRestart, nil
+	return target, needRestart, nil
 }
 
 func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clientEmail string, enable bool) (bool, bool, error) {
@@ -1208,11 +1164,13 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 	if current == enable {
 		return false, false, nil
 	}
-	newEnabled, needRestart, err := s.ToggleClientEnableByEmail(inboundSvc, clientEmail)
+	needRestart, err := s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+		c["enable"] = enable
+	})
 	if err != nil {
 		return false, needRestart, err
 	}
-	return newEnabled == enable, needRestart, nil
+	return true, needRestart, nil
 }
 
 // applyClientFieldByEmail loads the inbound currently hosting clientEmail,

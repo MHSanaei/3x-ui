@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "テストメールを正常に送信しました",
       "smtpHostNotConfigured": "SMTPホストが設定されていません",
       "smtpNoRecipients": "受信者が設定されていません",
+      "smtpFromNotConfigured": "SMTP送信者アドレスが設定されていません",
       "eventLoginAttempt": "ログイン試行",
       "telegramTokenConfigured": "設定済み。現在のトークンを維持する場合は空欄のままにしてください。",
       "telegramTokenPlaceholder": "設定済み - 置き換えるには新しいトークンを入力してください",

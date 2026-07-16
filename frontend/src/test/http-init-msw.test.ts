@@ -41,6 +41,35 @@ describe('httpRequest against the MSW-mocked network', () => {
     expect(res.data).toEqual({ success: true, obj: 'saved' });
   });
 
+  it('on a 403 refetches a fresh token from the server even when a stale meta tag is present', async () => {
+    const STALE = 'stale-meta-token';
+    const FRESH = 'fresh-server-token';
+    vi.stubGlobal('document', {
+      querySelector: (selector: string) =>
+        selector === 'meta[name="csrf-token"]' ? { getAttribute: () => STALE } : null,
+    });
+    setupHttp();
+
+    let posts = 0;
+    const sentTokens: (string | null)[] = [];
+    server.use(
+      http.get(`${ORIGIN}/csrf-token`, () => HttpResponse.json({ success: true, obj: FRESH })),
+      http.post(`${ORIGIN}/panel/api/test`, ({ request }) => {
+        posts += 1;
+        const token = request.headers.get('X-CSRF-Token');
+        sentTokens.push(token);
+        if (token !== FRESH) return new HttpResponse(null, { status: 403 });
+        return HttpResponse.json({ success: true, obj: 'saved' });
+      }),
+    );
+
+    const res = await httpRequest('POST', '/panel/api/test', { hello: 'world' });
+
+    expect(sentTokens).toEqual([STALE, FRESH]);
+    expect(posts).toBe(2);
+    expect(res.status).toBe(200);
+  });
+
   it('resolves a safe GET without requesting a CSRF token', async () => {
     let csrfHits = 0;
     server.use(

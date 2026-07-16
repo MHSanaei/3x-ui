@@ -17,6 +17,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -276,6 +277,23 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 	return refreshed, nil
 }
 
+// subscriptionFetchClient builds the HTTP client used to fetch a subscription.
+// A configured panel egress proxy dials the loopback SOCKS bridge (xray handles
+// the real egress), so its localhost dial must not be SSRF-blocked. A direct
+// fetch dials the target itself and re-resolves the hostname at dial time, so it
+// goes through the SSRF-guarded dialer, which resolves, checks and dials the same
+// IP atomically — closing the DNS-rebinding gap left by validating the hostname
+// separately from the dial.
+func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Duration) *http.Client {
+	if s.settingService.PanelEgressProxyURL() != "" {
+		return s.settingService.NewProxiedHTTPClient(timeout)
+	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &http.Transport{DialContext: netsafe.SSRFGuardedDialContext},
+	}
+}
+
 // fetchAndStore does the actual network + parse + stability + persist work.
 func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscription) ([]any, error) {
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
@@ -291,7 +309,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	sub.Url = cleanURL // persist the cleaned version
 
-	client := s.settingService.NewProxiedHTTPClient(30 * time.Second)
+	client := s.subscriptionFetchClient(30 * time.Second)
 	// Re-validate every redirect hop: the initial host is checked above, but a
 	// redirect could still point at a private/internal address (SSRF). Cap the
 	// redirect chain as well.
@@ -307,7 +325,8 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		return rejectPrivateHost(ctx, req.URL.Hostname())
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, sub.Url, nil)
+	reqCtx := netsafe.ContextWithAllowPrivate(context.Background(), sub.AllowPrivate)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, sub.Url, nil)
 	if err != nil {
 		s.recordError(sub, err)
 		return nil, err

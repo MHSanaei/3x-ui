@@ -359,9 +359,15 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 					skippedReasons[email] = "unlimited traffic"
 				}
 			} else {
-				next := max(rec.TotalGB+addBytes, 0)
-				entry.applyTotal = true
-				entry.newTotal = next
+				next := rec.TotalGB + addBytes
+				if next <= 0 {
+					if _, exists := skippedReasons[email]; !exists {
+						skippedReasons[email] = "reduction exceeds remaining quota"
+					}
+				} else {
+					entry.applyTotal = true
+					entry.newTotal = next
+				}
 			}
 		}
 		if entry.applyExpiry || entry.applyTotal || adjustFlow {
@@ -403,6 +409,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	needRestart := false
 	flowHonored := map[string]bool{}
 	flowIneligible := map[string]bool{}
+	execFailed := map[string]bool{}
 	for inboundId, ibEmails := range emailsByInbound {
 		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan, flow)
 		if ibRes.needRestart {
@@ -415,6 +422,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			flowIneligible[email] = true
 		}
 		for email, reason := range ibRes.perEmailSkipped {
+			execFailed[email] = true
 			if _, already := skippedReasons[email]; !already {
 				skippedReasons[email] = reason
 			}
@@ -444,7 +452,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 	adjusted := map[string]struct{}{}
 	for email, entry := range plan {
-		if _, skipped := skippedReasons[email]; skipped {
+		if execFailed[email] {
 			continue
 		}
 		updates := map[string]any{}
@@ -815,7 +823,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	needRestart := false
 	for inboundId, ibEmails := range emailsByInbound {
-		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, false)
+		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, keepTraffic)
 		if ibResult.needRestart {
 			needRestart = true
 		}
@@ -845,6 +853,9 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 			}
 			for _, batch := range chunkInts(successIds, sqlInChunk) {
 				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
+					return e
+				}
+				if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientExternalLink{}).Error; e != nil {
 					return e
 				}
 			}

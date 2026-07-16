@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "測試郵件已成功傳送",
       "smtpHostNotConfigured": "尚未設定 SMTP 主機",
       "smtpNoRecipients": "尚未設定收件人",
+      "smtpFromNotConfigured": "未設定 SMTP 寄件人地址",
       "eventLoginAttempt": "登入嘗試",
       "telegramTokenConfigured": "已設定；留空以保留目前的權杖。",
       "telegramTokenPlaceholder": "已設定 - 輸入新權杖以取代",

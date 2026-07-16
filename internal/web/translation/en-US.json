@@ -1529,6 +1529,7 @@
       "smtpTestSuccess": "Test email sent successfully",
       "smtpHostNotConfigured": "SMTP host not configured",
       "smtpNoRecipients": "No recipients configured",
+      "smtpFromNotConfigured": "SMTP sender address not configured",
       "eventLoginAttempt": "Login attempt",
       "telegramTokenConfigured": "Configured; leave blank to keep current token.",
       "telegramTokenPlaceholder": "Configured - enter a new token to replace",
