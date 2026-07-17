@@ -8121,7 +8121,7 @@
           {
             "name": "id",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Optional existing node ID, so stored SSH credentials are reused when not re-entered.",
             "schema": {
               "type": "integer"

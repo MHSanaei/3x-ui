@@ -121,11 +121,6 @@ func (s *SSHService) Dial(ctx context.Context, n *model.Node) (*SSHDialResult, e
 	if err != nil {
 		return nil, err
 	}
-	if !n.AllowPrivateAddress {
-		if ip := net.ParseIP(host); ip != nil && netsafe.IsBlockedIP(ip) {
-			return nil, fmt.Errorf("address %s is private; enable allowPrivateAddress to connect", host)
-		}
-	}
 	port := n.SshPort
 	if port <= 0 {
 		port = 22
@@ -148,8 +143,13 @@ func (s *SSHService) Dial(ctx context.Context, n *model.Node) (*SSHDialResult, e
 	}
 
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
-	dialer := &net.Dialer{Timeout: sshDialTimeout}
-	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	// Resolve and dial through the shared SSRF guard so a hostname cannot escape
+	// the private-address protection: it checks every resolved IP against
+	// IsBlockedIP unless AllowPrivateAddress is set, exactly as the HTTP node
+	// probe does. A bare net.Dialer would trust whatever the OS resolver
+	// returned and leak the SSH credential to an internal host.
+	dialCtx := netsafe.ContextWithAllowPrivate(ctx, n.AllowPrivateAddress)
+	conn, err := netsafe.SSRFGuardedDialContext(dialCtx, "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("cannot reach %s: %w", addr, err)
 	}
@@ -227,7 +227,12 @@ func (s *SSHService) TestConnection(ctx context.Context, n *model.Node) *SSHTest
 	defer res.Client.Close()
 
 	out := &SSHTestResult{Success: true, HostKeySha256: res.HostKeySha256}
-	if release, err := runOnClient(ctx, res.Client, "cat /etc/os-release"); err == nil {
+	// Bound the OS probe on its own timeout so a host that accepts the
+	// connection but stalls on the command can't hold the test open for the
+	// whole parent budget.
+	osCtx, cancel := context.WithTimeout(ctx, sshCommandTimeout)
+	defer cancel()
+	if release, err := runOnClient(osCtx, res.Client, "cat /etc/os-release"); err == nil {
 		name, version := parseOsRelease(release)
 		out.OsName = name
 		out.OsVersion = version

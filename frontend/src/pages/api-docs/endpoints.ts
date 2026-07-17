@@ -982,7 +982,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/nodes/testSSH',
         summary: 'Test SSH credentials for an ssh-mode node without saving it. Returns whether the connection succeeded, the host key fingerprint (to adopt under trust-on-first-use), and the detected OS. Pass ?id=<nodeId> when editing an existing node so a stored password/key is reused without re-entering it.',
         params: [
-          { name: 'id', in: 'query', type: 'number', desc: 'Optional existing node ID, so stored SSH credentials are reused when not re-entered.' },
+          { name: 'id', in: 'query', type: 'number', optional: true, desc: 'Optional existing node ID, so stored SSH credentials are reused when not re-entered.' },
         ],
         body: '{\n  "address": "1.2.3.4",\n  "sshPort": 22,\n  "sshUser": "root",\n  "sshAuthType": "password",\n  "sshPassword": "secret",\n  "sshHostKeyMode": "trust"\n}',
         responseSchema: 'SSHTestResult',

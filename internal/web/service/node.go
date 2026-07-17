@@ -520,6 +520,14 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if in.SshKeyPassphrase == "" {
 		in.SshKeyPassphrase = existing.SshKeyPassphrase
 	}
+	// In trust-on-first-use mode the fingerprint is learned by the heartbeat, not
+	// typed in the form, so an edit that leaves it blank must keep the stored
+	// anchor rather than reset it — resetting would re-trust whatever the host
+	// presents on the next probe, silently defeating TOFU. Only "pin" carries a
+	// user-supplied fingerprint through the form.
+	if in.Mode == "ssh" && in.SshHostKeyMode != "pin" && strings.TrimSpace(in.SshHostKeySha256) == "" {
+		in.SshHostKeySha256 = existing.SshHostKeySha256
+	}
 	if err := s.normalize(in); err != nil {
 		return err
 	}

@@ -154,7 +154,7 @@ export default function NodeFormModal({
         sshUser: values.sshUser.trim(),
         sshAuthType: values.sshAuthType,
         sshHostKeyMode: values.sshHostKeyMode,
-        sshHostKeySha256: values.sshHostKeyMode === 'pin' ? values.sshHostKeySha256.trim() : values.sshHostKeySha256.trim(),
+        sshHostKeySha256: values.sshHostKeyMode === 'pin' ? values.sshHostKeySha256.trim() : '',
       };
       // Credentials are write-only: send them only when the operator entered a
       // value, so an untouched edit keeps the stored secret instead of blanking it.

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 )
@@ -179,6 +180,83 @@ func TestUpdateCarriesForwardSSHSecret(t *testing.T) {
 	pw, err := crypto.DecryptSecret(after.SshPassword)
 	if err != nil || pw != "original-pw" {
 		t.Fatalf("decrypted carried-forward password = (%q, %v), want original-pw", pw, err)
+	}
+}
+
+func TestSSHDialRejectsPrivateAddressWithoutOptIn(t *testing.T) {
+	t.Setenv("XUI_SECRET_KEY", "test-key")
+	tests := []struct {
+		name    string
+		address string
+	}{
+		{name: "loopback", address: "127.0.0.1"},
+		{name: "rfc1918", address: "10.0.0.5"},
+		{name: "link local", address: "169.254.1.1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := &model.Node{
+				Mode:        "ssh",
+				Address:     tt.address,
+				SshPort:     22,
+				SshUser:     "root",
+				SshAuthType: "password",
+				SshPassword: "pw",
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			_, err := (&SSHService{}).Dial(ctx, n)
+			if err == nil {
+				t.Fatalf("Dial to private %s succeeded without AllowPrivateAddress, want it blocked", tt.address)
+			}
+			if !strings.Contains(err.Error(), "blocked private/internal address") {
+				t.Fatalf("Dial error = %v, want a blocked-private-address error", err)
+			}
+		})
+	}
+}
+
+func TestUpdatePreservesTrustFingerprint(t *testing.T) {
+	t.Setenv("XUI_SECRET_KEY", "test-key")
+	setupConflictDB(t)
+	svc := NodeService{}
+
+	n := &model.Node{
+		Mode:        "ssh",
+		Name:        "tofu-node",
+		Address:     "203.0.113.30",
+		SshUser:     "root",
+		SshAuthType: "password",
+		SshPassword: "pw",
+	}
+	if err := svc.Create(n); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	// Simulate the heartbeat learning the host key under trust-on-first-use.
+	const learned = "sha256:learnedfingerprintvalue"
+	if err := database.GetDB().Model(&model.Node{}).Where("id = ?", n.Id).
+		Update("ssh_host_key_sha256", learned).Error; err != nil {
+		t.Fatalf("seed fingerprint: %v", err)
+	}
+
+	// A plain rename that does not re-enter the fingerprint must keep the
+	// learned anchor, not reset TOFU.
+	edit := &model.Node{
+		Mode:        "ssh",
+		Name:        "tofu-node-renamed",
+		Address:     "203.0.113.30",
+		SshUser:     "root",
+		SshAuthType: "password",
+	}
+	if err := svc.Update(n.Id, edit); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	after, err := svc.GetById(n.Id)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if after.SshHostKeySha256 != learned {
+		t.Fatalf("SshHostKeySha256 = %q after edit, want the learned anchor %q preserved", after.SshHostKeySha256, learned)
 	}
 }
 
