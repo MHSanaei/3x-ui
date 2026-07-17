@@ -2151,18 +2151,44 @@ ip_validation() {
 }
 
 iplimit_main() {
-    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Change Ban Duration"
-    echo -e "${green}\t3.${plain} Unban Everyone"
-    echo -e "${green}\t4.${plain} Ban Logs"
+    # ============================================
+    # IP Limit (Fail2ban) Management Menu
+    # ============================================
+
+    # Show current status at the top
+    echo -e "\n${green}=== IP Limit (Fail2ban) Status ===${plain}"
+    
+    if ! command -v fail2ban-client >/dev/null 2>&1; then
+        echo -e "${red}Fail2ban is not installed${plain}"
+    else
+        local backend="unknown"
+        [[ -f /etc/x-ui/fail2ban_backend ]] && backend=$(cat /etc/x-ui/fail2ban_backend)
+
+        local bantime=$(fail2ban-client get 3x-ipl bantime 2>/dev/null | grep -o '[0-9]*' || echo "?")
+        local banned=$(fail2ban-client status 3x-ipl 2>/dev/null | grep "Currently banned" | awk '{print $4}' || echo "0")
+
+        echo -e "Backend          : ${green}${backend}${plain}"
+        echo -e "Ban duration     : ${bantime} minutes"
+        echo -e "Banned IPs       : ${banned}"
+        echo -e "Service          : $(fail2ban-client status 3x-ipl 2>/dev/null | grep -q "Jail list" && echo "${green}Active${plain}" || echo "${red}Inactive${plain}")"
+    fi
+
+    echo -e "\n${green}IP Limit Management${plain}"
+    echo -e "${green}\t1.${plain} Install / Reconfigure Fail2ban + IP Limit"
+    echo -e "${green}\t2.${plain} Change Backend (iptables / nftables / none)"
+    echo -e "${green}\t3.${plain} Change Ban Duration"
+    echo -e "${green}\t4.${plain} Unban All IPs"
     echo -e "${green}\t5.${plain} Ban an IP Address"
     echo -e "${green}\t6.${plain} Unban an IP Address"
-    echo -e "${green}\t7.${plain} Real-Time Logs"
-    echo -e "${green}\t8.${plain} Service Status"
-    echo -e "${green}\t9.${plain} Service Restart"
-    echo -e "${green}\t10.${plain} Uninstall Fail2ban and IP Limit"
+    echo -e "${green}\t7.${plain} View Ban Logs"
+    echo -e "${green}\t8.${plain} Real-time Logs"
+    echo -e "${green}\t9.${plain} Service Status"
+    echo -e "${green}\t10.${plain} Restart Service"
+    echo -e "${green}\t11.${plain} Uninstall Fail2ban + IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
+
     read -rp "Choose an option: " choice
+
     case "$choice" in
         0)
             show_menu
@@ -2171,87 +2197,106 @@ iplimit_main() {
             confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
             if [[ $? == 0 ]]; then
                 install_iplimit
-            else
-                iplimit_main
             fi
             ;;
         2)
-            read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
-            if [[ $NUM =~ ^[0-9]+$ ]]; then
-                create_iplimit_jails ${NUM}
+            # Change Backend
+            local current="unknown"
+            [[ -f /etc/x-ui/fail2ban_backend ]] && current=$(cat /etc/x-ui/fail2ban_backend)
+            echo -e "\nCurrent backend: ${green}${current}${plain}"
+            echo -e "${green}\t1.${plain} iptables"
+            echo -e "${green}\t2.${plain} nftables"
+            echo -e "${green}\t3.${plain} none (disable)"
+            read -rp "Select: " ch
+
+            local new_backend
+            case "$ch" in
+                1) new_backend="iptables" ;;
+                2) new_backend="nftables" ;;
+                3) new_backend="none" ;;
+                *) echo -e "${red}Cancelled.${plain}";;
+            esac
+
+            if [[ -n "$new_backend" ]]; then
+                echo "$new_backend" > /etc/x-ui/fail2ban_backend
+                echo -e "${green}Backend changed to ${new_backend}. Reconfiguring...${plain}"
+                create_iplimit_jails 30 "$new_backend"
                 if [[ $release == "alpine" ]]; then
                     rc-service fail2ban restart
                 else
                     systemctl restart fail2ban
                 fi
-            else
-                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
-            iplimit_main
             ;;
         3)
-            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
-            if [[ $? == 0 ]]; then
-                fail2ban-client reload --restart --unban 3x-ipl
-                truncate -s 0 "${iplimit_banned_log_path}"
-                echo -e "${green}All users Unbanned successfully.${plain}"
-                iplimit_main
+            read -rp "New Ban Duration in Minutes [default 30]: " NUM
+            [[ -z "$NUM" ]] && NUM=30
+            if [[ $NUM =~ ^[0-9]+$ ]]; then
+                create_iplimit_jails "${NUM}"
+                if [[ $release == "alpine" ]]; then
+                    rc-service fail2ban restart
+                else
+                    systemctl restart fail2ban
+                fi
+                echo -e "${green}Ban duration updated.${plain}"
             else
-                echo -e "${yellow}Cancelled.${plain}"
+                echo -e "${red}${NUM} is not a number!${plain}"
             fi
-            iplimit_main
             ;;
         4)
-            show_banlog
-            iplimit_main
+            confirm "Unban everyone?" "y" && {
+                fail2ban-client reload --restart --unban 3x-ipl
+                truncate -s 0 "${iplimit_banned_log_path}"
+                echo -e "${green}All IPs unbanned.${plain}"
+            }
             ;;
         5)
-            read -rp "Enter the IP address you want to ban: " ban_ip
+            read -rp "IP to ban: " ban_ip
             ip_validation
             if [[ $ban_ip =~ $ipv4_regex || $ban_ip =~ $ipv6_regex ]]; then
                 fail2ban-client set 3x-ipl banip "$ban_ip"
-                echo -e "${green}IP Address ${ban_ip} has been banned successfully.${plain}"
+                echo -e "${green}IP ${ban_ip} banned.${plain}"
             else
-                echo -e "${red}Invalid IP address format! Please try again.${plain}"
+                echo -e "${red}Invalid IP format.${plain}"
             fi
-            iplimit_main
             ;;
         6)
-            read -rp "Enter the IP address you want to unban: " unban_ip
+            read -rp "IP to unban: " unban_ip
             ip_validation
             if [[ $unban_ip =~ $ipv4_regex || $unban_ip =~ $ipv6_regex ]]; then
                 fail2ban-client set 3x-ipl unbanip "$unban_ip"
-                echo -e "${green}IP Address ${unban_ip} has been unbanned successfully.${plain}"
+                echo -e "${green}IP ${unban_ip} unbanned.${plain}"
             else
-                echo -e "${red}Invalid IP address format! Please try again.${plain}"
+                echo -e "${red}Invalid IP format.${plain}"
             fi
-            iplimit_main
             ;;
         7)
-            tail -f /var/log/fail2ban.log
-            iplimit_main
+            show_banlog
             ;;
         8)
-            service fail2ban status
-            iplimit_main
+            echo -e "${yellow}Press Ctrl+C to exit real-time logs${plain}"
+            tail -f /var/log/fail2ban.log
             ;;
         9)
+            fail2ban-client status 3x-ipl
+            ;;
+        10)
             if [[ $release == "alpine" ]]; then
                 rc-service fail2ban restart
             else
                 systemctl restart fail2ban
             fi
-            iplimit_main
+            echo -e "${green}Fail2ban restarted.${plain}"
             ;;
-        10)
+        11)
             remove_iplimit
-            iplimit_main
             ;;
         *)
-            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-            iplimit_main
+            echo -e "${red}Invalid option. Please select a valid number.${plain}"
             ;;
     esac
+
+    iplimit_main  # Return to menu
 }
 
 setup_fail2ban_iplimit() {
