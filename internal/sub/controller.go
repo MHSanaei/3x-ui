@@ -345,7 +345,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8") {
+	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
 		logSubscriptionRoute(userAgent, "json")
 		return
 	}
@@ -598,8 +598,9 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
-		c.Header("Content-Disposition", `attachment; filename="subscription.json"`)
-		a.serveJson(c, a.jsonAlwaysArray, "application/json; charset=utf-8")
+		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
+			writeSubError(c, nil)
+		}
 		return
 	}
 	if a.maybeServeSubPage(c) {
@@ -609,12 +610,12 @@ func (a *SUBController) subJsons(c *gin.Context) {
 }
 
 func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, contentType string) {
-	if !a.serveJsonBody(c, alwaysReturnArray, contentType) {
+	if !a.serveJsonBody(c, alwaysReturnArray, contentType, false) {
 		writeSubError(c, nil)
 	}
 }
 
-func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string) bool {
+func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
@@ -630,6 +631,9 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	}
 	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	if rawDownload {
+		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
+	}
 
 	c.Data(200, contentType, []byte(jsonSub))
 	return true

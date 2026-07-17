@@ -400,7 +400,9 @@ func TestFormatEndpointsRawViewBypassesBrowserPage(t *testing.T) {
 	seedSubDB(t)
 	seedSubInbound(t, "s1", "raw", 4481, 1, `{"network":"tcp","security":"none"}`)
 	gin.SetMode(gin.TestMode)
+	oldDistFS := distFS
 	distFS = testDistFS
+	t.Cleanup(func() { distFS = oldDistFS })
 	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
 
 	tests := []struct {
