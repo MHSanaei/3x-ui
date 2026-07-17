@@ -57,7 +57,7 @@ export default function NodesPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
 
   const { nodes, loading, fetched, fetchError, refetch, totals } = useNodesQuery();
-  const { create, update, remove, setEnable, testConnection, fetchFingerprint, fetchInbounds, probe, updatePanels } = useNodeMutations();
+  const { create, update, remove, setEnable, testConnection, testSSH, fetchFingerprint, fetchInbounds, probe, updatePanels } = useNodeMutations();
 
   const { data: latestVersion = '' } = useQuery({
     queryKey: ['server', 'panelUpdateInfo'],
@@ -305,6 +305,7 @@ export default function NodesPage() {
           mode={formMode}
           node={formNode}
           testConnection={testConnection}
+          testSSH={testSSH}
           fetchFingerprint={fetchFingerprint}
           fetchInbounds={fetchInbounds}
           save={onSave}

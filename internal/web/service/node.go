@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
@@ -106,6 +107,10 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	err := db.Model(model.Node{}).Order("id asc").Find(&nodes).Error
 	if err != nil || len(nodes) == 0 {
 		return nodes, err
+	}
+	for _, n := range nodes {
+		n.SshPasswordSet = n.SshPassword != ""
+		n.SshPrivateKeySet = n.SshPrivateKey != ""
 	}
 
 	type inboundRow struct {
@@ -333,6 +338,8 @@ func (s *NodeService) GetById(id int) (*model.Node, error) {
 	if err := db.Model(model.Node{}).Where("id = ?", id).First(n).Error; err != nil {
 		return nil, err
 	}
+	n.SshPasswordSet = n.SshPassword != ""
+	n.SshPrivateKeySet = n.SshPrivateKey != ""
 	return n, nil
 }
 
@@ -375,8 +382,17 @@ func (s *NodeService) normalize(n *model.Node) error {
 		return common.NewError(err.Error())
 	}
 	n.Address = addr
+	if n.Mode != "ssh" {
+		n.Mode = "api"
+	}
+	if n.Mode == "ssh" {
+		return s.normalizeSSH(n)
+	}
 	if n.Port <= 0 || n.Port > 65535 {
 		return common.NewError("node port must be 1-65535")
+	}
+	if n.ApiToken == "" && n.TlsVerifyMode != "mtls" {
+		return common.NewError("node api token is required")
 	}
 	if n.Scheme != "http" && n.Scheme != "https" {
 		n.Scheme = "https"
@@ -416,6 +432,68 @@ func (s *NodeService) normalize(n *model.Node) error {
 	return nil
 }
 
+// normalizeSSH validates an SSH-mode node and encrypts its credentials. An SSH
+// node has no panel yet, so the API-mode fields (port, token, scheme, inbound
+// sync) are cleared rather than validated: leaving stale values behind would let
+// a later mode flip resurrect a token that no longer applies.
+func (s *NodeService) normalizeSSH(n *model.Node) error {
+	n.SshUser = strings.TrimSpace(n.SshUser)
+	if n.SshUser == "" {
+		return common.NewError("ssh username is required")
+	}
+	if n.SshPort <= 0 {
+		n.SshPort = 22
+	}
+	if n.SshPort > 65535 {
+		return common.NewError("ssh port must be 1-65535")
+	}
+	if n.SshAuthType != "key" {
+		n.SshAuthType = "password"
+	}
+	if n.SshHostKeyMode != "pin" && n.SshHostKeyMode != "skip" {
+		n.SshHostKeyMode = "trust"
+	}
+	n.SshHostKeySha256 = strings.TrimSpace(n.SshHostKeySha256)
+	if n.SshHostKeyMode == "pin" && n.SshHostKeySha256 == "" {
+		return common.NewError("host key pinning requires a fingerprint; test the connection first to learn it")
+	}
+
+	switch n.SshAuthType {
+	case "key":
+		if strings.TrimSpace(n.SshPrivateKey) == "" {
+			return common.NewError("ssh private key is required")
+		}
+	default:
+		if n.SshPassword == "" {
+			return common.NewError("ssh password is required")
+		}
+	}
+
+	encrypted, err := crypto.EncryptSecret(n.SshPassword)
+	if err != nil {
+		return common.NewError(err.Error())
+	}
+	n.SshPassword = encrypted
+	if encrypted, err = crypto.EncryptSecret(n.SshPrivateKey); err != nil {
+		return common.NewError(err.Error())
+	}
+	n.SshPrivateKey = encrypted
+	if encrypted, err = crypto.EncryptSecret(n.SshKeyPassphrase); err != nil {
+		return common.NewError(err.Error())
+	}
+	n.SshKeyPassphrase = encrypted
+
+	n.Port = 0
+	n.ApiToken = ""
+	n.Scheme = ""
+	n.BasePath = ""
+	n.TlsVerifyMode = "verify"
+	n.PinnedCertSha256 = ""
+	n.InboundSyncMode = "all"
+	n.InboundTags = nil
+	return nil
+}
+
 func (s *NodeService) Create(n *model.Node) error {
 	if err := s.normalize(n); err != nil {
 		return err
@@ -425,6 +503,23 @@ func (s *NodeService) Create(n *model.Node) error {
 }
 
 func (s *NodeService) Update(id int, in *model.Node) error {
+	db := database.GetDB()
+	existing := &model.Node{}
+	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
+		return err
+	}
+	// SSH credentials are json:"-", so an edit that does not re-enter them
+	// arrives empty. Carry the stored ciphertext forward before normalizing,
+	// otherwise a rename would both fail validation and blank the secret.
+	if in.SshPassword == "" {
+		in.SshPassword = existing.SshPassword
+	}
+	if in.SshPrivateKey == "" {
+		in.SshPrivateKey = existing.SshPrivateKey
+	}
+	if in.SshKeyPassphrase == "" {
+		in.SshKeyPassphrase = existing.SshKeyPassphrase
+	}
 	if err := s.normalize(in); err != nil {
 		return err
 	}
@@ -432,14 +527,10 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if err != nil {
 		return err
 	}
-	db := database.GetDB()
-	existing := &model.Node{}
-	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
-		return err
-	}
 	updates := map[string]any{
 		"name":                  in.Name,
 		"remark":                in.Remark,
+		"mode":                  in.Mode,
 		"scheme":                in.Scheme,
 		"address":               in.Address,
 		"port":                  in.Port,
@@ -452,6 +543,14 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
+		"ssh_port":              in.SshPort,
+		"ssh_user":              in.SshUser,
+		"ssh_auth_type":         in.SshAuthType,
+		"ssh_password":          in.SshPassword,
+		"ssh_private_key":       in.SshPrivateKey,
+		"ssh_key_passphrase":    in.SshKeyPassphrase,
+		"ssh_host_key_mode":     in.SshHostKeyMode,
+		"ssh_host_key_sha256":   in.SshHostKeySha256,
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
@@ -725,6 +824,70 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
 	}
 	return nil
+}
+
+// SSHHeartbeatPatch is the result of reaching an ssh-mode node. It is
+// deliberately narrower than HeartbeatPatch: an SSH probe learns reachability
+// and the host's identity, but nothing about a panel or Xray, so it must not
+// write those columns. Status is "reachable"/"unreachable" rather than
+// online/offline — "online" drives panel-only work such as traffic sync and the
+// CPU/memory history charts, and an ssh-mode node feeds neither.
+type SSHHeartbeatPatch struct {
+	Status        string
+	LastHeartbeat int64
+	LatencyMs     int
+	LastError     string
+	OsName        string
+	OsVersion     string
+	HostKeySha256 string
+}
+
+// UpdateSSHHeartbeat records the outcome of an SSH reachability probe. It never
+// overwrites a stored host key with an empty one, so a failed probe cannot
+// silently unpin a node.
+func (s *NodeService) UpdateSSHHeartbeat(id int, p SSHHeartbeatPatch) error {
+	db := database.GetDB()
+	updates := map[string]any{
+		"status":         p.Status,
+		"last_heartbeat": p.LastHeartbeat,
+		"latency_ms":     p.LatencyMs,
+		"last_error":     p.LastError,
+	}
+	if p.OsName != "" {
+		updates["ssh_os_name"] = p.OsName
+	}
+	if p.OsVersion != "" {
+		updates["ssh_os_version"] = p.OsVersion
+	}
+	if p.HostKeySha256 != "" {
+		updates["ssh_host_key_sha256"] = p.HostKeySha256
+	}
+	return db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// ProbeSSH reports whether an ssh-mode node accepts a connection, learning its
+// OS and host key in passing. On a trust-on-first-use node the observed key is
+// returned so the caller can pin it.
+func (s *NodeService) ProbeSSH(ctx context.Context, n *model.Node) SSHHeartbeatPatch {
+	started := time.Now()
+	sshService := SSHService{}
+	result := sshService.TestConnection(ctx, n)
+	patch := SSHHeartbeatPatch{
+		LastHeartbeat: time.Now().Unix(),
+		LatencyMs:     int(time.Since(started).Milliseconds()),
+		OsName:        result.OsName,
+		OsVersion:     result.OsVersion,
+	}
+	if result.Success {
+		patch.Status = "reachable"
+		if n.SshHostKeyMode == "trust" && strings.TrimSpace(n.SshHostKeySha256) == "" {
+			patch.HostKeySha256 = result.HostKeySha256
+		}
+		return patch
+	}
+	patch.Status = "unreachable"
+	patch.LastError = result.Message
+	return patch
 }
 
 // warnedDupGuid remembers the (nodeID -> guid) pairs already warned about so a

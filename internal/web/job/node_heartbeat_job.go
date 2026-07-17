@@ -17,6 +17,10 @@ import (
 const (
 	nodeHeartbeatConcurrency    = 32
 	nodeHeartbeatRequestTimeout = 4 * time.Second
+	// An SSH handshake is slower than an HTTP status call and runs a small
+	// command to read the remote OS, so it gets a wider budget than the panel
+	// probe rather than reporting a healthy-but-slow server as unreachable.
+	nodeSSHProbeTimeout = 15 * time.Second
 )
 
 type NodeHeartbeatJob struct {
@@ -55,6 +59,13 @@ func (j *NodeHeartbeatJob) Run() {
 		common.GoRecover("node-heartbeat:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
+			// An ssh-mode node has no panel to poll: an HTTP probe would always
+			// fail and park it at "offline" with a misleading error, so its
+			// reachability is measured over SSH instead.
+			if n.Mode == "ssh" {
+				j.probeOneSSH(n)
+				return
+			}
 			j.probeOne(n)
 		})
 	}
@@ -94,6 +105,18 @@ func (j *NodeHeartbeatJob) probeOne(n *model.Node) {
 		dcancel()
 	} else {
 		j.nodeService.ClearDescendants(n.Id)
+	}
+}
+
+// probeOneSSH measures an ssh-mode node's reachability. It does not emit
+// node.up / node.down: those events carry panel and Xray health that an SSH
+// probe cannot observe, and their consumers act on panel-level state.
+func (j *NodeHeartbeatJob) probeOneSSH(n *model.Node) {
+	ctx, cancel := context.WithTimeout(context.Background(), nodeSSHProbeTimeout)
+	defer cancel()
+	patch := j.nodeService.ProbeSSH(ctx, n)
+	if err := j.nodeService.UpdateSSHHeartbeat(n.Id, patch); err != nil {
+		logger.Warning("node heartbeat: update ssh node", n.Id, "failed:", err)
 	}
 }
 

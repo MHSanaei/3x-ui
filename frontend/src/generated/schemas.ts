@@ -2102,6 +2102,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 45.1,
         "type": "number"
       },
+      "mode": {
+        "description": "Mode is how the panel reaches this server: \"api\" talks to an installed\n3x-ui panel over HTTP, \"ssh\" reaches a plain Linux box over SSH before any\npanel exists. It defaults to \"api\" so every row written before SSH mode\nexisted keeps its original meaning. The two are access modes of one\nserver, not separate kinds of server: an \"ssh\" node becomes an \"api\" node\nin place once a panel is installed on it.",
+        "enum": [
+          "api",
+          "ssh"
+        ],
+        "example": "api",
+        "type": "string"
+      },
       "name": {
         "example": "de-fra-1",
         "type": "string"
@@ -2149,6 +2158,49 @@ export const SCHEMAS: Record<string, unknown> = {
           "https"
         ],
         "example": "https",
+        "type": "string"
+      },
+      "sshAuthType": {
+        "enum": [
+          "password",
+          "key"
+        ],
+        "example": "password",
+        "type": "string"
+      },
+      "sshHostKeyMode": {
+        "enum": [
+          "pin",
+          "trust",
+          "skip"
+        ],
+        "example": "trust",
+        "type": "string"
+      },
+      "sshHostKeySha256": {
+        "type": "string"
+      },
+      "sshOsName": {
+        "type": "string"
+      },
+      "sshOsVersion": {
+        "type": "string"
+      },
+      "sshPasswordSet": {
+        "type": "boolean"
+      },
+      "sshPort": {
+        "description": "SSH access fields, used only when Mode == \"ssh\".\n\nSshPassword and SshPrivateKey are encrypted at rest with AES-256-GCM under\nXUI_SECRET_KEY (internal/util/crypto). They must be replayed to the remote\nhost to authenticate, so unlike a login password they cannot be hashed.\nBoth are json:\"-\": they are write-only over the API and never serialized\nback to a client. SshPasswordSet / SshPrivateKeySet report whether a\ncredential exists so the UI can show \"configured\" without reading it.\n\nSshHostKeyMode mirrors TlsVerifyMode's shape for the SSH transport:\n\"pin\" verifies the host key against SshHostKeySha256, \"trust\" accepts and\nrecords the key on first connect (trust on first use), \"skip\" accepts any\nhost key. Anything other than \"skip\" prevents handing credentials to a\nmachine-in-the-middle.",
+        "example": 22,
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "sshPrivateKeySet": {
+        "type": "boolean"
+      },
+      "sshUser": {
+        "example": "root",
         "type": "string"
       },
       "status": {
@@ -2213,6 +2265,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastHeartbeat",
       "latencyMs",
       "memPct",
+      "mode",
       "name",
       "netDown",
       "netUp",
@@ -2223,6 +2276,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "port",
       "remark",
       "scheme",
+      "sshAuthType",
+      "sshHostKeyMode",
+      "sshHostKeySha256",
+      "sshOsName",
+      "sshOsVersion",
+      "sshPasswordSet",
+      "sshPort",
+      "sshPrivateKeySet",
+      "sshUser",
       "status",
       "tlsVerifyMode",
       "updatedAt",
@@ -2444,6 +2506,35 @@ export const SCHEMAS: Record<string, unknown> = {
       "tls13",
       "tlsVersion",
       "x25519"
+    ],
+    "type": "object"
+  },
+  "SSHTestResult": {
+    "description": "SSHTestResult is what the panel shows after a connection test.",
+    "properties": {
+      "hostKeySha256": {
+        "example": "sha256:abc123",
+        "type": "string"
+      },
+      "message": {
+        "example": "Authentication failed",
+        "type": "string"
+      },
+      "osName": {
+        "example": "Ubuntu",
+        "type": "string"
+      },
+      "osVersion": {
+        "example": "24.04",
+        "type": "string"
+      },
+      "success": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "success"
     ],
     "type": "object"
   },

@@ -513,6 +513,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "lastHeartbeat": 1700000000,
     "latencyMs": 42,
     "memPct": 45.1,
+    "mode": "api",
     "name": "de-fra-1",
     "netDown": 2097152,
     "netUp": 1048576,
@@ -524,6 +525,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "port": 2053,
     "remark": "",
     "scheme": "https",
+    "sshAuthType": "password",
+    "sshHostKeyMode": "trust",
+    "sshHostKeySha256": "",
+    "sshOsName": "",
+    "sshOsVersion": "",
+    "sshPasswordSet": false,
+    "sshPort": 22,
+    "sshPrivateKeySet": false,
+    "sshUser": "root",
     "status": "online",
     "tlsVerifyMode": "verify",
     "transitive": false,
@@ -579,6 +589,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "tls13": true,
     "tlsVersion": "1.3",
     "x25519": true
+  },
+  "SSHTestResult": {
+    "hostKeySha256": "sha256:abc123",
+    "message": "Authentication failed",
+    "osName": "Ubuntu",
+    "osVersion": "24.04",
+    "success": true
   },
   "Setting": {
     "id": 0,

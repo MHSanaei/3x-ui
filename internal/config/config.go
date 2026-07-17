@@ -193,6 +193,15 @@ func GetDBDSN() string {
 	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
 }
 
+// GetSecretKey returns the master key used to encrypt reversible credentials at
+// rest (SSH passwords and private keys). It is deliberately env-only and never
+// persisted next to the ciphertext it protects: a key stored in the same
+// database as the data is obfuscation, not encryption. Losing XUI_SECRET_KEY
+// means the stored credentials cannot be recovered and must be re-entered.
+func GetSecretKey() string {
+	return strings.TrimSpace(os.Getenv("XUI_SECRET_KEY"))
+}
+
 // GetEnvFilePaths returns the candidate service environment file paths (the file
 // systemd loads via EnvironmentFile) across the supported distro families.
 func GetEnvFilePaths() []string {

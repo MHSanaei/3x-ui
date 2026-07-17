@@ -5,6 +5,7 @@ import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { ProbeResultSchema, type ProbeResult } from '@/schemas/node';
+import type { SSHTestResult } from '@/generated/types';
 
 export type { ProbeResult };
 
@@ -80,6 +81,11 @@ export function useNodeMutations() {
       const raw = await HttpUtil.post('/panel/api/nodes/test', payload);
       return parseMsg(raw, ProbeResultSchema, 'nodes/test');
     },
+    testSSH: (payload: Partial<NodeRecord>, id?: number): Promise<Msg<SSHTestResult>> =>
+      HttpUtil.post<SSHTestResult>(
+        id ? `/panel/api/nodes/testSSH?id=${id}` : '/panel/api/nodes/testSSH',
+        payload,
+      ),
     fetchFingerprint: (payload: Partial<NodeRecord>): Promise<Msg<string>> =>
       HttpUtil.post<string>('/panel/api/nodes/certFingerprint', payload),
     fetchInbounds: (payload: Partial<NodeRecord>): Promise<Msg<RemoteInboundOption[]>> =>

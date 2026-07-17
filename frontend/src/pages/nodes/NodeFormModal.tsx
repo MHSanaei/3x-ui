@@ -18,6 +18,7 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import type { RemoteInboundOption } from '@/api/queries/useNodeMutations';
 import type { Msg } from '@/utils';
 import { NodeFormSchema, type NodeFormValues, type ProbeResult } from '@/schemas/node';
+import type { SSHTestResult } from '@/generated/types';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useOutboundTagGroups } from '@/api/queries/useOutboundTags';
 import './NodeFormModal.css';
@@ -29,6 +30,7 @@ interface NodeFormModalProps {
   mode: Mode;
   node: NodeRecord | null;
   testConnection: (payload: Partial<NodeRecord>) => Promise<Msg<ProbeResult>>;
+  testSSH: (payload: Partial<NodeRecord>, id?: number) => Promise<Msg<SSHTestResult>>;
   fetchFingerprint: (payload: Partial<NodeRecord>) => Promise<Msg<string>>;
   fetchInbounds: (payload: Partial<NodeRecord>) => Promise<Msg<RemoteInboundOption[]>>;
   save: (payload: Partial<NodeRecord>) => Promise<Msg<unknown>>;
@@ -40,6 +42,7 @@ function defaultValues(): NodeFormValues {
     id: 0,
     name: '',
     remark: '',
+    mode: 'api',
     scheme: 'https',
     address: '',
     port: 2053,
@@ -52,6 +55,14 @@ function defaultValues(): NodeFormValues {
     inboundSyncMode: 'all',
     inboundTags: [],
     outboundTag: '',
+    sshPort: 22,
+    sshUser: 'root',
+    sshAuthType: 'password',
+    sshPassword: '',
+    sshPrivateKey: '',
+    sshKeyPassphrase: '',
+    sshHostKeyMode: 'trust',
+    sshHostKeySha256: '',
   };
 }
 
@@ -60,6 +71,7 @@ export default function NodeFormModal({
   mode,
   node,
   testConnection,
+  testSSH,
   fetchFingerprint,
   fetchInbounds,
   save,
@@ -75,9 +87,12 @@ export default function NodeFormModal({
   const [fetchingInbounds, setFetchingInbounds] = useState(false);
   const [inboundOptions, setInboundOptions] = useState<RemoteInboundOption[]>([]);
   const [testResult, setTestResult] = useState<ProbeResult | null>(null);
+  const [sshTestResult, setSshTestResult] = useState<SSHTestResult | null>(null);
+  const accessMode = useWatch({ control: methods.control, name: 'mode' }) ?? 'api';
   const scheme = useWatch({ control: methods.control, name: 'scheme' }) ?? 'https';
   const tlsVerifyMode = useWatch({ control: methods.control, name: 'tlsVerifyMode' }) ?? 'verify';
   const inboundSyncMode = useWatch({ control: methods.control, name: 'inboundSyncMode' }) ?? 'all';
+  const sshAuthType = useWatch({ control: methods.control, name: 'sshAuthType' }) ?? 'password';
   const { data: outboundGroups } = useOutboundTagGroups({ excludeBlackhole: true });
 
   // Outbounds and balancers share one picker (like the panel-outbound selector);
@@ -110,9 +125,11 @@ export default function NodeFormModal({
       }
       : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
+    next.mode = (node?.mode as 'api' | 'ssh') || 'api';
     methods.reset(next);
     setInboundOptions((next.inboundTags || []).map((tag) => ({ tag })));
     setTestResult(null);
+    setSshTestResult(null);
   }, [open, mode, node, methods]);
 
   const title = useMemo(
@@ -121,17 +138,37 @@ export default function NodeFormModal({
   );
 
   function buildPayload(values: NodeFormValues): Partial<NodeRecord> {
-    return {
+    const base: Partial<NodeRecord> = {
       id: values.id || 0,
       name: values.name.trim(),
       remark: values.remark?.trim() || '',
-      scheme: values.scheme,
+      mode: values.mode,
       address: values.address.trim(),
+      enable: values.enable,
+      allowPrivateAddress: values.allowPrivateAddress,
+    };
+    if (values.mode === 'ssh') {
+      const ssh: Partial<NodeRecord> = {
+        ...base,
+        sshPort: values.sshPort,
+        sshUser: values.sshUser.trim(),
+        sshAuthType: values.sshAuthType,
+        sshHostKeyMode: values.sshHostKeyMode,
+        sshHostKeySha256: values.sshHostKeyMode === 'pin' ? values.sshHostKeySha256.trim() : values.sshHostKeySha256.trim(),
+      };
+      // Credentials are write-only: send them only when the operator entered a
+      // value, so an untouched edit keeps the stored secret instead of blanking it.
+      if (values.sshPassword) ssh.sshPassword = values.sshPassword;
+      if (values.sshPrivateKey) ssh.sshPrivateKey = values.sshPrivateKey;
+      if (values.sshKeyPassphrase) ssh.sshKeyPassphrase = values.sshKeyPassphrase;
+      return ssh;
+    }
+    return {
+      ...base,
+      scheme: values.scheme,
       port: values.port,
       basePath: values.basePath.trim() || '/',
       apiToken: values.apiToken.trim(),
-      enable: values.enable,
-      allowPrivateAddress: values.allowPrivateAddress,
       tlsVerifyMode: values.tlsVerifyMode,
       pinnedCertSha256: values.tlsVerifyMode === 'pin' ? values.pinnedCertSha256.trim() : '',
       inboundSyncMode: values.inboundSyncMode,
@@ -151,6 +188,26 @@ export default function NodeFormModal({
         setTestResult(msg.obj);
       } else {
         setTestResult({ status: 'offline', error: msg?.msg || 'unknown error' });
+      }
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function onTestSSH() {
+    if (!(await methods.trigger(['address', 'sshUser', 'sshPort']))) return;
+    setTesting(true);
+    setSshTestResult(null);
+    try {
+      const values = methods.getValues();
+      const msg = await testSSH(buildPayload(values), values.id || undefined);
+      if (msg?.success && msg.obj) {
+        setSshTestResult(msg.obj);
+        if (msg.obj.success && msg.obj.hostKeySha256 && values.sshHostKeyMode === 'pin' && !values.sshHostKeySha256) {
+          methods.setValue('sshHostKeySha256', msg.obj.hostKeySha256);
+        }
+      } else {
+        setSshTestResult({ success: false, message: msg?.msg || t('pages.nodes.connectionFailed') });
       }
     } finally {
       setTesting(false);
@@ -199,6 +256,23 @@ export default function NodeFormModal({
     setSubmitting(true);
     try {
       const payload = buildPayload(result.data);
+      if (result.data.mode === 'ssh') {
+        // An SSH node is gated on a successful SSH handshake, not an "online"
+        // panel probe: it has no panel to answer /status.
+        const test = await testSSH(payload, result.data.id || undefined);
+        const obj = test?.success ? test.obj : null;
+        if (!obj || !obj.success) {
+          setSshTestResult(obj ?? { success: false, message: test?.msg || t('pages.nodes.connectionFailed') });
+          return;
+        }
+        setSshTestResult(obj);
+        if (obj.hostKeySha256 && result.data.sshHostKeyMode === 'pin' && !payload.sshHostKeySha256) {
+          payload.sshHostKeySha256 = obj.hostKeySha256;
+        }
+        const msg = await save(payload);
+        if (msg?.success) onOpenChange(false);
+        return;
+      }
       const test = await testConnection(payload);
       const probe = test?.success ? test.obj : null;
       if (!probe || probe.status !== 'online') {
@@ -252,6 +326,20 @@ export default function NodeFormModal({
               </Col>
             </Row>
 
+            <FormField
+              label={t('pages.nodes.accessMode')}
+              name="mode"
+              tooltip={t('pages.nodes.accessModeHint')}
+            >
+              <Select
+                options={[
+                  { value: 'api', label: t('pages.nodes.accessModeApi') },
+                  { value: 'ssh', label: t('pages.nodes.accessModeSsh') },
+                ]}
+              />
+            </FormField>
+
+            {accessMode === 'api' && (
             <Row gutter={16}>
               <Col xs={24} md={6}>
                 <FormField
@@ -288,7 +376,9 @@ export default function NodeFormModal({
                 </FormField>
               </Col>
             </Row>
+            )}
 
+            {accessMode === 'api' && (
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <FormField label={t('pages.nodes.basePath')} name="basePath">
@@ -305,6 +395,7 @@ export default function NodeFormModal({
                 </FormField>
               </Col>
             </Row>
+            )}
 
             <FormField
               label={t('pages.nodes.allowPrivateAddress')}
@@ -315,6 +406,122 @@ export default function NodeFormModal({
               <Switch />
             </FormField>
 
+            {accessMode === 'ssh' && (
+              <>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <FormField
+                      label={t('pages.nodes.address')}
+                      name="address"
+                      rules={{ validate: rhfZodValidate(NodeFormSchema.shape.address) }}
+                    >
+                      <Input placeholder={t('pages.nodes.addressPlaceholder')} />
+                    </FormField>
+                  </Col>
+                  <Col xs={24} md={6}>
+                    <FormField label={t('pages.nodes.sshPort')} name="sshPort">
+                      <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+                    </FormField>
+                  </Col>
+                  <Col xs={24} md={6}>
+                    <FormField
+                      label={t('pages.nodes.sshUser')}
+                      name="sshUser"
+                      rules={{ validate: rhfZodValidate(NodeFormSchema.shape.sshUser) }}
+                    >
+                      <Input placeholder="root" />
+                    </FormField>
+                  </Col>
+                </Row>
+
+                <FormField label={t('pages.nodes.sshAuthType')} name="sshAuthType">
+                  <Select
+                    options={[
+                      { value: 'password', label: t('pages.nodes.sshAuthPassword') },
+                      { value: 'key', label: t('pages.nodes.sshAuthKey') },
+                    ]}
+                  />
+                </FormField>
+
+                {sshAuthType === 'password' ? (
+                  <FormField
+                    label={t('pages.nodes.sshPassword')}
+                    name="sshPassword"
+                    tooltip={node?.sshPasswordSet ? t('pages.nodes.sshSecretKeepHint') : undefined}
+                  >
+                    <Input.Password
+                      autoComplete="new-password"
+                      placeholder={node?.sshPasswordSet ? t('pages.nodes.sshSecretStored') : ''}
+                    />
+                  </FormField>
+                ) : (
+                  <>
+                    <FormField
+                      label={t('pages.nodes.sshPrivateKey')}
+                      name="sshPrivateKey"
+                      tooltip={node?.sshPrivateKeySet ? t('pages.nodes.sshSecretKeepHint') : undefined}
+                    >
+                      <Input.TextArea
+                        rows={4}
+                        placeholder={node?.sshPrivateKeySet ? t('pages.nodes.sshSecretStored') : '-----BEGIN OPENSSH PRIVATE KEY-----'}
+                      />
+                    </FormField>
+                    <FormField label={t('pages.nodes.sshKeyPassphrase')} name="sshKeyPassphrase">
+                      <Input.Password autoComplete="new-password" />
+                    </FormField>
+                  </>
+                )}
+
+                <FormField
+                  label={t('pages.nodes.sshHostKeyMode')}
+                  name="sshHostKeyMode"
+                  tooltip={t('pages.nodes.sshHostKeyModeHint')}
+                >
+                  <Select
+                    options={[
+                      { value: 'trust', label: t('pages.nodes.sshHostKeyTrust') },
+                      { value: 'pin', label: t('pages.nodes.sshHostKeyPin') },
+                      { value: 'skip', label: t('pages.nodes.sshHostKeySkip') },
+                    ]}
+                  />
+                </FormField>
+
+                <FormField label={t('pages.nodes.enable')} name="enable" valueProp="checked">
+                  <Switch />
+                </FormField>
+
+                <div className="test-row">
+                  <Button type="default" loading={testing} onClick={onTestSSH}>
+                    {t('pages.nodes.testConnection')}
+                  </Button>
+                  {sshTestResult && (
+                    <div className="test-result">
+                      {sshTestResult.success ? (
+                        <Alert
+                          type="success"
+                          showIcon
+                          title={t('pages.nodes.sshConnectionOk')}
+                          description={[
+                            sshTestResult.osName ? `${sshTestResult.osName} ${sshTestResult.osVersion || ''}`.trim() : '',
+                            sshTestResult.hostKeySha256 || '',
+                          ].filter(Boolean).join(' — ') || undefined}
+                        />
+                      ) : (
+                        <Alert
+                          type="error"
+                          showIcon
+                          title={t('pages.nodes.connectionFailed')}
+                          description={sshTestResult.message}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {accessMode === 'api' && (
+            <>
             <FormField
               label={t('pages.nodes.tlsVerifyMode')}
               name="tlsVerifyMode"
@@ -451,6 +658,8 @@ export default function NodeFormModal({
                 </div>
               )}
             </div>
+            </>
+            )}
           </Form>
         </FormProvider>
       </Modal>

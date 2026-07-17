@@ -38,6 +38,7 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.POST("/setEnable/:id", a.setEnable)
 
 	g.POST("/test", a.test)
+	g.POST("/testSSH", a.testSSH)
 	g.POST("/certFingerprint", a.certFingerprint)
 	g.POST("/inbounds", a.inbounds)
 	g.POST("/probe/:id", a.probe)
@@ -130,7 +131,7 @@ func (a *NodeController) add(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if n.OutboundTag == "" {
+	if n.Mode != "ssh" && n.OutboundTag == "" {
 		if err := a.ensureReachable(c, n); err != nil {
 			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.add"), err)
 			return
@@ -167,7 +168,7 @@ func (a *NodeController) update(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
 		return
 	}
-	if n.OutboundTag == "" && old.OutboundTag == "" {
+	if n.Mode != "ssh" && n.OutboundTag == "" && old.OutboundTag == "" {
 		if err := a.ensureReachable(c, n); err != nil {
 			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.update"), err)
 			return
@@ -267,6 +268,40 @@ func (a *NodeController) test(c *gin.Context) {
 		patch, err = a.nodeService.Probe(ctx, n)
 	}
 	jsonObj(c, patch.ToUI(err == nil), nil)
+}
+
+// testSSH verifies an ssh-mode node's credentials before it is saved and
+// reports the host key so an operator can adopt it under trust-on-first-use.
+// When an existing node is edited without re-entering its secret (they are
+// write-only over the API), the stored ciphertext is carried forward so the
+// test reflects what would actually be saved.
+func (a *NodeController) testSSH(c *gin.Context) {
+	n := &model.Node{}
+	if err := c.ShouldBind(n); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.test"), err)
+		return
+	}
+	n.Mode = "ssh"
+	if n.SshPassword == "" || n.SshPrivateKey == "" || n.SshKeyPassphrase == "" {
+		if id, err := strconv.Atoi(c.Query("id")); err == nil {
+			if old, err := a.nodeService.GetById(id); err == nil && old != nil && old.Mode == "ssh" {
+				if n.SshPassword == "" {
+					n.SshPassword = old.SshPassword
+				}
+				if n.SshPrivateKey == "" {
+					n.SshPrivateKey = old.SshPrivateKey
+				}
+				if n.SshKeyPassphrase == "" {
+					n.SshKeyPassphrase = old.SshKeyPassphrase
+				}
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
+	result := (&service.SSHService{}).TestConnection(ctx, n)
+	jsonObj(c, result, nil)
 }
 
 func (a *NodeController) certFingerprint(c *gin.Context) {

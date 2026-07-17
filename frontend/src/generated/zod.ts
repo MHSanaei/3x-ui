@@ -524,6 +524,7 @@ export const NodeSchema = z.object({
   lastHeartbeat: z.number().int(),
   latencyMs: z.number().int(),
   memPct: z.number(),
+  mode: z.enum(['api', 'ssh']),
   name: z.string(),
   netDown: z.number().int(),
   netUp: z.number().int(),
@@ -535,6 +536,15 @@ export const NodeSchema = z.object({
   port: z.number().int().min(1).max(65535),
   remark: z.string(),
   scheme: z.enum(['http', 'https']),
+  sshAuthType: z.enum(['password', 'key']),
+  sshHostKeyMode: z.enum(['pin', 'trust', 'skip']),
+  sshHostKeySha256: z.string(),
+  sshOsName: z.string(),
+  sshOsVersion: z.string(),
+  sshPasswordSet: z.boolean(),
+  sshPort: z.number().int().min(1).max(65535),
+  sshPrivateKeySet: z.boolean(),
+  sshUser: z.string(),
   status: z.string(),
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin', 'mtls']),
   transitive: z.boolean().optional(),
@@ -598,6 +608,15 @@ export const RealityScanResultSchema = z.object({
   x25519: z.boolean(),
 });
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
+
+export const SSHTestResultSchema = z.object({
+  hostKeySha256: z.string().optional(),
+  message: z.string().optional(),
+  osName: z.string().optional(),
+  osVersion: z.string().optional(),
+  success: z.boolean(),
+});
+export type SSHTestResult = z.infer<typeof SSHTestResultSchema>;
 
 export const SettingSchema = z.object({
   id: z.number().int(),

@@ -494,6 +494,7 @@ export interface Node {
   lastHeartbeat: number;
   latencyMs: number;
   memPct: number;
+  mode: string;
   name: string;
   netDown: number;
   netUp: number;
@@ -505,6 +506,15 @@ export interface Node {
   port: number;
   remark: string;
   scheme: string;
+  sshAuthType: string;
+  sshHostKeyMode: string;
+  sshHostKeySha256: string;
+  sshOsName: string;
+  sshOsVersion: string;
+  sshPasswordSet: boolean;
+  sshPort: number;
+  sshPrivateKeySet: boolean;
+  sshUser: string;
   status: string;
   tlsVerifyMode: string;
   transitive?: boolean;
@@ -562,6 +572,14 @@ export interface RealityScanResult {
   tls13: boolean;
   tlsVersion: string;
   x25519: boolean;
+}
+
+export interface SSHTestResult {
+  hostKeySha256?: string;
+  message?: string;
+  osName?: string;
+  osVersion?: string;
+  success: boolean;
 }
 
 export interface Setting {

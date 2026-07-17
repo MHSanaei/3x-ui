@@ -116,7 +116,7 @@ func TestNodeService_Normalize_Valid(t *testing.T) {
 
 func TestNodeService_Normalize_KeepsValidScheme(t *testing.T) {
 	s := &NodeService{}
-	n := &model.Node{Name: "n", Address: "example.com", Port: 80, Scheme: "http"}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 80, Scheme: "http", ApiToken: "tok"}
 	if err := s.normalize(n); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestNodeService_Normalize_RejectsOutOfRangePort(t *testing.T) {
 
 func TestNodeService_Normalize_OverridesUnknownScheme(t *testing.T) {
 	s := &NodeService{}
-	n := &model.Node{Name: "n", Address: "example.com", Port: 443, Scheme: "ftp"}
+	n := &model.Node{Name: "n", Address: "example.com", Port: 443, Scheme: "ftp", ApiToken: "tok"}
 	if err := s.normalize(n); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -168,6 +168,7 @@ func TestNodeService_NormalizeInboundSelection(t *testing.T) {
 		Name:            "n",
 		Address:         "example.com",
 		Port:            443,
+		ApiToken:        "tok",
 		InboundSyncMode: "selected",
 		InboundTags:     []string{" alpha ", "", "beta", "alpha"},
 	}

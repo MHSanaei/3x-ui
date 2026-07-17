@@ -37,6 +37,19 @@ export const NodeRecordSchema = z.object({
   // Backend serializes a nil []string as null for nodes saved before #5178.
   inboundTags: z.array(z.string()).nullish(),
   outboundTag: z.string().optional(),
+  // Access mode: 'api' talks to an installed panel, 'ssh' reaches a plain Linux
+  // box. Absent on rows saved before SSH mode existed, which means 'api'.
+  mode: z.enum(['api', 'ssh']).optional(),
+  sshPort: z.number().optional(),
+  sshUser: z.string().optional(),
+  sshAuthType: z.enum(['password', 'key']).optional(),
+  sshHostKeyMode: z.enum(['pin', 'trust', 'skip']).optional(),
+  sshHostKeySha256: z.string().optional(),
+  // Write-only over the API; the list only learns whether a credential exists.
+  sshPasswordSet: z.boolean().optional(),
+  sshPrivateKeySet: z.boolean().optional(),
+  sshOsName: z.string().optional(),
+  sshOsVersion: z.string().optional(),
   // Multi-hop node tree (#4983): a node's stable GUID, its parent's GUID, and
   // whether it's a read-only transitive sub-node surfaced from a downstream node.
   guid: z.string().optional(),
@@ -60,8 +73,10 @@ export const NodeFormSchema = z.object({
   id: z.number().optional(),
   name: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
   remark: z.string().optional(),
+  mode: z.enum(['api', 'ssh']).default('api'),
   scheme: z.enum(['http', 'https']),
   address: z.string().trim().min(1, 'pages.nodes.toasts.fillRequired'),
+  // Panel port; only required in API mode. SSH mode validates sshPort instead.
   port: z.number().int().min(1).max(65535),
   basePath: z.string(),
   // mTLS nodes authenticate via the client certificate, so the token is optional
@@ -76,7 +91,31 @@ export const NodeFormSchema = z.object({
   // serialized as null by the backend for a nil slice — tolerate both.
   inboundTags: z.array(z.string()).nullish().transform((tags) => tags ?? []),
   outboundTag: z.string().optional(),
+  sshPort: z.number().int().min(1).max(65535).default(22),
+  sshUser: z.string().trim().default('root'),
+  sshAuthType: z.enum(['password', 'key']).default('password'),
+  // Write-only credentials. On edit they arrive empty and are left untouched
+  // server-side, so they are optional here regardless of mode.
+  sshPassword: z.string().optional().default(''),
+  sshPrivateKey: z.string().optional().default(''),
+  sshKeyPassphrase: z.string().optional().default(''),
+  sshHostKeyMode: z.enum(['pin', 'trust', 'skip']).default('trust'),
+  sshHostKeySha256: z.string().optional().default(''),
+  sshPasswordSet: z.boolean().optional(),
+  sshPrivateKeySet: z.boolean().optional(),
 }).superRefine((val, ctx) => {
+  if (val.mode === 'ssh') {
+    if (val.sshUser.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['sshUser'], message: 'pages.nodes.toasts.fillRequired' });
+    }
+    if (val.sshAuthType === 'password' && val.sshPassword.length === 0 && !val.sshPasswordSet) {
+      ctx.addIssue({ code: 'custom', path: ['sshPassword'], message: 'pages.nodes.toasts.fillRequired' });
+    }
+    if (val.sshAuthType === 'key' && val.sshPrivateKey.length === 0 && !val.sshPrivateKeySet) {
+      ctx.addIssue({ code: 'custom', path: ['sshPrivateKey'], message: 'pages.nodes.toasts.fillRequired' });
+    }
+    return;
+  }
   if (val.tlsVerifyMode !== 'mtls' && val.apiToken.length === 0) {
     ctx.addIssue({
       code: 'custom',
