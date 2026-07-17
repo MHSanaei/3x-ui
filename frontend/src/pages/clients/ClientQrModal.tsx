@@ -7,6 +7,7 @@ import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
+import { buildAmneziaWGClientConfig, findAmneziaWGInbound } from './amneziawgConfig';
 
 interface SubSettings {
   enable: boolean;
@@ -59,7 +60,13 @@ export default function ClientQrModal({
     return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
   }, [client, wgInbound, subSettings?.publicHost]);
 
-  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
+  const awgInbound = useMemo(() => findAmneziaWGInbound(client, inboundsById), [client, inboundsById]);
+  const awgConfigText = useMemo(() => {
+    if (!client || !awgInbound) return '';
+    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, awgInbound, subSettings?.publicHost]);
+
+  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
 
   useEffect(() => {
     if (!open || !client?.subId) {
@@ -135,8 +142,21 @@ export default function ClientQrModal({
         ),
       });
     }
+    if (awgConfigText) {
+      out.push({
+        key: 'awg-config',
+        label: <Tag color="purple" style={{ margin: 0 }}>AmneziaWG</Tag>,
+        children: (
+          <QrPanel
+            value={awgConfigText}
+            remark={client?.email || 'peer'}
+            downloadName={`${client?.email || 'peer'}.conf`}
+          />
+        ),
+      });
+    }
     return out;
-  }, [subLink, subJsonLink, wgConfigText, links, client?.email, t]);
+  }, [subLink, subJsonLink, wgConfigText, awgConfigText, links, client?.email, t]);
 
   useEffect(() => {
     if (!open) {

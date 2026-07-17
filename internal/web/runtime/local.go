@@ -8,7 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -46,12 +48,31 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
+	logger.Infof("[awg-debug] Local.AddInbound called protocol=%s id=%d port=%d enable=%v", ib.Protocol, ib.Id, ib.Port, ib.Enable)
 	if ib.Protocol == model.MTProto {
 		inst, ok := mtproto.InstanceFromInbound(ib)
 		if !ok {
 			return nil
 		}
 		return mtproto.GetManager().Ensure(inst)
+	}
+	if ib.Protocol == model.AmneziaWG {
+		if ib.Settings == "" || ib.Settings == "null" {
+			logger.Infof("[awg-debug] AWG settings empty, skipping container creation for id=%d", ib.Id)
+			return nil
+		}
+		awg := amneziawg.GetManager()
+		logger.Infof("[awg-debug] calling awg.EnsureInbound id=%d port=%d", ib.Id, ib.Port)
+		updatedSettings, err := awg.EnsureInbound(ib.Id, ib.Port, ib.Settings)
+		if err != nil {
+			logger.Infof("[awg-debug] awg.EnsureInbound failed: %v", err)
+		} else {
+			logger.Infof("[awg-debug] awg.EnsureInbound succeeded")
+			if updatedSettings != ib.Settings {
+				ib.Settings = updatedSettings
+			}
+		}
+		return err
 	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
@@ -67,6 +88,10 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		mtproto.GetManager().Remove(ib.Id)
 		return nil
 	}
+	if ib.Protocol == model.AmneziaWG {
+		amneziawg.GetManager().RemoveInbound(ib.Id)
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
@@ -75,6 +100,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if oldIb.Protocol == model.MTProto || newIb.Protocol == model.MTProto {
 		return l.updateMtprotoInbound(ctx, oldIb, newIb)
+	}
+	if oldIb.Protocol == model.AmneziaWG || newIb.Protocol == model.AmneziaWG {
+		return l.updateAmneziaWGInbound(ctx, oldIb, newIb)
 	}
 	_ = l.DelInbound(ctx, oldIb)
 	if !newIb.Enable {
@@ -202,6 +230,26 @@ func (l *Local) RestartXray(_ context.Context) error {
 		l.deps.SetNeedRestart()
 	}
 	return nil
+}
+
+// updateAmneziaWGInbound applies an AWG inbound update without the Del+Add
+// dance. The manager's EnsureInbound handles the full lifecycle.
+func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if oldIb.Protocol == model.AmneziaWG && newIb.Protocol != model.AmneziaWG {
+		amneziawg.GetManager().RemoveInbound(oldIb.Id)
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol != model.AmneziaWG {
+		_ = l.DelInbound(ctx, oldIb)
+	}
+	if !newIb.Enable {
+		amneziawg.GetManager().RemoveInbound(newIb.Id)
+		return nil
+	}
+	return l.AddInbound(ctx, newIb)
 }
 
 func (l *Local) ResetClientTraffic(_ context.Context, _ *model.Inbound, _ string) error {

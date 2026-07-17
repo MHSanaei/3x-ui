@@ -43,6 +43,25 @@ export const ClientRecordSchema = z.object({
   updatedAt: z.number().optional(),
 }).loose();
 
+export const AwgServerHintsSchema = z.object({
+  publicKey: z.string().optional(),
+  serverPort: z.number().optional(),
+  jc: z.number().optional(),
+  jmin: z.number().optional(),
+  jmax: z.number().optional(),
+  s1: z.number().optional(),
+  s2: z.number().optional(),
+  s3: z.number().optional(),
+  s4: z.number().optional(),
+  h1: z.string().optional(),
+  h2: z.string().optional(),
+  h3: z.string().optional(),
+  h4: z.string().optional(),
+  primaryDns: z.string().optional(),
+  secondaryDns: z.string().optional(),
+});
+export type AwgServerHints = z.infer<typeof AwgServerHintsSchema>;
+
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
@@ -55,6 +74,7 @@ export const InboundOptionSchema = z.object({
   wgMtu: z.number().optional(),
   wgDns: z.string().optional(),
   mtprotoDomain: z.string().optional(),
+  awgServer: AwgServerHintsSchema.optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
   // Share-host resolution inputs, mirroring the backend resolveInboundAddress so

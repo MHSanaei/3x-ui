@@ -70,7 +70,7 @@ export function canEnableStream(values: { protocol: string }): boolean {
 // mtproto is served by an external mtg process, not Xray, so the Xray sniffing
 // block does not apply to it. Every other inbound supports sniffing.
 export function canEnableSniffing(values: { protocol: string }): boolean {
-  return values.protocol !== 'mtproto';
+  return values.protocol !== 'mtproto' && values.protocol !== 'amneziawg';
 }
 
 // Vision seed applies only when XTLS Vision (TCP/TLS) flow is selected

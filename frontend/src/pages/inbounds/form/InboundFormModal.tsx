@@ -57,6 +57,7 @@ import './InboundFormModal.css';
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
 import { formatInboundIssue, formatInboundValidation } from './formatValidationError';
 import {
+  AmneziawgFields,
   HttpFields,
   HysteriaFields,
   MixedFields,
@@ -449,7 +450,7 @@ export default function InboundFormModal({
             }],
           },
         });
-      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
+      } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL || next === Protocols.AMNEZIAWG) {
         setV('streamSettings', { security: 'none' });
       } else {
         const current = getV('streamSettings') as { network?: string } | undefined;
@@ -658,6 +659,8 @@ export default function InboundFormModal({
       {protocol === Protocols.MIXED && <MixedFields mixedUdpOn={mixedUdpOn} />}
 
       {protocol === Protocols.MTPROTO && <MtprotoFields />}
+
+      {protocol === Protocols.AMNEZIAWG && <AmneziawgFields />}
 
       {protocol === Protocols.SHADOWSOCKS && <ShadowsocksFields isSSWith2022={isSSWith2022} />}
 
@@ -952,13 +955,14 @@ export default function InboundFormModal({
                 Protocols.TUN,
                 Protocols.WIREGUARD,
                 Protocols.MTPROTO,
+                Protocols.AMNEZIAWG,
               ] as string[]).includes(protocol) || isFallbackHost
                 ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
                 : []),
               ...(streamEnabled
                 ? [
                   { key: 'stream', label: t('pages.inbounds.streamTab'), children: streamTab, forceRender: true },
-                  ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL
+                  ...(protocol !== Protocols.WIREGUARD && protocol !== Protocols.TUNNEL && protocol !== Protocols.AMNEZIAWG
                     ? [{ key: 'security', label: t('pages.inbounds.securityTab'), children: securityTab, forceRender: true }]
                     : []),
                 ]

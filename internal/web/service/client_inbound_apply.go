@@ -362,6 +362,11 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return false, dErr
 		}
 	}
+	if oldInbound.Protocol == model.AmneziaWG {
+		if dErr := defaultAmneziaWGClients(oldInbound.Settings, clients, interfaceClients); dErr != nil {
+			return false, dErr
+		}
+	}
 
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
@@ -390,6 +395,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			}
 			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
 				return false, common.NewError("mtproto client ad tag must be 32 hex characters")
+			}
+		case "amneziawg":
+			if client.Email == "" {
+				return false, common.NewError("empty client email")
 			}
 		default:
 			if client.ID == "" {
@@ -465,6 +474,8 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			needRestart = true
 		} else if oldInbound.Protocol == model.MTProto {
 			inboundSvc.applyLocalMtproto(oldInbound.Id)
+		} else if oldInbound.Protocol == model.AmneziaWG {
+			inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 		} else {
 			for _, client := range clients {
 				if len(client.Email) == 0 {
@@ -559,6 +570,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	case "wireguard":
 		newClientId = clients[0].Email
 	case "mtproto":
+		newClientId = clients[0].Email
+	case "amneziawg":
 		newClientId = clients[0].Email
 	default:
 		newClientId = clients[0].ID
@@ -828,6 +841,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				needRestart = true
 			} else if oldInbound.Protocol == model.MTProto {
 				inboundSvc.applyLocalMtproto(oldInbound.Id)
+			} else if oldInbound.Protocol == model.AmneziaWG {
+				inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 			} else {
 				if oldClients[clientIndex].Enable {
 					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
@@ -1009,6 +1024,8 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 				// it (removing the last client stops the sidecar) regardless of the
 				// client's enable state.
 				inboundSvc.applyLocalMtproto(oldInbound.Id)
+			} else if oldInbound.Protocol == model.AmneziaWG {
+				inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 			} else if needApiDel {
 				// Local inbound: a disabled client isn't in the running Xray, so only
 				// a live one (needApiDel) needs an API removal.

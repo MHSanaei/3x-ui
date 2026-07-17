@@ -291,6 +291,26 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 	}
 }
 
+// AWGServerHints exposes the AmneziaWG server obfuscation parameters needed
+// by the clients UI to build a client .conf for QR-code export.
+type AWGServerHints struct {
+	PublicKey    string `json:"publicKey"`
+	Port         int    `json:"serverPort"`
+	Jc           int    `json:"jc"`
+	Jmin         int    `json:"jmin"`
+	Jmax         int    `json:"jmax"`
+	S1           int    `json:"s1"`
+	S2           int    `json:"s2"`
+	S3           int    `json:"s3"`
+	S4           int    `json:"s4"`
+	H1           string `json:"h1"`
+	H2           string `json:"h2"`
+	H3           string `json:"h3"`
+	H4           string `json:"h4"`
+	PrimaryDNS   string `json:"primaryDns"`
+	SecondaryDNS string `json:"secondaryDns"`
+}
+
 type InboundOption struct {
 	Id             int    `json:"id" example:"1"`
 	Remark         string `json:"remark" example:"VLESS-443"`
@@ -304,6 +324,7 @@ type InboundOption struct {
 	WgMtu          int    `json:"wgMtu,omitempty"`
 	WgDns          string `json:"wgDns,omitempty"`
 	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
+	AwgServer      *AWGServerHints `json:"awgServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -348,6 +369,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
 		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
+		awgHints := inboundAmneziaWGHints(r.Protocol, r.Settings)
 		shareAddrStrategy := r.ShareAddrStrategy
 		if shareAddrStrategy == "node" {
 			shareAddrStrategy = ""
@@ -364,6 +386,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgPublicKey:       wgPublicKey,
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
+			AwgServer:         awgHints,
 			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
@@ -404,6 +427,19 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 // inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
 // the clients UI to seed a new mtproto client's secret with the right fronting
 // hostname.
+func inboundAmneziaWGHints(protocol string, settings string) *AWGServerHints {
+	if protocol != string(model.AmneziaWG) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	var parsed struct {
+		Server *AWGServerHints `json:"server"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
+		return nil
+	}
+	return parsed.Server
+}
+
 func inboundMtprotoDomain(protocol string, settings string) string {
 	if protocol != string(model.MTProto) || strings.TrimSpace(settings) == "" {
 		return ""
@@ -700,6 +736,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
+	if inbound.Protocol == model.AmneziaWG {
+		if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+			return inbound, false, err
+		}
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -782,6 +823,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
 				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
 			}
+		case "amneziawg":
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -829,9 +874,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 		if inbound.Enable {
 			if inbound.NodeID != nil {
+				logger.Infof("[awg-debug] inbound has NodeID=%d, skipping runtime push (mark dirty)", *inbound.NodeID)
 				markDirty = true
 			} else {
 				rt, push, _, perr := s.nodePushPlan(inbound)
+				logger.Infof("[awg-debug] nodePushPlan: rt=%v push=%v err=%v protocol=%s", rt != nil, push, perr, inbound.Protocol)
 				if perr != nil {
 					return perr
 				}
@@ -848,16 +895,25 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					}
 					if pushable {
 						postCommitApply = func() {
+							logger.Infof("[awg-debug] postCommitApply: calling rt.AddInbound protocol=%s id=%d", inbound.Protocol, inbound.Id)
 							if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
 								logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 							} else {
+								logger.Infof("[awg-debug] rt.AddInbound failed: %v", err1)
 								logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
 								needRestart = true
 							}
 						}
+						logger.Infof("[awg-debug] postCommitApply set for protocol=%s id=%d", inbound.Protocol, inbound.Id)
+					} else {
+						logger.Infof("[awg-debug] pushable=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
 					}
+				} else {
+					logger.Infof("[awg-debug] push=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
 				}
 			}
+		} else {
+			logger.Infof("[awg-debug] inbound.Enable=false, skipping runtime push for id=%d", inbound.Id)
 		}
 		if markDirty && inbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
@@ -867,8 +923,17 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err != nil {
 		return inbound, false, err
 	}
+	// Capture settings before postCommitApply (which may modify them for AWG)
+	preApplySettings := inbound.Settings
 	if postCommitApply != nil {
 		postCommitApply()
+	}
+
+	// For AWG inbounds, the manager may have generated real keys inside the
+	// Docker container and updated inbound.Settings. Persist any such change.
+	if inbound.Protocol == model.AmneziaWG && inbound.Id > 0 && inbound.Settings != preApplySettings {
+		logger.Infof("[awg-debug] persisting updated AWG settings to DB for inbound %d", inbound.Id)
+		db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Update("settings", inbound.Settings)
 	}
 
 	// A routed mtproto inbound is not an Xray inbound itself, so the runtime

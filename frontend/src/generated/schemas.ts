@@ -1693,7 +1693,8 @@ export const SCHEMAS: Record<string, unknown> = {
           "mixed",
           "tunnel",
           "tun",
-          "mtproto"
+          "mtproto",
+          "amneziawg"
         ],
         "example": "vless",
         "type": "string"
