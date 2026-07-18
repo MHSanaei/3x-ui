@@ -130,18 +130,6 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 		if client.SubID == "" {
 			client.SubID = uuid.NewString()
 		}
-		if client.SubID != "" {
-			var subTaken int64
-			if err := db.Model(&model.ClientRecord{}).
-				Where("sub_id = ? AND email <> ?", client.SubID, email).
-				Count(&subTaken).Error; err != nil {
-				return result, needRestart, err
-			}
-			if subTaken > 0 {
-				skip(email, "subId already in use: "+client.SubID)
-				continue
-			}
-		}
 		if !client.Enable {
 			client.Enable = true
 		}
