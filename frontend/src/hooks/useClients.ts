@@ -35,7 +35,15 @@ import { DefaultsPayloadSchema } from '@/schemas/defaults';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
-export type ExternalLinkInput = { kind: 'link' | 'subscription'; value: string; remark: string };
+export type ExternalLinkInput = {
+  id?: number;
+  kind: 'link' | 'subscription';
+  value: string;
+  remark: string;
+  enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+};
 
 export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, ExternalLink };
 

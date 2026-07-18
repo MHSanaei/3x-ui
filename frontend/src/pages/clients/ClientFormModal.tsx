@@ -22,7 +22,7 @@ import {
 import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { Controller, FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
 
 import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -48,6 +48,12 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 interface ExternalLinkRow {
   kind: 'link' | 'subscription';
   value: string;
+  remark: string;
+  enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+  lastFetchAt: number;
+  lastFetchError: string;
 }
 
 interface ApiMsg<T = unknown> {
@@ -138,6 +144,12 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
   return (links || []).map((l) => ({
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
+    remark: l.remark || '',
+    enable: l.enable !== false,
+    expiryTime: Number(l.expiryTime) || 0,
+    namePrefix: l.namePrefix || '',
+    lastFetchAt: Number(l.lastFetchAt) || 0,
+    lastFetchError: l.lastFetchError || '',
   }));
 }
 
@@ -207,7 +219,16 @@ export default function ClientFormModal({
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
   function addExternalLinkRow(kind: 'link' | 'subscription') {
-    appendExternalLink({ kind, value: '' });
+    appendExternalLink({
+      kind,
+      value: '',
+      remark: '',
+      enable: true,
+      expiryTime: 0,
+      namePrefix: '',
+      lastFetchAt: 0,
+      lastFetchError: '',
+    });
   }
 
   useEffect(() => {
@@ -547,7 +568,14 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
+      .map((r) => ({
+        kind: r.kind,
+        value: r.value.trim(),
+        remark: (r.remark || '').trim(),
+        enable: r.enable !== false,
+        expiryTime: Number(r.expiryTime) || 0,
+        namePrefix: (r.namePrefix || '').trim(),
+      }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -909,17 +937,40 @@ export default function ClientFormModal({
                         {linkRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
                         ) : linkRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                                placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                  placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details two-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input placeholder={t('remark')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -931,17 +982,50 @@ export default function ClientFormModal({
                         {subscriptionRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
                         ) : subscriptionRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="https://provider.example/sub/…"
-                                placeholder="https://provider.example/sub/…"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="https://provider.example/sub/…"
+                                  placeholder="https://provider.example/sub/…"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details three-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input placeholder={t('remark')} />
+                              </FormField>
+                              <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
+                                <Input placeholder={t('pages.clients.namePrefix')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
+                            <Typography.Text type={field.lastFetchError ? 'danger' : 'secondary'} className="external-link-fetch-status">
+                              {field.lastFetchError
+                                ? `${t('pages.clients.lastFetchError')}: ${field.lastFetchError}`
+                                : field.lastFetchAt > 0
+                                  ? `${t('pages.clients.lastFetchAt')}: ${dayjs(field.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
+                                  : t('pages.clients.neverFetched')}
+                            </Typography.Text>
                           </div>
                         ))}
                       </div>

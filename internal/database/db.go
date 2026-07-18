@@ -116,6 +116,9 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := normalizeClientExternalLinkEnable(); err != nil {
+		return err
+	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
 		return err
 	}
@@ -894,6 +897,20 @@ func normalizeInboundSubSortIndex() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeClientExternalLinkEnable keeps external-link rows written before the
+// enable column existed enabled; disabled rows from newer builds stay false.
+func normalizeClientExternalLinkEnable() error {
+	res := db.Exec("UPDATE client_external_links SET enable = ? WHERE enable IS NULL", true)
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link enable: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized enable on %d client external link(s)", res.RowsAffected)
 	}
 	return nil
 }

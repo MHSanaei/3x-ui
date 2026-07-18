@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 
@@ -16,11 +17,13 @@ import (
 // externalLinkEntry is one client × external-link row, resolved for a
 // subscription request. Email/Enable come from the owning client.
 type externalLinkEntry struct {
-	Kind   string
-	Value  string
-	Remark string
-	Email  string
-	Enable bool
+	Id         int
+	Kind       string
+	Value      string
+	Remark     string
+	NamePrefix string
+	Email      string
+	Enable     bool
 }
 
 // expandedLink is a single share link contributed by an entry, with the display
@@ -50,7 +53,10 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	}
 
 	var rows []model.ClientExternalLink
+	now := time.Now().UnixMilli()
 	if err := db.Where("client_id IN ?", clientIds).
+		Where("(enable IS NULL OR enable = ?)", true).
+		Where("(expiry_time = 0 OR expiry_time > ?)", now).
 		Order("client_id ASC, sort_index ASC, id ASC").
 		Find(&rows).Error; err != nil {
 		return nil, err
@@ -63,11 +69,13 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	for _, r := range rows {
 		rec := byId[r.ClientId]
 		out = append(out, externalLinkEntry{
-			Kind:   r.Kind,
-			Value:  r.Value,
-			Remark: r.Remark,
-			Email:  rec.Email,
-			Enable: rec.Enable,
+			Id:         r.Id,
+			Kind:       r.Kind,
+			Value:      r.Value,
+			Remark:     r.Remark,
+			NamePrefix: r.NamePrefix,
+			Email:      rec.Email,
+			Enable:     rec.Enable,
 		})
 	}
 	return out, nil
@@ -78,14 +86,61 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 // names; a "link" entry yields the single link with the row's remark.
 func expandEntry(e externalLinkEntry) []expandedLink {
 	if e.Kind == model.ExternalLinkKindSubscription {
-		links := fetchSubscriptionLinks(e.Value)
+		links := fetchSubscriptionLinks(e.Id, e.Value)
 		out := make([]expandedLink, 0, len(links))
 		for _, l := range links {
-			out = append(out, expandedLink{Link: l, Name: ""})
+			name := prefixedLinkName(l, e.NamePrefix, e.Email)
+			out = append(out, expandedLink{Link: l, Name: name})
 		}
 		return out
 	}
 	return []expandedLink{{Link: e.Value, Name: e.Remark}}
+}
+
+func prefixedLinkName(rawLink, prefix, fallback string) string {
+	if strings.TrimSpace(prefix) == "" {
+		return ""
+	}
+	name := strings.TrimSpace(extractLinkRemark(rawLink))
+	if name == "" {
+		name = strings.TrimSpace(fallback)
+	}
+	if name == "" {
+		return prefix
+	}
+	return prefix + name
+}
+
+func extractLinkRemark(rawLink string) string {
+	rawLink = strings.TrimSpace(rawLink)
+	if rawLink == "" {
+		return ""
+	}
+	if strings.HasPrefix(rawLink, "vmess://") {
+		b64 := strings.TrimPrefix(rawLink, "vmess://")
+		raw, err := base64.StdEncoding.DecodeString(padBase64Sub(b64))
+		if err != nil {
+			raw, err = base64.RawURLEncoding.DecodeString(strings.TrimRight(b64, "="))
+		}
+		if err != nil {
+			return ""
+		}
+		var j map[string]any
+		if err := json.Unmarshal(raw, &j); err != nil {
+			return ""
+		}
+		ps, _ := j["ps"].(string)
+		return strings.TrimSpace(ps)
+	}
+	u, err := url.Parse(rawLink)
+	if err != nil {
+		return ""
+	}
+	frag, err := url.PathUnescape(u.Fragment)
+	if err != nil {
+		return strings.TrimSpace(u.Fragment)
+	}
+	return strings.TrimSpace(frag)
 }
 
 // applyRemarkToLink rewrites a share link's display name to remark (when set),
