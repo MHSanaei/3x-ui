@@ -6,6 +6,18 @@ const meta = {
   title: 'UI/InfinityIcon',
   component: InfinityIcon,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Inline SVG infinity glyph used to denote an unlimited value (e.g. unlimited traffic or no expiry). Inherits the current text color.',
+      },
+    },
+  },
+  argTypes: {
+    width: { description: 'Icon width in pixels or any CSS length.' },
+    height: { description: 'Icon height in pixels or any CSS length.' },
+  },
 } satisfies Meta<typeof InfinityIcon>;
 
 export default meta;

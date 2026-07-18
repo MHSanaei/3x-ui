@@ -124,23 +124,23 @@ func expandRemarkVars(template string, ctx remarkContext) string {
 }
 
 // expandSegment expands one "|" segment and reports whether it should be dropped.
-// It drops only when the segment carries an unlimited (∞) quota/expiry token and
-// no other token in it resolves to a non-empty value — so a segment mixing, say,
-// {{EMAIL}} with {{TRAFFIC_LEFT}} is always kept.
+// A segment that contains tokens is dropped when none of them resolve to a real
+// value — whether because they render the unlimited (∞) mark or the empty string
+// — so it leaves no stray "|" separator or dangling decoration. A segment mixing,
+// say, {{EMAIL}} with {{TRAFFIC_LEFT}} is kept, and a pure-literal segment (no
+// tokens) is always kept.
 func expandSegment(seg string, ctx remarkContext) (string, bool) {
-	hasUnlimited, hasOtherValue := false, false
+	hasToken, hasOtherValue := false, false
 	out := remarkVarRe.ReplaceAllStringFunc(seg, func(m string) string {
+		hasToken = true
 		token := m[2 : len(m)-2]
 		val := remarkVarValue(token, ctx)
-		switch {
-		case unlimitedDropTokens[token] && val == unlimitedMark:
-			hasUnlimited = true
-		case val != "":
+		if val != "" && (!unlimitedDropTokens[token] || val != unlimitedMark) {
 			hasOtherValue = true
 		}
 		return val
 	})
-	return out, hasUnlimited && !hasOtherValue
+	return out, hasToken && !hasOtherValue
 }
 
 func remarkVarValue(token string, ctx remarkContext) string {

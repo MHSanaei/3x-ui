@@ -257,7 +257,7 @@ export default function BalancerFormModal({
             <Alert
               type="info"
               showIcon
-              message={t('pages.xray.balancer.balancerFallbackInfo')}
+              title={t('pages.xray.balancer.balancerFallbackInfo')}
               style={{ marginBottom: 16 }}
             />
           )}
@@ -265,7 +265,7 @@ export default function BalancerFormModal({
             <Alert
               type="error"
               showIcon
-              message={t('pages.xray.balancer.balancerFallbackCycle')}
+              title={t('pages.xray.balancer.balancerFallbackCycle')}
               style={{ marginBottom: 16 }}
             />
           )}

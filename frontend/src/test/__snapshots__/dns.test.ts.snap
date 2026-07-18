@@ -41,7 +41,6 @@ exports[`DnsObjectSchema fixtures > parses full byte-stably 1`] = `
       "address": "quic+local://dns.adguard.com",
       "disableCache": true,
       "finalQuery": true,
-      "port": 53,
       "serveExpiredTTL": 60,
       "serveStale": false,
       "timeoutMs": 5000,

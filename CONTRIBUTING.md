@@ -5,7 +5,7 @@ Thanks for taking the time to contribute to 3x-ui. This guide gets a development
 ## Prerequisites
 
 - **Go 1.26+** (the version pinned in `go.mod`)
-- **Node.js 22+** and npm 10+ (for the React frontend)
+- **Node.js 24 LTS** (the version pinned in `.nvmrc`) and npm 10+ (for the React frontend)
 - **Git**
 - **A C compiler** — required by the CGo SQLite driver (`github.com/mattn/go-sqlite3`). Linux and macOS already ship one; for Windows see below.
 
@@ -157,12 +157,13 @@ Panel navigation happens client-side through React Router, and per-route code is
 
 Locale strings live in `internal/web/translation/<locale>.json`, **not** under `frontend/`. The Go binary embeds the same JSON and serves it to both backend templates and `react-i18next` (initialized in `src/i18n/react.ts`). When a new English key is added it must also land in **every** non-English locale — missing keys do not break the build, they just render the raw key in the UI.
 
-### Two dev workflows
+### Dev workflows
 
 | Goal | Command |
 |------|---------|
 | Iterate on UI changes with HMR | `cd frontend && npm run dev` (Vite on `:5173`, proxies `/panel/*` and the WebSocket to the Go panel on `:2053`). Start the Go panel first. |
 | Verify what end users actually see | `cd frontend && npm run build`, then `go run .`. The Go binary serves the built bundle — embedded in release mode, off disk in debug mode. |
+| Develop/preview a reusable component in isolation | `cd frontend && npm run storybook` (Storybook workbench + autodocs on `:6006`). |
 
 The Vite dev proxy serves the admin SPA for any `/panel/*` URL — `bypassMigratedRoute` in `vite.config.js` rewrites those requests to `index.html` and lets React Router take over — while forwarding `/panel/api/*`, `/panel/api/setting/*`, `/panel/api/xray/*`, and the WebSocket to the Go panel. Because routing is now client-side, new panel routes need no proxy or allowlist changes.
 
@@ -189,6 +190,7 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
 - **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — read the live version there rather than trusting a number quoted here — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
+- **Reusable components are documented in Storybook.** When you add or change a component in `frontend/src/components/`, add or update its co-located `<Component>.stories.tsx` (`tags: ['autodocs']`), documenting props via `argTypes` / `parameters.docs` string metadata rather than JSDoc. CI compile-checks every story via `npm run build-storybook` and runs each story as a headless-browser test via `@storybook/addon-vitest` (`npm run test`, needs `npx playwright install chromium`); run `npm run storybook` to preview locally.
 
 ### Project layout
 
@@ -277,7 +279,7 @@ CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml
 
 ### CI
 
-`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
+`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`/`build-storybook`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
 
 ## Sending a pull request
 
@@ -286,7 +288,7 @@ CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml
 3. Run the relevant checks before pushing:
    - `go build ./...`
    - `go test ./...` (when Go code changed)
-   - `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` (when the frontend changed; CI runs this same set on every PR via `.github/workflows/ci.yml`)
+   - `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build && npm run build-storybook` (when the frontend changed; CI runs this same set on every PR via `.github/workflows/ci.yml`)
 4. Commit messages follow the existing pattern in `git log` — `<area>: short imperative summary`, then a body explaining the *why*. Conventional-commit prefixes (`feat`, `fix`, `refactor`, `chore`, `style`, `docs`) are encouraged.
 5. Open the PR against `main` with a brief description of what changed and how to test it.
 

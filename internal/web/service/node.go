@@ -533,9 +533,17 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
 		return
 	}
-	allowed := make(map[string]struct{}, len(n.InboundTags))
+	prefix := nodeTagPrefix(&n.Id)
+	allowed := make(map[string]struct{}, len(n.InboundTags)*2)
 	for _, tag := range n.InboundTags {
 		allowed[tag] = struct{}{}
+		if prefix != "" {
+			if stripped, found := strings.CutPrefix(tag, prefix); found {
+				allowed[stripped] = struct{}{}
+			} else {
+				allowed[prefix+tag] = struct{}{}
+			}
+		}
 	}
 	filtered := make([]*model.Inbound, 0, len(snap.Inbounds))
 	for _, inbound := range snap.Inbounds {

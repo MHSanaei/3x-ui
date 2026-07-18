@@ -75,6 +75,7 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
         <JsonEditor value={activeContent} readOnly minHeight="240px" maxHeight="60vh" />
       ) : (
         <Input.TextArea
+          aria-label={title}
           value={activeContent}
           readOnly
           autoSize={{ minRows: 10, maxRows: 20 }}

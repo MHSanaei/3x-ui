@@ -228,16 +228,25 @@ func (t *Tgbot) SendMsgToTgbotDeleteAfter(chatId int64, msg string, delayInSecon
 		return
 	}
 
-	// Delete the sent message after the specified number of seconds
-	go func() {
-		time.Sleep(time.Duration(delayInSeconds) * time.Second) // Wait for the specified delay
-		t.deleteMessageTgBot(chatId, sentMsg.MessageID)         // Delete the message
-		userStateMgr.clear(chatId)
-	}()
+	// Delete the sent message after the specified number of seconds.
+	go t.deleteMessageAfterDelay(chatId, sentMsg.MessageID, delayInSeconds)
+}
+
+// deleteMessageAfterDelay waits delayInSeconds and then removes the message. It
+// deliberately does not touch the conversation state: every caller that ends a
+// wizard step already clears the state synchronously, and clearing it here — up
+// to several seconds later — would wipe a state the user set for the next step
+// in the meantime, silently dropping their following input.
+func (t *Tgbot) deleteMessageAfterDelay(chatId int64, messageID, delayInSeconds int) {
+	time.Sleep(time.Duration(delayInSeconds) * time.Second)
+	t.deleteMessageTgBot(chatId, messageID)
 }
 
 // deleteMessageTgBot deletes a message from the chat.
 func (t *Tgbot) deleteMessageTgBot(chatId int64, messageID int) {
+	if bot == nil {
+		return
+	}
 	params := telego.DeleteMessageParams{
 		ChatID:    tu.ID(chatId),
 		MessageID: messageID,

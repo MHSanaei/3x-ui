@@ -250,6 +250,17 @@ describe('parseShadowsocksLink', () => {
     expect(settings.servers[0].method).toBe('aes-256-gcm');
     expect(settings.servers[0].password).toBe('legacypw');
   });
+
+  it('decodes URL-safe base64 userinfo (as the emitter writes it)', () => {
+    const method = 'aes-256-gcm';
+    const password = '>>>';
+    const userinfo = Base64.encode(`${method}:${password}`, true);
+    expect(userinfo).toMatch(/[-_]/);
+    const out = parseShadowsocksLink(`ss://${userinfo}@1.2.3.4:8388#urlsafe`);
+    const settings = out?.settings as { servers: Array<{ method: string; password: string }> };
+    expect(settings.servers[0].method).toBe(method);
+    expect(settings.servers[0].password).toBe(password);
+  });
 });
 
 describe('parseHysteria2Link', () => {

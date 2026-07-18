@@ -18,6 +18,7 @@ type Manager struct {
 	mu             sync.RWMutex
 	remotes        map[int]*Remote
 	overrides      map[int]Runtime // test-only: forces RuntimeFor to return a stub
+	localOverride  Runtime         // test-only: forces RuntimeFor(nil) to return a stub
 	egressResolver NodeEgressResolver
 }
 
@@ -44,6 +45,15 @@ func (m *Manager) SetRuntimeOverride(nodeID int, rt Runtime) {
 	m.overrides[nodeID] = rt
 }
 
+// SetLocalRuntimeOverride makes RuntimeFor(nil) return rt instead of the real
+// local runtime. Test seam for exercising the local dispatch path (MTProto
+// sidecar, local Xray) without a running child process; pass nil rt to clear.
+func (m *Manager) SetLocalRuntimeOverride(rt Runtime) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.localOverride = rt
+}
+
 func (m *Manager) SetNodeEgressResolver(r NodeEgressResolver) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -61,6 +71,13 @@ func (m *Manager) NodeEgressProxyURL(nodeID int) string {
 
 func (m *Manager) RuntimeFor(nodeID *int) (Runtime, error) {
 	if nodeID == nil {
+		m.mu.RLock()
+		if m.localOverride != nil {
+			rt := m.localOverride
+			m.mu.RUnlock()
+			return rt, nil
+		}
+		m.mu.RUnlock()
 		return m.local, nil
 	}
 	m.mu.RLock()

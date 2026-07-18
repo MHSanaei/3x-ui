@@ -142,6 +142,12 @@
           "smtpEncryptionType": {
             "type": "string"
           },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
+            "type": "string"
+          },
           "smtpHost": {
             "type": "string"
           },
@@ -170,6 +176,9 @@
           "subCertFile": {
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "type": "boolean"
+          },
           "subClashEnable": {
             "type": "boolean"
           },
@@ -183,6 +192,9 @@
             "type": "string"
           },
           "subClashURI": {
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
             "type": "string"
           },
           "subDomain": {
@@ -206,6 +218,12 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -222,6 +240,9 @@
             "type": "string"
           },
           "subJsonURI": {
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
             "type": "string"
           },
           "subKeyFile": {
@@ -375,6 +396,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",
@@ -383,11 +406,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -395,12 +420,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -575,6 +603,12 @@
           "smtpEncryptionType": {
             "type": "string"
           },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
+            "type": "string"
+          },
           "smtpHost": {
             "type": "string"
           },
@@ -603,6 +637,9 @@
           "subCertFile": {
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "type": "boolean"
+          },
           "subClashEnable": {
             "type": "boolean"
           },
@@ -616,6 +653,9 @@
             "type": "string"
           },
           "subClashURI": {
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
             "type": "string"
           },
           "subDomain": {
@@ -639,6 +679,12 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -655,6 +701,9 @@
             "type": "string"
           },
           "subJsonURI": {
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
             "type": "string"
           },
           "subKeyFile": {
@@ -815,6 +864,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",
@@ -823,11 +874,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -835,12 +888,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -9240,6 +9296,53 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/validateRegex": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Validate any regular expression with the backend Go RE2 compiler without saving it.",
+        "operationId": "post_panel_api_setting_validateRegex",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "regex": "(?m)^general-purpose$"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": ""
                 }
               }
             }
