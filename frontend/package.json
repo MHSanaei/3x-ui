@@ -43,7 +43,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",
-    "react-i18next": "^17.0.9",
+    "react-i18next": "^17.0.10",
     "react-router-dom": "^7.18.1",
     "swagger-ui-react": "^5.32.8",
     "uplot": "^1.6.32",
@@ -73,7 +73,7 @@
     "storybook": "^10.5.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
-    "vite": "8.1.4",
+    "vite": "8.1.5",
     "vitest": "^4.1.10",
     "@vitest/browser-playwright": "4.1.10",
     "playwright": "^1.61.1"

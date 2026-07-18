@@ -146,9 +146,16 @@ function bytesToGB(bytes: number): number {
   return Math.round((bytes / (1024 * 1024 * 1024)) * 100) / 100;
 }
 
-function gbToBytes(gb: number): number {
+export function gbToBytes(gb: number): number {
   if (!gb || gb <= 0) return 0;
   return Math.round(gb * 1024 * 1024 * 1024);
+}
+
+export function resolveTotalBytes(originalBytes: number | null | undefined, displayedGB: number): number {
+  if (originalBytes != null && displayedGB === bytesToGB(originalBytes)) {
+    return originalBytes;
+  }
+  return gbToBytes(displayedGB);
 }
 
 export default function ClientFormModal({
@@ -491,6 +498,7 @@ export default function ClientFormModal({
     const expiryTime = values.delayedStart
       ? -86400000 * (Number(values.delayedDays) || 0)
       : (values.expiryDate || 0);
+    const totalBytes = resolveTotalBytes(client ? (client.totalGB ?? 0) : null, values.totalGB);
     const clientPayload: Record<string, unknown> = {
       email: values.email.trim(),
       subId: values.subId,
@@ -499,7 +507,7 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: showFlow ? (values.flow || '') : '',
       security: showSecurity ? (values.security || 'auto') : 'auto',
-      totalGB: gbToBytes(values.totalGB),
+      totalGB: totalBytes,
       expiryTime,
       reset: Number(values.reset) || 0,
       limitIp: Number(values.limitIp) || 0,

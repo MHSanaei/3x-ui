@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "Đã gửi email thử nghiệm thành công",
       "smtpHostNotConfigured": "Chưa cấu hình máy chủ SMTP",
       "smtpNoRecipients": "Chưa cấu hình người nhận",
+      "smtpFromNotConfigured": "Chưa cấu hình địa chỉ người gửi SMTP",
       "eventLoginAttempt": "Lần thử đăng nhập",
       "telegramTokenConfigured": "Đã cấu hình; để trống để giữ token hiện tại.",
       "telegramTokenPlaceholder": "Đã cấu hình - nhập token mới để thay thế",

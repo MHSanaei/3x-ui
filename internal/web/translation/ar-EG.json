@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "تم إرسال البريد التجريبي بنجاح",
       "smtpHostNotConfigured": "خادم SMTP غير مهيأ",
       "smtpNoRecipients": "لا يوجد مستلمون مهيؤون",
+      "smtpFromNotConfigured": "عنوان مرسل SMTP غير مُهيأ",
       "eventLoginAttempt": "محاولة تسجيل دخول",
       "telegramTokenConfigured": "مهيأ؛ اتركه فارغاً للاحتفاظ بالتوكن الحالي.",
       "telegramTokenPlaceholder": "مهيأ — أدخل توكن جديد لاستبداله",

@@ -172,7 +172,7 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("Sub port is not a valid port:", s.SubPort)
 	}
 
-	if (s.SubPort == s.WebPort) && (s.WebListen == s.SubListen) {
+	if (s.SubPort == s.WebPort) && listenAddressesConflict(s.WebListen, s.SubListen) {
 		return common.NewError("Sub and Web could not use same ip:port, ", s.SubListen, ":", s.SubPort, " & ", s.WebListen, ":", s.WebPort)
 	}
 
@@ -256,6 +256,27 @@ func (s *AllSetting) CheckValid() error {
 	}
 
 	return nil
+}
+
+// listenAddressesConflict reports whether two listen addresses on the same port
+// would collide at bind time. A wildcard listen ("", "0.0.0.0", "::") overlaps
+// every address, so it conflicts with anything on that port; two specific
+// addresses conflict only when identical.
+func listenAddressesConflict(a, b string) bool {
+	if a == b {
+		return true
+	}
+	return isWildcardListen(a) || isWildcardListen(b)
+}
+
+func isWildcardListen(listen string) bool {
+	if listen == "" {
+		return true
+	}
+	if ip := net.ParseIP(listen); ip != nil {
+		return ip.IsUnspecified()
+	}
+	return false
 }
 
 type HostGroup struct {

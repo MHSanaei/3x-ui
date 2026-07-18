@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "Тестовий лист успішно надіслано",
       "smtpHostNotConfigured": "Хост SMTP не налаштовано",
       "smtpNoRecipients": "Отримувачів не налаштовано",
+      "smtpFromNotConfigured": "Адресу відправника SMTP не налаштовано",
       "eventLoginAttempt": "Спроба входу",
       "telegramTokenConfigured": "Налаштовано; залиште порожнім, щоб зберегти поточний токен.",
       "telegramTokenPlaceholder": "Налаштовано — введіть новий токен для заміни",

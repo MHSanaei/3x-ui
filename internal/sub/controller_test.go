@@ -3,6 +3,7 @@ package sub
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -182,6 +185,51 @@ func TestSanitizeUserAgentForLog(t *testing.T) {
 	long := strings.Repeat("界", 513)
 	if got := sanitizeUserAgentForLog(long); len([]rune(got)) != 512 {
 		t.Fatalf("sanitized User-Agent length = %d runes, want 512", len([]rune(got)))
+	}
+}
+
+func seedSubMtprotoInbound(t *testing.T, subId, tag string, port int) {
+	t.Helper()
+	db := database.GetDB()
+	secret := "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"
+	email := tag + "@e"
+	settings := fmt.Sprintf(`{"clients":[{"email":%q,"subId":%q,"enable":true,"secret":%q}]}`, email, subId, secret)
+	ib := &model.Inbound{
+		UserId: 1, Tag: tag, Enable: true, Listen: "203.0.113.5", Port: port,
+		Protocol: model.MTProto, Remark: tag, Settings: settings, StreamSettings: "{}",
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed mtproto inbound %s: %v", tag, err)
+	}
+	client := &model.ClientRecord{Email: email, SubID: subId, Secret: secret, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client %s: %v", email, err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound %s: %v", email, err)
+	}
+}
+
+func TestAutoDetectFallsBackToRawWhenFormatHasNoContent(t *testing.T) {
+	seedSubDB(t)
+	seedSubMtprotoInbound(t, "s1", "tg", 4490)
+	gin.SetMode(gin.TestMode)
+
+	req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+	req.Header.Set("User-Agent", "Clash-Verge/v2.4.2")
+	resp := httptest.NewRecorder()
+
+	newSubscriptionTestRouter(subscriptionTestRouterConfig{clashAutoDetect: true, jsonAutoDetect: true}).ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+	}
+	decoded, err := base64.StdEncoding.DecodeString(resp.Body.String())
+	if err != nil {
+		t.Fatalf("fallback response is not base64: %v", err)
+	}
+	if !strings.Contains(string(decoded), "tg://proxy") {
+		t.Fatalf("decoded fallback lacks the Telegram proxy link: %s", decoded)
 	}
 }
 

@@ -1410,6 +1410,7 @@
       "smtpTestSuccess": "Тестовое письмо отправлено успешно",
       "smtpHostNotConfigured": "SMTP хост не настроен",
       "smtpNoRecipients": "Получатели не настроены",
+      "smtpFromNotConfigured": "Адрес отправителя SMTP не настроен",
       "eventLoginAttempt": "Попытка входа",
       "telegramTokenConfigured": "Настроен; оставьте пустым для сохранения текущего токена.",
       "telegramTokenPlaceholder": "Настроен - введите новый токен для замены",

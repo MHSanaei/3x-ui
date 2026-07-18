@@ -76,8 +76,9 @@ export class HttpUtil {
       return msg;
     } catch (error) {
       console.error('GET request failed:', error);
-      const err = error as { response?: { data?: { message?: string } }; message?: string };
-      const errorMsg = new Msg<T>(false, err.response?.data?.message || err.message || 'Request failed');
+      const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+      const data = err.response?.data;
+      const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
       if (!silent) this._handleMsg(errorMsg);
       return errorMsg;
     }
@@ -92,8 +93,9 @@ export class HttpUtil {
       return msg;
     } catch (error) {
       console.error('POST request failed:', error);
-      const err = error as { response?: { data?: { message?: string } }; message?: string };
-      const errorMsg = new Msg<T>(false, err.response?.data?.message || err.message || 'Request failed');
+      const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+      const data = err.response?.data;
+      const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
       if (!silent) this._handleMsg(errorMsg);
       return errorMsg;
     }
@@ -641,8 +643,10 @@ export class Base64 {
   }
 
   static decode(content: string = ''): string {
+    const normalized = content.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
     return new TextDecoder().decode(
-      Uint8Array.from(window.atob(content), (c) => c.charCodeAt(0)),
+      Uint8Array.from(window.atob(padded), (c) => c.charCodeAt(0)),
     );
   }
 }

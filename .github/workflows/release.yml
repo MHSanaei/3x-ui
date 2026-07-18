@@ -16,6 +16,7 @@ on:
       - "x-ui.service.debian"
       - "x-ui.service.arch"
       - "x-ui.service.rhel"
+      - ".github/workflows/release.yml"
   pull_request:
     paths:
       - "**.go"
@@ -26,12 +27,15 @@ on:
       - "x-ui.service.debian"
       - "x-ui.service.arch"
       - "x-ui.service.rhel"
+      - ".github/workflows/release.yml"
 
 jobs:
   build:
     permissions:
       contents: write
     strategy:
+      # One platform hitting a transient outage must not cancel the other six.
+      fail-fast: false
       matrix:
         platform:
           - amd64
@@ -47,7 +51,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           check-latest: true
@@ -57,7 +61,7 @@ jobs:
       # at compile time. internal/web/dist/ is .gitignored, so on a fresh CI
       # checkout it doesn't exist until vite emits it.
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'npm'
@@ -71,6 +75,8 @@ jobs:
 
       - name: Build 3X-UI
         run: |
+          CURL_RETRY="--retry 5 --retry-all-errors --retry-delay 3"
+          fetch() { wget -q --tries=5 --waitretry=10 --retry-on-http-error=429,500,502,503 "$@"; }
           export CGO_ENABLED=1
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
@@ -86,11 +92,11 @@ jobs:
           esac
           echo "Resolving Bootlin musl toolchain for arch=$BOOTLIN_ARCH (platform=${{ matrix.platform }})"
           TARBALL_BASE="https://toolchains.bootlin.com/downloads/releases/toolchains/$BOOTLIN_ARCH/tarballs/"
-          TARBALL_URL=$(curl -fsSL "$TARBALL_BASE" | grep -oE "${BOOTLIN_ARCH}--musl--stable-[^\"]+\\.tar\\.xz" | sort -r | head -n1)
+          TARBALL_URL=$(curl -fsSL $CURL_RETRY "$TARBALL_BASE" | grep -oE "${BOOTLIN_ARCH}--musl--stable-[^\"]+\\.tar\\.xz" | sort -r | head -n1)
           [ -z "$TARBALL_URL" ] && { echo "Failed to locate Bootlin musl toolchain for arch=$BOOTLIN_ARCH" >&2; exit 1; }
           echo "Downloading: $TARBALL_URL"
           cd /tmp
-          curl -fL -sS -o "$(basename "$TARBALL_URL")" "$TARBALL_BASE/$TARBALL_URL"
+          curl -fL -sS $CURL_RETRY -o "$(basename "$TARBALL_URL")" "$TARBALL_BASE/$TARBALL_URL"
           tar -xf "$(basename "$TARBALL_URL")"
           TOOLCHAIN_DIR=$(find . -maxdepth 1 -type d -name "${BOOTLIN_ARCH}--musl--stable-*" | head -n1)
           export PATH="$(realpath "$TOOLCHAIN_DIR")/bin:$PATH"
@@ -120,53 +126,55 @@ jobs:
           # Download dependencies
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.7.11/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget -q ${Xray_URL}Xray-linux-64.zip
+            fetch ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm64-v8a.zip
+            fetch ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v7a.zip
+            fetch ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
           elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v6.zip
+            fetch ${Xray_URL}Xray-linux-arm32-v6.zip
             unzip Xray-linux-arm32-v6.zip
             rm -f Xray-linux-arm32-v6.zip
           elif [ "${{ matrix.platform }}" == "386" ]; then
-            wget -q ${Xray_URL}Xray-linux-32.zip
+            fetch ${Xray_URL}Xray-linux-32.zip
             unzip Xray-linux-32.zip
             rm -f Xray-linux-32.zip
           elif [ "${{ matrix.platform }}" == "armv5" ]; then
-            wget -q ${Xray_URL}Xray-linux-arm32-v5.zip
+            fetch ${Xray_URL}Xray-linux-arm32-v5.zip
             unzip Xray-linux-arm32-v5.zip
             rm -f Xray-linux-arm32-v5.zip
           elif [ "${{ matrix.platform }}" == "s390x" ]; then
-            wget -q ${Xray_URL}Xray-linux-s390x.zip
+            fetch ${Xray_URL}Xray-linux-s390x.zip
             unzip Xray-linux-s390x.zip
             rm -f Xray-linux-s390x.zip
           fi
           rm -f geoip.dat geosite.dat
-          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget -q -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-          wget -q -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-          wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+          fetch https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+          fetch https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+          fetch -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+          fetch -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+          fetch -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
+          fetch -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
           # platform labels match our matrix, so download and unpack the matching
-          # archive. Only the platforms the fork publishes are packaged. The tag
-          # is resolved from the fork's latest release so it never needs bumping
-          # here; the token only lifts the API rate limit for a public read.
-          MTG_MULTI_VER=$(curl -sfL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
-          if [ -z "$MTG_MULTI_VER" ]; then echo "could not resolve the latest mtg-multi release tag"; exit 1; fi
+          # archive. Only the platforms the fork publishes are packaged — the tag
+          # lookup lives inside that branch so unpackaged platforms (s390x) never
+          # depend on it. The tag comes from the release-page redirect on
+          # github.com — the host the downloads need anyway — because api.github.com
+          # has 503'd whole release runs while asset downloads kept working.
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
+              MTG_MULTI_VER=$(curl -sf $CURL_RETRY -o /dev/null -w '%{redirect_url}' "https://github.com/mhsanaei/mtg-multi/releases/latest" | sed -n 's#.*/releases/tag/##p')
+              if [ -z "$MTG_MULTI_VER" ]; then echo "could not resolve the latest mtg-multi release tag"; exit 1; fi
               MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${{ matrix.platform }}"
-              curl -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
+              curl -sfLRO $CURL_RETRY "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
               tar -xzf "${MTG_PKG}.tar.gz"
               mv "${MTG_PKG}/mtg-multi" "mtg-linux-${{ matrix.platform }}"
               rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
@@ -211,7 +219,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           check-latest: true
@@ -220,7 +228,7 @@ jobs:
       # Linux job above. This step is identical except npm runs on the
       # Windows runner here.
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'npm'
@@ -267,6 +275,7 @@ jobs:
       - name: Copy and download resources
         shell: pwsh
         run: |
+          $retry = @{ MaximumRetryCount = 5; RetryIntervalSec = 10 }
           mkdir x-ui
           Copy-Item xui-release.exe x-ui\x-ui.exe
           mkdir x-ui\bin
@@ -274,25 +283,26 @@ jobs:
 
           # Download Xray for Windows
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.7.11/"
-          Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
+          Invoke-WebRequest @retry -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"
           Remove-Item geoip.dat, geosite.dat -ErrorAction SilentlyContinue
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat"
-          Invoke-WebRequest -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat"
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat"
-          Invoke-WebRequest -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat"
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat"
-          Invoke-WebRequest -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" -OutFile "geoip_IR.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
-          # download and unpack it instead of compiling. The tag tracks the
-          # fork's latest release so it never needs bumping here.
-          $MTG_MULTI_VER = (Invoke-RestMethod -Uri "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "User-Agent" = "x-ui-release" }).tag_name
-          if (-not $MTG_MULTI_VER) { throw "could not resolve the latest mtg-multi release tag" }
+          # download and unpack it instead of compiling. The tag comes from the
+          # release-page redirect on github.com — not api.github.com, whose
+          # outages have failed release runs while asset downloads kept working.
+          $MTG_MULTI_VER = (curl.exe -sf --retry 5 --retry-all-errors --retry-delay 3 -o NUL -w '%{redirect_url}' "https://github.com/mhsanaei/mtg-multi/releases/latest") -replace '^.*/releases/tag/', ''
+          if (-not $MTG_MULTI_VER -or $MTG_MULTI_VER -notmatch '^v[\d.]+$') { throw "could not resolve the latest mtg-multi release tag" }
           $MTG_PKG = "mtg-multi-$($MTG_MULTI_VER.TrimStart('v'))-windows-amd64"
-          curl.exe -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
+          curl.exe -sfLRO --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/mhsanaei/mtg-multi/releases/download/$MTG_MULTI_VER/$MTG_PKG.zip"
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
           Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
           Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
@@ -359,6 +369,14 @@ jobs:
           COMMIT: ${{ github.sha }}
         run: |
           set -e
+          retry() {
+            for i in 1 2 3 4 5; do
+              "$@" && return 0
+              echo "attempt $i failed: ${*:1:3}" >&2
+              sleep $((i * 5))
+            done
+            return 1
+          }
           short="${COMMIT::8}"
           notes="Rolling development build — installs via the panel's Dev update channel.
 
@@ -369,14 +387,14 @@ jobs:
 
           # Force-move the dev-latest tag to this commit so the release tracks it.
           git tag -f dev-latest "${COMMIT}"
-          git push -f origin refs/tags/dev-latest
+          retry git push -f origin refs/tags/dev-latest
 
-          if gh release view dev-latest >/dev/null 2>&1; then
-            gh release edit dev-latest --prerelease --latest=false \
-              --title "Dev build ${short}" --notes "${notes}"
-          else
-            gh release create dev-latest --prerelease --latest=false \
+          # The release exists on every run but the first; edit-first avoids an
+          # existence probe that can 503 and mis-route into create (422).
+          if ! retry gh release edit dev-latest --prerelease --latest=false \
+              --title "Dev build ${short}" --notes "${notes}"; then
+            retry gh release create dev-latest --prerelease --latest=false \
               --target "${COMMIT}" --title "Dev build ${short}" --notes "${notes}"
           fi
 
-          gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip --clobber
+          retry gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip --clobber
