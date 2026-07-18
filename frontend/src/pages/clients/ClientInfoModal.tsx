@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
-import { ClipboardManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
+import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
@@ -63,6 +63,12 @@ const DEFAULT_SUB: SubSettings = {
   subClashEnable: false,
   publicHost: '',
 };
+
+const SUBSCRIPTION_DOWNLOAD_NAMES = {
+  standard: 'subscription-standard.txt',
+  json: 'subscription-json.json',
+  clash: 'subscription-clash.yaml',
+} as const;
 
 export default function ClientInfoModal({
   open,
@@ -146,6 +152,10 @@ export default function ClientInfoModal({
     if (!text) return;
     const ok = await ClipboardManager.copyText(String(text));
     if (ok) messageApi.success(t('copied'));
+  }
+
+  function downloadSubscription(text: string, format: keyof typeof SUBSCRIPTION_DOWNLOAD_NAMES) {
+    FileManager.downloadTextFile(text, SUBSCRIPTION_DOWNLOAD_NAMES[format]);
   }
 
   async function loadIps() {
@@ -383,6 +393,9 @@ export default function ClientInfoModal({
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subLink)} />
                     </Tooltip>
+                    <Tooltip title={t('download')}>
+                      <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={() => downloadSubscription(subLink, 'standard')} />
+                    </Tooltip>
                     <Popover
                       trigger="click"
                       placement="left"
@@ -410,6 +423,9 @@ export default function ClientInfoModal({
                     <div className="link-row-actions">
                       <Tooltip title={t('copy')}>
                         <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subJsonLink)} />
+                      </Tooltip>
+                      <Tooltip title={t('download')}>
+                        <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={() => downloadSubscription(subJsonLink, 'json')} />
                       </Tooltip>
                       <Popover
                         trigger="click"
@@ -441,6 +457,9 @@ export default function ClientInfoModal({
                     <div className="link-row-actions">
                       <Tooltip title={t('copy')}>
                         <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subClashLink)} />
+                      </Tooltip>
+                      <Tooltip title={t('download')}>
+                        <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={() => downloadSubscription(subClashLink, 'clash')} />
                       </Tooltip>
                       <Popover
                         trigger="click"
