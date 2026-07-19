@@ -375,6 +375,8 @@
       "monitorDesc": "Leave blank to listen on all IPs",
       "meansNoLimit": "= Unlimited. (unit: GB)",
       "totalFlow": "Total Flow",
+      "trafficRatio": "Traffic Ratio",
+      "trafficRatioDesc": "Multiplier applied to attached clients' recorded usage. 1 = real usage; 2 doubles billed traffic.",
       "leaveBlankToNeverExpire": "Leave blank to never expire",
       "noRecommendKeepDefault": "It is recommended to keep the default",
       "certificatePath": "File Path",

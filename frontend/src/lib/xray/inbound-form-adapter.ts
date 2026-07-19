@@ -36,6 +36,7 @@ export interface RawInboundRow {
   up?: number;
   down?: number;
   total?: number;
+  trafficRatio?: number;
   remark?: string;
   enable?: boolean;
   expiryTime?: number;
@@ -55,6 +56,7 @@ export interface WireInboundPayload {
   up: number;
   down: number;
   total: number;
+  trafficRatio: number;
   remark: string;
   enable: boolean;
   expiryTime: number;
@@ -193,6 +195,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     up: row.up ?? 0,
     down: row.down ?? 0,
     total: row.total ?? 0,
+    trafficRatio: row.trafficRatio && row.trafficRatio > 0 ? row.trafficRatio : 1,
     trafficReset: coerceTrafficReset(row.trafficReset),
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     nodeId: row.nodeId ?? null,
@@ -332,6 +335,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     up: values.up,
     down: values.down,
     total: values.total,
+    trafficRatio: values.trafficRatio > 0 ? values.trafficRatio : 1,
     remark: values.remark,
     enable: values.enable,
     expiryTime: values.expiryTime,

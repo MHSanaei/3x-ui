@@ -375,6 +375,8 @@
       "monitorDesc": "Dejar en blanco por defecto",
       "meansNoLimit": "= Ilimitado. (unidad: GB)",
       "totalFlow": "Flujo Total",
+      "trafficRatio": "Ratio de tráfico",
+      "trafficRatioDesc": "Multiplicador aplicado al uso registrado. 1 = uso real; 2 duplica el tráfico facturado.",
       "leaveBlankToNeverExpire": "Dejar en Blanco para Nunca Expirar",
       "noRecommendKeepDefault": "No hay requisitos especiales para mantener la configuración predeterminada",
       "certificatePath": "Ruta Cert",

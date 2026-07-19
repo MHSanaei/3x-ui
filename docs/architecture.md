@@ -345,7 +345,10 @@ inbound edits converge once it reconnects.
 
 Per-client and per-inbound up/down counters originate from Xray's stats API and are persisted
 to the DB. The Xray traffic job polls the core; node traffic is pulled from child nodes and
-merged with GUID-based baselines to avoid double counting after resets.
+merged with GUID-based baselines to avoid double counting after resets. Per-inbound
+`TrafficRatio` (default `1`) multiplies client deltas before they land in `client_traffics`
+(local polls resolve the ratio via `client_inbounds`; node sync uses the reporting inbound).
+Node baselines stay raw so the ratio is applied once per delta.
 
 **Key files:** `service/inbound_traffic.go`, `service/traffic_writer.go`,
 `job/xray_traffic_job.go`, `job/node_traffic_sync_job.go`, `service/inbound_node.go`
@@ -438,7 +441,7 @@ for AutoMigrate in `internal/database/db.go`.
 | Model | Table role | Notable fields |
 |---|---|---|
 | `User` | Admin login | bcrypt password, `LoginEpoch` (invalidates sessions) |
-| `Inbound` | An Xray inbound | `Tag` (unique), `Port`, `Protocol`, `Settings`/`StreamSettings`/`Sniffing` (JSON), `Enable`, `TrafficReset`, `NodeID`, **`OriginNodeGuid`**, `ClientStats` (assoc) |
+| `Inbound` | An Xray inbound | `Tag` (unique), `Port`, `Protocol`, `Settings`/`StreamSettings`/`Sniffing` (JSON), `Enable`, `TrafficRatio`, `TrafficReset`, `NodeID`, **`OriginNodeGuid`**, `ClientStats` (assoc) |
 | `Client` | In-memory client view | UUID/email/flow/limits (parsed from inbound JSON; not persisted) |
 | `ClientRecord` | Persisted client (`clients`) | `Email` (unique), `SubID`, `UUID`, `TotalGB`, `ExpiryTime`, `LimitIP`, `Group`, `Reset` |
 | `ClientGroup` / `ClientInbound` | Grouping + client↔inbound join | many-to-many wiring, `FlowOverride` |

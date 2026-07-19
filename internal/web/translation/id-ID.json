@@ -375,6 +375,8 @@
       "monitorDesc": "Biarkan kosong untuk mendengarkan semua IP",
       "meansNoLimit": "= Tanpa batas. (satuan: GB)",
       "totalFlow": "Total Aliran",
+      "trafficRatio": "Rasio Trafik",
+      "trafficRatioDesc": "Pengali yang diterapkan pada penggunaan tercatat. 1 = penggunaan nyata; 2 menggandakan trafik ditagih.",
       "leaveBlankToNeverExpire": "Biarkan kosong untuk tidak pernah kedaluwarsa",
       "noRecommendKeepDefault": "Disarankan untuk tetap menggunakan pengaturan default",
       "certificatePath": "Path Berkas",

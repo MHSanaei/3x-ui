@@ -26,6 +26,7 @@ export type DBInboundInit = Partial<{
     up: number;
     down: number;
     total: number;
+    trafficRatio: number;
     remark: string;
     enable: boolean;
     expiryTime: number;
@@ -72,6 +73,7 @@ export class DBInbound {
     up: number;
     down: number;
     total: number;
+    trafficRatio: number;
     remark: string;
     enable: boolean;
     expiryTime: number;
@@ -101,6 +103,7 @@ export class DBInbound {
         this.up = 0;
         this.down = 0;
         this.total = 0;
+        this.trafficRatio = 1;
         this.remark = "";
         this.enable = true;
         this.expiryTime = 0;

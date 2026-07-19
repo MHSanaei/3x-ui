@@ -375,6 +375,8 @@
       "monitorDesc": "Mặc định để trống",
       "meansNoLimit": "= Không giới hạn. (đơn vị: GB)",
       "totalFlow": "Tổng lưu lượng",
+      "trafficRatio": "Tỷ lệ lưu lượng",
+      "trafficRatioDesc": "Hệ số nhân áp dụng cho lưu lượng đã ghi. 1 = dùng thật; 2 nhân đôi lưu lượng tính phí.",
       "leaveBlankToNeverExpire": "Để trống để không bao giờ hết hạn",
       "noRecommendKeepDefault": "Không yêu cầu đặc biệt để giữ nguyên cài đặt mặc định",
       "certificatePath": "Đường dẫn tập",

@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 )
@@ -268,5 +269,25 @@ func TestGenXrayInboundConfig_OmitsInboundXmuxButDbRowUnchanged(t *testing.T) {
 	}
 	if strings.Contains(in.StreamSettings, `"xmux"`) == false {
 		t.Fatal("inbound row streamSettings must still carry xmux for subscriptions")
+	}
+}
+
+func TestNormalizeTrafficRatio(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in, want float64
+	}{
+		{0, 1},
+		{-2, 1},
+		{1, 1},
+		{2.5, 2.5},
+		{math.NaN(), 1},
+		{math.Inf(1), 1},
+		{math.Inf(-1), 1},
+	}
+	for _, tc := range cases {
+		if got := NormalizeTrafficRatio(tc.in); got != tc.want {
+			t.Errorf("NormalizeTrafficRatio(%v) = %v, want %v", tc.in, got, tc.want)
+		}
 	}
 }

@@ -35,7 +35,8 @@ inbounds** at once, with per-client traffic accounting.
 ## Limits and IP control
 
 - **Traffic / expiry** caps disable the client when hit; a **Reset** period
-  auto-renews the quota.
+  auto-renews the quota. Billed usage may be inflated by the attached
+  inbound's **Traffic Ratio** (see [Inbounds](/docs/config/inbounds)).
 - **Limit IP** caps simultaneous source IPs. Enforcement relies on Fail2ban —
   see [Security](/docs/operations/security). You can view a client's recent IPs
   and clear them from the client's actions.

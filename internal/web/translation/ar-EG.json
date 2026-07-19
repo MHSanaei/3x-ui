@@ -375,6 +375,8 @@
       "monitorDesc": "سيبها فاضية لو عايز تستمع على كل الـ IPs",
       "meansNoLimit": "= غير محدود. (الوحدة: GB)",
       "totalFlow": "إجمالي التدفق",
+      "trafficRatio": "نسبة الحركة",
+      "trafficRatioDesc": "مضاعف يُطبَّق على الاستخدام المسجَّل. 1 = الاستخدام الفعلي؛ 2 يضاعف الحركة المحتسبة.",
       "leaveBlankToNeverExpire": "سيبها فاضية عشان ماتنتهيش",
       "noRecommendKeepDefault": "ننصح باستخدام الافتراضي",
       "certificatePath": "مسار الملف",

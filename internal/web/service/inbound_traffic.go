@@ -21,6 +21,57 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func scaleTrafficBytes(n int64, ratio float64) int64 {
+	ratio = model.NormalizeTrafficRatio(ratio)
+	if ratio == 1 || n == 0 {
+		return n
+	}
+	scaled := float64(n) * ratio
+	if scaled >= float64(database.TrafficMax) {
+		return database.TrafficMax
+	}
+	if scaled <= 0 {
+		return 0
+	}
+	return int64(scaled)
+}
+
+func loadInboundTrafficRatiosByEmail(tx *gorm.DB, emails []string) (map[string]float64, error) {
+	out := make(map[string]float64, len(emails))
+	if len(emails) == 0 {
+		return out, nil
+	}
+	type row struct {
+		Email        string
+		InboundID    int     `gorm:"column:inbound_id"`
+		TrafficRatio float64 `gorm:"column:traffic_ratio"`
+	}
+	var rows []row
+	for _, batch := range chunkStrings(emails, sqliteMaxVars) {
+		var part []row
+		if err := tx.Raw(
+			`SELECT c.email AS email, ci.inbound_id AS inbound_id, i.traffic_ratio AS traffic_ratio
+			 FROM clients c
+			 JOIN client_inbounds ci ON ci.client_id = c.id
+			 JOIN inbounds i ON i.id = ci.inbound_id
+			 WHERE c.email IN ?`,
+			batch,
+		).Scan(&part).Error; err != nil {
+			return nil, err
+		}
+		rows = append(rows, part...)
+	}
+	bestInbound := make(map[string]int, len(emails))
+	for _, r := range rows {
+		prev, seen := bestInbound[r.Email]
+		if !seen || r.InboundID < prev {
+			bestInbound[r.Email] = r.InboundID
+			out[r.Email] = model.NormalizeTrafficRatio(r.TrafficRatio)
+		}
+	}
+	return out, nil
+}
+
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
 	err = submitTrafficWrite(func() error {
 		var inner error
@@ -135,7 +186,15 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
-	// Index by email for O(N) merge.
+	ratioEmails := make([]string, 0, len(dbClientTraffics))
+	for _, ct := range dbClientTraffics {
+		ratioEmails = append(ratioEmails, ct.Email)
+	}
+	ratios, err := loadInboundTrafficRatiosByEmail(tx, ratioEmails)
+	if err != nil {
+		return err
+	}
+
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
 	for i := range traffics {
 		if traffics[i] != nil {
@@ -143,16 +202,14 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		}
 	}
 	now := time.Now().UnixMilli()
-	// Use atomic per-row UPDATE instead of read-modify-write Save. tx.Save
-	// issues UPDATEs in slice order, which varies between concurrent callers;
-	// on PostgreSQL two transactions locking the same rows in opposite order
-	// deadlock. An atomic "SET up = up + ?" never holds a row lock across a
-	// subsequent lock acquisition, so concurrent writers cannot deadlock.
 	for _, ct := range dbClientTraffics {
 		t, ok := trafficByEmail[ct.Email]
 		if !ok || (t.Up == 0 && t.Down == 0) {
 			continue
 		}
+		ratio := ratios[ct.Email]
+		up := scaleTrafficBytes(t.Up, ratio)
+		down := scaleTrafficBytes(t.Down, ratio)
 		if err = tx.Exec(
 			fmt.Sprintf(
 				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s WHERE email = ?`,
@@ -160,7 +217,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
 			),
-			t.Up, t.Down, now, ct.Email,
+			up, down, now, ct.Email,
 		).Error; err != nil {
 			logger.Warning("AddClientTraffic update data ", err)
 		}

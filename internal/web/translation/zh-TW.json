@@ -375,6 +375,8 @@
       "monitorDesc": "留空表示監聽所有 IP",
       "meansNoLimit": "= 無限制。(單位: GB)",
       "totalFlow": "總流量",
+      "trafficRatio": "流量倍率",
+      "trafficRatioDesc": "套用到已記錄用量的倍率。1 = 實際用量；2 = 計費流量加倍。",
       "leaveBlankToNeverExpire": "留空表示永不過期",
       "noRecommendKeepDefault": "建議保留預設值",
       "certificatePath": "檔案路徑",

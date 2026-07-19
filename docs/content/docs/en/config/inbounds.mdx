@@ -40,6 +40,10 @@ See [Clients](/docs/config/clients).
 Optionally cap total traffic and set an expiry date for the inbound, and choose a
 periodic **traffic reset** schedule: `never` (default), `hourly`, `daily`,
 `weekly`, or `monthly`.
+
+Set **Traffic Ratio** (default `1`) to multiply attached clients' recorded
+usage before it is stored — for example `2` bills twice the real bytes — while
+inbound aggregate counters stay raw.
 </Step>
 
 </Steps>
