@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -457,9 +458,14 @@ func (s *TcShaper) runTC(args ...string) error {
 	if s.runner != nil {
 		return s.runner(args...)
 	}
-	cmd := exec.CommandContext(context.Background(), "tc", args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "tc", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("tc timed out after 5s: %w", ctx.Err())
+		}
 		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
 	}
 	return nil

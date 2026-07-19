@@ -97,6 +97,17 @@ func TestTcShaperSyncDiff(t *testing.T) {
 	if !strings.Contains(joined, "actions delete action police") {
 		t.Fatalf("expected police delete on remove, calls:\n%s", joined)
 	}
+
+	s.Sync(map[string]ClientSpeed{
+		"a@test": {IPs: []string{"1.1.1.1"}, DownMbps: 10, UpMbps: 5},
+	})
+	if len(s.applied) != 1 {
+		t.Fatalf("re-add failed: %#v", s.applied)
+	}
+	s.Sync(nil)
+	if len(s.applied) != 0 {
+		t.Fatalf("Sync(nil) should clear applied rules, got %#v", s.applied)
+	}
 }
 
 func TestTcShaperSharedUploadAcrossIPs(t *testing.T) {

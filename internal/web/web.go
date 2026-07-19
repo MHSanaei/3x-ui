@@ -662,7 +662,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	})
 
 	if enabled, err := s.settingService.GetSpeedLimitEnable(); err == nil && enabled {
-		if iface, err := service.DetectPrimaryInterface(); err == nil {
+		iface, detErr := service.DetectPrimaryInterface()
+		if detErr != nil {
+			logger.Warning("tc speed limiting enabled but primary interface not found:", detErr)
+		} else {
 			s.tcShaper = service.NewTcShaper(iface)
 			if initErr := s.tcShaper.Init(); initErr != nil {
 				logger.Warning("tc speed limiting unavailable:", initErr)
