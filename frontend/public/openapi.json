@@ -1087,6 +1087,12 @@
             "description": "Security method (e.g., \"auto\", \"aes-128-gcm\")",
             "type": "string"
           },
+          "speedDown": {
+            "type": "integer"
+          },
+          "speedUp": {
+            "type": "integer"
+          },
           "subId": {
             "description": "Subscription identifier",
             "type": "string"
@@ -1115,6 +1121,8 @@
           "limitIp",
           "reset",
           "security",
+          "speedDown",
+          "speedUp",
           "subId",
           "tgId",
           "totalGB"
@@ -1210,6 +1218,12 @@
           "security": {
             "type": "string"
           },
+          "speedDown": {
+            "type": "integer"
+          },
+          "speedUp": {
+            "type": "integer"
+          },
           "subId": {
             "type": "string"
           },
@@ -1251,6 +1265,8 @@
           "reverse",
           "secret",
           "security",
+          "speedDown",
+          "speedUp",
           "subId",
           "tgId",
           "totalGB",

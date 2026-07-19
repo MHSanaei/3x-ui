@@ -809,8 +809,10 @@ type Client struct {
 	KeepAlive    int            `json:"keepAlive,omitempty"`
 	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag        string         `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
-	Email        string         `json:"email"`                        // Client email identifier
-	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
+	Email        string         `json:"email"`   // Client email identifier
+	LimitIP      int            `json:"limitIp"` // IP limit for this client
+	SpeedDown    int            `json:"speedDown"`
+	SpeedUp      int            `json:"speedUp"`
 	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
 	ExpiryTime   int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
 	Enable       bool           `json:"enable" form:"enable"`         // Whether the client is enabled
@@ -841,6 +843,8 @@ type ClientRecord struct {
 	Secret       string `json:"secret" gorm:"column:secret"`
 	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
 	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
+	SpeedDown    int    `json:"speedDown" gorm:"column:speed_down;default:0"`
+	SpeedUp      int    `json:"speedUp" gorm:"column:speed_up;default:0"`
 	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
 	Enable       bool   `json:"enable" gorm:"default:true"`
@@ -1005,6 +1009,8 @@ func (c *Client) ToRecord() *ClientRecord {
 		Flow:       c.Flow,
 		Security:   c.Security,
 		LimitIP:    c.LimitIP,
+		SpeedDown:  c.SpeedDown,
+		SpeedUp:    c.SpeedUp,
 		TotalGB:    c.TotalGB,
 		ExpiryTime: c.ExpiryTime,
 		Enable:     c.Enable,
@@ -1058,6 +1064,8 @@ func (r *ClientRecord) ToClient() *Client {
 		Flow:       r.Flow,
 		Security:   r.Security,
 		LimitIP:    r.LimitIP,
+		SpeedDown:  r.SpeedDown,
+		SpeedUp:    r.SpeedUp,
 		TotalGB:    r.TotalGB,
 		ExpiryTime: r.ExpiryTime,
 		Enable:     r.Enable,
@@ -1188,6 +1196,26 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if picked != existing.LimitIP {
 			keep("limitIp", existing.LimitIP, incoming.LimitIP, picked)
 			existing.LimitIP = picked
+		}
+	}
+	if existing.SpeedDown != incoming.SpeedDown && incoming.SpeedDown != 0 {
+		picked := existing.SpeedDown
+		if existing.SpeedDown == 0 || incoming.SpeedDown < existing.SpeedDown {
+			picked = incoming.SpeedDown
+		}
+		if picked != existing.SpeedDown {
+			keep("speedDown", existing.SpeedDown, incoming.SpeedDown, picked)
+			existing.SpeedDown = picked
+		}
+	}
+	if existing.SpeedUp != incoming.SpeedUp && incoming.SpeedUp != 0 {
+		picked := existing.SpeedUp
+		if existing.SpeedUp == 0 || incoming.SpeedUp < existing.SpeedUp {
+			picked = incoming.SpeedUp
+		}
+		if picked != existing.SpeedUp {
+			keep("speedUp", existing.SpeedUp, incoming.SpeedUp, picked)
+			existing.SpeedUp = picked
 		}
 	}
 	if existing.TgID != incoming.TgID && incoming.TgID != 0 {

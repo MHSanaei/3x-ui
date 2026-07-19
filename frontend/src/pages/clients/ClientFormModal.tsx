@@ -103,6 +103,8 @@ type Values = ClientFormValues & {
   wgAllowedIPs: string;
   secret: string;
   adTag: string;
+  speedDown: number;
+  speedUp: number;
 };
 
 const EMPTY: Values = {
@@ -120,6 +122,8 @@ const EMPTY: Values = {
   delayedDays: 0,
   reset: 0,
   limitIp: 0,
+  speedDown: 0,
+  speedUp: 0,
   tgId: 0,
   group: '',
   comment: '',
@@ -224,6 +228,8 @@ export default function ClientFormModal({
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
+        speedDown: client.speedDown || 0,
+        speedUp: client.speedUp || 0,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -477,6 +483,8 @@ export default function ClientFormModal({
       delayedDays: values.delayedDays,
       reset: values.reset,
       limitIp: values.limitIp,
+      speedDown: values.speedDown,
+      speedUp: values.speedUp,
       tgId: values.tgId,
       group: values.group,
       comment: values.comment,
@@ -503,6 +511,8 @@ export default function ClientFormModal({
       expiryTime,
       reset: Number(values.reset) || 0,
       limitIp: Number(values.limitIp) || 0,
+      speedDown: Number(values.speedDown) || 0,
+      speedUp: Number(values.speedUp) || 0,
       tgId: Number(values.tgId) || 0,
       group: values.group,
       comment: values.comment,
@@ -661,6 +671,29 @@ export default function ClientFormModal({
                               </span>
                             </Tooltip>
                           </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <FormField
+                            name="speedDown"
+                            label={t('pages.clients.speedDown')}
+                            tooltip={t('pages.clients.speedDownDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <FormField
+                            name="speedUp"
+                            label={t('pages.clients.speedUp')}
+                            tooltip={t('pages.clients.speedUpDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
                         </Col>
                       </Row>
 

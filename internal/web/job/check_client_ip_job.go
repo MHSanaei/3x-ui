@@ -35,6 +35,7 @@ type CheckClientIpJob struct {
 	disAllowedIps []string
 	bannedSeen    map[string]int64
 	xrayService   service.XrayService
+	tcShaper      *service.TcShaper
 }
 
 var job *CheckClientIpJob
@@ -49,6 +50,10 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 	return job
 }
 
+func (j *CheckClientIpJob) SetTcShaper(ts *service.TcShaper) {
+	j.tcShaper = ts
+}
+
 func (j *CheckClientIpJob) Run() {
 	observed, apiMode := j.collectFromOnlineAPI()
 	if !apiMode {
@@ -58,16 +63,18 @@ func (j *CheckClientIpJob) Run() {
 		return
 	}
 
-	if !isFail2BanEnabled() {
-		return
+	if isFail2BanEnabled() {
+		hasLimit := j.hasLimitIp()
+		f2bInstalled := false
+		if hasLimit {
+			f2bInstalled = j.checkFail2BanInstalled()
+		}
+		j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
 	}
 
-	hasLimit := j.hasLimitIp()
-	f2bInstalled := false
-	if hasLimit {
-		f2bInstalled = j.checkFail2BanInstalled()
+	if j.tcShaper != nil {
+		j.syncTcRules(observed)
 	}
-	j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
 }
 
 // resolveEnforce decides whether limits can actually be enforced this run.
@@ -744,4 +751,48 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	}
 
 	return nil, err
+}
+
+func (j *CheckClientIpJob) syncTcRules(observed map[string]map[string]int64) {
+	emails := make([]string, 0, len(observed))
+	for email := range observed {
+		emails = append(emails, email)
+	}
+	speeds := j.loadClientSpeeds(emails)
+	clients := make(map[string]service.ClientSpeed, len(observed))
+	for email, ipMap := range observed {
+		sp := speeds[email]
+		if sp[0] <= 0 && sp[1] <= 0 {
+			continue
+		}
+		ips := make([]string, 0, len(ipMap))
+		for ip := range ipMap {
+			ips = append(ips, ip)
+		}
+		clients[email] = service.ClientSpeed{IPs: ips, DownMbps: sp[0], UpMbps: sp[1]}
+	}
+	j.tcShaper.Sync(clients)
+}
+
+func (j *CheckClientIpJob) loadClientSpeeds(emails []string) map[string][2]int {
+	db := database.GetDB()
+	out := make(map[string][2]int, len(emails))
+	for _, batch := range chunkEmails(emails, ipScanChunk) {
+		var rows []struct {
+			Email     string
+			SpeedDown int
+			SpeedUp   int
+		}
+		if err := db.Model(&model.ClientRecord{}).
+			Select("email, speed_down, speed_up").
+			Where("email IN ?", batch).
+			Scan(&rows).Error; err != nil {
+			j.checkError(err)
+			continue
+		}
+		for _, r := range rows {
+			out[r.Email] = [2]int{r.SpeedDown, r.SpeedUp}
+		}
+	}
+	return out
 }
