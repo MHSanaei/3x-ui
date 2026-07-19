@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -380,7 +381,7 @@ func (s *TcShaper) Cleanup() {
 }
 
 func (s *TcShaper) runTC(args ...string) error {
-	cmd := exec.Command("tc", args...)
+	cmd := exec.CommandContext(context.Background(), "tc", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
