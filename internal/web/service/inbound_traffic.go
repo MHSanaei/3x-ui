@@ -21,15 +21,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func normalizeTrafficRatio(ratio float64) float64 {
-	if ratio <= 0 {
-		return 1
-	}
-	return ratio
-}
-
 func scaleTrafficBytes(n int64, ratio float64) int64 {
-	ratio = normalizeTrafficRatio(ratio)
+	ratio = model.NormalizeClientTrafficRatio(ratio)
 	if ratio == 1 || n == 0 {
 		return n
 	}
@@ -64,7 +57,7 @@ func loadClientTrafficRatios(tx *gorm.DB, emails []string) (map[string]float64, 
 		rows = append(rows, part...)
 	}
 	for _, r := range rows {
-		out[r.Email] = normalizeTrafficRatio(r.TrafficRatio)
+		out[r.Email] = model.NormalizeClientTrafficRatio(r.TrafficRatio)
 	}
 	return out, nil
 }

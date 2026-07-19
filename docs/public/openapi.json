@@ -1102,6 +1102,7 @@
             "type": "integer"
           },
           "trafficRatio": {
+            "example": 1,
             "type": "number"
           },
           "updated_at": {
@@ -1226,6 +1227,7 @@
             "type": "integer"
           },
           "trafficRatio": {
+            "example": 1,
             "type": "number"
           },
           "updatedAt": {

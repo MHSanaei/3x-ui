@@ -1076,6 +1076,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "trafficRatio": {
+        "example": 1,
         "type": "number"
       },
       "updated_at": {
@@ -1200,6 +1201,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "trafficRatio": {
+        "example": 1,
         "type": "number"
       },
       "updatedAt": {

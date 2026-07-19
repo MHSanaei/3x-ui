@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 )
@@ -280,6 +281,9 @@ func TestNormalizeClientTrafficRatio(t *testing.T) {
 		{-2, 1},
 		{1, 1},
 		{2.5, 2.5},
+		{math.NaN(), 1},
+		{math.Inf(1), 1},
+		{math.Inf(-1), 1},
 	}
 	for _, tc := range cases {
 		if got := NormalizeClientTrafficRatio(tc.in); got != tc.want {

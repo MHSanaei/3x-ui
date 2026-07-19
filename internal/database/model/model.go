@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
@@ -812,7 +813,7 @@ type Client struct {
 	Email        string         `json:"email"`                  // Client email identifier
 	LimitIP      int            `json:"limitIp"`                // IP limit for this client
 	TotalGB      int64          `json:"totalGB" form:"totalGB"` // Total traffic limit in GB
-	TrafficRatio float64        `json:"trafficRatio" form:"trafficRatio"`
+	TrafficRatio float64        `json:"trafficRatio" form:"trafficRatio" example:"1"`
 	ExpiryTime   int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
 	Enable       bool           `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID         int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
@@ -843,7 +844,7 @@ type ClientRecord struct {
 	AdTag        string  `json:"adTag" gorm:"column:ad_tag;default:''"`
 	LimitIP      int     `json:"limitIp" gorm:"column:limit_ip"`
 	TotalGB      int64   `json:"totalGB" gorm:"column:total_gb"`
-	TrafficRatio float64 `json:"trafficRatio" gorm:"column:traffic_ratio;default:1"`
+	TrafficRatio float64 `json:"trafficRatio" gorm:"column:traffic_ratio;default:1" example:"1"`
 	ExpiryTime   int64   `json:"expiryTime" gorm:"column:expiry_time"`
 	Enable       bool    `json:"enable" gorm:"default:true"`
 	TgID         int64   `json:"tgId" gorm:"column:tg_id"`
@@ -998,7 +999,7 @@ type Host struct {
 func (Host) TableName() string { return "hosts" }
 
 func NormalizeClientTrafficRatio(ratio float64) float64 {
-	if ratio <= 0 {
+	if ratio <= 0 || math.IsNaN(ratio) || math.IsInf(ratio, 0) {
 		return 1
 	}
 	return ratio
