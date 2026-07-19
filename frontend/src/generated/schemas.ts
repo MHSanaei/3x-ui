@@ -1075,6 +1075,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficRatio": {
+        "type": "number"
+      },
       "updated_at": {
         "description": "Last update timestamp",
         "format": "int64",
@@ -1091,7 +1094,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "security",
       "subId",
       "tgId",
-      "totalGB"
+      "totalGB",
+      "trafficRatio"
     ],
     "type": "object"
   },
@@ -1195,6 +1199,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficRatio": {
+        "type": "number"
+      },
       "updatedAt": {
         "format": "int64",
         "type": "integer"
@@ -1228,6 +1235,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subId",
       "tgId",
       "totalGB",
+      "trafficRatio",
       "updatedAt",
       "uuid"
     ],

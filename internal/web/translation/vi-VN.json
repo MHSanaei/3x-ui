@@ -797,6 +797,8 @@
       "actions": "Hành động",
       "totalGB": "Giới hạn lưu lượng (GB)",
       "totalGBDesc": "Hạn mức dữ liệu cho khách hàng này. 0 = không giới hạn.",
+      "trafficRatio": "Tỷ lệ lưu lượng",
+      "trafficRatioDesc": "Hệ số nhân áp dụng cho lưu lượng đã ghi. 1 = dùng thật; 2 nhân đôi lưu lượng tính phí.",
       "expiryTime": "Hết hạn",
       "addClients": "Thêm khách hàng",
       "limitIp": "Giới hạn IP",

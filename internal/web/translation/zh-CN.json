@@ -797,6 +797,8 @@
       "actions": "操作",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "该客户端的流量配额。0 = 不限制。",
+      "trafficRatio": "流量倍率",
+      "trafficRatioDesc": "应用于已记录用量的倍率。1 = 实际用量；2 = 计费流量翻倍。",
       "expiryTime": "过期时间",
       "addClients": "添加客户端",
       "limitIp": "IP 限制",

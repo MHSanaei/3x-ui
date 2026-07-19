@@ -1101,6 +1101,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "trafficRatio": {
+            "type": "number"
+          },
           "updated_at": {
             "description": "Last update timestamp",
             "format": "int64",
@@ -1117,7 +1120,8 @@
           "security",
           "subId",
           "tgId",
-          "totalGB"
+          "totalGB",
+          "trafficRatio"
         ],
         "type": "object"
       },
@@ -1221,6 +1225,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "trafficRatio": {
+            "type": "number"
+          },
           "updatedAt": {
             "format": "int64",
             "type": "integer"
@@ -1254,6 +1261,7 @@
           "subId",
           "tgId",
           "totalGB",
+          "trafficRatio",
           "updatedAt",
           "uuid"
         ],

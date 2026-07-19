@@ -797,6 +797,8 @@
       "actions": "Acciones",
       "totalGB": "Límite de tráfico (GB)",
       "totalGBDesc": "Cuota de datos para este cliente. 0 = ilimitado.",
+      "trafficRatio": "Ratio de tráfico",
+      "trafficRatioDesc": "Multiplicador aplicado al uso registrado. 1 = uso real; 2 duplica el tráfico facturado.",
       "expiryTime": "Expiración",
       "addClients": "Añadir clientes",
       "limitIp": "Límite de IP",

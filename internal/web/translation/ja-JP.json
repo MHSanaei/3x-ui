@@ -797,6 +797,8 @@
       "actions": "操作",
       "totalGB": "トラフィック上限 (GB)",
       "totalGBDesc": "このクライアントのデータ割当量。0 = 無制限。",
+      "trafficRatio": "トラフィック倍率",
+      "trafficRatioDesc": "記録される使用量に適用する倍率。1 = 実使用量、2 = 課金トラフィックを2倍。",
       "expiryTime": "有効期限",
       "addClients": "クライアントを追加",
       "limitIp": "IP 制限",

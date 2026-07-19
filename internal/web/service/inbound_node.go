@@ -456,8 +456,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// are ever probed, so scope the lookup to those instead of plucking the whole
 	// client_traffics table (50k+ rows) on every node poll.
 	existingEmails := make(map[string]struct{}, len(snapEmailsAll))
+	var snapEmailList []string
 	if len(snapEmailsAll) > 0 {
-		snapEmailList := make([]string, 0, len(snapEmailsAll))
+		snapEmailList = make([]string, 0, len(snapEmailsAll))
 		for email := range snapEmailsAll {
 			snapEmailList = append(snapEmailList, email)
 		}
@@ -479,6 +480,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			tx.Rollback()
 		}
 	}()
+
+	ratios, err := loadClientTrafficRatios(tx, snapEmailList)
+	if err != nil {
+		return false, err
+	}
 
 	structuralChange := false
 
@@ -740,6 +746,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if deltaDown = canon.Down - base.Down; deltaDown < 0 {
 					deltaDown = 0
 				}
+				ratio := ratios[cs.Email]
+				deltaUp = scaleTrafficBytes(deltaUp, ratio)
+				deltaDown = scaleTrafficBytes(deltaDown, ratio)
 			}
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {

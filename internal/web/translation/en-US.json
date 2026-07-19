@@ -797,6 +797,8 @@
       "actions": "Actions",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
+      "trafficRatio": "Traffic Ratio",
+      "trafficRatioDesc": "Multiplier applied to recorded usage. 1 = real usage; 2 doubles billed traffic.",
       "expiryTime": "Expiry",
       "addClients": "Add Clients",
       "limitIp": "IP Limit",

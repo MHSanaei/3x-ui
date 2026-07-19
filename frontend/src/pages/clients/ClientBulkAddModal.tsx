@@ -34,6 +34,7 @@ const EMPTY: ClientBulkAddFormValues = {
   flow: '',
   limitIp: 0,
   totalGB: 0,
+  trafficRatio: 1,
   expiryTime: 0,
   reset: 0,
   inboundIds: [],
@@ -173,6 +174,7 @@ export default function ClientBulkAddModal({
           auth: RandomUtil.randomLowerAndNum(16),
           flow: showFlow ? (current.flow || '') : '',
           totalGB: Math.round((current.totalGB || 0) * SizeFormatter.ONE_GB),
+          trafficRatio: Number(current.trafficRatio) > 0 ? Number(current.trafficRatio) : 1,
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
           limitIp: Number(current.limitIp) || 0,
@@ -329,6 +331,15 @@ export default function ClientBulkAddModal({
 
             <FormField name="totalGB" label={t('pages.clients.totalGB')} transform={{ output: (v) => Number(v) || 0 }}>
               <InputNumber min={0} step={1} />
+            </FormField>
+
+            <FormField
+              name="trafficRatio"
+              label={t('pages.clients.trafficRatio')}
+              tooltip={t('pages.clients.trafficRatioDesc')}
+              transform={{ output: (v) => (Number(v) > 0 ? Number(v) : 1) }}
+            >
+              <InputNumber min={0.1} step={0.1} />
             </FormField>
 
             <Form.Item label={t('pages.clients.delayedStart')}>

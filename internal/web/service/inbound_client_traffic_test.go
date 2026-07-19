@@ -231,3 +231,62 @@ func TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients(t *testing.T) {
 		t.Errorf("normal traffic not applied: up=%d down=%d, want 30/40", normal.Up, normal.Down)
 	}
 }
+
+func TestAddClientTraffic_AppliesTrafficRatio(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+	const email = "ratio-user"
+	if err := db.Create(&model.ClientRecord{Email: email, Enable: true, TrafficRatio: 2}).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: email, Enable: true}).Error; err != nil {
+		t.Fatalf("create traffic row: %v", err)
+	}
+
+	svc := InboundService{}
+	if err := svc.addClientTraffic(db, []*xray.ClientTraffic{
+		{Email: email, Up: 10, Down: 5},
+	}); err != nil {
+		t.Fatalf("addClientTraffic: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).First(&row).Error; err != nil {
+		t.Fatalf("reload traffic: %v", err)
+	}
+	if row.Up != 20 || row.Down != 10 {
+		t.Errorf("ratio=2 did not double usage: up=%d down=%d, want 20/10", row.Up, row.Down)
+	}
+}
+
+func TestScaleTrafficBytes(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		n     int64
+		ratio float64
+		want  int64
+	}{
+		{name: "default", n: 10, ratio: 1, want: 10},
+		{name: "double", n: 10, ratio: 2, want: 20},
+		{name: "zeroRatio", n: 10, ratio: 0, want: 10},
+		{name: "negativeRatio", n: 10, ratio: -1, want: 10},
+		{name: "zeroBytes", n: 0, ratio: 2, want: 0},
+		{name: "fractional", n: 10, ratio: 1.5, want: 15},
+		{name: "cap", n: database.TrafficMax, ratio: 2, want: database.TrafficMax},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := scaleTrafficBytes(tc.n, tc.ratio); got != tc.want {
+				t.Errorf("scaleTrafficBytes(%d, %v) = %d, want %d", tc.n, tc.ratio, got, tc.want)
+			}
+		})
+	}
+}

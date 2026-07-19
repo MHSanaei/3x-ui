@@ -254,6 +254,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficRatio": 0,
     "updated_at": 0
   },
   "ClientInbound": {
@@ -287,6 +288,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficRatio": 0,
     "updatedAt": 0,
     "uuid": ""
   },

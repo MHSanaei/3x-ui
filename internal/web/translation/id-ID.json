@@ -797,6 +797,8 @@
       "actions": "Aksi",
       "totalGB": "Batas Trafik (GB)",
       "totalGBDesc": "Kuota data untuk klien ini. 0 = tidak terbatas.",
+      "trafficRatio": "Rasio Trafik",
+      "trafficRatioDesc": "Pengali yang diterapkan pada penggunaan tercatat. 1 = penggunaan nyata; 2 menggandakan trafik ditagih.",
       "expiryTime": "Kedaluwarsa",
       "addClients": "Tambah klien",
       "limitIp": "Batas IP",

@@ -809,9 +809,10 @@ type Client struct {
 	KeepAlive    int            `json:"keepAlive,omitempty"`
 	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag        string         `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
-	Email        string         `json:"email"`                        // Client email identifier
-	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	Email        string         `json:"email"`                  // Client email identifier
+	LimitIP      int            `json:"limitIp"`                // IP limit for this client
+	TotalGB      int64          `json:"totalGB" form:"totalGB"` // Total traffic limit in GB
+	TrafficRatio float64        `json:"trafficRatio" form:"trafficRatio"`
 	ExpiryTime   int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
 	Enable       bool           `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID         int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
@@ -824,32 +825,33 @@ type Client struct {
 }
 
 type ClientRecord struct {
-	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID        string `json:"subId" gorm:"index;column:sub_id"`
-	UUID         string `json:"uuid" gorm:"column:uuid"`
-	Password     string `json:"password"`
-	Auth         string `json:"auth"`
-	Flow         string `json:"flow"`
-	Security     string `json:"security"`
-	Reverse      string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey   string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey    string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs   string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	Secret       string `json:"secret" gorm:"column:secret"`
-	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
-	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable       bool   `json:"enable" gorm:"default:true"`
-	TgID         int64  `json:"tgId" gorm:"column:tg_id"`
-	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment      string `json:"comment"`
-	Reset        int    `json:"reset" gorm:"default:0"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id           int     `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email        string  `json:"email" gorm:"uniqueIndex;not null"`
+	SubID        string  `json:"subId" gorm:"index;column:sub_id"`
+	UUID         string  `json:"uuid" gorm:"column:uuid"`
+	Password     string  `json:"password"`
+	Auth         string  `json:"auth"`
+	Flow         string  `json:"flow"`
+	Security     string  `json:"security"`
+	Reverse      string  `json:"reverse" gorm:"column:reverse"`
+	PrivateKey   string  `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey    string  `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs   string  `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey string  `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive    int     `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	Secret       string  `json:"secret" gorm:"column:secret"`
+	AdTag        string  `json:"adTag" gorm:"column:ad_tag;default:''"`
+	LimitIP      int     `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB      int64   `json:"totalGB" gorm:"column:total_gb"`
+	TrafficRatio float64 `json:"trafficRatio" gorm:"column:traffic_ratio;default:1"`
+	ExpiryTime   int64   `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable       bool    `json:"enable" gorm:"default:true"`
+	TgID         int64   `json:"tgId" gorm:"column:tg_id"`
+	Group        string  `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment      string  `json:"comment"`
+	Reset        int     `json:"reset" gorm:"default:0"`
+	CreatedAt    int64   `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt    int64   `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -995,25 +997,33 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
+func normalizeClientTrafficRatio(ratio float64) float64 {
+	if ratio <= 0 {
+		return 1
+	}
+	return ratio
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
-		Email:      c.Email,
-		SubID:      c.SubID,
-		UUID:       c.ID,
-		Password:   c.Password,
-		Auth:       c.Auth,
-		Flow:       c.Flow,
-		Security:   c.Security,
-		LimitIP:    c.LimitIP,
-		TotalGB:    c.TotalGB,
-		ExpiryTime: c.ExpiryTime,
-		Enable:     c.Enable,
-		TgID:       c.TgID,
-		Group:      c.Group,
-		Comment:    c.Comment,
-		Reset:      c.Reset,
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
+		Email:        c.Email,
+		SubID:        c.SubID,
+		UUID:         c.ID,
+		Password:     c.Password,
+		Auth:         c.Auth,
+		Flow:         c.Flow,
+		Security:     c.Security,
+		LimitIP:      c.LimitIP,
+		TotalGB:      c.TotalGB,
+		TrafficRatio: c.TrafficRatio,
+		ExpiryTime:   c.ExpiryTime,
+		Enable:       c.Enable,
+		TgID:         c.TgID,
+		Group:        c.Group,
+		Comment:      c.Comment,
+		Reset:        c.Reset,
+		CreatedAt:    c.CreatedAt,
+		UpdatedAt:    c.UpdatedAt,
 
 		PrivateKey:   c.PrivateKey,
 		PublicKey:    c.PublicKey,
@@ -1050,23 +1060,24 @@ func splitWireguardAllowedIPs(csv string) []string {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:         r.UUID,
-		Email:      r.Email,
-		SubID:      r.SubID,
-		Password:   r.Password,
-		Auth:       r.Auth,
-		Flow:       r.Flow,
-		Security:   r.Security,
-		LimitIP:    r.LimitIP,
-		TotalGB:    r.TotalGB,
-		ExpiryTime: r.ExpiryTime,
-		Enable:     r.Enable,
-		TgID:       r.TgID,
-		Group:      r.Group,
-		Comment:    r.Comment,
-		Reset:      r.Reset,
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		ID:           r.UUID,
+		Email:        r.Email,
+		SubID:        r.SubID,
+		Password:     r.Password,
+		Auth:         r.Auth,
+		Flow:         r.Flow,
+		Security:     r.Security,
+		LimitIP:      r.LimitIP,
+		TotalGB:      r.TotalGB,
+		TrafficRatio: normalizeClientTrafficRatio(r.TrafficRatio),
+		ExpiryTime:   r.ExpiryTime,
+		Enable:       r.Enable,
+		TgID:         r.TgID,
+		Group:        r.Group,
+		Comment:      r.Comment,
+		Reset:        r.Reset,
+		CreatedAt:    r.CreatedAt,
+		UpdatedAt:    r.UpdatedAt,
 
 		PrivateKey:   r.PrivateKey,
 		PublicKey:    r.PublicKey,
@@ -1168,6 +1179,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if picked != existing.TotalGB {
 			keep("totalGB", existing.TotalGB, incoming.TotalGB, picked)
 			existing.TotalGB = picked
+		}
+	}
+	if existing.TrafficRatio != incoming.TrafficRatio && incoming.TrafficRatio > 0 && incoming.TrafficRatio != 1 {
+		if incomingNewer || existing.TrafficRatio <= 0 || existing.TrafficRatio == 1 {
+			keep("trafficRatio", existing.TrafficRatio, incoming.TrafficRatio, incoming.TrafficRatio)
+			existing.TrafficRatio = incoming.TrafficRatio
 		}
 	}
 	if existing.ExpiryTime != incoming.ExpiryTime {

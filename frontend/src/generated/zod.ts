@@ -278,6 +278,7 @@ export const ClientSchema = z.object({
   subId: z.string(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
+  trafficRatio: z.number(),
   updated_at: z.number().int().optional(),
 });
 export type Client = z.infer<typeof ClientSchema>;
@@ -315,6 +316,7 @@ export const ClientRecordSchema = z.object({
   subId: z.string(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
+  trafficRatio: z.number(),
   updatedAt: z.number().int(),
   uuid: z.string(),
 });

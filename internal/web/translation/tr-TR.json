@@ -797,6 +797,8 @@
       "actions": "İşlemler",
       "totalGB": "Trafik Limiti (GB)",
       "totalGBDesc": "Bu kullanıcı için veri kotası. 0 = sınırsız.",
+      "trafficRatio": "Trafik Oranı",
+      "trafficRatioDesc": "Kaydedilen kullanıma uygulanan çarpan. 1 = gerçek kullanım; 2 faturalanan trafiği ikiye katlar.",
       "expiryTime": "Son Kullanma",
       "addClients": "Kullanıcı Ekle",
       "limitIp": "IP Limiti",
