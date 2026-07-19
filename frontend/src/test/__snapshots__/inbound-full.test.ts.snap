@@ -80,6 +80,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
   },
   "tag": "inbound-hysteria-v1",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -142,6 +143,7 @@ exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably
   },
   "tag": "inbound-ss-2022",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -231,6 +233,7 @@ exports[`InboundSchema (full) fixtures > parses trojan-ws-tls byte-stably 1`] = 
   },
   "tag": "inbound-trojan-ws",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -317,6 +320,7 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
   },
   "tag": "inbound-vless-reality",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -409,6 +413,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls byte-stably 1`] = `
   },
   "tag": "inbound-vless-1",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -504,6 +509,7 @@ exports[`InboundSchema (full) fixtures > parses vless-ws-tls-pinned byte-stably 
   },
   "tag": "inbound-vless-pinned-1",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -593,6 +599,7 @@ exports[`InboundSchema (full) fixtures > parses vmess-tcp-tls byte-stably 1`] = 
   },
   "tag": "inbound-vmess-1",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
@@ -640,6 +647,7 @@ exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`]
   },
   "tag": "inbound-wg-1",
   "total": 0,
+  "trafficRatio": 1,
   "up": 0,
 }
 `;
