@@ -376,7 +376,7 @@
       "meansNoLimit": "= 無制限。(単位: GB)",
       "totalFlow": "総トラフィック",
       "trafficRatio": "トラフィック倍率",
-      "trafficRatioDesc": "記録される使用量に適用する倍率。1 = 実使用量、2 = 課金トラフィックを2倍。",
+      "trafficRatioDesc": "記録使用量の倍率（1 = 実使用、2 = 課金を2倍）。インバウンド合計は生のまま。倍率の異なる複数インバウンドに付く場合は最小 id の倍率を適用。",
       "leaveBlankToNeverExpire": "空白にすると期限なし",
       "noRecommendKeepDefault": "デフォルト値を保持することをお勧めします",
       "certificatePath": "ファイルパス",

@@ -43,7 +43,10 @@ periodic **traffic reset** schedule: `never` (default), `hourly`, `daily`,
 
 Set **Traffic Ratio** (default `1`) to multiply attached clients' recorded
 usage before it is stored — for example `2` bills twice the real bytes — while
-inbound aggregate counters stay raw.
+inbound aggregate counters stay raw. Xray counts traffic per client email, not
+per inbound: a client attached to several inbounds with different ratios is
+billed using the ratio of the attached inbound with the lowest id (local
+polls). Keep ratios aligned across those inbounds when billing must be exact.
 </Step>
 
 </Steps>

@@ -346,9 +346,12 @@ inbound edits converge once it reconnects.
 Per-client and per-inbound up/down counters originate from Xray's stats API and are persisted
 to the DB. The Xray traffic job polls the core; node traffic is pulled from child nodes and
 merged with GUID-based baselines to avoid double counting after resets. Per-inbound
-`TrafficRatio` (default `1`) multiplies client deltas before they land in `client_traffics`
-(local polls resolve the ratio via `client_inbounds`; node sync uses the reporting inbound).
-Node baselines stay raw so the ratio is applied once per delta.
+`TrafficRatio` (default `1`) multiplies client deltas before they land in `client_traffics`.
+Local polls resolve one ratio per email via `client_inbounds`, picking the attached inbound
+with the lowest `id` (Xray reports `user>>>email` totals with no per-inbound split). Node sync
+applies the reporting central inbound's ratio to that email's delta once. Prefer the same ratio
+on every inbound a client shares, or attach the client to only one inbound, when billing must be
+exact. Node baselines stay raw so the ratio is applied once per delta.
 
 **Key files:** `service/inbound_traffic.go`, `service/traffic_writer.go`,
 `job/xray_traffic_job.go`, `job/node_traffic_sync_job.go`, `service/inbound_node.go`

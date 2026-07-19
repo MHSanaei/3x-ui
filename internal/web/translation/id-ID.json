@@ -376,7 +376,7 @@
       "meansNoLimit": "= Tanpa batas. (satuan: GB)",
       "totalFlow": "Total Aliran",
       "trafficRatio": "Rasio Trafik",
-      "trafficRatioDesc": "Pengali yang diterapkan pada penggunaan tercatat. 1 = penggunaan nyata; 2 menggandakan trafik ditagih.",
+      "trafficRatioDesc": "Pengali penggunaan tercatat (1 = nyata; 2 menggandakan tagihan). Total inbound tetap mentah. Jika klien di beberapa inbound dengan rasio berbeda, dipakai rasio inbound ber-id terendah.",
       "leaveBlankToNeverExpire": "Biarkan kosong untuk tidak pernah kedaluwarsa",
       "noRecommendKeepDefault": "Disarankan untuk tetap menggunakan pengaturan default",
       "certificatePath": "Path Berkas",

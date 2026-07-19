@@ -186,20 +186,23 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
-	ratioEmails := make([]string, 0, len(dbClientTraffics))
-	for _, ct := range dbClientTraffics {
-		ratioEmails = append(ratioEmails, ct.Email)
-	}
-	ratios, err := loadInboundTrafficRatiosByEmail(tx, ratioEmails)
-	if err != nil {
-		return err
-	}
-
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
 	for i := range traffics {
 		if traffics[i] != nil {
 			trafficByEmail[traffics[i].Email] = traffics[i]
 		}
+	}
+	ratioEmails := make([]string, 0, len(dbClientTraffics))
+	for _, ct := range dbClientTraffics {
+		t, ok := trafficByEmail[ct.Email]
+		if !ok || (t.Up == 0 && t.Down == 0) {
+			continue
+		}
+		ratioEmails = append(ratioEmails, ct.Email)
+	}
+	ratios, err := loadInboundTrafficRatiosByEmail(tx, ratioEmails)
+	if err != nil {
+		return err
 	}
 	now := time.Now().UnixMilli()
 	for _, ct := range dbClientTraffics {

@@ -376,7 +376,7 @@
       "meansNoLimit": "= Ilimitado. (unidade: GB)",
       "totalFlow": "Fluxo Total",
       "trafficRatio": "Razão de tráfego",
-      "trafficRatioDesc": "Multiplicador aplicado ao uso registrado. 1 = uso real; 2 dobra o tráfego cobrado.",
+      "trafficRatioDesc": "Multiplicador do uso registrado (1 = real; 2 dobra o cobrado). Totais do inbound ficam brutos. Se o cliente estiver em vários inbounds com ratios diferentes, usa-se o do inbound com menor id.",
       "leaveBlankToNeverExpire": "Deixe em branco para nunca expirar",
       "noRecommendKeepDefault": "Recomenda-se manter o padrão",
       "certificatePath": "Caminho",

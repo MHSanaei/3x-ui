@@ -376,7 +376,7 @@
       "meansNoLimit": "= Unlimited. (unit: GB)",
       "totalFlow": "Total Flow",
       "trafficRatio": "Traffic Ratio",
-      "trafficRatioDesc": "Multiplier applied to attached clients' recorded usage. 1 = real usage; 2 doubles billed traffic.",
+      "trafficRatioDesc": "Multiplier for attached clients' recorded usage (1 = real; 2 doubles billed traffic). Inbound totals stay raw. A client on several inbounds with different ratios is billed at the lowest-id inbound's ratio.",
       "leaveBlankToNeverExpire": "Leave blank to never expire",
       "noRecommendKeepDefault": "It is recommended to keep the default",
       "certificatePath": "File Path",

@@ -376,7 +376,7 @@
       "meansNoLimit": "= 无限制。(单位: GB)",
       "totalFlow": "总流量",
       "trafficRatio": "流量倍率",
-      "trafficRatioDesc": "应用于已记录用量的倍率。1 = 实际用量；2 = 计费流量翻倍。",
+      "trafficRatioDesc": "应用于已记录用量的倍率（1 = 实际；2 = 计费翻倍）。入站汇总流量保持原始值。若客户端挂在多个不同倍率的入站上，按最低 id 入站的倍率计费。",
       "leaveBlankToNeverExpire": "留空表示永不过期",
       "noRecommendKeepDefault": "建议保留默认值",
       "certificatePath": "文件路径",
