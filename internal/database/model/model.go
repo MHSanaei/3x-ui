@@ -997,7 +997,7 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
-func normalizeClientTrafficRatio(ratio float64) float64 {
+func NormalizeClientTrafficRatio(ratio float64) float64 {
 	if ratio <= 0 {
 		return 1
 	}
@@ -1015,7 +1015,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		Security:     c.Security,
 		LimitIP:      c.LimitIP,
 		TotalGB:      c.TotalGB,
-		TrafficRatio: c.TrafficRatio,
+		TrafficRatio: NormalizeClientTrafficRatio(c.TrafficRatio),
 		ExpiryTime:   c.ExpiryTime,
 		Enable:       c.Enable,
 		TgID:         c.TgID,
@@ -1069,7 +1069,7 @@ func (r *ClientRecord) ToClient() *Client {
 		Security:     r.Security,
 		LimitIP:      r.LimitIP,
 		TotalGB:      r.TotalGB,
-		TrafficRatio: normalizeClientTrafficRatio(r.TrafficRatio),
+		TrafficRatio: NormalizeClientTrafficRatio(r.TrafficRatio),
 		ExpiryTime:   r.ExpiryTime,
 		Enable:       r.Enable,
 		TgID:         r.TgID,
@@ -1181,8 +1181,8 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.TotalGB = picked
 		}
 	}
-	if existing.TrafficRatio != incoming.TrafficRatio && incoming.TrafficRatio > 0 && incoming.TrafficRatio != 1 {
-		if incomingNewer || existing.TrafficRatio <= 0 || existing.TrafficRatio == 1 {
+	if existing.TrafficRatio != incoming.TrafficRatio && incoming.TrafficRatio > 0 {
+		if incomingNewer || existing.TrafficRatio <= 0 {
 			keep("trafficRatio", existing.TrafficRatio, incoming.TrafficRatio, incoming.TrafficRatio)
 			existing.TrafficRatio = incoming.TrafficRatio
 		}

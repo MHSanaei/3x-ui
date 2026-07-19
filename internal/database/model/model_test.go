@@ -270,3 +270,38 @@ func TestGenXrayInboundConfig_OmitsInboundXmuxButDbRowUnchanged(t *testing.T) {
 		t.Fatal("inbound row streamSettings must still carry xmux for subscriptions")
 	}
 }
+
+func TestNormalizeClientTrafficRatio(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in, want float64
+	}{
+		{0, 1},
+		{-2, 1},
+		{1, 1},
+		{2.5, 2.5},
+	}
+	for _, tc := range cases {
+		if got := NormalizeClientTrafficRatio(tc.in); got != tc.want {
+			t.Errorf("NormalizeClientTrafficRatio(%v) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestClientToRecordNormalizesTrafficRatio(t *testing.T) {
+	t.Parallel()
+	rec := (&Client{Email: "a@x", TrafficRatio: 0}).ToRecord()
+	if rec.TrafficRatio != 1 {
+		t.Errorf("ToRecord TrafficRatio = %v, want 1", rec.TrafficRatio)
+	}
+}
+
+func TestMergeClientRecordTrafficRatioResetToOne(t *testing.T) {
+	t.Parallel()
+	existing := &ClientRecord{Email: "a@x", TrafficRatio: 2, UpdatedAt: 100}
+	incoming := &ClientRecord{Email: "a@x", TrafficRatio: 1, UpdatedAt: 200}
+	MergeClientRecord(existing, incoming)
+	if existing.TrafficRatio != 1 {
+		t.Errorf("TrafficRatio = %v, want 1 after newer reset", existing.TrafficRatio)
+	}
+}

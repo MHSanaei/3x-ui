@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
+func normalizeClientRecordTrafficRatio(row *model.ClientRecord) {
+	if row == nil {
+		return
+	}
+	row.TrafficRatio = model.NormalizeClientTrafficRatio(row.TrafficRatio)
+}
+
 func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.ClientRecord, error) {
 	if tx == nil {
 		tx = database.GetDB()
@@ -20,6 +27,7 @@ func (s *ClientService) GetRecordByEmail(tx *gorm.DB, email string) (*model.Clie
 	if err != nil {
 		return nil, err
 	}
+	normalizeClientRecordTrafficRatio(row)
 	return row, nil
 }
 
@@ -108,6 +116,7 @@ func (s *ClientService) GetByID(id int) (*model.ClientRecord, error) {
 	if err := database.GetDB().Where("id = ?", id).First(row).Error; err != nil {
 		return nil, err
 	}
+	normalizeClientRecordTrafficRatio(row)
 	return row, nil
 }
 
@@ -136,6 +145,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	clientIds := make([]int, 0, len(rows))
 	emails := make([]string, 0, len(rows))
 	for i := range rows {
+		normalizeClientRecordTrafficRatio(&rows[i])
 		clientIds = append(clientIds, rows[i].Id)
 		if rows[i].Email != "" {
 			emails = append(emails, rows[i].Email)

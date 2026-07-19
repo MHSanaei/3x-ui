@@ -66,6 +66,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if !client.Enable {
 		client.Enable = true
 	}
+	if client.TrafficRatio <= 0 {
+		client.TrafficRatio = 1
+	}
 	now := time.Now().UnixMilli()
 	if client.CreatedAt == 0 {
 		client.CreatedAt = now
@@ -344,6 +347,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	updated.UpdatedAt = time.Now().UnixMilli()
 	if updated.CreatedAt == 0 {
 		updated.CreatedAt = existing.CreatedAt
+	}
+	if updated.TrafficRatio <= 0 {
+		updated.TrafficRatio = existing.TrafficRatio
+		if updated.TrafficRatio <= 0 {
+			updated.TrafficRatio = 1
+		}
 	}
 
 	// Preserve existing credentials when the caller omits them, so a partial
