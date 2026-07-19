@@ -1813,6 +1813,8 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "trafficRatio": {
         "example": 1,
+        "exclusiveMinimum": true,
+        "minimum": 0,
         "type": "number"
       },
       "trafficReset": {

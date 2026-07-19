@@ -448,7 +448,7 @@ export const InboundSchema = z.object({
   subSortIndex: z.number().int().min(1),
   tag: z.string(),
   total: z.number().int(),
-  trafficRatio: z.number(),
+  trafficRatio: z.number().gt(0),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
   up: z.number().int(),
 });
