@@ -57,7 +57,7 @@ const en: SiteMessages = {
     {
       title: 'Clients & traffic control',
       description:
-        'Per-client traffic quotas, expiry dates, IP limits and live online status, with one-click share links and QR codes.',
+        'Per-client traffic quotas, traffic ratio (billed usage multiplier), expiry dates, IP limits and live online status, with one-click share links and QR codes.',
     },
     {
       title: 'Multi-node & subscriptions',

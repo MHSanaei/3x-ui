@@ -19,6 +19,7 @@ inbounds** at once, with per-client traffic accounting.
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
 | **Limit IP**   | all                   | Max simultaneous source IPs (enforced via Fail2ban).               |
 | **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
+| **Traffic Ratio** | all                | Multiplier on recorded usage (default `1`). `2` stores/shows twice the real bytes. |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |
 | **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
@@ -35,7 +36,9 @@ inbounds** at once, with per-client traffic accounting.
 ## Limits and IP control
 
 - **Traffic / expiry** caps disable the client when hit; a **Reset** period
-  auto-renews the quota.
+  auto-renews the quota. **Traffic Ratio** multiplies real deltas before they
+  are stored (quota and panel usage both use the billed counters; inbound
+  aggregates stay raw).
 - **Limit IP** caps simultaneous source IPs. Enforcement relies on Fail2ban —
   see [Security](/docs/operations/security). You can view a client's recent IPs
   and clear them from the client's actions.
