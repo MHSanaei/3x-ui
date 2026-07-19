@@ -326,7 +326,7 @@ func (s *TcShaper) allocClassLocked() (uint16, error) {
 }
 
 func (s *TcShaper) allocPoliceLocked() (uint32, error) {
-	for tried := 0; tried < 0xfffffffe; tried++ {
+	for tried := uint32(0); tried < ^uint32(0); tried++ {
 		id := s.nextPolice
 		s.nextPolice++
 		if s.nextPolice == 0 {
