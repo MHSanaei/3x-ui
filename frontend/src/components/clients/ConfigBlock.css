@@ -35,6 +35,7 @@ body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
   display: block;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
+  color: var(--ant-color-text);
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
