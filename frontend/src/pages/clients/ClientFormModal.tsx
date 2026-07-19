@@ -85,6 +85,7 @@ interface ClientFormModalProps {
   attachedExternalLinks?: ExternalLink[];
   attachedIds?: number[];
   tgBotEnable?: boolean;
+  speedLimitEnable?: boolean;
   groups?: string[];
   save: (
     payload: Record<string, unknown> | SaveCreatePayload,
@@ -163,6 +164,7 @@ export default function ClientFormModal({
   attachedExternalLinks = [],
   attachedIds = [],
   tgBotEnable = false,
+  speedLimitEnable = false,
   groups = [],
   save,
   resetTraffic,
@@ -358,6 +360,13 @@ export default function ClientFormModal({
     () => (inboundIds || []).some((id) => mtprotoIds.has(id)),
     [inboundIds, mtprotoIds],
   );
+
+  const showSpeedLimit = useMemo(() => {
+    if (!speedLimitEnable) return false;
+    const ids = inboundIds || [];
+    if (ids.length === 0) return true;
+    return ids.some((id) => !mtprotoIds.has(id));
+  }, [speedLimitEnable, inboundIds, mtprotoIds]);
 
   function regenerateWireguardKeys() {
     const kp = Wireguard.generateKeypair();
@@ -674,6 +683,7 @@ export default function ClientFormModal({
                         </Col>
                       </Row>
 
+                      {showSpeedLimit && (
                       <Row gutter={16}>
                         <Col xs={24} md={12}>
                           <FormField
@@ -696,6 +706,7 @@ export default function ClientFormModal({
                           </FormField>
                         </Col>
                       </Row>
+                      )}
 
                       <Row gutter={16}>
                         <Col xs={24} md={12}>

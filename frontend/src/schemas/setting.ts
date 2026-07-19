@@ -56,6 +56,7 @@ export const AllSettingSchema = z.object({
   externalTrafficInformEnable: z.boolean().optional(),
   externalTrafficInformURI: z.string().optional(),
   restartXrayOnClientDisable: z.boolean().optional(),
+  speedLimitEnable: z.boolean().optional(),
   subCertFile: z.string().optional(),
   subKeyFile: z.string().optional(),
   subUpdates: z.number().int().min(0).max(525600).optional(),

@@ -170,6 +170,9 @@
           "smtpUsername": {
             "type": "string"
           },
+          "speedLimitEnable": {
+            "type": "boolean"
+          },
           "subAnnounce": {
             "type": "string"
           },
@@ -404,6 +407,7 @@
           "smtpPort",
           "smtpTo",
           "smtpUsername",
+          "speedLimitEnable",
           "subAnnounce",
           "subCertFile",
           "subClashAutoDetect",
@@ -630,6 +634,9 @@
           },
           "smtpUsername": {
             "type": "string"
+          },
+          "speedLimitEnable": {
+            "type": "boolean"
           },
           "subAnnounce": {
             "type": "string"
@@ -872,6 +879,7 @@
           "smtpPort",
           "smtpTo",
           "smtpUsername",
+          "speedLimitEnable",
           "subAnnounce",
           "subCertFile",
           "subClashAutoDetect",

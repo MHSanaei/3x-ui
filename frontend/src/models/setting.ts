@@ -52,6 +52,7 @@ export class AllSetting {
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
   restartXrayOnClientDisable = true;
+  speedLimitEnable = false;
   subCertFile = '';
   subKeyFile = '';
   subUpdates = 12;

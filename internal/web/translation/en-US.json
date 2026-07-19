@@ -1376,6 +1376,8 @@
       "externalTrafficInformURIDesc": "Traffic updates are sent to this URI.",
       "restartXrayOnClientDisable": "Restart Xray After Auto Disable",
       "restartXrayOnClientDisableDesc": "When a client is automatically disabled due to expiration or traffic limit, restart Xray.",
+      "speedLimitEnable": "Client Speed Limit",
+      "speedLimitEnableDesc": "When enabled, take over the primary interface with Linux tc HTB/ingress policing to enforce per-client download/upload caps. Disabled by default. Requires tc and sufficient privileges; a panel restart applies the change.",
       "fragment": "Fragmentation",
       "fragmentDesc": "Enable fragmentation for TLS hello packet.",
       "fragmentSett": "Fragmentation Settings",

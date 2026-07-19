@@ -209,7 +209,7 @@ export default function ClientsPage() {
     allGroups,
     setQuery,
     inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
-    tgBotEnable, expireDiff, trafficDiff, pageSize,
+    tgBotEnable, speedLimitEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkEnable, bulkDisable, bulkAddToGroup, bulkRemoveFromGroup, attach, setExternalLinks, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, delOrphans, exportClients, importClients, setEnable,
     clientSpeed,
@@ -1478,6 +1478,7 @@ export default function ClientsPage() {
             attachedExternalLinks={editingExternalLinks}
             inbounds={inbounds}
             tgBotEnable={tgBotEnable}
+            speedLimitEnable={speedLimitEnable}
             groups={allGroups}
             save={onSave}
             resetTraffic={resetTraffic}

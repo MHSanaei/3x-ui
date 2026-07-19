@@ -122,6 +122,7 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
+	"speedLimitEnable":            "false",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
 	"panelOutbound":               "",
 	"devChannelEnable":            "false",
@@ -932,6 +933,14 @@ func (s *SettingService) GetIpLimitEnable() (bool, error) {
 	return true, nil
 }
 
+func (s *SettingService) GetSpeedLimitEnable() (bool, error) {
+	return s.getBool("speedLimitEnable")
+}
+
+func (s *SettingService) SetSpeedLimitEnable(value bool) error {
+	return s.setBool("speedLimitEnable", value)
+}
+
 // GetAccessLogEnable reports whether an Xray access log is configured. Used by
 // the UI for features that genuinely read the log file (the xray log viewer) —
 // distinct from IP limiting, which works without it.
@@ -1374,6 +1383,7 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subClashURI":      func() (any, error) { return s.GetSubClashURI() },
 		"datepicker":       func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable":    func() (any, error) { return s.GetIpLimitEnable() },
+		"speedLimitEnable": func() (any, error) { return s.GetSpeedLimitEnable() },
 		"accessLogEnable":  func() (any, error) { return s.GetAccessLogEnable() },
 		"webDomain":        func() (any, error) { return s.GetWebDomain() },
 		"subDomain":        func() (any, error) { return s.GetSubDomain() },

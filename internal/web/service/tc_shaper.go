@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -21,12 +22,13 @@ type ClientSpeed struct {
 }
 
 type appliedClient struct {
-	classID  uint16
-	downMbps int
-	upMbps   int
-	ips      map[string]struct{}
-	downH    map[string]uint32
-	upH      map[string]uint32
+	classID   uint16
+	policeIdx uint32
+	downMbps  int
+	upMbps    int
+	ips       map[string]struct{}
+	downH     map[string]uint32
+	upH       map[string]uint32
 }
 
 type TcShaper struct {
@@ -34,9 +36,11 @@ type TcShaper struct {
 	iface      string
 	nextClass  uint16
 	nextFilter uint32
+	nextPolice uint32
 	ready      bool
 	ownIngress bool
 	applied    map[string]*appliedClient
+	runner     func(args ...string) error
 }
 
 func DetectPrimaryInterface() (string, error) {
@@ -61,6 +65,7 @@ func NewTcShaper(iface string) *TcShaper {
 		iface:      iface,
 		nextClass:  1,
 		nextFilter: 1,
+		nextPolice: 1,
 		applied:    make(map[string]*appliedClient),
 	}
 }
@@ -91,6 +96,7 @@ func (s *TcShaper) Init() error {
 
 	s.nextClass = 1
 	s.nextFilter = 1
+	s.nextPolice = 1
 	s.applied = make(map[string]*appliedClient)
 	s.ready = true
 	return nil
@@ -142,18 +148,18 @@ func (s *TcShaper) addClientLocked(email string, speed ClientSpeed) {
 		upH:   make(map[string]uint32),
 	}
 	if speed.DownMbps > 0 {
-		if !s.ensureDownClassLocked(email, st, speed.DownMbps) {
-			return
-		}
+		_ = s.ensureDownClassLocked(email, st, speed.DownMbps)
 	}
-	st.upMbps = speed.UpMbps
+	if speed.UpMbps > 0 && s.ownIngress {
+		_ = s.ensureUpPoliceLocked(email, st, speed.UpMbps)
+	}
 	for _, ip := range speed.IPs {
 		st.ips[ip] = struct{}{}
 		if st.classID != 0 {
 			s.addDownFilterLocked(st, ip)
 		}
-		if speed.UpMbps > 0 && s.ownIngress {
-			s.addUpFilterLocked(st, ip, speed.UpMbps)
+		if st.policeIdx != 0 {
+			s.addUpFilterLocked(st, ip)
 		}
 	}
 	s.applied[email] = st
@@ -167,9 +173,7 @@ func (s *TcShaper) updateClientLocked(email string, st *appliedClient, speed Cli
 
 	if speed.DownMbps > 0 {
 		if st.classID == 0 {
-			if !s.ensureDownClassLocked(email, st, speed.DownMbps) {
-				return
-			}
+			_ = s.ensureDownClassLocked(email, st, speed.DownMbps)
 		} else if speed.DownMbps != st.downMbps {
 			rate := fmt.Sprintf("%dmbit", speed.DownMbps)
 			if err := s.runTC("class", "change", "dev", s.iface, "classid", fmt.Sprintf("1:%x", st.classID), "htb", "rate", rate, "ceil", rate); err != nil {
@@ -188,12 +192,16 @@ func (s *TcShaper) updateClientLocked(email string, st *appliedClient, speed Cli
 		st.downMbps = 0
 	}
 
-	if speed.UpMbps != st.upMbps {
+	if speed.UpMbps > 0 && s.ownIngress {
+		_ = s.ensureUpPoliceLocked(email, st, speed.UpMbps)
+	} else if st.policeIdx != 0 {
 		for ip, h := range st.upH {
 			s.delFilterLocked("ffff:", h, ip)
 			delete(st.upH, ip)
 		}
-		st.upMbps = speed.UpMbps
+		s.delPoliceLocked(st.policeIdx)
+		st.policeIdx = 0
+		st.upMbps = 0
 	}
 
 	for ip := range st.ips {
@@ -218,9 +226,9 @@ func (s *TcShaper) updateClientLocked(email string, st *appliedClient, speed Cli
 				s.addDownFilterLocked(st, ip)
 			}
 		}
-		if speed.UpMbps > 0 && s.ownIngress {
+		if st.policeIdx != 0 {
 			if _, ok := st.upH[ip]; !ok {
-				s.addUpFilterLocked(st, ip, speed.UpMbps)
+				s.addUpFilterLocked(st, ip)
 			}
 		}
 	}
@@ -242,6 +250,36 @@ func (s *TcShaper) ensureDownClassLocked(email string, st *appliedClient, downMb
 	return true
 }
 
+func (s *TcShaper) ensureUpPoliceLocked(email string, st *appliedClient, upMbps int) bool {
+	rate := fmt.Sprintf("%dmbit", upMbps)
+	burst := fmt.Sprintf("%dkb", max(upMbps*2, 32))
+	if st.policeIdx != 0 {
+		if st.upMbps == upMbps {
+			return true
+		}
+		idx := strconv.FormatUint(uint64(st.policeIdx), 10)
+		if err := s.runTC("actions", "change", "action", "police", "rate", rate, "burst", burst, "conform-exceed", "drop", "index", idx); err != nil {
+			logger.Warningf("[tc] police change for %s: %v", email, err)
+			return false
+		}
+		st.upMbps = upMbps
+		return true
+	}
+	idxNum, err := s.allocPoliceLocked()
+	if err != nil {
+		logger.Warningf("[tc] police for %s: %v", email, err)
+		return false
+	}
+	idx := strconv.FormatUint(uint64(idxNum), 10)
+	if err := s.runTC("actions", "add", "action", "police", "rate", rate, "burst", burst, "conform-exceed", "drop", "index", idx); err != nil {
+		logger.Warningf("[tc] police for %s: %v", email, err)
+		return false
+	}
+	st.policeIdx = idxNum
+	st.upMbps = upMbps
+	return true
+}
+
 func (s *TcShaper) removeClientLocked(email string, st *appliedClient) {
 	for ip, h := range st.downH {
 		s.delFilterLocked("1:", h, ip)
@@ -254,6 +292,13 @@ func (s *TcShaper) removeClientLocked(email string, st *appliedClient) {
 			logger.Warningf("[tc] class del for %s: %v", email, err)
 		}
 	}
+	if st.policeIdx != 0 {
+		s.delPoliceLocked(st.policeIdx)
+	}
+}
+
+func (s *TcShaper) delPoliceLocked(idx uint32) {
+	_ = s.runTC("actions", "delete", "action", "police", "index", strconv.FormatUint(uint64(idx), 10))
 }
 
 func (s *TcShaper) allocClassLocked() (uint16, error) {
@@ -280,6 +325,30 @@ func (s *TcShaper) allocClassLocked() (uint16, error) {
 	return 0, fmt.Errorf("no free HTB class id")
 }
 
+func (s *TcShaper) allocPoliceLocked() (uint32, error) {
+	for tried := 0; tried < 0xfffffffe; tried++ {
+		id := s.nextPolice
+		s.nextPolice++
+		if s.nextPolice == 0 {
+			s.nextPolice = 1
+		}
+		if id == 0 {
+			continue
+		}
+		used := false
+		for _, st := range s.applied {
+			if st.policeIdx == id {
+				used = true
+				break
+			}
+		}
+		if !used {
+			return id, nil
+		}
+	}
+	return 0, fmt.Errorf("no free police action index")
+}
+
 func (s *TcShaper) addDownFilterLocked(st *appliedClient, ip string) {
 	proto, matchFamily, matchDir, prefix := ipMatch(ip, "dst")
 	if proto == "" {
@@ -300,7 +369,7 @@ func (s *TcShaper) addDownFilterLocked(st *appliedClient, ip string) {
 	st.downH[ip] = h
 }
 
-func (s *TcShaper) addUpFilterLocked(st *appliedClient, ip string, upMbps int) {
+func (s *TcShaper) addUpFilterLocked(st *appliedClient, ip string) {
 	proto, matchFamily, matchDir, prefix := ipMatch(ip, "src")
 	if proto == "" {
 		return
@@ -308,13 +377,12 @@ func (s *TcShaper) addUpFilterLocked(st *appliedClient, ip string, upMbps int) {
 	h := s.nextFilter
 	s.nextFilter++
 	handle := fmt.Sprintf("800::%x", h)
-	rate := fmt.Sprintf("%dmbit", upMbps)
-	burst := fmt.Sprintf("%dkb", max(upMbps*2, 32))
+	idx := strconv.FormatUint(uint64(st.policeIdx), 10)
 	args := []string{
 		"filter", "add", "dev", s.iface, "parent", "ffff:", "protocol", proto,
 		"prio", "1", "handle", handle, "u32",
 		"match", matchFamily, matchDir, ip + prefix,
-		"police", "rate", rate, "burst", burst, "drop", "flowid", ":1",
+		"action", "police", "index", idx,
 	}
 	if err := s.runTC(args...); err != nil {
 		logger.Warningf("[tc] up filter %s: %v", ip, err)
@@ -369,6 +437,11 @@ func (s *TcShaper) Cleanup() {
 	if !s.ready {
 		return
 	}
+	for _, st := range s.applied {
+		if st.policeIdx != 0 {
+			s.delPoliceLocked(st.policeIdx)
+		}
+	}
 	if s.iface != "" {
 		_ = s.runTC("qdisc", "del", "dev", s.iface, "root")
 		if s.ownIngress {
@@ -381,6 +454,9 @@ func (s *TcShaper) Cleanup() {
 }
 
 func (s *TcShaper) runTC(args ...string) error {
+	if s.runner != nil {
+		return s.runner(args...)
+	}
 	cmd := exec.CommandContext(context.Background(), "tc", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

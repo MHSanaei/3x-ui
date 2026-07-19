@@ -1257,6 +1257,8 @@
       "externalTrafficInformURIDesc": "Trafik güncellemeleri bu URI'ye gönderilir.",
       "restartXrayOnClientDisable": "Otomatik Devre Dışı Sonrası Xray'i Yeniden Başlat",
       "restartXrayOnClientDisableDesc": "Bir kullanıcı süre dolumu veya trafik limiti nedeniyle otomatik devre dışı bırakıldığında Xray'i yeniden başlatır.",
+      "speedLimitEnable": "İstemci hız sınırı",
+      "speedLimitEnableDesc": "Etkinleştirildiğinde, istemci başına indirme/yükleme sınırlarını uygulamak için birincil arabirimi Linux tc HTB/ingress ile yönetir. Varsayılan olarak kapalıdır. tc ve yeterli yetki gerekir; değişiklik panel yeniden başlatılınca uygulanır.",
       "fragment": "Parçalama",
       "fragmentDesc": "TLS merhaba paketinin parçalanmasını etkinleştirir.",
       "fragmentSett": "Parçalama Ayarları",

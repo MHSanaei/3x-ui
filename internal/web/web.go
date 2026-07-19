@@ -661,11 +661,13 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	})
 
-	if iface, err := service.DetectPrimaryInterface(); err == nil {
-		s.tcShaper = service.NewTcShaper(iface)
-		if initErr := s.tcShaper.Init(); initErr != nil {
-			logger.Warning("tc speed limiting unavailable:", initErr)
-			s.tcShaper = nil
+	if enabled, err := s.settingService.GetSpeedLimitEnable(); err == nil && enabled {
+		if iface, err := service.DetectPrimaryInterface(); err == nil {
+			s.tcShaper = service.NewTcShaper(iface)
+			if initErr := s.tcShaper.Init(); initErr != nil {
+				logger.Warning("tc speed limiting unavailable:", initErr)
+				s.tcShaper = nil
+			}
 		}
 	}
 

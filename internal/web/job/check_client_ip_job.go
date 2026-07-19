@@ -72,7 +72,7 @@ func (j *CheckClientIpJob) Run() {
 		j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
 	}
 
-	if j.tcShaper != nil {
+	if j.tcShaper != nil && j.hasSpeedLimit() {
 		j.syncTcRules(observed)
 	}
 }
@@ -130,6 +130,16 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
 	var probe int64
 	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
+	return err == nil && probe > 0
+}
+
+func (j *CheckClientIpJob) hasSpeedLimit() bool {
+	db := database.GetDB()
+	var probe int64
+	err := db.Model(&model.ClientRecord{}).
+		Where("speed_down > 0 OR speed_up > 0").
+		Limit(1).
+		Count(&probe).Error
 	return err == nil && probe > 0
 }
 

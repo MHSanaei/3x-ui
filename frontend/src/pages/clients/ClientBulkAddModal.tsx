@@ -58,7 +58,7 @@ export default function ClientBulkAddModal({
 }: ClientBulkAddModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const { bulkCreate } = useClients();
+  const { bulkCreate, speedLimitEnable } = useClients();
 
   const methods = useForm<ClientBulkAddFormValues>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
@@ -331,23 +331,27 @@ export default function ClientBulkAddModal({
               </Tooltip>
             </Form.Item>
 
-            <FormField
-              name="speedDown"
-              label={t('pages.clients.speedDown')}
-              tooltip={t('pages.clients.speedDownDesc')}
-              transform={{ output: (v) => Number(v) || 0 }}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </FormField>
+            {speedLimitEnable && (
+              <>
+                <FormField
+                  name="speedDown"
+                  label={t('pages.clients.speedDown')}
+                  tooltip={t('pages.clients.speedDownDesc')}
+                  transform={{ output: (v) => Number(v) || 0 }}
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </FormField>
 
-            <FormField
-              name="speedUp"
-              label={t('pages.clients.speedUp')}
-              tooltip={t('pages.clients.speedUpDesc')}
-              transform={{ output: (v) => Number(v) || 0 }}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </FormField>
+                <FormField
+                  name="speedUp"
+                  label={t('pages.clients.speedUp')}
+                  tooltip={t('pages.clients.speedUpDesc')}
+                  transform={{ output: (v) => Number(v) || 0 }}
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </FormField>
+              </>
+            )}
 
             <FormField name="totalGB" label={t('pages.clients.totalGB')} transform={{ output: (v) => Number(v) || 0 }}>
               <InputNumber min={0} step={1} />

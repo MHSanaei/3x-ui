@@ -1257,6 +1257,8 @@
       "externalTrafficInformURIDesc": "تحديثات الترافيك هتتبعت للمسار ده.",
       "restartXrayOnClientDisable": "إعادة تشغيل Xray بعد التعطيل التلقائي",
       "restartXrayOnClientDisableDesc": "عند تعطيل العميل تلقائيا بسبب انتهاء الصلاحية أو حد حركة المرور، أعد تشغيل Xray.",
+      "speedLimitEnable": "حد سرعة العملاء",
+      "speedLimitEnableDesc": "عند التفعيل، يسيطر على الواجهة الأساسية عبر tc HTB/ingress لفرض حدود التنزيل/الرفع لكل عميل. معطّل افتراضيًا. يتطلب tc وصلاحيات كافية؛ أعد تشغيل اللوحة لتطبيق التغيير.",
       "fragment": "تجزئة",
       "fragmentDesc": "يفعل تجزئة لحزمة TLS hello.",
       "fragmentSett": "إعدادات التجزئة",

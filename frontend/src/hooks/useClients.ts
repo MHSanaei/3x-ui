@@ -260,6 +260,7 @@ export function useClients() {
   ]);
 
   const ipLimitEnable = !!defaults.ipLimitEnable;
+  const speedLimitEnable = !!defaults.speedLimitEnable;
   const tgBotEnable = !!defaults.tgBotEnable;
   const expireDiff = ((defaults.expireDiff as number) ?? 0) * 86400000;
   const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
@@ -623,6 +624,7 @@ export function useClients() {
     fetchError,
     subSettings,
     ipLimitEnable,
+    speedLimitEnable,
     tgBotEnable,
     expireDiff,
     trafficDiff,

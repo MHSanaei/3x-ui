@@ -144,6 +144,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername": {
         "type": "string"
       },
+      "speedLimitEnable": {
+        "type": "boolean"
+      },
       "subAnnounce": {
         "type": "string"
       },
@@ -378,6 +381,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPort",
       "smtpTo",
       "smtpUsername",
+      "speedLimitEnable",
       "subAnnounce",
       "subCertFile",
       "subClashAutoDetect",
@@ -604,6 +608,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "smtpUsername": {
         "type": "string"
+      },
+      "speedLimitEnable": {
+        "type": "boolean"
       },
       "subAnnounce": {
         "type": "string"
@@ -846,6 +853,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPort",
       "smtpTo",
       "smtpUsername",
+      "speedLimitEnable",
       "subAnnounce",
       "subCertFile",
       "subClashAutoDetect",

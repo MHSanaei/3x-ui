@@ -1257,6 +1257,8 @@
       "externalTrafficInformURIDesc": "As atualizações de tráfego são enviadas para este URI.",
       "restartXrayOnClientDisable": "Reiniciar Xray Após Desativação Automática",
       "restartXrayOnClientDisableDesc": "Quando um cliente for desativado automaticamente por expiração ou limite de tráfego, reinicie o Xray.",
+      "speedLimitEnable": "Limite de velocidade de clientes",
+      "speedLimitEnableDesc": "Quando ativado, assume a interface principal com tc HTB/ingress para aplicar limites de download/upload por cliente. Desativado por padrão. Requer tc e privilégios suficientes; um reinício do painel aplica a alteração.",
       "fragment": "Fragmentação",
       "fragmentDesc": "Ativa a fragmentação para o pacote TLS hello.",
       "fragmentSett": "Configurações de Fragmentação",

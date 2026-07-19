@@ -1257,6 +1257,8 @@
       "externalTrafficInformURIDesc": "トラフィックの更新ごとに外部 API に通知します。",
       "restartXrayOnClientDisable": "自動無効化後に Xray を再起動",
       "restartXrayOnClientDisableDesc": "有効期限切れまたはトラフィック上限でクライアントが自動的に無効化されたとき、Xray を再起動します。",
+      "speedLimitEnable": "クライアント速度制限",
+      "speedLimitEnableDesc": "有効にすると、プライマリインターフェースを Linux tc HTB/ingress で制御し、クライアントごとの上下限速を適用します。既定はオフです。tc と十分な権限が必要で、変更はパネル再起動後に反映されます。",
       "fragment": "フラグメント",
       "fragmentDesc": "TLS helloパケットのフラグメントを有効にする",
       "fragmentSett": "設定",

@@ -49,6 +49,7 @@ export interface AllSetting {
   smtpPort: number;
   smtpTo: string;
   smtpUsername: string;
+  speedLimitEnable: boolean;
   subAnnounce: string;
   subCertFile: string;
   subClashAutoDetect: boolean;
@@ -160,6 +161,7 @@ export interface AllSettingView {
   smtpPort: number;
   smtpTo: string;
   smtpUsername: string;
+  speedLimitEnable: boolean;
   subAnnounce: string;
   subCertFile: string;
   subClashAutoDetect: boolean;

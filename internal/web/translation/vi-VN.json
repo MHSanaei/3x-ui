@@ -1257,6 +1257,8 @@
       "externalTrafficInformURIDesc": "Cập nhật lưu lượng truy cập được gửi tới URI này.",
       "restartXrayOnClientDisable": "Khởi Động Lại Xray Sau Khi Tự Động Vô Hiệu Hóa",
       "restartXrayOnClientDisableDesc": "Khi người dùng bị vô hiệu hóa tự động do hết hạn hoặc chạm giới hạn lưu lượng, hãy khởi động lại Xray.",
+      "speedLimitEnable": "Giới hạn tốc độ client",
+      "speedLimitEnableDesc": "Khi bật, chiếm giao diện chính bằng tc HTB/ingress để áp dụng giới hạn tải xuống/lên theo client. Mặc định tắt. Cần tc và đủ quyền; khởi động lại panel để áp dụng.",
       "fragment": "Sự phân mảnh",
       "fragmentDesc": "Kích hoạt phân mảnh cho gói TLS hello",
       "fragmentSett": "Cài đặt phân mảnh",

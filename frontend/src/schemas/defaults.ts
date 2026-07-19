@@ -14,6 +14,7 @@ export const DefaultsPayloadSchema = z.object({
   pageSize: z.number().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   ipLimitEnable: z.boolean().optional(),
+  speedLimitEnable: z.boolean().optional(),
   accessLogEnable: z.boolean().optional(),
   webDomain: z.string().optional(),
   subDomain: z.string().optional(),
