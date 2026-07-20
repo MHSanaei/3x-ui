@@ -308,6 +308,43 @@ describe('genWireguardLink + genWireguardConfig', () => {
   }
 });
 
+describe('genWireguardLink + genWireguardConfig multi allowedIPs', () => {
+  const settings = {
+    secretKey: '',
+    mtu: 1280,
+    dns: '',
+    peers: [
+      {
+        privateKey: 'cLI',
+        allowedIPs: ['10.0.0.2/32', 'fd00::2/128'],
+      },
+    ],
+  } as unknown as WireguardInboundSettings;
+
+  it('joins every allowed IP into the share-link address param', () => {
+    const link = genWireguardLink({
+      settings,
+      address: 'wg.example.test',
+      port: 51820,
+      remark: 'dual-stack',
+      peerIndex: 0,
+    });
+    const u = new URL(link);
+    expect(u.searchParams.get('address')).toBe('10.0.0.2/32,fd00::2/128');
+  });
+
+  it('joins every allowed IP into the .conf Address line', () => {
+    const config = genWireguardConfig({
+      settings,
+      address: 'wg.example.test',
+      port: 51820,
+      remark: 'dual-stack',
+      peerIndex: 0,
+    });
+    expect(config).toContain('Address = 10.0.0.2/32, fd00::2/128\n');
+  });
+});
+
 describe('resolveAddr precedence', () => {
   const baseInbound = {
     listen: '',
