@@ -74,18 +74,59 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 }
 
 // expandEntry turns one entry into the concrete share links it contributes. A
-// "subscription" entry is fetched (cached) and its links are kept with their own
-// names; a "link" entry yields the single link with the row's remark.
+// "subscription" entry is fetched (cached) and its links keep their own names
+// (URL #fragment / vmess ps). A "link" entry uses the row remark when set,
+// otherwise the link's original name — never blank, so Clash/JSON do not fall
+// back to the client email.
 func expandEntry(e externalLinkEntry) []expandedLink {
 	if e.Kind == model.ExternalLinkKindSubscription {
 		links := fetchSubscriptionLinks(e.Value)
 		out := make([]expandedLink, 0, len(links))
 		for _, l := range links {
-			out = append(out, expandedLink{Link: l, Name: ""})
+			out = append(out, expandedLink{Link: l, Name: linkDisplayName(l)})
 		}
 		return out
 	}
-	return []expandedLink{{Link: e.Value, Name: e.Remark}}
+	name := strings.TrimSpace(e.Remark)
+	if name == "" {
+		name = linkDisplayName(e.Value)
+	}
+	return []expandedLink{{Link: e.Value, Name: name}}
+}
+
+// linkDisplayName extracts the human-readable name already carried by a share
+// link: vmess JSON `ps`, or the URL #fragment for every other scheme.
+func linkDisplayName(rawLink string) string {
+	rawLink = strings.TrimSpace(rawLink)
+	if rawLink == "" {
+		return ""
+	}
+	if strings.HasPrefix(rawLink, "vmess://") {
+		b64 := strings.TrimPrefix(rawLink, "vmess://")
+		raw, err := base64.StdEncoding.DecodeString(padBase64Sub(b64))
+		if err != nil {
+			raw, err = base64.RawURLEncoding.DecodeString(strings.TrimRight(b64, "="))
+		}
+		if err != nil {
+			return ""
+		}
+		var j map[string]any
+		if err := json.Unmarshal(raw, &j); err != nil {
+			return ""
+		}
+		if ps, ok := j["ps"].(string); ok {
+			return strings.TrimSpace(ps)
+		}
+		return ""
+	}
+	if i := strings.IndexByte(rawLink, '#'); i >= 0 && i+1 < len(rawLink) {
+		frag := rawLink[i+1:]
+		if decoded, err := url.PathUnescape(frag); err == nil {
+			return strings.TrimSpace(decoded)
+		}
+		return strings.TrimSpace(frag)
+	}
+	return ""
 }
 
 // applyRemarkToLink rewrites a share link's display name to remark (when set),
