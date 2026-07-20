@@ -75,6 +75,40 @@ function reservedFor(clientId?: string): number[] {
   return out;
 }
 
+export function mergeWarpRotation(
+  existing: Record<string, unknown> | undefined,
+  data: WarpData | null,
+  config: WarpConfig | null,
+): Record<string, unknown> | null {
+  const cfg = config?.config;
+  const peer = cfg?.peers?.[0];
+  if (!cfg || !peer) return null;
+  const base: Record<string, unknown> =
+    existing && typeof existing === 'object' ? { ...existing } : { tag: 'warp', protocol: 'wireguard' };
+  const prevSettings =
+    base.settings && typeof base.settings === 'object'
+      ? { ...(base.settings as Record<string, unknown>) }
+      : {};
+  const prevPeers = Array.isArray(prevSettings.peers)
+    ? [...(prevSettings.peers as Record<string, unknown>[])]
+    : [];
+  const prevFirstPeer =
+    prevPeers[0] && typeof prevPeers[0] === 'object'
+      ? { ...(prevPeers[0] as Record<string, unknown>) }
+      : {};
+  prevFirstPeer.publicKey = peer.public_key;
+  prevFirstPeer.endpoint = peer.endpoint?.host;
+  prevPeers[0] = prevFirstPeer;
+  prevSettings.secretKey = data?.private_key;
+  prevSettings.address = addressesFor(cfg.interface?.addresses || {});
+  prevSettings.reserved = reservedFor(cfg.client_id ?? data?.client_id);
+  prevSettings.peers = prevPeers;
+  base.settings = prevSettings;
+  base.tag = 'warp';
+  base.protocol = 'wireguard';
+  return base;
+}
+
 export default function WarpModal({
   open,
   templateSettings,
@@ -194,12 +228,15 @@ export default function WarpModal({
         const parsed = JSON.parse(msg.obj);
         setWarpData(parsed.data);
         setWarpConfig(parsed.config);
-        const built = collectConfig(parsed.data, parsed.config);
-        // The backend already persisted the new keys into the saved Xray
-        // template; keep the in-memory editor in sync so a later template
-        // save doesn't revert them to the old keys.
-        if (built && warpOutboundIndex >= 0) {
-          onResetOutbound({ index: warpOutboundIndex, outbound: built });
+        collectConfig(parsed.data, parsed.config);
+        if (warpOutboundIndex >= 0) {
+          const existing = templateSettings?.outbounds?.[warpOutboundIndex] as
+            | Record<string, unknown>
+            | undefined;
+          const merged = mergeWarpRotation(existing, parsed.data, parsed.config);
+          if (merged) {
+            onResetOutbound({ index: warpOutboundIndex, outbound: merged });
+          }
         }
         messageApi.success(t('pages.xray.warp.changeIpSuccess', 'WARP IP changed successfully!'));
       }
