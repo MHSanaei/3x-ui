@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -15,6 +17,11 @@ import (
 type XraySettingService struct {
 	SettingService
 }
+
+const (
+	unencryptedOutboundProhibitedError = "without TLS or other encryption is prohibited unless the server address is a private IP or domain"
+	unencryptedOutboundMinimumVersion  = "26.7.11"
+)
 
 func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	// The frontend round-trips the whole getXraySetting response back
@@ -46,8 +53,15 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 		if err := json.Unmarshal(xrayConfig.OutboundConfigs, &outbounds); err != nil {
 			return common.NewError("xray template config invalid: outbounds is not an array:", err)
 		}
+		coreVersion := "Unknown"
+		if p != nil {
+			coreVersion = p.GetXrayVersion()
+		}
 		for _, outbound := range outbounds {
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
+				if shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, err) {
+					continue
+				}
 				tagged := struct {
 					Tag string `json:"tag"`
 				}{}
@@ -57,6 +71,51 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 		}
 	}
 	return nil
+}
+
+// shouldSkipLegacyUnencryptedOutboundRejection lets an older running Xray
+// core accept an outbound that the newer embedded validator rejects solely
+// because it is unencrypted and targets a public address. Unknown or malformed
+// versions preserve the embedded validator's strict behavior.
+func shouldSkipLegacyUnencryptedOutboundRejection(coreVersion string, err error) bool {
+	if err == nil || !strings.Contains(err.Error(), unencryptedOutboundProhibitedError) {
+		return false
+	}
+	comparison, ok := compareXrayCoreVersions(coreVersion, unencryptedOutboundMinimumVersion)
+	return ok && comparison < 0
+}
+
+func compareXrayCoreVersions(a, b string) (int, bool) {
+	aParts, okA := parseXrayCoreVersionParts(a)
+	bParts, okB := parseXrayCoreVersionParts(b)
+	if !okA || !okB {
+		return 0, false
+	}
+	for i := range len(aParts) {
+		if aParts[i] > bParts[i] {
+			return 1, true
+		}
+		if aParts[i] < bParts[i] {
+			return -1, true
+		}
+	}
+	return 0, true
+}
+
+func parseXrayCoreVersionParts(version string) ([3]int, bool) {
+	var result [3]int
+	parts := strings.Split(strings.TrimPrefix(strings.TrimSpace(version), "v"), ".")
+	if len(parts) != len(result) {
+		return result, false
+	}
+	for i, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil {
+			return result, false
+		}
+		result[i] = n
+	}
+	return result, true
 }
 
 func (s *XraySettingService) UpdateWarpXraySetting(warpData map[string]string, warpConfig map[string]any) error {
