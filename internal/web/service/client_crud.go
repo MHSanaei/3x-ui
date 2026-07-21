@@ -433,6 +433,35 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	if len(inboundIds) == 0 {
+		merged := *existing
+		applyClientRecordMerge(&merged, updated.ToRecord())
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Updates(map[string]any{
+				"sub_id":            merged.SubID,
+				"uuid":              merged.UUID,
+				"password":          merged.Password,
+				"auth":              merged.Auth,
+				"secret":            merged.Secret,
+				"flow":              merged.Flow,
+				"security":          merged.Security,
+				"wg_private_key":    merged.PrivateKey,
+				"wg_public_key":     merged.PublicKey,
+				"wg_allowed_ips":    merged.AllowedIPs,
+				"wg_pre_shared_key": merged.PreSharedKey,
+				"wg_keep_alive":     merged.KeepAlive,
+				"limit_ip":          merged.LimitIP,
+				"total_gb":          merged.TotalGB,
+				"expiry_time":       merged.ExpiryTime,
+				"tg_id":             merged.TgID,
+				"comment":           merged.Comment,
+				"reset":             merged.Reset,
+			}).Error; err != nil {
+			return needRestart, err
+		}
+	}
+
 	reverseStr := ""
 	if updated.Reverse != nil && strings.TrimSpace(updated.Reverse.Tag) != "" {
 		if b, mErr := json.Marshal(updated.Reverse); mErr == nil {
