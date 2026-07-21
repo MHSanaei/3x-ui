@@ -10,7 +10,14 @@ const GROUPS: NotificationGroupConfig[] = [
     icon: <CloudServerOutlined />,
     title: 'eventGroupOutbound',
     events: [
-      { key: 'outbound.down', label: 'eventOutboundDown', settingKey: '' },
+      {
+        key: 'outbound.down',
+        label: 'eventOutboundDown',
+        settingKey: 'outboundDownThreshold',
+        extra: ({ value, onChange, ariaLabel }) => (
+          <InputNumber size="small" min={1} max={100} value={value} onChange={onChange} aria-label={ariaLabel} style={{ width: 80 }} />
+        ),
+      },
       { key: 'outbound.up', label: 'eventOutboundUp', settingKey: '' },
     ],
   },

@@ -644,8 +644,8 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 			params["publickey"] = pub
 		}
 	}
-	if len(client.AllowedIPs) > 0 && client.AllowedIPs[0] != "" {
-		params["address"] = client.AllowedIPs[0]
+	if joined := strings.Join(client.AllowedIPs, ","); joined != "" {
+		params["address"] = joined
 	}
 	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 {
 		params["mtu"] = strconv.Itoa(int(mtu))
@@ -781,7 +781,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	}
 	uuid := client.ID
 	port := inbound.Port
-	streamNetwork := stream["network"].(string)
+	streamNetwork, _ := stream["network"].(string)
 	params := make(map[string]string)
 	params["type"] = streamNetwork
 
@@ -840,7 +840,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	}
 	password := encodeUserinfo(client.Password)
 	port := inbound.Port
-	streamNetwork := stream["network"].(string)
+	streamNetwork, _ := stream["network"].(string)
 	params := make(map[string]string)
 	params["type"] = streamNetwork
 
@@ -913,9 +913,9 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	}
 
 	settings := s.linkSettings(inbound)
-	inboundPassword := settings["password"].(string)
-	method := settings["method"].(string)
-	streamNetwork := stream["network"].(string)
+	inboundPassword, _ := settings["password"].(string)
+	method, _ := settings["method"].(string)
+	streamNetwork, _ := stream["network"].(string)
 	params := make(map[string]string)
 	params["type"] = streamNetwork
 
@@ -993,7 +993,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	alpns, _ := tlsSetting["alpn"].([]any)
 	var alpn []string
 	for _, a := range alpns {
-		alpn = append(alpn, a.(string))
+		if s, ok := a.(string); ok {
+			alpn = append(alpn, s)
+		}
 	}
 	if len(alpn) > 0 {
 		params["alpn"] = strings.Join(alpn, ",")
@@ -1023,11 +1025,10 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 
-	// salamander obfs (Hysteria2). The panel-side link generator already
-	// emits these; keep the subscription output in sync so a client has
-	// the obfs password to match the server.
+	// salamander obfs (Hysteria2). Emit only the standard URI fields;
+	// the non-standard fm=<json> finalmask dump breaks mihomo and other
+	// Hysteria2 clients that reject unknown query params.
 	if finalmask, ok := stream["finalmask"].(map[string]any); ok {
-		applyFinalMaskParams(finalmask, params)
 		if udpMasks, ok := finalmask["udp"].([]any); ok {
 			for _, m := range udpMasks {
 				mask, _ := m.(map[string]any)
@@ -1180,7 +1181,7 @@ func unmarshalStreamSettings(streamSettings string) map[string]any {
 }
 
 func applyPathAndHostParams(settings map[string]any, params map[string]string) {
-	params["path"] = settings["path"].(string)
+	params["path"], _ = settings["path"].(string)
 	if host, ok := settings["host"].(string); ok && len(host) > 0 {
 		params["host"] = host
 	} else {
@@ -1190,7 +1191,7 @@ func applyPathAndHostParams(settings map[string]any, params map[string]string) {
 }
 
 func applyPathAndHostObj(settings map[string]any, obj map[string]any) {
-	obj["path"] = settings["path"].(string)
+	obj["path"], _ = settings["path"].(string)
 	if host, ok := settings["host"].(string); ok && len(host) > 0 {
 		obj["host"] = host
 	} else {
@@ -1206,9 +1207,11 @@ func applyShareNetworkParams(stream map[string]any, streamNetwork string, params
 		header, _ := tcp["header"].(map[string]any)
 		typeStr, _ := header["type"].(string)
 		if typeStr == "http" {
-			request := header["request"].(map[string]any)
+			request, _ := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
-			params["path"] = requestPath[0].(string)
+			if len(requestPath) > 0 {
+				params["path"], _ = requestPath[0].(string)
+			}
 			host := ""
 			if response, ok := header["response"].(map[string]any); ok {
 				if respHeaders, ok := response["headers"].(map[string]any); ok {
@@ -1229,9 +1232,9 @@ func applyShareNetworkParams(stream map[string]any, streamNetwork string, params
 		applyPathAndHostParams(ws, params)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]any)
-		params["serviceName"] = grpc["serviceName"].(string)
+		params["serviceName"], _ = grpc["serviceName"].(string)
 		params["authority"], _ = grpc["authority"].(string)
-		if grpc["multiMode"].(bool) {
+		if mm, _ := grpc["multiMode"].(bool); mm {
 			params["mode"] = "multi"
 		}
 	case "httpupgrade":
@@ -1262,9 +1265,11 @@ func applyVmessNetworkParams(stream map[string]any, network string, obj map[stri
 		typeStr, _ := header["type"].(string)
 		obj["type"] = typeStr
 		if typeStr == "http" {
-			request := header["request"].(map[string]any)
+			request, _ := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
-			obj["path"] = requestPath[0].(string)
+			if len(requestPath) > 0 {
+				obj["path"], _ = requestPath[0].(string)
+			}
 			host := ""
 			if response, ok := header["response"].(map[string]any); ok {
 				if respHeaders, ok := response["headers"].(map[string]any); ok {
@@ -1284,9 +1289,9 @@ func applyVmessNetworkParams(stream map[string]any, network string, obj map[stri
 		applyPathAndHostObj(ws, obj)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]any)
-		obj["path"] = grpc["serviceName"].(string)
-		obj["authority"] = grpc["authority"].(string)
-		if grpc["multiMode"].(bool) {
+		obj["path"], _ = grpc["serviceName"].(string)
+		obj["authority"], _ = grpc["authority"].(string)
+		if mm, _ := grpc["multiMode"].(bool); mm {
 			obj["type"] = "multi"
 		}
 	case "httpupgrade":
@@ -1308,7 +1313,9 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 	alpns, _ := tlsSetting["alpn"].([]any)
 	var alpn []string
 	for _, a := range alpns {
-		alpn = append(alpn, a.(string))
+		if s, ok := a.(string); ok {
+			alpn = append(alpn, s)
+		}
 	}
 	if len(alpn) > 0 {
 		params["alpn"] = strings.Join(alpn, ",")
@@ -1342,7 +1349,9 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 	if len(alpns) > 0 {
 		var alpn []string
 		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
+			if s, ok := a.(string); ok {
+				alpn = append(alpn, s)
+			}
 		}
 		obj["alpn"] = strings.Join(alpn, ",")
 	}
@@ -1451,15 +1460,17 @@ func applyShareRealityParams(stream map[string]any, params map[string]string, cl
 	realitySettings, _ := searchKey(realitySetting, "settings")
 	if realitySetting != nil {
 		if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
-			sNames, _ := sniValue.([]any)
-			params["sni"] = sNames[random.Num(len(sNames))].(string)
+			if sNames, _ := sniValue.([]any); len(sNames) > 0 {
+				params["sni"], _ = sNames[random.Num(len(sNames))].(string)
+			}
 		}
 		if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 			params["pbk"], _ = pbkValue.(string)
 		}
 		if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
-			shortIds, _ := sidValue.([]any)
-			params["sid"] = shortIds[random.Num(len(shortIds))].(string)
+			if shortIds, _ := sidValue.([]any); len(shortIds) > 0 {
+				params["sid"], _ = shortIds[random.Num(len(shortIds))].(string)
+			}
 		}
 		if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
 			if fp, ok := fpValue.(string); ok && len(fp) > 0 {
@@ -2422,12 +2433,13 @@ func searchHost(headers any) string {
 			case []any:
 				hosts, _ := v.([]any)
 				if len(hosts) > 0 {
-					return hosts[0].(string)
-				} else {
-					return ""
+					h, _ := hosts[0].(string)
+					return h
 				}
+				return ""
 			case any:
-				return v.(string)
+				h, _ := v.(string)
+				return h
 			}
 		}
 	}

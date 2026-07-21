@@ -1,9 +1,55 @@
 package controller
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestLoginLimiterBoundsMemoryUnderUsernameFlood(t *testing.T) {
+	limiter := newLoginLimiter(5, 5*time.Minute, 15*time.Minute)
+	for i := 0; i < loginLimitMaxRecords+100; i++ {
+		limiter.registerFailure("1.2.3.4", "user-"+strconv.Itoa(i))
+	}
+
+	limiter.mu.Lock()
+	n := len(limiter.attempts)
+	limiter.mu.Unlock()
+
+	if n > loginLimitMaxRecords {
+		t.Fatalf("attempts map grew to %d, exceeding the %d ceiling under a username flood", n, loginLimitMaxRecords)
+	}
+}
+
+func TestLoginLimiterEvictionSparesActiveBlocks(t *testing.T) {
+	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
+	limiter := newLoginLimiter(5, 5*time.Minute, 15*time.Minute)
+	limiter.now = func() time.Time { return now }
+
+	limiter.mu.Lock()
+	for i := 0; i < loginLimitMaxRecords-1; i++ {
+		limiter.attempts["victim-"+strconv.Itoa(i)] = &loginLimitRecord{blockedUntil: now.Add(10 * time.Minute)}
+	}
+	limiter.attempts["filler"] = &loginLimitRecord{failures: []time.Time{now}}
+	limiter.mu.Unlock()
+
+	if _, blocked := limiter.registerFailure("9.9.9.9", "newcomer"); blocked {
+		t.Fatal("the eviction-triggering failure itself should not be blocked yet")
+	}
+
+	limiter.mu.Lock()
+	defer limiter.mu.Unlock()
+	survivors := 0
+	for key, record := range limiter.attempts {
+		if strings.HasPrefix(key, "victim-") && now.Before(record.blockedUntil) {
+			survivors++
+		}
+	}
+	if survivors != loginLimitMaxRecords-1 {
+		t.Fatalf("eviction under a full map dropped an actively-blocked record: %d/%d victims survived", survivors, loginLimitMaxRecords-1)
+	}
+}
 
 func TestLoginLimiterBlocksAfterConfiguredFailures(t *testing.T) {
 	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)

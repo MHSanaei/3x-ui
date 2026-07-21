@@ -719,6 +719,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	inbound.Id = 0
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
@@ -803,6 +804,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "wireguard":
+			if client.PublicKey == "" {
+				return inbound, false, common.NewError("wireguard client requires a key")
+			}
 		case "mtproto":
 			if client.Secret == "" {
 				return inbound, false, common.NewError("mtproto client requires a secret")
@@ -825,10 +830,17 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
+		// Emails seeded here (import's ClientStats, e.g. the controller's forced
+		// Enable=true on every imported stat row) are authoritative for this call
+		// and must not be clobbered by the AddClientStat loop below, which derives
+		// its enable/total/expiry/reset from Settings.clients[] instead — a second,
+		// possibly-stale source for the same columns on a plain (non-import) create.
+		statEmails := make(map[string]bool, len(inbound.ClientStats))
 		for i := range inbound.ClientStats {
 			if inbound.ClientStats[i].Email == "" {
 				continue
 			}
+			statEmails[inbound.ClientStats[i].Email] = true
 			inbound.ClientStats[i].Id = 0
 			inbound.ClientStats[i].InboundId = inbound.Id
 			if err := tx.Clauses(clause.OnConflict{
@@ -839,6 +851,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			}
 		}
 		for _, client := range clients {
+			if statEmails[client.Email] {
+				continue
+			}
 			if err := s.AddClientStat(tx, inbound.Id, &client); err != nil {
 				return err
 			}
@@ -1098,6 +1113,10 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return false, nil
 	}
 
+	if mtprotoRoutesThroughXray(inbound) {
+		needRestart = true
+	}
+
 	if !push {
 		return true, nil
 	}
@@ -1298,13 +1317,16 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						pushable = false
 					}
 				}
+				newProtocolIsMtproto := oldInbound.Protocol == model.MTProto
 				if pushable {
-					if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
-						logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
-					} else {
-						logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
-						if oldInbound.Protocol != model.MTProto {
-							needRestart = true
+					postCommitApply = func() {
+						if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
+							logger.Debug("Updated inbound applied on", rt.Name(), ":", oldInbound.Tag)
+						} else {
+							logger.Debug("Unable to update inbound on", rt.Name(), ":", err2)
+							if !newProtocolIsMtproto {
+								needRestart = true
+							}
 						}
 					}
 				}

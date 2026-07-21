@@ -158,8 +158,8 @@ export function useOutboundColumns({
         key: 'egress',
         align: 'left',
         width: 210,
-        render: (_v, _record, index) => {
-          const egress = testResult(outboundTestStates, index)?.egress;
+        render: (_v, record) => {
+          const egress = testResult(outboundTestStates, record.key)?.egress;
           const addresses = [
             egress?.ipv4 ? { label: 'v4', value: egress.ipv4 } : null,
             egress?.ipv6 ? { label: 'v6', value: egress.ipv6 } : null,
@@ -190,8 +190,8 @@ export function useOutboundColumns({
         key: 'egressCountry',
         align: 'left',
         width: 160,
-        render: (_v, _record, index) => {
-          const egress = testResult(outboundTestStates, index)?.egress;
+        render: (_v, record) => {
+          const egress = testResult(outboundTestStates, record.key)?.egress;
           if (!egress?.country) {
             return (
               <Tooltip title={t('pages.xray.outbound.egressHint')}>
@@ -229,9 +229,9 @@ export function useOutboundColumns({
         key: 'testResult',
         align: 'left',
         width: 140,
-        render: (_v, _record, index) => {
-          const r = testResult(outboundTestStates, index);
-          if (!r) return isTesting(outboundTestStates, index) ? <LoadingOutlined /> : <span className="empty">—</span>;
+        render: (_v, record) => {
+          const r = testResult(outboundTestStates, record.key);
+          if (!r) return isTesting(outboundTestStates, record.key) ? <LoadingOutlined /> : <span className="empty">—</span>;
           return <TestResultPopover result={r} />;
         },
       },
@@ -240,16 +240,16 @@ export function useOutboundColumns({
         key: 'test',
         align: 'center',
         width: 80,
-        render: (_v, record, index) => (
+        render: (_v, record) => (
           <Tooltip title={`${t('check')} (${testModeLabel(effectiveTestMode(record, testMode), t)})`}>
             <Button
               type="primary"
               shape="circle"
-              loading={isTesting(outboundTestStates, index)}
-              disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
+              loading={isTesting(outboundTestStates, record.key)}
+              disabled={isUntestable(record) || isTesting(outboundTestStates, record.key)}
               icon={<ThunderboltOutlined />}
               aria-label={t('check')}
-              onClick={() => onTest(index, testMode)}
+              onClick={() => onTest(record.key, testMode)}
             />
           </Tooltip>
         ),

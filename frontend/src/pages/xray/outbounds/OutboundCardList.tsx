@@ -63,8 +63,8 @@ export default function OutboundCardList({
     setShowEgressIp((prev) => ({ ...prev, [key]: visible }));
   };
 
-  const renderEgress = (index: number, rowKey: string) => {
-    const result = testResult(outboundTestStates, index);
+  const renderEgress = (testKey: number, rowKey: string) => {
+    const result = testResult(outboundTestStates, testKey);
     const egress = result?.egress;
     const isEgressVisible = !!showEgressIp[rowKey];
     const flag = countryFlag(egress?.country);
@@ -156,26 +156,26 @@ export default function OutboundCardList({
               ))}
             </div>
           )}
-          {renderEgress(index, String(record.key))}
+          {renderEgress(record.key, String(record.key))}
           <div className="card-foot">
             <span className="traffic-up">↑ {SizeFormatter.sizeFormat(trafficFor(outboundsTraffic, record).up)}</span>
             <span className="traffic-sep" />
             <span className="traffic-down">↓ {SizeFormatter.sizeFormat(trafficFor(outboundsTraffic, record).down)}</span>
             <span className="card-test">
-              {testResult(outboundTestStates, index) ? (
-                <TestResultPopover result={testResult(outboundTestStates, index)!} />
-              ) : isTesting(outboundTestStates, index) ? (
+              {testResult(outboundTestStates, record.key) ? (
+                <TestResultPopover result={testResult(outboundTestStates, record.key)!} />
+              ) : isTesting(outboundTestStates, record.key) ? (
                 <LoadingOutlined />
               ) : null}
               <Button
                 type="primary"
                 shape="circle"
                 size="small"
-                loading={isTesting(outboundTestStates, index)}
-                disabled={isUntestable(record) || isTesting(outboundTestStates, index)}
+                loading={isTesting(outboundTestStates, record.key)}
+                disabled={isUntestable(record) || isTesting(outboundTestStates, record.key)}
                 icon={<ThunderboltOutlined />}
                 aria-label={t('check')}
-                onClick={() => onTest(index, testMode)}
+                onClick={() => onTest(record.key, testMode)}
               />
             </span>
           </div>

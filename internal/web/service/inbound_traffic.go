@@ -37,9 +37,11 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 
 	defer func() {
 		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
+			if rbErr := tx.Rollback().Error; rbErr != nil {
+				logger.Warning("Error rolling back traffic tx:", rbErr)
+			}
+		} else if cErr := tx.Commit().Error; cErr != nil {
+			logger.Warning("Error committing traffic tx:", cErr)
 		}
 	}()
 	err = s.addInboundTraffic(tx, inboundTraffics)
@@ -51,25 +53,25 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		return false, false, err
 	}
 
-	needRestart0, count, err := s.autoRenewClients(tx)
-	if err != nil {
-		logger.Warning("Error in renew clients:", err)
+	needRestart0, count, renewErr := s.autoRenewClients(tx)
+	if renewErr != nil {
+		logger.Warning("Error in renew clients:", renewErr)
 	} else if count > 0 {
 		logger.Debugf("%v clients renewed", count)
 	}
 
 	disabledClientsCount := int64(0)
-	needRestart1, count, err := s.disableInvalidClients(tx)
-	if err != nil {
-		logger.Warning("Error in disabling invalid clients:", err)
+	needRestart1, count, disableClientsErr := s.disableInvalidClients(tx)
+	if disableClientsErr != nil {
+		logger.Warning("Error in disabling invalid clients:", disableClientsErr)
 	} else if count > 0 {
 		logger.Debugf("%v clients disabled", count)
 		disabledClientsCount = count
 	}
 
-	needRestart2, count, err := s.disableInvalidInbounds(tx)
-	if err != nil {
-		logger.Warning("Error in disabling invalid inbounds:", err)
+	needRestart2, count, disableInboundsErr := s.disableInvalidInbounds(tx)
+	if disableInboundsErr != nil {
+		logger.Warning("Error in disabling invalid inbounds:", disableInboundsErr)
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
@@ -114,8 +116,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// attached to a local inbound. The old `inbound_id NOT IN (node inbounds)`
 	// filter dropped the local traffic of a client attached to both a node and the
 	// mother inbound whenever the node inbound happened to be attached first — its
-	// shared row then carried the node inbound's id (AddClientStat uses OnConflict
-	// DoNothing and never refreshes it), so the local poll skipped it entirely.
+	// shared row then carried the node inbound's id (AddClientStat used to use
+	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
+	// conflict, but this filter was removed rather than relying on that ordering).
 	err = tx.Model(xray.ClientTraffic{}).
 		Where("email IN (?)", emails).
 		Find(&dbClientTraffics).Error
@@ -444,9 +447,28 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	return needRestart, int64(len(traffics)), nil
 }
 
-// AddClientStat inserts a per-client accounting row, no-op on email
-// conflict. Xray reports traffic per email, so the surviving row acts as
-// the shared accumulator for inbounds that re-use the same identity.
+// AddClientStat inserts a per-client accounting row, or refreshes the
+// config-derived columns on an email conflict. Xray reports traffic per
+// email, so the surviving row also acts as the shared accumulator for
+// inbounds that re-use the same identity — every call for that identity
+// (one per attached inbound) carries the same enable/expiry/reset/total,
+// so re-asserting them here is idempotent for that legitimate case.
+//
+// The conflict path matters on its own for a second reason: an inbound
+// delete detaches its clients (InboundService.DelInbound) without deleting
+// their client_traffics row, by design — mirroring ClientService.Detach,
+// which intentionally leaves a fully-detached client's row in place so a
+// later Attach can resume it with its accumulated traffic intact. If that
+// same email is instead reused for a freshly (re)created client, the new
+// config's enable/expiry/reset/total must win over whatever the orphaned
+// row still holds; DoNothing left them stale indefinitely (#5958).
+//
+// up/down are deliberately excluded from the refresh: they are the
+// accumulated traffic totals, and zeroing them here would erase real usage
+// every time an existing, actively-used client is attached to one more
+// inbound. One tradeoff this does not resolve: a genuinely new client that
+// happens to reuse an orphaned email still inherits that row's leftover
+// up/down, since nothing at this call site can tell the two cases apart.
 func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
 	clientTraffic := xray.ClientTraffic{
 		InboundId:  inboundId,
@@ -456,8 +478,10 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 		Enable:     client.Enable,
 		Reset:      client.Reset,
 	}
-	return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
-		Create(&clientTraffic).Error
+	return tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "email"}},
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset"}),
+	}).Create(&clientTraffic).Error
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
@@ -657,6 +681,7 @@ func (s *InboundService) ResetAllTraffics() error {
 		return s.resetAllTrafficsLocked()
 	})
 	if err == nil {
+		s.propagateResetAllTrafficsToNodes()
 		s.resetAllMtprotoQuotas()
 	}
 	return err
@@ -666,52 +691,53 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
 
-	if err := db.Model(model.Inbound{}).
+	return db.Model(model.Inbound{}).
 		Where("user_id > ?", 0).
 		Updates(map[string]any{
 			"up":                      0,
 			"down":                    0,
 			"last_traffic_reset_time": now,
-		}).Error; err != nil {
-		return err
-	}
+		}).Error
+}
 
+// propagateResetAllTrafficsToNodes tells every node to zero its own counters.
+// Kept OUT of the traffic-writer transaction: each remote call can block up to
+// remoteHTTPTimeout, and holding the single serial writer across N such calls
+// stalls traffic accounting and drops the deltas of every concurrent poll.
+func (s *InboundService) propagateResetAllTrafficsToNodes() {
 	nodes, err := (&NodeService{}).GetAll()
-	if err == nil {
-		for _, node := range nodes {
-			if rt, err := runtime.GetManager().RuntimeFor(&node.Id); err == nil {
-				if e := rt.ResetAllTraffics(context.Background()); e != nil {
-					logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
-				}
+	if err != nil {
+		return
+	}
+	for _, node := range nodes {
+		if rt, err := runtime.GetManager().RuntimeFor(&node.Id); err == nil {
+			if e := rt.ResetAllTraffics(context.Background()); e != nil {
+				logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
 			}
 		}
 	}
-
-	return nil
 }
 
 func (s *InboundService) ResetInboundTraffic(id int) error {
-	return submitTrafficWrite(func() error {
-		db := database.GetDB()
-		if err := db.Model(model.Inbound{}).
+	if err := submitTrafficWrite(func() error {
+		return database.GetDB().Model(model.Inbound{}).
 			Where("id = ?", id).
-			Updates(map[string]any{"up": 0, "down": 0}).Error; err != nil {
-			return err
-		}
+			Updates(map[string]any{"up": 0, "down": 0}).Error
+	}); err != nil {
+		return err
+	}
 
-		inbound, err := s.GetInbound(id)
-		if err == nil && inbound != nil && inbound.NodeID != nil {
-			if rt, rterr := s.runtimeFor(inbound); rterr == nil {
-				if e := rt.ResetInboundTraffic(context.Background(), inbound); e != nil {
-					logger.Warning("ResetInboundTraffic: remote propagation to", rt.Name(), "failed:", e)
-				}
-			} else {
-				logger.Warning("ResetInboundTraffic: runtime lookup failed:", rterr)
+	inbound, err := s.GetInbound(id)
+	if err == nil && inbound != nil && inbound.NodeID != nil {
+		if rt, rterr := s.runtimeFor(inbound); rterr == nil {
+			if e := rt.ResetInboundTraffic(context.Background(), inbound); e != nil {
+				logger.Warning("ResetInboundTraffic: remote propagation to", rt.Name(), "failed:", e)
 			}
+		} else {
+			logger.Warning("ResetInboundTraffic: runtime lookup failed:", rterr)
 		}
-
-		return nil
-	})
+	}
+	return nil
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {

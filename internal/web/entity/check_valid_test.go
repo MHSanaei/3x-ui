@@ -27,3 +27,15 @@ func TestCheckValidSmtpFrom(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckValidWildcardListenPortConflict(t *testing.T) {
+	s := &AllSetting{WebPort: 2053, SubPort: 2053, WebListen: "0.0.0.0", SubListen: ""}
+	if err := s.CheckValid(); err == nil {
+		t.Error("CheckValid must reject the same port bound on 0.0.0.0 and \"\" (both wildcard)")
+	}
+
+	ok := &AllSetting{WebPort: 2053, SubPort: 2053, WebListen: "127.0.0.1", SubListen: "192.168.1.1"}
+	if err := ok.CheckValid(); err != nil {
+		t.Errorf("distinct specific listens on the same port should be allowed: %v", err)
+	}
+}

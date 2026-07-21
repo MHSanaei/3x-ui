@@ -83,6 +83,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "outboundDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "pageSize": {
         "maximum": 1000,
         "minimum": 0,
@@ -364,6 +369,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
       "remarkTemplate",
@@ -547,6 +553,11 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "ldapVlessField": {
         "type": "string"
+      },
+      "outboundDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
       },
       "pageSize": {
         "maximum": 1000,
@@ -836,6 +847,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
       "remarkTemplate",

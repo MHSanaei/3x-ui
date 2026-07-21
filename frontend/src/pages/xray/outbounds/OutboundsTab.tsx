@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -50,6 +50,7 @@ import type { XraySettingsValue, SetTemplate, OutboundTestMode, OutboundTestStat
 import './OutboundsTab.css';
 
 import type { OutboundRow } from './outbounds-tab-types';
+import { originalOutboundIndex } from './outbounds-tab-helpers';
 import { useOutboundColumns } from './useOutboundColumns';
 import OutboundCardList from './OutboundCardList';
 import SubscriptionOutbounds from './SubscriptionOutbounds';
@@ -150,6 +151,8 @@ export default function OutboundsTab({
         .filter((o) => !isBalancerLoopbackTag(o.tag || '')),
     [outbounds],
   );
+  const rowsRef = useRef<OutboundRow[]>([]);
+  rowsRef.current = rows;
 
   const dialerProxyTags = useMemo(() => {
     const tags = new Set<string>();
@@ -188,11 +191,12 @@ export default function OutboundsTab({
     loadSubs();
   }
   function openEdit(idx: number) {
-    setEditingOutbound((templateSettings?.outbounds || [])[idx] as Record<string, unknown>);
-    setEditingIndex(idx);
+    const target = originalOutboundIndex(rowsRef.current, idx);
+    setEditingOutbound((templateSettings?.outbounds || [])[target] as Record<string, unknown>);
+    setEditingIndex(target);
     setExistingTags(
       (templateSettings?.outbounds || [])
-        .filter((_, i) => i !== idx)
+        .filter((_, i) => i !== target)
         .map((o) => o?.tag)
         .filter((tg): tg is string => !!tg),
     );
@@ -217,8 +221,9 @@ export default function OutboundsTab({
   }
 
   function confirmDelete(idx: number) {
+    const target = originalOutboundIndex(rowsRef.current, idx);
     const impact = templateSettings
-      ? planOutboundDeletion(templateSettings, idx)
+      ? planOutboundDeletion(templateSettings, target)
       : { rules: [], balancers: [], observatory: false, burst: false };
     modal.confirm({
       title: `${t('delete')} ${t('pages.xray.Outbounds')} #${idx + 1}?`,
@@ -226,27 +231,33 @@ export default function OutboundsTab({
       okText: t('delete'),
       okType: 'danger',
       cancelText: t('cancel'),
-      onOk: () => mutate((tt) => applyOutboundDeletion(tt, idx)),
+      onOk: () => mutate((tt) => applyOutboundDeletion(tt, target)),
     });
   }
   function setFirst(idx: number) {
+    const target = originalOutboundIndex(rowsRef.current, idx);
     mutate((tt) => {
       if (!tt.outbounds) return;
-      const [moved] = tt.outbounds.splice(idx, 1);
+      const [moved] = tt.outbounds.splice(target, 1);
       tt.outbounds.unshift(moved);
     });
   }
   function moveUp(idx: number) {
     if (idx <= 0) return;
+    const target = originalOutboundIndex(rowsRef.current, idx);
+    const prev = originalOutboundIndex(rowsRef.current, idx - 1);
     mutate((tt) => {
       if (!tt.outbounds) return;
-      [tt.outbounds[idx - 1], tt.outbounds[idx]] = [tt.outbounds[idx], tt.outbounds[idx - 1]];
+      [tt.outbounds[prev], tt.outbounds[target]] = [tt.outbounds[target], tt.outbounds[prev]];
     });
   }
   function moveDown(idx: number) {
+    if (idx >= rowsRef.current.length - 1) return;
+    const target = originalOutboundIndex(rowsRef.current, idx);
+    const next = originalOutboundIndex(rowsRef.current, idx + 1);
     mutate((tt) => {
-      if (!tt.outbounds || idx >= tt.outbounds.length - 1) return;
-      [tt.outbounds[idx + 1], tt.outbounds[idx]] = [tt.outbounds[idx], tt.outbounds[idx + 1]];
+      if (!tt.outbounds) return;
+      [tt.outbounds[next], tt.outbounds[target]] = [tt.outbounds[target], tt.outbounds[next]];
     });
   }
 

@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -340,14 +340,12 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
 		logSubscriptionRoute(userAgent, "clash")
-		a.subClashs(c)
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
 		logSubscriptionRoute(userAgent, "json")
-		a.serveJson(c, true, "application/json; charset=utf-8")
 		return
 	}
 	logSubscriptionRoute(userAgent, "raw")
@@ -448,7 +446,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 	if diskBody, diskErr := os.ReadFile("internal/web/dist/subpage.html"); diskErr == nil {
 		body = diskBody
 	} else {
-		readBody, err := distFS.ReadFile("dist/subpage.html")
+		readBody, err := fs.ReadFile(distFS, "dist/subpage.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "missing embedded subpage")
 			return
@@ -598,6 +596,12 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
+	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
+			writeSubError(c, nil)
+		}
+		return
+	}
 	if a.maybeServeSubPage(c) {
 		return
 	}
@@ -605,43 +609,74 @@ func (a *SUBController) subJsons(c *gin.Context) {
 }
 
 func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, contentType string) {
-	subId := c.Param("subid")
-	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
-	if err != nil || len(jsonSub) == 0 {
-		writeSubError(c, err)
-	} else {
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
-
-		c.Data(200, contentType, []byte(jsonSub))
+	if !a.serveJsonBody(c, alwaysReturnArray, contentType, false) {
+		writeSubError(c, nil)
 	}
 }
 
+func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
+	subId := c.Param("subid")
+	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
+	if err != nil {
+		writeSubError(c, err)
+		return true
+	}
+	if len(jsonSub) == 0 {
+		return false
+	}
+	profileUrl := a.subProfileUrl
+	if profileUrl == "" {
+		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	}
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	if rawDownload {
+		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
+	}
+
+	c.Data(200, contentType, []byte(jsonSub))
+	return true
+}
+
 func (a *SUBController) subClashs(c *gin.Context) {
+	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.serveClashBody(c, true) {
+			writeSubError(c, nil)
+		}
+		return
+	}
 	if a.maybeServeSubPage(c) {
 		return
 	}
+	if !a.serveClashBody(c, false) {
+		writeSubError(c, nil)
+	}
+}
+
+func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)
-	if err != nil || len(clashSub) == 0 {
+	if err != nil {
 		writeSubError(c, err)
-	} else {
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
-		if a.subTitle != "" {
-			// Clash clients commonly use Content-Disposition to choose the imported profile name.
-			c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
-		}
-		c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
+		return true
 	}
+	if len(clashSub) == 0 {
+		return false
+	}
+	profileUrl := a.subProfileUrl
+	if profileUrl == "" {
+		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	}
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	if rawDownload {
+		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.yaml"`)
+	} else if a.subTitle != "" {
+		// Clash clients commonly use Content-Disposition to choose the imported profile name.
+		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
+	}
+	c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
+	return true
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
@@ -675,7 +710,9 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 
 	// Advanced (Happ)
-	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
+	if profileEnableRouting {
+		c.Writer.Header().Set("Routing-Enable", "true")
+	}
 	if profileRoutingRules != "" {
 		c.Writer.Header().Set("Routing", profileRoutingRules)
 	}

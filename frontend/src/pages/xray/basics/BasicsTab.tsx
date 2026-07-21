@@ -115,7 +115,8 @@ export default function BasicsTab({
       ?.sockopt;
     const raw = sockopt?.happyEyeballs;
     if (raw == null || typeof raw !== 'object') return null;
-    return HappyEyeballsSchema.parse(raw);
+    const parsed = HappyEyeballsSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
   })();
 
   const setDirectHappyEyeballs = useCallback(
