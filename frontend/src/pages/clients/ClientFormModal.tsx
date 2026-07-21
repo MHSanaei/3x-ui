@@ -373,10 +373,15 @@ export default function ClientFormModal({
   }
 
   useEffect(() => {
-    if (!showFlow && flow) {
+    // Only clear the flow once we actually have inbound options to judge
+    // capability from. While the options list is momentarily empty (e.g. the
+    // options query is (re)loading and `inbounds` falls back to `[]`), showFlow
+    // is a false negative, so clearing here would silently drop a valid
+    // xtls-rprx-vision flow the user picked for a Reality/TLS inbound.
+    if (inbounds.length > 0 && !showFlow && flow) {
       methods.setValue('flow', '');
     }
-  }, [showFlow, flow, methods]);
+  }, [inbounds, showFlow, flow, methods]);
 
   useEffect(() => {
     if (!showReverseTag && reverseTag) {
