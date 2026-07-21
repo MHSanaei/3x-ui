@@ -46,6 +46,36 @@ func TestUpdateInboundClientRenameDoesNotDuplicateRecord(t *testing.T) {
 	}
 }
 
+func TestUpdateInboundClientCaseOnlyRenameDoesNotDuplicateRecord(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	source := []model.Client{{Email: "test", ID: "aaaaaaaa-0000-0000-0000-000000000002", SubID: "sub-case", Enable: true}}
+	ib := mkInbound(t, 22002, model.VLESS, clientsSettings(t, source))
+	if err := svc.SyncInbound(nil, ib.Id, source); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	origId := lookupClientRecord(t, "test").Id
+
+	updated := source[0]
+	updated.Email = "Test"
+	if _, err := svc.Update(inboundSvc, origId, updated); err != nil {
+		t.Fatalf("Update case-only email: %v", err)
+	}
+
+	if n := countClientRecords(t); n != 1 {
+		t.Fatalf("client records after case-only rename = %d, want 1", n)
+	}
+	rec := lookupClientRecord(t, "Test")
+	if rec.Id != origId {
+		t.Fatalf("record id after case-only rename = %d, want %d", rec.Id, origId)
+	}
+	if rec.Email != "Test" {
+		t.Fatalf("email after case-only rename = %q, want %q", rec.Email, "Test")
+	}
+}
+
 func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
