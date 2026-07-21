@@ -644,8 +644,8 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 			params["publickey"] = pub
 		}
 	}
-	if len(client.AllowedIPs) > 0 && client.AllowedIPs[0] != "" {
-		params["address"] = client.AllowedIPs[0]
+	if joined := strings.Join(client.AllowedIPs, ","); joined != "" {
+		params["address"] = joined
 	}
 	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 {
 		params["mtu"] = strconv.Itoa(int(mtu))
