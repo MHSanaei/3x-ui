@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
+
+var testDistFS = fstest.MapFS{
+	"dist/subpage.html": {Data: []byte(`<!doctype html><html><head></head><body><div id="root"></div></body></html>`)},
+}
 
 // newTestSUBController builds a controller with just the bits loadSubTemplate
 // needs, so the template tests don't require a database.
@@ -389,6 +394,63 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 			t.Fatalf("standards-compliant explicit JSON body is not an array: %s", body)
 		}
 	})
+}
+
+func TestFormatEndpointsRawViewBypassesBrowserPage(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "raw", 4481, 1, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+	oldDistFS := distFS
+	distFS = testDistFS
+	t.Cleanup(func() { distFS = oldDistFS })
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
+
+	tests := []struct {
+		name         string
+		path         string
+		contentType  string
+		disposition  string
+		bodyContains string
+	}{
+		{name: "JSON", path: "/json/s1?view=raw", contentType: "application/json; charset=utf-8", disposition: `attachment; filename="subscription.json"`, bodyContains: "outbounds"},
+		{name: "Clash", path: "/clash/s1?view=raw", contentType: "application/yaml; charset=utf-8", disposition: `attachment; filename="subscription.yaml"`, bodyContains: "proxies:"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com"+tt.path, nil)
+			req.Header.Set("Accept", "text/html")
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+
+			if resp.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+			}
+			if got := resp.Header().Get("Content-Type"); got != tt.contentType {
+				t.Fatalf("Content-Type = %q, want %q", got, tt.contentType)
+			}
+			if got := resp.Header().Get("Content-Disposition"); got != tt.disposition {
+				t.Fatalf("Content-Disposition = %q, want %q", got, tt.disposition)
+			}
+			if !strings.Contains(resp.Body.String(), tt.bodyContains) {
+				t.Fatalf("raw body does not contain %q: %s", tt.bodyContains, resp.Body.String())
+			}
+		})
+	}
+
+	for _, path := range []string{"/json/s1", "/clash/s1"} {
+		t.Run(path+" browser page", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com"+path, nil)
+			req.Header.Set("Accept", "text/html")
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+			}
+			if got := resp.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+				t.Fatalf("Content-Type = %q, want HTML", got)
+			}
+		})
+	}
 }
 
 func writeFile(t *testing.T, path, content string) {
