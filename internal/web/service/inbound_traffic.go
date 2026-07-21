@@ -116,8 +116,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// attached to a local inbound. The old `inbound_id NOT IN (node inbounds)`
 	// filter dropped the local traffic of a client attached to both a node and the
 	// mother inbound whenever the node inbound happened to be attached first — its
-	// shared row then carried the node inbound's id (AddClientStat uses OnConflict
-	// DoNothing and never refreshes it), so the local poll skipped it entirely.
+	// shared row then carried the node inbound's id (AddClientStat used to use
+	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
+	// conflict, but this filter was removed rather than relying on that ordering).
 	err = tx.Model(xray.ClientTraffic{}).
 		Where("email IN (?)", emails).
 		Find(&dbClientTraffics).Error
@@ -446,9 +447,28 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	return needRestart, int64(len(traffics)), nil
 }
 
-// AddClientStat inserts a per-client accounting row, no-op on email
-// conflict. Xray reports traffic per email, so the surviving row acts as
-// the shared accumulator for inbounds that re-use the same identity.
+// AddClientStat inserts a per-client accounting row, or refreshes the
+// config-derived columns on an email conflict. Xray reports traffic per
+// email, so the surviving row also acts as the shared accumulator for
+// inbounds that re-use the same identity — every call for that identity
+// (one per attached inbound) carries the same enable/expiry/reset/total,
+// so re-asserting them here is idempotent for that legitimate case.
+//
+// The conflict path matters on its own for a second reason: an inbound
+// delete detaches its clients (InboundService.DelInbound) without deleting
+// their client_traffics row, by design — mirroring ClientService.Detach,
+// which intentionally leaves a fully-detached client's row in place so a
+// later Attach can resume it with its accumulated traffic intact. If that
+// same email is instead reused for a freshly (re)created client, the new
+// config's enable/expiry/reset/total must win over whatever the orphaned
+// row still holds; DoNothing left them stale indefinitely (#5958).
+//
+// up/down are deliberately excluded from the refresh: they are the
+// accumulated traffic totals, and zeroing them here would erase real usage
+// every time an existing, actively-used client is attached to one more
+// inbound. One tradeoff this does not resolve: a genuinely new client that
+// happens to reuse an orphaned email still inherits that row's leftover
+// up/down, since nothing at this call site can tell the two cases apart.
 func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
 	clientTraffic := xray.ClientTraffic{
 		InboundId:  inboundId,
@@ -458,8 +478,10 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 		Enable:     client.Enable,
 		Reset:      client.Reset,
 	}
-	return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
-		Create(&clientTraffic).Error
+	return tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "email"}},
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset"}),
+	}).Create(&clientTraffic).Error
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
