@@ -32,6 +32,7 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
   remarkTemplate: string;
@@ -143,6 +144,7 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
   remarkTemplate: string;
