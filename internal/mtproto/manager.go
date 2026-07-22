@@ -69,6 +69,7 @@ type Instance struct {
 	// the egress obeys the core's routing rules instead of going out directly.
 	RouteThroughXray bool
 	XrayRoutePort    int
+	XrayOutboundTag  string
 }
 
 func (inst Instance) bindTo() string {
@@ -124,6 +125,17 @@ type Traffic struct {
 	Down  int64
 }
 
+// AccessEvent is one authenticated MTProto connection ready to be written in
+// the same structured form as an Xray access-log entry.
+type AccessEvent struct {
+	Timestamp   time.Time
+	FromAddress string
+	ToAddress   string
+	Inbound     string
+	Outbound    string
+	Email       string
+}
+
 type clientCounters struct {
 	up   int64
 	down int64
@@ -132,11 +144,14 @@ type clientCounters struct {
 type managed struct {
 	proc         *Process
 	tag          string
+	routed       bool
+	outbound     string
 	structuralFP string
 	secretsFP    string
 	apiPort      int
 	apiToken     string
 	last         map[string]clientCounters
+	lastAccessID uint64
 }
 
 // Manager owns the set of running mtg processes keyed by inbound id.
@@ -183,6 +198,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections int    `json:"throttleMaxConnections"`
 		RouteThroughXray       bool   `json:"routeThroughXray"`
 		RouteXrayPort          int    `json:"routeXrayPort"`
+		OutboundTag            string `json:"outboundTag"`
 		PublicIPv4             string `json:"publicIpv4"`
 		PublicIPv6             string `json:"publicIpv6"`
 		Clients                []struct {
@@ -229,6 +245,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ThrottleMaxConnections: parsed.ThrottleMaxConnections,
 		RouteThroughXray:       parsed.RouteThroughXray,
 		XrayRoutePort:          parsed.RouteXrayPort,
+		XrayOutboundTag:        strings.TrimSpace(parsed.OutboundTag),
 		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
 		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
 	}, true
@@ -301,6 +318,8 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		switch ensureActionFor(cur.proc.IsRunning(), cur.structuralFP, cur.secretsFP, structFP, secFP) {
 		case ensureNoop:
 			cur.tag = inst.Tag
+			cur.routed = inst.RouteThroughXray
+			cur.outbound = inst.XrayOutboundTag
 			return nil
 		case ensureReload:
 			if err := writeConfig(configPathForID(inst.Id), inst, cur.apiPort, cur.apiToken); err != nil {
@@ -308,6 +327,8 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			}
 			if applySecrets(cur.apiPort, cur.apiToken, inst) {
 				cur.tag = inst.Tag
+				cur.routed = inst.RouteThroughXray
+				cur.outbound = inst.XrayOutboundTag
 				cur.secretsFP = secFP
 				logger.Infof("mtproto: applied secret update to inbound %d in place", inst.Id)
 				return nil
@@ -338,6 +359,8 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	m.procs[inst.Id] = &managed{
 		proc:         proc,
 		tag:          inst.Tag,
+		routed:       inst.RouteThroughXray,
+		outbound:     inst.XrayOutboundTag,
 		structuralFP: structFP,
 		secretsFP:    secFP,
 		apiPort:      apiPort,
@@ -397,15 +420,18 @@ func (m *Manager) StopAll() {
 }
 
 // CollectTraffic scrapes each running mtg /stats endpoint and returns the
-// per-client byte deltas since the previous scrape, plus the emails of clients
-// with at least one live connection.
-func (m *Manager) CollectTraffic() ([]Traffic, []string) {
+// per-client byte deltas since the previous scrape, the emails of clients with
+// a live connection, and authenticated access events not returned before.
+func (m *Manager) CollectTraffic() ([]Traffic, []string, []AccessEvent) {
 	type snap struct {
-		id       int
-		apiPort  int
-		apiToken string
-		tag      string
-		last     map[string]clientCounters
+		id           int
+		apiPort      int
+		apiToken     string
+		tag          string
+		routed       bool
+		outbound     string
+		last         map[string]clientCounters
+		lastAccessID uint64
 	}
 	m.mu.Lock()
 	snaps := make([]snap, 0, len(m.procs))
@@ -415,17 +441,22 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		}
 		lastCopy := make(map[string]clientCounters, len(cur.last))
 		maps.Copy(lastCopy, cur.last)
-		snaps = append(snaps, snap{id: id, apiPort: cur.apiPort, apiToken: cur.apiToken, tag: cur.tag, last: lastCopy})
+		snaps = append(snaps, snap{
+			id: id, apiPort: cur.apiPort, apiToken: cur.apiToken, tag: cur.tag,
+			routed: cur.routed, outbound: cur.outbound, last: lastCopy, lastAccessID: cur.lastAccessID,
+		})
 	}
 	m.mu.Unlock()
 
 	var out []Traffic
 	var online []string
+	var access []AccessEvent
 	for _, s := range snaps {
-		users, ok := scrapeStats(s.apiPort, s.apiToken)
+		stats, ok := scrapeStatsSnapshot(s.apiPort, s.apiToken)
 		if !ok {
 			continue
 		}
+		users := stats.Users
 		newLast := make(map[string]clientCounters, len(users))
 		for email, u := range users {
 			up := u.BytesIn
@@ -451,13 +482,54 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 			}
 		}
 
+		lastAccessID := s.lastAccessID
+		outbound := s.outbound
+		if outbound == "" {
+			if s.routed {
+				outbound = "mtproto"
+			} else {
+				outbound = "direct"
+			}
+		}
+		for _, event := range stats.AccessEvents {
+			if event.ID <= s.lastAccessID {
+				continue
+			}
+			access = append(access, AccessEvent{
+				Timestamp:   event.Timestamp,
+				FromAddress: event.ClientAddress,
+				ToAddress:   event.TargetAddress,
+				Inbound:     s.tag,
+				Outbound:    outbound,
+				Email:       event.SecretName,
+			})
+			lastAccessID = max(lastAccessID, event.ID)
+		}
+
 		m.mu.Lock()
-		if cur, ok := m.procs[s.id]; ok {
+		if cur, ok := m.procs[s.id]; ok && cur.apiPort == s.apiPort {
 			cur.last = newLast
+			cur.lastAccessID = lastAccessID
 		}
 		m.mu.Unlock()
 	}
-	return out, online
+	return out, online, access
+}
+
+// RoutedTags returns the Xray inbound tags used only as loopback SOCKS bridges
+// for MTProto egress. Their raw access rows are replaced by attributed events.
+func (m *Manager) RoutedTags() map[string]struct{} {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	tags := make(map[string]struct{})
+	for _, cur := range m.procs {
+		if cur.routed && cur.tag != "" {
+			tags[cur.tag] = struct{}{}
+		}
+	}
+
+	return tags
 }
 
 func (m *Manager) HasRunning() bool {
@@ -618,6 +690,19 @@ type statsUser struct {
 	BytesOut    int64 `json:"bytes_out"`
 }
 
+type statsAccessEvent struct {
+	ID            uint64    `json:"id"`
+	Timestamp     time.Time `json:"timestamp"`
+	SecretName    string    `json:"secret_name"`
+	ClientAddress string    `json:"client_address"`
+	TargetAddress string    `json:"target_address"`
+}
+
+type statsSnapshot struct {
+	Users        map[string]statsUser `json:"users"`
+	AccessEvents []statsAccessEvent   `json:"access_events"`
+}
+
 type secretPutEntry struct {
 	Secret  string `json:"secret"`
 	AdTag   string `json:"ad_tag,omitempty"`
@@ -704,22 +789,29 @@ func applySecrets(port int, token string, inst Instance) bool {
 // cumulative counters. Best-effort: an unreachable endpoint or unparseable body
 // yields ok=false.
 func scrapeStats(port int, token string) (map[string]statsUser, bool) {
+	parsed, ok := scrapeStatsSnapshot(port, token)
+	if !ok {
+		return nil, false
+	}
+
+	return parsed.Users, true
+}
+
+func scrapeStatsSnapshot(port int, token string) (statsSnapshot, bool) {
 	client := http.Client{Timeout: 3 * time.Second}
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/stats", port), nil)
 	if err != nil {
-		return nil, false
+		return statsSnapshot{}, false
 	}
 	authorize(req, token)
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, false
+		return statsSnapshot{}, false
 	}
 	defer resp.Body.Close()
-	var parsed struct {
-		Users map[string]statsUser `json:"users"`
-	}
+	var parsed statsSnapshot
 	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, false
+		return statsSnapshot{}, false
 	}
-	return parsed.Users, true
+	return parsed, true
 }

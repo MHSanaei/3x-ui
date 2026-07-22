@@ -35,6 +35,7 @@ func TestScrapeStats(t *testing.T) {
 			return
 		}
 		_, _ = io.WriteString(w, `{"started_at":"2026-01-01T00:00:00Z","total_connections":2,`+
+			`"access_events":[{"id":7,"timestamp":"2026-01-01T00:01:00Z","secret_name":"alice","client_address":"203.0.113.7:54321","target_address":"149.154.167.50:443"}],`+
 			`"users":{`+
 			`"alice":{"connections":2,"bytes_in":100,"bytes_out":200,"last_seen":"2026-01-01T00:01:00Z"},`+
 			`"bob":{"connections":0,"bytes_in":5,"bytes_out":7,"last_seen":null}}}`)
@@ -53,6 +54,15 @@ func TestScrapeStats(t *testing.T) {
 	}
 	if users["bob"].Connections != 0 || users["bob"].BytesIn != 5 {
 		t.Fatalf("bob stats parsed wrong: %+v", users["bob"])
+	}
+
+	snapshot, ok := scrapeStatsSnapshot(serverPort(t, srv), "sesame")
+	if !ok || len(snapshot.AccessEvents) != 1 {
+		t.Fatalf("access events were not parsed: ok=%v snapshot=%+v", ok, snapshot)
+	}
+	event := snapshot.AccessEvents[0]
+	if event.ID != 7 || event.SecretName != "alice" || event.ClientAddress != "203.0.113.7:54321" || event.TargetAddress != "149.154.167.50:443" {
+		t.Fatalf("access event parsed wrong: %+v", event)
 	}
 }
 

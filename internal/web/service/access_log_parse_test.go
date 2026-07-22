@@ -43,3 +43,26 @@ func TestParseAccessLogFields(t *testing.T) {
 		t.Error("DateTime was not parsed from a well-formed line")
 	}
 }
+
+func TestIsMtprotoBridgeLog(t *testing.T) {
+	t.Parallel()
+
+	routed := map[string]struct{}{"mtproto-in": {}}
+	bridge := parseAccessLogFields("2026/07/22 09:41:09.000000 from tcp:127.0.0.1:60242 accepted tcp:149.154.167.50:443 [mtproto-in >> proxy-a]")
+	if !isMtprotoBridgeLog(bridge, routed) {
+		t.Fatal("loopback MTProto bridge row must be hidden")
+	}
+
+	attributed := parseAccessLogFields("2026/07/22 09:41:09.000000 from 203.0.113.7:54321 accepted tcp:149.154.167.50:443 [mtproto-in >> proxy-a] email: alice")
+	if isMtprotoBridgeLog(attributed, routed) {
+		t.Fatal("attributed MTProto access row must remain visible")
+	}
+	localAttributed := parseAccessLogFields("2026/07/22 09:41:09.000000 from [::1]:54321 accepted tcp:[2001:67c:4e8:f002::a]:443 [mtproto-in >> proxy-a] email: alice")
+	if isMtprotoBridgeLog(localAttributed, routed) {
+		t.Fatal("attributed local MTProto access row must remain visible")
+	}
+	other := parseAccessLogFields("2026/07/22 09:41:09.000000 from tcp:127.0.0.1:60242 accepted tcp:example.com:443 [other-in >> proxy-a]")
+	if isMtprotoBridgeLog(other, routed) {
+		t.Fatal("loopback rows from unrelated inbounds must remain visible")
+	}
+}

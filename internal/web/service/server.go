@@ -31,6 +31,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -1183,6 +1184,7 @@ func (s *ServerService) GetXrayLogs(
 
 	countInt, _ := strconv.Atoi(count)
 	var entries []LogEntry
+	routedMtprotoTags := mtproto.GetManager().RoutedTags()
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
@@ -1211,6 +1213,9 @@ func (s *ServerService) GetXrayLogs(
 		}
 
 		entry := parseAccessLogFields(line)
+		if isMtprotoBridgeLog(entry, routedMtprotoTags) {
+			continue
+		}
 
 		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
@@ -1236,11 +1241,33 @@ func (s *ServerService) GetXrayLogs(
 		return nil
 	}
 
+	slices.SortStableFunc(entries, func(a, b LogEntry) int {
+		return a.DateTime.Compare(b.DateTime)
+	})
+
 	if len(entries) > countInt {
 		entries = entries[len(entries)-countInt:]
 	}
 
 	return entries
+}
+
+func isMtprotoBridgeLog(entry LogEntry, routedTags map[string]struct{}) bool {
+	if _, ok := routedTags[entry.Inbound]; !ok {
+		return false
+	}
+	if entry.Email != "" {
+		return false
+	}
+
+	address := strings.TrimPrefix(entry.FromAddress, "tcp:")
+	host := strings.Trim(address, "[]")
+	if parsedHost, _, err := stdnet.SplitHostPort(address); err == nil {
+		host = strings.Trim(parsedHost, "[]")
+	}
+	ip := stdnet.ParseIP(host)
+
+	return ip != nil && ip.IsLoopback()
 }
 
 // isVirtualInterface returns true for loopback and virtual/tunnel interfaces
