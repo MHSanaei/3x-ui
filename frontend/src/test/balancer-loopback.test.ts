@@ -24,6 +24,7 @@ interface RuleEntry {
   type?: string;
   inboundTag?: string[];
   balancerTag?: string;
+  domain?: string[];
 }
 interface BalancerEntry {
   tag?: string;
@@ -135,6 +136,105 @@ describe('ensureBalancerLoopback dedup', () => {
     expect(
       ruleEntries(settings).filter(
         (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes('_bl_shared'),
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+describe('ensureBalancerLoopback rule ordering', () => {
+  function loopbackRuleIndex(settings: XraySettingsValue, lbTag: string): number {
+    return ruleEntries(settings).findIndex(
+      (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes(lbTag),
+    );
+  }
+  function generalRuleIndex(settings: XraySettingsValue): number {
+    return ruleEntries(settings).findIndex(
+      (r) => !Array.isArray(r.inboundTag) || r.inboundTag.length === 0,
+    );
+  }
+
+  it('inserts a new loopback rule ahead of a general (no inboundTag) rule', () => {
+    const settings = makeSettings({
+      rules: [{ type: 'field', domain: ['example.com'], balancerTag: 'parent' }],
+      balancers: [{ tag: 'parent', selector: [] }],
+    });
+
+    ensureBalancerLoopback(settings, 'target');
+
+    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(
+      generalRuleIndex(settings),
+    );
+  });
+
+  it('repositions an existing loopback rule that landed after a general rule', () => {
+    const settings = makeSettings({
+      rules: [
+        { type: 'field', domain: ['example.com'], balancerTag: 'parent' },
+        { type: 'field', inboundTag: ['_bl_target'], balancerTag: 'stale' },
+      ],
+      balancers: [{ tag: 'parent', selector: [] }],
+    });
+
+    ensureBalancerLoopback(settings, 'target');
+
+    const lbIdx = loopbackRuleIndex(settings, '_bl_target');
+    expect(lbIdx).toBeLessThan(generalRuleIndex(settings));
+    expect(ruleEntries(settings)[lbIdx].balancerTag).toBe('target');
+  });
+
+  it('leaves inboundTag-restricted rules in place and slots loopback ahead of general rules only', () => {
+    const settings = makeSettings({
+      rules: [
+        { type: 'field', inboundTag: ['api'], balancerTag: 'stats' },
+        { type: 'field', domain: ['example.com'], balancerTag: 'parent' },
+      ],
+      balancers: [{ tag: 'parent', selector: [] }],
+    });
+
+    ensureBalancerLoopback(settings, 'target');
+
+    const entries = ruleEntries(settings);
+    expect(entries[0].inboundTag).toEqual(['api']);
+    const lbIdx = loopbackRuleIndex(settings, '_bl_target');
+    const generalIdx = generalRuleIndex(settings);
+    expect(lbIdx).toBeLessThan(generalIdx);
+    expect(lbIdx).toBeGreaterThan(0);
+  });
+
+  it('ensureMissingBalancerLoopbacks repositions every mis-ordered loopback rule', () => {
+    const settings = makeSettings({
+      rules: [
+        { type: 'field', domain: ['example.com'], balancerTag: 'B1' },
+        { type: 'field', inboundTag: ['_bl_B2'], balancerTag: 'B2' },
+      ],
+      balancers: [
+        { tag: 'B1', selector: [], fallbackTag: '_bl_B2' },
+        { tag: 'B2', selector: [] },
+      ],
+    });
+
+    ensureMissingBalancerLoopbacks(settings);
+
+    expect(loopbackRuleIndex(settings, '_bl_B2')).toBeLessThan(
+      generalRuleIndex(settings),
+    );
+  });
+
+  it('keeps the loopback rule ahead of the general rule after a second ensureBalancerLoopback call', () => {
+    const settings = makeSettings({
+      rules: [{ type: 'field', domain: ['example.com'], balancerTag: 'parent' }],
+      balancers: [{ tag: 'parent', selector: [] }],
+    });
+
+    ensureBalancerLoopback(settings, 'target');
+    ensureBalancerLoopback(settings, 'target');
+
+    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(
+      generalRuleIndex(settings),
+    );
+    expect(
+      ruleEntries(settings).filter(
+        (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes('_bl_target'),
       ),
     ).toHaveLength(1);
   });

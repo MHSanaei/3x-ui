@@ -1110,3 +1110,32 @@ func TestHysteriaHopPorts(t *testing.T) {
 		})
 	}
 }
+
+func TestGenHysteriaLinkOmitsFinalMaskQueryParam(t *testing.T) {
+	stream := `{
+		"security":"tls",
+		"tlsSettings":{"serverName":"hy.sni","alpn":["h3"],"settings":{"fingerprint":"chrome"}},
+		"finalmask":{"udp":[{"type":"salamander","settings":{"password":"obfs-secret"}}]}
+	}`
+	in := &model.Inbound{
+		Listen:         "203.0.113.1",
+		Port:           443,
+		Protocol:       model.Hysteria,
+		Remark:         "hy2",
+		Settings:       `{"version":2,"clients":[{"auth":"hyauth","email":"user"}]}`,
+		StreamSettings: stream,
+	}
+	got := (&SubService{}).genHysteriaLink(in, "user")
+	if got == "" {
+		t.Fatal("expected hysteria2 link")
+	}
+	if strings.Contains(got, "fm=") {
+		t.Fatalf("hysteria2 subscription URI must not include non-standard fm param: %s", got)
+	}
+	if !strings.Contains(got, "obfs=salamander") {
+		t.Fatalf("missing standard obfs=salamander: %s", got)
+	}
+	if !strings.Contains(got, "obfs-password=obfs-secret") {
+		t.Fatalf("missing standard obfs-password: %s", got)
+	}
+}

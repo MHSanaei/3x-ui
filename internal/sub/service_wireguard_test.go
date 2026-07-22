@@ -55,6 +55,36 @@ func TestGenWireguardLinkFields(t *testing.T) {
 	}
 }
 
+func TestGenWireguardLinkMultiAllowedIPs(t *testing.T) {
+	serverPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.WireGuard,
+		Remark:   "wg-sub",
+		Settings: `{"secretKey":"` + serverPriv + `","clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.0.0.2/32","fd00::2/128"]}]}`,
+	}
+
+	s := &SubService{}
+	link := s.genWireguardLink(inbound, "user")
+
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("link does not parse: %v\n got: %s", err, link)
+	}
+	if got, want := u.Query().Get("address"), "10.0.0.2/32,fd00::2/128"; got != want {
+		t.Fatalf("address = %q, want %q (all allowed IPs joined, not just the first)", got, want)
+	}
+}
+
 func TestGenWireguardLinkWrongProtocol(t *testing.T) {
 	s := &SubService{}
 	vless := &model.Inbound{Protocol: model.VLESS, Settings: `{"clients":[{"email":"user"}]}`}

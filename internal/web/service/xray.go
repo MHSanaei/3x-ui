@@ -354,10 +354,10 @@ const PanelEgressInboundTag = "panel-egress"
 // already taken by other inbounds in the generated config are skipped.
 const panelEgressBasePort = 62790
 
-// injectPanelEgress appends a loopback SOCKS inbound to the generated config
-// and prepends a routing rule sending it to outboundTag. Both live only in the
-// generated config — the stored template is never modified — and both are
-// hot-appliable, so changing the panel outbound never restarts the core.
+// injectPanelEgress appends a loopback SOCKS inbound and routing rule only when
+// outboundTag resolves in the final outbound or balancer set. Otherwise the
+// entire injection is skipped. Generated state is hot-appliable and never
+// modifies the stored template or restarts the core.
 func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	for i := range cfg.InboundConfigs {
 		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
@@ -374,6 +374,10 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 			logger.Warning("panel egress: routing section is unparsable, skipping injection:", err)
 			return
 		}
+	}
+	if !routingTargetExists(routing, cfg.OutboundConfigs, outboundTag) {
+		logger.Warning("panel egress: target tag [", outboundTag, "] not found, skipping injection")
+		return
 	}
 	rules, _ := routing["rules"].([]any)
 	rule := map[string]any{
@@ -418,6 +422,25 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	})
 }
 
+func outboundTagExists(outbounds json_util.RawMessage, tag string) bool {
+	var parsed []struct {
+		Tag string `json:"tag"`
+	}
+	if tag == "" || json.Unmarshal(outbounds, &parsed) != nil {
+		return false
+	}
+	for _, outbound := range parsed {
+		if outbound.Tag == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func routingTargetExists(routing map[string]any, outbounds json_util.RawMessage, tag string) bool {
+	return routingTagIsBalancer(routing, tag) || outboundTagExists(outbounds, tag)
+}
+
 // NodeEgressInboundTag returns the loopback SOCKS inbound tag for a given node.
 func NodeEgressInboundTag(nodeID int) string {
 	return fmt.Sprintf("node-egress-%d", nodeID)
@@ -450,6 +473,10 @@ func injectNodeEgresses(cfg *xray.Config, nodes []*model.Node) {
 
 	for _, n := range nodes {
 		if !n.Enable || n.OutboundTag == "" {
+			continue
+		}
+		if !routingTargetExists(routing, cfg.OutboundConfigs, n.OutboundTag) {
+			logger.Warning("node egress: target tag [", n.OutboundTag, "] not found, skipping node [", n.Id, "]")
 			continue
 		}
 		tag := NodeEgressInboundTag(n.Id)
@@ -529,11 +556,11 @@ func routingTagIsBalancer(routing map[string]any, tag string) bool {
 const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
 
 // injectMtprotoEgress wires one routed mtproto inbound into the generated
-// config: it appends a loopback SOCKS inbound (tagged with the inbound's own tag,
-// on the egress port persisted in settings) and, when an outbound is selected,
-// prepends a routing rule sending that tag to it. Both live only in the generated
-// config — the stored template is untouched — and both are hot-appliable, so
-// toggling routing never forces a full Xray restart. Mirrors injectPanelEgress.
+// config after any selected outbound resolves in the final target set. Invalid
+// selected targets or routing data skip the entire injection; without a selected
+// outbound, the bridge retains default-route behavior. Generated state remains
+// hot-appliable, leaves the stored template untouched, and never forces a full
+// Xray restart. Mirrors injectPanelEgress.
 func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	var parsed struct {
 		RouteThroughXray bool   `json:"routeThroughXray"`
@@ -556,31 +583,33 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 
 	if parsed.OutboundTag != "" {
 		routing := map[string]any{}
-		parseOK := true
 		if len(cfg.RouterConfig) > 0 {
 			if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
-				logger.Warning("mtproto egress: routing section is unparsable, skipping rule:", err)
-				parseOK = false
+				logger.Warning("mtproto egress: routing section is unparsable, skipping injection:", err)
+				return
 			}
 		}
-		if parseOK {
-			rules, _ := routing["rules"].([]any)
-			rule := map[string]any{
-				"type":       "field",
-				"inboundTag": []any{tag},
-			}
-			if routingTagIsBalancer(routing, parsed.OutboundTag) {
-				rule["balancerTag"] = parsed.OutboundTag
-			} else {
-				rule["outboundTag"] = parsed.OutboundTag
-			}
-			routing["rules"] = append([]any{rule}, rules...)
-			if newRouting, err := json.Marshal(routing); err == nil {
-				cfg.RouterConfig = json_util.RawMessage(newRouting)
-			} else {
-				logger.Warning("mtproto egress: failed to rebuild routing section, skipping rule:", err)
-			}
+		if !routingTargetExists(routing, cfg.OutboundConfigs, parsed.OutboundTag) {
+			logger.Warning("mtproto egress: target tag [", parsed.OutboundTag, "] not found, skipping injection")
+			return
 		}
+		rules, _ := routing["rules"].([]any)
+		rule := map[string]any{
+			"type":       "field",
+			"inboundTag": []any{tag},
+		}
+		if routingTagIsBalancer(routing, parsed.OutboundTag) {
+			rule["balancerTag"] = parsed.OutboundTag
+		} else {
+			rule["outboundTag"] = parsed.OutboundTag
+		}
+		routing["rules"] = append([]any{rule}, rules...)
+		newRouting, err := json.Marshal(routing)
+		if err != nil {
+			logger.Warning("mtproto egress: failed to rebuild routing section, skipping injection:", err)
+			return
+		}
+		cfg.RouterConfig = json_util.RawMessage(newRouting)
 	}
 
 	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{

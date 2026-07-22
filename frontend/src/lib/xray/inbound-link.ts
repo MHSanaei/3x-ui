@@ -822,8 +822,8 @@ export function genWireguardLink(input: GenWireguardLinkInput): string {
     ? Wireguard.generateKeypair(settings.secretKey).publicKey
     : '';
   if (pubKey.length > 0) url.searchParams.set('publickey', pubKey);
-  if (peer.allowedIPs.length > 0 && peer.allowedIPs[0]) {
-    url.searchParams.set('address', peer.allowedIPs[0]);
+  if (peer.allowedIPs.length > 0) {
+    url.searchParams.set('address', peer.allowedIPs.join(','));
   }
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
     url.searchParams.set('mtu', String(settings.mtu));
@@ -850,7 +850,7 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
 
   let txt = `[Interface]\n`;
   txt += `PrivateKey = ${peer.privateKey ?? ''}\n`;
-  txt += `Address = ${peer.allowedIPs[0] ?? ''}\n`;
+  txt += `Address = ${peer.allowedIPs.join(', ')}\n`;
   txt += `DNS = ${settings.dns || '1.1.1.1, 1.0.0.1'}\n`;
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
     txt += `MTU = ${settings.mtu}\n`;

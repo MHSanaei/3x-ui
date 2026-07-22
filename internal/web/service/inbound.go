@@ -830,10 +830,17 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
+		// Emails seeded here (import's ClientStats, e.g. the controller's forced
+		// Enable=true on every imported stat row) are authoritative for this call
+		// and must not be clobbered by the AddClientStat loop below, which derives
+		// its enable/total/expiry/reset from Settings.clients[] instead — a second,
+		// possibly-stale source for the same columns on a plain (non-import) create.
+		statEmails := make(map[string]bool, len(inbound.ClientStats))
 		for i := range inbound.ClientStats {
 			if inbound.ClientStats[i].Email == "" {
 				continue
 			}
+			statEmails[inbound.ClientStats[i].Email] = true
 			inbound.ClientStats[i].Id = 0
 			inbound.ClientStats[i].InboundId = inbound.Id
 			if err := tx.Clauses(clause.OnConflict{
@@ -844,6 +851,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			}
 		}
 		for _, client := range clients {
+			if statEmails[client.Email] {
+				continue
+			}
 			if err := s.AddClientStat(tx, inbound.Id, &client); err != nil {
 				return err
 			}

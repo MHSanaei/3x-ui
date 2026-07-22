@@ -48,6 +48,7 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 interface ExternalLinkRow {
   kind: 'link' | 'subscription';
   value: string;
+  remark: string;
 }
 
 interface ApiMsg<T = unknown> {
@@ -138,6 +139,7 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
   return (links || []).map((l) => ({
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
+    remark: l.remark || '',
   }));
 }
 
@@ -207,7 +209,7 @@ export default function ClientFormModal({
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
   function addExternalLinkRow(kind: 'link' | 'subscription') {
-    appendExternalLink({ kind, value: '' });
+    appendExternalLink({ kind, value: '', remark: '' });
   }
 
   useEffect(() => {
@@ -371,10 +373,15 @@ export default function ClientFormModal({
   }
 
   useEffect(() => {
-    if (!showFlow && flow) {
+    // Only clear the flow once we actually have inbound options to judge
+    // capability from. While the options list is momentarily empty (e.g. the
+    // options query is (re)loading and `inbounds` falls back to `[]`), showFlow
+    // is a false negative, so clearing here would silently drop a valid
+    // xtls-rprx-vision flow the user picked for a Reality/TLS inbound.
+    if (inbounds.length > 0 && !showFlow && flow) {
       methods.setValue('flow', '');
     }
-  }, [showFlow, flow, methods]);
+  }, [inbounds, showFlow, flow, methods]);
 
   useEffect(() => {
     if (!showReverseTag && reverseTag) {
@@ -547,7 +554,7 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: '' }))
+      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: (r.remark || '').trim() }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -915,6 +922,13 @@ export default function ClientFormModal({
                                 style={{ flex: 1 }}
                                 aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
                                 placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                              />
+                            </FormField>
+                            <FormField name={`externalLinks.${index}.remark`} noStyle>
+                              <Input
+                                style={{ width: 140 }}
+                                aria-label={t('remark')}
+                                placeholder={t('remark')}
                               />
                             </FormField>
                             <Tooltip title={t('delete')}>
