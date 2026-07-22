@@ -32,6 +32,7 @@ const vlessRow: RawInboundRow = {
   total: 1_000_000_000,
   expiryTime: 0,
   trafficReset: 'monthly',
+  trafficResetDay: 15,
   lastTrafficResetTime: 0,
   tag: 'inbound-1',
   nodeId: null,
@@ -251,6 +252,7 @@ describe('formValuesToWirePayload', () => {
       enable: payload.enable,
       expiryTime: payload.expiryTime,
       trafficReset: payload.trafficReset,
+      trafficResetDay: payload.trafficResetDay,
       lastTrafficResetTime: payload.lastTrafficResetTime,
       nodeId: payload.nodeId ?? null,
     });
@@ -260,7 +262,12 @@ describe('formValuesToWirePayload', () => {
     expect(replay.listen).toBe(original.listen);
     expect(replay.up).toBe(original.up);
     expect(replay.down).toBe(original.down);
+    expect(replay.trafficResetDay).toBe(original.trafficResetDay);
     expect(replay.streamSettings).toEqual(original.streamSettings);
+  });
+
+  it('defaults a missing monthly reset day to the first', () => {
+    expect(rawInboundToFormValues({ ...vlessRow, trafficResetDay: undefined }).trafficResetDay).toBe(1);
   });
 });
 

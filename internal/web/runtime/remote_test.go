@@ -252,9 +252,12 @@ func TestIsNonEmptySlice(t *testing.T) {
 }
 
 func TestWireInboundTrafficReset(t *testing.T) {
-	with := wireInbound(&model.Inbound{TrafficReset: "daily"}, 0)
-	if got := with.Get("trafficReset"); got != "daily" {
-		t.Fatalf("trafficReset = %q, want daily", got)
+	with := wireInbound(&model.Inbound{TrafficReset: "monthly", TrafficResetDay: 15}, 0)
+	if got := with.Get("trafficReset"); got != "monthly" {
+		t.Fatalf("trafficReset = %q, want monthly", got)
+	}
+	if got := with.Get("trafficResetDay"); got != "15" {
+		t.Fatalf("trafficResetDay = %q, want 15", got)
 	}
 	// Empty TrafficReset must be omitted entirely, not sent as an empty field.
 	without := wireInbound(&model.Inbound{}, 0)
