@@ -6,8 +6,6 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-cur_dir=$(pwd)
-
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
@@ -36,7 +34,7 @@ arch() {
         armv6* | armv6) echo 'armv6' ;;
         armv5* | armv5) echo 'armv5' ;;
         s390x) echo 's390x' ;;
-        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f "$(realpath $0)" && exit 1 ;;
     esac
 }
 
