@@ -149,6 +149,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername": {
         "type": "string"
       },
+      "speedLimitEnable": {
+        "type": "boolean"
+      },
       "subAnnounce": {
         "type": "string"
       },
@@ -384,6 +387,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPort",
       "smtpTo",
       "smtpUsername",
+      "speedLimitEnable",
       "subAnnounce",
       "subCertFile",
       "subClashAutoDetect",
@@ -615,6 +619,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "smtpUsername": {
         "type": "string"
+      },
+      "speedLimitEnable": {
+        "type": "boolean"
       },
       "subAnnounce": {
         "type": "string"
@@ -858,6 +865,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPort",
       "smtpTo",
       "smtpUsername",
+      "speedLimitEnable",
       "subAnnounce",
       "subCertFile",
       "subClashAutoDetect",
@@ -1073,6 +1081,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Security method (e.g., \"auto\", \"aes-128-gcm\")",
         "type": "string"
       },
+      "speedDown": {
+        "type": "integer"
+      },
+      "speedUp": {
+        "type": "integer"
+      },
       "subId": {
         "description": "Subscription identifier",
         "type": "string"
@@ -1101,6 +1115,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "limitIp",
       "reset",
       "security",
+      "speedDown",
+      "speedUp",
       "subId",
       "tgId",
       "totalGB"
@@ -1196,6 +1212,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "security": {
         "type": "string"
       },
+      "speedDown": {
+        "type": "integer"
+      },
+      "speedUp": {
+        "type": "integer"
+      },
       "subId": {
         "type": "string"
       },
@@ -1237,6 +1259,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "reverse",
       "secret",
       "security",
+      "speedDown",
+      "speedUp",
       "subId",
       "tgId",
       "totalGB",

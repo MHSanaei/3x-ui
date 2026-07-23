@@ -120,6 +120,7 @@ type Server struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	tgbotService   tgbot.Tgbot
+	tcShaper       *service.TcShaper
 
 	wsHub *websocket.Hub
 
@@ -328,7 +329,11 @@ func (s *Server) startTask(restartXray bool) {
 	go mtJob.Run()
 
 	// check client ips from log file every 10 sec
-	_, _ = s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
+	ipJob := job.NewCheckClientIpJob()
+	if s.tcShaper != nil {
+		ipJob.SetTcShaper(s.tcShaper)
+	}
+	_, _ = s.cron.AddJob(cadenceClientIPScan, ipJob)
 
 	_, _ = s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
 
@@ -651,6 +656,19 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	})
 
+	if enabled, err := s.settingService.GetSpeedLimitEnable(); err == nil && enabled {
+		iface, detErr := service.DetectPrimaryInterface()
+		if detErr != nil {
+			logger.Warning("tc speed limiting enabled but primary interface not found:", detErr)
+		} else {
+			s.tcShaper = service.NewTcShaper(iface)
+			if initErr := s.tcShaper.Init(); initErr != nil {
+				logger.Warning("tc speed limiting unavailable:", initErr)
+				s.tcShaper = nil
+			}
+		}
+	}
+
 	s.startTask(restartXray)
 
 	if startTgBot {
@@ -658,7 +676,6 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		if (err == nil) && (isTgbotenabled) {
 			tgBot := s.tgbotService.NewTgbot()
 			_ = tgBot.Start(i18nFS)
-			// Subscribe Telegram notifications for event bus
 			s.bus.Subscribe("tg-notifier", s.tgbotService.HandleEvent)
 		}
 	}
@@ -680,6 +697,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if stopXray {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
+	}
+	if s.tcShaper != nil {
+		s.tcShaper.Cleanup()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

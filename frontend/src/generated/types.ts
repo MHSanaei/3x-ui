@@ -50,6 +50,7 @@ export interface AllSetting {
   smtpPort: number;
   smtpTo: string;
   smtpUsername: string;
+  speedLimitEnable: boolean;
   subAnnounce: string;
   subCertFile: string;
   subClashAutoDetect: boolean;
@@ -162,6 +163,7 @@ export interface AllSettingView {
   smtpPort: number;
   smtpTo: string;
   smtpUsername: string;
+  speedLimitEnable: boolean;
   subAnnounce: string;
   subCertFile: string;
   subClashAutoDetect: boolean;
@@ -261,6 +263,8 @@ export interface Client {
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
+  speedDown: number;
+  speedUp: number;
   subId: string;
   tgId: number;
   totalGB: number;
@@ -296,6 +300,8 @@ export interface ClientRecord {
   reverse: unknown;
   secret: string;
   security: string;
+  speedDown: number;
+  speedUp: number;
   subId: string;
   tgId: number;
   totalGB: number;

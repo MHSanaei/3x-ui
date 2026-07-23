@@ -17,6 +17,8 @@ icon: Users
 | **Auth**       | Hysteria2             | 客户端凭据。                                                      |
 | **Flow**       | VLESS                 | XTLS 流控，例如 `xtls-rprx-vision`。                              |
 | **Limit IP**   | 全部                  | 最大同时连接的源 IP 数量（通过 Fail2ban 强制执行）。             |
+| **Speed Down** | Xray 协议             | 最大下载速率（Mbps，`0` = 不限）。需启用 **Client Speed Limit**。 |
+| **Speed Up**   | Xray 协议             | 最大上传速率（Mbps，`0` = 不限）。需启用 **Client Speed Limit**。 |
 | **Total (GB)** | 全部                  | 流量配额；用尽后客户端将被禁用。                                 |
 | **Expiry**     | 全部                  | 该日期之后客户端停止工作。                                       |
 | **Reset**      | 全部                  | 以**天**为单位的自动续期周期（滚动重置配额）。                   |
@@ -37,6 +39,10 @@ icon: Users
 - **Limit IP** 限制同时连接的源 IP 数量。其强制执行依赖于 Fail2ban——
   参见 [安全](/docs/operations/security)。你可以查看某个客户端最近使用的 IP，
   并从该客户端的操作中清除它们。
+- **Speed Down / Speed Up** 通过 Linux `tc`（出口 HTB、共享入口 police）限制
+  观察到的客户端 IP 带宽。在 Settings → General 启用 **Client Speed Limit**
+  （默认**关闭**），然后重启面板。需要主机上的 `tc` 与足够权限；启用后会接管主网卡
+  的 root qdisc。不适用于仅 MTProto 的客户端（连接不在 Xray online-stats 中）。
 - 系统会按客户端（在多节点部署中还会按节点）跟踪**在线状态**和**最后在线**时间。
 
 ## 分享链接与外部链接
