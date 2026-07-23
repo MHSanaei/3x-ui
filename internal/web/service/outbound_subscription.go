@@ -24,14 +24,20 @@ import (
 // filterOutboundsRejectedByCore drops outbounds the vendored xray-core config
 // loader refuses to build — since v26.7.11 that includes unencrypted
 // vless/trojan outbounds to public addresses — because one such outbound in
-// the merged config would keep the whole core from starting.
+// the merged config would keep the whole core from starting. When the running
+// core predates that rejection, unencrypted outbounds are kept, mirroring
+// CheckXrayConfig's version gate.
 func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
+	coreVersion := "Unknown"
+	if p != nil {
+		coreVersion = p.GetXrayVersion()
+	}
 	kept := make([]any, 0, len(outbounds))
 	var dropped []string
 	for _, ob := range outbounds {
 		raw, err := json.Marshal(ob)
 		if err == nil {
-			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil {
+			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil && !shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, buildErr) {
 				tag := ""
 				if m, ok := ob.(map[string]any); ok {
 					tag, _ = m["tag"].(string)
