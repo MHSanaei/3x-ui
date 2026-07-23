@@ -905,7 +905,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/nodes/list',
         summary: 'List every configured node with its connection details, health, and last heartbeat patch.',
-        responseSchema: 'Node',
+        responseSchema: 'NodeView',
         responseSchemaArray: true,
       },
       {
@@ -927,6 +927,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
+        responseSchema: 'NodeView',
       },
       {
         method: 'GET',
@@ -940,18 +941,19 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/nodes/add',
-        summary: 'Register a new remote node. Provide its URL, apiToken, and optional remark / allowPrivateAddress flag.',
+        summary: 'Register a new remote node. Provide its URL, write-only apiToken, and optional remark / allowPrivateAddress flag. Responses expose hasApiToken only.',
         body:
-          '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
+          '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
+        responseSchema: 'NodeView',
       },
       {
         method: 'POST',
         path: '/panel/api/nodes/update/:id',
-        summary: 'Replace a node\u2019s connection details. Same body shape as /add.',
+        summary: 'Replace a node\u2019s connection details. apiToken is write-only: omit it or send an empty string to keep the stored token; set clearApiToken=true to clear it.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Node ID.' },
         ],
-        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "enable": true,\n  "allowPrivateAddress": false\n}',
+        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
       },
       {
         method: 'POST',

@@ -1007,6 +1007,7 @@
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token từ trang Cài đặt của panel từ xa",
       "apiTokenHint": "Panel từ xa hiển thị token API tại Bảo mật → Token API.",
+      "apiTokenKeepHint": "Để trống để giữ token hiện tại",
       "regenerate": "Tạo lại token",
       "regenerateConfirm": "Tạo lại sẽ vô hiệu hóa token hiện tại. Mọi panel trung tâm dùng nó sẽ mất quyền truy cập cho đến khi được cập nhật. Tiếp tục?",
       "allowPrivateAddress": "Cho phép địa chỉ riêng",

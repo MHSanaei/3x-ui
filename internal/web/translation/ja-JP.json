@@ -1007,6 +1007,7 @@
       "apiToken": "API トークン",
       "apiTokenPlaceholder": "リモートパネルの設定ページから取得したトークン",
       "apiTokenHint": "リモートパネルでは、セキュリティ設定 → APIトークン でAPIトークンを確認できます。",
+      "apiTokenKeepHint": "現在のトークンを保持するには空欄のままにします",
       "regenerate": "トークンを再生成",
       "regenerateConfirm": "再生成すると現在のトークンは無効になります。これを使用しているすべての中央パネルは更新されるまでアクセスできなくなります。続行しますか？",
       "allowPrivateAddress": "プライベートアドレスを許可",

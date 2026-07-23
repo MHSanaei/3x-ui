@@ -1007,6 +1007,7 @@
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token dari halaman Pengaturan panel jarak jauh",
       "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Otentikasi → Token API.",
+      "apiTokenKeepHint": "Biarkan kosong untuk mempertahankan token saat ini",
       "regenerate": "Buat Ulang Token",
       "regenerateConfirm": "Membuat ulang akan membatalkan token saat ini. Setiap panel pusat yang menggunakannya akan kehilangan akses sampai diperbarui. Lanjutkan?",
       "allowPrivateAddress": "Izinkan alamat pribadi",
