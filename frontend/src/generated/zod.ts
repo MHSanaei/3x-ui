@@ -430,6 +430,7 @@ export type HostGroup = z.infer<typeof HostGroupSchema>;
 
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
+  disableFlow: z.boolean(),
   down: z.number().int(),
   enable: z.boolean(),
   expiryTime: z.number().int(),

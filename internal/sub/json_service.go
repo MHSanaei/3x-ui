@@ -422,7 +422,7 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 		"encryption": encryption,
 		"level":      8,
 	}
-	if client.Flow != "" {
+	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
 	}
 	outbound.Settings = settings

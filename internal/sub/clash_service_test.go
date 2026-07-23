@@ -255,6 +255,31 @@ func TestBuildProxy_VLESSFlowXhttpRealityVlessenc(t *testing.T) {
 	}
 }
 
+func TestBuildProxy_VLESSFlowSuppressedByDisableFlow(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:      "203.0.113.1",
+		Port:        443,
+		Protocol:    model.VLESS,
+		Remark:      "disabled-flow",
+		Settings:    `{"encryption":"` + testMlkemEncryption + `"}`,
+		DisableFlow: true,
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555", Flow: "xtls-rprx-vision"}
+	stream := map[string]any{
+		"network":         "xhttp",
+		"xhttpSettings":   map[string]any{"path": "/", "mode": "auto"},
+		"security":        "reality",
+		"realitySettings": map[string]any{"publicKey": "pub", "serverName": "example.com", "shortId": "abcd"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, stream, nil)
+
+	if _, ok := proxy["flow"]; ok {
+		t.Fatalf("DisableFlow inbound must not carry a flow in the Clash proxy: %#v", proxy)
+	}
+}
+
 func TestBuildProxy_VLESSFlowDroppedWithoutVisionSupport(t *testing.T) {
 	svc := &SubClashService{SubService: &SubService{}}
 	inbound := &model.Inbound{

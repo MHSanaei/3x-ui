@@ -6,6 +6,7 @@ import {
   formValuesToWirePayload,
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
+import { DBInbound, type DBInboundInit } from '@/models/dbinbound';
 import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
@@ -277,6 +278,35 @@ describe('formValuesToWirePayload', () => {
     expect(replay.up).toBe(original.up);
     expect(replay.down).toBe(original.down);
     expect(replay.streamSettings).toEqual(original.streamSettings);
+  });
+});
+
+describe('disableFlow', () => {
+  it('DBInbound constructor preserves disableFlow from the API row', () => {
+    expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);
+    expect(new DBInbound({ disableFlow: false }).disableFlow).toBe(false);
+  });
+
+  it('DBInbound defaults disableFlow to false when the API omits it', () => {
+    expect(new DBInbound({ protocol: 'vless' }).disableFlow).toBe(false);
+    expect(new DBInbound().disableFlow).toBe(false);
+  });
+
+  it('rawInboundToFormValues reads disableFlow and defaults to false', () => {
+    expect(rawInboundToFormValues({ ...vlessRow, disableFlow: true }).disableFlow).toBe(true);
+    expect(rawInboundToFormValues(vlessRow).disableFlow).toBe(false);
+  });
+
+  it('formValuesToWirePayload includes disableFlow', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, disableFlow: true });
+    expect(formValuesToWirePayload(values).disableFlow).toBe(true);
+  });
+
+  it('disableFlow survives raw → DBInbound → values → payload (the edit round-trip)', () => {
+    const db = new DBInbound({ ...vlessRow, disableFlow: true } as unknown as DBInboundInit);
+    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
+    const payload = formValuesToWirePayload(values);
+    expect(payload.disableFlow).toBe(true);
   });
 });
 

@@ -689,6 +689,8 @@
         "shareAddrHelp": "Usado apenas quando a estratégia de endereço de compartilhamento é Personalizada. Informe um host ou IP sem esquema nem porta.",
         "subSortIndex": "Ordem na assinatura",
         "subSortIndexHelp": "Posição dos links desta entrada na saída da assinatura (página de assinatura e aplicativos cliente). Valores menores vêm primeiro; valores iguais mantêm a ordem de criação. Não afeta a lista de entradas do painel.",
+        "disableFlow": "Desativar o flow XTLS",
+        "disableFlowHelp": "Exclui este inbound da injeção automática de xtls-rprx-vision, mesmo quando o transporte suporta flow (ex.: um inbound XHTTP tunelado com criptografia VLESS). Os clientes mantêm o Vision nos seus outros inbounds compatíveis da mesma assinatura. Somente VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Endereço do nó",
           "listen": "Endereço de escuta do inbound",

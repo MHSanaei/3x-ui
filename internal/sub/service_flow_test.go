@@ -81,6 +81,16 @@ func TestGenVlessLink_NoFlowXhttpRealityWithoutVlessenc(t *testing.T) {
 	}
 }
 
+func TestGenVlessLink_DisableFlowSuppressesFlow(t *testing.T) {
+	s := &SubService{}
+	ib := flowTestInbound(xhttpRealityStream, testMlkemEncryption)
+	ib.DisableFlow = true
+	link := s.genVlessLink(ib, "user")
+	if strings.Contains(link, "flow=") {
+		t.Fatalf("DisableFlow inbound must not carry a flow even when the transport is capable, got %q", link)
+	}
+}
+
 func TestGenVlessLink_FlowTcpRealityStillWorks(t *testing.T) {
 	stream := `{
 		"network": "tcp",

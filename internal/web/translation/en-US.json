@@ -689,6 +689,8 @@
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
         "subSortIndex": "Subscription sort order",
         "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
+        "disableFlow": "Disable XTLS flow",
+        "disableFlowHelp": "Opt this inbound out of automatic xtls-rprx-vision injection, even when its transport is flow-capable (e.g. a tunneled XHTTP inbound with VLESS encryption). Clients keep Vision on your other capable inbounds in the same subscription. VLESS only.",
         "shareAddrStrategyOptions": {
           "node": "Node address",
           "listen": "Inbound listen",

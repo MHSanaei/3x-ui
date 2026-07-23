@@ -591,7 +591,8 @@ func (s *ClientService) bulkAdjustInboundClients(
 	// resolve it once. Clearing flow is always allowed; setting a vision flow
 	// is only honored on an inbound that can carry it.
 	flowEligible := flow == bulkFlowClear ||
-		inboundCanEnableTlsFlow(string(oldInbound.Protocol), oldInbound.StreamSettings, oldInbound.Settings)
+		(!oldInbound.DisableFlow &&
+			inboundCanEnableTlsFlow(string(oldInbound.Protocol), oldInbound.StreamSettings, oldInbound.Settings))
 
 	interfaceClients, _ := settings["clients"].([]any)
 	foundEmails := map[string]bool{}

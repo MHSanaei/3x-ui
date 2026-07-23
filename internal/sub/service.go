@@ -804,7 +804,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	default:
 		params["security"] = "none"
 	}
-	if len(client.Flow) > 0 && vlessFlowAllowed(streamNetwork, security, settings) {
+	if len(client.Flow) > 0 && !inbound.DisableFlow && vlessFlowAllowed(streamNetwork, security, settings) {
 		params["flow"] = client.Flow
 	}
 
@@ -854,7 +854,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		applyShareTLSParams(stream, params)
 	case "reality":
 		applyShareRealityParams(stream, params, subKey(client))
-		if streamNetwork == "tcp" && len(client.Flow) > 0 {
+		if streamNetwork == "tcp" && len(client.Flow) > 0 && !inbound.DisableFlow {
 			params["flow"] = client.Flow
 		}
 	default:

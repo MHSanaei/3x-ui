@@ -689,6 +689,8 @@
         "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
         "subSortIndex": "訂閱排序",
         "subSortIndexHelp": "此入站的連結在訂閱輸出（訂閱頁面和客戶端應用）中的位置。數值越小越靠前；數值相同時保持建立順序。不影響面板中的入站清單。",
+        "disableFlow": "停用 XTLS flow",
+        "disableFlowHelp": "讓此入站略過自動注入 xtls-rprx-vision，即使其傳輸支援 flow（例如啟用 VLESS 加密的通道化 XHTTP 入站）。用戶端在同一訂閱中的其他可用入站上仍保留 Vision。僅限 VLESS。",
         "shareAddrStrategyOptions": {
           "node": "節點地址",
           "listen": "入站監聽地址",

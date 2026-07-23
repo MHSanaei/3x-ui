@@ -274,6 +274,9 @@ func (s *InboundService) MigrationRestoreVisionFlow() {
 		return
 	}
 	for _, ib := range inbounds {
+		if ib.DisableFlow {
+			continue
+		}
 		restored, changed := s.restoreVisionFlowForEligibleInbound(nil, ib.Settings, ib.StreamSettings, ib.Protocol)
 		if !changed {
 			continue

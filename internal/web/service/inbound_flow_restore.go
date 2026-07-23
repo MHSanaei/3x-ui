@@ -88,3 +88,34 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 	}
 	return string(out), true
 }
+
+func stripClientFlows(settings string) (string, bool) {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok || len(clients) == 0 {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if flow, _ := cm["flow"].(string); flow != "" {
+			cm["flow"] = ""
+			clients[i] = cm
+			changed = true
+		}
+	}
+	if !changed {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}

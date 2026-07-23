@@ -171,6 +171,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"
 			}
+			if inbound.DisableFlow {
+				flow = ""
+			}
 			entry := map[string]any{"email": c.Email}
 			switch inbound.Protocol {
 			case model.VLESS:

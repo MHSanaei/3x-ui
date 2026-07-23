@@ -689,6 +689,8 @@
         "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
         "subSortIndex": "Thứ tự trong gói đăng ký",
         "subSortIndexHelp": "Vị trí liên kết của inbound này trong nội dung gói đăng ký (trang đăng ký và ứng dụng khách). Giá trị nhỏ hơn xếp trước; giá trị bằng nhau giữ thứ tự tạo. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
+        "disableFlow": "Tắt luồng XTLS",
+        "disableFlowHelp": "Loại inbound này khỏi việc tự động thêm xtls-rprx-vision, ngay cả khi transport của nó hỗ trợ flow (ví dụ một inbound XHTTP đi qua tunnel với mã hóa VLESS). Client vẫn giữ Vision trên các inbound tương thích khác trong cùng subscription. Chỉ dành cho VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
