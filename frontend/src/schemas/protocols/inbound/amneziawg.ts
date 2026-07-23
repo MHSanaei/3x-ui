@@ -20,9 +20,9 @@ export const AmneziaWgClientSchema = z.object({
 export type AmneziaWgClient = z.infer<typeof AmneziaWgClientSchema>;
 
 export const AmneziaWgServerSchema = z.object({
-  privateKey: z.string().min(1),
-  publicKey: z.string().min(1),
-  psk: z.string().min(1),
+  privateKey: z.string().default(''),
+  publicKey: z.string().default(''),
+  psk: z.string().default(''),
   jc: z.number().int().default(5),
   jmin: z.number().int().default(10),
   jmax: z.number().int().default(50),

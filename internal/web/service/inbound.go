@@ -874,11 +874,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 		if inbound.Enable {
 			if inbound.NodeID != nil {
-				logger.Infof("[awg-debug] inbound has NodeID=%d, skipping runtime push (mark dirty)", *inbound.NodeID)
+				logger.Debugf("[awg-debug] inbound has NodeID=%d, skipping runtime push (mark dirty)", *inbound.NodeID)
 				markDirty = true
 			} else {
 				rt, push, _, perr := s.nodePushPlan(inbound)
-				logger.Infof("[awg-debug] nodePushPlan: rt=%v push=%v err=%v protocol=%s", rt != nil, push, perr, inbound.Protocol)
+				logger.Debugf("[awg-debug] nodePushPlan: rt=%v push=%v err=%v protocol=%s", rt != nil, push, perr, inbound.Protocol)
 				if perr != nil {
 					return perr
 				}
@@ -895,25 +895,25 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					}
 					if pushable {
 						postCommitApply = func() {
-							logger.Infof("[awg-debug] postCommitApply: calling rt.AddInbound protocol=%s id=%d", inbound.Protocol, inbound.Id)
+							logger.Debugf("[awg-debug] postCommitApply: calling rt.AddInbound protocol=%s id=%d", inbound.Protocol, inbound.Id)
 							if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
 								logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
 							} else {
-								logger.Infof("[awg-debug] rt.AddInbound failed: %v", err1)
+								logger.Debugf("[awg-debug] rt.AddInbound failed: %v", err1)
 								logger.Debug("Unable to add inbound on", rt.Name(), ":", err1)
 								needRestart = true
 							}
 						}
-						logger.Infof("[awg-debug] postCommitApply set for protocol=%s id=%d", inbound.Protocol, inbound.Id)
+						logger.Debugf("[awg-debug] postCommitApply set for protocol=%s id=%d", inbound.Protocol, inbound.Id)
 					} else {
-						logger.Infof("[awg-debug] pushable=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
+						logger.Debugf("[awg-debug] pushable=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
 					}
 				} else {
-					logger.Infof("[awg-debug] push=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
+					logger.Debugf("[awg-debug] push=false for protocol=%s id=%d", inbound.Protocol, inbound.Id)
 				}
 			}
 		} else {
-			logger.Infof("[awg-debug] inbound.Enable=false, skipping runtime push for id=%d", inbound.Id)
+			logger.Debugf("[awg-debug] inbound.Enable=false, skipping runtime push for id=%d", inbound.Id)
 		}
 		if markDirty && inbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
@@ -932,7 +932,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// For AWG inbounds, the manager may have generated real keys inside the
 	// Docker container and updated inbound.Settings. Persist any such change.
 	if inbound.Protocol == model.AmneziaWG && inbound.Id > 0 && inbound.Settings != preApplySettings {
-		logger.Infof("[awg-debug] persisting updated AWG settings to DB for inbound %d", inbound.Id)
+		logger.Debugf("[awg-debug] persisting updated AWG settings to DB for inbound %d", inbound.Id)
 		db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Update("settings", inbound.Settings)
 	}
 

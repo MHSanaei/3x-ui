@@ -260,9 +260,9 @@ export function createDefaultAmneziaWgInboundSettings(): AmneziaWgInboundSetting
   const h4 = randomHeaderRange(h3End, maxVal);
 
   const server = {
-    privateKey: RandomUtil.randomBase64(44),
-    publicKey: RandomUtil.randomBase64(44),
-    psk: RandomUtil.randomBase64(44),
+    privateKey: '',
+    publicKey: '',
+    psk: '',
     jc: 5,
     jmin: 10,
     jmax: 50,
