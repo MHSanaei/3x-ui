@@ -61,6 +61,7 @@ interface OutboundSub {
   url?: string;
   enabled?: boolean;
   allowPrivate?: boolean;
+  allowInsecure?: boolean;
   prepend?: boolean;
   priority?: number;
   tagPrefix?: string;
@@ -122,7 +123,7 @@ export default function OutboundsTab({
   const [subDrawerOpen, setSubDrawerOpen] = useState(false);
   const [subs, setSubs] = useState<OutboundSub[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
-  const [newSub, setNewSub] = useState({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false, prepend: false });
+  const [newSub, setNewSub] = useState({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false, allowInsecure: false, prepend: false });
   const [editingSubId, setEditingSubId] = useState<number | null>(null);
   const [savingSub, setSavingSub] = useState(false);
   const [refreshingId, setRefreshingId] = useState<number | null>(null);
@@ -303,7 +304,7 @@ export default function OutboundsTab({
       setSubsLoading(false);
     }
   }
-  function subBody(src: { remark?: string; url?: string; tagPrefix?: string; updateInterval?: number; enabled?: boolean; allowPrivate?: boolean; prepend?: boolean }) {
+  function subBody(src: { remark?: string; url?: string; tagPrefix?: string; updateInterval?: number; enabled?: boolean; allowPrivate?: boolean; allowInsecure?: boolean; prepend?: boolean }) {
     return {
       remark: src.remark ?? '',
       url: src.url ?? '',
@@ -311,11 +312,12 @@ export default function OutboundsTab({
       updateInterval: src.updateInterval ?? 600,
       enabled: src.enabled ?? true,
       allowPrivate: src.allowPrivate ?? false,
+      allowInsecure: src.allowInsecure ?? false,
       prepend: src.prepend ?? false,
     };
   }
   function resetSubForm() {
-    setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false, prepend: false });
+    setNewSub({ remark: '', url: '', tagPrefix: '', updateInterval: 600, enabled: true, allowPrivate: false, allowInsecure: false, prepend: false });
     setEditingSubId(null);
     setPreviewData(null);
   }
@@ -327,6 +329,7 @@ export default function OutboundsTab({
       updateInterval: sub.updateInterval ?? 600,
       enabled: sub.enabled ?? true,
       allowPrivate: sub.allowPrivate ?? false,
+      allowInsecure: sub.allowInsecure ?? false,
       prepend: sub.prepend ?? false,
     });
     setEditingSubId(sub.id);
@@ -645,6 +648,12 @@ export default function OutboundsTab({
                 <Switch checked={newSub.allowPrivate} onChange={(v) => setNewSub({ ...newSub, allowPrivate: v })} />
                 <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
                   {t('pages.xray.outboundSub.allowPrivateHint')}
+                </div>
+              </Form.Item>
+              <Form.Item label={t('pages.hosts.fields.allowInsecure')}>
+                <Switch checked={newSub.allowInsecure} onChange={(v) => setNewSub({ ...newSub, allowInsecure: v })} />
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                  {t('pages.hosts.hints.allowInsecure')}
                 </div>
               </Form.Item>
               <Form.Item label={t('pages.xray.outboundSub.prepend')}>

@@ -155,6 +155,22 @@ describe('transportless streamSettings (wireguard / tunnel)', () => {
     }
   });
 
+  it('fills sockopt schema defaults for a stored inbound missing tproxy (#5956)', () => {
+    const values = rawInboundToFormValues({
+      port: 443,
+      protocol: 'vless',
+      settings: { clients: [] },
+      streamSettings: JSON.stringify({
+        network: 'tcp',
+        security: 'none',
+        sockopt: { tcpFastOpen: true },
+      }),
+    });
+    const stream = values.streamSettings as { sockopt?: { tproxy?: string; tcpFastOpen?: boolean } };
+    expect(stream.sockopt?.tproxy).toBe('off');
+    expect(stream.sockopt?.tcpFastOpen).toBe(true);
+  });
+
   it('still rejects a present-but-invalid network value', () => {
     const result = InboundFormSchema.safeParse({
       port: 12345,

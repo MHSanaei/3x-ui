@@ -136,12 +136,12 @@ func (a *ClientController) get(c *gin.Context) {
 	email := c.Param("email")
 	rec, err := a.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	payload, err := a.buildClientPayload(rec)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	jsonObj(c, payload, nil)
@@ -151,12 +151,12 @@ func (a *ClientController) getByTgId(c *gin.Context) {
 	tgIdStr := c.Param("tgId")
 	tgId, err := strconv.ParseInt(tgIdStr, 10, 64)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	records, err := a.clientService.GetRecordsByTgID(tgId)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	results := make([]gin.H, 0, len(records))

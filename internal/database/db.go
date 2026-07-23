@@ -1071,7 +1071,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1154,6 +1154,18 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "FreedomFinalRulesReverseFix") {
 		if err := normalizeFreedomFinalRules(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "FreedomFinalRulesPrivateEgressBlock") {
+		if err := hardenFreedomFinalRules(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "InboundRealityFinalmaskTcpStrip") {
+		if err := stripRealityFinalmaskTcp(); err != nil {
 			return err
 		}
 	}
@@ -1606,6 +1618,147 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	return true
 }
 
+func hardenFreedomFinalRules() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteFreedomFinalRulesPrivateEgress(setting.Value)
+	if rErr != nil {
+		log.Printf("FreedomFinalRulesPrivateEgressBlock: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	})
+}
+
+func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+			continue
+		}
+		settings, ok := obj["settings"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if !isAllowOnlyFinalRules(settings["finalRules"]) && !isLegacyPrivateOnlyFinalRules(settings["finalRules"]) {
+			continue
+		}
+		settings["finalRules"] = []any{
+			map[string]any{"action": "block", "ip": []any{"geoip:private"}},
+			map[string]any{"action": "allow"},
+		}
+		changed = true
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+func stripRealityFinalmaskTcp() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range inbounds {
+			updated, changed := stripRealityFinalmaskTcpFromStream(inbounds[i].StreamSettings)
+			if !changed {
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbounds[i].Id).
+				Update("stream_settings", updated).Error; err != nil {
+				return err
+			}
+			log.Printf("InboundRealityFinalmaskTcpStrip: removed finalmask.tcp from REALITY inbound %d (%s)", inbounds[i].Id, inbounds[i].Tag)
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "InboundRealityFinalmaskTcpStrip"}).Error
+	})
+}
+
+func stripRealityFinalmaskTcpFromStream(raw string) (string, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(raw), &stream); err != nil {
+		return raw, false
+	}
+	if sec, _ := stream["security"].(string); sec != "reality" {
+		return raw, false
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return raw, false
+	}
+	if tcp, _ := finalmask["tcp"].([]any); len(tcp) == 0 {
+		return raw, false
+	}
+	delete(finalmask, "tcp")
+	if len(finalmask) == 0 {
+		delete(stream, "finalmask")
+	}
+	out, err := json.Marshal(stream)
+	if err != nil {
+		return raw, false
+	}
+	return string(out), true
+}
+
+func isAllowOnlyFinalRules(v any) bool {
+	rules, ok := v.([]any)
+	if !ok || len(rules) != 1 {
+		return false
+	}
+	rule, ok := rules[0].(map[string]any)
+	if !ok {
+		return false
+	}
+	if action, _ := rule["action"].(string); action != "allow" {
+		return false
+	}
+	for k := range rule {
+		if k != "action" {
+			return false
+		}
+	}
+	return true
+}
+
 func normalizeClientJSONFields(obj map[string]any) {
 	normalizeInt := func(key string) {
 		raw, exists := obj[key]
@@ -1790,7 +1943,7 @@ func InitDB(dbPath string) error {
 		if dsn == "" {
 			return errors.New("XUI_DB_TYPE=postgres but XUI_DB_DSN is empty")
 		}
-		db, err = gorm.Open(postgres.Open(dsn), c)
+		db, err = openPostgresWithRetry(dsn, c)
 		if err != nil {
 			return err
 		}
@@ -1801,7 +1954,8 @@ func InitDB(dbPath string) error {
 		}
 
 		sync := sqliteSynchronous()
-		dsn := dbPath + "?_journal_mode=DELETE&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
+		journal := sqliteJournalMode()
+		dsn := dbPath + "?_journal_mode=" + journal + "&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
@@ -1812,7 +1966,7 @@ func InitDB(dbPath string) error {
 		}
 
 		pragmas := []string{
-			"PRAGMA journal_mode=DELETE",
+			"PRAGMA journal_mode=" + journal,
 			"PRAGMA busy_timeout=10000",
 			"PRAGMA synchronous=" + sync,
 			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
@@ -1863,6 +2017,40 @@ func normalizeApiTokenCreatedAtSeconds() error {
 	return db.Model(&model.ApiToken{}).
 		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
+}
+
+// openPostgresWithRetry retries the initial PostgreSQL connection with
+// backoff so a database that starts slower than the panel (or drops out
+// briefly) does not immediately kill the process and trip systemd's
+// restart loop. Every failed attempt logs the real driver error, which
+// used to be buried behind a generic startup failure.
+func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
+	delays := []time.Duration{0, 2 * time.Second, 5 * time.Second, 10 * time.Second, 20 * time.Second, 30 * time.Second}
+	var lastErr error
+	for i, delay := range delays {
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+		conn, err := gorm.Open(postgres.Open(dsn), c)
+		if err == nil {
+			if i > 0 {
+				log.Printf("postgres connection established on attempt %d/%d", i+1, len(delays))
+			}
+			return conn, nil
+		}
+		lastErr = err
+		log.Printf("postgres connection attempt %d/%d failed: %v", i+1, len(delays), err)
+	}
+	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
+}
+
+func sqliteJournalMode() string {
+	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_JOURNAL_MODE"))) {
+	case "DELETE":
+		return "DELETE"
+	default:
+		return "WAL"
+	}
 }
 
 func sqliteSynchronous() string {
@@ -1923,7 +2111,7 @@ func Checkpoint() error {
 	if IsPostgres() {
 		return nil
 	}
-	return db.Exec("PRAGMA wal_checkpoint;").Error
+	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
 }
 
 func ValidateSQLiteDB(dbPath string) error {

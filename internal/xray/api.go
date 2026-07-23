@@ -176,6 +176,8 @@ func (x *XrayAPI) DelInbound(tag string) error {
 // startup — notably v26.7.11's refusal of unencrypted vless/trojan outbounds
 // whose server address is a public IP or domain.
 func ValidateOutboundConfig(outbound []byte) error {
+	ensureXrayAssetLocation()
+
 	detour := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, detour); err != nil {
 		return err
@@ -190,6 +192,8 @@ func (x *XrayAPI) AddOutbound(outbound []byte) error {
 		return common.NewError("xray HandlerServiceClient is not initialized")
 	}
 	client := *x.HandlerServiceClient
+
+	ensureXrayAssetLocation()
 
 	conf := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, conf); err != nil {
