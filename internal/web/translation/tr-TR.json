@@ -1433,6 +1433,8 @@
       "eventMemoryHigh": "Bellek kullanımı yüksek (%)",
       "remarkTemplate": "Açıklama Şablonu",
       "remarkTemplateDesc": "Ayarlandığında, her abonelik bağlantısının açıklama modelinin yerini alır — değişken belirteçleriyle kendi formatınızı yazın (eklemek için düğmeyi kullanın). Yukarıdaki modeli kullanmak için boş bırakın.",
+      "subShowIdentityOnAllLinks": "Kimliği her bağlantıda göster",
+      "subShowIdentityOnAllLinksDesc": "Etkinleştirildiğinde {{EMAIL}} ve {{USERNAME}} abonelik gövdesindeki her bağlantı notunda kalır. Kullanım jetonları yine yalnızca ilk bağlantıda görünür.",
       "validation": {
         "pathLeadingSlash": "Yol / ile başlamalıdır"
       },

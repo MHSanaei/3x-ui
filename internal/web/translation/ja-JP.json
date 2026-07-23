@@ -1433,6 +1433,8 @@
       "eventMemoryHigh": "メモリ使用率が高い (%)",
       "remarkTemplate": "備考テンプレート",
       "remarkTemplateDesc": "設定すると、すべてのサブスクリプションリンクの備考モデルを置き換えます — 変数トークンを使って独自の形式を記述してください（ボタンで挿入できます）。空欄にすると上記のモデルが使用されます。",
+      "subShowIdentityOnAllLinks": "すべてのリンクに識別情報を表示",
+      "subShowIdentityOnAllLinksDesc": "有効にすると、{{EMAIL}} と {{USERNAME}} がサブスクリプション本文のすべてのリンク備考に残ります。使用量トークンは引き続き最初のリンクのみです。",
       "validation": {
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },

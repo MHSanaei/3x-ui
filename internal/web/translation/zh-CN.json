@@ -1433,6 +1433,8 @@
       "eventMemoryHigh": "内存使用率高 (%)",
       "remarkTemplate": "备注模板",
       "remarkTemplateDesc": "设置后，将替换每个订阅链接的备注模型 — 使用变量标记编写您自己的格式（用按钮插入它们）。留空则使用上方的模型。",
+      "subShowIdentityOnAllLinks": "在每个链接上显示身份",
+      "subShowIdentityOnAllLinksDesc": "启用后，{{EMAIL}} 和 {{USERNAME}} 会保留在每条订阅正文备注中。用量相关变量仍仅出现在第一条链接。",
       "validation": {
         "pathLeadingSlash": "路径必须以 / 开头"
       },

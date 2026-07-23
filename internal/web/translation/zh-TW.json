@@ -1433,6 +1433,8 @@
       "eventMemoryHigh": "記憶體使用率高 (%)",
       "remarkTemplate": "備註範本",
       "remarkTemplateDesc": "設定後，這將取代每個訂閱連結的備註模型——使用變數標記撰寫您自己的格式（使用按鈕來插入）。留空則使用上方的模型。",
+      "subShowIdentityOnAllLinks": "在每個連結上顯示身分",
+      "subShowIdentityOnAllLinksDesc": "啟用後，{{EMAIL}} 與 {{USERNAME}} 會保留在每條訂閱正文備註中。用量相關變數仍僅出現在第一條連結。",
       "validation": {
         "pathLeadingSlash": "路徑必須以 / 開頭"
       },

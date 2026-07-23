@@ -18,6 +18,7 @@ export const AllSettingSchema = z.object({
   expireDiff: nonNegativeInt.optional(),
   trafficDiff: nonNegativeInt.max(100).optional(),
   remarkTemplate: z.string().optional(),
+  subShowIdentityOnAllLinks: z.boolean().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   tgBotEnable: z.boolean().optional(),
   tgBotToken: z.string().optional(),

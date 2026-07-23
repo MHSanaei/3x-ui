@@ -1433,6 +1433,8 @@
       "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)",
       "remarkTemplate": "Mẫu ghi chú",
       "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên.",
+      "subShowIdentityOnAllLinks": "Hiện danh tính trên mọi liên kết",
+      "subShowIdentityOnAllLinksDesc": "Khi bật, {{EMAIL}} và {{USERNAME}} vẫn có trong ghi chú mọi liên kết phần thân đăng ký. Token dung lượng vẫn chỉ ở liên kết đầu tiên.",
       "validation": {
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },
