@@ -41,7 +41,17 @@ func (j *MtprotoJob) Run() {
 	mgr := mtproto.GetManager()
 	mgr.Reconcile(desired)
 
-	deltas, onlineEmails := mgr.CollectTraffic()
+	deltas, onlineEmails, accessEvents := mgr.CollectTraffic()
+	if len(accessEvents) > 0 {
+		accessPath, err := xray.GetAccessLogPath()
+		if err != nil {
+			logger.Warning("mtproto job: resolve access log failed:", err)
+		} else if accessPath == "" || accessPath == "none" {
+			logger.Debug("mtproto job: access logging is disabled")
+		} else if err := mtproto.AppendAccessLog(accessPath, accessEvents); err != nil {
+			logger.Warning("mtproto job: append access log failed:", err)
+		}
+	}
 
 	// A routed inbound's total is already metered through the Xray bridge by
 	// xray_traffic_job, so only non-routed inbounds are rolled up here; per-client

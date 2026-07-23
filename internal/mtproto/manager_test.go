@@ -19,7 +19,7 @@ func TestInstanceFromInbound(t *testing.T) {
 			`"debug":true,"proxyProtocolListener":true,"preferIp":"prefer-ipv4",` +
 			`"domainFronting":{"ip":"127.0.0.1","port":9443,"proxyProtocol":true},` +
 			`"throttleMaxConnections":5000,` +
-			`"routeThroughXray":true,"routeXrayPort":50000,` +
+			`"routeThroughXray":true,"routeXrayPort":50000,"outboundTag":"proxy-a",` +
 			`"adTag":" 0123456789abcdef0123456789abcdef ",` +
 			`"clients":[` +
 			`{"email":"alice","secret":"` + aliceSecret + `","adTag":"fedcba9876543210fedcba9876543210","enable":true,"totalGB":1073741824,"expiryTime":1893456000000},` +
@@ -62,6 +62,9 @@ func TestInstanceFromInbound(t *testing.T) {
 	}
 	if !inst.RouteThroughXray || inst.XrayRoutePort != 50000 {
 		t.Fatalf("xray routing not parsed: %+v", inst)
+	}
+	if inst.XrayOutboundTag != "proxy-a" {
+		t.Fatalf("xray outbound tag not parsed: %+v", inst)
 	}
 
 	if _, ok := InstanceFromInbound(&model.Inbound{Protocol: model.VLESS}); ok {
