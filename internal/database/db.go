@@ -686,6 +686,7 @@ func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Ho
 	fingerprint, _ := ep["fingerprint"].(string)
 	ech, _ := ep["echConfigList"].(string)
 	return &model.Host{
+		GroupId:              random.NumLower(16),
 		InboundId:            inboundId,
 		SortOrder:            index,
 		Remark:               remark,
@@ -1180,7 +1181,7 @@ func runSeeders(isUsersEmpty bool) error {
 		return err
 	}
 
-	if err := seedHostGroupIds(); err != nil {
+	if err := backfillEmptyHostGroupIds(); err != nil {
 		return err
 	}
 
@@ -1213,36 +1214,27 @@ func seedNodeInboundsAdopted() error {
 	return db.Create(&model.HistoryOfSeeders{SeederName: "NodeInboundsAdopted"}).Error
 }
 
-func seedHostGroupIds() error {
-	var history []string
-	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
-		return err
-	}
-	if slices.Contains(history, "HostGroupIds") {
-		return nil
-	}
-
+// backfillEmptyHostGroupIds is idempotent and not seeder-gated: builds that
+// predate group ids on the inbound-import path (and restored backups) can
+// re-introduce hosts rows with an empty group_id, and such rows render as a
+// synthetic fallback_<id> group the update/delete API cannot address, so
+// re-check on every start.
+func backfillEmptyHostGroupIds() error {
 	var hosts []*model.Host
 	if err := db.Where("group_id = '' OR group_id IS NULL").Find(&hosts).Error; err != nil {
 		return err
 	}
-
-	if len(hosts) > 0 {
-		err := db.Transaction(func(tx *gorm.DB) error {
-			for _, h := range hosts {
-				h.GroupId = random.NumLower(16)
-				if err := tx.Model(h).Update("group_id", h.GroupId).Error; err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
+	if len(hosts) == 0 {
+		return nil
 	}
-
-	return db.Create(&model.HistoryOfSeeders{SeederName: "HostGroupIds"}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, h := range hosts {
+			if err := tx.Model(h).Update("group_id", random.NumLower(16)).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func resetIpLimitsWithoutFail2ban() error {
