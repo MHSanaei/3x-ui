@@ -1929,7 +1929,7 @@ func InitDB(dbPath string) error {
 		if dsn == "" {
 			return errors.New("XUI_DB_TYPE=postgres but XUI_DB_DSN is empty")
 		}
-		db, err = gorm.Open(postgres.Open(dsn), c)
+		db, err = openPostgresWithRetry(dsn, c)
 		if err != nil {
 			return err
 		}
@@ -2003,6 +2003,31 @@ func normalizeApiTokenCreatedAtSeconds() error {
 	return db.Model(&model.ApiToken{}).
 		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
+}
+
+// openPostgresWithRetry retries the initial PostgreSQL connection with
+// backoff so a database that starts slower than the panel (or drops out
+// briefly) does not immediately kill the process and trip systemd's
+// restart loop. Every failed attempt logs the real driver error, which
+// used to be buried behind a generic startup failure.
+func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
+	delays := []time.Duration{0, 2 * time.Second, 5 * time.Second, 10 * time.Second, 20 * time.Second, 30 * time.Second}
+	var lastErr error
+	for i, delay := range delays {
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+		conn, err := gorm.Open(postgres.Open(dsn), c)
+		if err == nil {
+			if i > 0 {
+				log.Printf("postgres connection established on attempt %d/%d", i+1, len(delays))
+			}
+			return conn, nil
+		}
+		lastErr = err
+		log.Printf("postgres connection attempt %d/%d failed: %v", i+1, len(delays), err)
+	}
+	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
 }
 
 func sqliteJournalMode() string {
