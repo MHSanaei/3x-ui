@@ -2359,6 +2359,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "configDirtyAt": {
         "example": 0,
+        "format": "int64",
         "type": "integer"
       },
       "cpuPct": {
@@ -2367,6 +2368,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "createdAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "depletedCount": {
@@ -2415,6 +2417,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastHeartbeat": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "latencyMs": {
@@ -2431,10 +2434,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "netDown": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "netUp": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "onlineCount": {
@@ -2481,10 +2486,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "updatedAt": {
         "example": 1700003600,
+        "format": "int64",
         "type": "integer"
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {

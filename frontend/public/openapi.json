@@ -2385,6 +2385,7 @@
           },
           "configDirtyAt": {
             "example": 0,
+            "format": "int64",
             "type": "integer"
           },
           "cpuPct": {
@@ -2393,6 +2394,7 @@
           },
           "createdAt": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "depletedCount": {
@@ -2441,6 +2443,7 @@
           },
           "lastHeartbeat": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "latencyMs": {
@@ -2457,10 +2460,12 @@
           },
           "netDown": {
             "example": 1048576,
+            "format": "int64",
             "type": "integer"
           },
           "netUp": {
             "example": 2097152,
+            "format": "int64",
             "type": "integer"
           },
           "onlineCount": {
@@ -2507,10 +2512,12 @@
           },
           "updatedAt": {
             "example": 1700003600,
+            "format": "int64",
             "type": "integer"
           },
           "uptimeSecs": {
             "example": 86400,
+            "format": "int64",
             "type": "integer"
           },
           "xrayError": {
