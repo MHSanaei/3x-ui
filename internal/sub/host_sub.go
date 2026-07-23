@@ -125,6 +125,20 @@ func hostMuxOverride(ep map[string]any) string {
 // the base stream strips sockopt) and finalMask. No-op for legacy externalProxy
 // entries (which never carry these keys), so existing output is unchanged.
 func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
+	if hh, ok := ep["hostHeader"].(string); ok && hh != "" {
+		for _, key := range []string{"wsSettings", "httpupgradeSettings", "xhttpSettings"} {
+			if ts, ok := stream[key].(map[string]any); ok && ts != nil {
+				ts["host"] = hh
+			}
+		}
+	}
+	if p, ok := ep["path"].(string); ok && p != "" {
+		for _, key := range []string{"wsSettings", "httpupgradeSettings", "xhttpSettings"} {
+			if ts, ok := stream[key].(map[string]any); ok && ts != nil {
+				ts["path"] = p
+			}
+		}
+	}
 	if sp, ok := ep["sockoptParams"].(string); ok && sp != "" {
 		var sockopt map[string]any
 		if json.Unmarshal([]byte(sp), &sockopt) == nil && len(sockopt) > 0 {
