@@ -125,7 +125,14 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 				}
 			}
 		}
-		if _, err := rt.ReconcileInbound(ctx, ib, existsOnNode); err != nil {
+		// Reconcile with the same runtime-built payload interactive pushes
+		// send (disabled clients filtered, settings.fallbacks injected) so
+		// fingerprints line up and fallback edits actually reach the node.
+		runtimeIb := ib
+		if built, bErr := s.buildRuntimeInboundForAPI(db, ib); bErr == nil {
+			runtimeIb = built
+		}
+		if _, err := rt.ReconcileInbound(ctx, runtimeIb, existsOnNode); err != nil {
 			errs = append(errs, fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err))
 		}
 	}

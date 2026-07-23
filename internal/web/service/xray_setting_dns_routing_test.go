@@ -216,6 +216,8 @@ func TestEnsureDnsServerRouting_IdempotentOnSecondSave(t *testing.T) {
 }
 
 func TestEnsureDnsServerRouting_UpdatesOwnedRuleWhenServersChange(t *testing.T) {
+	// A legacy (untagged) managed rule matching the current dns.servers is
+	// adopted: rebuilt once with the ruleTag marker, then stable.
 	in := `{
 		"dns": {"servers": ["172.20.0.53"]},
 		"routing": {
@@ -229,8 +231,19 @@ func TestEnsureDnsServerRouting_UpdatesOwnedRuleWhenServersChange(t *testing.T) 
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	if out != in {
-		t.Fatalf("dns servers unchanged, expected no-op, got: %s", out)
+	rules := rulesFromRaw(t, out)
+	if len(rules) != 2 {
+		t.Fatalf("rules len = %d, want 2 (legacy rule adopted in place): %s", len(rules), out)
+	}
+	if tag, _ := rules[0]["ruleTag"].(string); tag != dnsAllowRuleTag {
+		t.Fatalf("adopted rule should carry %q, got %v", dnsAllowRuleTag, rules[0])
+	}
+	stable, err := EnsureDnsServerRouting(out)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if stable != out {
+		t.Fatalf("expected no further change once tagged\nfirst:  %s\nsecond: %s", out, stable)
 	}
 
 	// Admin adds a second internal resolver on the same port.
@@ -238,7 +251,7 @@ func TestEnsureDnsServerRouting_UpdatesOwnedRuleWhenServersChange(t *testing.T) 
 		"dns": {"servers": ["172.20.0.53", "10.0.0.53"]},
 		"routing": {
 			"rules": [
-				{"type":"field","ip":["172.20.0.53"],"port":"53","outboundTag":"direct"},
+				{"type":"field","ruleTag":"xui-dns-allow","ip":["172.20.0.53"],"port":"53","outboundTag":"direct"},
 				{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}
 			]
 		}
@@ -247,7 +260,7 @@ func TestEnsureDnsServerRouting_UpdatesOwnedRuleWhenServersChange(t *testing.T) 
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	rules := rulesFromRaw(t, out2)
+	rules = rulesFromRaw(t, out2)
 	if len(rules) != 2 {
 		t.Fatalf("rules len = %d, want 2 (existing rule updated in place): %s", len(rules), out2)
 	}
@@ -258,13 +271,13 @@ func TestEnsureDnsServerRouting_UpdatesOwnedRuleWhenServersChange(t *testing.T) 
 }
 
 func TestEnsureDnsServerRouting_RemovesOwnedRuleWhenNoLongerNeeded(t *testing.T) {
-	// Admin switches dns.servers to a public resolver — our previously
-	// inserted allow-rule is now dead weight and should be dropped.
+	// Admin switches dns.servers to a public resolver — the tagged managed
+	// rule is now dead weight and should be dropped.
 	in := `{
 		"dns": {"servers": ["1.1.1.1"]},
 		"routing": {
 			"rules": [
-				{"type":"field","ip":["172.20.0.53"],"port":"53","outboundTag":"direct"},
+				{"type":"field","ruleTag":"xui-dns-allow","ip":["172.20.0.53"],"port":"53","outboundTag":"direct"},
 				{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}
 			]
 		}
@@ -279,6 +292,49 @@ func TestEnsureDnsServerRouting_RemovesOwnedRuleWhenNoLongerNeeded(t *testing.T)
 	}
 	if tag, _ := rules[0]["outboundTag"].(string); tag != "blocked" {
 		t.Fatalf("remaining rule should be the block rule, got %v", rules[0])
+	}
+}
+
+func TestEnsureDnsServerRouting_KeepsManualDirectRuleOnSave(t *testing.T) {
+	// The #6056 regression: a hand-written "LAN service over direct" rule
+	// (CIDR ip + custom port, no ruleTag) matches nothing the panel
+	// manages and must survive a save untouched, even when dns.servers has
+	// no private entries at all.
+	in := `{
+		"dns": {"servers": ["1.1.1.1"]},
+		"routing": {
+			"rules": [
+				{"type":"field","ip":["192.168.178.0/24"],"port":"5000","outboundTag":"direct","enabled":true},
+				{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}
+			]
+		}
+	}`
+	out, err := EnsureDnsServerRouting(in)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if out != in {
+		t.Fatalf("manual direct rule must survive the save untouched, got: %s", out)
+	}
+
+	// Same shape with a single literal private IP — indistinguishable from
+	// a legacy managed rule only if it matches a configured dns server,
+	// which it doesn't here, so it must survive too.
+	in2 := `{
+		"dns": {"servers": ["1.1.1.1"]},
+		"routing": {
+			"rules": [
+				{"type":"field","ip":["192.168.178.4"],"port":"5000","outboundTag":"direct"},
+				{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}
+			]
+		}
+	}`
+	out2, err := EnsureDnsServerRouting(in2)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if out2 != in2 {
+		t.Fatalf("manual single-IP direct rule must survive the save untouched, got: %s", out2)
 	}
 }
 

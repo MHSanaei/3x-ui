@@ -109,22 +109,22 @@ func (a *ClientController) get(c *gin.Context) {
 	email := c.Param("email")
 	rec, err := a.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	inboundIds, err := a.clientService.GetInboundIdsForRecord(rec.Id)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	externalLinks, err := a.clientService.GetExternalLinksForRecord(rec.Id)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	rec.Flow = flow

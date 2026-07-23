@@ -1418,45 +1418,64 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 		return nil, err
 	}
 
-	clients, ok := settings["clients"].([]any)
-	if !ok {
+	mutated := false
+	if clients, ok := settings["clients"].([]any); ok {
+		var clientStats []xray.ClientTraffic
+		err := tx.Model(xray.ClientTraffic{}).
+			Where("inbound_id = ?", inbound.Id).
+			Select("email", "enable").
+			Find(&clientStats).Error
+		if err != nil {
+			return nil, err
+		}
+
+		enableMap := make(map[string]bool, len(clientStats))
+		for _, clientTraffic := range clientStats {
+			enableMap[clientTraffic.Email] = clientTraffic.Enable
+		}
+
+		finalClients := make([]any, 0, len(clients))
+		for _, client := range clients {
+			c, ok := client.(map[string]any)
+			if !ok {
+				continue
+			}
+
+			email, _ := c["email"].(string)
+			if enable, exists := enableMap[email]; exists && !enable {
+				continue
+			}
+
+			if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+				continue
+			}
+
+			finalClients = append(finalClients, c)
+		}
+
+		settings["clients"] = finalClients
+		mutated = true
+	}
+
+	if inboundCanHostFallbacks(inbound) {
+		fallbacks, fbErr := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)
+		if fbErr != nil {
+			return nil, fbErr
+		}
+		if len(fallbacks) > 0 {
+			generic := make([]any, 0, len(fallbacks))
+			for _, f := range fallbacks {
+				generic = append(generic, f)
+			}
+			settings["fallbacks"] = generic
+			mutated = true
+		}
+	}
+
+	if !mutated {
 		return &runtimeInbound, nil
 	}
 
-	var clientStats []xray.ClientTraffic
-	err := tx.Model(xray.ClientTraffic{}).
-		Where("inbound_id = ?", inbound.Id).
-		Select("email", "enable").
-		Find(&clientStats).Error
-	if err != nil {
-		return nil, err
-	}
-
-	enableMap := make(map[string]bool, len(clientStats))
-	for _, clientTraffic := range clientStats {
-		enableMap[clientTraffic.Email] = clientTraffic.Enable
-	}
-
-	finalClients := make([]any, 0, len(clients))
-	for _, client := range clients {
-		c, ok := client.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		email, _ := c["email"].(string)
-		if enable, exists := enableMap[email]; exists && !enable {
-			continue
-		}
-
-		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
-			continue
-		}
-
-		finalClients = append(finalClients, c)
-	}
-
-	settings["clients"] = finalClients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return nil, err
