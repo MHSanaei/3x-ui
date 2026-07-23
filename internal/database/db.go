@@ -1057,7 +1057,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1146,6 +1146,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "FreedomFinalRulesPrivateEgressBlock") {
 		if err := hardenFreedomFinalRules(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "InboundRealityFinalmaskTcpStrip") {
+		if err := stripRealityFinalmaskTcp(); err != nil {
 			return err
 		}
 	}
@@ -1667,6 +1673,56 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		return raw, false, err
 	}
 	return string(out), true, nil
+}
+
+func stripRealityFinalmaskTcp() error {
+	var inbounds []model.Inbound
+	if err := db.Find(&inbounds).Error; err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range inbounds {
+			updated, changed := stripRealityFinalmaskTcpFromStream(inbounds[i].StreamSettings)
+			if !changed {
+				continue
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbounds[i].Id).
+				Update("stream_settings", updated).Error; err != nil {
+				return err
+			}
+			log.Printf("InboundRealityFinalmaskTcpStrip: removed finalmask.tcp from REALITY inbound %d (%s)", inbounds[i].Id, inbounds[i].Tag)
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "InboundRealityFinalmaskTcpStrip"}).Error
+	})
+}
+
+func stripRealityFinalmaskTcpFromStream(raw string) (string, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(raw), &stream); err != nil {
+		return raw, false
+	}
+	if sec, _ := stream["security"].(string); sec != "reality" {
+		return raw, false
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return raw, false
+	}
+	if tcp, _ := finalmask["tcp"].([]any); len(tcp) == 0 {
+		return raw, false
+	}
+	delete(finalmask, "tcp")
+	if len(finalmask) == 0 {
+		delete(stream, "finalmask")
+	}
+	out, err := json.Marshal(stream)
+	if err != nil {
+		return raw, false
+	}
+	return string(out), true
 }
 
 func isAllowOnlyFinalRules(v any) bool {
