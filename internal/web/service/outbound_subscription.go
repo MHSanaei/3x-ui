@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -161,7 +162,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) string
 	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId))
 }
 
-func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) (*model.OutboundSubscription, error) {
+func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return nil, common.NewError("invalid subscription URL:", err)
@@ -184,6 +185,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 		Url:            cleanURL,
 		Enabled:        enabled,
 		AllowPrivate:   allowPrivate,
+		AllowInsecure:  allowInsecure,
 		Prepend:        prepend,
 		Priority:       int(count),
 		TagPrefix:      prefix,
@@ -196,7 +198,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 }
 
 // Update updates editable fields.
-func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) error {
+func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
 	sub, err := s.Get(id)
 	if err != nil {
 		return err
@@ -219,6 +221,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	sub.Url = cleanURL
 	sub.Enabled = enabled
 	sub.AllowPrivate = allowPrivate
+	sub.AllowInsecure = allowInsecure
 	sub.Prepend = prepend
 	sub.TagPrefix = prefix
 	sub.UpdateInterval = updateInterval
@@ -290,14 +293,27 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 // goes through the SSRF-guarded dialer, which resolves, checks and dials the same
 // IP atomically — closing the DNS-rebinding gap left by validating the hostname
 // separately from the dial.
-func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Duration) *http.Client {
+func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Duration, allowInsecure bool) *http.Client {
+	var client *http.Client
 	if s.settingService.PanelEgressProxyURL() != "" {
-		return s.settingService.NewProxiedHTTPClient(timeout)
+		client = s.settingService.NewProxiedHTTPClient(timeout)
+	} else {
+		client = &http.Client{
+			Timeout:   timeout,
+			Transport: &http.Transport{DialContext: netsafe.SSRFGuardedDialContext},
+		}
 	}
-	return &http.Client{
-		Timeout:   timeout,
-		Transport: &http.Transport{DialContext: netsafe.SSRFGuardedDialContext},
+	if allowInsecure {
+		if tr, ok := client.Transport.(*http.Transport); ok && tr != nil {
+			cloned := tr.Clone()
+			if cloned.TLSClientConfig == nil {
+				cloned.TLSClientConfig = &tls.Config{}
+			}
+			cloned.TLSClientConfig.InsecureSkipVerify = true
+			client.Transport = cloned
+		}
 	}
+	return client
 }
 
 // fetchAndStore does the actual network + parse + stability + persist work.
@@ -315,7 +331,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	sub.Url = cleanURL // persist the cleaned version
 
-	client := s.subscriptionFetchClient(30 * time.Second)
+	client := s.subscriptionFetchClient(30*time.Second, sub.AllowInsecure)
 	// Re-validate every redirect hop: the initial host is checked above, but a
 	// redirect could still point at a private/internal address (SSRF). Cap the
 	// redirect chain as well.
