@@ -1057,7 +1057,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1140,6 +1140,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "FreedomFinalRulesReverseFix") {
 		if err := normalizeFreedomFinalRules(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "FreedomFinalRulesPrivateEgressBlock") {
+		if err := hardenFreedomFinalRules(); err != nil {
 			return err
 		}
 	}
@@ -1586,6 +1592,97 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	}
 	for k := range rule {
 		if k != "action" && k != "ip" {
+			return false
+		}
+	}
+	return true
+}
+
+func hardenFreedomFinalRules() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteFreedomFinalRulesPrivateEgress(setting.Value)
+	if rErr != nil {
+		log.Printf("FreedomFinalRulesPrivateEgressBlock: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "FreedomFinalRulesPrivateEgressBlock"}).Error
+	})
+}
+
+func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+			continue
+		}
+		settings, ok := obj["settings"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if !isAllowOnlyFinalRules(settings["finalRules"]) && !isLegacyPrivateOnlyFinalRules(settings["finalRules"]) {
+			continue
+		}
+		settings["finalRules"] = []any{
+			map[string]any{"action": "block", "ip": []any{"geoip:private"}},
+			map[string]any{"action": "allow"},
+		}
+		changed = true
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+func isAllowOnlyFinalRules(v any) bool {
+	rules, ok := v.([]any)
+	if !ok || len(rules) != 1 {
+		return false
+	}
+	rule, ok := rules[0].(map[string]any)
+	if !ok {
+		return false
+	}
+	if action, _ := rule["action"].(string); action != "allow" {
+		return false
+	}
+	for k := range rule {
+		if k != "action" {
 			return false
 		}
 	}
