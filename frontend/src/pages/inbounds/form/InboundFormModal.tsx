@@ -16,6 +16,7 @@ import {
   message,
 } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
+import type { FieldErrors } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import type { RealityScanResult } from '@/generated/types';
@@ -133,6 +134,42 @@ function isValidShareAddrInput(value: string): boolean {
   return SHARE_ADDR_HOSTNAME_RE.test(v);
 }
 
+interface RhfValidationIssue {
+  path: PropertyKey[];
+  message: string;
+}
+
+function firstRhfValidationIssue(
+  value: unknown,
+  path: PropertyKey[] = [],
+): RhfValidationIssue | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<PropertyKey, unknown>;
+  if (typeof record.message === 'string' && record.message !== '') {
+    return { path, message: record.message };
+  }
+  for (const key of Reflect.ownKeys(record)) {
+    if (key === 'message' || key === 'type' || key === 'types' || key === 'ref') continue;
+    const issue = firstRhfValidationIssue(record[key], [...path, key]);
+    if (issue) return issue;
+  }
+  return null;
+}
+
+function tabForValidationPath(path: PropertyKey[]): string {
+  if (path[0] === 'settings') return 'protocol';
+  if (path[0] === 'sniffing') return 'sniffing';
+  if (path[0] === 'streamSettings') {
+    if (
+      path[1] === 'security'
+      || path[1] === 'realitySettings'
+      || path[1] === 'tlsSettings'
+    ) return 'security';
+    return 'stream';
+  }
+  return 'basic';
+}
+
 interface InboundFormModalProps {
   open: boolean;
   onClose: () => void;
@@ -201,6 +238,7 @@ export default function InboundFormModal({
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
+  const [activeTab, setActiveTab] = useState('basic');
   const {
     fallbacks,
     fallbackChildOptions,
@@ -361,6 +399,7 @@ export default function InboundFormModal({
       : buildAddModeValues();
     methods.reset(initial);
     setScanResult(null);
+    setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
       port: initial.port ?? 0,
@@ -462,8 +501,7 @@ export default function InboundFormModal({
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [mode, methods]);
 
-  const submit = async () => {
-    if (!(await methods.trigger())) return;
+  const saveValues = async () => {
     /*
      * getValues() returns the entire form store, including settings.clients and
      * settings.fallbacks which have no bound field (clients are managed via the
@@ -504,6 +542,19 @@ export default function InboundFormModal({
       setSaving(false);
     }
   };
+
+  const submit = methods.handleSubmit(
+    saveValues,
+    (errors: FieldErrors<InboundFormValues>) => {
+      const issue = firstRhfValidationIssue(errors);
+      if (!issue) {
+        messageApi.error(t('validation.invalid', { defaultValue: 'Invalid form value' }));
+        return;
+      }
+      setActiveTab(tabForValidationPath(issue.path));
+      messageApi.error(formatInboundIssue(issue, methods.getValues(), t));
+    },
+  );
 
   const title = mode === 'edit'
     ? t('pages.inbounds.modifyInbound')
@@ -941,7 +992,7 @@ export default function InboundFormModal({
             wrapperCol={{ sm: { span: 14 } }}
             labelWrap
           >
-            <Tabs items={[
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
               ...(([
                 Protocols.VLESS,
