@@ -335,6 +335,8 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 		"mode":                 "packet-up",
 		"xPaddingBytes":        "100-1000",
 		"uplinkHTTPMethod":     "GET",
+		"sessionIDPlacement":   "header",
+		"sessionIDKey":         "X-Session",
 		"uplinkChunkSize":      float64(4096),
 		"noGRPCHeader":         true,
 		"scMinPostsIntervalMs": "20-40",
@@ -375,6 +377,16 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 	if extra["mode"] != "packet-up" {
 		t.Fatalf("extra[mode] = %#v, want packet-up", extra["mode"])
 	}
+	for key, want := range map[string]string{
+		"sessionIDPlacement": "header",
+		"sessionIDKey":       "X-Session",
+		"sessionPlacement":   "header",
+		"sessionKey":         "X-Session",
+	} {
+		if extra[key] != want {
+			t.Fatalf("extra[%s] = %#v, want %q; extra %#v", key, extra[key], want, extra)
+		}
+	}
 
 	headers, ok := extra["headers"].(map[string]any)
 	if !ok {
@@ -385,6 +397,24 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 	}
 	if headers["X-Forwarded"] != "1" {
 		t.Fatalf("headers[X-Forwarded] = %#v, want 1", headers["X-Forwarded"])
+	}
+}
+
+func TestBuildXhttpExtra_LegacySessionFieldsEmitBothNames(t *testing.T) {
+	extra := buildXhttpExtra(map[string]any{
+		"sessionPlacement": "query",
+		"sessionKey":       "sess",
+	})
+
+	for key, want := range map[string]string{
+		"sessionIDPlacement": "query",
+		"sessionIDKey":       "sess",
+		"sessionPlacement":   "query",
+		"sessionKey":         "sess",
+	} {
+		if extra[key] != want {
+			t.Fatalf("extra[%s] = %#v, want %q; extra %#v", key, extra[key], want, extra)
+		}
 	}
 }
 
