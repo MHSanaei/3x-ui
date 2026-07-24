@@ -1,5 +1,6 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
@@ -274,6 +275,43 @@ export function createDefaultWireguardInboundSettings(
   };
 }
 
+// AmneziaWG is multi-client, like WireGuard, and uses the same Curve25519
+// keypair format — Wireguard.generateKeypair() works unchanged. Unlike
+// WireGuard's Xray-native inbound, the server's publicKey is a real
+// persisted field here (the Go backend reads it directly rather than
+// re-deriving it), so it's seeded alongside privateKey. The obfuscation
+// parameters (jc/jmin/.../i1) use the same starting values the Go backend's
+// own generator range-checks against; the user (or the backend's own
+// defaulting on save) can randomize/edit them further — see
+// internal/amneziawg.GenerateObfuscation20 on the Go side.
+export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSettings {
+  const kp = Wireguard.generateKeypair();
+  return {
+    server: {
+      privateKey: kp.privateKey,
+      publicKey: kp.publicKey,
+      subnetIp: '10.8.1.0',
+      subnetCidr: 24,
+      primaryDns: '8.8.8.8',
+      secondaryDns: '8.8.4.4',
+      externalInterface: '',
+      jc: 5,
+      jmin: 10,
+      jmax: 50,
+      s1: 30,
+      s2: 45,
+      s3: 10,
+      s4: 5,
+      h1: '',
+      h2: '',
+      h3: '',
+      h4: '',
+      i1: '',
+    },
+    clients: [],
+  };
+}
+
 // Protocol-aware dispatch over every inbound-settings factory. Mirrors
 // the legacy `Inbound.Settings.getSettings(protocol)` dispatcher, but
 // returns a plain Zod-parsable object instead of a class instance.
@@ -290,7 +328,8 @@ export type AnyInboundSettings =
   | TunInboundSettings
   | TunnelInboundSettings
   | WireguardInboundSettings
-  | MtprotoInboundSettings;
+  | MtprotoInboundSettings
+  | AmneziawgInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -305,6 +344,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
+    case 'amneziawg':   return createDefaultAmneziawgInboundSettings();
     default:            return null;
   }
 }

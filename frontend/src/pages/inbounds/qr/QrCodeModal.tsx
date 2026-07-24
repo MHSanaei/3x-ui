@@ -6,6 +6,8 @@ import type { CollapseProps } from 'antd';
 import { Protocols } from '@/schemas/primitives';
 import {
   genAllLinks,
+  genAmneziaWGConfigs,
+  genAmneziaWGLinks,
   genWireguardConfigs,
   genWireguardLinks,
   isPostQuantumLink,
@@ -50,6 +52,8 @@ export default function QrCodeModal({
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
   const [wireguardConfigs, setWireguardConfigs] = useState<string[]>([]);
   const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
+  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[]>([]);
+  const [amneziawgLinks, setAmneziawgLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
   const [activeKey, setActiveKey] = useState<string[]>([]);
@@ -78,6 +82,31 @@ export default function QrCodeModal({
           fallbackHostname,
         }).split('\r\n'),
       );
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
+      setLinks([]);
+    } else if (inbound.protocol === Protocols.AMNEZIAWG) {
+      const peerRemark = client?.email
+        ? `${dbInbound.remark}-${client.email}`
+        : dbInbound.remark || '';
+      setAmneziawgConfigs(
+        genAmneziaWGConfigs({
+          inbound,
+          remark: peerRemark,
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setAmneziawgLinks(
+        genAmneziaWGLinks({
+          inbound,
+          remark: peerRemark,
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setWireguardConfigs([]);
+      setWireguardLinks([]);
       setLinks([]);
     } else {
       setLinks(
@@ -91,6 +120,8 @@ export default function QrCodeModal({
       );
       setWireguardConfigs([]);
       setWireguardLinks([]);
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
     }
 
     const subId = client?.subId;
@@ -126,8 +157,19 @@ export default function QrCodeModal({
         items.push({ key: `wl${idx}`, header: `Peer ${idx + 1} link`, value: wireguardLinks[idx], showQr: false });
       }
     });
+    amneziawgConfigs.forEach((cfg, idx) => {
+      items.push({
+        key: `ac${idx}`,
+        header: `Peer ${idx + 1} config`,
+        value: cfg,
+        downloadName: `peer-${idx + 1}.conf`,
+      });
+      if (amneziawgLinks[idx]) {
+        items.push({ key: `al${idx}`, header: `Peer ${idx + 1} link`, value: amneziawgLinks[idx], showQr: false });
+      }
+    });
     return items;
-  }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, t]);
+  }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, amneziawgConfigs, amneziawgLinks, t]);
 
   const collapseItems: CollapseProps['items'] = useMemo(
     () => qrItems.map((item) => ({
