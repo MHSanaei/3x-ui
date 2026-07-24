@@ -8,6 +8,11 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
+# TODO(amneziawg): this script does not yet install the AmneziaWG DKMS kernel
+# module + amneziawg-tools. Until it does, install them manually before
+# creating an AmneziaWG inbound (see coinman-dev/3ax-ui's install_amneziawg
+# for a reference implementation: ppa:amnezia/ppa on Ubuntu/Debian).
+
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
