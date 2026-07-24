@@ -52,6 +52,18 @@ function countLoopbackRefs(settings: XraySettingsValue, targetTag: string): numb
   return count;
 }
 
+function isGeneralRoutingRule(rule: Record<string, unknown>): boolean {
+  const inboundTag = rule.inboundTag;
+  return !Array.isArray(inboundTag) || inboundTag.length === 0;
+}
+
+function firstGeneralRoutingRuleIndex(rules: Array<Record<string, unknown>>): number {
+  for (let i = 0; i < rules.length; i += 1) {
+    if (isGeneralRoutingRule(rules[i])) return i;
+  }
+  return rules.length;
+}
+
 export function ensureBalancerLoopback(
   settings: XraySettingsValue,
   targetBalancerTag: string,
@@ -72,13 +84,19 @@ export function ensureBalancerLoopback(
   if (!settings.routing) settings.routing = { rules: [], balancers: [] };
   if (!Array.isArray(settings.routing.rules)) settings.routing.rules = [];
 
-  const existingRuleIdx = (settings.routing.rules as Array<{ inboundTag?: string[] }>).findIndex(
-    (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes(lbTag),
+  const rules = settings.routing.rules as Array<Record<string, unknown>>;
+
+  const existingRuleIdx = rules.findIndex(
+    (r) => Array.isArray(r.inboundTag) && (r.inboundTag as string[]).includes(lbTag),
   );
+
   if (existingRuleIdx >= 0) {
-    (settings.routing.rules as Record<string, unknown>[])[existingRuleIdx].balancerTag = targetBalancerTag;
+    const existing = rules[existingRuleIdx];
+    existing.balancerTag = targetBalancerTag;
+    rules.splice(existingRuleIdx, 1);
+    rules.splice(firstGeneralRoutingRuleIndex(rules), 0, existing);
   } else {
-    (settings.routing.rules as Record<string, unknown>[]).push({
+    rules.splice(firstGeneralRoutingRuleIndex(rules), 0, {
       type: 'field',
       inboundTag: [lbTag],
       balancerTag: targetBalancerTag,

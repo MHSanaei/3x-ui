@@ -70,6 +70,7 @@ func ComputeHotDiff(oldCfg, newCfg *Config) (*HotDiff, bool) {
 		{"burstObservatory", oldCfg.BurstObservatory, newCfg.BurstObservatory},
 		{"metrics", oldCfg.Metrics, newCfg.Metrics},
 		{"geodata", oldCfg.Geodata, newCfg.Geodata},
+		{"env", oldCfg.Env, newCfg.Env},
 	}
 	for _, section := range static {
 		if !rawEqualNormalized(section.old, section.new) {
@@ -126,6 +127,10 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		}
 		if exists && diffInboundUsers(oldIb, newIb, diff) {
 			continue
+		}
+		if exists && (inboundUsesReality(oldIb) || inboundUsesReality(newIb)) {
+			logger.Debug("hot diff: inbound [", oldIb.Tag, "] REALITY configuration changed; a gRPC remove+add does not reliably rebuild the REALITY authenticator, forcing a full restart")
+			return false
 		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
 		if exists {
@@ -244,6 +249,19 @@ func splitSettingsClients(raw json_util.RawMessage) (map[string]clientEntry, []b
 		return nil, nil, false
 	}
 	return clients, rest, true
+}
+
+func inboundUsesReality(ib *InboundConfig) bool {
+	if ib == nil || len(ib.StreamSettings) == 0 {
+		return false
+	}
+	var stream struct {
+		Security string `json:"security"`
+	}
+	if err := json.Unmarshal(ib.StreamSettings, &stream); err != nil {
+		return false
+	}
+	return stream.Security == "reality"
 }
 
 func inboundHasReverseClient(ib *InboundConfig) bool {

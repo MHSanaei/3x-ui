@@ -170,7 +170,7 @@ func enumerateCIDR(cidr string, max int) ([]string, error) {
 	return ips, nil
 }
 
-func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, timeout time.Duration) *RealityScanResult {
+func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, timeout time.Duration, xver int) *RealityScanResult {
 	addr := net.JoinHostPort(dialHost, strconv.Itoa(port))
 	res := &RealityScanResult{Port: port}
 	if net.ParseIP(dialHost) != nil {
@@ -195,6 +195,17 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(timeout))
+
+	// A REALITY inbound with xver>=1 fronts a target that speaks the PROXY
+	// protocol (e.g. an Nginx listener with `proxy_protocol`), so the probe
+	// must lead with a PROXY header or the target resets the connection and
+	// the scan reports a spurious handshake failure (#6082).
+	if xver >= 1 {
+		if err := writeProxyProtocolHeader(conn, xver); err != nil {
+			res.Reason = "proxy protocol write failed: " + err.Error()
+			return res
+		}
+	}
 
 	cfg := &tls.Config{
 		ServerName:         sni,
@@ -272,16 +283,16 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	return res
 }
 
-func (s *ServerService) probeRealityTarget(host string, port int) *RealityScanResult {
-	return s.probeRealityAddr(host, port, host, realityScanTimeout)
+func (s *ServerService) probeRealityTarget(host string, port int, xver int) *RealityScanResult {
+	return s.probeRealityAddr(host, port, host, realityScanTimeout, xver)
 }
 
-func (s *ServerService) ScanRealityTarget(target string) (*RealityScanResult, error) {
+func (s *ServerService) ScanRealityTarget(target string, xver int) (*RealityScanResult, error) {
 	host, port, err := splitRealityTarget(target)
 	if err != nil {
 		return nil, err
 	}
-	return s.probeRealityTarget(host, port), nil
+	return s.probeRealityTarget(host, port, xver), nil
 }
 
 func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {
@@ -336,7 +347,7 @@ func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanRes
 		go func(idx int, tk realityProbeTask) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			r := s.probeRealityAddr(tk.dialHost, tk.port, tk.sni, tk.timeout)
+			r := s.probeRealityAddr(tk.dialHost, tk.port, tk.sni, tk.timeout, 0)
 			if tk.bulk && r.TLSVersion == "" {
 				return
 			}
@@ -388,4 +399,56 @@ func sortRealityResults(results []*RealityScanResult) {
 		}
 		return a.LatencyMs - b.LatencyMs
 	})
+}
+
+// writeProxyProtocolHeader emits a PROXY protocol header describing the local
+// connection so a target that requires it (Nginx `proxy_protocol`, matching a
+// REALITY inbound's xver) accepts the probe instead of resetting it. xver 1
+// sends the human-readable v1 header; xver 2 sends the binary v2 header. The
+// addresses come from the already-dialed connection, so they are always a
+// consistent, real (src, dst) pair.
+func writeProxyProtocolHeader(conn net.Conn, xver int) error {
+	local, lok := conn.LocalAddr().(*net.TCPAddr)
+	remote, rok := conn.RemoteAddr().(*net.TCPAddr)
+	if !lok || !rok {
+		return fmt.Errorf("connection has no TCP addresses")
+	}
+	if xver >= 2 {
+		return writeProxyProtocolV2(conn, local, remote)
+	}
+	return writeProxyProtocolV1(conn, local, remote)
+}
+
+func writeProxyProtocolV1(conn net.Conn, local, remote *net.TCPAddr) error {
+	fam := "TCP4"
+	if local.IP.To4() == nil || remote.IP.To4() == nil {
+		fam = "TCP6"
+	}
+	header := fmt.Sprintf("PROXY %s %s %s %d %d\r\n", fam, local.IP.String(), remote.IP.String(), local.Port, remote.Port)
+	_, err := conn.Write([]byte(header))
+	return err
+}
+
+func writeProxyProtocolV2(conn net.Conn, local, remote *net.TCPAddr) error {
+	buf := []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
+	buf = append(buf, 0x21)
+
+	src4, dst4 := local.IP.To4(), remote.IP.To4()
+	if src4 != nil && dst4 != nil {
+		buf = append(buf, 0x11)
+		buf = append(buf, 0x00, 12)
+		buf = append(buf, src4...)
+		buf = append(buf, dst4...)
+		buf = append(buf, byte(local.Port>>8), byte(local.Port))
+		buf = append(buf, byte(remote.Port>>8), byte(remote.Port))
+	} else {
+		buf = append(buf, 0x21)
+		buf = append(buf, 0x00, 36)
+		buf = append(buf, local.IP.To16()...)
+		buf = append(buf, remote.IP.To16()...)
+		buf = append(buf, byte(local.Port>>8), byte(local.Port))
+		buf = append(buf, byte(remote.Port>>8), byte(remote.Port))
+	}
+	_, err := conn.Write(buf)
+	return err
 }

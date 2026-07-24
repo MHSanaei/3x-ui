@@ -97,7 +97,11 @@ func (g *schemaGen) typeSchema(t TypeRef) map[string]any {
 		}
 		return map[string]any{"type": "string"}
 	case KindInt:
-		return map[string]any{"type": "integer"}
+		sch := map[string]any{"type": "integer"}
+		if t.Name == "int64" {
+			sch["format"] = "int64"
+		}
+		return sch
 	case KindNumber:
 		return map[string]any{"type": "number"}
 	case KindBool:

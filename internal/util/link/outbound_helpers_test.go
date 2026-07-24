@@ -156,6 +156,51 @@ func TestParse_WSAndGRPCTransport(t *testing.T) {
 	}
 }
 
+func TestParse_XhttpExtraAndSnakeCaseFields(t *testing.T) {
+	q := url.Values{}
+	q.Set("type", "xhttp")
+	q.Set("encryption", "none")
+	q.Set("security", "none")
+	q.Set("mode", "auto")
+	q.Set("x_padding_bytes", "1-50")
+	q.Set("extra", `{"mode":"auto","xPaddingBytes":"1-50","scMaxEachPostBytes":"1000000"}`)
+	res, err := ParseLink("vless://uuid@h.com:443?" + q.Encode() + "#r")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	xh := streamSub(t, res, "xhttpSettings")
+	if xh["xPaddingBytes"] != "1-50" {
+		t.Errorf("xPaddingBytes = %v, want 1-50 (dropped from the snake_case/extra payload the emitter writes)", xh["xPaddingBytes"])
+	}
+	if xh["scMaxEachPostBytes"] != "1000000" {
+		t.Errorf("scMaxEachPostBytes = %v, want 1000000 (dropped from the extra blob)", xh["scMaxEachPostBytes"])
+	}
+}
+
+func TestParse_VmessWSPathWithoutHostKey(t *testing.T) {
+	inner := `{"v":"2","add":"h","port":443,"id":"11111111-2222-4333-8444-555555555555","net":"ws","path":"/api","tls":"tls"}`
+	link := "vmess://" + base64.StdEncoding.EncodeToString([]byte(inner))
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	wss := streamSub(t, res, "wsSettings")
+	if wss["path"] != "/api" {
+		t.Errorf("wsSettings path = %v, want /api (dropped when host key absent)", wss["path"])
+	}
+}
+
+func TestParse_Hysteria2VerifyPeerCertByName(t *testing.T) {
+	res, err := ParseLink("hysteria2://auth@h.com:443?security=tls&sni=decoy.com&vcn=real-cert.com#r")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	tls := streamSub(t, res, "tlsSettings")
+	if tls["verifyPeerCertByName"] != "real-cert.com" {
+		t.Errorf("verifyPeerCertByName = %v, want real-cert.com (vcn param ignored)", tls["verifyPeerCertByName"])
+	}
+}
+
 func TestParse_TCPHTTPHeader(t *testing.T) {
 	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&headerType=http&host=ex.com&path=%2F")
 	if err != nil {

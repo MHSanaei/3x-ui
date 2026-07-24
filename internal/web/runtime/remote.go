@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -669,6 +670,25 @@ type TrafficSnapshot struct {
 	// the per-GUID endpoint — OnlineEmails is the fallback then.
 	OnlineTree    map[string][]string
 	LastOnlineMap map[string]int64
+	// HostGroups carries the node's per-inbound host overrides (TLS/SNI/
+	// fingerprint), fetched only when the snapshot holds a not-yet-adopted tag.
+	HostGroups []*entity.HostGroup
+}
+
+// FetchHostGroups pulls the node's host overrides so a freshly adopted inbound
+// keeps its subscription TLS/SNI/fingerprint settings on the master.
+func (r *Remote) FetchHostGroups(ctx context.Context) ([]*entity.HostGroup, error) {
+	env, err := r.do(ctx, http.MethodGet, "panel/api/hosts/list", nil)
+	if err != nil {
+		return nil, err
+	}
+	var groups []*entity.HostGroup
+	if len(env.Obj) > 0 {
+		if err := json.Unmarshal(env.Obj, &groups); err != nil {
+			return nil, fmt.Errorf("decode host groups: %w", err)
+		}
+	}
+	return groups, nil
 }
 
 func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, error) {

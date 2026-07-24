@@ -2,9 +2,13 @@ package email
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
+	"mime"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strings"
 	"time"
@@ -29,6 +33,15 @@ func NewEmailService(settingService service.SettingService) *EmailService {
 	return &EmailService{settingService: settingService}
 }
 
+// smtpConnectTimeout bounds the TCP dial. smtpDeadline bounds every SMTP
+// protocol step after the connection is up, so a server that accepts the socket
+// but then stalls cannot block the sender goroutine (and leak its socket) long
+// after the caller's own timeout has already fired. smtpDeadline is a var only
+// so tests can shorten it.
+const smtpConnectTimeout = 10 * time.Second
+
+var smtpDeadline = 30 * time.Second
+
 // Send sends an HTML email to all configured recipients.
 func (s *EmailService) Send(subject, body string) error {
 	host, err := s.settingService.GetSmtpHost()
@@ -41,13 +54,19 @@ func (s *EmailService) Send(subject, body string) error {
 	}
 	username, _ := s.settingService.GetSmtpUsername()
 	password, _ := s.settingService.GetSmtpPassword()
+	fromAddr, _ := s.settingService.GetSmtpFrom()
+	fromName, _ := s.settingService.GetSmtpFromName()
 	toStr, _ := s.settingService.GetSmtpTo()
 	encryptionType, _ := s.settingService.GetSmtpEncryptionType()
 
-	from := username
+	from := fromAddr
+	if from == "" {
+		from = username
+	}
 	if from == "" {
 		return fmt.Errorf("smtp from not configured")
 	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -55,7 +74,7 @@ func (s *EmailService) Send(subject, body string) error {
 	}
 
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	msg := buildMessage(from, recipients, subject, body)
+	msg := buildMessage(from, fromName, recipients, subject, body)
 
 	// Authenticate only when credentials are set. Go's PlainAuth refuses to run
 	// over the unencrypted "none" transport, so an open relay must use nil auth.
@@ -72,7 +91,7 @@ func (s *EmailService) Send(subject, body string) error {
 		case "tls":
 			ch <- result{s.sendWithTLS(addr, auth, from, recipients, msg, host)}
 		case "starttls", "none":
-			ch <- result{smtp.SendMail(addr, auth, from, recipients, msg)}
+			ch <- result{s.sendPlain(addr, auth, from, recipients, msg, host)}
 		default:
 			ch <- result{fmt.Errorf("unknown SMTP encryption type: %s", encryptionType)}
 		}
@@ -98,10 +117,19 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	}
 	username, _ := s.settingService.GetSmtpUsername()
 	password, _ := s.settingService.GetSmtpPassword()
+	fromAddr, _ := s.settingService.GetSmtpFrom()
+	fromName, _ := s.settingService.GetSmtpFromName()
 	toStr, _ := s.settingService.GetSmtpTo()
 	encryptionType, _ := s.settingService.GetSmtpEncryptionType()
 
-	from := username
+	from := fromAddr
+	if from == "" {
+		from = username
+	}
+	if from == "" {
+		return SMTPTestResult{false, "send", "smtpFromNotConfigured"}
+	}
+	from, fromName = resolveFrom(from, fromName)
 
 	recipients := parseRecipients(toStr)
 	if len(recipients) == 0 {
@@ -128,6 +156,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 		return SMTPTestResult{false, "connect", classifySMTPError(err)}
 	}
 	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
 
 	// Stage 2: Handshake + Auth
 	client, err := smtp.NewClient(conn, host)
@@ -166,7 +195,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 		}
 	}
 
-	msg := buildMessage(from, recipients, "[3x-ui] Test email",
+	msg := buildMessage(from, fromName, recipients, "[3x-ui] Test email",
 		`<html><body style="font-family:monospace;font-size:14px">
 <h2>Test email from 3x-ui</h2>
 <p>If you received this, SMTP is configured correctly.</p>
@@ -188,7 +217,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 
 func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
 	// Dial with explicit timeout
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	dialer := &net.Dialer{Timeout: smtpConnectTimeout}
 	conn, err := (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: false,
@@ -197,6 +226,7 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 		return err
 	}
 	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
 
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
@@ -206,6 +236,56 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 
 	if err = client.Hello("localhost"); err != nil {
 		return err
+	}
+	if auth != nil {
+		if err = client.Auth(auth); err != nil {
+			return err
+		}
+	}
+	if err = client.Mail(from); err != nil {
+		return err
+	}
+	for _, r := range to {
+		if err = client.Rcpt(r); err != nil {
+			return err
+		}
+	}
+	w, err := client.Data()
+	if err != nil {
+		return err
+	}
+	if _, err = w.Write(msg); err != nil {
+		return err
+	}
+	return w.Close()
+}
+
+// sendPlain delivers over a plain TCP connection, opportunistically upgrading
+// via STARTTLS when the server advertises it (the behavior net/smtp.SendMail
+// gives the "starttls" and "none" transports). Unlike SendMail it dials with a
+// timeout and arms a connection deadline, so a server that never speaks or
+// stalls mid-protocol cannot block the sender goroutine past smtpDeadline.
+func (s *EmailService) sendPlain(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
+	conn, err := (&net.Dialer{Timeout: smtpConnectTimeout}).Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(smtpDeadline))
+
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if err = client.Hello("localhost"); err != nil {
+		return err
+	}
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		if err = client.StartTLS(&tls.Config{ServerName: host}); err != nil {
+			return err
+		}
 	}
 	if auth != nil {
 		if err = client.Auth(auth); err != nil {
@@ -280,18 +360,48 @@ func parseRecipients(toStr string) []string {
 	return out
 }
 
-func buildMessage(from string, to []string, subject, body string) []byte {
-	headers := map[string]string{
-		"From":         from,
-		"To":           strings.Join(to, ","),
-		"Subject":      subject,
-		"MIME-Version": "1.0",
-		"Content-Type": "text/html; charset=utf-8",
+// buildMessage assembles an RFC 5322 message. It emits the two mandatory
+// header fields (Date, From) plus Message-ID, so strict receivers such as Gmail
+// accept it and spam filters do not penalize a missing date or message id. The
+// From header is a proper name-addr ("Name" <addr>) via net/mail, and a
+// non-ASCII subject is RFC 2047 encoded.
+// headerSanitizer drops CR/LF so a crafted address or name cannot inject extra
+// header lines. Configured addresses are already validated at save time
+// (entity.AllSetting.CheckValid), this is defense in depth for buildMessage.
+var headerSanitizer = strings.NewReplacer("\r", "", "\n", "")
+
+func resolveFrom(from, fromName string) (string, string) {
+	parsed, err := mail.ParseAddress(from)
+	if err != nil {
+		return from, fromName
 	}
+	if fromName == "" {
+		fromName = parsed.Name
+	}
+	return parsed.Address, fromName
+}
+
+func buildMessage(fromAddr, fromName string, to []string, subject, body string) []byte {
+	fromAddr = headerSanitizer.Replace(fromAddr)
+	fromName = headerSanitizer.Replace(fromName)
+	from := (&mail.Address{Name: fromName, Address: fromAddr}).String()
+
+	domain := "localhost"
+	if at := strings.LastIndex(fromAddr, "@"); at >= 0 && at+1 < len(fromAddr) {
+		domain = fromAddr[at+1:]
+	}
+	var token [16]byte
+	_, _ = rand.Read(token[:])
+	messageID := fmt.Sprintf("<%s@%s>", hex.EncodeToString(token[:]), domain)
+
 	var msg strings.Builder
-	for k, v := range headers {
-		fmt.Fprintf(&msg, "%s: %s\r\n", k, v)
-	}
+	fmt.Fprintf(&msg, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
+	fmt.Fprintf(&msg, "From: %s\r\n", from)
+	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(to, ", "))
+	fmt.Fprintf(&msg, "Message-ID: %s\r\n", messageID)
+	fmt.Fprintf(&msg, "Subject: %s\r\n", mime.QEncoding.Encode("utf-8", subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/html; charset=utf-8\r\n")
 	msg.WriteString("\r\n")
 	msg.WriteString(body)
 	return []byte(msg.String())

@@ -137,3 +137,73 @@ func TestMigrateData_PreservesFalseDefaultedColumns(t *testing.T) {
 		t.Fatalf("disabled node re-enabled after migration")
 	}
 }
+
+func TestMigrateData_FailedCopyLeavesDestinationUntouched(t *testing.T) {
+	dsn := os.Getenv("XUI_TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("set XUI_TEST_PG_DSN to a reachable Postgres to run this test")
+	}
+
+	seedSource := func(username string) string {
+		t.Helper()
+		srcPath := t.TempDir() + "/x-ui.db"
+		src, err := gorm.Open(sqlite.Open(srcPath), &gorm.Config{Logger: logger.Discard})
+		if err != nil {
+			t.Fatalf("open sqlite: %v", err)
+		}
+		for _, m := range migrationModels() {
+			if err := src.AutoMigrate(m); err != nil {
+				t.Fatalf("automigrate %T: %v", m, err)
+			}
+		}
+		if err := src.Create(&model.User{Username: username, Password: "pw"}).Error; err != nil {
+			t.Fatalf("seed user: %v", err)
+		}
+		if sqlDB, err := src.DB(); err == nil {
+			sqlDB.Close()
+		}
+		return srcPath
+	}
+
+	dst, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("open postgres: %v", err)
+	}
+	if err := dst.Migrator().DropTable(migrationModels()...); err != nil {
+		t.Fatalf("drop tables: %v", err)
+	}
+
+	if err := MigrateData(seedSource("keep-me"), dsn); err != nil {
+		t.Fatalf("seed destination via MigrateData: %v", err)
+	}
+
+	brokenSrc := seedSource("evil")
+	breaker, err := gorm.Open(sqlite.Open(brokenSrc), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("reopen broken source: %v", err)
+	}
+	if err := breaker.Exec("DROP TABLE outbound_subscriptions").Error; err != nil {
+		t.Fatalf("drop table from broken source: %v", err)
+	}
+	if sqlDB, err := breaker.DB(); err == nil {
+		sqlDB.Close()
+	}
+
+	if err := MigrateData(brokenSrc, dsn); err == nil {
+		t.Fatal("MigrateData succeeded on a source missing outbound_subscriptions, want error")
+	}
+
+	var keepMe, evil int64
+	if err := dst.Model(&model.User{}).Where("username = ?", "keep-me").Count(&keepMe).Error; err != nil {
+		t.Fatalf("count keep-me: %v", err)
+	}
+	if err := dst.Model(&model.User{}).Where("username = ?", "evil").Count(&evil).Error; err != nil {
+		t.Fatalf("count evil: %v", err)
+	}
+	if keepMe != 1 {
+		t.Fatalf("previous destination data lost after failed migration: keep-me count = %d, want 1", keepMe)
+	}
+	if evil != 0 {
+		t.Fatalf("failed migration leaked partial rows: evil count = %d, want 0", evil)
+	}
+}

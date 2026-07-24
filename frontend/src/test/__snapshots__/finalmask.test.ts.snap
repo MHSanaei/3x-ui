@@ -167,6 +167,16 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
       },
       "type": "header-custom",
     },
+    {
+      "settings": {
+        "hostname": "mc.example.com",
+        "password": "s3cr3t",
+        "usernames": [
+          "Dream",
+        ],
+      },
+      "type": "xmc",
+    },
   ],
   "udp": [],
 }

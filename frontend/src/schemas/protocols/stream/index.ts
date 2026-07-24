@@ -52,10 +52,28 @@ const TransportNetworkSettingsSchema = z.discriminatedUnion('network', [
 // mode. The transportless branch accepts that shape (network absent), while a
 // present-but-invalid network still fails both branches so a typo can't slip
 // through. `network: never().optional()` reads as "this key must be absent".
-export const NetworkSettingsSchema = z.union([
-  TransportNetworkSettingsSchema,
-  z.object({ network: z.never().optional() }),
-]);
+//
+// The preprocess folds `method` — xray-core v26.7.11's preferred alias for
+// `network`, which wins over `network` when both are present — back into the
+// panel-canonical `network` key, so imported/pasted configs keyed on the
+// alias don't silently match the transportless branch and lose their
+// transport.
+export const NetworkSettingsSchema = z.preprocess(
+  (val) => {
+    if (val && typeof val === 'object' && 'method' in val) {
+      const { method, ...rest } = val as Record<string, unknown>;
+      if (typeof method === 'string' && method !== '') {
+        return { ...rest, network: method };
+      }
+      return rest;
+    }
+    return val;
+  },
+  z.union([
+    TransportNetworkSettingsSchema,
+    z.object({ network: z.never().optional() }),
+  ]),
+);
 export type NetworkSettings = z.infer<typeof NetworkSettingsSchema>;
 
 // Orthogonal extras that ride alongside the network and security branches.

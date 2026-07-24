@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +32,13 @@ import (
 
 //go:embed config.json
 var xrayTemplateConfig string
+
+const (
+	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
+	DefaultSubJsonUserAgentRegex  = ``
+	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	maxRegexLength                = 2048
+)
 
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
@@ -57,7 +65,7 @@ var defaultValueMap = map[string]string{
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
-	"remarkTemplate":              "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
+	"remarkTemplate":              DefaultRemarkTemplate,
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -73,6 +81,11 @@ var defaultValueMap = map[string]string{
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
+	"subJsonAutoDetect":           "false",
+	"subJsonAlwaysArray":          "false",
+	"subJsonUserAgentRegex":       "",
+	"subClashAutoDetect":          "false",
+	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
 	"subProfileUrl":               "",
@@ -142,12 +155,17 @@ var defaultValueMap = map[string]string{
 	"smtpCpu":           "80",
 	"smtpMemory":        "80",
 
+	// Consecutive failed observatory probes before an outbound.down event fires
+	"outboundDownThreshold": "3",
+
 	// Email (SMTP) notifications
 	"smtpEnable":         "false",
 	"smtpHost":           "",
 	"smtpPort":           "587",
 	"smtpUsername":       "",
 	"smtpPassword":       "",
+	"smtpFrom":           "",
+	"smtpFromName":       "",
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
 }
@@ -705,6 +723,26 @@ func (s *SettingService) GetSubJsonEnable() (bool, error) {
 	return s.getBool("subJsonEnable")
 }
 
+func (s *SettingService) GetSubJsonAutoDetect() (bool, error) {
+	return s.getBool("subJsonAutoDetect")
+}
+
+func (s *SettingService) GetSubJsonAlwaysArray() (bool, error) {
+	return s.getBool("subJsonAlwaysArray")
+}
+
+func (s *SettingService) GetSubJsonUserAgentRegex() (string, error) {
+	return s.getString("subJsonUserAgentRegex")
+}
+
+func (s *SettingService) GetSubClashAutoDetect() (bool, error) {
+	return s.getBool("subClashAutoDetect")
+}
+
+func (s *SettingService) GetSubClashUserAgentRegex() (string, error) {
+	return s.getString("subClashUserAgentRegex")
+}
+
 func (s *SettingService) GetSubTitle() (string, error) {
 	return s.getString("subTitle")
 }
@@ -1045,6 +1083,22 @@ func (s *SettingService) SetSmtpUsername(value string) error {
 	return s.setString("smtpUsername", value)
 }
 
+func (s *SettingService) GetSmtpFrom() (string, error) {
+	return s.getString("smtpFrom")
+}
+
+func (s *SettingService) SetSmtpFrom(value string) error {
+	return s.setString("smtpFrom", value)
+}
+
+func (s *SettingService) GetSmtpFromName() (string, error) {
+	return s.getString("smtpFromName")
+}
+
+func (s *SettingService) SetSmtpFromName(value string) error {
+	return s.setString("smtpFromName", value)
+}
+
 func (s *SettingService) GetSmtpPassword() (string, error) {
 	return s.getString("smtpPassword")
 }
@@ -1085,6 +1139,17 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
+// GetOutboundDownThreshold returns how many consecutive failed observatory
+// probes an outbound must accumulate before an outbound.down notification is
+// emitted. 1 preserves the legacy "notify on the first failed probe" behaviour.
+func (s *SettingService) GetOutboundDownThreshold() (int, error) {
+	return s.getInt("outboundDownThreshold")
+}
+
+func (s *SettingService) SetOutboundDownThreshold(value int) error {
+	return s.setInt("outboundDownThreshold", value)
+}
+
 // SecretClears marks redacted secrets the user explicitly emptied. Without a
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
@@ -1099,6 +1164,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		return err
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
+		return err
+	}
+	if err := validateSubUserAgentRegexes(allSetting); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -1139,6 +1207,48 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		}
 		return nil
 	})
+}
+
+func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
+	jsonPattern, err := validateSubUserAgentRegex("Xray JSON", allSetting.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	clashPattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	allSetting.SubJsonUserAgentRegex = jsonPattern
+	allSetting.SubClashUserAgentRegex = clashPattern
+	return nil
+}
+
+func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, error) {
+	pattern = strings.TrimSpace(pattern)
+	effectivePattern := pattern
+	if effectivePattern == "" {
+		effectivePattern = defaultPattern
+	}
+	if len(effectivePattern) > maxRegexLength {
+		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
+	}
+	if _, err := regexp.Compile(effectivePattern); err != nil {
+		return "", common.NewErrorf("%s User-Agent regex is invalid: %v", name, err)
+	}
+	// Return the original pattern (empty string if cleared) so the caller
+	// can distinguish "user explicitly set empty" from "user set a value".
+	// The empty value is stored in the DB and inherited as runtime default.
+	return pattern, nil
+}
+
+func ValidateRegex(pattern string) error {
+	if len(pattern) > maxRegexLength {
+		return common.NewErrorf("Regular expression must not exceed %d characters", maxRegexLength)
+	}
+	if _, err := regexp.Compile(pattern); err != nil {
+		return common.NewError("Regular expression is invalid:", err)
+	}
+	return nil
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, clears SecretClears) error {

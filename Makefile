@@ -68,8 +68,12 @@ build-fe: ## Build the Vite bundles into internal/web/dist
 build: build-fe ## Build the frontend then the Go binary
 	go build ./...
 
+.PHONY: build-storybook
+build-storybook: ## Build the static Storybook (compile-checks all stories)
+	cd $(FRONTEND) && npm run build-storybook
+
 # The PR gate. Matches ci.yml: codegen freshness, both linters, typecheck,
-# both test suites, and a full build.
+# both test suites, a full build, and the Storybook compile-check.
 .PHONY: verify
-verify: gen-check lint typecheck test build ## Full local gate (mirrors CI)
+verify: gen-check lint typecheck test build build-storybook ## Full local gate (mirrors CI)
 	@echo "verify: OK"

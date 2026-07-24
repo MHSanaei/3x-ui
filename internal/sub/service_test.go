@@ -1016,6 +1016,21 @@ func TestMarshalFinalMask_UnknownTypeIsDropped(t *testing.T) {
 	}
 }
 
+func TestMarshalFinalMask_KeepsXmcTcpMask(t *testing.T) {
+	fm := map[string]any{
+		"tcp": []any{
+			map[string]any{"type": "xmc", "settings": map[string]any{"password": "p"}},
+		},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for an xmc tcp mask")
+	}
+	if !strings.Contains(out, "xmc") {
+		t.Fatalf("marshaled finalmask dropped the xmc mask: %s", out)
+	}
+}
+
 func TestHasFinalMaskContent(t *testing.T) {
 	if hasFinalMaskContent(nil) {
 		t.Fatal("nil should not count as content")
@@ -1093,5 +1108,34 @@ func TestHysteriaHopPorts(t *testing.T) {
 				t.Fatalf("hysteriaHopPorts() = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestGenHysteriaLinkOmitsFinalMaskQueryParam(t *testing.T) {
+	stream := `{
+		"security":"tls",
+		"tlsSettings":{"serverName":"hy.sni","alpn":["h3"],"settings":{"fingerprint":"chrome"}},
+		"finalmask":{"udp":[{"type":"salamander","settings":{"password":"obfs-secret"}}]}
+	}`
+	in := &model.Inbound{
+		Listen:         "203.0.113.1",
+		Port:           443,
+		Protocol:       model.Hysteria,
+		Remark:         "hy2",
+		Settings:       `{"version":2,"clients":[{"auth":"hyauth","email":"user"}]}`,
+		StreamSettings: stream,
+	}
+	got := (&SubService{}).genHysteriaLink(in, "user")
+	if got == "" {
+		t.Fatal("expected hysteria2 link")
+	}
+	if strings.Contains(got, "fm=") {
+		t.Fatalf("hysteria2 subscription URI must not include non-standard fm param: %s", got)
+	}
+	if !strings.Contains(got, "obfs=salamander") {
+		t.Fatalf("missing standard obfs=salamander: %s", got)
+	}
+	if !strings.Contains(got, "obfs-password=obfs-secret") {
+		t.Fatalf("missing standard obfs-password: %s", got)
 	}
 }

@@ -82,6 +82,16 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                 onClearArmedChange={(armed) => updateSetting({ clearSmtpPassword: armed })} />
             </SettingListItem>
 
+            <SettingListItem paddings="small" title={t('pages.settings.smtpFrom')} description={t('pages.settings.smtpFromDesc')}>
+              <Input value={allSetting.smtpFrom} placeholder="user@gmail.com"
+                onChange={(e) => updateSetting({ smtpFrom: e.target.value })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.smtpFromName')} description={t('pages.settings.smtpFromNameDesc')}>
+              <Input value={allSetting.smtpFromName} placeholder="3x-ui"
+                onChange={(e) => updateSetting({ smtpFromName: e.target.value })} />
+            </SettingListItem>
+
             <SettingListItem paddings="small" title={t('pages.settings.smtpTo')} description={t('pages.settings.smtpToDesc')}>
               <Input value={allSetting.smtpTo} placeholder="admin@example.com, ops@example.com"
                 onChange={(e) => updateSetting({ smtpTo: e.target.value })} />
@@ -113,8 +123,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                       : <span><b>{stageLabel[testResult.stage || ''] || testResult.stage}:</b> {t('pages.settings.' + testResult.msg)}</span>
                   }
                   showIcon
-                  closable
-                  onClose={() => setTestResult(null)}
+                  closable={{ onClose: () => setTestResult(null) }}
                 />
               )}
             </Space>

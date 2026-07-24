@@ -2,6 +2,8 @@
 Description=x-ui Service
 After=network.target
 Wants=network.target
+StartLimitIntervalSec=180
+StartLimitBurst=10
 
 [Service]
 EnvironmentFile=-/etc/conf.d/x-ui

@@ -126,7 +126,13 @@ export default function RuleFormModal({
       outboundTag: v.outboundTag === '' ? undefined : v.outboundTag,
       balancerTag: v.balancerTag === '' ? undefined : v.balancerTag,
     };
+    const managedKeys = new Set(Object.keys(built));
     const out: Record<string, unknown> = {};
+    if (rule) {
+      for (const [key, value] of Object.entries(rule)) {
+        if (!managedKeys.has(key) && value !== undefined) out[key] = value;
+      }
+    }
     for (const [k, v] of Object.entries(built)) {
       if (v == null) continue;
       if (Array.isArray(v) && v.length === 0) continue;

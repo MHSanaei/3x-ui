@@ -109,6 +109,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "outboundDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "pageSize": {
             "maximum": 1000,
             "minimum": 0,
@@ -142,6 +147,12 @@
           "smtpEncryptionType": {
             "type": "string"
           },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
+            "type": "string"
+          },
           "smtpHost": {
             "type": "string"
           },
@@ -170,6 +181,9 @@
           "subCertFile": {
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "type": "boolean"
+          },
           "subClashEnable": {
             "type": "boolean"
           },
@@ -183,6 +197,9 @@
             "type": "string"
           },
           "subClashURI": {
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
             "type": "string"
           },
           "subDomain": {
@@ -206,6 +223,12 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -222,6 +245,9 @@
             "type": "string"
           },
           "subJsonURI": {
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
             "type": "string"
           },
           "subKeyFile": {
@@ -366,6 +392,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
           "remarkTemplate",
@@ -375,6 +402,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",
@@ -383,11 +412,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -395,12 +426,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -542,6 +576,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "outboundDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "pageSize": {
             "maximum": 1000,
             "minimum": 0,
@@ -575,6 +614,12 @@
           "smtpEncryptionType": {
             "type": "string"
           },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpFromName": {
+            "type": "string"
+          },
           "smtpHost": {
             "type": "string"
           },
@@ -603,6 +648,9 @@
           "subCertFile": {
             "type": "string"
           },
+          "subClashAutoDetect": {
+            "type": "boolean"
+          },
           "subClashEnable": {
             "type": "boolean"
           },
@@ -616,6 +664,9 @@
             "type": "string"
           },
           "subClashURI": {
+            "type": "string"
+          },
+          "subClashUserAgentRegex": {
             "type": "string"
           },
           "subDomain": {
@@ -639,6 +690,12 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subJsonAlwaysArray": {
+            "type": "boolean"
+          },
+          "subJsonAutoDetect": {
+            "type": "boolean"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -655,6 +712,9 @@
             "type": "string"
           },
           "subJsonURI": {
+            "type": "string"
+          },
+          "subJsonUserAgentRegex": {
             "type": "string"
           },
           "subKeyFile": {
@@ -806,6 +866,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
           "remarkTemplate",
@@ -815,6 +876,8 @@
           "smtpEnable",
           "smtpEnabledEvents",
           "smtpEncryptionType",
+          "smtpFrom",
+          "smtpFromName",
           "smtpHost",
           "smtpMemory",
           "smtpPassword",
@@ -823,11 +886,13 @@
           "smtpUsername",
           "subAnnounce",
           "subCertFile",
+          "subClashAutoDetect",
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
           "subClashRules",
           "subClashURI",
+          "subClashUserAgentRegex",
           "subDomain",
           "subEnable",
           "subEnableRouting",
@@ -835,12 +900,15 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subJsonAlwaysArray",
+          "subJsonAutoDetect",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
+          "subJsonUserAgentRegex",
           "subKeyFile",
           "subListen",
           "subPath",
@@ -881,6 +949,7 @@
       "ApiToken": {
         "properties": {
           "createdAt": {
+            "format": "int64",
             "type": "integer"
           },
           "enabled": {
@@ -910,6 +979,7 @@
         "properties": {
           "createdAt": {
             "example": 1736000000,
+            "format": "int64",
             "type": "integer"
           },
           "enabled": {
@@ -960,6 +1030,7 @@
           },
           "created_at": {
             "description": "Creation timestamp",
+            "format": "int64",
             "type": "integer"
           },
           "email": {
@@ -972,6 +1043,7 @@
           },
           "expiryTime": {
             "description": "Expiration timestamp",
+            "format": "int64",
             "type": "integer"
           },
           "flow": {
@@ -1033,14 +1105,17 @@
           },
           "tgId": {
             "description": "Telegram user ID for notifications",
+            "format": "int64",
             "type": "integer"
           },
           "totalGB": {
             "description": "Total traffic limit in GB",
+            "format": "int64",
             "type": "integer"
           },
           "updated_at": {
             "description": "Last update timestamp",
+            "format": "int64",
             "type": "integer"
           }
         },
@@ -1064,6 +1139,7 @@
             "type": "integer"
           },
           "createdAt": {
+            "format": "int64",
             "type": "integer"
           },
           "flowOverride": {
@@ -1096,6 +1172,7 @@
             "type": "string"
           },
           "createdAt": {
+            "format": "int64",
             "type": "integer"
           },
           "email": {
@@ -1105,6 +1182,7 @@
             "type": "boolean"
           },
           "expiryTime": {
+            "format": "int64",
             "type": "integer"
           },
           "flow": {
@@ -1148,12 +1226,15 @@
             "type": "string"
           },
           "tgId": {
+            "format": "int64",
             "type": "integer"
           },
           "totalGB": {
+            "format": "int64",
             "type": "integer"
           },
           "updatedAt": {
+            "format": "int64",
             "type": "integer"
           },
           "uuid": {
@@ -1206,6 +1287,7 @@
         "properties": {
           "down": {
             "example": 2097152,
+            "format": "int64",
             "type": "integer"
           },
           "email": {
@@ -1218,6 +1300,7 @@
           },
           "expiryTime": {
             "example": 1735689600000,
+            "format": "int64",
             "type": "integer"
           },
           "id": {
@@ -1230,6 +1313,7 @@
           },
           "lastOnline": {
             "example": 1735680000000,
+            "format": "int64",
             "type": "integer"
           },
           "reset": {
@@ -1242,10 +1326,12 @@
           },
           "total": {
             "example": 10737418240,
+            "format": "int64",
             "type": "integer"
           },
           "up": {
             "example": 1048576,
+            "format": "int64",
             "type": "integer"
           },
           "uuid": {
@@ -1316,6 +1402,7 @@
             "type": "array"
           },
           "createdAt": {
+            "format": "int64",
             "type": "integer"
           },
           "echConfigList": {
@@ -1431,6 +1518,7 @@
             "type": "array"
           },
           "updatedAt": {
+            "format": "int64",
             "type": "integer"
           },
           "verifyPeerCertByName": {
@@ -1660,6 +1748,7 @@
           },
           "down": {
             "description": "Download traffic in bytes",
+            "format": "int64",
             "type": "integer"
           },
           "enable": {
@@ -1669,6 +1758,7 @@
           },
           "expiryTime": {
             "description": "Expiration timestamp",
+            "format": "int64",
             "type": "integer"
           },
           "fallbackParent": {
@@ -1687,6 +1777,7 @@
           },
           "lastTrafficResetTime": {
             "description": "Last traffic reset timestamp",
+            "format": "int64",
             "type": "integer"
           },
           "listen": {
@@ -1756,6 +1847,7 @@
           },
           "total": {
             "description": "Total traffic limit in bytes",
+            "format": "int64",
             "type": "integer"
           },
           "trafficReset": {
@@ -1771,6 +1863,7 @@
           },
           "up": {
             "description": "Upload traffic in bytes",
+            "format": "int64",
             "type": "integer"
           }
         },
@@ -1966,10 +2059,6 @@
           "allowPrivateAddress": {
             "type": "boolean"
           },
-          "apiToken": {
-            "example": "abcdef0123456789",
-            "type": "string"
-          },
           "basePath": {
             "example": "/",
             "type": "string"
@@ -1982,6 +2071,7 @@
             "type": "boolean"
           },
           "configDirtyAt": {
+            "format": "int64",
             "type": "integer"
           },
           "cpuPct": {
@@ -1990,6 +2080,7 @@
           },
           "createdAt": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "depletedCount": {
@@ -2035,6 +2126,7 @@
           "lastHeartbeat": {
             "description": "unix seconds, 0 = never",
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "latencyMs": {
@@ -2051,10 +2143,12 @@
           },
           "netDown": {
             "example": 2097152,
+            "format": "int64",
             "type": "integer"
           },
           "netUp": {
             "example": 1048576,
+            "format": "int64",
             "type": "integer"
           },
           "onlineCount": {
@@ -2111,10 +2205,12 @@
           },
           "updatedAt": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "uptimeSecs": {
             "example": 86400,
+            "format": "int64",
             "type": "integer"
           },
           "xrayError": {
@@ -2133,7 +2229,6 @@
           "activeCount",
           "address",
           "allowPrivateAddress",
-          "apiToken",
           "basePath",
           "clientCount",
           "configDirty",
@@ -2172,10 +2267,320 @@
         ],
         "type": "object"
       },
+      "NodeMutationRequest": {
+        "description": "NodeMutationRequest is the node write/probe contract. ApiToken is accepted\nonly as input. On update, nil means keep the stored token; replacement and\nclearing are explicit and mutually exclusive.",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "allowPrivateAddress": {
+            "type": "boolean"
+          },
+          "apiToken": {
+            "nullable": true,
+            "type": "string"
+          },
+          "basePath": {
+            "type": "string"
+          },
+          "clearApiToken": {
+            "type": "boolean"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "inboundSyncMode": {
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "inboundTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outboundTag": {
+            "type": "string"
+          },
+          "pinnedCertSha256": {
+            "type": "string"
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "scheme": {
+            "enum": [
+              "http",
+              "https"
+            ],
+            "type": "string"
+          },
+          "tlsVerifyMode": {
+            "enum": [
+              "verify",
+              "skip",
+              "pin",
+              "mtls"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "allowPrivateAddress",
+          "basePath",
+          "enable",
+          "id",
+          "inboundSyncMode",
+          "inboundTags",
+          "name",
+          "outboundTag",
+          "pinnedCertSha256",
+          "port",
+          "remark",
+          "scheme",
+          "tlsVerifyMode"
+        ],
+        "type": "object"
+      },
+      "NodeView": {
+        "description": "NodeView is the browser/API read contract for nodes. Credentials are\nwrite-only: responses expose only whether a node has a token configured.",
+        "properties": {
+          "activeCount": {
+            "example": 20,
+            "type": "integer"
+          },
+          "address": {
+            "example": "node.example.com",
+            "type": "string"
+          },
+          "allowPrivateAddress": {
+            "example": false,
+            "type": "boolean"
+          },
+          "basePath": {
+            "example": "/",
+            "type": "string"
+          },
+          "clientCount": {
+            "example": 25,
+            "type": "integer"
+          },
+          "configDirty": {
+            "example": false,
+            "type": "boolean"
+          },
+          "configDirtyAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "cpuPct": {
+            "example": 12.5,
+            "type": "number"
+          },
+          "createdAt": {
+            "example": 1700000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "depletedCount": {
+            "example": 1,
+            "type": "integer"
+          },
+          "disabledCount": {
+            "example": 2,
+            "type": "integer"
+          },
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
+          "guid": {
+            "example": "node-guid",
+            "type": "string"
+          },
+          "hasApiToken": {
+            "example": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "inboundCount": {
+            "example": 3,
+            "type": "integer"
+          },
+          "inboundSyncMode": {
+            "example": "all",
+            "type": "string"
+          },
+          "inboundTags": {
+            "example": [
+              "in-443-tcp"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "lastHeartbeat": {
+            "example": 1700000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "latencyMs": {
+            "example": 42,
+            "type": "integer"
+          },
+          "memPct": {
+            "example": 45.2,
+            "type": "number"
+          },
+          "name": {
+            "example": "edge-1",
+            "type": "string"
+          },
+          "netDown": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          },
+          "netUp": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "onlineCount": {
+            "example": 5,
+            "type": "integer"
+          },
+          "outboundTag": {
+            "example": "direct",
+            "type": "string"
+          },
+          "panelVersion": {
+            "example": "v3.x.x",
+            "type": "string"
+          },
+          "parentGuid": {
+            "type": "string"
+          },
+          "pinnedCertSha256": {
+            "type": "string"
+          },
+          "port": {
+            "example": 2053,
+            "type": "integer"
+          },
+          "remark": {
+            "example": "Primary edge",
+            "type": "string"
+          },
+          "scheme": {
+            "example": "https",
+            "type": "string"
+          },
+          "status": {
+            "example": "online",
+            "type": "string"
+          },
+          "tlsVerifyMode": {
+            "example": "verify",
+            "type": "string"
+          },
+          "transitive": {
+            "example": false,
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "example": 1700003600,
+            "format": "int64",
+            "type": "integer"
+          },
+          "uptimeSecs": {
+            "example": 86400,
+            "format": "int64",
+            "type": "integer"
+          },
+          "xrayError": {
+            "type": "string"
+          },
+          "xrayState": {
+            "example": "running",
+            "type": "string"
+          },
+          "xrayVersion": {
+            "example": "25.10.31",
+            "type": "string"
+          }
+        },
+        "required": [
+          "activeCount",
+          "address",
+          "allowPrivateAddress",
+          "basePath",
+          "clientCount",
+          "configDirty",
+          "configDirtyAt",
+          "cpuPct",
+          "createdAt",
+          "depletedCount",
+          "disabledCount",
+          "enable",
+          "guid",
+          "hasApiToken",
+          "id",
+          "inboundCount",
+          "inboundSyncMode",
+          "inboundTags",
+          "lastError",
+          "lastHeartbeat",
+          "latencyMs",
+          "memPct",
+          "name",
+          "netDown",
+          "netUp",
+          "onlineCount",
+          "outboundTag",
+          "panelVersion",
+          "pinnedCertSha256",
+          "port",
+          "remark",
+          "scheme",
+          "status",
+          "tlsVerifyMode",
+          "updatedAt",
+          "uptimeSecs",
+          "xrayError",
+          "xrayState",
+          "xrayVersion"
+        ],
+        "type": "object"
+      },
       "OutboundTraffics": {
         "description": "OutboundTraffics tracks traffic statistics for Xray outbound connections.",
         "properties": {
           "down": {
+            "format": "int64",
             "type": "integer"
           },
           "id": {
@@ -2185,9 +2590,11 @@
             "type": "string"
           },
           "total": {
+            "format": "int64",
             "type": "integer"
           },
           "up": {
+            "format": "int64",
             "type": "integer"
           }
         },
@@ -2209,6 +2616,7 @@
           },
           "finishedAt": {
             "example": 1735689612,
+            "format": "int64",
             "type": "integer"
           },
           "runId": {
@@ -2255,6 +2663,7 @@
           },
           "uptimeSecs": {
             "example": 86400,
+            "format": "int64",
             "type": "integer"
           },
           "xrayError": {
@@ -4064,7 +4473,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Stream the SQLite database file as an attachment. Use as a manual backup.",
+        "summary": "Stream a full database backup as an attachment: the SQLite .db file on SQLite panels, or a pg_dump custom-format archive (.dump) on PostgreSQL panels. Use as a manual backup.",
         "operationId": "get_panel_api_server_getDb",
         "responses": {
           "200": {
@@ -4808,7 +5217,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Restore the panel DB from an uploaded SQLite file (multipart form, field name \"db\"). The panel restarts after restore. Destructive.",
+        "summary": "Restore the panel DB from an uploaded backup (multipart form, field name \"db\"). SQLite panels accept a SQLite database (.db) or a SQLite migration dump (.dump); PostgreSQL panels accept a pg_dump archive (.dump), a SQLite database (.db), or a SQLite migration dump. The panel restarts after restore. Destructive.",
         "operationId": "post_panel_api_server_importDB",
         "responses": {
           "200": {
@@ -7416,7 +7825,7 @@
                     "obj": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Node"
+                        "$ref": "#/components/schemas/NodeView"
                       }
                     }
                   }
@@ -7425,48 +7834,48 @@
                   "success": true,
                   "obj": [
                     {
-                      "activeCount": 23,
-                      "address": "node1.example.com",
+                      "activeCount": 20,
+                      "address": "node.example.com",
                       "allowPrivateAddress": false,
-                      "apiToken": "abcdef0123456789",
                       "basePath": "/",
-                      "clientCount": 27,
+                      "clientCount": 25,
                       "configDirty": false,
                       "configDirtyAt": 0,
-                      "cpuPct": 23.5,
+                      "cpuPct": 12.5,
                       "createdAt": 1700000000,
                       "depletedCount": 1,
-                      "disabledCount": 3,
+                      "disabledCount": 2,
                       "enable": true,
-                      "guid": "",
+                      "guid": "node-guid",
+                      "hasApiToken": true,
                       "id": 1,
-                      "inboundCount": 5,
+                      "inboundCount": 3,
                       "inboundSyncMode": "all",
                       "inboundTags": [
-                        ""
+                        "in-443-tcp"
                       ],
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
-                      "memPct": 45.1,
-                      "name": "de-fra-1",
-                      "netDown": 2097152,
-                      "netUp": 1048576,
-                      "onlineCount": 3,
-                      "outboundTag": "",
+                      "memPct": 45.2,
+                      "name": "edge-1",
+                      "netDown": 1048576,
+                      "netUp": 2097152,
+                      "onlineCount": 5,
+                      "outboundTag": "direct",
                       "panelVersion": "v3.x.x",
                       "parentGuid": "",
                       "pinnedCertSha256": "",
                       "port": 2053,
-                      "remark": "",
+                      "remark": "Primary edge",
                       "scheme": "https",
                       "status": "online",
                       "tlsVerifyMode": "verify",
                       "transitive": false,
-                      "updatedAt": 1700000000,
+                      "updatedAt": 1700003600,
                       "uptimeSecs": 86400,
                       "xrayError": "",
-                      "xrayState": "",
+                      "xrayState": "running",
                       "xrayVersion": "25.10.31"
                     }
                   ]
@@ -7588,7 +7997,57 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/NodeView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "activeCount": 20,
+                    "address": "node.example.com",
+                    "allowPrivateAddress": false,
+                    "basePath": "/",
+                    "clientCount": 25,
+                    "configDirty": false,
+                    "configDirtyAt": 0,
+                    "cpuPct": 12.5,
+                    "createdAt": 1700000000,
+                    "depletedCount": 1,
+                    "disabledCount": 2,
+                    "enable": true,
+                    "guid": "node-guid",
+                    "hasApiToken": true,
+                    "id": 1,
+                    "inboundCount": 3,
+                    "inboundSyncMode": "all",
+                    "inboundTags": [
+                      "in-443-tcp"
+                    ],
+                    "lastError": "",
+                    "lastHeartbeat": 1700000000,
+                    "latencyMs": 42,
+                    "memPct": 45.2,
+                    "name": "edge-1",
+                    "netDown": 1048576,
+                    "netUp": 2097152,
+                    "onlineCount": 5,
+                    "outboundTag": "direct",
+                    "panelVersion": "v3.x.x",
+                    "parentGuid": "",
+                    "pinnedCertSha256": "",
+                    "port": 2053,
+                    "remark": "Primary edge",
+                    "scheme": "https",
+                    "status": "online",
+                    "tlsVerifyMode": "verify",
+                    "transitive": false,
+                    "updatedAt": 1700003600,
+                    "uptimeSecs": 86400,
+                    "xrayError": "",
+                    "xrayState": "running",
+                    "xrayVersion": "25.10.31"
                   }
                 }
               }
@@ -7650,7 +8109,7 @@
         "tags": [
           "Nodes"
         ],
-        "summary": "Register a new remote node. Provide its URL, apiToken, and optional remark / allowPrivateAddress flag.",
+        "summary": "Register a new remote node. Provide its URL, write-only apiToken, and optional remark / allowPrivateAddress flag. Responses expose hasApiToken only.",
         "operationId": "post_panel_api_nodes_add",
         "requestBody": {
           "required": true,
@@ -7667,6 +8126,7 @@
                 "port": 2053,
                 "basePath": "/",
                 "apiToken": "abcdef...",
+                "clearApiToken": false,
                 "enable": true,
                 "allowPrivateAddress": false
               }
@@ -7687,7 +8147,57 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/NodeView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "activeCount": 20,
+                    "address": "node.example.com",
+                    "allowPrivateAddress": false,
+                    "basePath": "/",
+                    "clientCount": 25,
+                    "configDirty": false,
+                    "configDirtyAt": 0,
+                    "cpuPct": 12.5,
+                    "createdAt": 1700000000,
+                    "depletedCount": 1,
+                    "disabledCount": 2,
+                    "enable": true,
+                    "guid": "node-guid",
+                    "hasApiToken": true,
+                    "id": 1,
+                    "inboundCount": 3,
+                    "inboundSyncMode": "all",
+                    "inboundTags": [
+                      "in-443-tcp"
+                    ],
+                    "lastError": "",
+                    "lastHeartbeat": 1700000000,
+                    "latencyMs": 42,
+                    "memPct": 45.2,
+                    "name": "edge-1",
+                    "netDown": 1048576,
+                    "netUp": 2097152,
+                    "onlineCount": 5,
+                    "outboundTag": "direct",
+                    "panelVersion": "v3.x.x",
+                    "parentGuid": "",
+                    "pinnedCertSha256": "",
+                    "port": 2053,
+                    "remark": "Primary edge",
+                    "scheme": "https",
+                    "status": "online",
+                    "tlsVerifyMode": "verify",
+                    "transitive": false,
+                    "updatedAt": 1700003600,
+                    "uptimeSecs": 86400,
+                    "xrayError": "",
+                    "xrayState": "running",
+                    "xrayVersion": "25.10.31"
                   }
                 }
               }
@@ -7701,7 +8211,7 @@
         "tags": [
           "Nodes"
         ],
-        "summary": "Replace a node’s connection details. Same body shape as /add.",
+        "summary": "Replace a node’s connection details. apiToken is write-only: omit it or send an empty string to keep the stored token; set clearApiToken=true to clear it.",
         "operationId": "post_panel_api_nodes_update_id",
         "parameters": [
           {
@@ -7728,7 +8238,8 @@
                 "address": "node1.example.com",
                 "port": 2053,
                 "basePath": "/",
-                "apiToken": "abcdef...",
+                "apiToken": "",
+                "clearApiToken": false,
                 "enable": true,
                 "allowPrivateAddress": false
               }
@@ -9211,6 +9722,53 @@
         }
       }
     },
+    "/panel/api/setting/validateRegex": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Validate any regular expression with the backend Go RE2 compiler without saving it.",
+        "operationId": "post_panel_api_setting_validateRegex",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "regex": "(?m)^general-purpose$"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/setting/updateUser": {
       "post": {
         "tags": [
@@ -10424,7 +10982,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Default path: /sub/:subid.",
+        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. Default path: /sub/:subid.",
         "operationId": "get_subPath_subid",
         "parameters": [
           {
@@ -10432,6 +10990,15 @@
             "in": "path",
             "required": true,
             "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Set to \"info\" to get the subscription status view-model as JSON instead of the links.",
             "schema": {
               "type": "string"
             }

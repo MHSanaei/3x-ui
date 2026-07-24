@@ -32,7 +32,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
   function importDb() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = isPostgres ? '.dump' : '.db';
+    fileInput.accept = '.dump,.db';
     fileInput.addEventListener('change', async (e) => {
       const dbFile = (e.target as HTMLInputElement).files?.[0];
       if (!dbFile) return;
@@ -86,15 +86,15 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
           <Button type="primary" aria-label={t('pages.index.exportDatabase')} onClick={exportDb} icon={<DownloadOutlined />} />
         </div>
 
-        <div className="backup-item">
-          <div className="backup-meta">
-            <div className="backup-title">{t('pages.index.migrationDownload')}</div>
-            <div className="backup-description">
-              {isPostgres ? t('pages.index.migrationDownloadPgDesc') : t('pages.index.migrationDownloadDesc')}
+        {isPostgres && (
+          <div className="backup-item">
+            <div className="backup-meta">
+              <div className="backup-title">{t('pages.index.migrationDownload')}</div>
+              <div className="backup-description">{t('pages.index.migrationDownloadPgDesc')}</div>
             </div>
+            <Button type="primary" aria-label={t('pages.index.migrationDownload')} onClick={exportMigration} icon={<DownloadOutlined />} />
           </div>
-          <Button type="primary" aria-label={t('pages.index.migrationDownload')} onClick={exportMigration} icon={<DownloadOutlined />} />
-        </div>
+        )}
 
         <div className="backup-item">
           <div className="backup-meta">

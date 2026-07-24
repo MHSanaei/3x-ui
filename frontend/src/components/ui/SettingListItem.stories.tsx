@@ -7,7 +7,22 @@ const meta = {
   title: 'UI/SettingListItem',
   component: SettingListItem,
   tags: ['autodocs'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'padded',
+    docs: {
+      description: {
+        component:
+          'Two-column settings row: a title and description on the left, and a control (Switch, InputNumber, …) on the right. Associates the title with the control via `aria-labelledby` for accessibility.',
+      },
+    },
+  },
+  argTypes: {
+    title: { description: 'Setting name shown on the left.' },
+    description: { description: 'Secondary help text under the title.' },
+    control: { description: 'The control rendered on the right (Switch, InputNumber, …).' },
+    children: { description: 'Alternative to `control`; used when no explicit control is passed.' },
+    paddings: { description: 'Row density: `default` or the tighter `small`.' },
+  },
 } satisfies Meta<typeof SettingListItem>;
 
 export default meta;

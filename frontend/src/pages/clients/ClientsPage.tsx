@@ -62,10 +62,12 @@ import { useDatepicker } from '@/hooks/useDatepicker';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import ClientSpeedTag, { isActiveSpeed } from '@/components/clients/ClientSpeedTag';
+import ClientCardComment from '@/components/clients/ClientCardComment';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
+import { SPEED_COLUMN_WIDTH, SPEED_TAG_CLASS_NAME, SPEED_TAG_STYLE } from '@/components/utility/speedTagStyle';
 const ClientFormModal = lazy(() => import('./ClientFormModal'));
 const ClientInfoModal = lazy(() => import('./ClientInfoModal'));
 const ClientQrModal = lazy(() => import('./ClientQrModal'));
@@ -818,7 +820,7 @@ export default function ClientsPage() {
         <div className="email-cell">
           <span className="email">{record.email}</span>
           {record.subId && <span className="sub" title={record.subId}>{record.subId}</span>}
-          {record.comment && <span className="sub" title={record.comment}>{record.comment}</span>}
+          <ClientCardComment comment={record.comment} className="sub" />
         </div>
       ),
     },
@@ -907,12 +909,14 @@ export default function ClientsPage() {
     {
       title: t('pages.clients.speed'),
       key: 'speed',
-      width: 110,
+      width: SPEED_COLUMN_WIDTH,
       align: 'center',
       render: (_v, record) => {
         const speed = clientSpeed[record.email];
-        if (!isActiveSpeed(speed)) return <Tag color="default">—</Tag>;
-        return <ClientSpeedTag speed={speed} />;
+        if (!isActiveSpeed(speed)) {
+          return <Tag color="default" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>—</Tag>;
+        }
+        return <ClientSpeedTag speed={speed} tableCell />;
       },
     },
     {
@@ -1212,7 +1216,7 @@ export default function ClientsPage() {
                           value={sortValueFor(sortColumn, sortOrder)}
                           aria-label={t('sort')}
                           size={isMobile ? 'small' : 'middle'}
-                          suffixIcon={<SortAscendingOutlined />}
+                          suffix={<SortAscendingOutlined />}
                           style={{ minWidth: isMobile ? 130 : 200 }}
                           onChange={(value) => {
                             const opt = SORT_OPTIONS.find((o) => o.value === value);
@@ -1433,6 +1437,7 @@ export default function ClientsPage() {
                                       </Dropdown>
                                     </div>
                                   </div>
+                                  <ClientCardComment comment={row.comment} />
                                   <ClientTrafficCell
                                     compact
                                     up={row.traffic?.up}

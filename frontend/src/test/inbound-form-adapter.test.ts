@@ -155,6 +155,22 @@ describe('transportless streamSettings (wireguard / tunnel)', () => {
     }
   });
 
+  it('fills sockopt schema defaults for a stored inbound missing tproxy (#5956)', () => {
+    const values = rawInboundToFormValues({
+      port: 443,
+      protocol: 'vless',
+      settings: { clients: [] },
+      streamSettings: JSON.stringify({
+        network: 'tcp',
+        security: 'none',
+        sockopt: { tcpFastOpen: true },
+      }),
+    });
+    const stream = values.streamSettings as { sockopt?: { tproxy?: string; tcpFastOpen?: boolean } };
+    expect(stream.sockopt?.tproxy).toBe('off');
+    expect(stream.sockopt?.tcpFastOpen).toBe(true);
+  });
+
   it('still rejects a present-but-invalid network value', () => {
     const result = InboundFormSchema.safeParse({
       port: 12345,
@@ -351,5 +367,37 @@ describe('legacy xhttp session keys on edit (#5621)', () => {
     expect(out.sessionIDKey).toBe('x_raw');
     expect(out.sessionPlacement).toBeUndefined();
     expect(out.sessionKey).toBeUndefined();
+  });
+});
+
+describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
+  const xmuxRow: RawInboundRow = {
+    ...vlessRow,
+    streamSettings: {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: {
+        path: '/xh',
+        mode: 'auto',
+        xmux: { maxConcurrency: '1-2' },
+      },
+    },
+  };
+
+  it('rawInboundToFormValues does not resurrect a non-zero maxConnections', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    expect(xhttp.enableXmux).toBe(true);
+    const xmux = xhttp.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
+    expect(xmux.maxConnections).toBe(0);
+  });
+
+  it('formValuesToWirePayload keeps maxConcurrency on an unedited re-save', () => {
+    const values = rawInboundToFormValues(xmuxRow);
+    const payload = formValuesToWirePayload(values);
+    const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
+    const xmux = stream.xhttpSettings.xmux as Record<string, unknown>;
+    expect(xmux.maxConcurrency).toBe('1-2');
   });
 });

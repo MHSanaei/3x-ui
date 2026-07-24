@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"math"
 	"net"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -50,11 +51,15 @@ type AllSetting struct {
 	SmtpPort           int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"`
 	SmtpUsername       string `json:"smtpUsername" form:"smtpUsername"`
 	SmtpPassword       string `json:"smtpPassword" form:"smtpPassword"`
+	SmtpFrom           string `json:"smtpFrom" form:"smtpFrom"`
+	SmtpFromName       string `json:"smtpFromName" form:"smtpFromName"`
 	SmtpTo             string `json:"smtpTo" form:"smtpTo"`
 	SmtpEncryptionType string `json:"smtpEncryptionType" form:"smtpEncryptionType"`
 	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`
 	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
+
+	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
@@ -62,6 +67,11 @@ type AllSetting struct {
 
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`
+	SubJsonAutoDetect           bool   `json:"subJsonAutoDetect" form:"subJsonAutoDetect"`
+	SubJsonAlwaysArray          bool   `json:"subJsonAlwaysArray" form:"subJsonAlwaysArray"`
+	SubJsonUserAgentRegex       string `json:"subJsonUserAgentRegex" form:"subJsonUserAgentRegex"`
+	SubClashAutoDetect          bool   `json:"subClashAutoDetect" form:"subClashAutoDetect"`
+	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`
@@ -164,7 +174,7 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("Sub port is not a valid port:", s.SubPort)
 	}
 
-	if (s.SubPort == s.WebPort) && (s.WebListen == s.SubListen) {
+	if (s.SubPort == s.WebPort) && listenAddressesConflict(s.WebListen, s.SubListen) {
 		return common.NewError("Sub and Web could not use same ip:port, ", s.SubListen, ":", s.SubPort, " & ", s.WebListen, ":", s.WebPort)
 	}
 
@@ -241,7 +251,34 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("time location not exist:", s.TimeLocation)
 	}
 
+	if s.SmtpFrom != "" {
+		if _, err := mail.ParseAddress(s.SmtpFrom); err != nil {
+			return common.NewError("SMTP from address is not valid:", s.SmtpFrom)
+		}
+	}
+
 	return nil
+}
+
+// listenAddressesConflict reports whether two listen addresses on the same port
+// would collide at bind time. A wildcard listen ("", "0.0.0.0", "::") overlaps
+// every address, so it conflicts with anything on that port; two specific
+// addresses conflict only when identical.
+func listenAddressesConflict(a, b string) bool {
+	if a == b {
+		return true
+	}
+	return isWildcardListen(a) || isWildcardListen(b)
+}
+
+func isWildcardListen(listen string) bool {
+	if listen == "" {
+		return true
+	}
+	if ip := net.ParseIP(listen); ip != nil {
+		return ip.IsUnspecified()
+	}
+	return false
 }
 
 type HostGroup struct {

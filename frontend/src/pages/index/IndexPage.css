@@ -12,7 +12,7 @@
   flex-wrap: nowrap;
 }
 
-.index-page .action > span:not(.anticon):not(.tg-icon) {
+.index-page .action > span:not(.anticon) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -34,11 +34,6 @@
   align-items: center;
   gap: 4px;
   margin-inline-end: 0;
-}
-
-.index-page .tg-icon {
-  display: inline-block;
-  vertical-align: -2px;
 }
 
 .index-page .ip-toggle-icon {
