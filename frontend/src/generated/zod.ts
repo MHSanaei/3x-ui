@@ -451,6 +451,7 @@ export const InboundSchema = z.object({
   tag: z.string(),
   total: z.number().int(),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+  trafficResetDay: z.number().int().min(1).max(31),
   up: z.number().int(),
 });
 export type Inbound = z.infer<typeof InboundSchema>;

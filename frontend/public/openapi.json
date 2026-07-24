@@ -1860,6 +1860,13 @@
             ],
             "type": "string"
           },
+          "trafficResetDay": {
+            "description": "Day of month for monthly traffic resets",
+            "example": 1,
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
           "up": {
             "description": "Upload traffic in bytes",
             "format": "int64",
@@ -1886,6 +1893,7 @@
           "tag",
           "total",
           "trafficReset",
+          "trafficResetDay",
           "up"
         ],
         "type": "object"
@@ -3151,6 +3159,7 @@
                       "tag": "in-443-tcp",
                       "total": 0,
                       "trafficReset": "never",
+                      "trafficResetDay": 1,
                       "up": 0
                     }
                   ]

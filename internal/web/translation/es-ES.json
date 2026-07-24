@@ -451,6 +451,7 @@
       "importInbound": "Importar un entrante",
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDesc": "Reiniciar automáticamente el contador de tráfico en intervalos especificados",
+      "periodicTrafficResetDay": "Día de reinicio mensual",
       "lastReset": "Último reinicio",
       "periodicTrafficReset": {
         "never": "Nunca",

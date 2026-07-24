@@ -451,6 +451,7 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDesc": "按指定间隔自动重置流量计数器",
+      "periodicTrafficResetDay": "每月重置日",
       "lastReset": "上次重置",
       "periodicTrafficReset": {
         "never": "从不",
