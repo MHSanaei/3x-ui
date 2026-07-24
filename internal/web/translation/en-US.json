@@ -1917,6 +1917,18 @@
         "psk": "PreShared Key",
         "domainStrategy": "Domain Strategy"
       },
+      "amneziawg": {
+        "serverPrivateKey": "Server Private Key",
+        "serverPublicKey": "Server Public Key",
+        "serverPsk": "Server Pre-Shared Key",
+        "obfuscationParams": "Obfuscation Parameters",
+        "junkPacketSizes": "Junk Packet Sizes",
+        "magicHeaders": "Magic Headers",
+        "subnet": "Subnet",
+        "ip": "IP",
+        "primary": "Primary",
+        "secondary": "Secondary"
+      },
       "tun": {
         "nameDesc": "The name of the TUN interface. Default is 'xray0'",
         "mtuDesc": "Maximum Transmission Unit. The maximum size of data packets. Default is 1500",

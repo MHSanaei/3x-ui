@@ -25,7 +25,7 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 
 ## Features
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
+- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, AmneziaWG, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
 - **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
 - **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
@@ -141,6 +141,8 @@ The image bundles Fail2ban (enabled by default) to enforce per-client **IP limit
 ```bash
 docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 ```
+
+> **AmneziaWG inbounds** require Docker on the host machine. Each AWG inbound runs as a separate privileged Docker container (`amnezia-awg-<id>`) built from `amneziavpn/amneziawg-go:latest`. The panel builds and manages these containers automatically — no manual Docker configuration needed beyond having the Docker engine installed and the `docker` CLI available in `PATH`.
 
 ## Environment Variables
 

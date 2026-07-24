@@ -1,5 +1,6 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
+import type { AmneziaWgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
@@ -240,6 +241,48 @@ export function createDefaultTunnelInboundSettings(): TunnelInboundSettings {
   };
 }
 
+function randomHeaderRange(min: number, max: number): string {
+  const a = RandomUtil.randomInteger(min, max);
+  const b = RandomUtil.randomInteger(a, max);
+  return `${a}-${b}`;
+}
+
+export function createDefaultAmneziaWgInboundSettings(): AmneziaWgInboundSettings {
+  const min = 5;
+  const maxVal = 2147483647;
+
+  const h1 = randomHeaderRange(min, maxVal);
+  const h1End = parseInt(h1.split('-')[1], 10);
+  const h2 = randomHeaderRange(h1End, maxVal);
+  const h2End = parseInt(h2.split('-')[1], 10);
+  const h3 = randomHeaderRange(h2End, maxVal);
+  const h3End = parseInt(h3.split('-')[1], 10);
+  const h4 = randomHeaderRange(h3End, maxVal);
+
+  const server = {
+    privateKey: '',
+    publicKey: '',
+    psk: '',
+    jc: 5,
+    jmin: 10,
+    jmax: 50,
+    s1: 30,
+    s2: 45,
+    s3: 10,
+    s4: 5,
+    h1,
+    h2,
+    h3,
+    h4,
+    subnetIp: '10.8.1.0',
+    subnetCidr: 24,
+    serverPort: 55424,
+    primaryDns: '8.8.8.8',
+    secondaryDns: '8.8.4.4',
+  };
+  return { server, clients: [] };
+}
+
 export function createDefaultTunInboundSettings(): TunInboundSettings {
   return {
     name: 'xray0',
@@ -290,7 +333,8 @@ export type AnyInboundSettings =
   | TunInboundSettings
   | TunnelInboundSettings
   | WireguardInboundSettings
-  | MtprotoInboundSettings;
+  | MtprotoInboundSettings
+  | AmneziaWgInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -305,6 +349,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
+    case 'amneziawg':   return createDefaultAmneziaWgInboundSettings();
     default:            return null;
   }
 }
