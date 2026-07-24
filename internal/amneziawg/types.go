@@ -79,10 +79,36 @@ type ServerSettings struct {
 	// Empty means auto-detect.
 	ExternalInterface string `json:"externalInterface,omitempty"`
 
-	// Obfuscation20 is embedded (not nested) so its fields (jc, jmin, s1...)
-	// sit flat in the JSON alongside the rest of the server block, matching
-	// the upstream AmneziaWG PR's schema.
-	Obfuscation20
+	// Obfuscation20's fields, repeated flat (not embedded) rather than
+	// nested under their own key: encoding/json would happily inline an
+	// embedded Obfuscation20 the same way, but the frontend's Go->Zod/TS
+	// generator (tools/openapigen) does not — it emits a genuinely nested
+	// `obfuscation20` object, which would silently diverge from the real
+	// wire JSON. See Obfuscation() below for the manager-facing conversion.
+	Jc   int    `json:"jc"`
+	Jmin int    `json:"jmin"`
+	Jmax int    `json:"jmax"`
+	S1   int    `json:"s1"`
+	S2   int    `json:"s2"`
+	S3   int    `json:"s3"`
+	S4   int    `json:"s4"`
+	H1   string `json:"h1"`
+	H2   string `json:"h2"`
+	H3   string `json:"h3"`
+	H4   string `json:"h4"`
+	I1   string `json:"i1,omitempty"`
+}
+
+// Obfuscation extracts the Obfuscation20 parameter set from a ServerSettings
+// block, for callers (the Manager, ValidateObfuscation) that want the
+// grouped type rather than the flat wire fields.
+func (s ServerSettings) Obfuscation() Obfuscation20 {
+	return Obfuscation20{
+		Jc: s.Jc, Jmin: s.Jmin, Jmax: s.Jmax,
+		S1: s.S1, S2: s.S2, S3: s.S3, S4: s.S4,
+		H1: s.H1, H2: s.H2, H3: s.H3, H4: s.H4,
+		I1: s.I1,
+	}
 }
 
 // InboundSettings is the full Settings JSON shape stored on an AmneziaWG

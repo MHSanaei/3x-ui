@@ -39,7 +39,7 @@ const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto', 'amneziawg',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -306,6 +306,14 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const amneziawgIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'amneziawg') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
   const mtprotoIds = useMemo(() => {
     const ids = new Set<number>();
     for (const row of inbounds || []) {
@@ -355,6 +363,11 @@ export default function ClientFormModal({
   const showWireguard = useMemo(
     () => (inboundIds || []).some((id) => wireguardIds.has(id)),
     [inboundIds, wireguardIds],
+  );
+
+  const showAmneziawg = useMemo(
+    () => (inboundIds || []).some((id) => amneziawgIds.has(id)),
+    [inboundIds, amneziawgIds],
   );
 
   const showMtproto = useMemo(
@@ -528,7 +541,11 @@ export default function ClientFormModal({
       clientPayload.reverse = { tag: reverseTagValue };
     }
 
-    if (showWireguard) {
+    if (showWireguard || showAmneziawg) {
+      // AmneziaWG peers are wire-identical to WireGuard peers (same
+      // privateKey/publicKey/preSharedKey/allowedIPs fields on model.Client),
+      // so both protocols share this one field set — see wgPrivateKey etc.
+      // below and the AmneziaWG-labeled variants of the same inputs.
       clientPayload.privateKey = values.wgPrivateKey;
       clientPayload.publicKey = values.wgPublicKey;
       if (values.wgPreSharedKey) {
@@ -846,9 +863,11 @@ export default function ClientFormModal({
                           />
                         </FormField>
                       )}
-                      {showWireguard && (
+                      {(showWireguard || showAmneziawg) && (
                         <>
-                          <Form.Item label={t('pages.clients.wireguardPrivateKey')}>
+                          <Form.Item
+                            label={t(showAmneziawg ? 'pages.clients.amneziaWgPrivateKey' : 'pages.clients.wireguardPrivateKey')}
+                          >
                             <Space.Compact style={{ display: 'flex' }}>
                               <Input
                                 value={wgPrivateKey}
@@ -862,18 +881,24 @@ export default function ClientFormModal({
                               <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenerateWireguardKeys} />
                             </Space.Compact>
                           </Form.Item>
-                          <FormField name="wgPublicKey" label={t('pages.clients.wireguardPublicKey')}>
+                          <FormField
+                            name="wgPublicKey"
+                            label={t(showAmneziawg ? 'pages.clients.amneziaWgPublicKey' : 'pages.clients.wireguardPublicKey')}
+                          >
                             <Input disabled />
                           </FormField>
-                          <FormField name="wgPreSharedKey" label={t('pages.clients.wireguardPreSharedKey')}>
+                          <FormField
+                            name="wgPreSharedKey"
+                            label={t(showAmneziawg ? 'pages.clients.amneziaWgPreSharedKey' : 'pages.clients.wireguardPreSharedKey')}
+                          >
                             <Input />
                           </FormField>
                           <FormField
                             name="wgAllowedIPs"
-                            label={t('pages.clients.wireguardAllowedIPs')}
-                            extra={t('pages.clients.wireguardAllowedIPsHint')}
+                            label={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPs' : 'pages.clients.wireguardAllowedIPs')}
+                            extra={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPsHint' : 'pages.clients.wireguardAllowedIPsHint')}
                           >
-                            <Input placeholder="10.0.0.2/32" />
+                            <Input placeholder="10.8.1.2/32" />
                           </FormField>
                         </>
                       )}

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -304,6 +305,10 @@ type InboundOption struct {
 	WgMtu          int    `json:"wgMtu,omitempty"`
 	WgDns          string `json:"wgDns,omitempty"`
 	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
+	// AwgServer carries the full AmneziaWG server block (keys, subnet,
+	// obfuscation params) so the clients page can render a downloadable
+	// per-client .conf without a second round trip.
+	AwgServer *amneziawg.ServerSettings `json:"awgServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -365,6 +370,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
 			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
+			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -399,6 +405,20 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 		}
 	}
 	return publicKey, parsed.MTU, parsed.DNS
+}
+
+// inboundAmneziaWGServer returns the AmneziaWG server block for the clients
+// page's config-download builder, or nil when the inbound isn't AmneziaWG or
+// its settings don't parse.
+func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerSettings {
+	if protocol != string(model.AmneziaWG) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return nil
+	}
+	return parsed.Server
 }
 
 // inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by

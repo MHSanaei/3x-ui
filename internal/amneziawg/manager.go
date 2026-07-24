@@ -70,7 +70,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		PublicKey:         server.PublicKey,
 		Address:           []string{serverAddress(server.SubnetIP, server.SubnetCIDR)},
 		MTU:               server.MTU,
-		Obfuscation:       server.Obfuscation20,
+		Obfuscation:       server.Obfuscation(),
 		Peers:             peers,
 		ExternalInterface: server.ExternalInterface,
 	}, true
