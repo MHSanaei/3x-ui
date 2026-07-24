@@ -1784,7 +1784,8 @@ export const SCHEMAS: Record<string, unknown> = {
           "mixed",
           "tunnel",
           "tun",
-          "mtproto"
+          "mtproto",
+          "amneziawg"
         ],
         "example": "vless",
         "type": "string"
@@ -1927,6 +1928,15 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "InboundOption": {
     "properties": {
+      "awgServer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServerSettings"
+          }
+        ],
+        "description": "AwgServer carries the full AmneziaWG server block (keys, subnet,\nobfuscation params) so the clients page can render a downloadable\nper-client .conf without a second round trip.",
+        "nullable": true
+      },
       "enable": {
         "example": true,
         "type": "boolean"
@@ -2760,6 +2770,92 @@ export const SCHEMAS: Record<string, unknown> = {
       "tls13",
       "tlsVersion",
       "x25519"
+    ],
+    "type": "object"
+  },
+  "ServerSettings": {
+    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
+    "properties": {
+      "externalInterface": {
+        "description": "ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.\nEmpty means auto-detect.",
+        "type": "string"
+      },
+      "h1": {
+        "type": "string"
+      },
+      "h2": {
+        "type": "string"
+      },
+      "h3": {
+        "type": "string"
+      },
+      "h4": {
+        "type": "string"
+      },
+      "i1": {
+        "type": "string"
+      },
+      "jc": {
+        "description": "Obfuscation20's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation20 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation20` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
+        "type": "integer"
+      },
+      "jmax": {
+        "type": "integer"
+      },
+      "jmin": {
+        "type": "integer"
+      },
+      "mtu": {
+        "type": "integer"
+      },
+      "primaryDns": {
+        "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      },
+      "s1": {
+        "type": "integer"
+      },
+      "s2": {
+        "type": "integer"
+      },
+      "s3": {
+        "type": "integer"
+      },
+      "s4": {
+        "type": "integer"
+      },
+      "secondaryDns": {
+        "type": "string"
+      },
+      "subnetCidr": {
+        "type": "integer"
+      },
+      "subnetIp": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "jc",
+      "jmax",
+      "jmin",
+      "privateKey",
+      "publicKey",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "subnetCidr",
+      "subnetIp"
     ],
     "type": "object"
   },

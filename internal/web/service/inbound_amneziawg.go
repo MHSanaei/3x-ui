@@ -109,12 +109,24 @@ func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 // obfuscation set, the default tunnel subnet/DNS, and a freshly generated
 // keypair.
 func defaultAmneziaWGServer() (*amneziawg.ServerSettings, error) {
+	obf := amneziawg.GenerateObfuscation20("default")
 	server := &amneziawg.ServerSettings{
-		SubnetIP:      "10.8.1.0",
-		SubnetCIDR:    24,
-		PrimaryDNS:    "8.8.8.8",
-		SecondaryDNS:  "8.8.4.4",
-		Obfuscation20: amneziawg.GenerateObfuscation20("default"),
+		SubnetIP:     "10.8.1.0",
+		SubnetCIDR:   24,
+		PrimaryDNS:   "8.8.8.8",
+		SecondaryDNS: "8.8.4.4",
+		Jc:           obf.Jc,
+		Jmin:         obf.Jmin,
+		Jmax:         obf.Jmax,
+		S1:           obf.S1,
+		S2:           obf.S2,
+		S3:           obf.S3,
+		S4:           obf.S4,
+		H1:           obf.H1,
+		H2:           obf.H2,
+		H3:           obf.H3,
+		H4:           obf.H4,
+		I1:           obf.I1,
 	}
 	if err := fillAmneziaWGServerKeys(server); err != nil {
 		return nil, err
@@ -173,7 +185,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 			return err
 		}
 	}
-	if err := amneziawg.ValidateObfuscation(parsed.Server.Obfuscation20); err != nil {
+	if err := amneziawg.ValidateObfuscation(parsed.Server.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 
