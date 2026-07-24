@@ -729,6 +729,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -1149,6 +1152,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
 	oldInbound, err := s.GetInbound(inbound.Id)
