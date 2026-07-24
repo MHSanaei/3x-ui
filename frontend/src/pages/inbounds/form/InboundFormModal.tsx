@@ -160,6 +160,7 @@ function buildAddModeValues(): InboundFormValues {
     tag: '',
     enable: true,
     trafficReset: 'never',
+    trafficRatio: 1,
   });
 }
 
@@ -609,6 +610,15 @@ export default function InboundFormModal({
           }}
         />
       </Form.Item>
+
+      <FormField
+        name="trafficRatio"
+        label={t('pages.inbounds.trafficRatio')}
+        tooltip={t('pages.inbounds.trafficRatioDesc')}
+        transform={{ output: (v) => (Number(v) > 0 ? Number(v) : 1) }}
+      >
+        <InputNumber min={0.1} step={0.1} />
+      </FormField>
 
       <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
         <Select

@@ -375,6 +375,8 @@
       "monitorDesc": "Tüm IP'leri dinlemek için boş bırakın",
       "meansNoLimit": "= Sınırsız. (birim: GB)",
       "totalFlow": "Toplam Akış",
+      "trafficRatio": "Trafik Oranı",
+      "trafficRatioDesc": "Kaydedilen kullanım çarpanı (1 = gerçek; 2 faturalananı ikiye katlar). Inbound toplamları ham kalır. Farklı oranlı birden fazla inbound'a bağlıysa en düşük id'li inbound'un oranı kullanılır.",
       "leaveBlankToNeverExpire": "Süresiz olması için boş bırakın",
       "noRecommendKeepDefault": "Varsayılan ayarda bırakılması önerilir",
       "certificatePath": "Dosya Yolu",

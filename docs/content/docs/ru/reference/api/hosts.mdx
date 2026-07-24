@@ -103,7 +103,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/get/{id}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{id}","method":"post"},{"path":"/panel/api/hosts/del/{id}","method":"post"},{"path":"/panel/api/hosts/setEnable/{id}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/get/{groupId}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{groupId}","method":"post"},{"path":"/panel/api/hosts/del/{groupId}","method":"post"},{"path":"/panel/api/hosts/setEnable/{groupId}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/add","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
     </>
   );
 }

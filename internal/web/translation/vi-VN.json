@@ -375,6 +375,8 @@
       "monitorDesc": "Mặc định để trống",
       "meansNoLimit": "= Không giới hạn. (đơn vị: GB)",
       "totalFlow": "Tổng lưu lượng",
+      "trafficRatio": "Tỷ lệ lưu lượng",
+      "trafficRatioDesc": "Hệ số lưu lượng đã ghi (1 = thật; 2 nhân đôi tính phí). Tổng inbound giữ nguyên. Client gắn nhiều inbound khác hệ số thì dùng hệ số của inbound id thấp nhất.",
       "leaveBlankToNeverExpire": "Để trống để không bao giờ hết hạn",
       "noRecommendKeepDefault": "Không yêu cầu đặc biệt để giữ nguyên cài đặt mặc định",
       "certificatePath": "Đường dẫn tập",

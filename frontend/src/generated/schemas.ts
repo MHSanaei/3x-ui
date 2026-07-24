@@ -1823,6 +1823,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficRatio": {
+        "example": 1,
+        "exclusiveMinimum": true,
+        "minimum": 0,
+        "type": "number"
+      },
       "trafficReset": {
         "description": "Traffic reset schedule",
         "enum": [
@@ -1859,6 +1865,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSortIndex",
       "tag",
       "total",
+      "trafficRatio",
       "trafficReset",
       "up"
     ],

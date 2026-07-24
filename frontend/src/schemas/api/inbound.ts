@@ -28,6 +28,7 @@ export const InboundCoreSchema = z.object({
   up: z.number().int().min(0).default(0),
   down: z.number().int().min(0).default(0),
   total: z.number().int().min(0).default(0),
+  trafficRatio: z.number().positive().default(1),
   remark: z.string().default(''),
   enable: z.boolean().default(true),
   expiryTime: z.number().int().default(0),

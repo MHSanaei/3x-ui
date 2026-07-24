@@ -116,6 +116,9 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
+	if err := normalizeInboundTrafficRatio(); err != nil {
+		return err
+	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
 		return err
 	}
@@ -895,6 +898,18 @@ func normalizeInboundSubSortIndex() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized sub_sort_index on %d inbound(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+func normalizeInboundTrafficRatio() error {
+	res := db.Exec("UPDATE inbounds SET traffic_ratio = 1 WHERE traffic_ratio IS NULL OR traffic_ratio <= 0")
+	if res.Error != nil {
+		log.Printf("Error normalizing inbound traffic_ratio: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized traffic_ratio on %d inbound(s)", res.RowsAffected)
 	}
 	return nil
 }

@@ -1849,6 +1849,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "trafficRatio": {
+            "example": 1,
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "type": "number"
+          },
           "trafficReset": {
             "description": "Traffic reset schedule",
             "enum": [
@@ -1885,6 +1891,7 @@
           "subSortIndex",
           "tag",
           "total",
+          "trafficRatio",
           "trafficReset",
           "up"
         ],
@@ -3150,6 +3157,7 @@
                       "subSortIndex": 1,
                       "tag": "in-443-tcp",
                       "total": 0,
+                      "trafficRatio": 1,
                       "trafficReset": "never",
                       "up": 0
                     }
