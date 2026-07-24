@@ -362,6 +362,11 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return false, dErr
 		}
 	}
+	if oldInbound.Protocol == model.AmneziaWG {
+		if dErr := defaultAmneziaWGClients(oldInbound.Settings, existingClients, clients, interfaceClients); dErr != nil {
+			return false, dErr
+		}
+	}
 
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
@@ -465,6 +470,8 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			needRestart = true
 		} else if oldInbound.Protocol == model.MTProto {
 			inboundSvc.applyLocalMtproto(oldInbound.Id)
+		} else if oldInbound.Protocol == model.AmneziaWG {
+			inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 		} else {
 			for _, client := range clients {
 				if len(client.Email) == 0 {
@@ -596,10 +603,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 
-	// WireGuard keys are never rotated by an edit: when the incoming payload omits
-	// them (a metadata-only change), carry the stored credentials forward so the
-	// settings JSON and the running peer keep the client's identity.
-	if oldInbound.Protocol == model.WireGuard && clientIndex >= 0 && clientIndex < len(oldClients) {
+	// WireGuard/AmneziaWG keys are never rotated by an edit: when the incoming
+	// payload omits them (a metadata-only change), carry the stored credentials
+	// forward so the settings JSON and the running peer keep the client's identity.
+	if (oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG) && clientIndex >= 0 && clientIndex < len(oldClients) {
 		old := oldClients[clientIndex]
 		if clients[0].PrivateKey == "" {
 			clients[0].PrivateKey = old.PrivateKey
@@ -676,7 +683,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			if v, ok2 := newMap["subId"].(string); ok2 {
 				clients[0].SubID = v
 			}
-			if oldInbound.Protocol == model.WireGuard {
+			if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
 				newMap["privateKey"] = clients[0].PrivateKey
 				newMap["publicKey"] = clients[0].PublicKey
 				newMap["allowedIPs"] = clients[0].AllowedIPs
@@ -843,6 +850,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				needRestart = true
 			} else if oldInbound.Protocol == model.MTProto {
 				inboundSvc.applyLocalMtproto(oldInbound.Id)
+			} else if oldInbound.Protocol == model.AmneziaWG {
+				inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 			} else {
 				if oldClients[clientIndex].Enable {
 					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
@@ -1024,6 +1033,10 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 				// it (removing the last client stops the sidecar) regardless of the
 				// client's enable state.
 				inboundSvc.applyLocalMtproto(oldInbound.Id)
+			} else if oldInbound.Protocol == model.AmneziaWG {
+				// Same reasoning as MTProto above: the interface config is
+				// regenerated from the full peer set, so any delete re-applies it.
+				inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
 			} else if needApiDel {
 				// Local inbound: a disabled client isn't in the running Xray, so only
 				// a live one (needApiDel) needs an API removal.

@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -616,6 +617,8 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genMtprotoLink(inbound, email)
 	case "wireguard":
 		return s.genWireguardLink(inbound, email)
+	case "amneziawg":
+		return s.genAmneziaWGLink(inbound, email)
 	}
 	return ""
 }
@@ -658,6 +661,82 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	}
 	if client.KeepAlive > 0 {
 		params["keepalive"] = strconv.Itoa(client.KeepAlive)
+	}
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
+}
+
+// genAmneziaWGLink builds a per-client amneziawg:// share link mirroring
+// genWireguardLink: the client's private key is the userinfo, the server
+// public key and obfuscation parameters plus the client's tunnel address ride
+// in the query. Returns "" when the client or server has no key.
+func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.AmneziaWG {
+		return ""
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+		return ""
+	}
+	server := parsed.Server
+
+	resolved, ok := s.clientForLink(inbound, email)
+	if !ok || resolved.PrivateKey == "" {
+		return ""
+	}
+	client := &resolved
+
+	link := fmt.Sprintf("amneziawg://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
+	params := make(map[string]string)
+	if server.PublicKey != "" {
+		params["publickey"] = server.PublicKey
+	}
+	if joined := strings.Join(client.AllowedIPs, ","); joined != "" {
+		params["address"] = joined
+	}
+	if server.MTU > 0 {
+		params["mtu"] = strconv.Itoa(server.MTU)
+	}
+	var dnsParts []string
+	if server.PrimaryDNS != "" {
+		dnsParts = append(dnsParts, server.PrimaryDNS)
+	}
+	if server.SecondaryDNS != "" {
+		dnsParts = append(dnsParts, server.SecondaryDNS)
+	}
+	if len(dnsParts) > 0 {
+		params["dns"] = strings.Join(dnsParts, ",")
+	}
+	if client.PreSharedKey != "" {
+		params["presharedkey"] = client.PreSharedKey
+	}
+	if client.KeepAlive > 0 {
+		params["keepalive"] = strconv.Itoa(client.KeepAlive)
+	}
+	params["jc"] = strconv.Itoa(server.Jc)
+	params["jmin"] = strconv.Itoa(server.Jmin)
+	params["jmax"] = strconv.Itoa(server.Jmax)
+	params["s1"] = strconv.Itoa(server.S1)
+	params["s2"] = strconv.Itoa(server.S2)
+	if server.S3 > 0 {
+		params["s3"] = strconv.Itoa(server.S3)
+	}
+	if server.S4 > 0 {
+		params["s4"] = strconv.Itoa(server.S4)
+	}
+	if server.H1 != "" {
+		params["h1"] = server.H1
+	}
+	if server.H2 != "" {
+		params["h2"] = server.H2
+	}
+	if server.H3 != "" {
+		params["h3"] = server.H3
+	}
+	if server.H4 != "" {
+		params["h4"] = server.H4
+	}
+	if server.I1 != "" {
+		params["i1"] = server.I1
 	}
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
