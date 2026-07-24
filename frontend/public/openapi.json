@@ -5816,6 +5816,47 @@
         }
       }
     },
+    "/panel/api/clients/get/tgId/{tgId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.",
+        "operationId": "get_panel_api_clients_get_tgId_tgId",
+        "parameters": [
+          {
+            "name": "tgId",
+            "in": "path",
+            "required": true,
+            "description": "Telegram user ID (numeric).",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/add": {
       "post": {
         "tags": [

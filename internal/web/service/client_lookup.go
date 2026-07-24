@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -101,6 +102,15 @@ func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int,
 		return nil, err
 	}
 	return ids, nil
+}
+
+func (s *ClientService) GetRecordsByTgID(tgId int64) ([]*model.ClientRecord, error) {
+	if tgId <= 0 {
+		return nil, errors.New("tg_id must be a positive integer")
+	}
+	var rows []*model.ClientRecord
+	err := database.GetDB().Where("tg_id = ?", tgId).Find(&rows).Error
+	return rows, err
 }
 
 func (s *ClientService) GetByID(id int) (*model.ClientRecord, error) {

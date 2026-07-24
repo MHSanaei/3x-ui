@@ -131,6 +131,9 @@ func initModels() error {
 	if err := migrateVmessRemovedSecurities(); err != nil {
 		return err
 	}
+	if err := migrateTgIDIndex(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -882,6 +885,17 @@ func migrateVmessRemovedSecurities() error {
 		log.Printf("Rewrote removed vmess security values on %d inbound(s)", migrated)
 	}
 	return nil
+}
+
+// migrateTgIDIndex creates an index on the clients.tg_id column so that
+// lookups by Telegram ID do not require a full table scan. The index tag
+// on the struct field already causes AutoMigrate to create it on new
+// installations; the explicit migration ensures existing databases get it.
+func migrateTgIDIndex() error {
+	if db.Migrator().HasIndex(&model.ClientRecord{}, "idx_clients_tg_id") {
+		return nil
+	}
+	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
 }
 
 // normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
