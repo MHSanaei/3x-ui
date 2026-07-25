@@ -33,7 +33,6 @@ import { FormField } from '@/components/form/rhf';
 import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
-import { useOutboundTags } from '@/api/queries/useOutboundTags';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -104,8 +103,6 @@ type Values = ClientFormValues & {
   wgPreSharedKey: string;
   wgAllowedIPs: string;
   awgForwardedPorts: string;
-  awgRouteThroughXray: boolean;
-  awgRouteOutboundTag: string;
   secret: string;
   adTag: string;
 };
@@ -136,8 +133,6 @@ const EMPTY: Values = {
   wgPreSharedKey: '',
   wgAllowedIPs: '',
   awgForwardedPorts: '',
-  awgRouteThroughXray: false,
-  awgRouteOutboundTag: '',
   secret: '',
   adTag: '',
 };
@@ -198,8 +193,6 @@ export default function ClientFormModal({
   const subId = useWatch({ control: methods.control, name: 'subId' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
-  const awgRouteThroughXray = useWatch({ control: methods.control, name: 'awgRouteThroughXray' });
-  const { data: outboundTags } = useOutboundTags();
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
   const {
     fields: externalLinkFields,
@@ -253,8 +246,6 @@ export default function ClientFormModal({
         wgPreSharedKey: client.preSharedKey || '',
         wgAllowedIPs: client.allowedIPs || '',
         awgForwardedPorts: client.forwardedPorts || '',
-        awgRouteThroughXray: !!client.routeThroughXray,
-        awgRouteOutboundTag: client.routeOutboundTag || '',
         secret: client.secret || '',
         adTag: client.adTag || '',
       };
@@ -570,13 +561,10 @@ export default function ClientFormModal({
       if (allowedIPs.length > 0) {
         clientPayload.allowedIPs = allowedIPs;
       }
-      // Port-forwarding and RouteViaXray have no WireGuard equivalent —
-      // Xray-native WireGuard has no host-level iptables layer to hang
-      // per-client DNAT/TPROXY off of.
+      // Port-forwarding has no WireGuard equivalent — Xray-native WireGuard
+      // has no host-level iptables layer to hang per-client DNAT off of.
       if (showAmneziawg) {
         clientPayload.forwardedPorts = values.awgForwardedPorts.trim();
-        clientPayload.routeThroughXray = values.awgRouteThroughXray;
-        clientPayload.routeOutboundTag = values.awgRouteThroughXray ? values.awgRouteOutboundTag.trim() : '';
       }
     }
 
@@ -927,30 +915,6 @@ export default function ClientFormModal({
                               extra={t('pages.clients.amneziaWgForwardedPortsHint')}
                             >
                               <Input placeholder="80, 443, 8000-8100" />
-                            </FormField>
-                          )}
-                          {showAmneziawg && (
-                            <FormField
-                              name="awgRouteThroughXray"
-                              label={t('pages.clients.amneziaWgRouteThroughXray')}
-                              tooltip={t('pages.clients.amneziaWgRouteThroughXrayHint')}
-                              valueProp="checked"
-                            >
-                              <Switch />
-                            </FormField>
-                          )}
-                          {showAmneziawg && awgRouteThroughXray && (
-                            <FormField
-                              name="awgRouteOutboundTag"
-                              label={t('pages.clients.amneziaWgRouteOutboundTag')}
-                              tooltip={t('pages.clients.amneziaWgRouteOutboundTagHint')}
-                            >
-                              <Select
-                                allowClear
-                                showSearch
-                                placeholder={t('pages.clients.amneziaWgRouteOutboundTagPlaceholder')}
-                                options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
-                              />
                             </FormField>
                           )}
                         </>

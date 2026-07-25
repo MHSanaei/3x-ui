@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Button, Form, Input, InputNumber, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
-import { useFormContext, useWatch } from 'react-hook-form';
 
 import { FormField } from '@/components/form/rhf';
-import { useOutboundTags } from '@/api/queries/useOutboundTags';
 
 interface AmneziawgFieldsProps {
   awgPubKey: string;
@@ -14,9 +12,6 @@ interface AmneziawgFieldsProps {
 
 export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInboundAwgObfuscation }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
-  const { control } = useFormContext();
-  const routeThroughXray = useWatch({ control, name: 'settings.server.routeThroughXray' }) as boolean | undefined;
-  const { data: outboundTags } = useOutboundTags();
   return (
     <>
       <Form.Item label={t('pages.xray.amneziawg.privateKey')}>
@@ -73,28 +68,6 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
       >
         <Input placeholder="eth0" />
       </FormField>
-      <FormField
-        name={['settings', 'server', 'routeThroughXray']}
-        label={t('pages.xray.amneziawg.routeThroughXray')}
-        tooltip={t('pages.xray.amneziawg.routeThroughXrayHint')}
-        valueProp="checked"
-      >
-        <Switch />
-      </FormField>
-      {routeThroughXray && (
-        <FormField
-          name={['settings', 'server', 'routeOutboundTag']}
-          label={t('pages.xray.amneziawg.routeOutboundTag')}
-          tooltip={t('pages.xray.amneziawg.routeOutboundTagHint')}
-        >
-          <Select
-            allowClear
-            showSearch
-            placeholder={t('pages.xray.amneziawg.routeOutboundTagPlaceholder')}
-            options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
-          />
-        </FormField>
-      )}
       <Form.Item label={t('pages.xray.amneziawg.obfuscation')}>
         <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}

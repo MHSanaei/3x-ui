@@ -5,25 +5,35 @@ import (
 	"hash/fnv"
 )
 
-// EgressPort is the loopback port of the single Xray dokodemo-door bridge
-// every RouteThroughXray peer's TPROXY'd traffic lands on, shared across
-// every AmneziaWG instance. defaultPostUpDown's TPROXY rules target it, and
-// internal/web/service's injectAmneziawgEgress listens on it. A single
-// shared bridge — rather than one per peer — keeps this a plain constant
-// instead of state two independent reconcile loops would otherwise have to
-// agree on at runtime; per-peer distinction happens downstream, in Xray's
-// own router, matched by each peer's TPROXY-preserved tunnel source IP (see
-// EgressTag).
-const EgressPort = 63100
+// EgressBasePort is the first loopback port used for an AmneziaWG inbound's
+// own Xray TPROXY bridge. Every enabled inbound gets one bridge, always
+// present by default (no opt-in flag): defaultPostUpDown's TPROXY rules
+// redirect every peer's traffic there unconditionally, and
+// internal/web/service's injectAmneziawgEgress creates the matching
+// dokodemo-door inbound, tagged with the AmneziaWG inbound's own real tag so
+// it's already selectable in the panel's stock Routing page (the same
+// mechanism that already makes an mtproto inbound's own bridge routable
+// there — see injectMtprotoEgress). Whether — and where — that traffic
+// actually goes anywhere beyond Xray's default routing is entirely up to
+// whatever rules the admin adds on that page; this package and
+// injectAmneziawgEgress never generate a routing rule themselves.
+//
+// EgressPortForInbound derives each inbound's own port deterministically
+// from its id, so the two independent reconcile loops (this package's
+// PostUp generator and the Xray-config generator, in a different package)
+// never have to agree on a runtime-negotiated value.
+const EgressBasePort = 63100
 
-// EgressTag is the tag of that shared bridge inbound in the generated Xray
-// config. Routing rules that distinguish peers match against it as their
-// inboundTag.
-const EgressTag = "amneziawg-egress"
+// EgressPortForInbound returns the loopback port of one AmneziaWG inbound's
+// own Xray TPROXY bridge.
+func EgressPortForInbound(inboundID int) int {
+	return EgressBasePort + inboundID
+}
 
 // EgressFwmark and EgressTable are the fwmark and policy-routing table
-// TPROXY needs to deliver a routed peer's packets to a local socket even
-// though their destination is never one of this host's own addresses.
+// TPROXY needs to deliver a peer's packets to a local socket even though
+// their destination is never one of this host's own addresses. Shared by
+// every AmneziaWG instance's bridge — only the port differs per instance.
 // Chosen to be distinctive; if either happens to collide with something else
 // already using fwmarks/routing tables on the host, change the values here —
 // nothing outside this package and its own PostUp/PostDown output depends on
@@ -50,10 +60,12 @@ func routeEgressComment(email string) string {
 
 // routeEgressLines returns the PostUp ("-A") or PostDown ("-D") mangle-table
 // TPROXY lines that redirect one peer's traffic — matched by its tunnel
-// source IP, arriving on tunIface — into the shared Xray bridge. Both TCP and
-// UDP are covered since RouteThroughXray means "this peer's traffic", not a
-// specific protocol or port. Returns nil when clientIP is empty.
-func routeEgressLines(action, tunIface, clientIP, email string) []string {
+// source IP, arriving on tunIface — into that instance's own Xray bridge on
+// port. Both TCP and UDP are covered since every peer's whole traffic is
+// meant to reach the bridge, not just a specific protocol or port; which
+// outbound (if any) it then takes is entirely up to the admin's own Routing
+// rules. Returns nil when clientIP is empty.
+func routeEgressLines(action, tunIface, clientIP, email string, port int) []string {
 	clientIP = stripCIDRMask(clientIP)
 	if clientIP == "" {
 		return nil
@@ -63,7 +75,7 @@ func routeEgressLines(action, tunIface, clientIP, email string) []string {
 	for _, proto := range []string{"tcp", "udp"} {
 		lines = append(lines, fmt.Sprintf(
 			"iptables -t mangle %s PREROUTING -i %s -s %s -p %s -m comment --comment %s -j TPROXY --on-port %d --on-ip 127.0.0.1 --tproxy-mark %#x/%#x",
-			action, tunIface, clientIP, proto, comment, EgressPort, EgressFwmark, EgressFwmark,
+			action, tunIface, clientIP, proto, comment, port, EgressFwmark, EgressFwmark,
 		))
 	}
 	return lines

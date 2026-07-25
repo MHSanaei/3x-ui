@@ -98,79 +98,6 @@ func TestInstanceFromInboundEmptyWhenNoEnabledPeers(t *testing.T) {
 	}
 }
 
-func TestInstanceFromInboundComputesEffectiveRouting(t *testing.T) {
-	serverRouted := validServer()
-	serverRouted.RouteThroughXray = true
-	serverRouted.RouteOutboundTag = "warp"
-
-	t.Run("server default routes a peer with no flag of its own", func(t *testing.T) {
-		settings := mkInboundSettings(t, serverRouted, []model.Client{
-			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},
-		})
-		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
-		if !ok {
-			t.Fatal("expected a usable instance")
-		}
-		p := inst.Peers[0]
-		if !p.RouteThroughXray || p.RouteOutboundTag != "warp" {
-			t.Fatalf("expected the peer to inherit the server default, got %+v", p)
-		}
-	})
-
-	t.Run("client's own tag overrides the server default", func(t *testing.T) {
-		settings := mkInboundSettings(t, serverRouted, []model.Client{
-			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}, RouteOutboundTag: "direct"},
-		})
-		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
-		if !ok {
-			t.Fatal("expected a usable instance")
-		}
-		p := inst.Peers[0]
-		if !p.RouteThroughXray || p.RouteOutboundTag != "direct" {
-			t.Fatalf("expected the client's own tag to win, got %+v", p)
-		}
-	})
-
-	t.Run("client can opt in on its own when the server default is off", func(t *testing.T) {
-		settings := mkInboundSettings(t, validServer(), []model.Client{
-			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
-			{Email: "b@x", Enable: true, PublicKey: "pubB", AllowedIPs: []string{"10.8.1.3/32"}},
-		})
-		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
-		if !ok {
-			t.Fatal("expected a usable instance")
-		}
-		var a, b Peer
-		for _, p := range inst.Peers {
-			switch p.Email {
-			case "a@x":
-				a = p
-			case "b@x":
-				b = p
-			}
-		}
-		if !a.RouteThroughXray || a.RouteOutboundTag != "direct" {
-			t.Fatalf("a@x opted in on its own, expected it routed to direct, got %+v", a)
-		}
-		if b.RouteThroughXray {
-			t.Fatalf("b@x has no flag of its own and the server default is off, expected unrouted, got %+v", b)
-		}
-	})
-
-	t.Run("neither level set means not routed", func(t *testing.T) {
-		settings := mkInboundSettings(t, validServer(), []model.Client{
-			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},
-		})
-		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
-		if !ok {
-			t.Fatal("expected a usable instance")
-		}
-		if inst.Peers[0].RouteThroughXray || inst.Peers[0].RouteOutboundTag != "" {
-			t.Fatalf("expected no routing at all, got %+v", inst.Peers[0])
-		}
-	})
-}
-
 func TestServerAddress(t *testing.T) {
 	cases := []struct {
 		subnet string
@@ -262,7 +189,7 @@ func TestEnsureActionFor(t *testing.T) {
 		{"down forces restart even if identical", false, "s", "f", "p", "s", "f", "p", ensureRestart},
 		{"structural change forces restart", true, "s1", "f", "p", "s2", "f", "p", ensureRestart},
 		{"port-forward change forces restart", true, "s", "f1", "p", "s", "f2", "p", ensureRestart},
-		{"route-through-xray change forces restart", true, "s", "route:false", "p", "s", "route:true", "p", ensureRestart},
+		{"peer-ip change (its TPROXY rule) forces restart", true, "s", "ip:old", "p", "s", "ip:new", "p", ensureRestart},
 		{"peers-only change reloads", true, "s", "f", "p1", "s", "f", "p2", ensureReload},
 		{"identical up interface is a noop", true, "s", "f", "p", "s", "f", "p", ensureNoop},
 	}
@@ -276,14 +203,14 @@ func TestEnsureActionFor(t *testing.T) {
 	}
 }
 
-func TestHostRulesFingerprintCoversForwardedPortsAndRouting(t *testing.T) {
+func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
 	a := baseInstance()
 	b := baseInstance()
 	if a.hostRulesFingerprint() != b.hostRulesFingerprint() {
 		t.Fatal("identical instances must produce the same host-rules fingerprint")
 	}
-	if a.hostRulesFingerprint() != "" {
-		t.Fatal("peers with no forwarded ports and no routing must produce an empty fingerprint")
+	if a.hostRulesFingerprint() == "" {
+		t.Fatal("every peer always gets a TPROXY rule now, so the fingerprint must never be empty when peers exist")
 	}
 
 	forwarded := baseInstance()
@@ -292,17 +219,16 @@ func TestHostRulesFingerprintCoversForwardedPortsAndRouting(t *testing.T) {
 		t.Fatal("adding ForwardedPorts must change the host-rules fingerprint")
 	}
 
-	routed := baseInstance()
-	routed.Peers[0].RouteThroughXray = true
-	if a.hostRulesFingerprint() == routed.hostRulesFingerprint() {
-		t.Fatal("enabling RouteThroughXray must change the host-rules fingerprint")
+	reIPed := baseInstance()
+	reIPed.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
+	if a.hostRulesFingerprint() == reIPed.hostRulesFingerprint() {
+		t.Fatal("changing a peer's IP must change the host-rules fingerprint -- its TPROXY rule is keyed on that IP")
 	}
 
-	routedOtherTag := baseInstance()
-	routedOtherTag.Peers[0].RouteThroughXray = true
-	routedOtherTag.Peers[0].RouteOutboundTag = "warp"
-	if routed.hostRulesFingerprint() == routedOtherTag.hostRulesFingerprint() {
-		t.Fatal("changing RouteOutboundTag must change the host-rules fingerprint")
+	fewer := baseInstance()
+	fewer.Peers = fewer.Peers[:1]
+	if a.hostRulesFingerprint() == fewer.hostRulesFingerprint() {
+		t.Fatal("removing a peer must change the host-rules fingerprint -- one fewer TPROXY rule is needed")
 	}
 }
 
@@ -321,7 +247,7 @@ func TestRouteEgressComment(t *testing.T) {
 }
 
 func TestRouteEgressLines(t *testing.T) {
-	up := routeEgressLines("-A", "awg1", "10.8.1.2/32", "a@x")
+	up := routeEgressLines("-A", "awg1", "10.8.1.2/32", "a@x", 63101)
 	if len(up) != 2 {
 		t.Fatalf("expected one TPROXY line per protocol (tcp+udp), got %d: %v", len(up), up)
 	}
@@ -333,7 +259,7 @@ func TestRouteEgressLines(t *testing.T) {
 			}
 			found = true
 			if !strings.Contains(l, "-i awg1") || !strings.Contains(l, "-s 10.8.1.2") ||
-				!strings.Contains(l, fmt.Sprintf("--on-port %d", EgressPort)) ||
+				!strings.Contains(l, "--on-port 63101") ||
 				!strings.Contains(l, "--on-ip 127.0.0.1") ||
 				!strings.Contains(l, fmt.Sprintf("--tproxy-mark %#x/%#x", EgressFwmark, EgressFwmark)) ||
 				!strings.Contains(l, "-A PREROUTING") {
@@ -348,27 +274,35 @@ func TestRouteEgressLines(t *testing.T) {
 		t.Errorf("expected the /32 mask stripped from the source match, got %s", up[0])
 	}
 
-	down := routeEgressLines("-D", "awg1", "10.8.1.2/32", "a@x")
+	down := routeEgressLines("-D", "awg1", "10.8.1.2/32", "a@x", 63101)
 	if len(down) != 2 || !strings.Contains(down[0], "-D PREROUTING") {
 		t.Fatalf("expected symmetric -D lines, got %v", down)
 	}
 
-	if got := routeEgressLines("-A", "awg1", "", "a@x"); got != nil {
+	if got := routeEgressLines("-A", "awg1", "", "a@x", 63101); got != nil {
 		t.Errorf("empty clientIP must yield no lines, got %v", got)
 	}
 }
 
-func TestDefaultPostUpDownEmitsTproxyOnlyForRoutedPeers(t *testing.T) {
-	inst := baseInstance()
-	inst.Peers[0].RouteThroughXray = true
-	inst.Peers[0].RouteOutboundTag = "warp"
+func TestEgressPortForInbound(t *testing.T) {
+	if got := EgressPortForInbound(1); got != EgressBasePort+1 {
+		t.Errorf("EgressPortForInbound(1) = %d, want %d", got, EgressBasePort+1)
+	}
+	if EgressPortForInbound(1) == EgressPortForInbound(2) {
+		t.Fatal("different inbound ids must derive different ports")
+	}
+}
+
+func TestDefaultPostUpDownEmitsTproxyForEveryPeer(t *testing.T) {
+	inst := baseInstance() // two peers, a@x and b@x, no opt-in flag exists anymore
 	up, down := defaultPostUpDown(inst, "eth0")
 
-	if !strings.Contains(up, "TPROXY") || !strings.Contains(up, fmt.Sprintf("--on-port %d", EgressPort)) {
-		t.Errorf("expected a TPROXY rule for the routed peer in PostUp, got:\n%s", up)
+	wantPort := fmt.Sprintf("--on-port %d", EgressPortForInbound(inst.Id))
+	if !strings.Contains(up, "TPROXY") || !strings.Contains(up, wantPort) {
+		t.Errorf("expected TPROXY rules targeting this instance's own bridge port in PostUp, got:\n%s", up)
 	}
 	if !strings.Contains(down, "TPROXY") {
-		t.Errorf("expected a matching TPROXY removal in PostDown, got:\n%s", down)
+		t.Errorf("expected matching TPROXY removals in PostDown, got:\n%s", down)
 	}
 	if !strings.Contains(up, fmt.Sprintf("ip rule add fwmark %#x", EgressFwmark)) {
 		t.Errorf("expected the shared policy route to be added once in PostUp, got:\n%s", up)
@@ -376,16 +310,15 @@ func TestDefaultPostUpDownEmitsTproxyOnlyForRoutedPeers(t *testing.T) {
 	if strings.Contains(down, "ip rule") || strings.Contains(down, "ip route") {
 		t.Error("the shared policy route must never be removed in PostDown -- other instances may still need it")
 	}
-	// Peer b@x has no routing enabled: only the one routed peer's tcp+udp
-	// pair should appear.
-	if got := strings.Count(up, "TPROXY"); got != 2 {
-		t.Errorf("expected exactly 2 TPROXY lines (tcp+udp for the one routed peer), got %d in:\n%s", got, up)
+	// Both peers always get TPROXY'd now, no opt-in: 2 peers * 2 protocols.
+	if got := strings.Count(up, "TPROXY"); got != 4 {
+		t.Errorf("expected exactly 4 TPROXY lines (tcp+udp for each of the 2 peers), got %d in:\n%s", got, up)
 	}
 
-	none := baseInstance() // no peer opts in
+	none := Instance{Id: 2, InterfaceName: "awg2"} // no peers at all
 	upNone, _ := defaultPostUpDown(none, "eth0")
 	if strings.Contains(upNone, "TPROXY") || strings.Contains(upNone, "ip rule add fwmark") {
-		t.Errorf("an instance with no routed peers must not emit any TPROXY/policy-route lines, got:\n%s", upNone)
+		t.Errorf("an instance with no peers must not emit any TPROXY/policy-route lines, got:\n%s", upNone)
 	}
 }
 

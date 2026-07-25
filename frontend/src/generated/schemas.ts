@@ -1069,14 +1069,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "VLESS simple reverse proxy settings",
         "nullable": true
       },
-      "routeOutboundTag": {
-        "description": "Xray outbound/balancer tag this peer's TPROXY'd traffic routes to; empty uses Xray's default routing",
-        "type": "string"
-      },
-      "routeThroughXray": {
-        "description": "AmneziaWG: TPROXY this peer's traffic into Xray",
-        "type": "boolean"
-      },
       "secret": {
         "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
         "type": "string"
@@ -1205,12 +1197,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "reverse": {},
-      "routeOutboundTag": {
-        "type": "string"
-      },
-      "routeThroughXray": {
-        "type": "boolean"
-      },
       "secret": {
         "type": "string"
       },
@@ -1257,8 +1243,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey",
       "reset",
       "reverse",
-      "routeOutboundTag",
-      "routeThroughXray",
       "secret",
       "security",
       "subId",
@@ -2851,13 +2835,6 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "publicKey": {
         "type": "string"
-      },
-      "routeOutboundTag": {
-        "type": "string"
-      },
-      "routeThroughXray": {
-        "description": "RouteThroughXray, when true, is the inbound-wide default: every peer\nTPROXYs into Xray unless it explicitly turns its own RouteThroughXray\noff... except a plain bool can't distinguish \"peer left it unset\" from\n\"peer explicitly opted out\", so in practice this ORs with each peer's\nown flag (see Peer.RouteThroughXray) — turning this on routes every\npeer, turning it off still lets individual peers opt in on their own.\nRouteOutboundTag is the default outbound/balancer tag used when a\nrouted peer didn't set its own; empty means Xray's default routing.",
-        "type": "boolean"
       },
       "s1": {
         "type": "integer"

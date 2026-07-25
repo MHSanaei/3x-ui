@@ -52,21 +52,12 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		if !c.Enable || c.PublicKey == "" || len(c.AllowedIPs) == 0 {
 			continue
 		}
-		routeTag := c.RouteOutboundTag
-		if routeTag == "" {
-			routeTag = server.RouteOutboundTag
-		}
 		peers = append(peers, Peer{
 			Email:          c.Email,
 			PublicKey:      c.PublicKey,
 			PresharedKey:   c.PreSharedKey,
 			AllowedIPs:     c.AllowedIPs,
 			ForwardedPorts: c.ForwardedPorts,
-			// Effective routing: the inbound-wide default routes every peer
-			// unless the peer's own flag already does; the client's own
-			// outbound tag wins when set, else the inbound's default tag.
-			RouteThroughXray: c.RouteThroughXray || server.RouteThroughXray,
-			RouteOutboundTag: routeTag,
 		})
 	}
 	if len(peers) == 0 {
@@ -164,19 +155,21 @@ func (inst Instance) peersFingerprint() string {
 }
 
 // hostRulesFingerprint identifies per-peer state that only ever takes effect
-// through PostUp/PostDown shell rules — forwarded ports and RouteThroughXray/
-// RouteOutboundTag — rather than the WireGuard peer table itself. It is
-// checked separately from peersFingerprint because `awg syncconf` never
-// re-runs PostUp/PostDown, so a change here must force a full interface
-// bounce (ensureRestart) to actually take effect, unlike a key/address-only
-// change that syncconf can apply in place.
+// through PostUp/PostDown shell rules — forwarded ports, and (unconditionally,
+// for every peer with a usable IPv4 address) the TPROXY rule into this
+// instance's own Xray bridge — rather than the WireGuard peer table itself.
+// It is checked separately from peersFingerprint because `awg syncconf`
+// never re-runs PostUp/PostDown, so a change here must force a full
+// interface bounce (ensureRestart) to actually take effect, unlike a
+// key-only change that syncconf can apply in place. Since the TPROXY rule is
+// now tied to every peer's mere presence (there's no more per-peer opt-in
+// flag), every peer is included unconditionally: adding, removing, or
+// re-addressing a peer now also forces a bounce, the same way a
+// ForwardedPorts-only change always did.
 func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
-		if p.ForwardedPorts == "" && !p.RouteThroughXray {
-			continue
-		}
-		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;route:%v,%s", p.Email, p.ForwardedPorts, p.RouteThroughXray, p.RouteOutboundTag))
+		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;ip:%s", p.Email, p.ForwardedPorts, FirstIPv4(p.AllowedIPs)))
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -230,10 +223,11 @@ const (
 
 // ensureActionFor decides how to apply a desired instance to the currently
 // managed interface. A structural change, a host-rules change (forwarded
-// ports or RouteThroughXray/RouteOutboundTag — their iptables rules only
-// live in PostUp/PostDown), or a down interface all force a restart; a
-// peers-only change (keys/addresses) is a candidate for an in-place
-// `syncconf`; identical fingerprints on an up interface need nothing.
+// ports, or simply a peer's presence/IP — its always-on TPROXY rule only
+// lives in PostUp/PostDown), or a down interface all force a restart; a
+// peers-only change (keys only, no IP/presence change) is a candidate for
+// an in-place `syncconf`; identical fingerprints on an up interface need
+// nothing.
 func ensureActionFor(up bool, curStructFP, curHostRulesFP, curPeersFP, newStructFP, newHostRulesFP, newPeersFP string) ensureAction {
 	if !up || curStructFP != newStructFP || curHostRulesFP != newHostRulesFP {
 		return ensureRestart
@@ -516,10 +510,15 @@ func hOrDefault(v, def string) string {
 // rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
 // peer with an IPv6 address, so upstream routers see each client's IPv6 as
 // directly reachable on the LAN without NAT66. Also emits DNAT+FORWARD rules
-// for each enabled peer with a non-empty ForwardedPorts spec, and — for each
-// peer with RouteThroughXray set — a mangle-table TPROXY rule redirecting
-// that peer's traffic into the shared Xray bridge (see EgressPort), plus the
-// one-time policy route TPROXY needs to deliver it there.
+// for each enabled peer with a non-empty ForwardedPorts spec, and —
+// unconditionally, for every peer — a mangle-table TPROXY rule redirecting
+// that peer's traffic into this instance's own Xray bridge (see
+// EgressPortForInbound), plus the one-time policy route TPROXY needs to
+// deliver it there. There is no per-peer or per-inbound opt-in: the bridge
+// is always present by default, and it is entirely up to the admin's own
+// Xray Routing rules (targeting this inbound's own tag, which
+// injectAmneziawgEgress reuses for the bridge) whether that traffic ever
+// actually goes anywhere beyond Xray's default routing.
 func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	iface := inst.InterfaceName
 	up := []string{
@@ -574,28 +573,25 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		down = append(down, portForwardLines("-D", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
 	}
 
-	routedAny := false
+	egressPort := EgressPortForInbound(inst.Id)
+	anyPeerTproxied := false
 	for _, p := range inst.Peers {
-		if !p.RouteThroughXray {
-			continue
-		}
 		clientIP := FirstIPv4(p.AllowedIPs)
 		if clientIP == "" {
 			continue
 		}
-		up = append(up, routeEgressLines("-A", iface, clientIP, p.Email)...)
-		down = append(down, routeEgressLines("-D", iface, clientIP, p.Email)...)
-		routedAny = true
+		up = append(up, routeEgressLines("-A", iface, clientIP, p.Email, egressPort)...)
+		down = append(down, routeEgressLines("-D", iface, clientIP, p.Email, egressPort)...)
+		anyPeerTproxied = true
 	}
-	if routedAny {
+	if anyPeerTproxied {
 		// The fwmark->table->local-everywhere policy route is what lets TPROXY
-		// deliver a routed peer's packets to the shared Xray bridge even though
-		// their destination is never one of this host's own addresses. It is
-		// system-wide, not interface-specific, so — like the IPv6-forwarding
-		// sysctl above — it is added idempotently here and never torn down in
-		// PostDown; a second AmneziaWG instance with its own routed peers must
-		// find it already in place, not race to remove what the first still
-		// needs.
+		// deliver a peer's packets to this instance's own Xray bridge even
+		// though their destination is never one of this host's own addresses.
+		// It is system-wide, not interface-specific, so — like the
+		// IPv6-forwarding sysctl above — it is added idempotently here and
+		// never torn down in PostDown; a second AmneziaWG instance must find
+		// it already in place, not race to remove what the first still needs.
 		up = append(up,
 			fmt.Sprintf("ip rule add fwmark %#x lookup %d 2>/dev/null || true", EgressFwmark, EgressTable),
 			fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),

@@ -261,8 +261,6 @@ export interface Client {
   publicKey?: string;
   reset: number;
   reverse?: ClientReverse | null;
-  routeOutboundTag?: string;
-  routeThroughXray?: boolean;
   secret?: string;
   security: string;
   subId: string;
@@ -299,8 +297,6 @@ export interface ClientRecord {
   publicKey: string;
   reset: number;
   reverse: unknown;
-  routeOutboundTag: string;
-  routeThroughXray: boolean;
   secret: string;
   security: string;
   subId: string;
@@ -653,8 +649,6 @@ export interface ServerSettings {
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
-  routeOutboundTag?: string;
-  routeThroughXray?: boolean;
   s1: number;
   s2: number;
   s3: number;
