@@ -3,6 +3,7 @@ package amneziawg
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -369,5 +370,50 @@ func TestWriteObfuscationDefaultsBlankH(t *testing.T) {
 func TestInterfaceNameForID(t *testing.T) {
 	if got := interfaceNameForID(42); got != "awg42" {
 		t.Errorf("interfaceNameForID(42) = %q, want awg42", got)
+	}
+}
+
+func TestInboundIDForInterfaceName(t *testing.T) {
+	cases := []struct {
+		name   string
+		wantID int
+		wantOK bool
+	}{
+		{"awg42", 42, true},
+		{"awg0", 0, true},
+		{"awg", 0, false},    // no digits after the prefix
+		{"wg0", 0, false},    // wrong prefix entirely (plain WireGuard)
+		{"awgabc", 0, false}, // non-numeric suffix
+		{"awg-1", 0, false},  // Atoi rejects the leading '-' as part of TrimPrefix's leftover, but guard anyway
+	}
+	for _, c := range cases {
+		id, ok := inboundIDForInterfaceName(c.name)
+		if ok != c.wantOK || (ok && id != c.wantID) {
+			t.Errorf("inboundIDForInterfaceName(%q) = (%d, %v), want (%d, %v)", c.name, id, ok, c.wantID, c.wantOK)
+		}
+	}
+}
+
+func TestOrphanedInterfaces(t *testing.T) {
+	confFiles := []string{
+		"awg1.conf",   // in want -> not orphaned
+		"awg2.conf",   // not in want -> orphaned
+		"awg3.conf",   // not in want -> orphaned
+		"notes.txt",   // wrong suffix -> ignored
+		"awgxyz.conf", // unparseable id -> ignored
+	}
+	want := map[int]struct{}{1: {}}
+
+	got := orphanedInterfaces(confFiles, want)
+	slices.Sort(got)
+	if wantOut := []string{"awg2", "awg3"}; !slices.Equal(got, wantOut) {
+		t.Errorf("orphanedInterfaces() = %v, want %v", got, wantOut)
+	}
+}
+
+func TestOrphanedInterfacesEmptyWantOrphansEverything(t *testing.T) {
+	got := orphanedInterfaces([]string{"awg5.conf"}, map[int]struct{}{})
+	if want := []string{"awg5"}; !slices.Equal(got, want) {
+		t.Errorf("orphanedInterfaces() = %v, want %v", got, want)
 	}
 }
