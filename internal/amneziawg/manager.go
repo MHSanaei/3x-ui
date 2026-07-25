@@ -3,6 +3,7 @@ package amneziawg
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -534,9 +535,16 @@ func removeConfigFile(interfaceName string) {
 	}
 }
 
+// awgCommandTimeout bounds every short-lived awg/awg-quick invocation so a
+// hung command (e.g. a stuck kernel module operation) can't block the
+// reconcile job indefinitely.
+const awgCommandTimeout = 30 * time.Second
+
 // interfaceUp brings an AmneziaWG interface up via awg-quick.
 func interfaceUp(interfaceName string) error {
-	out, err := exec.Command("awg-quick", "up", configPath(interfaceName)).CombinedOutput()
+	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "awg-quick", "up", configPath(interfaceName)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("awg-quick up %s failed: %s: %w", interfaceName, strings.TrimSpace(string(out)), err)
 	}
@@ -545,7 +553,9 @@ func interfaceUp(interfaceName string) error {
 
 // interfaceDown takes an AmneziaWG interface down via awg-quick.
 func interfaceDown(interfaceName string) error {
-	out, err := exec.Command("awg-quick", "down", configPath(interfaceName)).CombinedOutput()
+	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "awg-quick", "down", configPath(interfaceName)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("awg-quick down %s failed: %s: %w", interfaceName, strings.TrimSpace(string(out)), err)
 	}
@@ -555,7 +565,9 @@ func interfaceDown(interfaceName string) error {
 // isInterfaceUp checks whether the named AmneziaWG interface currently
 // exists.
 func isInterfaceUp(interfaceName string) bool {
-	return exec.Command("awg", "show", interfaceName).Run() == nil
+	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer cancel()
+	return exec.CommandContext(ctx, "awg", "show", interfaceName).Run() == nil
 }
 
 // syncConfig applies a peers-only config change without dropping existing
@@ -566,13 +578,17 @@ func syncConfig(inst Instance) error {
 		return interfaceUp(inst.InterfaceName)
 	}
 
-	stripped, err := exec.Command("awg-quick", "strip", configPath(inst.InterfaceName)).Output()
+	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer cancel()
+	stripped, err := exec.CommandContext(ctx, "awg-quick", "strip", configPath(inst.InterfaceName)).Output()
 	if err != nil {
 		logger.Warningf("amneziawg: awg-quick strip failed for %s, restarting: %v", inst.InterfaceName, err)
 		return restartInterface(inst.InterfaceName)
 	}
 
-	sync := exec.Command("awg", "syncconf", inst.InterfaceName, "/dev/stdin")
+	syncCtx, syncCancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer syncCancel()
+	sync := exec.CommandContext(syncCtx, "awg", "syncconf", inst.InterfaceName, "/dev/stdin")
 	sync.Stdin = bytes.NewReader(stripped)
 	if out, err := sync.CombinedOutput(); err != nil {
 		logger.Warningf("amneziawg: awg syncconf failed for %s, restarting: %s: %v", inst.InterfaceName, strings.TrimSpace(string(out)), err)
@@ -601,7 +617,9 @@ type peerStat struct {
 // preshared-key, endpoint, allowed-ips, latest-handshake, transfer-rx,
 // transfer-tx, persistent-keepalive).
 func getPeerStats(interfaceName string) ([]peerStat, error) {
-	out, err := exec.Command("awg", "show", interfaceName, "dump").Output()
+	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "awg", "show", interfaceName, "dump").Output()
 	if err != nil {
 		return nil, fmt.Errorf("awg show %s dump failed: %w", interfaceName, err)
 	}

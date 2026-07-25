@@ -43,6 +43,32 @@ export const ClientRecordSchema = z.object({
   updatedAt: z.number().optional(),
 }).loose();
 
+// AmneziaWG's server block, used by the clients page to render a
+// downloadable per-client .conf without a second round trip. Unlike
+// WireGuard's flattened wgPublicKey/wgMtu/wgDns below, this stays a nested
+// object — AmneziaWG has many more fields (the obfuscation parameter set) and
+// buildAmneziaWGClientConfig (pages/clients/amneziawgConfig.ts) already
+// expects this exact nested shape. Mirrors the backend's
+// InboundOption.AwgServer (internal/web/service/inbound.go).
+export const AwgServerOptionSchema = z.object({
+  publicKey: z.string().optional(),
+  mtu: z.number().optional(),
+  primaryDns: z.string().optional(),
+  secondaryDns: z.string().optional(),
+  jc: z.number().optional(),
+  jmin: z.number().optional(),
+  jmax: z.number().optional(),
+  s1: z.number().optional(),
+  s2: z.number().optional(),
+  s3: z.number().optional(),
+  s4: z.number().optional(),
+  h1: z.string().optional(),
+  h2: z.string().optional(),
+  h3: z.string().optional(),
+  h4: z.string().optional(),
+  i1: z.string().optional(),
+}).loose();
+
 export const InboundOptionSchema = z.object({
   id: z.number(),
   remark: z.string().optional(),
@@ -54,6 +80,7 @@ export const InboundOptionSchema = z.object({
   wgPublicKey: z.string().optional(),
   wgMtu: z.number().optional(),
   wgDns: z.string().optional(),
+  awgServer: AwgServerOptionSchema.nullable().optional(),
   mtprotoDomain: z.string().optional(),
   // Hosting node id; absent/null for this panel's own inbounds (#4997).
   nodeId: z.number().nullable().optional(),
