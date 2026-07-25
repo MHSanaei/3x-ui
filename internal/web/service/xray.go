@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -327,6 +328,15 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectMtprotoEgress(xrayConfig, inbound)
 	}
 
+	// Route opted-in AmneziaWG peers through the core's router. Unlike mtg,
+	// AmneziaWG has no sidecar process of its own making outbound connections
+	// to dial through a bridge — it's a kernel tunnel interface, so the host
+	// side (internal/amneziawg's defaultPostUpDown) TPROXYs each opted-in
+	// peer's traffic to one loopback bridge shared by every AmneziaWG
+	// instance; this call is what creates that bridge and, per peer, the
+	// routing rule matching its preserved source IP to its chosen outbound.
+	injectAmneziawgEgress(xrayConfig, inbounds)
+
 	// Wire the panel's own HTTP traffic through the configured outbound, after
 	// the subscription merge so subscription outbound tags are valid targets.
 	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
@@ -618,6 +628,127 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 		Protocol: "socks",
 		Settings: json_util.RawMessage(mtprotoEgressSocksSettings),
 		Tag:      tag,
+	})
+}
+
+// amneziawgEgressDokodemoSettings is the dokodemo-door settings block for the
+// shared AmneziaWG TPROXY bridge: accept both TCP and UDP, and (per this
+// fork's existing "Tunnel" protocol convention — see
+// frontend/src/lib/xray/inbound-tag.ts) use followRedirect mode so the
+// destination comes from the TPROXY-preserved original address rather than a
+// fixed port/address pair.
+const amneziawgEgressDokodemoSettings = `{"allowedNetwork":"tcp,udp","followRedirect":true}`
+
+// amneziawgEgressStreamSettings turns the bridge's listening socket into a
+// TPROXY target, matching internal/amneziawg's iptables `-j TPROXY` rules —
+// without this, the kernel-redirected packets never reach a listening
+// socket.
+const amneziawgEgressStreamSettings = `{"sockopt":{"tproxy":"tproxy"}}`
+
+// amneziawgRouteRule is one routed AmneziaWG peer — gathered from every
+// enabled AmneziaWG inbound's client list — that injectAmneziawgEgress turns
+// into a source-matched routing rule against the shared bridge.
+type amneziawgRouteRule struct {
+	sourceIP    string
+	outboundTag string
+}
+
+// injectAmneziawgEgress wires every RouteThroughXray AmneziaWG peer, across
+// every enabled AmneziaWG inbound, into the generated config through one
+// loopback dokodemo-door bridge shared by all of them (tag
+// amneziawg.EgressTag, port amneziawg.EgressPort) rather than one bridge per
+// peer: the TPROXY rule that redirects a peer's traffic there is per-peer
+// (see internal/amneziawg's defaultPostUpDown), but distinguishing which peer
+// a given connection came from — and picking its own outbound — happens
+// here, in Xray's own router, matched against the TPROXY-preserved source
+// IP. Mirrors injectMtprotoEgress/injectPanelEgress: an invalid or missing
+// outbound target skips that one peer's rule, not the whole bridge; the
+// bridge itself is skipped entirely when no peer needs it or its tag is
+// already taken by a real inbound. Generated state is hot-appliable and
+// never modifies the stored template or restarts the core.
+func injectAmneziawgEgress(cfg *xray.Config, inbounds []*model.Inbound) {
+	var rules []amneziawgRouteRule
+	for _, inbound := range inbounds {
+		if inbound.Protocol != model.AmneziaWG || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		var parsed amneziawg.InboundSettings
+		if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+			continue
+		}
+		for _, c := range parsed.Clients {
+			if !c.Enable || !c.RouteThroughXray {
+				continue
+			}
+			sourceIP := amneziawg.FirstIPv4(c.AllowedIPs)
+			if sourceIP == "" {
+				continue
+			}
+			rules = append(rules, amneziawgRouteRule{sourceIP: sourceIP, outboundTag: c.RouteOutboundTag})
+		}
+	}
+	if len(rules) == 0 {
+		return
+	}
+
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == amneziawg.EgressTag {
+			logger.Warning("amneziawg egress: inbound tag [", amneziawg.EgressTag, "] already present in generated config, skipping bridge")
+			return
+		}
+	}
+
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("amneziawg egress: routing section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+	existingRules, _ := routing["rules"].([]any)
+	newRules := make([]any, 0, len(rules))
+	for _, r := range rules {
+		if r.outboundTag == "" {
+			// No chosen outbound: the peer's traffic still lands on the
+			// bridge (it's already TPROXY'd there at the kernel level) but
+			// with no rule of its own it falls through to whatever the rest
+			// of the router decides, matching injectMtprotoEgress's
+			// no-outbound-selected behavior.
+			continue
+		}
+		if !routingTargetExists(routing, cfg.OutboundConfigs, r.outboundTag) {
+			logger.Warning("amneziawg egress: target tag [", r.outboundTag, "] not found, skipping rule for [", r.sourceIP, "]")
+			continue
+		}
+		rule := map[string]any{
+			"type":       "field",
+			"inboundTag": []any{amneziawg.EgressTag},
+			"source":     []any{r.sourceIP + "/32"},
+		}
+		if routingTagIsBalancer(routing, r.outboundTag) {
+			rule["balancerTag"] = r.outboundTag
+		} else {
+			rule["outboundTag"] = r.outboundTag
+		}
+		newRules = append(newRules, rule)
+	}
+	if len(newRules) > 0 {
+		routing["rules"] = append(newRules, existingRules...)
+		newRouting, err := json.Marshal(routing)
+		if err != nil {
+			logger.Warning("amneziawg egress: failed to rebuild routing section, skipping injection:", err)
+			return
+		}
+		cfg.RouterConfig = json_util.RawMessage(newRouting)
+	}
+
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:         json_util.RawMessage(`"127.0.0.1"`),
+		Port:           amneziawg.EgressPort,
+		Protocol:       "dokodemo-door",
+		Settings:       json_util.RawMessage(amneziawgEgressDokodemoSettings),
+		StreamSettings: json_util.RawMessage(amneziawgEgressStreamSettings),
+		Tag:            amneziawg.EgressTag,
 	})
 }
 

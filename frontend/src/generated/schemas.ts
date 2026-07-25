@@ -1069,6 +1069,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "VLESS simple reverse proxy settings",
         "nullable": true
       },
+      "routeOutboundTag": {
+        "description": "Xray outbound/balancer tag this peer's TPROXY'd traffic routes to; empty uses Xray's default routing",
+        "type": "string"
+      },
+      "routeThroughXray": {
+        "description": "AmneziaWG: TPROXY this peer's traffic into Xray",
+        "type": "boolean"
+      },
       "secret": {
         "example": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
         "type": "string"
@@ -1197,6 +1205,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "reverse": {},
+      "routeOutboundTag": {
+        "type": "string"
+      },
+      "routeThroughXray": {
+        "type": "boolean"
+      },
       "secret": {
         "type": "string"
       },
@@ -1243,6 +1257,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey",
       "reset",
       "reverse",
+      "routeOutboundTag",
+      "routeThroughXray",
       "secret",
       "security",
       "subId",

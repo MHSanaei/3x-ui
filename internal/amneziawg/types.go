@@ -38,6 +38,18 @@ type Peer struct {
 	// ForwardedPorts is a raw, user-supplied port list ("80, 443, 8000-8100")
 	// DNAT'd to this peer's tunnel address. Empty means no port-forwarding.
 	ForwardedPorts string
+
+	// RouteThroughXray, when true, TPROXYs this peer's traffic (matched by its
+	// tunnel source IP) into the single shared loopback Xray dokodemo-door
+	// bridge (see amneziawgEgressPort in internal/web/service/xray.go) instead
+	// of letting it NAT straight out through ExternalInterface. All routed
+	// peers, across every AmneziaWG instance, share that one bridge and one
+	// fwmark/policy-route pair; the per-peer distinction happens downstream in
+	// Xray's own router, which the web service feeds a source-IP-matched rule
+	// per peer. RouteOutboundTag is the Xray outbound/balancer tag that rule
+	// targets; empty means Xray's default routing decides.
+	RouteThroughXray bool
+	RouteOutboundTag string
 }
 
 // Instance is the desired runtime configuration of one AmneziaWG inbound: a

@@ -53,11 +53,13 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 			continue
 		}
 		peers = append(peers, Peer{
-			Email:          c.Email,
-			PublicKey:      c.PublicKey,
-			PresharedKey:   c.PreSharedKey,
-			AllowedIPs:     c.AllowedIPs,
-			ForwardedPorts: c.ForwardedPorts,
+			Email:            c.Email,
+			PublicKey:        c.PublicKey,
+			PresharedKey:     c.PreSharedKey,
+			AllowedIPs:       c.AllowedIPs,
+			ForwardedPorts:   c.ForwardedPorts,
+			RouteThroughXray: c.RouteThroughXray,
+			RouteOutboundTag: c.RouteOutboundTag,
 		})
 	}
 	if len(peers) == 0 {
@@ -143,7 +145,7 @@ func (inst Instance) structuralFingerprint() string {
 // change. It moves whenever a peer is added, removed, disabled, re-keyed, or
 // re-addressed — all of which `awg syncconf` applies in place. Deliberately
 // excludes ForwardedPorts: those live in PostUp/PostDown, not the WireGuard
-// peer table, so a ports-only change needs portForwardFingerprint's full
+// peer table, so a ports-only change needs hostRulesFingerprint's full
 // bounce instead of a syncconf reload.
 func (inst Instance) peersFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
@@ -154,18 +156,20 @@ func (inst Instance) peersFingerprint() string {
 	return strings.Join(pairs, "|")
 }
 
-// portForwardFingerprint identifies the per-peer forwarded-ports set. It is
-// checked separately from peersFingerprint because DNAT/FORWARD rules only
-// live in PostUp/PostDown, which `awg syncconf` never re-runs — a
-// ForwardedPorts-only change must force a full interface bounce
-// (ensureRestart) to actually take effect, unlike a key/address-only change.
-func (inst Instance) portForwardFingerprint() string {
+// hostRulesFingerprint identifies per-peer state that only ever takes effect
+// through PostUp/PostDown shell rules — forwarded ports and RouteThroughXray/
+// RouteOutboundTag — rather than the WireGuard peer table itself. It is
+// checked separately from peersFingerprint because `awg syncconf` never
+// re-runs PostUp/PostDown, so a change here must force a full interface
+// bounce (ensureRestart) to actually take effect, unlike a key/address-only
+// change that syncconf can apply in place.
+func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
-		if p.ForwardedPorts == "" {
+		if p.ForwardedPorts == "" && !p.RouteThroughXray {
 			continue
 		}
-		pairs = append(pairs, fmt.Sprintf("%s=%s", p.Email, p.ForwardedPorts))
+		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;route:%v,%s", p.Email, p.ForwardedPorts, p.RouteThroughXray, p.RouteOutboundTag))
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -183,7 +187,7 @@ type managed struct {
 	inst         Instance
 	structuralFP string
 	peersFP      string
-	portFwdFP    string
+	hostRulesFP  string
 	last         map[string]peerCounters // keyed by peer public key
 }
 
@@ -218,13 +222,13 @@ const (
 )
 
 // ensureActionFor decides how to apply a desired instance to the currently
-// managed interface. A structural change, a forwarded-ports change (its
-// iptables rules only live in PostUp/PostDown), or a down interface all
-// force a restart; a peers-only change (keys/addresses) is a candidate for
-// an in-place `syncconf`; identical fingerprints on an up interface need
-// nothing.
-func ensureActionFor(up bool, curStructFP, curPortFwdFP, curPeersFP, newStructFP, newPortFwdFP, newPeersFP string) ensureAction {
-	if !up || curStructFP != newStructFP || curPortFwdFP != newPortFwdFP {
+// managed interface. A structural change, a host-rules change (forwarded
+// ports or RouteThroughXray/RouteOutboundTag — their iptables rules only
+// live in PostUp/PostDown), or a down interface all force a restart; a
+// peers-only change (keys/addresses) is a candidate for an in-place
+// `syncconf`; identical fingerprints on an up interface need nothing.
+func ensureActionFor(up bool, curStructFP, curHostRulesFP, curPeersFP, newStructFP, newHostRulesFP, newPeersFP string) ensureAction {
+	if !up || curStructFP != newStructFP || curHostRulesFP != newHostRulesFP {
 		return ensureRestart
 	}
 	if curPeersFP != newPeersFP {
@@ -243,13 +247,13 @@ func (m *Manager) Ensure(inst Instance) error {
 
 func (m *Manager) ensureLocked(inst Instance) error {
 	structFP := inst.structuralFingerprint()
-	portFwdFP := inst.portForwardFingerprint()
+	hostRulesFP := inst.hostRulesFingerprint()
 	peersFP := inst.peersFingerprint()
 
 	cur, exists := m.ifaces[inst.Id]
 	action := ensureRestart
 	if exists {
-		action = ensureActionFor(isInterfaceUp(cur.inst.InterfaceName), cur.structuralFP, cur.portFwdFP, cur.peersFP, structFP, portFwdFP, peersFP)
+		action = ensureActionFor(isInterfaceUp(cur.inst.InterfaceName), cur.structuralFP, cur.hostRulesFP, cur.peersFP, structFP, hostRulesFP, peersFP)
 	}
 
 	switch action {
@@ -280,7 +284,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if exists {
 		last = cur.last
 	}
-	m.ifaces[inst.Id] = &managed{inst: inst, structuralFP: structFP, portFwdFP: portFwdFP, peersFP: peersFP, last: last}
+	m.ifaces[inst.Id] = &managed{inst: inst, structuralFP: structFP, hostRulesFP: hostRulesFP, peersFP: peersFP, last: last}
 	return nil
 }
 
@@ -505,8 +509,10 @@ func hOrDefault(v, def string) string {
 // rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
 // peer with an IPv6 address, so upstream routers see each client's IPv6 as
 // directly reachable on the LAN without NAT66. Also emits DNAT+FORWARD rules
-// for each enabled peer with a non-empty ForwardedPorts spec. RouteViaXray is
-// a later phase (see project TODO).
+// for each enabled peer with a non-empty ForwardedPorts spec, and — for each
+// peer with RouteThroughXray set — a mangle-table TPROXY rule redirecting
+// that peer's traffic into the shared Xray bridge (see EgressPort), plus the
+// one-time policy route TPROXY needs to deliver it there.
 func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	iface := inst.InterfaceName
 	up := []string{
@@ -553,12 +559,40 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		if p.ForwardedPorts == "" {
 			continue
 		}
-		clientIP := firstIPv4(p.AllowedIPs)
+		clientIP := FirstIPv4(p.AllowedIPs)
 		if clientIP == "" {
 			continue
 		}
 		up = append(up, portForwardLines("-A", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
 		down = append(down, portForwardLines("-D", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
+	}
+
+	routedAny := false
+	for _, p := range inst.Peers {
+		if !p.RouteThroughXray {
+			continue
+		}
+		clientIP := FirstIPv4(p.AllowedIPs)
+		if clientIP == "" {
+			continue
+		}
+		up = append(up, routeEgressLines("-A", iface, clientIP, p.Email)...)
+		down = append(down, routeEgressLines("-D", iface, clientIP, p.Email)...)
+		routedAny = true
+	}
+	if routedAny {
+		// The fwmark->table->local-everywhere policy route is what lets TPROXY
+		// deliver a routed peer's packets to the shared Xray bridge even though
+		// their destination is never one of this host's own addresses. It is
+		// system-wide, not interface-specific, so — like the IPv6-forwarding
+		// sysctl above — it is added idempotently here and never torn down in
+		// PostDown; a second AmneziaWG instance with its own routed peers must
+		// find it already in place, not race to remove what the first still
+		// needs.
+		up = append(up,
+			fmt.Sprintf("ip rule add fwmark %#x lookup %d 2>/dev/null || true", EgressFwmark, EgressTable),
+			fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
+		)
 	}
 
 	up = append(up, "sysctl -w net.ipv4.ip_forward=1")
@@ -591,9 +625,12 @@ func firstIPv6(allowedIPs []string) string {
 	return ""
 }
 
-// firstIPv4 returns the first IPv4 address (mask stripped) among allowedIPs,
-// or "" if none — used as the DNAT target for a peer's forwarded ports.
-func firstIPv4(allowedIPs []string) string {
+// FirstIPv4 returns the first IPv4 address (mask stripped) among allowedIPs,
+// or "" if none — used as the DNAT target for a peer's forwarded ports and,
+// by internal/web/service's injectAmneziawgEgress, as the source-IP match for
+// a routed peer's Xray rule. Exported so both packages derive a peer's
+// tunnel IPv4 address the exact same way.
+func FirstIPv4(allowedIPs []string) string {
 	for _, a := range allowedIPs {
 		if prefix, err := netip.ParsePrefix(a); err == nil {
 			if prefix.Addr().Is4() {

@@ -194,6 +194,19 @@ enable_ipv6_forwarding() {
     sysctl -p >/dev/null 2>&1 || true
 }
 
+# Loads the mainline TPROXY kernel modules, used by AmneziaWG's optional
+# per-client "route via Xray" toggle (see internal/amneziawg's EgressPort and
+# defaultPostUpDown's `-j TPROXY` rules). Unlike the AmneziaWG module itself,
+# these are standard upstream modules present on any modern distro kernel —
+# no DKMS/PPA needed, just loading them. Best-effort: a panel without them
+# still works fine, that one toggle just won't redirect traffic until
+# they're available.
+enable_tproxy_support() {
+    modprobe xt_TPROXY 2>/dev/null || true
+    modprobe nf_tproxy_ipv4 2>/dev/null || true
+    modprobe nf_tproxy_ipv6 2>/dev/null || true
+}
+
 # Installs the AmneziaWG DKMS kernel module + amneziawg-tools (awg/awg-quick)
 # so an AmneziaWG inbound created in the panel can actually bring up an
 # interface. Best-effort and never fatal to the overall x-ui install: the
@@ -212,6 +225,7 @@ install_amneziawg() {
         modprobe amneziawg 2>/dev/null || true
         install_ndppd
         enable_ipv6_forwarding
+        enable_tproxy_support
         return
     fi
 
@@ -284,6 +298,7 @@ install_amneziawg() {
     fi
 
     enable_ipv6_forwarding
+    enable_tproxy_support
 }
 
 gen_random_string() {

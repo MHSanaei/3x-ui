@@ -3,8 +3,10 @@ package service
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
@@ -555,5 +557,232 @@ func TestInjectMtprotoEgress_BadRoutingSkips(t *testing.T) {
 	}
 	if string(cfg.RouterConfig) != `{not json` {
 		t.Fatalf("unparsable routing must be left untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func amneziawgInbound(id int, tag string, clients []model.Client) *model.Inbound {
+	settings, _ := json.Marshal(amneziawg.InboundSettings{Clients: clients})
+	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
+}
+
+type amneziawgRouting struct {
+	Rules []struct {
+		InboundTag  []string `json:"inboundTag"`
+		OutboundTag string   `json:"outboundTag"`
+		BalancerTag string   `json:"balancerTag"`
+		Source      []string `json:"source"`
+		Type        string   `json:"type"`
+	} `json:"rules"`
+}
+
+func TestInjectAmneziawgEgress_WithOutbound(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("expected the shared bridge to be appended, got %d inbounds", len(cfg.InboundConfigs))
+	}
+	ib := cfg.InboundConfigs[1]
+	if ib.Tag != amneziawg.EgressTag || ib.Protocol != "dokodemo-door" || ib.Port != amneziawg.EgressPort {
+		t.Fatalf("unexpected bridge inbound: %+v", ib)
+	}
+	if string(ib.Listen) != `"127.0.0.1"` {
+		t.Fatalf("bridge must listen on loopback, got %s", ib.Listen)
+	}
+	if !strings.Contains(string(ib.StreamSettings), `"tproxy":"tproxy"`) {
+		t.Fatalf("bridge must set sockopt.tproxy, got %s", ib.StreamSettings)
+	}
+	if !strings.Contains(string(ib.Settings), `"followRedirect":true`) {
+		t.Fatalf("bridge must set followRedirect, got %s", ib.Settings)
+	}
+
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 {
+		t.Fatalf("expected the egress rule prepended to the existing rule, got %+v", routing.Rules)
+	}
+	first := routing.Rules[0]
+	if first.Type != "field" || first.OutboundTag != "warp" ||
+		len(first.InboundTag) != 1 || first.InboundTag[0] != amneziawg.EgressTag ||
+		len(first.Source) != 1 || first.Source[0] != "10.8.1.2/32" {
+		t.Fatalf("egress rule must bind the shared bridge tag + peer source IP to the outbound, got %+v", first)
+	}
+}
+
+func TestInjectAmneziawgEgress_MultiplePeersDifferentOutbounds(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "b@x", Enable: true, AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("expected exactly one shared bridge regardless of peer count, got %d inbounds", len(cfg.InboundConfigs))
+	}
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 3 { // 2 egress rules + the 1 pre-existing rule
+		t.Fatalf("expected one rule per routed peer, got %+v", routing.Rules)
+	}
+	bySource := map[string]string{}
+	for _, r := range routing.Rules {
+		if len(r.Source) == 1 {
+			bySource[r.Source[0]] = r.OutboundTag
+		}
+	}
+	if bySource["10.8.1.2/32"] != "warp" || bySource["10.8.1.3/32"] != "direct" {
+		t.Fatalf("each peer must route to its own outbound, got %+v", bySource)
+	}
+}
+
+func TestInjectAmneziawgEgress_NoOutboundLeavesRouting(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.RouterConfig)
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("bridge must still be appended without an outbound, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("no outbound selected means no rule change, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectAmneziawgEgress_BalancerTag(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "lb"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 1 || routing.Rules[0].BalancerTag != "lb" || routing.Rules[0].OutboundTag != "" {
+		t.Fatalf("a balancer tag must target balancerTag, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectAmneziawgEgress_Disabled(t *testing.T) {
+	cases := []struct {
+		name   string
+		client model.Client
+		enable bool
+	}{
+		{"client disabled", model.Client{Email: "a@x", Enable: false, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"}, true},
+		{"RouteThroughXray off", model.Client{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteOutboundTag: "warp"}, true},
+		{"no AllowedIPs", model.Client{Email: "a@x", Enable: true, RouteThroughXray: true, RouteOutboundTag: "warp"}, true},
+		{"inbound disabled", model.Client{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := egressTestConfig()
+			inbound := amneziawgInbound(1, "awg-1", []model.Client{c.client})
+			inbound.Enable = c.enable
+			injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+			if len(cfg.InboundConfigs) != 1 {
+				t.Fatalf("%s must be a no-op, got %d inbounds", c.name, len(cfg.InboundConfigs))
+			}
+		})
+	}
+}
+
+func TestInjectAmneziawgEgress_TagCollisionSkips(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.InboundConfigs = append(cfg.InboundConfigs,
+		xray.InboundConfig{Port: 1234, Protocol: "vless", Tag: amneziawg.EgressTag})
+	before := string(cfg.RouterConfig)
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+	if len(cfg.InboundConfigs) != 2 || string(cfg.RouterConfig) != before {
+		t.Fatal("a real inbound already owning the shared bridge tag must make injection a no-op")
+	}
+}
+
+func TestInjectAmneziawgEgress_MissingTargetSkipsOnlyThatPeer(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "b@x", Enable: true, AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "removed-subscription-outbound"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("the bridge must still be created for the peer with a valid target, got %+v", cfg.InboundConfigs)
+	}
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 { // only a@x's rule + the 1 pre-existing rule
+		t.Fatalf("only the peer with a valid target should get a rule, got %+v", routing.Rules)
+	}
+	if routing.Rules[0].Source[0] != "10.8.1.2/32" {
+		t.Fatalf("expected a@x's rule, got %+v", routing.Rules[0])
+	}
+}
+
+func TestInjectAmneziawgEgress_BadOutboundsSkipsRulesKeepsBridge(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
+	before := string(cfg.RouterConfig)
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("unparsable outbounds must still expose the bridge (other peers may not need routing), got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != before {
+		t.Fatalf("unparsable outbounds means no target can resolve, so no rule change, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectAmneziawgEgress_BadRoutingSkipsEverything(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{not json`)
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("unparsable routing must not expose the bridge either, got %+v", cfg.InboundConfigs)
+	}
+	if string(cfg.RouterConfig) != `{not json` {
+		t.Fatalf("unparsable routing must be left untouched, got %s", cfg.RouterConfig)
+	}
+}
+
+func TestInjectAmneziawgEgress_NoRoutingSection(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = nil
+	inbound := amneziawgInbound(1, "awg-1", []model.Client{
+		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+	})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.InboundConfigs) != 2 || len(routing.Rules) != 1 || routing.Rules[0].OutboundTag != "direct" {
+		t.Fatalf("a routing section must be created with the egress rule, got %+v", routing.Rules)
 	}
 }
