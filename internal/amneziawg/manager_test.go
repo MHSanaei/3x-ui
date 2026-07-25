@@ -98,6 +98,79 @@ func TestInstanceFromInboundEmptyWhenNoEnabledPeers(t *testing.T) {
 	}
 }
 
+func TestInstanceFromInboundComputesEffectiveRouting(t *testing.T) {
+	serverRouted := validServer()
+	serverRouted.RouteThroughXray = true
+	serverRouted.RouteOutboundTag = "warp"
+
+	t.Run("server default routes a peer with no flag of its own", func(t *testing.T) {
+		settings := mkInboundSettings(t, serverRouted, []model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},
+		})
+		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
+		if !ok {
+			t.Fatal("expected a usable instance")
+		}
+		p := inst.Peers[0]
+		if !p.RouteThroughXray || p.RouteOutboundTag != "warp" {
+			t.Fatalf("expected the peer to inherit the server default, got %+v", p)
+		}
+	})
+
+	t.Run("client's own tag overrides the server default", func(t *testing.T) {
+		settings := mkInboundSettings(t, serverRouted, []model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}, RouteOutboundTag: "direct"},
+		})
+		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
+		if !ok {
+			t.Fatal("expected a usable instance")
+		}
+		p := inst.Peers[0]
+		if !p.RouteThroughXray || p.RouteOutboundTag != "direct" {
+			t.Fatalf("expected the client's own tag to win, got %+v", p)
+		}
+	})
+
+	t.Run("client can opt in on its own when the server default is off", func(t *testing.T) {
+		settings := mkInboundSettings(t, validServer(), []model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+			{Email: "b@x", Enable: true, PublicKey: "pubB", AllowedIPs: []string{"10.8.1.3/32"}},
+		})
+		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
+		if !ok {
+			t.Fatal("expected a usable instance")
+		}
+		var a, b Peer
+		for _, p := range inst.Peers {
+			switch p.Email {
+			case "a@x":
+				a = p
+			case "b@x":
+				b = p
+			}
+		}
+		if !a.RouteThroughXray || a.RouteOutboundTag != "direct" {
+			t.Fatalf("a@x opted in on its own, expected it routed to direct, got %+v", a)
+		}
+		if b.RouteThroughXray {
+			t.Fatalf("b@x has no flag of its own and the server default is off, expected unrouted, got %+v", b)
+		}
+	})
+
+	t.Run("neither level set means not routed", func(t *testing.T) {
+		settings := mkInboundSettings(t, validServer(), []model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},
+		})
+		inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.AmneziaWG, Settings: settings})
+		if !ok {
+			t.Fatal("expected a usable instance")
+		}
+		if inst.Peers[0].RouteThroughXray || inst.Peers[0].RouteOutboundTag != "" {
+			t.Fatalf("expected no routing at all, got %+v", inst.Peers[0])
+		}
+	})
+}
+
 func TestServerAddress(t *testing.T) {
 	cases := []struct {
 		subnet string

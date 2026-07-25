@@ -692,6 +692,8 @@ export const ServerSettingsSchema = z.object({
   primaryDns: z.string().optional(),
   privateKey: z.string(),
   publicKey: z.string(),
+  routeOutboundTag: z.string().optional(),
+  routeThroughXray: z.boolean().optional(),
   s1: z.number().int(),
   s2: z.number().int(),
   s3: z.number().int(),

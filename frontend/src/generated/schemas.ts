@@ -2852,6 +2852,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey": {
         "type": "string"
       },
+      "routeOutboundTag": {
+        "type": "string"
+      },
+      "routeThroughXray": {
+        "description": "RouteThroughXray, when true, is the inbound-wide default: every peer\nTPROXYs into Xray unless it explicitly turns its own RouteThroughXray\noff... except a plain bool can't distinguish \"peer left it unset\" from\n\"peer explicitly opted out\", so in practice this ORs with each peer's\nown flag (see Peer.RouteThroughXray) — turning this on routes every\npeer, turning it off still lets individual peers opt in on their own.\nRouteOutboundTag is the default outbound/balancer tag used when a\nrouted peer didn't set its own; empty means Xray's default routing.",
+        "type": "boolean"
+      },
       "s1": {
         "type": "integer"
       },

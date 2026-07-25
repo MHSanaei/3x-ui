@@ -653,7 +653,7 @@ type amneziawgRouteRule struct {
 	outboundTag string
 }
 
-// injectAmneziawgEgress wires every RouteThroughXray AmneziaWG peer, across
+// injectAmneziawgEgress wires every effectively-routed AmneziaWG peer, across
 // every enabled AmneziaWG inbound, into the generated config through one
 // loopback dokodemo-door bridge shared by all of them (tag
 // amneziawg.EgressTag, port amneziawg.EgressPort) rather than one bridge per
@@ -661,7 +661,13 @@ type amneziawgRouteRule struct {
 // (see internal/amneziawg's defaultPostUpDown), but distinguishing which peer
 // a given connection came from — and picking its own outbound — happens
 // here, in Xray's own router, matched against the TPROXY-preserved source
-// IP. Mirrors injectMtprotoEgress/injectPanelEgress: an invalid or missing
+// IP. Reuses amneziawg.InstanceFromInbound for the peer list (rather than
+// re-parsing Settings itself) specifically so "is this peer routed, and to
+// which outbound" is computed in exactly one place — the same place the
+// kernel-side TPROXY rules read it from — and can never quietly diverge
+// between the two independent reconcile loops.
+//
+// Mirrors injectMtprotoEgress/injectPanelEgress: an invalid or missing
 // outbound target skips that one peer's rule, not the whole bridge; the
 // bridge itself is skipped entirely when no peer needs it or its tag is
 // already taken by a real inbound. Generated state is hot-appliable and
@@ -672,19 +678,19 @@ func injectAmneziawgEgress(cfg *xray.Config, inbounds []*model.Inbound) {
 		if inbound.Protocol != model.AmneziaWG || !inbound.Enable || inbound.NodeID != nil {
 			continue
 		}
-		var parsed amneziawg.InboundSettings
-		if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
 			continue
 		}
-		for _, c := range parsed.Clients {
-			if !c.Enable || !c.RouteThroughXray {
+		for _, p := range inst.Peers {
+			if !p.RouteThroughXray {
 				continue
 			}
-			sourceIP := amneziawg.FirstIPv4(c.AllowedIPs)
+			sourceIP := amneziawg.FirstIPv4(p.AllowedIPs)
 			if sourceIP == "" {
 				continue
 			}
-			rules = append(rules, amneziawgRouteRule{sourceIP: sourceIP, outboundTag: c.RouteOutboundTag})
+			rules = append(rules, amneziawgRouteRule{sourceIP: sourceIP, outboundTag: p.RouteOutboundTag})
 		}
 	}
 	if len(rules) == 0 {

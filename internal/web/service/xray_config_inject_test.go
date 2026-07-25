@@ -561,7 +561,23 @@ func TestInjectMtprotoEgress_BadRoutingSkips(t *testing.T) {
 }
 
 func amneziawgInbound(id int, tag string, clients []model.Client) *model.Inbound {
-	settings, _ := json.Marshal(amneziawg.InboundSettings{Clients: clients})
+	return amneziawgInboundWithServer(id, tag, amneziawg.ServerSettings{}, clients)
+}
+
+// amneziawgInboundWithServer lets a test set inbound-wide fields (namely
+// RouteThroughXray/RouteOutboundTag) that InstanceFromInbound now needs —
+// injectAmneziawgEgress computes each peer's EFFECTIVE routing decision via
+// InstanceFromInbound rather than reading model.Client fields raw, so a
+// server block (even a minimal valid one) is required for any of these
+// tests to see peers at all.
+func amneziawgInboundWithServer(id int, tag string, server amneziawg.ServerSettings, clients []model.Client) *model.Inbound {
+	if server.SubnetIP == "" {
+		server.SubnetIP = "10.8.1.0"
+	}
+	if server.SubnetCIDR == 0 {
+		server.SubnetCIDR = 24
+	}
+	settings, _ := json.Marshal(amneziawg.InboundSettings{Server: &server, Clients: clients})
 	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
 }
 
@@ -578,7 +594,7 @@ type amneziawgRouting struct {
 func TestInjectAmneziawgEgress_WithOutbound(t *testing.T) {
 	cfg := egressTestConfig()
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -617,8 +633,8 @@ func TestInjectAmneziawgEgress_WithOutbound(t *testing.T) {
 func TestInjectAmneziawgEgress_MultiplePeersDifferentOutbounds(t *testing.T) {
 	cfg := egressTestConfig()
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
-		{Email: "b@x", Enable: true, AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -647,7 +663,7 @@ func TestInjectAmneziawgEgress_NoOutboundLeavesRouting(t *testing.T) {
 	cfg := egressTestConfig()
 	before := string(cfg.RouterConfig)
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -663,7 +679,7 @@ func TestInjectAmneziawgEgress_BalancerTag(t *testing.T) {
 	cfg := egressTestConfig()
 	cfg.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "lb"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "lb"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -685,7 +701,7 @@ func TestInjectAmneziawgEgress_Disabled(t *testing.T) {
 		{"client disabled", model.Client{Email: "a@x", Enable: false, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"}, true},
 		{"RouteThroughXray off", model.Client{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteOutboundTag: "warp"}, true},
 		{"no AllowedIPs", model.Client{Email: "a@x", Enable: true, RouteThroughXray: true, RouteOutboundTag: "warp"}, true},
-		{"inbound disabled", model.Client{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"}, false},
+		{"inbound disabled", model.Client{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -706,7 +722,7 @@ func TestInjectAmneziawgEgress_TagCollisionSkips(t *testing.T) {
 		xray.InboundConfig{Port: 1234, Protocol: "vless", Tag: amneziawg.EgressTag})
 	before := string(cfg.RouterConfig)
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 	if len(cfg.InboundConfigs) != 2 || string(cfg.RouterConfig) != before {
@@ -717,8 +733,8 @@ func TestInjectAmneziawgEgress_TagCollisionSkips(t *testing.T) {
 func TestInjectAmneziawgEgress_MissingTargetSkipsOnlyThatPeer(t *testing.T) {
 	cfg := egressTestConfig()
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
-		{Email: "b@x", Enable: true, AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "removed-subscription-outbound"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"10.8.1.3/32"}, RouteThroughXray: true, RouteOutboundTag: "removed-subscription-outbound"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -742,7 +758,7 @@ func TestInjectAmneziawgEgress_BadOutboundsSkipsRulesKeepsBridge(t *testing.T) {
 	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
 	before := string(cfg.RouterConfig)
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -758,7 +774,7 @@ func TestInjectAmneziawgEgress_BadRoutingSkipsEverything(t *testing.T) {
 	cfg := egressTestConfig()
 	cfg.RouterConfig = json_util.RawMessage(`{not json`)
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "warp"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -774,7 +790,7 @@ func TestInjectAmneziawgEgress_NoRoutingSection(t *testing.T) {
 	cfg := egressTestConfig()
 	cfg.RouterConfig = nil
 	inbound := amneziawgInbound(1, "awg-1", []model.Client{
-		{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
 	})
 	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
 
@@ -784,5 +800,64 @@ func TestInjectAmneziawgEgress_NoRoutingSection(t *testing.T) {
 	}
 	if len(cfg.InboundConfigs) != 2 || len(routing.Rules) != 1 || routing.Rules[0].OutboundTag != "direct" {
 		t.Fatalf("a routing section must be created with the egress rule, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectAmneziawgEgress_ServerLevelRoutesPeerWithNoOwnFlag(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInboundWithServer(1, "awg-1",
+		amneziawg.ServerSettings{RouteThroughXray: true, RouteOutboundTag: "warp"},
+		[]model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
+		})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("the inbound-wide default must route a peer with no client-level flag of its own, got %+v", cfg.InboundConfigs)
+	}
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 || routing.Rules[0].OutboundTag != "warp" || routing.Rules[0].Source[0] != "10.8.1.2/32" {
+		t.Fatalf("expected a rule routing the peer to the inbound's default outbound, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectAmneziawgEgress_ClientTagOverridesServerTag(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInboundWithServer(1, "awg-1",
+		amneziawg.ServerSettings{RouteThroughXray: true, RouteOutboundTag: "warp"},
+		[]model.Client{
+			// Routed by the server-wide default, but picks its own outbound.
+			{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteOutboundTag: "direct"},
+		})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 || routing.Rules[0].OutboundTag != "direct" {
+		t.Fatalf("a client's own outbound tag must win over the inbound's default, got %+v", routing.Rules)
+	}
+}
+
+func TestInjectAmneziawgEgress_ServerLevelOffClientCanStillOptIn(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgInboundWithServer(1, "awg-1",
+		amneziawg.ServerSettings{}, // server-wide routing off
+		[]model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}, RouteThroughXray: true, RouteOutboundTag: "direct"},
+			{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"10.8.1.3/32"}},
+		})
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+
+	var routing amneziawgRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 || routing.Rules[0].Source[0] != "10.8.1.2/32" {
+		t.Fatalf("a@x must be routed on its own opt-in even with the inbound default off, got %+v", routing.Rules)
 	}
 }

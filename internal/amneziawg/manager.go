@@ -52,14 +52,21 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		if !c.Enable || c.PublicKey == "" || len(c.AllowedIPs) == 0 {
 			continue
 		}
+		routeTag := c.RouteOutboundTag
+		if routeTag == "" {
+			routeTag = server.RouteOutboundTag
+		}
 		peers = append(peers, Peer{
-			Email:            c.Email,
-			PublicKey:        c.PublicKey,
-			PresharedKey:     c.PreSharedKey,
-			AllowedIPs:       c.AllowedIPs,
-			ForwardedPorts:   c.ForwardedPorts,
-			RouteThroughXray: c.RouteThroughXray,
-			RouteOutboundTag: c.RouteOutboundTag,
+			Email:          c.Email,
+			PublicKey:      c.PublicKey,
+			PresharedKey:   c.PreSharedKey,
+			AllowedIPs:     c.AllowedIPs,
+			ForwardedPorts: c.ForwardedPorts,
+			// Effective routing: the inbound-wide default routes every peer
+			// unless the peer's own flag already does; the client's own
+			// outbound tag wins when set, else the inbound's default tag.
+			RouteThroughXray: c.RouteThroughXray || server.RouteThroughXray,
+			RouteOutboundTag: routeTag,
 		})
 	}
 	if len(peers) == 0 {

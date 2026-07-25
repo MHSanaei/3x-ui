@@ -39,15 +39,22 @@ type Peer struct {
 	// DNAT'd to this peer's tunnel address. Empty means no port-forwarding.
 	ForwardedPorts string
 
-	// RouteThroughXray, when true, TPROXYs this peer's traffic (matched by its
-	// tunnel source IP) into the single shared loopback Xray dokodemo-door
-	// bridge (see amneziawgEgressPort in internal/web/service/xray.go) instead
-	// of letting it NAT straight out through ExternalInterface. All routed
-	// peers, across every AmneziaWG instance, share that one bridge and one
-	// fwmark/policy-route pair; the per-peer distinction happens downstream in
-	// Xray's own router, which the web service feeds a source-IP-matched rule
-	// per peer. RouteOutboundTag is the Xray outbound/balancer tag that rule
-	// targets; empty means Xray's default routing decides.
+	// RouteThroughXray and RouteOutboundTag are this peer's EFFECTIVE routing
+	// decision — already resolved by InstanceFromInbound from the per-client
+	// setting OR'd with the inbound-wide ServerSettings.RouteThroughXray
+	// default (and the client's own RouteOutboundTag falling back to the
+	// server's when the client didn't set one). Callers never need to look at
+	// the raw client/server fields separately.
+	//
+	// When true, TPROXYs this peer's traffic (matched by its tunnel source
+	// IP) into the single shared loopback Xray dokodemo-door bridge (see
+	// EgressPort in route_egress.go) instead of letting it NAT straight out
+	// through ExternalInterface. All routed peers, across every AmneziaWG
+	// instance, share that one bridge and one fwmark/policy-route pair; the
+	// per-peer distinction happens downstream in Xray's own router, which the
+	// web service feeds a source-IP-matched rule per peer. RouteOutboundTag
+	// is the Xray outbound/balancer tag that rule targets; empty means
+	// Xray's default routing decides.
 	RouteThroughXray bool
 	RouteOutboundTag string
 }
@@ -112,6 +119,17 @@ type ServerSettings struct {
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
 	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
+
+	// RouteThroughXray, when true, is the inbound-wide default: every peer
+	// TPROXYs into Xray unless it explicitly turns its own RouteThroughXray
+	// off... except a plain bool can't distinguish "peer left it unset" from
+	// "peer explicitly opted out", so in practice this ORs with each peer's
+	// own flag (see Peer.RouteThroughXray) — turning this on routes every
+	// peer, turning it off still lets individual peers opt in on their own.
+	// RouteOutboundTag is the default outbound/balancer tag used when a
+	// routed peer didn't set its own; empty means Xray's default routing.
+	RouteThroughXray bool   `json:"routeThroughXray,omitempty"`
+	RouteOutboundTag string `json:"routeOutboundTag,omitempty"`
 
 	// Obfuscation20's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an

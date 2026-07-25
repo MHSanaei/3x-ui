@@ -57,6 +57,8 @@ export const AmneziawgServerSchema = z.object({
   ipv6Enabled: z.boolean().default(false),
   ipv6Subnet: z.string().default(''),
   ipv6ExternalInterface: z.string().default(''),
+  routeThroughXray: z.boolean().default(false),
+  routeOutboundTag: z.string().default(''),
   jc: z.number().int().min(0).default(5),
   jmin: z.number().int().min(0).default(10),
   jmax: z.number().int().min(0).default(50),
