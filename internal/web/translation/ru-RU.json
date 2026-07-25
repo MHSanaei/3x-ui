@@ -1816,6 +1816,8 @@
         "secondaryDns": "Резервный DNS",
         "externalInterface": "Внешний интерфейс",
         "externalInterfaceHint": "Сетевой интерфейс хоста для NAT (PostUp/PostDown). Оставьте пустым для автоопределения.",
+        "obfuscation": "Параметры обфускации",
+        "regenerateObfuscation": "Сгенерировать заново",
         "jc": "Jc (кол-во мусорных пакетов)",
         "jmin": "Jmin (мин. размер мусорного пакета)",
         "jmax": "Jmax (макс. размер мусорного пакета)",

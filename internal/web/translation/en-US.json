@@ -1933,6 +1933,8 @@
         "secondaryDns": "Secondary DNS",
         "externalInterface": "External Interface",
         "externalInterfaceHint": "Host NIC for NAT (PostUp/PostDown). Leave empty to auto-detect.",
+        "obfuscation": "Obfuscation parameters",
+        "regenerateObfuscation": "Regenerate",
         "jc": "Jc (junk packet count)",
         "jmin": "Jmin (junk packet min size)",
         "jmax": "Jmax (junk packet max size)",
