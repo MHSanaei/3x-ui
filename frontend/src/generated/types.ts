@@ -637,6 +637,9 @@ export interface ServerSettings {
   h3: string;
   h4: string;
   i1?: string;
+  ipv6Enabled?: boolean;
+  ipv6ExternalInterface?: string;
+  ipv6Subnet?: string;
   jc: number;
   jmax: number;
   jmin: number;

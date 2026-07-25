@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"net/netip"
 	"strconv"
 	"strings"
 )
@@ -115,6 +116,26 @@ func ValidateObfuscation(o Obfuscation20) error {
 		if err := validateHValue(h); err != nil {
 			return fmt.Errorf("invalid H%d: %w", i+1, err)
 		}
+	}
+	return nil
+}
+
+// ValidateIPv6Subnet rejects a malformed IPv6 subnet before it's saved, so a
+// bad manual entry can't bring the interface down on `awg-quick up`. A blank
+// subnet is only valid when IPv6 itself is disabled.
+func ValidateIPv6Subnet(enabled bool, subnet string) error {
+	if !enabled {
+		return nil
+	}
+	if strings.TrimSpace(subnet) == "" {
+		return fmt.Errorf("ipv6Subnet is required when IPv6 is enabled")
+	}
+	prefix, err := netip.ParsePrefix(subnet)
+	if err != nil {
+		return fmt.Errorf("invalid ipv6Subnet %q: %w", subnet, err)
+	}
+	if !prefix.Addr().Is6() {
+		return fmt.Errorf("invalid ipv6Subnet %q: not an IPv6 prefix", subnet)
 	}
 	return nil
 }

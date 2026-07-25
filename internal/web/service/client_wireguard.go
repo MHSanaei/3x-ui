@@ -46,9 +46,10 @@ func wireguardAllocationBase(used []string, fallback string) string {
 	return fallback
 }
 
-// allocateWireguardAddress returns the first free /32 host address in base that
-// is not already present in used. The server holds the first host (.1), so
-// allocation starts at the second host (.2).
+// allocateWireguardAddress returns the first free single-host address in base
+// (suffixed /32 for an IPv4 base, /128 for IPv6) that is not already present
+// in used. The server holds the first host (.1 / ::1), so allocation starts
+// at the second host (.2 / ::2).
 func allocateWireguardAddress(used []string, base string) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase
@@ -56,6 +57,10 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 	prefix, err := netip.ParsePrefix(base)
 	if err != nil {
 		return "", err
+	}
+	hostBits := "32"
+	if prefix.Addr().Is6() {
+		hostBits = "128"
 	}
 	taken := make(map[netip.Addr]struct{}, len(used))
 	for _, u := range used {
@@ -66,7 +71,7 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 	addr := prefix.Masked().Addr().Next().Next()
 	for prefix.Contains(addr) {
 		if _, ok := taken[addr]; !ok {
-			return addr.String() + "/32", nil
+			return addr.String() + "/" + hostBits, nil
 		}
 		addr = addr.Next()
 	}
