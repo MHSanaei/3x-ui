@@ -463,7 +463,8 @@ func (a *ServerController) getRemoteCertHash(c *gin.Context) {
 // scanRealityTarget runs a live TLS 1.3 probe against the candidate REALITY
 // target and returns a structured feasibility verdict plus the cert SAN names.
 func (a *ServerController) scanRealityTarget(c *gin.Context) {
-	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"))
+	xver, _ := strconv.Atoi(c.PostForm("xver"))
+	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"), xver)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
 		return

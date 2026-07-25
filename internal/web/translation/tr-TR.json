@@ -1007,6 +1007,7 @@
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Uzak panelin Ayarlar sayfasındaki token",
       "apiTokenHint": "Uzak panel API token'ını Kimlik Doğrulama → API Token altında gösterir.",
+      "apiTokenKeepHint": "Mevcut token'ı korumak için boş bırakın",
       "regenerate": "Token'ı Yeniden Oluştur",
       "regenerateConfirm": "Yeniden oluşturmak mevcut token'ı geçersiz kılar. Onu kullanan tüm merkezi paneller, güncellenene kadar erişimini kaybeder. Devam edilsin mi?",
       "allowPrivateAddress": "Özel Adrese İzin Ver",

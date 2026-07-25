@@ -1124,6 +1124,7 @@
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Token from the remote panel's Settings page",
       "apiTokenHint": "The remote panel exposes its API token under Authentication → API Token.",
+      "apiTokenKeepHint": "Leave blank to keep the current token",
       "regenerate": "Regenerate Token",
       "regenerateConfirm": "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?",
       "allowPrivateAddress": "Allow private address",

@@ -1007,6 +1007,7 @@
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token desde la página de Configuración del panel remoto",
       "apiTokenHint": "El panel remoto expone su token de API en Configuraciones de Seguridad → Token de API.",
+      "apiTokenKeepHint": "Déjalo en blanco para mantener el token actual",
       "regenerate": "Regenerar token",
       "regenerateConfirm": "Regenerar invalida el token actual. Cualquier panel central que lo use perderá el acceso hasta que se actualice. ¿Continuar?",
       "allowPrivateAddress": "Permitir dirección privada",

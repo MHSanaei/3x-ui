@@ -14,6 +14,7 @@ import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
+import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { XHttpStreamSettingsSchema, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 
 const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
@@ -176,6 +177,13 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
       if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
         xhttp.enableXmux = true;
         xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Record<string, unknown>) };
+      }
+    }
+    const so = streamRecord.sockopt;
+    if (so && typeof so === 'object' && !Array.isArray(so)) {
+      const parsed = SockoptStreamSettingsSchema.safeParse(so);
+      if (parsed.success) {
+        streamRecord.sockopt = { ...(so as Record<string, unknown>), ...parsed.data };
       }
     }
   }

@@ -12,7 +12,7 @@ import (
 
 func TestSubscriptionFetchClientBlocksPrivateDial(t *testing.T) {
 	setupSettingTestDB(t)
-	client := (&OutboundSubscriptionService{}).subscriptionFetchClient(5 * time.Second)
+	client := (&OutboundSubscriptionService{}).subscriptionFetchClient(5*time.Second, false)
 
 	ctx := netsafe.ContextWithAllowPrivate(context.Background(), false)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://127.0.0.1:1/", nil)
