@@ -2,6 +2,7 @@ package amneziawg
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -179,25 +180,145 @@ func TestPeersFingerprintOrderIndependentButContentSensitive(t *testing.T) {
 
 func TestEnsureActionFor(t *testing.T) {
 	cases := []struct {
-		name                            string
-		up                              bool
-		curStruct, curPortFwd, curPeers string
-		newStruct, newPortFwd, newPeers string
-		want                            ensureAction
+		name                              string
+		up                                bool
+		curStruct, curHostRules, curPeers string
+		newStruct, newHostRules, newPeers string
+		want                              ensureAction
 	}{
 		{"down forces restart even if identical", false, "s", "f", "p", "s", "f", "p", ensureRestart},
 		{"structural change forces restart", true, "s1", "f", "p", "s2", "f", "p", ensureRestart},
 		{"port-forward change forces restart", true, "s", "f1", "p", "s", "f2", "p", ensureRestart},
+		{"peer-ip change (its TPROXY rule) forces restart", true, "s", "ip:old", "p", "s", "ip:new", "p", ensureRestart},
 		{"peers-only change reloads", true, "s", "f", "p1", "s", "f", "p2", ensureReload},
 		{"identical up interface is a noop", true, "s", "f", "p", "s", "f", "p", ensureNoop},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := ensureActionFor(c.up, c.curStruct, c.curPortFwd, c.curPeers, c.newStruct, c.newPortFwd, c.newPeers)
+			got := ensureActionFor(c.up, c.curStruct, c.curHostRules, c.curPeers, c.newStruct, c.newHostRules, c.newPeers)
 			if got != c.want {
 				t.Errorf("ensureActionFor() = %v, want %v", got, c.want)
 			}
 		})
+	}
+}
+
+func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
+	a := baseInstance()
+	b := baseInstance()
+	if a.hostRulesFingerprint() != b.hostRulesFingerprint() {
+		t.Fatal("identical instances must produce the same host-rules fingerprint")
+	}
+	if a.hostRulesFingerprint() == "" {
+		t.Fatal("every peer always gets a TPROXY rule now, so the fingerprint must never be empty when peers exist")
+	}
+
+	forwarded := baseInstance()
+	forwarded.Peers[0].ForwardedPorts = "80,443"
+	if a.hostRulesFingerprint() == forwarded.hostRulesFingerprint() {
+		t.Fatal("adding ForwardedPorts must change the host-rules fingerprint")
+	}
+
+	reIPed := baseInstance()
+	reIPed.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
+	if a.hostRulesFingerprint() == reIPed.hostRulesFingerprint() {
+		t.Fatal("changing a peer's IP must change the host-rules fingerprint -- its TPROXY rule is keyed on that IP")
+	}
+
+	fewer := baseInstance()
+	fewer.Peers = fewer.Peers[:1]
+	if a.hostRulesFingerprint() == fewer.hostRulesFingerprint() {
+		t.Fatal("removing a peer must change the host-rules fingerprint -- one fewer TPROXY rule is needed")
+	}
+}
+
+func TestRouteEgressComment(t *testing.T) {
+	if got := routeEgressComment(""); got != "awg-route" {
+		t.Errorf("empty email must fall back to awg-route, got %q", got)
+	}
+	a := routeEgressComment("a@x")
+	b := routeEgressComment("b@x")
+	if a == b {
+		t.Fatal("different emails must produce different comment tags")
+	}
+	if a != routeEgressComment("a@x") {
+		t.Fatal("the same email must always produce the same comment tag")
+	}
+}
+
+func TestRouteEgressLines(t *testing.T) {
+	up := routeEgressLines("-A", "awg1", "10.8.1.2/32", "a@x", 63101)
+	if len(up) != 2 {
+		t.Fatalf("expected one TPROXY line per protocol (tcp+udp), got %d: %v", len(up), up)
+	}
+	for _, proto := range []string{"tcp", "udp"} {
+		found := false
+		for _, l := range up {
+			if !strings.Contains(l, "-p "+proto) {
+				continue
+			}
+			found = true
+			if !strings.Contains(l, "-i awg1") || !strings.Contains(l, "-s 10.8.1.2") ||
+				!strings.Contains(l, "--on-port 63101") ||
+				!strings.Contains(l, "--on-ip 127.0.0.1") ||
+				!strings.Contains(l, fmt.Sprintf("--tproxy-mark %#x/%#x", EgressFwmark, EgressFwmark)) ||
+				!strings.Contains(l, "-A PREROUTING") {
+				t.Errorf("%s line missing expected fields: %s", proto, l)
+			}
+		}
+		if !found {
+			t.Errorf("missing a %s TPROXY line in %v", proto, up)
+		}
+	}
+	if strings.Contains(up[0], "10.8.1.2/32") {
+		t.Errorf("expected the /32 mask stripped from the source match, got %s", up[0])
+	}
+
+	down := routeEgressLines("-D", "awg1", "10.8.1.2/32", "a@x", 63101)
+	if len(down) != 2 || !strings.Contains(down[0], "-D PREROUTING") {
+		t.Fatalf("expected symmetric -D lines, got %v", down)
+	}
+
+	if got := routeEgressLines("-A", "awg1", "", "a@x", 63101); got != nil {
+		t.Errorf("empty clientIP must yield no lines, got %v", got)
+	}
+}
+
+func TestEgressPortForInbound(t *testing.T) {
+	if got := EgressPortForInbound(1); got != EgressBasePort+1 {
+		t.Errorf("EgressPortForInbound(1) = %d, want %d", got, EgressBasePort+1)
+	}
+	if EgressPortForInbound(1) == EgressPortForInbound(2) {
+		t.Fatal("different inbound ids must derive different ports")
+	}
+}
+
+func TestDefaultPostUpDownEmitsTproxyForEveryPeer(t *testing.T) {
+	inst := baseInstance() // two peers, a@x and b@x, no opt-in flag exists anymore
+	up, down := defaultPostUpDown(inst, "eth0")
+
+	wantPort := fmt.Sprintf("--on-port %d", EgressPortForInbound(inst.Id))
+	if !strings.Contains(up, "TPROXY") || !strings.Contains(up, wantPort) {
+		t.Errorf("expected TPROXY rules targeting this instance's own bridge port in PostUp, got:\n%s", up)
+	}
+	if !strings.Contains(down, "TPROXY") {
+		t.Errorf("expected matching TPROXY removals in PostDown, got:\n%s", down)
+	}
+	if !strings.Contains(up, fmt.Sprintf("ip rule add fwmark %#x", EgressFwmark)) {
+		t.Errorf("expected the shared policy route to be added once in PostUp, got:\n%s", up)
+	}
+	if strings.Contains(down, "ip rule") || strings.Contains(down, "ip route") {
+		t.Error("the shared policy route must never be removed in PostDown -- other instances may still need it")
+	}
+	// Both peers always get TPROXY'd now, no opt-in: 2 peers * 2 protocols.
+	if got := strings.Count(up, "TPROXY"); got != 4 {
+		t.Errorf("expected exactly 4 TPROXY lines (tcp+udp for each of the 2 peers), got %d in:\n%s", got, up)
+	}
+
+	none := Instance{Id: 2, InterfaceName: "awg2"} // no peers at all
+	upNone, _ := defaultPostUpDown(none, "eth0")
+	if strings.Contains(upNone, "TPROXY") || strings.Contains(upNone, "ip rule add fwmark") {
+		t.Errorf("an instance with no peers must not emit any TPROXY/policy-route lines, got:\n%s", upNone)
 	}
 }
 
