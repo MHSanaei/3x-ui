@@ -10,22 +10,27 @@ import (
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
-// defaultAmneziaWGSubnetBase resolves the /CIDR base new peer addresses are
-// allocated from, out of the inbound's own configured server subnet — unlike
-// WireGuard, which always falls back to a fixed 10.0.0.0/24.
-func defaultAmneziaWGSubnetBase(settingsJSON string) (string, error) {
+// defaultAmneziaWGSubnetBases resolves the /CIDR bases new peer addresses are
+// allocated from, out of the inbound's own configured server subnet(s) —
+// unlike WireGuard, which always falls back to a fixed 10.0.0.0/24. v6Base is
+// "" when the server doesn't have IPv6 enabled.
+func defaultAmneziaWGSubnetBases(settingsJSON string) (v4Base, v6Base string, err error) {
 	var parsed amneziawg.InboundSettings
 	if err := json.Unmarshal([]byte(settingsJSON), &parsed); err != nil {
-		return "", fmt.Errorf("amneziawg: invalid settings: %w", err)
+		return "", "", fmt.Errorf("amneziawg: invalid settings: %w", err)
 	}
 	if parsed.Server == nil {
-		return "", fmt.Errorf("amneziawg: settings missing server block")
+		return "", "", fmt.Errorf("amneziawg: settings missing server block")
 	}
 	cidr := parsed.Server.SubnetCIDR
 	if cidr <= 0 {
 		cidr = 24
 	}
-	return fmt.Sprintf("%s/%d", parsed.Server.SubnetIP, cidr), nil
+	v4Base = fmt.Sprintf("%s/%d", parsed.Server.SubnetIP, cidr)
+	if parsed.Server.IPv6Enabled && parsed.Server.IPv6Subnet != "" {
+		v6Base = parsed.Server.IPv6Subnet
+	}
+	return v4Base, v6Base, nil
 }
 
 // defaultAmneziaWGClients fills in blank AmneziaWG credentials for newly
@@ -38,7 +43,7 @@ func defaultAmneziaWGSubnetBase(settingsJSON string) (string, error) {
 // its IP allocation and validation helpers — the only real difference is
 // where the allocation base comes from.
 func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any) error {
-	base, err := defaultAmneziaWGSubnetBase(settingsJSON)
+	v4Base, v6Base, err := defaultAmneziaWGSubnetBases(settingsJSON)
 	if err != nil {
 		return err
 	}
@@ -64,11 +69,19 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, base)
+			addr, err := allocateWireguardAddress(used, v4Base)
 			if err != nil {
 				return err
 			}
-			c.AllowedIPs = []string{addr}
+			allowed := []string{addr}
+			if v6Base != "" {
+				addr6, err := allocateWireguardAddress(used, v6Base)
+				if err != nil {
+					return err
+				}
+				allowed = append(allowed, addr6)
+			}
+			c.AllowedIPs = allowed
 		} else {
 			normalized, err := normalizeWireguardAllowedIPs(c.AllowedIPs)
 			if err != nil {

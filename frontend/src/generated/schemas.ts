@@ -2795,6 +2795,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "i1": {
         "type": "string"
       },
+      "ipv6Enabled": {
+        "description": "IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is\nallocated from IPv6Subnet alongside each client's IPv4 one, and the\nserver proxies NDP for each enabled client's address so upstream\nrouters see it as directly reachable (no NAT66). IPv6ExternalInterface\noverrides ExternalInterface for the NDP-proxy PostUp/PostDown entries\nspecifically; empty reuses ExternalInterface.",
+        "type": "boolean"
+      },
+      "ipv6ExternalInterface": {
+        "type": "string"
+      },
+      "ipv6Subnet": {
+        "type": "string"
+      },
       "jc": {
         "description": "Obfuscation20's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation20 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation20` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
         "type": "integer"

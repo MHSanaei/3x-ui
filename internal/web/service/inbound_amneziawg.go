@@ -188,6 +188,9 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateObfuscation(parsed.Server.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	if err := amneziawg.ValidateIPv6Subnet(parsed.Server.IPv6Enabled, parsed.Server.IPv6Subnet); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
 
 	bs, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {

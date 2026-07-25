@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Space } from 'antd';
+import { Button, Form, Input, InputNumber, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
@@ -44,6 +44,27 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
         name={['settings', 'server', 'externalInterface']}
         label={t('pages.xray.amneziawg.externalInterface')}
         extra={t('pages.xray.amneziawg.externalInterfaceHint')}
+      >
+        <Input placeholder="eth0" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'ipv6Enabled']}
+        label={t('pages.xray.amneziawg.ipv6Enabled')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'ipv6Subnet']}
+        label={t('pages.xray.amneziawg.ipv6Subnet')}
+        extra={t('pages.xray.amneziawg.ipv6SubnetHint')}
+      >
+        <Input placeholder="fd86:ea04:1115::/64" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'ipv6ExternalInterface']}
+        label={t('pages.xray.amneziawg.ipv6ExternalInterface')}
+        extra={t('pages.xray.amneziawg.ipv6ExternalInterfaceHint')}
       >
         <Input placeholder="eth0" />
       </FormField>

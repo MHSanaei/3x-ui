@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,18 +63,27 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		return Instance{}, false
 	}
 
+	addresses := []string{serverAddress(server.SubnetIP, server.SubnetCIDR)}
+	if server.IPv6Enabled {
+		if v6, ok := serverAddressV6(server.IPv6Subnet); ok {
+			addresses = append(addresses, v6)
+		}
+	}
+
 	return Instance{
-		Id:                ib.Id,
-		Tag:               ib.Tag,
-		InterfaceName:     interfaceNameForID(ib.Id),
-		ListenPort:        ib.Port,
-		PrivateKey:        server.PrivateKey,
-		PublicKey:         server.PublicKey,
-		Address:           []string{serverAddress(server.SubnetIP, server.SubnetCIDR)},
-		MTU:               server.MTU,
-		Obfuscation:       server.Obfuscation(),
-		Peers:             peers,
-		ExternalInterface: server.ExternalInterface,
+		Id:                    ib.Id,
+		Tag:                   ib.Tag,
+		InterfaceName:         interfaceNameForID(ib.Id),
+		ListenPort:            ib.Port,
+		PrivateKey:            server.PrivateKey,
+		PublicKey:             server.PublicKey,
+		Address:               addresses,
+		MTU:                   server.MTU,
+		Obfuscation:           server.Obfuscation(),
+		Peers:                 peers,
+		ExternalInterface:     server.ExternalInterface,
+		IPv6Enabled:           server.IPv6Enabled,
+		IPv6ExternalInterface: server.IPv6ExternalInterface,
 	}, true
 }
 
@@ -94,6 +104,19 @@ func serverAddress(subnetIP string, cidr int) string {
 		return strings.TrimSuffix(subnetIP, "0") + "1/" + strconv.Itoa(cidr)
 	}
 	return fmt.Sprintf("%s/%d", subnetIP, cidr)
+}
+
+// serverAddressV6 returns the server's own IPv6 tunnel address for a subnet
+// CIDR (e.g. "fd86:ea04:1115::1/64" for "fd86:ea04:1115::/64"), the first
+// usable host in the prefix. ok is false when subnetCIDR is empty or not a
+// valid IPv6 prefix.
+func serverAddressV6(subnetCIDR string) (addr string, ok bool) {
+	prefix, err := netip.ParsePrefix(subnetCIDR)
+	if err != nil || !prefix.Addr().Is6() {
+		return "", false
+	}
+	host := prefix.Masked().Addr().Next()
+	return fmt.Sprintf("%s/%d", host, prefix.Bits()), true
 }
 
 // structuralFingerprint changes whenever a value that requires a full
@@ -397,7 +420,7 @@ func generateServerConfig(inst Instance) string {
 	if ext == "" {
 		ext = detectDefaultInterface()
 	}
-	postUp, postDown := defaultPostUpDown(inst.InterfaceName, ext, inst.Address)
+	postUp, postDown := defaultPostUpDown(inst, ext)
 	fmt.Fprintf(&b, "PostUp = %s\n", postUp)
 	fmt.Fprintf(&b, "PostDown = %s\n", postDown)
 
@@ -451,11 +474,15 @@ func hOrDefault(v, def string) string {
 	return v
 }
 
-// defaultPostUpDown returns basic NAT + forwarding rules: MASQUERADE the
-// tunnel subnet out the external interface and accept forwarded traffic in
-// both directions. Per-peer port-forwarding, IPv6/NDP and RouteViaXray are a
-// later phase (see project TODO).
-func defaultPostUpDown(iface, ext string, addresses []string) (postUp, postDown string) {
+// defaultPostUpDown returns NAT + forwarding rules: MASQUERADE the tunnel
+// subnet out the external interface, accept forwarded traffic in both
+// directions, and — when the instance has IPv6 enabled — the IPv6-forward
+// rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
+// peer with an IPv6 address, so upstream routers see each client's IPv6 as
+// directly reachable on the LAN without NAT66. Per-client port-forwarding and
+// RouteViaXray are a later phase (see project TODO).
+func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
+	iface := inst.InterfaceName
 	up := []string{
 		fmt.Sprintf("iptables -A FORWARD -i %s -j ACCEPT", iface),
 		fmt.Sprintf("iptables -A FORWARD -o %s -j ACCEPT", iface),
@@ -464,10 +491,38 @@ func defaultPostUpDown(iface, ext string, addresses []string) (postUp, postDown 
 		fmt.Sprintf("iptables -D FORWARD -i %s -j ACCEPT", iface),
 		fmt.Sprintf("iptables -D FORWARD -o %s -j ACCEPT", iface),
 	}
-	if subnet := firstAddress(addresses); subnet != "" && ext != "" {
+	if subnet := firstAddress(inst.Address); subnet != "" && ext != "" {
 		up = append([]string{fmt.Sprintf("iptables -t nat -A POSTROUTING -s %s -o %s -j MASQUERADE", subnet, ext)}, up...)
 		down = append([]string{fmt.Sprintf("iptables -t nat -D POSTROUTING -s %s -o %s -j MASQUERADE", subnet, ext)}, down...)
 	}
+
+	if inst.IPv6Enabled {
+		ext6 := inst.IPv6ExternalInterface
+		if ext6 == "" {
+			ext6 = ext
+		}
+		up = append(up,
+			fmt.Sprintf("ip6tables -A FORWARD -i %s -j ACCEPT", iface),
+			fmt.Sprintf("ip6tables -A FORWARD -o %s -j ACCEPT", iface),
+			fmt.Sprintf("ip6tables -A FORWARD -i %s -o %s -j ACCEPT", ext6, iface),
+			"sysctl -w net.ipv6.conf.all.forwarding=1",
+			fmt.Sprintf("sysctl -w net.ipv6.conf.%s.proxy_ndp=1", ext6),
+		)
+		down = append(down,
+			fmt.Sprintf("ip6tables -D FORWARD -i %s -j ACCEPT", iface),
+			fmt.Sprintf("ip6tables -D FORWARD -o %s -j ACCEPT", iface),
+			fmt.Sprintf("ip6tables -D FORWARD -i %s -o %s -j ACCEPT", ext6, iface),
+		)
+		for _, p := range inst.Peers {
+			ip6 := firstIPv6(p.AllowedIPs)
+			if ip6 == "" {
+				continue
+			}
+			up = append(up, fmt.Sprintf("ip -6 neigh add proxy %s dev %s", ip6, ext6))
+			down = append(down, fmt.Sprintf("ip -6 neigh del proxy %s dev %s", ip6, ext6))
+		}
+	}
+
 	up = append(up, "sysctl -w net.ipv4.ip_forward=1")
 	return strings.Join(up, "; "), strings.Join(down, "; ")
 }
@@ -479,6 +534,23 @@ func firstAddress(addresses []string) string {
 		return ""
 	}
 	return addresses[0]
+}
+
+// firstIPv6 returns the first IPv6 address (mask stripped) among allowedIPs,
+// or "" if none — used to build one NDP proxy PostUp/PostDown entry per peer.
+func firstIPv6(allowedIPs []string) string {
+	for _, a := range allowedIPs {
+		if prefix, err := netip.ParsePrefix(a); err == nil {
+			if prefix.Addr().Is6() {
+				return prefix.Addr().String()
+			}
+			continue
+		}
+		if addr, err := netip.ParseAddr(a); err == nil && addr.Is6() {
+			return addr.String()
+		}
+	}
+	return ""
 }
 
 // detectDefaultInterface returns the first non-loopback, non-tunnel, UP

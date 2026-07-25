@@ -47,6 +47,7 @@ type Instance struct {
 	PrivateKey    string
 	PublicKey     string
 	// Address holds the interface's own tunnel address(es), e.g. "10.8.1.1/24".
+	// Carries both the IPv4 and (when enabled) IPv6 server address.
 	Address []string
 	MTU     int
 
@@ -56,6 +57,13 @@ type Instance struct {
 	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
 	// Empty means auto-detect at config-generation time.
 	ExternalInterface string
+
+	// IPv6Enabled turns on the per-peer NDP proxy PostUp/PostDown entries
+	// (ip -6 neigh add/del proxy) for peers that have an IPv6 AllowedIPs
+	// entry. IPv6ExternalInterface overrides ExternalInterface for those
+	// entries specifically; empty means reuse ExternalInterface.
+	IPv6Enabled           bool
+	IPv6ExternalInterface string
 }
 
 // ServerSettings is the "server" block of an AmneziaWG inbound's Settings
@@ -78,6 +86,16 @@ type ServerSettings struct {
 	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
 	// Empty means auto-detect.
 	ExternalInterface string `json:"externalInterface,omitempty"`
+
+	// IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is
+	// allocated from IPv6Subnet alongside each client's IPv4 one, and the
+	// server proxies NDP for each enabled client's address so upstream
+	// routers see it as directly reachable (no NAT66). IPv6ExternalInterface
+	// overrides ExternalInterface for the NDP-proxy PostUp/PostDown entries
+	// specifically; empty reuses ExternalInterface.
+	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
+	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
+	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
 
 	// Obfuscation20's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an
