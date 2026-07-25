@@ -195,6 +195,9 @@ type managed struct {
 type Manager struct {
 	mu     sync.Mutex
 	ifaces map[int]*managed
+	// swept records that the one-time startup cleanup of orphaned interfaces
+	// (survivors of a previous x-ui run) has already run.
+	swept bool
 }
 
 var (
@@ -269,8 +272,16 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			return err
 		}
 	case ensureRestart:
-		if exists {
-			_ = interfaceDown(cur.inst.InterfaceName)
+		// Checked against the interface's actual kernel state, not `exists`:
+		// after an ungraceful exit (kill -9, OOM, panic) the previous
+		// process's interface can still be up even though this fresh
+		// Manager has never seen it (exists is always false on a cold
+		// start). Skipping the teardown in that case would send
+		// interfaceUp straight into "ip link add" against a name that
+		// already exists, which fails and leaves this inbound stuck
+		// retrying every reconcile forever.
+		if isInterfaceUp(inst.InterfaceName) {
+			_ = interfaceDown(inst.InterfaceName)
 		}
 		if err := writeConfigFile(inst); err != nil {
 			return err
@@ -301,6 +312,89 @@ func (m *Manager) Remove(id int) {
 	}
 }
 
+// sweepOrphansLocked tears down any AmneziaWG interface and config file left
+// behind by a previous x-ui process whose inbound is no longer in the
+// current desired set — most commonly because it was deleted from the
+// database entirely while the panel was down, so it will never again appear
+// in any future Reconcile call and would otherwise never be discovered (it
+// has no entry in m.ifaces for the per-id cleanup loop below to catch,
+// because that map always starts empty on a fresh process). Runs once per
+// process lifetime, mirroring mtproto.Manager.sweepOrphansLocked.
+//
+// Deliberately only called from Reconcile, not Ensure: Ensure only ever
+// carries a single instance, and a `want` set of just that one id would
+// misidentify every other still-desired-but-not-yet-reconciled-this-process
+// interface as an orphan. A crashed-but-still-wanted interface is instead
+// recovered normally by ensureLocked's ensureRestart branch, which checks
+// the interface's actual kernel state rather than this manager's in-memory
+// bookkeeping.
+func (m *Manager) sweepOrphansLocked(want map[int]struct{}) {
+	if m.swept {
+		return
+	}
+	m.swept = true
+	entries, err := os.ReadDir(configDir)
+	if err != nil {
+		return
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			names = append(names, entry.Name())
+		}
+	}
+	for _, ifaceName := range orphanedInterfaces(names, want) {
+		if isInterfaceUp(ifaceName) {
+			_ = interfaceDown(ifaceName)
+			logger.Warningf("amneziawg: tore down orphaned interface %s (its inbound no longer exists)", ifaceName)
+		}
+		removeConfigFile(ifaceName)
+	}
+}
+
+// orphanedInterfaces returns the interface names among confFileNames (the
+// basenames of configDir's entries) whose parsed inbound id is not present
+// in want — the pure decision sweepOrphansLocked acts on.
+func orphanedInterfaces(confFileNames []string, want map[int]struct{}) []string {
+	var out []string
+	for _, name := range confFileNames {
+		if !strings.HasSuffix(name, ".conf") {
+			continue
+		}
+		ifaceName := strings.TrimSuffix(name, ".conf")
+		id, ok := inboundIDForInterfaceName(ifaceName)
+		if !ok {
+			continue
+		}
+		if _, wanted := want[id]; wanted {
+			continue
+		}
+		out = append(out, ifaceName)
+	}
+	return out
+}
+
+// inboundIDForInterfaceName parses the inbound id back out of an interface
+// name produced by interfaceNameForID, e.g. "awg42" -> 42, ok=true. Requires
+// the suffix to be all decimal digits so a stray or hand-crafted file name
+// (e.g. "awg-1.conf") can never resolve to a negative id.
+func inboundIDForInterfaceName(name string) (int, bool) {
+	suffix, ok := strings.CutPrefix(name, "awg")
+	if !ok || suffix == "" {
+		return 0, false
+	}
+	for _, r := range suffix {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	id, err := strconv.Atoi(suffix)
+	if err != nil {
+		return 0, false
+	}
+	return id, true
+}
+
 // Reconcile drives the running set toward the desired instances: it tears
 // down interfaces that are no longer wanted and ensures the rest. Used at
 // boot and periodically to recover from crashes or an out-of-band `awg-quick
@@ -312,6 +406,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 	for _, inst := range desired {
 		want[inst.Id] = struct{}{}
 	}
+	m.sweepOrphansLocked(want)
 	for id, cur := range m.ifaces {
 		if _, ok := want[id]; !ok {
 			_ = interfaceDown(cur.inst.InterfaceName)
