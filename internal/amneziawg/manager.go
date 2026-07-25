@@ -53,10 +53,11 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 			continue
 		}
 		peers = append(peers, Peer{
-			Email:        c.Email,
-			PublicKey:    c.PublicKey,
-			PresharedKey: c.PreSharedKey,
-			AllowedIPs:   c.AllowedIPs,
+			Email:          c.Email,
+			PublicKey:      c.PublicKey,
+			PresharedKey:   c.PreSharedKey,
+			AllowedIPs:     c.AllowedIPs,
+			ForwardedPorts: c.ForwardedPorts,
 		})
 	}
 	if len(peers) == 0 {
@@ -140,11 +141,31 @@ func (inst Instance) structuralFingerprint() string {
 // peersFingerprint identifies the reloadable peer set regardless of order, so
 // a reordered clients array in the stored settings does not read as a
 // change. It moves whenever a peer is added, removed, disabled, re-keyed, or
-// re-addressed — all of which `awg syncconf` applies in place.
+// re-addressed — all of which `awg syncconf` applies in place. Deliberately
+// excludes ForwardedPorts: those live in PostUp/PostDown, not the WireGuard
+// peer table, so a ports-only change needs portForwardFingerprint's full
+// bounce instead of a syncconf reload.
 func (inst Instance) peersFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
 		pairs = append(pairs, fmt.Sprintf("%s=%s;psk=%s;ips=%s", p.Email, p.PublicKey, p.PresharedKey, strings.Join(p.AllowedIPs, ",")))
+	}
+	slices.Sort(pairs)
+	return strings.Join(pairs, "|")
+}
+
+// portForwardFingerprint identifies the per-peer forwarded-ports set. It is
+// checked separately from peersFingerprint because DNAT/FORWARD rules only
+// live in PostUp/PostDown, which `awg syncconf` never re-runs — a
+// ForwardedPorts-only change must force a full interface bounce
+// (ensureRestart) to actually take effect, unlike a key/address-only change.
+func (inst Instance) portForwardFingerprint() string {
+	pairs := make([]string, 0, len(inst.Peers))
+	for _, p := range inst.Peers {
+		if p.ForwardedPorts == "" {
+			continue
+		}
+		pairs = append(pairs, fmt.Sprintf("%s=%s", p.Email, p.ForwardedPorts))
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -162,6 +183,7 @@ type managed struct {
 	inst         Instance
 	structuralFP string
 	peersFP      string
+	portFwdFP    string
 	last         map[string]peerCounters // keyed by peer public key
 }
 
@@ -196,11 +218,13 @@ const (
 )
 
 // ensureActionFor decides how to apply a desired instance to the currently
-// managed interface. A structural change (or a down interface) forces a
-// restart; a peers-only change is a candidate for an in-place `syncconf`;
-// identical fingerprints on an up interface need nothing.
-func ensureActionFor(up bool, curStructFP, curPeersFP, newStructFP, newPeersFP string) ensureAction {
-	if !up || curStructFP != newStructFP {
+// managed interface. A structural change, a forwarded-ports change (its
+// iptables rules only live in PostUp/PostDown), or a down interface all
+// force a restart; a peers-only change (keys/addresses) is a candidate for
+// an in-place `syncconf`; identical fingerprints on an up interface need
+// nothing.
+func ensureActionFor(up bool, curStructFP, curPortFwdFP, curPeersFP, newStructFP, newPortFwdFP, newPeersFP string) ensureAction {
+	if !up || curStructFP != newStructFP || curPortFwdFP != newPortFwdFP {
 		return ensureRestart
 	}
 	if curPeersFP != newPeersFP {
@@ -219,12 +243,13 @@ func (m *Manager) Ensure(inst Instance) error {
 
 func (m *Manager) ensureLocked(inst Instance) error {
 	structFP := inst.structuralFingerprint()
+	portFwdFP := inst.portForwardFingerprint()
 	peersFP := inst.peersFingerprint()
 
 	cur, exists := m.ifaces[inst.Id]
 	action := ensureRestart
 	if exists {
-		action = ensureActionFor(isInterfaceUp(cur.inst.InterfaceName), cur.structuralFP, cur.peersFP, structFP, peersFP)
+		action = ensureActionFor(isInterfaceUp(cur.inst.InterfaceName), cur.structuralFP, cur.portFwdFP, cur.peersFP, structFP, portFwdFP, peersFP)
 	}
 
 	switch action {
@@ -255,7 +280,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if exists {
 		last = cur.last
 	}
-	m.ifaces[inst.Id] = &managed{inst: inst, structuralFP: structFP, peersFP: peersFP, last: last}
+	m.ifaces[inst.Id] = &managed{inst: inst, structuralFP: structFP, portFwdFP: portFwdFP, peersFP: peersFP, last: last}
 	return nil
 }
 
@@ -479,8 +504,9 @@ func hOrDefault(v, def string) string {
 // directions, and — when the instance has IPv6 enabled — the IPv6-forward
 // rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
 // peer with an IPv6 address, so upstream routers see each client's IPv6 as
-// directly reachable on the LAN without NAT66. Per-client port-forwarding and
-// RouteViaXray are a later phase (see project TODO).
+// directly reachable on the LAN without NAT66. Also emits DNAT+FORWARD rules
+// for each enabled peer with a non-empty ForwardedPorts spec. RouteViaXray is
+// a later phase (see project TODO).
 func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	iface := inst.InterfaceName
 	up := []string{
@@ -523,6 +549,18 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		}
 	}
 
+	for _, p := range inst.Peers {
+		if p.ForwardedPorts == "" {
+			continue
+		}
+		clientIP := firstIPv4(p.AllowedIPs)
+		if clientIP == "" {
+			continue
+		}
+		up = append(up, portForwardLines("-A", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
+		down = append(down, portForwardLines("-D", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
+	}
+
 	up = append(up, "sysctl -w net.ipv4.ip_forward=1")
 	return strings.Join(up, "; "), strings.Join(down, "; ")
 }
@@ -547,6 +585,23 @@ func firstIPv6(allowedIPs []string) string {
 			continue
 		}
 		if addr, err := netip.ParseAddr(a); err == nil && addr.Is6() {
+			return addr.String()
+		}
+	}
+	return ""
+}
+
+// firstIPv4 returns the first IPv4 address (mask stripped) among allowedIPs,
+// or "" if none — used as the DNAT target for a peer's forwarded ports.
+func firstIPv4(allowedIPs []string) string {
+	for _, a := range allowedIPs {
+		if prefix, err := netip.ParsePrefix(a); err == nil {
+			if prefix.Addr().Is4() {
+				return prefix.Addr().String()
+			}
+			continue
+		}
+		if addr, err := netip.ParseAddr(a); err == nil && addr.Is4() {
 			return addr.String()
 		}
 	}

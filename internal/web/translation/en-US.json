@@ -920,6 +920,8 @@
       "amneziaWgPreSharedKey": "AmneziaWG Pre-Shared Key",
       "amneziaWgAllowedIPs": "AmneziaWG Allowed IPs",
       "amneziaWgAllowedIPsHint": "Leave empty to auto-assign; separate entries with commas",
+      "amneziaWgForwardedPorts": "Forwarded Ports",
+      "amneziaWgForwardedPortsHint": "Ports/ranges DNAT'd to this client, e.g. 80, 443, 8000-8100. Leave empty for none.",
       "amneziaWgConfig": "AmneziaWG config",
       "mtprotoSecret": "MTProto secret",
       "mtprotoSecretHint": "The client's FakeTLS secret. Regenerate to rotate it.",

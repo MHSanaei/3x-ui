@@ -1050,6 +1050,10 @@
             "description": "Flow control (XTLS)",
             "type": "string"
           },
+          "forwardedPorts": {
+            "description": "AmneziaWG per-client port-forwarding spec, e.g. \"80,443,8000-8100\"",
+            "type": "string"
+          },
           "group": {
             "description": "Logical grouping label",
             "type": "string"
@@ -1188,6 +1192,9 @@
           "flow": {
             "type": "string"
           },
+          "forwardedPorts": {
+            "type": "string"
+          },
           "group": {
             "type": "string"
           },
@@ -1251,6 +1258,7 @@
           "enable",
           "expiryTime",
           "flow",
+          "forwardedPorts",
           "group",
           "id",
           "keepAlive",

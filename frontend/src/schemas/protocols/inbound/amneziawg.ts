@@ -6,17 +6,20 @@ import { z } from 'zod';
 const optionalClearedInt = (schema: z.ZodNumber) =>
   z.preprocess((v) => (v == null ? undefined : v), schema.optional());
 
-// An AmneziaWG client (multi-client model). Field-for-field identical to
-// WireguardClientSchema — the panel's generic ClientRecord already has these
+// An AmneziaWG client (multi-client model). Same key/address fields as
+// WireguardClientSchema — the panel's generic ClientRecord already has those
 // exact keys (privateKey/publicKey/preSharedKey/allowedIPs/keepAlive), so
-// bulk operations, the QR modal and subscriptions all work unmodified. Keys
-// are optional on the wire — the backend generates them when absent.
+// bulk operations, the QR modal and subscriptions all work unmodified — plus
+// one AmneziaWG-only addition, forwardedPorts (WireGuard's Xray-native
+// inbound has no host-level iptables layer to hang per-client DNAT off of).
+// Keys are optional on the wire — the backend generates them when absent.
 export const AmneziawgClientSchema = z.object({
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),
   preSharedKey: z.string().optional(),
   allowedIPs: z.array(z.string()).default([]),
   keepAlive: optionalClearedInt(z.number().int().min(0)),
+  forwardedPorts: z.string().default(''),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),
   totalGB: z.number().int().min(0).default(0),

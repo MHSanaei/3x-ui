@@ -250,6 +250,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
+  forwardedPorts?: string;
   group?: string;
   id?: string;
   keepAlive?: number;
@@ -285,6 +286,7 @@ export interface ClientRecord {
   enable: boolean;
   expiryTime: number;
   flow: string;
+  forwardedPorts: string;
   group: string;
   id: number;
   keepAlive: number;
