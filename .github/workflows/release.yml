@@ -266,4 +266,4 @@ jobs:
               --target "${COMMIT}" --title "Dev build ${short}" --notes "${notes}"
           fi
 
-          retry gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip --clobber
+          retry gh release upload dev-latest dev-artifacts/*.tar.gz --clobber
