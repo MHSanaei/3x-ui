@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -8,24 +8,33 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI** — продвинутая веб-панель управления с открытым исходным кодом для управления серверами [Xray-core](https://github.com/XTLS/Xray-core). Она предоставляет аккуратный многоязычный интерфейс для развёртывания, настройки и мониторинга широкого спектра протоколов прокси и VPN — от одного VPS до развёртываний с несколькими узлами.
+**Это личный форк [3X-UI](https://github.com/MHSanaei/3x-ui)** — продвинутой веб-панели с открытым исходным кодом для управления серверами [Xray-core](https://github.com/XTLS/Xray-core) — с одним крупным дополнением: **нативной поддержкой AmneziaWG**, добавленной как полноценный протокол наравне с VLESS, VMess, Trojan и остальными. Всё остальное, что умеет 3X-UI (многопротокольные входящие, учёт трафика по клиентам, подписки, несколько узлов, Telegram-бот), не изменено и работает точно так же, как в оригинале.
 
-Созданный как улучшенный форк оригинального проекта X-UI, 3X-UI добавляет более широкую поддержку протоколов, повышенную стабильность, учёт трафика по каждому клиенту и множество функций для удобства использования.
+Этот форк существует, чтобы обслуживать собственные роутеры и серверы автора; он не пытается заменить или конкурировать с оригинальным проектом. Если вам нужна универсальная панель — обращайтесь к [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui); всё, что написано ниже, документирует только отличия этого форка.
 
 > [!IMPORTANT]
 > Этот проект предназначен только для личного использования. Пожалуйста, не используйте его в незаконных целях или в производственной среде.
 
+## Чем этот форк отличается: AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) — это WireGuard с добавленным слоем обфускации (мусорные пакеты, случайный паддинг, переписывание магических заголовков), который призван обмануть DPI-фингерпринтинг протокола: тот же туннель, но не выглядящий как туннель в трафике.
+
+- **Нативно, без Docker.** AmneziaWG работает как настоящий интерфейс ядра на хосте, поднимается и опускается через `awg-quick`/`awg` — тот же подход через DKMS-модуль ядра, что и у обычного интерфейса `wg0`. Никаких привилегированных сайдкар-контейнеров.
+- **Полноценный протокол.** AmneziaWG-инбаунд живёт в той же таблице `Inbound`, что и всё остальное, поэтому бесплатно получает bulk-операции, модалку QR/скачивания конфига и ссылки подписки — учить ничего отдельного не нужно.
+- **Полная обфускация AmneziaWG 2.0** — Jc/Jmin/Jmax (мусорные пакеты), S1–S4 (паддинг пакетов), H1–H4 (магические заголовки) и сигнатурный пакет I1, всё редактируется по каждому инбаунду с кнопкой генерации одним кликом, плюс совместимый с 1.x режим для старых клиентов.
+- **`install.sh` сам ставит модуль ядра** на Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), с fallback для других дистрибутивов. Одно он сделать не может: **выключить Secure Boot** на вашем VPS/VM заранее — DKMS-модуль не подписан, и ядро откажется его загружать, пока Secure Boot включён.
+- Реконсиляция устроена так же, как [`internal/mtproto`](internal/mtproto) управляет своим сайдкаром `mtg`: фоновая джоба держит запущенный интерфейс синхронизированным с тем, что сохранено в базе, применяя изменения пиров через `awg syncconf` вместо полного рестарта интерфейса там, где это возможно.
+
+Ещё не сделано: проксирование IPv6/NDP, port-forwarding по клиентам и маршрутизация трафика AmneziaWG обратно через Xray (`RouteViaXray`) — в планах.
+
 ## Возможности
 
-- **Многопротокольные входящие подключения** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel и TUN.
+- **Многопротокольные входящие подключения** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel и TUN.
 - **Современные транспорты и безопасность** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade и XHTTP, защищённые с помощью TLS, XTLS и REALITY.
 - **Fallback** — обслуживание нескольких протоколов на одном порту (например, VLESS и Trojan на 443) с помощью функции fallback в Xray.
 - **Управление по каждому клиенту** — квоты трафика, даты истечения, лимиты IP, статус «онлайн» в реальном времени, а также ссылки для общего доступа, QR-коды и подписки в один клик.
@@ -69,24 +78,14 @@
 ## Быстрый старт
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-Чтобы установить конкретную версию, добавьте её тег (например, `v3.4.0`):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-Чтобы установить скользящую **dev**-сборку (новейший предварительный релиз по каждому коммиту из ветки `main`, а не стабильный релиз), передайте `dev-latest`:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+Этот форк пока публикует только скользящий пре-релиз **`dev-latest`** (пересобирается автоматически при каждом push в `main`) — стабильного релиза с тегом ещё нет, поэтому `dev` — единственный канал, который сейчас на что-то указывает.
 
 Во время установки генерируются случайные имя пользователя, пароль и путь доступа. После установки выполните `x-ui`, чтобы открыть меню управления, где можно запускать/останавливать сервис, просматривать или сбрасывать учётные данные для входа, управлять SSL-сертификатами и многое другое.
 
-Полную документацию смотрите в [вики проекта](https://github.com/MHSanaei/3x-ui/wiki).
+Общую документацию по панели, помимо этого README, смотрите в оригинальной [вики проекта](https://github.com/MHSanaei/3x-ui/wiki) — там ничего специфичного для этого форка, так что всё актуально.
 
 ### Автоматическая установка
 
@@ -103,6 +102,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 **Операционные системы:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine и Windows.
 
 **Архитектуры:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+
+AmneziaWG отдельно требует настоящее ядро Linux с DKMS-модулем AmneziaWG — на Windows он не поднимется, а `install_amneziawg` пока автоматизирует установку модуля только на Ubuntu/Debian/Armbian (см. [Чем этот форк отличается: AmneziaWG](#чем-этот-форк-отличается-amneziawg)).
 
 ## Варианты базы данных
 
@@ -135,6 +136,9 @@ systemctl restart x-ui
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> AmneziaWG-инбаундам нужны `awg-quick`/`awg` и модуль ядра AmneziaWG на **хосте** — в этом весь смысл отказа от Docker, описанного в разделе [Чем этот форк отличается: AmneziaWG](#чем-этот-форк-отличается-amneziawg). Сама панель в Docker по-прежнему прекрасно работает для всех остальных протоколов, но AmneziaWG-инбаунд, созданный из контейнеризированной панели, поднять интерфейс негде, если только у контейнера нет доступа к сети/ядру хоста — а это уже сводит на нет весь смысл. Если планируете использовать AmneziaWG, запускайте панель нативно на хосте.
 
 Образ включает Fail2ban (включён по умолчанию) для применения **лимитов IP** по каждому клиенту. Fail2ban блокирует нарушителей с помощью `iptables`, что требует возможности `NET_ADMIN`. `docker-compose.yml` уже предоставляет её через `cap_add`; если вы вместо этого запускаете контейнер через `docker run`, добавьте возможности самостоятельно, иначе блокировки будут регистрироваться, но никогда не применяться:
 
@@ -169,28 +173,13 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
-## Участие в разработке
+## Заметки для разработчика
 
-Вклад приветствуется. Пожалуйста, прочитайте [руководство по участию](/CONTRIBUTING.md), прежде чем открывать issue или pull request.
+Это личный форк, и он не ищет сторонних контрибьюторов, но в [CONTRIBUTING.md](/CONTRIBUTING.md) по-прежнему актуальные и полезные инструкции по локальной настройке разработки (версии Go/Node, C-компилятор для CGo, команды сборки/линта/тестов) — пригодится, если сами будете работать с этим кодом.
 
-## Особая благодарность
+## Благодарность
 
-- [alireza0](https://github.com/alireza0/)
-
-## Благодарности
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Лицензия: **GPL-3.0**): _Улучшенные правила маршрутизации для v2ray/xray и v2ray/xray-clients со встроенными иранскими доменами и фокусом на безопасность и блокировку рекламы._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Лицензия: **GPL-3.0**): _Этот репозиторий содержит автоматически обновляемые правила маршрутизации V2Ray на основе данных о заблокированных доменах и адресах в России._
-
-## Инструменты сообщества
-
-Инструменты и интеграции, созданные сообществом вокруг 3x-ui.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Лицензия: **MIT**): _Управление входящими, клиентами, настройками панели и конфигурацией Xray через код с помощью Terraform / OpenTofu._
-
-## Поддержка проекта
-
-**Если этот проект полезен для вас, вы можете поставить ему**:star2:
+Этот форк полностью построен поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся панель, поддержка множества протоколов и базовая архитектура — их работа; **единственное, что добавлено здесь — поддержка AmneziaWG.** Если оригинальный проект оказался вам полезен, ссылки на поддержку автора всё ещё актуальны:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
@@ -201,6 +190,19 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-## Звезды с течением времени
+Нативная реализация AmneziaWG в этом форке портирована/вдохновлена:
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — оригинальный PR с AmneziaWG в апстрим (подход через Docker-сайдкар); этот форк переиспользует его фронтенд-схему/структуру UI, но заменяет бэкенд на нативный менеджер без Docker.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — независимый форк, уже использующий нативный AmneziaWG в проде; управление процессом `awg-quick`, генерация конфига и генератор параметров обфускации AmneziaWG 2.0 в этом форке портированы из его пакета `awg/`.
+
+## Благодарности
+
+- [alireza0](https://github.com/alireza0/)
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Лицензия: **GPL-3.0**): _Улучшенные правила маршрутизации для v2ray/xray и v2ray/xray-clients со встроенными иранскими доменами и фокусом на безопасность и блокировку рекламы._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Лицензия: **GPL-3.0**): _Этот репозиторий содержит автоматически обновляемые правила маршрутизации V2Ray на основе данных о заблокированных доменах и адресах в России._
+
+## Инструменты сообщества
+
+Инструменты и интеграции, созданные сообществом вокруг 3x-ui.
+
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Лицензия: **MIT**): _Управление входящими, клиентами, настройками панели и конфигурацией Xray через код с помощью Terraform / OpenTofu._

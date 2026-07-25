@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -8,24 +8,33 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+**This is a personal fork of [3X-UI](https://github.com/MHSanaei/3x-ui)** — the advanced, open-source web control panel for [Xray-core](https://github.com/XTLS/Xray-core) — with one major addition: **native AmneziaWG support**, added as a first-class protocol alongside VLESS, VMess, Trojan, and the rest. Everything else 3X-UI already does (multi-protocol inbounds, per-client traffic accounting, subscriptions, multi-node, the Telegram bot) is unchanged and still works exactly as upstream.
 
-Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
+This fork exists to run the author's own routers and servers; it isn't trying to replace or compete with the original project. If you're looking for the general-purpose panel, go to [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — everything below only documents what's different here.
 
 > [!IMPORTANT]
 > This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
 
+## What's different in this fork: AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) is WireGuard with an added obfuscation layer (junk packets, randomized padding, magic-header rewriting) designed to defeat DPI-based protocol fingerprinting — the same tunnel, but one that doesn't look like a tunnel on the wire.
+
+- **Native, not Docker.** AmneziaWG runs as a real kernel interface on the host, brought up and torn down with `awg-quick`/`awg` — the same DKMS kernel module approach as a native `wg0` interface. No privileged sidecar containers.
+- **A first-class protocol.** An AmneziaWG inbound lives in the same `Inbound` table as everything else, so it gets bulk operations, the QR/config-download modal, and subscription links for free — nothing bespoke to learn.
+- **Full AmneziaWG 2.0 obfuscation** — Jc/Jmin/Jmax (junk packets), S1–S4 (packet padding), H1–H4 (magic headers), and the I1 signature packet, all editable per-inbound with a one-click randomize button, plus a 1.x-compatible fallback for older clients.
+- **`install.sh` installs the kernel module for you** on Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), with a fallback for other distros. One thing it can't do for you: **disable Secure Boot** on your VPS/VM first — a DKMS-built module is unsigned and the kernel won't load it while Secure Boot is enforced.
+- Reconciled the same way [`internal/mtproto`](internal/mtproto) manages its `mtg` sidecar: a background job keeps the running interface in sync with what's saved in the database, hot-reloading peer changes via `awg syncconf` instead of bouncing the whole interface when it can.
+
+Not done yet: IPv6/NDP proxying, per-client port-forwarding, and routing AmneziaWG traffic back through Xray (`RouteViaXray`) are still on the list.
+
 ## Features
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
+- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
 - **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
 - **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
@@ -69,24 +78,14 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 ## Quick Start
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-To install a specific version, append its tag (e.g. `v3.4.0`):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev-latest`:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+This fork only ever publishes the rolling **`dev-latest`** pre-release (rebuilt automatically on every push to `main`) — there's no tagged stable release yet, so `dev` is the only channel that currently resolves to anything.
 
 During installation a random username, password, and access path are generated. After installation, run `x-ui` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
 
-For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
+For general panel documentation beyond what's in this README, see the upstream [project Wiki](https://github.com/MHSanaei/3x-ui/wiki) — none of it is fork-specific, so it still applies.
 
 ### Unattended install
 
@@ -103,6 +102,8 @@ zero prompts, generating random credentials and writing them to
 **Operating systems:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine, and Windows.
 
 **Architectures:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+
+AmneziaWG specifically needs a real Linux kernel with the AmneziaWG DKMS module — it will not come up on Windows, and `install_amneziawg` only automates the kernel-module install on Ubuntu/Debian/Armbian today (see [What's different in this fork](#whats-different-in-this-fork-amneziawg)).
 
 ## Database Options
 
@@ -135,6 +136,9 @@ The default `docker compose up -d` keeps using SQLite. To run with the bundled P
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> AmneziaWG inbounds need `awg-quick`/`awg` and the AmneziaWG kernel module on the **host** — that's the whole point of the no-Docker design in [What's different in this fork](#whats-different-in-this-fork-amneziawg). Running the panel itself in Docker still works for every other protocol, but an AmneziaWG inbound created from a containerized panel has nowhere to bring its interface up unless the container has host-level network/kernel access, which defeats the purpose. Run natively on the host if you plan to use AmneziaWG.
 
 The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability. `docker-compose.yml` already grants it via `cap_add`; if you start the container with `docker run` instead, add the capabilities yourself, otherwise bans are logged but never applied:
 
@@ -169,28 +173,13 @@ The panel UI is available in 13 languages:
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
-## Contributing
+## Developer notes
 
-Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
+This is a personal fork and isn't looking for outside contributors, but [CONTRIBUTING.md](/CONTRIBUTING.md) still has accurate, useful local dev-setup instructions (Go/Node versions, the C compiler CGo needs, build/lint/test commands) if you're working on this codebase yourself.
 
-## A Special Thanks to
+## Credit
 
-- [alireza0](https://github.com/alireza0/)
-
-## Acknowledgment
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _This repository contains automatically updated V2Ray routing rules based on data on blocked domains and addresses in Russia._
-
-## Community Tools
-
-Tools and integrations built by the community around 3x-ui.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
-
-## Support project
-
-**If this project is helpful to you, you may wish to give it a**:star2:
+This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — all of the panel, the multi-protocol support, and the underlying architecture is their work; **AmneziaWG support is the only thing added here.** If you find the base project useful, the original author's support links are still the right place for it:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
@@ -201,6 +190,19 @@ Tools and integrations built by the community around 3x-ui.
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-## Stargazers over Time
+The native AmneziaWG implementation in this fork was ported from/inspired by:
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — the original AmneziaWG PR against upstream (Docker-sidecar approach); this fork reuses its frontend schema/UI structure but replaces the backend with a native, no-Docker manager.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — an independent fork already running native AmneziaWG in production; this fork's `awg-quick` process management, config generation, and AmneziaWG 2.0 obfuscation parameter generator are ported from its `awg/` package.
+
+## Acknowledgment
+
+- [alireza0](https://github.com/alireza0/)
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _This repository contains automatically updated V2Ray routing rules based on data on blocked domains and addresses in Russia._
+
+## Community Tools
+
+Tools and integrations built by the community around 3x-ui.
+
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
