@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/netip"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -136,6 +137,54 @@ func ValidateIPv6Subnet(enabled bool, subnet string) error {
 	}
 	if !prefix.Addr().Is6() {
 		return fmt.Errorf("invalid ipv6Subnet %q: not an IPv6 prefix", subnet)
+	}
+	return nil
+}
+
+// interfaceNamePattern matches a plausible Linux network interface name:
+// letters, digits, and the handful of separators seen in real device names
+// (eth0, wg0, br-lan, eno1.100, eth0:0), capped at 15 bytes (IFNAMSIZ-1).
+var interfaceNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.@:-]{1,15}$`)
+
+// ValidateInterfaceName rejects a value that isn't a plausible network
+// interface name before it's saved. ExternalInterface and
+// IPv6ExternalInterface are interpolated unescaped into a shell-executed
+// PostUp/PostDown line by generateServerConfig, so — unlike the client email
+// (already hashed for exactly this reason, see routeEgressComment) — an
+// unvalidated value here could carry a shell metacharacter straight into a
+// root-executed command. A blank value is allowed: it means "auto-detect"
+// for ExternalInterface, or "reuse ExternalInterface" for
+// IPv6ExternalInterface.
+func ValidateInterfaceName(name string) error {
+	if name == "" {
+		return nil
+	}
+	if !interfaceNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid interface name %q: must be 1-15 characters of letters, digits, '.', '_', '@', ':' or '-'", name)
+	}
+	return nil
+}
+
+// ValidateSubnetIPv4 rejects a malformed IPv4 tunnel subnet before it's
+// saved: subnetIP is interpolated into the PostUp/PostDown MASQUERADE rule
+// the same way ExternalInterface is (see ValidateInterfaceName), so it needs
+// the same protection against a value that isn't really an address at all.
+// subnetCIDR <= 0 is treated as unset, mirroring serverAddress's own
+// default-to-/24 leniency.
+func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
+	cidr := subnetCIDR
+	if cidr <= 0 {
+		cidr = 24
+	}
+	if cidr > 32 {
+		return fmt.Errorf("invalid subnetCidr %d: must be 0..32", subnetCIDR)
+	}
+	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%d", subnetIP, cidr))
+	if err != nil {
+		return fmt.Errorf("invalid subnetIp %q: %w", subnetIP, err)
+	}
+	if !prefix.Addr().Is4() {
+		return fmt.Errorf("invalid subnetIp %q: not an IPv4 address", subnetIP)
 	}
 	return nil
 }

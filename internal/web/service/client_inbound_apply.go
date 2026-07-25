@@ -643,6 +643,14 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if clients[0].KeepAlive == 0 {
 			clients[0].KeepAlive = old.KeepAlive
 		}
+		// ForwardedPorts is AmneziaWG-only (WireGuard's own inbound never
+		// reads it), same carry-forward reasoning as the fields above: a
+		// partial edit (e.g. a Telegram-bot enable/expiry toggle, or an API
+		// call that omits the field) must not silently drop a client's
+		// existing port-forwarding spec.
+		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == "" {
+			clients[0].ForwardedPorts = old.ForwardedPorts
+		}
 	}
 
 	var oldSettings map[string]any
@@ -692,6 +700,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				}
 				if clients[0].KeepAlive > 0 {
 					newMap["keepAlive"] = clients[0].KeepAlive
+				}
+				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts != "" {
+					newMap["forwardedPorts"] = clients[0].ForwardedPorts
 				}
 			}
 			if oldClientMap != nil && sameClientConfigExceptUpdatedAt(oldClientMap, newMap) {

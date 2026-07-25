@@ -134,6 +134,8 @@ func (inst Instance) structuralFingerprint() string {
 		strconv.Itoa(o.S1), strconv.Itoa(o.S2), strconv.Itoa(o.S3), strconv.Itoa(o.S4),
 		o.H1, o.H2, o.H3, o.H4, o.I1,
 		inst.ExternalInterface,
+		strconv.FormatBool(inst.IPv6Enabled),
+		inst.IPv6ExternalInterface,
 	}
 	return strings.Join(parts, "|")
 }
@@ -155,8 +157,9 @@ func (inst Instance) peersFingerprint() string {
 }
 
 // hostRulesFingerprint identifies per-peer state that only ever takes effect
-// through PostUp/PostDown shell rules — forwarded ports, and (unconditionally,
-// for every peer with a usable IPv4 address) the TPROXY rule into this
+// through PostUp/PostDown shell rules — forwarded ports, the peer's IPv6
+// address (its NDP-proxy PostUp/PostDown entry), and (unconditionally, for
+// every peer with a usable IPv4 address) the TPROXY rule into this
 // instance's own Xray bridge — rather than the WireGuard peer table itself.
 // It is checked separately from peersFingerprint because `awg syncconf`
 // never re-runs PostUp/PostDown, so a change here must force a full
@@ -165,11 +168,15 @@ func (inst Instance) peersFingerprint() string {
 // now tied to every peer's mere presence (there's no more per-peer opt-in
 // flag), every peer is included unconditionally: adding, removing, or
 // re-addressing a peer now also forces a bounce, the same way a
-// ForwardedPorts-only change always did.
+// ForwardedPorts-only change always did. The IPv6 address must be included
+// here too: without it, a peer that only changes its IPv6 AllowedIPs entry
+// still matches on FirstIPv4 alone, so ensureActionFor would pick the
+// syncconf reload path — which never re-runs PostUp — leaving that peer's
+// NDP-proxy entry pointed at its old, now-wrong address.
 func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
-		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;ip:%s", p.Email, p.ForwardedPorts, FirstIPv4(p.AllowedIPs)))
+		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;ip:%s;ip6:%s", p.Email, p.ForwardedPorts, FirstIPv4(p.AllowedIPs), firstIPv6(p.AllowedIPs)))
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -687,8 +694,13 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		// IPv6-forwarding sysctl above — it is added idempotently here and
 		// never torn down in PostDown; a second AmneziaWG instance must find
 		// it already in place, not race to remove what the first still needs.
+		// "ip rule add" is not itself idempotent (a second call inserts a
+		// duplicate rather than deduplicating), and hostRulesFingerprint keys
+		// on every peer's presence/IP, so PostUp re-runs on any client
+		// add/remove/re-IP — without the existence check below, "ip rule
+		// show" would accumulate one duplicate entry per bounce forever.
 		up = append(up,
-			fmt.Sprintf("ip rule add fwmark %#x lookup %d 2>/dev/null || true", EgressFwmark, EgressTable),
+			fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d' || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
 			fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
 		)
 	}
