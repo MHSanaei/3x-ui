@@ -171,6 +171,12 @@ func TestStructuralFingerprintStableAndSensitive(t *testing.T) {
 	if e.structuralFingerprint() == f.structuralFingerprint() {
 		t.Fatal("changing IPv6ExternalInterface must change the structural fingerprint -- otherwise the edit is a complete no-op")
 	}
+
+	g := baseInstance()
+	g.RouteThroughXray = true
+	if a.structuralFingerprint() == g.structuralFingerprint() {
+		t.Fatal("toggling RouteThroughXray must change the structural fingerprint -- it changes whether PostUp/PostDown contain any TPROXY rules at all")
+	}
 }
 
 func TestPeersFingerprintOrderIndependentButContentSensitive(t *testing.T) {
@@ -225,9 +231,6 @@ func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
 	if a.hostRulesFingerprint() != b.hostRulesFingerprint() {
 		t.Fatal("identical instances must produce the same host-rules fingerprint")
 	}
-	if a.hostRulesFingerprint() == "" {
-		t.Fatal("every peer always gets a TPROXY rule now, so the fingerprint must never be empty when peers exist")
-	}
 
 	forwarded := baseInstance()
 	forwarded.Peers[0].ForwardedPorts = "80,443"
@@ -235,22 +238,47 @@ func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
 		t.Fatal("adding ForwardedPorts must change the host-rules fingerprint")
 	}
 
-	reIPed := baseInstance()
-	reIPed.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
-	if a.hostRulesFingerprint() == reIPed.hostRulesFingerprint() {
-		t.Fatal("changing a peer's IP must change the host-rules fingerprint -- its TPROXY rule is keyed on that IP")
-	}
-
 	fewer := baseInstance()
 	fewer.Peers = fewer.Peers[:1]
 	if a.hostRulesFingerprint() == fewer.hostRulesFingerprint() {
-		t.Fatal("removing a peer must change the host-rules fingerprint -- one fewer TPROXY rule is needed")
+		t.Fatal("removing a peer must change the host-rules fingerprint -- one fewer peer entry exists regardless of what's tracked per peer")
 	}
 
+	// RouteThroughXray off (baseInstance's default): no TPROXY rule depends
+	// on a peer's IPv4 address, so re-IPing one must NOT force a bounce --
+	// this is the whole point of making the bridge opt-in: an instance that
+	// never uses it keeps the syncconf fast path for a plain re-IP.
+	reIPedNoRoute := baseInstance()
+	reIPedNoRoute.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
+	if a.hostRulesFingerprint() != reIPedNoRoute.hostRulesFingerprint() {
+		t.Fatal("with RouteThroughXray off, changing a peer's IP must NOT change the host-rules fingerprint")
+	}
+
+	// RouteThroughXray on: now the TPROXY rule really is keyed on the IP.
+	routed := baseInstance()
+	routed.RouteThroughXray = true
+	routedReIPed := baseInstance()
+	routedReIPed.RouteThroughXray = true
+	routedReIPed.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
+	if routed.hostRulesFingerprint() == routedReIPed.hostRulesFingerprint() {
+		t.Fatal("with RouteThroughXray on, changing a peer's IP must change the host-rules fingerprint -- its TPROXY rule is keyed on that IP")
+	}
+
+	// IPv6Enabled off (baseInstance's default): no NDP-proxy entry depends
+	// on a peer's IPv6 address either, so adding one must not force a bounce.
+	ip6AddedNoIPv6 := baseInstance()
+	ip6AddedNoIPv6.Peers[0].AllowedIPs = []string{"10.8.1.2/32", "fd86:ea04:1115::2/128"}
+	if a.hostRulesFingerprint() != ip6AddedNoIPv6.hostRulesFingerprint() {
+		t.Fatal("with IPv6Enabled off, adding a peer's IPv6 address must NOT change the host-rules fingerprint")
+	}
+
+	ip6Base := baseInstance()
+	ip6Base.IPv6Enabled = true
 	ip6Added := baseInstance()
+	ip6Added.IPv6Enabled = true
 	ip6Added.Peers[0].AllowedIPs = []string{"10.8.1.2/32", "fd86:ea04:1115::2/128"}
-	if a.hostRulesFingerprint() == ip6Added.hostRulesFingerprint() {
-		t.Fatal("adding a peer's IPv6 address must change the host-rules fingerprint -- its NDP-proxy entry is keyed on it, and a change here must force the full bounce that (re-)runs PostUp")
+	if ip6Base.hostRulesFingerprint() == ip6Added.hostRulesFingerprint() {
+		t.Fatal("with IPv6Enabled on, adding a peer's IPv6 address must change the host-rules fingerprint -- its NDP-proxy entry is keyed on it, and a change here must force the full bounce that (re-)runs PostUp")
 	}
 }
 
@@ -315,8 +343,21 @@ func TestEgressPortForInbound(t *testing.T) {
 	}
 }
 
-func TestDefaultPostUpDownEmitsTproxyForEveryPeer(t *testing.T) {
-	inst := baseInstance() // two peers, a@x and b@x, no opt-in flag exists anymore
+func TestDefaultPostUpDownOmitsTproxyWhenRouteThroughXrayOff(t *testing.T) {
+	inst := baseInstance() // RouteThroughXray defaults to false
+	up, down := defaultPostUpDown(inst, "eth0")
+
+	if strings.Contains(up, "TPROXY") || strings.Contains(up, "ip rule add fwmark") {
+		t.Errorf("RouteThroughXray off must emit no TPROXY/policy-route lines in PostUp, got:\n%s", up)
+	}
+	if strings.Contains(down, "TPROXY") {
+		t.Errorf("RouteThroughXray off must emit no TPROXY lines in PostDown, got:\n%s", down)
+	}
+}
+
+func TestDefaultPostUpDownEmitsTproxyForEveryPeerWhenRouteThroughXrayOn(t *testing.T) {
+	inst := baseInstance() // two peers, a@x and b@x
+	inst.RouteThroughXray = true
 	up, down := defaultPostUpDown(inst, "eth0")
 
 	wantPort := fmt.Sprintf("--on-port %d", EgressPortForInbound(inst.Id))
@@ -335,12 +376,12 @@ func TestDefaultPostUpDownEmitsTproxyForEveryPeer(t *testing.T) {
 	if strings.Contains(down, "ip rule") || strings.Contains(down, "ip route") {
 		t.Error("the shared policy route must never be removed in PostDown -- other instances may still need it")
 	}
-	// Both peers always get TPROXY'd now, no opt-in: 2 peers * 2 protocols.
+	// Both peers get TPROXY'd once opted in: 2 peers * 2 protocols.
 	if got := strings.Count(up, "TPROXY"); got != 4 {
 		t.Errorf("expected exactly 4 TPROXY lines (tcp+udp for each of the 2 peers), got %d in:\n%s", got, up)
 	}
 
-	none := Instance{Id: 2, InterfaceName: "awg2"} // no peers at all
+	none := Instance{Id: 2, InterfaceName: "awg2", RouteThroughXray: true} // no peers at all
 	upNone, _ := defaultPostUpDown(none, "eth0")
 	if strings.Contains(upNone, "TPROXY") || strings.Contains(upNone, "ip rule add fwmark") {
 		t.Errorf("an instance with no peers must not emit any TPROXY/policy-route lines, got:\n%s", upNone)

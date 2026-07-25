@@ -1823,6 +1823,8 @@
         "ipv6SubnetHint": "p. ej. fd86:ea04:1115::/64. Obligatorio cuando IPv6 está habilitado.",
         "ipv6ExternalInterface": "Interfaz externa IPv6",
         "ipv6ExternalInterfaceHint": "Interfaz de red del host para las entradas de proxy NDP. Déjalo vacío para reutilizar la interfaz externa.",
+        "routeThroughXray": "Enrutar a través de Xray",
+        "routeThroughXrayHint": "Desactivado de forma predeterminada: el túnel no depende de Xray en absoluto. Al activarlo, el tráfico de cada cliente se redirige al puente Xray propio de esta entrada, y la salida real se elige desde la página de Enrutamiento igual que con cualquier otro protocolo.",
         "obfuscation": "Parámetros de ofuscación",
         "regenerateObfuscation": "Regenerar",
         "jc": "Jc (cantidad de paquetes basura)",

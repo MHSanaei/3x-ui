@@ -1823,6 +1823,8 @@
         "ipv6SubnetHint": "例: fd86:ea04:1115::/64。IPv6有効時は必須。",
         "ipv6ExternalInterface": "IPv6外部NIC",
         "ipv6ExternalInterfaceHint": "NDPプロキシエントリに使用するホストのNIC。空欄で外部NICを使用。",
+        "routeThroughXray": "Xray経由でルーティング",
+        "routeThroughXrayHint": "デフォルトではオフです。オフの場合トンネルはXrayに一切依存しません。オンにすると、各クライアントのトラフィックはこのインバウンド専用のXrayブリッジへリダイレクトされ、実際のアウトバウンドは他のプロトコルと同様にルーティングページから選択します。",
         "obfuscation": "難読化パラメータ",
         "regenerateObfuscation": "再生成",
         "jc": "Jc（ジャンクパケット数）",

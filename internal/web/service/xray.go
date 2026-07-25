@@ -645,18 +645,21 @@ const amneziawgEgressDokodemoSettings = `{"allowedNetwork":"tcp,udp","followRedi
 // socket.
 const amneziawgEgressStreamSettings = `{"sockopt":{"tproxy":"tproxy"}}`
 
-// injectAmneziawgEgress gives every enabled AmneziaWG inbound with at least
-// one qualifying peer its own loopback dokodemo-door bridge — tagged with
-// that inbound's own real tag, so it's already selectable in the panel's
-// stock Routing page's inbound-tag picker, exactly the way an mtproto
-// inbound's own bridge already is (see injectMtprotoEgress): the picker's
-// tag list comes from InboundService.GetInboundTags(), a plain,
+// injectAmneziawgEgress gives every enabled, RouteThroughXray-opted-in
+// AmneziaWG inbound with at least one qualifying peer its own loopback
+// dokodemo-door bridge — tagged with that inbound's own real tag, so it's
+// already selectable in the panel's stock Routing page's inbound-tag
+// picker, exactly the way an mtproto inbound's own bridge already is (see
+// injectMtprotoEgress): the picker's tag list comes from
+// InboundService.GetInboundTags(), a plain,
 // protocol-blind SELECT over every inbound row's tag, so reusing a real
 // inbound's own tag needs no dedicated UI plumbing at all.
 //
-// Every peer's traffic always lands on the bridge — internal/amneziawg's
-// defaultPostUpDown TPROXYs it there unconditionally, there is no per-peer
-// or per-inbound opt-in flag — but this function never generates a routing
+// RouteThroughXray is a per-inbound opt-in, off by default: when it's off,
+// no bridge is created at all and the tunnel has no Xray dependency
+// whatsoever. When it's on, every peer's traffic lands on the bridge —
+// internal/amneziawg's defaultPostUpDown TPROXYs it there, there is no
+// further per-peer opt-in — but this function never generates a routing
 // rule of its own. Whether that traffic goes anywhere beyond Xray's default
 // routing is entirely up to whatever rules the admin adds through that same
 // stock Routing page (inboundTag + an optional sourceIP to target one
@@ -680,7 +683,7 @@ func injectAmneziawgEgress(cfg *xray.Config, inbounds []*model.Inbound) {
 			continue
 		}
 		inst, ok := amneziawg.InstanceFromInbound(inbound)
-		if !ok {
+		if !ok || !inst.RouteThroughXray {
 			continue
 		}
 		hasQualifyingPeer := false

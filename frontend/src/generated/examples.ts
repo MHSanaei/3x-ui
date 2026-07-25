@@ -666,6 +666,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "primaryDns": "",
     "privateKey": "",
     "publicKey": "",
+    "routeThroughXray": false,
     "s1": 0,
     "s2": 0,
     "s3": 0,

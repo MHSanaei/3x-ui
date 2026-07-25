@@ -298,6 +298,7 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       ipv6Enabled: false,
       ipv6Subnet: '',
       ipv6ExternalInterface: '',
+      routeThroughXray: false,
       jc: 5,
       jmin: 10,
       jmax: 50,

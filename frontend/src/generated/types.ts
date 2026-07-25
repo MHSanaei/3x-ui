@@ -649,6 +649,7 @@ export interface ServerSettings {
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
+  routeThroughXray?: boolean;
   s1: number;
   s2: number;
   s3: number;
