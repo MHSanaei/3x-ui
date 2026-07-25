@@ -899,7 +899,7 @@ export function genAmneziaWGLink(input: GenAmneziaWGLinkInput): string {
   const url = new URL(`amneziawg://${formatUrlHost(address)}:${port}`);
   url.username = client.privateKey ?? '';
 
-  if (server.publicKey.length > 0) url.searchParams.set('publickey', server.publicKey);
+  if (server.publicKey && server.publicKey.length > 0) url.searchParams.set('publickey', server.publicKey);
   if ((client.allowedIPs ?? []).length > 0) {
     url.searchParams.set('address', client.allowedIPs.join(','));
   }
