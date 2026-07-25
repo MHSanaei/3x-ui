@@ -1625,12 +1625,6 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	}
 	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
 		tlsSettings["fingerprint"] = fp
-		settings, _ := tlsSettings["settings"].(map[string]any)
-		if settings == nil {
-			settings = map[string]any{}
-			tlsSettings["settings"] = settings
-		}
-		settings["fingerprint"] = fp
 	}
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
