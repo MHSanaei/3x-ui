@@ -102,6 +102,7 @@ type Values = ClientFormValues & {
   wgPublicKey: string;
   wgPreSharedKey: string;
   wgAllowedIPs: string;
+  awgForwardedPorts: string;
   secret: string;
   adTag: string;
 };
@@ -131,6 +132,7 @@ const EMPTY: Values = {
   wgPublicKey: '',
   wgPreSharedKey: '',
   wgAllowedIPs: '',
+  awgForwardedPorts: '',
   secret: '',
   adTag: '',
 };
@@ -243,6 +245,7 @@ export default function ClientFormModal({
         wgPublicKey: client.publicKey || '',
         wgPreSharedKey: client.preSharedKey || '',
         wgAllowedIPs: client.allowedIPs || '',
+        awgForwardedPorts: client.forwardedPorts || '',
         secret: client.secret || '',
         adTag: client.adTag || '',
       };
@@ -557,6 +560,11 @@ export default function ClientFormModal({
         .filter((s) => s !== '');
       if (allowedIPs.length > 0) {
         clientPayload.allowedIPs = allowedIPs;
+      }
+      // Port-forwarding has no WireGuard equivalent — Xray-native WireGuard
+      // has no host-level iptables layer to hang per-client DNAT off of.
+      if (showAmneziawg) {
+        clientPayload.forwardedPorts = values.awgForwardedPorts.trim();
       }
     }
 
@@ -900,6 +908,15 @@ export default function ClientFormModal({
                           >
                             <Input placeholder="10.8.1.2/32" />
                           </FormField>
+                          {showAmneziawg && (
+                            <FormField
+                              name="awgForwardedPorts"
+                              label={t('pages.clients.amneziaWgForwardedPorts')}
+                              extra={t('pages.clients.amneziaWgForwardedPortsHint')}
+                            >
+                              <Input placeholder="80, 443, 8000-8100" />
+                            </FormField>
+                          )}
                         </>
                       )}
                       {showMtproto && (

@@ -920,6 +920,8 @@
       "amneziaWgPreSharedKey": "Общий ключ AmneziaWG",
       "amneziaWgAllowedIPs": "Разрешённые IP AmneziaWG",
       "amneziaWgAllowedIPsHint": "Оставьте пустым для автоназначения; разделяйте записи запятыми",
+      "amneziaWgForwardedPorts": "Проброс портов",
+      "amneziaWgForwardedPortsHint": "Порты/диапазоны, DNAT'ящиеся на этого клиента, например 80, 443, 8000-8100. Оставьте пустым, если не нужно.",
       "amneziaWgConfig": "Конфиг AmneziaWG",
       "mtprotoSecret": "Секрет MTProto",
       "mtprotoSecretHint": "Секрет FakeTLS клиента. Перегенерируйте, чтобы сменить.",

@@ -179,20 +179,22 @@ func TestPeersFingerprintOrderIndependentButContentSensitive(t *testing.T) {
 
 func TestEnsureActionFor(t *testing.T) {
 	cases := []struct {
-		name                string
-		up                  bool
-		curStruct, curPeers string
-		newStruct, newPeers string
-		want                ensureAction
+		name                            string
+		up                              bool
+		curStruct, curPortFwd, curPeers string
+		newStruct, newPortFwd, newPeers string
+		want                            ensureAction
 	}{
-		{"down forces restart even if identical", false, "s", "p", "s", "p", ensureRestart},
-		{"structural change forces restart", true, "s1", "p", "s2", "p", ensureRestart},
-		{"peers-only change reloads", true, "s", "p1", "s", "p2", ensureReload},
-		{"identical up interface is a noop", true, "s", "p", "s", "p", ensureNoop},
+		{"down forces restart even if identical", false, "s", "f", "p", "s", "f", "p", ensureRestart},
+		{"structural change forces restart", true, "s1", "f", "p", "s2", "f", "p", ensureRestart},
+		{"port-forward change forces restart", true, "s", "f1", "p", "s", "f2", "p", ensureRestart},
+		{"peers-only change reloads", true, "s", "f", "p1", "s", "f", "p2", ensureReload},
+		{"identical up interface is a noop", true, "s", "f", "p", "s", "f", "p", ensureNoop},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := ensureActionFor(c.up, c.curStruct, c.curPeers, c.newStruct, c.newPeers); got != c.want {
+			got := ensureActionFor(c.up, c.curStruct, c.curPortFwd, c.curPeers, c.newStruct, c.newPortFwd, c.newPeers)
+			if got != c.want {
 				t.Errorf("ensureActionFor() = %v, want %v", got, c.want)
 			}
 		})

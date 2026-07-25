@@ -37,6 +37,7 @@ export const ClientRecordSchema = z.object({
   allowedIPs: z.string().optional(),
   preSharedKey: z.string().optional(),
   keepAlive: z.number().optional(),
+  forwardedPorts: z.string().optional(),
   secret: z.string().optional(),
   adTag: z.string().optional(),
   createdAt: z.number().optional(),

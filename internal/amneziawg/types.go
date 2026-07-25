@@ -34,6 +34,10 @@ type Peer struct {
 	PublicKey    string
 	PresharedKey string
 	AllowedIPs   []string
+
+	// ForwardedPorts is a raw, user-supplied port list ("80, 443, 8000-8100")
+	// DNAT'd to this peer's tunnel address. Empty means no port-forwarding.
+	ForwardedPorts string
 }
 
 // Instance is the desired runtime configuration of one AmneziaWG inbound: a

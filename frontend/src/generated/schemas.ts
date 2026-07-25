@@ -1024,6 +1024,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Flow control (XTLS)",
         "type": "string"
       },
+      "forwardedPorts": {
+        "description": "AmneziaWG per-client port-forwarding spec, e.g. \"80,443,8000-8100\"",
+        "type": "string"
+      },
       "group": {
         "description": "Logical grouping label",
         "type": "string"
@@ -1162,6 +1166,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "flow": {
         "type": "string"
       },
+      "forwardedPorts": {
+        "type": "string"
+      },
       "group": {
         "type": "string"
       },
@@ -1225,6 +1232,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "enable",
       "expiryTime",
       "flow",
+      "forwardedPorts",
       "group",
       "id",
       "keepAlive",
