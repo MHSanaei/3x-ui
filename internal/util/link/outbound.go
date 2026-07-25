@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"net/url"
 	"regexp"
@@ -627,9 +628,7 @@ func applyTransport(stream map[string]any, p url.Values) {
 		if extra := p.Get("extra"); extra != "" {
 			var parsed map[string]any
 			if err := json.Unmarshal([]byte(extra), &parsed); err == nil {
-				for k, v := range parsed {
-					xh[k] = v
-				}
+				maps.Copy(xh, parsed)
 			}
 		}
 		for _, k := range []string{"xPaddingBytes", "scMaxEachPostBytes", "scMinPostsIntervalMs", "uplinkChunkSize"} {

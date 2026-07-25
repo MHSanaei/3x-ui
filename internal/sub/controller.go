@@ -307,6 +307,31 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	if !wantsHTML {
 		return false
 	}
+	page, ok := a.buildSubPageData(c)
+	if !ok {
+		return true
+	}
+	a.serveSubPage(c, page.BasePath, page)
+	return true
+}
+
+func (a *SUBController) maybeServeSubInfo(c *gin.Context) bool {
+	if !strings.EqualFold(c.Query("format"), "info") {
+		return false
+	}
+	page, ok := a.buildSubPageData(c)
+	if !ok {
+		return true
+	}
+	info := a.subPageContext(page)
+	delete(info, "links")
+	info["emails"] = dedupeEmails(page.Emails)
+	setNoCacheHeaders(c)
+	c.JSON(http.StatusOK, info)
+	return true
+}
+
+func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subId := c.Param("subid")
 	_, host, _, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
@@ -314,7 +339,7 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
-		return true
+		return PageData{}, false
 	}
 	subURL, subJsonURL, subClashURL := subReq.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
 	if !a.jsonEnabled {
@@ -329,13 +354,32 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	}
 	basePathStr := basePath.(string)
 	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
-	a.serveSubPage(c, basePathStr, page)
-	return true
+	return page, true
+}
+
+func dedupeEmails(emails []string) []string {
+	out := make([]string, 0, len(emails))
+	seen := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		if _, dup := seen[email]; dup {
+			continue
+		}
+		seen[email] = struct{}{}
+		out = append(out, email)
+	}
+	return out
 }
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
+	if a.maybeServeSubInfo(c) {
+		logSubscriptionRoute(userAgent, "info")
+		return
+	}
 	if a.maybeServeSubPage(c) {
 		logSubscriptionRoute(userAgent, "html")
 		return
@@ -463,38 +507,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		body = bytes.ReplaceAll(body, []byte(`href="/assets/`), []byte(`href="`+basePath+`assets/`))
 	}
 
-	// JSON-marshal the view-model so the SPA can read it as a plain
-	// The panel's "Calendar Type" setting decides whether the SubPage
-	// renders dates in Gregorian or Jalali — surface it here so the SPA
-	// can match the rest of the panel without a round-trip.
-	datepicker, _ := a.settingService.GetDatepicker()
-	if datepicker == "" {
-		datepicker = "gregorian"
-	}
-
-	subData := map[string]any{
-		"sId":           page.SId,
-		"enabled":       page.Enabled,
-		"download":      page.Download,
-		"upload":        page.Upload,
-		"total":         page.Total,
-		"used":          page.Used,
-		"remained":      page.Remained,
-		"expire":        page.Expire,
-		"lastOnline":    page.LastOnline,
-		"downloadByte":  page.DownloadByte,
-		"uploadByte":    page.UploadByte,
-		"totalByte":     page.TotalByte,
-		"subUrl":        page.SubUrl,
-		"subJsonUrl":    page.SubJsonUrl,
-		"subClashUrl":   page.SubClashUrl,
-		"subTitle":      page.SubTitle,
-		"subSupportUrl": page.SubSupportUrl,
-		"links":         page.Result,
-		"emails":        page.Emails,
-		"datepicker":    datepicker,
-		"announce":      a.subAnnounce,
-	}
+	subData := a.subPageContext(page)
 
 	// When an admin has configured a custom subscription theme, render it
 	// instead of the default SPA. We render into a buffer first so a template
@@ -541,6 +554,43 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 
 	setNoCacheHeaders(c)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
+}
+
+// subPageContext builds the shared view-model map: the template context for
+// custom sub themes, the window.__SUB_PAGE_DATA__ payload the SPA reads, and
+// (without links) the ?format=info JSON body. The panel's "Calendar Type"
+// setting decides whether dates render Gregorian or Jalali — surfaced here so
+// consumers match the rest of the panel without a round-trip.
+func (a *SUBController) subPageContext(page PageData) map[string]any {
+	datepicker, _ := a.settingService.GetDatepicker()
+	if datepicker == "" {
+		datepicker = "gregorian"
+	}
+
+	return map[string]any{
+		"sId":           page.SId,
+		"enabled":       page.Enabled,
+		"isOnline":      page.IsOnline,
+		"download":      page.Download,
+		"upload":        page.Upload,
+		"total":         page.Total,
+		"used":          page.Used,
+		"remained":      page.Remained,
+		"expire":        page.Expire,
+		"lastOnline":    page.LastOnline,
+		"downloadByte":  page.DownloadByte,
+		"uploadByte":    page.UploadByte,
+		"totalByte":     page.TotalByte,
+		"subUrl":        page.SubUrl,
+		"subJsonUrl":    page.SubJsonUrl,
+		"subClashUrl":   page.SubClashUrl,
+		"subTitle":      page.SubTitle,
+		"subSupportUrl": page.SubSupportUrl,
+		"links":         page.Result,
+		"emails":        page.Emails,
+		"datepicker":    datepicker,
+		"announce":      a.subAnnounce,
+	}
 }
 
 // setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
