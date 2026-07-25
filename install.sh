@@ -8,11 +8,6 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# TODO(amneziawg): this script does not yet install the AmneziaWG DKMS kernel
-# module + amneziawg-tools. Until it does, install them manually before
-# creating an AmneziaWG inbound (see coinman-dev/3ax-ui's install_amneziawg
-# for a reference implementation: ppa:amnezia/ppa on Ubuntu/Debian).
-
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
@@ -128,6 +123,167 @@ install_base() {
             apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
             ;;
     esac
+}
+
+url_reachable() {
+    curl --connect-timeout 5 --max-time 10 -sSIL -o /dev/null "$1" 2>/dev/null
+}
+
+# Probes URL reachability before relying on it (namely the AmneziaWG PPA host,
+# which hosting providers — especially Russian VPS — frequently block).
+# Non-interactive installs always skip-and-continue rather than block on a
+# prompt; interactive installs ask, defaulting to skip so a flaky network
+# doesn't abort the whole run over one optional feature.
+check_url_or_skip() {
+    local url="$1"
+    local label="$2"
+    if url_reachable "$url"; then
+        return 0
+    fi
+    echo ""
+    echo -e "${yellow}══════════════════════════════════════════════════════${plain}"
+    echo -e "${yellow}  Failed to reach: ${url}${plain}"
+    echo -e "${yellow}  Module / file:   ${label}${plain}"
+    echo -e "${yellow}══════════════════════════════════════════════════════${plain}"
+    if [[ "$NONINTERACTIVE" == "1" ]]; then
+        echo -e "${yellow}Non-interactive install: skipping ${label}.${plain}"
+        return 1
+    fi
+    read -rp "Continue without it? [Y/n]: " __skip_choice
+    case "${__skip_choice,,}" in
+        n | no)
+            echo -e "${red}Aborted by user.${plain}"
+            exit 1
+            ;;
+        *)
+            echo -e "${yellow}Skipping ${label}.${plain}"
+            return 1
+            ;;
+    esac
+}
+
+# Installs ndppd (IPv6 NDP proxy), used by a future AmneziaWG IPv6 mode so
+# clients can get a native public IPv6 address without NAT66. Not wired into
+# the panel yet (tracked separately) — installed now so it's already in place
+# once that lands. Best-effort: never fatal.
+install_ndppd() {
+    case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get install -y -q ndppd 2>/dev/null || true
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos)
+            dnf install -y ndppd 2>/dev/null || yum install -y ndppd 2>/dev/null || true
+            ;;
+        arch | manjaro | parch)
+            pacman -Syu --noconfirm ndppd 2>/dev/null || true
+            ;;
+    esac
+}
+
+# Persists IPv4/IPv6 forwarding across reboots. AmneziaWG's own PostUp already
+# sets net.ipv4.ip_forward=1 for the current boot (see
+# internal/amneziawg/manager.go's defaultPostUpDown), so this is a belt-and-
+# suspenders persistence step, not the only place it's set.
+enable_ipv6_forwarding() {
+    if ! grep -q "net.ipv6.conf.all.forwarding" /etc/sysctl.conf 2>/dev/null; then
+        echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.conf
+    fi
+    if ! grep -q "net.ipv4.ip_forward" /etc/sysctl.conf 2>/dev/null; then
+        echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+    fi
+    sysctl -p >/dev/null 2>&1 || true
+}
+
+# Installs the AmneziaWG DKMS kernel module + amneziawg-tools (awg/awg-quick)
+# so an AmneziaWG inbound created in the panel can actually bring up an
+# interface. Best-effort and never fatal to the overall x-ui install: the
+# panel works fine without it, an AmneziaWG inbound just won't start its
+# tunnel until the module is installed (surfaced in the panel/logs, not here).
+# ppa:amnezia/ppa (Ubuntu/Debian/Armbian) is the primary, tested path; other
+# distros fall back to plain wireguard-tools with a manual-install pointer.
+# See https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.
+#
+# Also requires Secure Boot to be OFF (checked separately, see
+# check_secure_boot below) — a DKMS-built module is unsigned and the kernel
+# refuses to load it while Secure Boot is enforced.
+install_amneziawg() {
+    if command -v awg &>/dev/null; then
+        echo -e "${green}AmneziaWG (awg) already installed.${plain}"
+        modprobe amneziawg 2>/dev/null || true
+        install_ndppd
+        enable_ipv6_forwarding
+        return
+    fi
+
+    echo -e "${green}Installing AmneziaWG...${plain}"
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBCONF_NONINTERACTIVE_SEEN=true
+
+    case "${release}" in
+        ubuntu | debian | armbian)
+            if ! check_url_or_skip "https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/dists/focal/Release" "AmneziaWG (ppa.launchpadcontent.net)"; then
+                echo -e "${yellow}Install it manually later if needed:${plain}"
+                echo -e "${yellow}  https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+                install_ndppd
+                return
+            fi
+            echo -e "${yellow}Installing amneziawg from ppa:amnezia/ppa...${plain}"
+            apt-get install -y -q software-properties-common python3-launchpadlib gnupg2 "linux-headers-$(uname -r)" 2>/dev/null || true
+            # Ensure deb-src is present (required for the PPA's DKMS build).
+            if ! grep -q "^deb-src" /etc/apt/sources.list 2>/dev/null; then
+                grep "^deb " /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+            fi
+            if [[ "${release}" == "ubuntu" ]]; then
+                add-apt-repository -y ppa:amnezia/ppa 2>/dev/null &&
+                    apt-get update -q &&
+                    apt-get install -y amneziawg &&
+                    echo -e "${green}AmneziaWG installed successfully via PPA.${plain}" ||
+                    echo -e "${red}PPA install failed. Install amneziawg manually: https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+            else
+                apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 57290828 2>/dev/null || true
+                echo "deb https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main" >> /etc/apt/sources.list
+                echo "deb-src https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main" >> /etc/apt/sources.list
+                apt-get update -q &&
+                    apt-get install -y amneziawg &&
+                    echo -e "${green}AmneziaWG installed successfully.${plain}" ||
+                    echo -e "${red}Install failed. Install amneziawg manually: https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+            fi
+            modprobe amneziawg 2>/dev/null || true
+            install_ndppd
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos)
+            echo -e "${yellow}AmneziaWG has no prebuilt package for ${release}. Installing WireGuard as a fallback...${plain}"
+            dnf install -y -q wireguard-tools 2>/dev/null || yum install -y wireguard-tools 2>/dev/null || true
+            echo -e "${yellow}Note: for full AmneziaWG (obfuscated) support, install amneziawg-tools manually:${plain}"
+            echo -e "${yellow}  https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+            install_ndppd
+            ;;
+        arch | manjaro | parch)
+            pacman -Sy --noconfirm wireguard-tools 2>/dev/null || true
+            if command -v yay &>/dev/null; then
+                yay -S --noconfirm amneziawg-dkms amneziawg-tools 2>/dev/null || true
+            elif command -v paru &>/dev/null; then
+                paru -S --noconfirm amneziawg-dkms amneziawg-tools 2>/dev/null || true
+            else
+                echo -e "${yellow}Install an AUR helper (yay/paru) for amneziawg-dkms, or build it manually:${plain}"
+                echo -e "${yellow}  https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+            fi
+            install_ndppd
+            ;;
+        *)
+            echo -e "${yellow}${release}: no automated AmneziaWG install path. Install it manually if needed:${plain}"
+            echo -e "${yellow}  https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+            ;;
+    esac
+
+    if command -v awg &>/dev/null; then
+        echo -e "${green}awg: $(awg --version 2>/dev/null || echo 'installed')${plain}"
+    else
+        echo -e "${yellow}Warning: 'awg' binary not found. The panel will work, but an AmneziaWG${plain}"
+        echo -e "${yellow}inbound's tunnel will not start until you install it manually.${plain}"
+    fi
+
+    enable_ipv6_forwarding
 }
 
 gen_random_string() {
@@ -1687,4 +1843,32 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
+install_amneziawg
 install_x-ui $1
+
+# Secure Boot blocks the AmneziaWG DKMS module from loading (it's unsigned).
+# Try mokutil first, fall back to reading the EFI variable directly.
+check_secure_boot() {
+    if command -v mokutil &>/dev/null; then
+        mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"
+        return $?
+    fi
+    local sb_var
+    sb_var=$(find /sys/firmware/efi/efivars -name "SecureBoot-*" 2>/dev/null | head -1)
+    if [[ -n "$sb_var" ]]; then
+        [[ "$(od -An -tu1 -j4 -N1 "$sb_var" 2>/dev/null | tr -d ' ')" == "1" ]]
+        return $?
+    fi
+    return 1
+}
+
+if command -v awg &>/dev/null && check_secure_boot; then
+    echo -e ""
+    echo -e "${red}[!] WARNING: Secure Boot is ENABLED${plain}"
+    echo -e "${yellow}AmneziaWG's kernel module is unsigned and cannot load while Secure Boot${plain}"
+    echo -e "${yellow}is active — AmneziaWG tunnels will NOT work until it is disabled.${plain}"
+    echo -e "${yellow}Fix: turn off Secure Boot in your VPS provider's control panel, or in${plain}"
+    echo -e "${yellow}the VM's firmware/BIOS settings, then reboot. No reinstall needed${plain}"
+    echo -e "${yellow}afterward — AmneziaWG will start working on its own.${plain}"
+    echo -e ""
+fi
