@@ -99,7 +99,7 @@ curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bas
 
 ## Поддерживаемые платформы
 
-**Операционные системы:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine и Windows.
+**Операционные системы:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) и Alpine. (В апстриме также есть сборка под Windows; в CI этого форка её нет — здесь всё нацелено на Linux-серверы/роутеры, да и AmneziaWG в любом случае требует модуль ядра Linux.)
 
 **Архитектуры:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
