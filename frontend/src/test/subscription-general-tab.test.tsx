@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AllSetting } from '@/models/setting';
