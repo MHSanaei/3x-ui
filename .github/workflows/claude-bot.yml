@@ -1,12 +1,5 @@
 name: Claude Bot
 
-# Each prompt: / claude_args: value below interpolates ${{ }}, so GitHub parses
-# the whole block scalar as ONE expression and caps it at 21000 characters.
-# Going over does not fail a job - the entire workflow stops parsing and
-# vanishes from Actions, with the run reported only as a workflow file issue.
-# Keep every prompt well under the cap; put shared context in CLAUDE.md and
-# docs/architecture.md, which are in the checkout, instead of pasting it here.
-
 on:
   issues:
     types: [opened]
@@ -29,6 +22,8 @@ jobs:
       contents: read
       issues: write
       id-token: write
+    env:
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -324,12 +319,26 @@ jobs:
         if: always()
         env:
           NODE_OPTIONS: ""
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: claude-issue-${{ github.event.issue.number }}
           path: ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
+      - name: Fail if the triage posted no reply
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          bot_comments=$(gh api "repos/${REPO}/issues/${ISSUE}/comments" --paginate \
+            --jq '[.[] | select(.user.type == "Bot")] | length')
+          if [ "$bot_comments" = "0" ]; then
+            echo "::error::The triage run ended without commenting on #${ISSUE}. Read the uploaded transcript before re-running."
+            exit 1
+          fi
 
   handle-pr-fix:
     if: github.event_name == 'pull_request_target' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
@@ -546,6 +555,8 @@ jobs:
       contents: read
       pull-requests: write
       id-token: write
+    env:
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -840,6 +851,20 @@ jobs:
               and confirm your comment is there. If it is not, the command was
               rejected: fix it and post again. Never end the run believing you
               posted a review when you did not.
+      - name: Fail if the review was never posted
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          bot_comments=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq '[.[] | select(.user.type == "Bot")] | length')
+          if [ "$bot_comments" = "0" ]; then
+            echo "::error::The review run ended without commenting on #${PR}."
+            exit 1
+          fi
 
   mention:
     if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && github.event.comment.user.login == github.repository_owner
