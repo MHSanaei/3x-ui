@@ -9,7 +9,7 @@ import (
 
 func TestLoginLimiterBoundsMemoryUnderUsernameFlood(t *testing.T) {
 	limiter := newLoginLimiter(5, 5*time.Minute, 15*time.Minute)
-	for i := 0; i < loginLimitMaxRecords+100; i++ {
+	for i := range loginLimitMaxRecords + 100 {
 		limiter.registerFailure("1.2.3.4", "user-"+strconv.Itoa(i))
 	}
 
@@ -28,7 +28,7 @@ func TestLoginLimiterEvictionSparesActiveBlocks(t *testing.T) {
 	limiter.now = func() time.Time { return now }
 
 	limiter.mu.Lock()
-	for i := 0; i < loginLimitMaxRecords-1; i++ {
+	for i := range loginLimitMaxRecords - 1 {
 		limiter.attempts["victim-"+strconv.Itoa(i)] = &loginLimitRecord{blockedUntil: now.Add(10 * time.Minute)}
 	}
 	limiter.attempts["filler"] = &loginLimitRecord{failures: []time.Time{now}}

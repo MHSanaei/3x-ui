@@ -418,7 +418,7 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	}
 	if dns, _ := inboundSettings["dns"].(string); dns != "" {
 		servers := make([]string, 0)
-		for _, server := range strings.Split(dns, ",") {
+		for server := range strings.SplitSeq(dns, ",") {
 			if server = strings.TrimSpace(server); server != "" {
 				servers = append(servers, server)
 			}
