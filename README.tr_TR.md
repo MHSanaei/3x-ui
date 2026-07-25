@@ -8,24 +8,34 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI**, [Xray-core](https://github.com/XTLS/Xray-core) sunucularını yönetmek için geliştirilmiş profesyonel, açık kaynaklı bir web kontrol panelidir. Tek bir sanal sunucudan (VPS) çok düğümlü (multi-node) dağıtımlara kadar çok çeşitli proxy ve VPN protokollerini kurmak, yapılandırmak ve izlemek için temiz, çok dilli bir arayüz sağlar.
+**Bu, [3X-UI](https://github.com/MHSanaei/3x-ui)'nin kişisel bir çatallamasıdır (fork)** — [Xray-core](https://github.com/XTLS/Xray-core) için geliştirilmiş, açık kaynaklı bir web kontrol panelidir — ve tek bir büyük ekleme içerir: VLESS, VMess, Trojan ve diğerleriyle aynı seviyede birinci sınıf bir protokol olarak **yerel (native) AmneziaWG desteği**. 3X-UI'nin zaten yaptığı her şey (çoklu protokol destekli gelen bağlantılar, kullanıcı başına trafik hesaplama, abonelikler, çoklu düğüm, Telegram botu) değişmeden kalır ve orijinal projedeki gibi çalışmaya devam eder.
 
-Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa edilen 3X-UI; çok daha geniş protokol desteği, artırılmış kararlılık, kullanıcı başına trafik hesaplama ve kullanım kolaylığı sağlayan birçok yeni özellik sunar.
+Bu fork, yazarının kendi yönlendiricileri ve kişisel sunucuları üzerinde çalışması için oluşturulmuştur; orijinal projenin yerini almayı veya onunla rekabet etmeyi amaçlamaz. Genel amaçlı paneli arıyorsanız [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) adresine gidin — aşağıdaki her şey yalnızca bu fork'un farklarını belgelemektedir.
 
 > [!IMPORTANT]
 > Bu proje yalnızca kişisel kullanım için tasarlanmıştır. Lütfen yasadışı amaçlar için veya üretim (production) ortamında kullanmayın.
 
+## Bu fork'ta ne farklı: AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module), DPI tabanlı protokol parmak izi çıkarmayı yenmek için tasarlanmış bir gizleme (obfuscation) katmanı (çöp paketler, rastgele dolgu, sihirli başlıkların yeniden yazılması) ekleyen bir WireGuard varyantıdır — aynı tünel, ama artık hat üzerinde bir tünel gibi görünmeyen bir tünel.
+
+- **Yerel (native), Docker değil.** AmneziaWG, host üzerinde gerçek bir çekirdek arabirimi olarak çalışır; `awg-quick`/`awg` ile açılıp kapatılır — size yerel bir `wg0` arabirimi kazandıran aynı DKMS çekirdek modülü yaklaşımı. Ayrıcalıklı bir sidecar konteynerine gerek yoktur.
+- **Birinci sınıf bir protokol.** Bir AmneziaWG gelen bağlantısı, diğerleriyle aynı `Inbound` tablosunda yaşar; bu sayede toplu işlemleri (bulk operations), QR kodu/yapılandırma indirme modalını ve abonelik bağlantılarını hiçbir ek çaba olmadan kazanır — öğrenilecek yeni bir şey yoktur.
+- **Tam AmneziaWG 2.0 gizlemesi** — Jc/Jmin/Jmax (çöp paketler), S1–S4 (paket dolgusu), H1–H4 (sihirli başlıklar) ve I1 imza paketi; her biri gelen bağlantı başına düzenlenebilir ve tek tıkla rastgeleleştirme düğmesine sahiptir, ayrıca eski istemciler için 1.x uyumlu bir mod da bulunur.
+- **Yerel IPv6**, kullanıcı başına NDP proxy desteğiyle; böylece her eş (peer) doğrudan erişilebilir bir IPv6 adresi alır — NAT66 gerekmez.
+- **Kullanıcı başına port yönlendirme** — belirli portları/aralıkları doğrudan bir eşin tünel adresine DNAT edin.
+- **Bir istemcinin trafiğini Xray üzerinden yönlendirme** — her AmneziaWG gelen bağlantısı otomatik olarak kendi loopback Xray köprüsünü alır (hiçbir anahtar/switch olmadan); herhangi bir istemcinin trafiğini, panelde zaten mevcut olan "Yönlendirme" sayfası üzerinden yapılandırılmış herhangi bir Xray giden bağlantısına, tıpkı başka herhangi bir protokolü yönlendirir gibi yönlendirin.
+- **`install.sh` çekirdek modülünü sizin için kurar** — Ubuntu/Debian/Armbian üzerinde (`ppa:amnezia/ppa`), diğer dağıtımlar için bir yedek (fallback) ile birlikte. Sizin için yapamayacağı tek şey: VPS/VM'inizde **Secure Boot'u önceden devre dışı bırakmak** — DKMS ile derlenmiş bir modül imzasızdır ve Secure Boot etkin olduğu sürece çekirdek onu yüklemeyi reddeder.
+- Uzlaştırma (reconcile), [`internal/mtproto`](internal/mtproto)'nun `mtg` sidecar'ını yönetme biçimiyle tamamen aynı şekilde yapılır: arka planda çalışan bir görev, çalışan arabirimi veritabanında saklanan durumla senkronize tutar ve mümkün olduğunda eş (peer) değişikliklerini tam bir arabirim yeniden başlatması yerine `awg syncconf` üzerinden uygular.
+
 ## Özellikler
 
-- **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.
+- **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.
 - **Modern aktarımlar (transports) ve güvenlik** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade ve XHTTP; TLS, XTLS ve REALITY ile güvene alınmıştır.
 - **Geri Dönüş (Fallbacks)** — Xray'in fallback desteğini kullanarak tek bir port üzerinde birden fazla protokole (ör. 443 üzerinde hem VLESS hem Trojan) hizmet verin.
 - **Kullanıcı başına yönetim** — Trafik kotaları, bitiş tarihleri, IP sınırları, canlı çevrimiçi (online) durumu ve tek tıkla paylaşım bağlantıları, QR kodları ve abonelikler.
@@ -69,24 +79,14 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 ## Hızlı Başlangıç
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-Belirli bir sürümü kurmak için, etiketini (ör. `v3.4.0`) ekleyin:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-Sürekli güncellenen **dev** sürümünü (kararlı bir sürüm değil; `main` dalından her commit'te oluşturulan en son ön sürüm) kurmak için `dev-latest` değerini geçirin:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+Bu fork yalnızca sürekli güncellenen **`dev-latest`** ön sürümünü yayınlar (her `main` push'unda otomatik olarak yeniden derlenir) — henüz etiketlenmiş kararlı bir sürüm yoktur, bu yüzden şu anda gerçekten bir şeye karşılık gelen tek kanal `dev`'dir.
 
 Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `x-ui` komutunu çalıştırın.
 
-Tam dokümantasyon için lütfen [proje Wiki sayfasını](https://github.com/MHSanaei/3x-ui/wiki) ziyaret edin.
+Bu README'nin kapsadığından daha fazlası için tam panel dokümantasyonuna [orijinal projenin Wiki sayfasından](https://github.com/MHSanaei/3x-ui/wiki) ulaşabilirsiniz — hiçbiri bu fork'a özgü değildir, dolayısıyla tamamen geçerliliğini korur.
 
 ### Etkileşimsiz kurulum
 
@@ -100,9 +100,11 @@ sona hiçbir soru sormadan tamamlanır, rastgele kimlik bilgileri oluşturup bun
 
 ## Desteklenen Platformlar
 
-**İşletim sistemleri:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine ve Windows.
+**İşletim sistemleri:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) ve Alpine. (Orijinal proje ayrıca bir Windows sürümü de yayınlar; bu fork'un CI'ı bunu yapmaz — buradaki her şey Linux çalıştıran sunucuları/yönlendiricileri hedefler ve AmneziaWG zaten her durumda bir Linux çekirdek modülüne ihtiyaç duyar.)
 
 **Mimariler:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+
+AmneziaWG özellikle gerçek bir Linux çekirdeği ve AmneziaWG'ye özgü DKMS çekirdek modülüne ihtiyaç duyar — Windows üzerinde çalışmaz ve `install_amneziawg` bugün yalnızca Ubuntu/Debian/Armbian üzerinde çekirdek modülü kurulumunu otomatikleştirir ([Bu fork'ta ne farklı](#bu-forkta-ne-farklı-amneziawg) bölümüne bakın).
 
 ## Veritabanı Seçenekleri
 
@@ -135,6 +137,9 @@ Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Birlikte
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> AmneziaWG gelen bağlantıları, **host** üzerinde `awg-quick`/`awg` ve AmneziaWG çekirdek moduline ihtiyaç duyar — bu tam olarak [Bu fork'ta ne farklı](#bu-forkta-ne-farklı-amneziawg) bölümünde açıklanan Docker'sız tasarım amacının yansımasıdır. Panelin kendisini Docker içinde çalıştırmak diğer tüm protokoller için işlemeye devam eder, ancak konteynerize edilmiş bir panelden oluşturulan bir AmneziaWG gelen bağlantısının, konteyner host düzeyinde ağ/çekirdek erişimi almadıkça arabirimini açacak bir yeri yoktur ki bu da temel amacı geçersiz kılar. AmneziaWG kullanmayı planlıyorsanız, host üzerinde yerel (native) olarak çalıştırın.
 
 Docker imajı, kullanıcı başına **IP limitlerini** zorunlu kılmak için Fail2ban ile (varsayılan olarak etkindir) paketlenmiştir. Fail2ban, ihlalcileri `iptables` ile engeller ve bunun için `NET_ADMIN` yetkisine ihtiyaç duyar. `docker-compose.yml` bunu zaten `cap_add` üzerinden vermektedir; ancak konteyneri bunun yerine `docker run` ile başlatırsanız bu yetkileri kendiniz eklemelisiniz, aksi takdirde yasaklamalar günlüğe kaydedilir ancak uygulanmaz:
 
@@ -169,28 +174,13 @@ Panel arayüzü 13 farklı dilde mevcuttur:
 
 İngilizce · Farsça · Arapça · Çince (Basitleştirilmiş) · Çince (Geleneksel) · İspanyolca · Rusça · Ukraynaca · Türkçe · Vietnamca · Japonca · Endonezce · Portekizce (Brezilya)
 
-## Katkıda Bulunma
+## Geliştirici Notları
 
-Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull request (PR) göndermeden önce lütfen [Katkıda Bulunma Kılavuzunu](/CONTRIBUTING.md) okuyun.
+Bu kişisel bir fork'tur ve dış katkıda bulunanlar aramamaktadır; ancak siz kendiniz bu kod tabanı üzerinde çalışıyorsanız [CONTRIBUTING.md](/CONTRIBUTING.md) hâlâ yerel bir geliştirme ortamı kurmak için (Go/Node sürümleri, CGo için gereken C derleyicisi, build/lint/test komutları) ayrıntılı ve yararlı talimatlar içermektedir.
 
-## Özel Teşekkürler
+## Atıf
 
-- [alireza0](https://github.com/alireza0/)
-
-## Teşekkür & Atıf
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Lisans: **GPL-3.0**): _Geliştirilmiş v2ray/xray ve v2ray/xray-clients yönlendirme (routing) kuralları; yerleşik İran alan adları ile güvenlik ve reklam engelleme odaklıdır._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Lisans: **GPL-3.0**): _Bu depo, Rusya'daki engellenen alan adları ve adreslere dayalı otomatik olarak güncellenen V2Ray yönlendirme kurallarını içerir._
-
-## Topluluk Araçları
-
-3x-ui çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
-
-## Projeyi Destekleyin
-
-**Eğer bu proje size faydalı olduysa, bir yıldız verebilirsiniz**:star2:
+Bu fork tamamen [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) üzerine inşa edilmiştir — panelin tamamı, çoklu protokol desteği ve altta yatan mimari onların eseridir; **AmneziaWG desteği burada eklenen tek şeydir.** Orijinal projeyi faydalı bulduysanız, orijinal yazarın destek bağlantıları bunun için hâlâ doğru yerdir:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Bana Bir Kahve Ismarla" style="height: 70px !important;width: 277px !important;" >
@@ -201,6 +191,19 @@ Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull req
    <img src="./media/donation-button-black.svg" alt="NOWPayments üzerinden Kripto Bağış Butonu">
 </a>
 
-## Yıldız Tablosu
+Bu fork'taki yerel AmneziaWG uygulaması şunlardan alınmış/ilham almıştır:
 
-[![Zaman içerisindeki yıldız sayısı](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — orijinal projeye karşı açılan orijinal AmneziaWG pull request'i (Docker sidecar yaklaşımı); bu fork onun şema/ön yüz (frontend) yapısını yeniden kullanır ancak arka ucu (backend) yerel, Docker'sız bir yöneticiyle değiştirir.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — üretimde zaten yerel AmneziaWG çalıştıran bağımsız bir fork; bu fork'un `awg-quick` süreç yönetimi, yapılandırma üretimi ve AmneziaWG 2.0 gizleme parametresi üreticisi onun `awg/` paketinden alınmıştır.
+
+## Özel Teşekkürler
+
+- [alireza0](https://github.com/alireza0/)
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Lisans: **GPL-3.0**): _Geliştirilmiş v2ray/xray ve v2ray/xray-clients yönlendirme (routing) kuralları; yerleşik İran alan adları ile güvenlik ve reklam engelleme odaklıdır._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Lisans: **GPL-3.0**): _Bu depo, Rusya'daki engellenen alan adları ve adreslere dayalı otomatik olarak güncellenen V2Ray yönlendirme kurallarını içerir._
+
+## Topluluk Araçları
+
+3x-ui çevresindeki topluluk tarafından oluşturulmuş araçlar ve entegrasyonlar.
+
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._

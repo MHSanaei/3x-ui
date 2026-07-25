@@ -8,24 +8,34 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI** 是一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。它提供简洁、多语言的界面，用于部署、配置和监控各种代理与 VPN 协议——从单台 VPS 到多节点部署。
+**这是 [3X-UI](https://github.com/MHSanaei/3x-ui) 的个人分支（fork）**——一个先进的开源 Web 控制面板，用于管理 [Xray-core](https://github.com/XTLS/Xray-core)——增加了一项主要功能：**原生 AmneziaWG 支持**，作为与 VLESS、VMess、Trojan 等并列的一等协议。3X-UI 原本具备的一切（多协议入站、按客户端流量统计、订阅、多节点、Telegram 机器人）均保持不变，运行方式与原项目完全一致。
 
-3X-UI 作为原始 X-UI 项目的增强分支（fork），增加了更广泛的协议支持、更好的稳定性、按客户端的流量统计以及许多提升使用体验的功能。
+这个分支是为作者自己的路由器和个人服务器构建的；它并不打算替代或与原项目竞争。如果您需要一个通用面板，请前往 [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui)——以下内容仅记录本分支的差异之处。
 
 > [!IMPORTANT]
 > 本项目仅供个人使用。请勿将其用于非法目的，也请勿在生产环境中使用。
 
+## 本分支的不同之处：AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) 是 WireGuard 的一个变体，增加了一层混淆（垃圾数据包、随机填充、重写魔术头部），旨在击败基于 DPI 的协议指纹识别——同样的隧道，但在线路上不再表现得像一条隧道。
+
+- **原生实现，而非 Docker。** AmneziaWG 作为真正的内核接口运行在宿主机上，通过 `awg-quick`/`awg` 启动和停止——采用与拥有原生 `wg0` 接口相同的 DKMS 内核模块方案。无需特权 sidecar 容器。
+- **一等协议。** AmneziaWG 入站与其他协议共享同一张 `Inbound` 表，因此可以免费获得批量操作、二维码/配置下载弹窗以及订阅链接——无需学习任何新东西。
+- **完整的 AmneziaWG 2.0 混淆功能**——Jc/Jmin/Jmax（垃圾数据包）、S1–S4（数据包填充）、H1–H4（魔术头部）以及 I1 签名数据包，均可按入站单独编辑，并提供一键随机化按钮，同时为旧版客户端提供 1.x 兼容模式。
+- **原生 IPv6**，支持按客户端的 NDP 代理，使每个对等端都获得可直接访问的 IPv6 地址——无需 NAT66。
+- **按客户端端口转发**——将特定端口/端口范围直接 DNAT 到某个对等端的隧道地址。
+- **将客户端流量通过 Xray 路由**——每个 AmneziaWG 入站都会自动获得属于自己的本地回环 Xray 网桥（无需任何开关）；通过面板中已有的"路由"页面，将任意客户端的流量路由到任意已配置的 Xray 出站，方式与路由其他协议完全相同。
+- **`install.sh` 会为您安装内核模块**，适用于 Ubuntu/Debian/Armbian（`ppa:amnezia/ppa`），其他发行版则有回退方案。它唯一无法为您做的事：预先**禁用 VPS/VM 上的 Secure Boot**——DKMS 构建的模块未经签名，只要 Secure Boot 处于启用状态，内核就会拒绝加载它。
+- 协调（reconcile）方式与 [`internal/mtproto`](internal/mtproto) 管理 `mtg` sidecar 的方式完全相同：一个后台任务持续保持运行中的接口与数据库中存储的内容同步，并尽可能通过 `awg syncconf` 而非完整的接口重启来应用对等端变更。
+
 ## 功能特性
 
-- **多协议入站** — VLESS、VMess、Trojan、Shadowsocks、WireGuard、Hysteria2、HTTP、SOCKS (Mixed)、Dokodemo-door / Tunnel 和 TUN。
+- **多协议入站** — VLESS、VMess、Trojan、Shadowsocks、WireGuard、**AmneziaWG**、Hysteria2、HTTP、SOCKS (Mixed)、Dokodemo-door / Tunnel 和 TUN。
 - **现代传输与安全** — TCP (Raw)、mKCP、WebSocket、gRPC、HTTPUpgrade 和 XHTTP，并通过 TLS、XTLS 和 REALITY 加密。
 - **回落 (Fallback)** — 通过 Xray 的 fallback 功能在单个端口上提供多种协议（例如在 443 端口上同时使用 VLESS 和 Trojan）。
 - **按客户端管理** — 流量配额、到期日期、IP 限制、实时在线状态，以及一键分享链接、二维码和订阅。
@@ -69,24 +79,14 @@
 ## 快速开始
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-若要安装特定版本，请在命令后附加对应的标签（例如 `v3.4.0`）：
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-若要安装滚动更新的 **dev** 版本（来自 `main` 的最新逐次提交预发布版本，而非稳定版本），请传入 `dev-latest`：
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+本分支仅发布滚动更新的预发布版本 **`dev-latest`**（每次 push 到 `main` 都会自动重新构建）——目前还没有任何打标签的稳定版本，因此 `dev` 是当前唯一能解析到实际内容的渠道。
 
 安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `x-ui` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。
 
-完整文档请参阅 [项目Wiki](https://github.com/MHSanaei/3x-ui/wiki)。
+有关本 README 未涵盖的完整面板文档，请参阅[原项目 Wiki](https://github.com/MHSanaei/3x-ui/wiki)——其中没有任何内容专属于本分支，因此完全适用。
 
 ### 无人值守安装
 
@@ -100,9 +100,11 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## 支持的平台
 
-**操作系统：** Ubuntu、Debian、Armbian、Fedora、CentOS、RHEL、AlmaLinux、Rocky Linux、Oracle Linux、Amazon Linux、Virtuozzo、Arch、Manjaro、Parch、openSUSE (Tumbleweed / Leap)、Alpine 和 Windows。
+**操作系统：** Ubuntu、Debian、Armbian、Fedora、CentOS、RHEL、AlmaLinux、Rocky Linux、Oracle Linux、Amazon Linux、Virtuozzo、Arch、Manjaro、Parch、openSUSE (Tumbleweed / Leap) 和 Alpine。（原项目也发布 Windows 版本；本分支的 CI 不这样做——这里的一切都面向运行 Linux 的服务器/路由器，而且 AmneziaWG 无论如何都需要 Linux 内核模块。）
 
 **架构：** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`。
+
+AmneziaWG 特别需要真正的 Linux 内核以及 AmneziaWG 专用的 DKMS 内核模块——它无法在 Windows 上运行，而目前 `install_amneziawg` 只能在 Ubuntu/Debian/Armbian 上自动完成内核模块安装（参见[本分支的不同之处](#本分支的不同之处amneziawg)一节）。
 
 ## 数据库选项
 
@@ -135,6 +137,9 @@ systemctl restart x-ui
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> AmneziaWG 入站需要**宿主机**上的 `awg-quick`/`awg` 和 AmneziaWG 内核模块——这正是[本分支的不同之处](#本分支的不同之处amneziawg)一节中所述的"不使用 Docker"设计初衷所在。将面板本身运行在 Docker 中对其他任何协议仍然有效，但由运行在容器中的面板创建的 AmneziaWG 入站将无法启动其接口，除非该容器获得宿主机级别的网络/内核访问权限，而这会违背整体设计初衷。如果您打算使用 AmneziaWG，请在宿主机上原生运行面板。
 
 该镜像捆绑了 Fail2ban（默认启用），用于强制执行按客户端的 **IP 限制**。Fail2ban 使用 `iptables` 封禁违规者，这需要 `NET_ADMIN` 权限。`docker-compose.yml` 已通过 `cap_add` 授予该权限；如果您改用 `docker run` 启动容器，请自行添加这些权限，否则封禁只会被记录而永远不会生效：
 
@@ -169,28 +174,13 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
-## 贡献
+## 开发者说明
 
-欢迎贡献。在提交 issue 或 pull request 之前，请阅读[贡献指南](/CONTRIBUTING.md)。
-
-## 特别感谢
-
-- [alireza0](https://github.com/alireza0/)
+这是一个个人分支，不寻求外部贡献者，但如果您自己也在这份代码基础上进行开发，[CONTRIBUTING.md](/CONTRIBUTING.md) 仍然包含了搭建本地开发环境（Go/Node 版本、CGo 所需的 C 编译器、build/lint/test 命令）的详细且有用的说明。
 
 ## 致谢
 
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (许可证: **GPL-3.0**): _增强的 v2ray/xray 和 v2ray/xray-clients 路由规则，内置伊朗域名，专注于安全性和广告拦截。_
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (许可证: **GPL-3.0**): _此仓库包含基于俄罗斯被阻止域名和地址数据自动更新的 V2Ray 路由规则。_
-
-## 社区工具
-
-社区围绕 3x-ui 构建的工具和集成。
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
-
-## 支持项目
-
-**如果这个项目对您有帮助，您可以给它一个**:star2:
+本分支完全构建于 [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) 之上——整个面板、多协议支持以及底层架构都是他们的成果；**AmneziaWG 支持是这里唯一新增的内容。** 如果您觉得原项目有用，原作者的赞助链接依然是表达支持的正确去处：
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
@@ -201,6 +191,19 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-## 随时间变化的星标数
+本分支中原生 AmneziaWG 的实现参考/借鉴自：
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — 针对原项目提出的原始 AmneziaWG PR（Docker sidecar 方案）；本分支重用了其 schema/前端结构，但将后端替换为原生、无 Docker 的管理器。
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — 一个独立的分支，已经在生产环境中运行原生 AmneziaWG；本分支中 `awg-quick` 进程管理、配置生成以及 AmneziaWG 2.0 混淆参数生成器均源自其 `awg/` 包。
+
+## 特别感谢
+
+- [alireza0](https://github.com/alireza0/)
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (许可证: **GPL-3.0**): _增强的 v2ray/xray 和 v2ray/xray-clients 路由规则，内置伊朗域名，专注于安全性和广告拦截。_
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (许可证: **GPL-3.0**): _此仓库包含基于俄罗斯被阻止域名和地址数据自动更新的 V2Ray 路由规则。_
+
+## 社区工具
+
+社区围绕 3x-ui 构建的工具和集成。
+
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_

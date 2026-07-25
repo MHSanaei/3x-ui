@@ -8,24 +8,34 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI** هي لوحة تحكم ويب متقدمة ومفتوحة المصدر لإدارة خوادم [Xray-core](https://github.com/XTLS/Xray-core). توفّر واجهة نظيفة ومتعددة اللغات لنشر وتكوين ومراقبة مجموعة واسعة من بروتوكولات الوكيل وVPN — من خادم VPS واحد إلى عمليات النشر متعددة العقد.
+**هذه نسخة محسّنة (fork) شخصية من [3X-UI](https://github.com/MHSanaei/3x-ui)** — لوحة تحكم ويب متقدمة ومفتوحة المصدر لـ [Xray-core](https://github.com/XTLS/Xray-core) — بإضافة رئيسية واحدة: **دعم نيتيف لـ AmneziaWG** كبروتوكول من الدرجة الأولى إلى جانب VLESS وVMess وTrojan وغيرها. كل ما كان 3X-UI يقوم به سابقًا (اتصالات واردة متعددة البروتوكولات، محاسبة الترافيك لكل عميل، الاشتراكات، تعدد العقد، روبوت تيليجرام) يبقى دون تغيير ويعمل تمامًا كما في المشروع الأصلي.
 
-تم بناء 3X-UI كنسخة محسّنة (fork) من مشروع X-UI الأصلي، وتضيف دعمًا أوسع للبروتوكولات، واستقرارًا محسّنًا، ومحاسبة للترافيك لكل عميل، والعديد من ميزات تحسين تجربة الاستخدام.
+بُنيت هذه النسخة لتعمل على أجهزة التوجيه والخوادم الشخصية لصاحبها؛ وليست بديلاً أو منافسًا للمشروع الأصلي. إذا كنت تبحث عن اللوحة متعددة الأغراض، توجّه إلى [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — كل ما يلي هنا يوثّق فقط الفروقات في هذه النسخة.
 
 > [!IMPORTANT]
 > هذا المشروع مخصص للاستخدام الشخصي فقط. يرجى عدم استخدامه لأغراض غير قانونية أو في بيئة إنتاجية.
 
+## ما الذي يختلف في هذه النسخة: AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) هو نسخة من WireGuard تضيف طبقة تمويه (حزم مهملة، حشو عشوائي، إعادة كتابة رؤوس سحرية) مصممة لهزيمة أخذ البصمات القائم على DPI للبروتوكول — نفس النفق، لكنه لا يبدو كنفق على السلك.
+
+- **نيتيف، وليس Docker.** يعمل AmneziaWG كواجهة نواة حقيقية على المضيف، تُرفَع وتُخفَض عبر `awg-quick`/`awg` — نفس نهج وحدة النواة DKMS التي تمنحك واجهة `wg0` نيتيف. لا حاجة لحاوية جانبية ذات صلاحيات مرتفعة.
+- **بروتوكول من الدرجة الأولى.** يعيش اتصال AmneziaWG الوارد في نفس جدول `Inbound` مثل البقية، لذا يحصل مجانًا على العمليات الجماعية (bulk operations)، ونافذة رمز QR/تنزيل التكوين، وروابط الاشتراك — لا يوجد شيء جديد لتعلّمه.
+- **تمويه AmneziaWG 2.0 الكامل** — Jc/Jmin/Jmax (الحزم المهملة)، وS1–S4 (حشو الحزم)، وH1–H4 (الرؤوس السحرية)، وحزمة التوقيع I1، جميعها قابلة للتعديل لكل اتصال وارد مع زر عشوائي بنقرة واحدة، بالإضافة إلى وضع متوافق مع 1.x للعملاء القدامى.
+- **دعم IPv6 نيتيف**، مع وكيل NDP لكل عميل بحيث يحصل كل نظير على عنوان IPv6 يمكن الوصول إليه مباشرة — بدون NAT66.
+- **إعادة توجيه المنافذ لكل عميل** — DNAT لمنافذ/نطاقات محددة مباشرة إلى عنوان نفق نظير واحد.
+- **توجيه ترافيك عميل عبر Xray** — يحصل كل اتصال AmneziaWG الوارد تلقائيًا على جسر Xray الخاص به عبر loopback (بدون أي مفتاح تبديل)؛ يتم توجيه ترافيك أي عميل إلى أي اتصال صادر مُهيّأ في Xray من خلال صفحة "التوجيه" الموجودة مسبقًا في اللوحة، تمامًا كما تُوجَّه أي بروتوكول آخر.
+- **يقوم `install.sh` بتثبيت وحدة النواة نيابةً عنك** على Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`)، مع بديل احتياطي للتوزيعات الأخرى. الشيء الوحيد الذي لا يمكنه فعله من أجلك: **تعطيل Secure Boot** على خادمك الافتراضي (VPS/VM) مسبقًا — وحدة نواة مبنية بواسطة DKMS غير موقّعة، ولن تحمّلها النواة طالما كان Secure Boot مفعّلاً.
+- تتم المطابقة (reconcile) تمامًا كما تدير [`internal/mtproto`](internal/mtproto) الحاوية الجانبية `mtg`: تُبقي مهمة خلفية الواجهة قيد التشغيل متزامنة مع ما هو مخزَّن في قاعدة البيانات، وتطبّق تغييرات النظير عبر `awg syncconf` بدلاً من إعادة تشغيل الواجهة بالكامل كلما أمكن ذلك.
+
 ## الميزات
 
-- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
+- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، **AmneziaWG**، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
 - **وسائل نقل وأمان حديثة** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP، مؤمَّنة بـ TLS و XTLS و REALITY.
 - **Fallback** — تقديم عدة بروتوكولات على منفذ واحد (مثل VLESS و Trojan على المنفذ 443) باستخدام ميزة fallback في Xray.
 - **إدارة لكل عميل** — حصص الترافيك، تواريخ انتهاء الصلاحية، حدود IP، حالة الاتصال المباشرة، وروابط مشاركة وأكواد QR واشتراكات بنقرة واحدة.
@@ -69,24 +79,14 @@
 ## البدء السريع
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-لتثبيت إصدار محدد، أضِف وسمه (مثل `v3.4.0`):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-لتثبيت بنية **dev** المتجددة (أحدث إصدار أولي لكل التزام (commit) من `main`، وليس إصدارًا مستقرًا)، مرّر `dev-latest`:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+تنشر هذه النسخة فقط الإصدار الأولي المتجدد **`dev-latest`** (يُعاد بناؤه تلقائيًا مع كل push إلى `main`) — لا يوجد بعد أي إصدار مستقر موسوم، لذا فإن `dev` هي القناة الوحيدة التي تشير حاليًا إلى أي شيء.
 
 أثناء التثبيت، يتم إنشاء اسم مستخدم وكلمة مرور ومسار وصول عشوائية. بعد التثبيت، شغّل `x-ui` لفتح قائمة الإدارة، حيث يمكنك بدء/إيقاف الخدمة، وعرض أو إعادة تعيين بيانات تسجيل الدخول، وإدارة شهادات SSL، والمزيد.
 
-للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/MHSanaei/3x-ui/wiki).
+للحصول على وثائق اللوحة الكاملة إلى ما هو أبعد مما هو مذكور هنا، يرجى زيارة [ويكي المشروع الأصلي](https://github.com/MHSanaei/3x-ui/wiki) — لا شيء فيه خاص بهذه النسخة، لذا يبقى صالحًا بالكامل.
 
 ### التثبيت غير التفاعلي
 
@@ -100,9 +100,11 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## المنصات المدعومة
 
-**أنظمة التشغيل:** Ubuntu، Debian، Armbian، Fedora، CentOS، RHEL، AlmaLinux، Rocky Linux، Oracle Linux، Amazon Linux، Virtuozzo، Arch، Manjaro، Parch، openSUSE (Tumbleweed / Leap)، Alpine و Windows.
+**أنظمة التشغيل:** Ubuntu، Debian، Armbian، Fedora، CentOS، RHEL، AlmaLinux، Rocky Linux، Oracle Linux، Amazon Linux، Virtuozzo، Arch، Manjaro، Parch، openSUSE (Tumbleweed / Leap) و Alpine. (ينشر المشروع الأصلي أيضًا إصدارًا لـ Windows؛ لا تفعل CI هذه النسخة ذلك — كل شيء هنا موجَّه للخوادم/أجهزة التوجيه العاملة بلينكس، ويحتاج AmneziaWG على أي حال إلى وحدة نواة لينكس.)
 
 **المعماريات:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+
+يحتاج AmneziaWG تحديدًا إلى نواة لينكس حقيقية مع وحدة نواة DKMS خاصة بـ AmneziaWG — لن يعمل على Windows، ويقوم `install_amneziawg` اليوم بأتمتة تثبيت وحدة النواة فقط على Ubuntu/Debian/Armbian (راجع قسم [ما الذي يختلف في هذه النسخة](#ما-الذي-يختلف-في-هذه-النسخة-amneziawg)).
 
 ## خيارات قاعدة البيانات
 
@@ -135,6 +137,9 @@ systemctl restart x-ui
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> تحتاج اتصالات AmneziaWG الواردة إلى `awg-quick`/`awg` ووحدة نواة AmneziaWG على **المضيف** — وهذا بالضبط ما يوضحه قصد التصميم بدون Docker في قسم [ما الذي يختلف في هذه النسخة](#ما-الذي-يختلف-في-هذه-النسخة-amneziawg). لا يزال تشغيل اللوحة نفسها في Docker يعمل لأي بروتوكول آخر، لكن اتصال AmneziaWG الوارد المُنشأ من لوحة تعمل داخل حاوية ليس لديه مكان لرفع واجهته ما لم تحصل الحاوية على وصول شبكي/نواة على مستوى المضيف، مما يُبطل الغرض من الأساس. إذا كنت تنوي استخدام AmneziaWG، شغّله نيتيفيًا على المضيف.
 
 تتضمن الصورة Fail2ban (مُفعَّل افتراضيًا) لفرض **حدود IP** لكل عميل. يحظر Fail2ban المخالفين باستخدام `iptables`، الذي يتطلب صلاحية `NET_ADMIN`. يمنح `docker-compose.yml` هذه الصلاحية مسبقًا عبر `cap_add`؛ إذا شغّلت الحاوية باستخدام `docker run` بدلاً من ذلك، فأضِف الصلاحيات بنفسك، وإلا فسيتم تسجيل عمليات الحظر دون تطبيقها أبدًا:
 
@@ -169,16 +174,31 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
-## المساهمة
+## ملاحظات للمطورين
 
-المساهمات مرحب بها. يرجى قراءة [دليل المساهمة](/CONTRIBUTING.md) قبل فتح مشكلة (issue) أو طلب سحب (pull request).
+هذه نسخة محسّنة (fork) شخصية ولا تبحث عن مساهمين خارجيين، لكن [CONTRIBUTING.md](/CONTRIBUTING.md) لا يزال يحتوي على تعليمات دقيقة ومفيدة لإعداد بيئة تطوير محلية (إصدارات Go/Node، مُصرِّف C المطلوب لـ CGo، أوامر build/lint/test)، إذا كنت تعمل بنفسك على قاعدة الشيفرة هذه.
+
+## الشكر
+
+بُنيت هذه النسخة بالكامل فوق [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — اللوحة بأكملها ودعم البروتوكولات المتعددة والبنية الأساسية هي عملهم؛ **دعم AmneziaWG هو الشيء الوحيد المضاف هنا.** إذا وجدت المشروع الأصلي مفيدًا، فإن روابط دعم المؤلف الأصلي لا تزال المكان الصحيح لذلك:
+
+<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
+<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
+</a>
+
+</br>
+<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
+   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
+</a>
+
+استندت عملية تنفيذ AmneziaWG النيتيف في هذه النسخة إلى/استُلهمت من:
+
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — طلب السحب الأصلي لدعم AmneziaWG في المشروع الأصلي (نهج حاوية Docker الجانبية)؛ تعيد هذه النسخة استخدام بنية المخطط (schema) والواجهة الأمامية الخاصة به، لكنها تستبدل الواجهة الخلفية بمدير نيتيف بدون Docker.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — نسخة محسّنة مستقلة تُشغّل بالفعل AmneziaWG النيتيف في بيئة إنتاجية؛ استُمدت إدارة عملية `awg-quick`، وتوليد التكوين، ومولّد معاملات تمويه AmneziaWG 2.0 في هذه النسخة من حزمة `awg/` الخاصة بها.
 
 ## شكر خاص إلى
 
 - [alireza0](https://github.com/alireza0/)
-
-## الاعتراف
-
 - [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (الترخيص: **GPL-3.0**): _قواعد توجيه v2ray/xray و v2ray/xray-clients المحسنة مع النطاقات الإيرانية المدمجة وتركيز على الأمان وحظر الإعلانات._
 - [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (الترخيص: **GPL-3.0**): _يحتوي هذا المستودع على قواعد توجيه V2Ray محدثة تلقائيًا بناءً على بيانات النطاقات والعناوين المحظورة في روسيا._
 
@@ -187,19 +207,3 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 أدوات وتكاملات بناها المجتمع حول 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (الترخيص: **MIT**): _إدارة الاتصالات الواردة والعملاء وإعدادات اللوحة وتكوين Xray كرمز باستخدام Terraform / OpenTofu._
-
-## دعم المشروع
-
-**إذا كان هذا المشروع مفيدًا لك، فقد ترغب في إعطائه**:star2:
-
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
-
-## النجوم عبر الزمن
-
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)

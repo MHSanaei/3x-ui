@@ -8,24 +8,34 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
+  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
 </p>
 
-**3X-UI** یک پنل کنترل وب پیشرفته و متن‌باز برای مدیریت سرورهای [Xray-core](https://github.com/XTLS/Xray-core) است. این پنل یک رابط کاربری تمیز و چندزبانه برای استقرار، پیکربندی و نظارت بر طیف گسترده‌ای از پروتکل‌های پراکسی و VPN ارائه می‌دهد — از یک VPS تکی تا استقرارهای چندنودی.
+**این یک فورک شخصی از [3X-UI](https://github.com/MHSanaei/3x-ui) است** — پنل کنترل وب پیشرفته و متن‌باز برای [Xray-core](https://github.com/XTLS/Xray-core) — با یک افزوده‌ی اصلی: **پشتیبانی نیتیو از AmneziaWG**، به‌عنوان یک پروتکل کاملاً درجه‌یک در کنار VLESS، VMess، Trojan و بقیه. هر چیز دیگری که 3X-UI از قبل انجام می‌داد (اینباندهای چندپروتکلی، حسابداری ترافیک به‌ازای هر کلاینت، سابسکریپشن‌ها، چند نود، ربات تلگرام) بدون تغییر باقی مانده و دقیقاً مثل نسخه‌ی اصلی کار می‌کند.
 
-‏3X-UI که به‌عنوان یک فورک بهبودیافته از پروژه‌ی اصلی X-UI ساخته شده است، پشتیبانی گسترده‌تر از پروتکل‌ها، پایداری بهتر، حسابداری ترافیک به‌ازای هر کلاینت و بسیاری از ویژگی‌های رفاهی را اضافه می‌کند.
+این فورک برای اجرا روی روترها و سرورهای شخصی نویسنده ساخته شده است؛ قصد جایگزینی یا رقابت با پروژه‌ی اصلی را ندارد. اگر به‌دنبال پنل همه‌منظوره هستید، به [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) مراجعه کنید — همه‌ی مطالب زیر فقط تفاوت‌های این فورک را مستند می‌کند.
 
 > [!IMPORTANT]
 > این پروژه فقط برای استفاده‌ی شخصی در نظر گرفته شده است. لطفاً از آن برای اهداف غیرقانونی یا در محیط تولید (production) استفاده نکنید.
 
+## تفاوت این فورک: AmneziaWG
+
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) نسخه‌ای از WireGuard است با یک لایه‌ی مبهم‌سازی اضافه (بسته‌های زباله، پدینگ تصادفی، بازنویسی سرآیندهای جادویی) که برای شکست دادن اثرانگشت‌گیری پروتکل مبتنی بر DPI طراحی شده — همان تونل، اما تونلی که روی سیم شبیه تونل به نظر نمی‌رسد.
+
+- **نیتیو، نه Docker.** AmneziaWG به‌عنوان یک اینترفیس واقعی کرنل روی هاست اجرا می‌شود، با `awg-quick`/`awg` بالا و پایین می‌آید — همان رویکرد ماژول کرنل DKMS که یک اینترفیس نیتیو `wg0` دارد. هیچ کانتینر سایدکار ممتازی لازم نیست.
+- **یک پروتکل درجه‌یک.** یک اینباند AmneziaWG در همان جدول `Inbound` بقیه‌ی موارد زندگی می‌کند، پس bulk-operations، مودال QR/دانلود کانفیگ و لینک‌های سابسکریپشن را رایگان دریافت می‌کند — چیز جدیدی برای یادگیری نیست.
+- **مبهم‌سازی کامل AmneziaWG 2.0** — ‏Jc/Jmin/Jmax (بسته‌های زباله)، S1–S4 (پدینگ بسته)، H1–H4 (سرآیندهای جادویی) و بسته‌ی امضای I1، همه به‌ازای هر اینباند با یک دکمه‌ی تصادفی‌سازی یک‌کلیکی قابل ویرایش‌اند، به‌علاوه‌ی یک حالت سازگار با 1.x برای کلاینت‌های قدیمی‌تر.
+- **‏IPv6 نیتیو**، با پراکسی NDP به‌ازای هر کلاینت تا هر پیر یک آدرس IPv6 مستقیماً در دسترس داشته باشد — بدون NAT66.
+- **پروبرت پورت به‌ازای هر کلاینت** — DNAT کردن پورت‌ها/محدوده‌های مشخص مستقیماً به آدرس تونل یک پیر.
+- **مسیریابی ترافیک یک کلاینت از طریق Xray** — هر اینباند AmneziaWG به‌طور خودکار پل loopback مخصوص به خودش را در Xray دریافت می‌کند (بدون هیچ سوئیچی)؛ مسیریابی ترافیک هر کلاینت به هر outbound پیکربندی‌شده در Xray از طریق صفحه‌ی «مسیریابی» موجود در پنل انجام می‌شود، دقیقاً مثل مسیریابی هر پروتکل دیگر.
+- **‏`install.sh` ماژول کرنل را برایتان نصب می‌کند** روی Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`)، با یک fallback برای سایر توزیع‌ها. یک کار که نمی‌تواند برایتان انجام دهد: **غیرفعال کردن Secure Boot** روی VPS/VM‌تان از قبل — یک ماژول ساخته‌شده با DKMS امضا نشده است و کرنل تا زمانی که Secure Boot فعال باشد از بارگذاری آن خودداری می‌کند.
+- تطبیق (reconcile) دقیقاً مثل نحوه‌ی مدیریت سایدکار `mtg` توسط [`internal/mtproto`](internal/mtproto) انجام می‌شود: یک جاب پس‌زمینه اینترفیس در حال اجرا را با آنچه در پایگاه‌داده ذخیره شده هماهنگ نگه می‌دارد، و تغییرات پیر را از طریق `awg syncconf` به‌جای ری‌استارت کامل اینترفیس، در جایی که ممکن باشد، اعمال می‌کند.
+
 ## ویژگی‌ها
 
-- **اینباندهای چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
+- **اینباندهای چندپروتکلی** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، **AmneziaWG**، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
 - **ترنسپورت‌ها و امنیت مدرن** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP، ایمن‌شده با TLS، XTLS و REALITY.
 - **فال‌بک (Fallback)** — ارائه‌ی چند پروتکل روی یک پورت واحد (مثلاً VLESS و Trojan روی پورت 443) با استفاده از قابلیت fallback در Xray.
 - **مدیریت به‌ازای هر کلاینت** — سهمیه‌ی ترافیک، تاریخ انقضا، محدودیت IP، وضعیت آنلاینِ زنده و لینک‌های اشتراک‌گذاری، کدهای QR و سابسکریپشن‌ها با یک کلیک.
@@ -69,24 +79,14 @@
 ## شروع سریع
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-برای نصب یک نسخه‌ی مشخص، تگ آن را در انتها اضافه کنید (مثلاً `v3.4.0`):
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
-```
-
-برای نصب نسخه‌ی غلتانِ **dev** (آخرین پیش‌انتشار به‌ازای هر کامیت از شاخه‌ی `main`، نه یک انتشار پایدار)، مقدار `dev-latest` را پاس دهید:
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
-```
+این فورک فقط پیش‌انتشار غلتانِ **`dev-latest`** را منتشر می‌کند (که به‌صورت خودکار با هر push به `main` دوباره ساخته می‌شود) — هنوز هیچ انتشار پایدارِ تگ‌گذاری‌شده‌ای وجود ندارد، پس `dev` تنها کانالی است که فعلاً به چیزی resolve می‌شود.
 
 در حین نصب، یک نام کاربری، رمز عبور و مسیر دسترسی تصادفی تولید می‌شود. پس از نصب، دستور `x-ui` را اجرا کنید تا منوی مدیریت باز شود؛ در آنجا می‌توانید سرویس را شروع/متوقف کنید، اطلاعات ورود خود را ببینید یا بازنشانی کنید، گواهی‌های SSL را مدیریت کنید و کارهای دیگری انجام دهید.
 
-برای مستندات کامل، لطفاً به [ویکی پروژه](https://github.com/MHSanaei/3x-ui/wiki) مراجعه کنید.
+برای مستندات کامل پنل فراتر از آنچه در این README آمده، به [ویکی پروژه‌ی اصلی](https://github.com/MHSanaei/3x-ui/wiki) مراجعه کنید — هیچ‌کدام مختص این فورک نیست، پس همچنان کاربرد دارد.
 
 ### نصب بدون نظارت
 
@@ -100,9 +100,11 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## پلتفرم‌های پشتیبانی‌شده
 
-**سیستم‌عامل‌ها:** Ubuntu، Debian، Armbian، Fedora، CentOS، RHEL، AlmaLinux، Rocky Linux، Oracle Linux، Amazon Linux، Virtuozzo، Arch، Manjaro، Parch، openSUSE (Tumbleweed / Leap)، Alpine و Windows.
+**سیستم‌عامل‌ها:** Ubuntu، Debian، Armbian، Fedora، CentOS، RHEL، AlmaLinux، Rocky Linux، Oracle Linux، Amazon Linux، Virtuozzo، Arch، Manjaro، Parch، openSUSE (Tumbleweed / Leap) و Alpine. (پروژه‌ی اصلی یک نسخه‌ی Windows نیز منتشر می‌کند؛ CI این فورک این کار را نمی‌کند — همه‌چیز اینجا سرورها/روترهای لینوکسی را هدف قرار می‌دهد، و AmneziaWG در هر صورت به یک ماژول کرنل لینوکس نیاز دارد.)
 
 **معماری‌ها:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+
+‏AmneziaWG به‌طور خاص به یک کرنل واقعی لینوکس با ماژول DKMS مربوط به AmneziaWG نیاز دارد — روی Windows بالا نخواهد آمد، و `install_amneziawg` امروز فقط نصب ماژول کرنل را روی Ubuntu/Debian/Armbian خودکار می‌کند (به بخش [تفاوت این فورک](#تفاوت-این-فورک-amneziawg) مراجعه کنید).
 
 ## گزینه‌های پایگاه‌داده
 
@@ -135,6 +137,9 @@ systemctl restart x-ui
 ```bash
 docker compose --profile postgres up -d
 ```
+
+> [!NOTE]
+> اینباندهای AmneziaWG به `awg-quick`/`awg` و ماژول کرنل AmneziaWG روی **هاست** نیاز دارند — این دقیقاً همان هدف طراحی بدون Docker است که در بخش [تفاوت این فورک](#تفاوت-این-فورک-amneziawg) توضیح داده شده. اجرای خودِ پنل در Docker همچنان برای هر پروتکل دیگر کار می‌کند، اما یک اینباند AmneziaWG که از یک پنل کانتینری ساخته شده، جایی برای بالا آوردن اینترفیسش ندارد مگر آن‌که کانتینر دسترسی شبکه/کرنل در سطح هاست داشته باشد، که هدف اصلی را زیر سؤال می‌برد. اگر قصد استفاده از AmneziaWG را دارید، به‌صورت نیتیو روی هاست اجرا کنید.
 
 این ایمیج، Fail2ban را (که به‌صورت پیش‌فرض فعال است) برای اعمال **محدودیت‌های IP** به‌ازای هر کلاینت همراه دارد. ‏Fail2ban متخلفان را با `iptables` مسدود می‌کند که به مجوز `NET_ADMIN` نیاز دارد. فایل `docker-compose.yml` این مجوز را از قبل از طریق `cap_add` می‌دهد؛ اگر به‌جای آن کانتینر را با `docker run` اجرا می‌کنید، خودتان مجوزها را اضافه کنید، در غیر این صورت مسدودسازی‌ها فقط ثبت می‌شوند اما هرگز اعمال نمی‌شوند:
 
@@ -169,28 +174,13 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
 
-## مشارکت
+## یادداشت‌های توسعه‌دهنده
 
-از مشارکت‌ها استقبال می‌شود. لطفاً پیش از باز کردن issue یا pull request، [راهنمای مشارکت](/CONTRIBUTING.md) را مطالعه کنید.
-
-## تشکر ویژه از
-
-- [alireza0](https://github.com/alireza0/)
+این یک فورک شخصی است و به‌دنبال مشارکت‌کننده‌ی بیرونی نیست، اما [CONTRIBUTING.md](/CONTRIBUTING.md) همچنان دستورالعمل‌های دقیق و مفیدی برای راه‌اندازی محیط توسعه‌ی محلی (نسخه‌های Go/Node، کامپایلر C مورد نیاز CGo، دستورات build/lint/test) دارد، اگر خودتان روی این کدبیس کار می‌کنید.
 
 ## قدردانی
 
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (مجوز: **GPL-3.0**): _قوانین مسیریابی بهبود یافته v2ray/xray و v2ray/xray-clients با دامنه‌های ایرانی داخلی و تمرکز بر امنیت و مسدود کردن تبلیغات._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (مجوز: **GPL-3.0**): _این مخزن شامل قوانین مسیریابی V2Ray به‌روزرسانی شده خودکار بر اساس داده‌های دامنه‌ها و آدرس‌های مسدود شده در روسیه است._
-
-## ابزارهای جامعه
-
-ابزارها و یکپارچه‌سازی‌هایی که توسط جامعه پیرامون 3x-ui ساخته شده‌اند.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (مجوز: **MIT**): _مدیریت اینباندها، کلاینت‌ها، تنظیمات پنل و پیکربندی Xray به‌صورت کد با Terraform / OpenTofu._
-
-## پشتیبانی از پروژه
-
-**اگر این پروژه برای شما مفید است، می‌توانید به آن یک**:star2: بدهید
+این فورک به‌طور کامل بر پایه‌ی [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) ساخته شده — تمام پنل، پشتیبانی چندپروتکلی و معماری زیرین کار خودشان است؛ **پشتیبانی AmneziaWG تنها چیزی است که اینجا اضافه شده.** اگر پروژه‌ی اصلی را مفید یافتید، لینک‌های حمایتی نویسنده‌ی اصلی همچنان مکان درستی برای آن است:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
 <img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
@@ -201,6 +191,19 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-## ستاره‌ها در طول زمان
+پیاده‌سازی نیتیو AmneziaWG در این فورک برگرفته از/الهام‌گرفته از موارد زیر است:
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — پول‌ریکوئست اصلی AmneziaWG علیه پروژه‌ی اصلی (رویکرد Docker-sidecar)؛ این فورک ساختار schema/UI فرانت‌اند آن را دوباره استفاده می‌کند اما بک‌اند را با یک مدیر نیتیو و بدون Docker جایگزین می‌کند.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — یک فورک مستقل که از قبل AmneziaWG نیتیو را در محیط تولید اجرا می‌کند؛ مدیریت فرآیند `awg-quick`، تولید کانفیگ و تولیدکننده‌ی پارامتر مبهم‌سازی AmneziaWG 2.0 این فورک از پکیج `awg/` آن برگرفته شده است.
+
+## تشکر ویژه از
+
+- [alireza0](https://github.com/alireza0/)
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (مجوز: **GPL-3.0**): _قوانین مسیریابی بهبود یافته v2ray/xray و v2ray/xray-clients با دامنه‌های ایرانی داخلی و تمرکز بر امنیت و مسدود کردن تبلیغات._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (مجوز: **GPL-3.0**): _این مخزن شامل قوانین مسیریابی V2Ray به‌روزرسانی شده خودکار بر اساس داده‌های دامنه‌ها و آدرس‌های مسدود شده در روسیه است._
+
+## ابزارهای جامعه
+
+ابزارها و یکپارچه‌سازی‌هایی که توسط جامعه پیرامون 3x-ui ساخته شده‌اند.
+
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (مجوز: **MIT**): _مدیریت اینباندها، کلاینت‌ها، تنظیمات پنل و پیکربندی Xray به‌صورت کد با Terraform / OpenTofu._

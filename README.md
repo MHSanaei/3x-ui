@@ -1,4 +1,4 @@
-[English](/README.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
 <p align="center">
   <picture>
@@ -27,10 +27,11 @@ This fork exists to run the author's own routers and servers; it isn't trying to
 - **Native, not Docker.** AmneziaWG runs as a real kernel interface on the host, brought up and torn down with `awg-quick`/`awg` — the same DKMS kernel module approach as a native `wg0` interface. No privileged sidecar containers.
 - **A first-class protocol.** An AmneziaWG inbound lives in the same `Inbound` table as everything else, so it gets bulk operations, the QR/config-download modal, and subscription links for free — nothing bespoke to learn.
 - **Full AmneziaWG 2.0 obfuscation** — Jc/Jmin/Jmax (junk packets), S1–S4 (packet padding), H1–H4 (magic headers), and the I1 signature packet, all editable per-inbound with a one-click randomize button, plus a 1.x-compatible fallback for older clients.
+- **Native IPv6**, with per-client NDP proxying so each peer gets a directly-reachable IPv6 address — no NAT66.
+- **Per-client port-forwarding** — DNAT specific ports/ranges straight to one peer's tunnel address.
+- **Routing a client's traffic through Xray** — every AmneziaWG inbound gets its own loopback Xray bridge automatically (no toggle to flip); route any client's traffic through any configured Xray outbound from the panel's existing Routing page, exactly like routing any other protocol.
 - **`install.sh` installs the kernel module for you** on Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), with a fallback for other distros. One thing it can't do for you: **disable Secure Boot** on your VPS/VM first — a DKMS-built module is unsigned and the kernel won't load it while Secure Boot is enforced.
 - Reconciled the same way [`internal/mtproto`](internal/mtproto) manages its `mtg` sidecar: a background job keeps the running interface in sync with what's saved in the database, hot-reloading peer changes via `awg syncconf` instead of bouncing the whole interface when it can.
-
-Not done yet: IPv6/NDP proxying, per-client port-forwarding, and routing AmneziaWG traffic back through Xray (`RouteViaXray`) are still on the list.
 
 ## Features
 
