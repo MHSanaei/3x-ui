@@ -118,8 +118,11 @@ func TestExpandRemarkVars_DropsHyphenBetweenEmptyTokens(t *testing.T) {
 		{name: "empty inbound", tmpl: "{{INBOUND}}-{{EMAIL}}", email: "john", want: "john"},
 		{name: "empty email", tmpl: "{{INBOUND}} - {{EMAIL}}", inbound: "Germany", want: "Germany"},
 		{name: "literal leading hyphen", tmpl: "-{{EMAIL}}", email: "john", want: "-john"},
-		{name: "literal leading hyphen before an empty token", tmpl: "-{{INBOUND}}-{{EMAIL}}", email: "john", want: "--john"},
+		{name: "literal leading hyphen before an empty token", tmpl: "-{{INBOUND}}-{{EMAIL}}", email: "john", want: "-john"},
 		{name: "empty var between two values keeps one separator", tmpl: "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}", email: "john", want: "john-john"},
+		{name: "emoji decoration before an empty token", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", email: "john", want: "🌐john"},
+		{name: "literal word before an empty token", tmpl: "Sub {{INBOUND}}-{{EMAIL}}", email: "john", want: "Sub john"},
+		{name: "decoration kept when both tokens resolve", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "🌐Germany-john"},
 		{name: "default template, empty inbound", tmpl: defaultRemarkTemplate, email: "john", want: "john"},
 		{name: "default template, empty email", tmpl: defaultRemarkTemplate, inbound: "Germany", want: "Germany"},
 	}

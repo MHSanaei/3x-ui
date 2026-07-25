@@ -153,11 +153,13 @@ func expandRemarkVars(template string, ctx remarkContext) string {
 // tokens) is always kept.
 //
 // A hyphen standing alone between two adjacent tokens is treated as their
-// separator and elided when the output so far is still blank or when the token
-// after it resolves to nothing: "{{INBOUND}}-{{EMAIL}}" gives "john" for an
-// inbound with no remark, and "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}" keeps a single
-// separator when the middle token is empty. A hyphen anywhere else in the
-// segment is literal text and is kept as written.
+// separator and elided when no token before it has produced a value yet or when
+// the token after it resolves to nothing. "{{INBOUND}}-{{EMAIL}}" gives "john"
+// for an inbound with no remark, "🌐{{INBOUND}}-{{EMAIL}}" gives "🌐john" so
+// leading decoration does not keep the separator alive, and
+// "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}" keeps a single separator when the middle
+// token is empty. A hyphen anywhere else in the segment is literal text and is
+// kept as written.
 func expandSegment(seg string, ctx remarkContext) (string, bool) {
 	tokens := remarkTokens(seg)
 	hasToken, hasOtherValue := len(tokens) > 0, false
@@ -171,14 +173,15 @@ func expandSegment(seg string, ctx remarkContext) (string, bool) {
 	}
 
 	var result strings.Builder
-	start := 0
+	start, wroteValue := 0, false
 	for i, tok := range tokens {
 		result.WriteString(seg[start:tok.start])
 		result.WriteString(values[i])
+		wroteValue = wroteValue || values[i] != ""
 		start = tok.end
 		if i+1 < len(tokens) {
 			between := seg[start:tokens[i+1].start]
-			if strings.TrimSpace(between) == "-" && (strings.TrimSpace(result.String()) == "" || values[i+1] == "") {
+			if strings.TrimSpace(between) == "-" && (!wroteValue || values[i+1] == "") {
 				start = tokens[i+1].start
 			}
 		}
