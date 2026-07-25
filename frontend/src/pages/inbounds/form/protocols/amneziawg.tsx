@@ -7,9 +7,10 @@ import { FormField } from '@/components/form/rhf';
 interface AmneziawgFieldsProps {
   awgPubKey: string;
   regenInboundAwg: () => void;
+  regenInboundAwgObfuscation: () => void;
 }
 
-export default function AmneziawgFields({ awgPubKey, regenInboundAwg }: AmneziawgFieldsProps) {
+export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInboundAwgObfuscation }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -46,6 +47,11 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg }: Amneziaw
       >
         <Input placeholder="eth0" />
       </FormField>
+      <Form.Item label={t('pages.xray.amneziawg.obfuscation')}>
+        <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
+          {t('pages.xray.amneziawg.regenerateObfuscation')}
+        </Button>
+      </Form.Item>
       <FormField name={['settings', 'server', 'jc']} label={t('pages.xray.amneziawg.jc')}>
         <InputNumber min={0} style={{ width: '100%' }} />
       </FormField>
