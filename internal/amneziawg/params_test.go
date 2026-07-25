@@ -153,3 +153,61 @@ func TestValidateObfuscationRejectsBadH(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateInterfaceNameAcceptsBlankAndPlausibleNames(t *testing.T) {
+	for _, name := range []string{"", "eth0", "wg0", "br-lan", "eno1.100", "veth1a2b3c", "eth0:0"} {
+		if err := ValidateInterfaceName(name); err != nil {
+			t.Errorf("ValidateInterfaceName(%q) rejected a plausible name: %v", name, err)
+		}
+	}
+}
+
+func TestValidateInterfaceNameRejectsShellMetacharactersAndOverlength(t *testing.T) {
+	cases := []string{
+		"eth0 -j ACCEPT; rm -rf /",
+		"eth0`whoami`",
+		"eth0$(id)",
+		"eth0|cat /etc/passwd",
+		"eth0\nMASQUERADE",
+		"aaaaaaaaaaaaaaaaaaaa", // 20 chars, over IFNAMSIZ-1
+	}
+	for _, name := range cases {
+		if err := ValidateInterfaceName(name); err == nil {
+			t.Errorf("ValidateInterfaceName(%q) must be rejected", name)
+		}
+	}
+}
+
+func TestValidateSubnetIPv4AcceptsValidBases(t *testing.T) {
+	cases := []struct {
+		ip   string
+		cidr int
+	}{
+		{"10.8.1.0", 24},
+		{"10.8.1.0", 0}, // cidr <= 0 defaults to /24, mirroring serverAddress
+		{"192.168.5.10", 32},
+	}
+	for _, c := range cases {
+		if err := ValidateSubnetIPv4(c.ip, c.cidr); err != nil {
+			t.Errorf("ValidateSubnetIPv4(%q, %d) rejected a valid subnet: %v", c.ip, c.cidr, err)
+		}
+	}
+}
+
+func TestValidateSubnetIPv4RejectsMalformedOrInjectedValues(t *testing.T) {
+	cases := []struct {
+		ip   string
+		cidr int
+	}{
+		{"10.8.1.0 -j ACCEPT; rm -rf /", 24}, // shell injection attempt
+		{"not-an-ip", 24},
+		{"", 24},
+		{"fd86::1", 64},  // IPv6, not IPv4
+		{"10.8.1.0", 33}, // cidr out of range
+	}
+	for _, c := range cases {
+		if err := ValidateSubnetIPv4(c.ip, c.cidr); err == nil {
+			t.Errorf("ValidateSubnetIPv4(%q, %d) must be rejected", c.ip, c.cidr)
+		}
+	}
+}

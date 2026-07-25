@@ -13,6 +13,11 @@ import (
 // the usual client and inbound traffic accounting. Mirrors MtprotoJob.
 type AmneziaWGJob struct {
 	inboundService service.InboundService
+	// warnedMissing tracks whether the "awg/awg-quick not found" warning has
+	// already been logged, so a host without the AmneziaWG kernel module
+	// (the Docker image, RHEL, Arch, or a failed install.sh PPA step) logs it
+	// once instead of every @every-10s tick forever.
+	warnedMissing bool
 }
 
 // NewAmneziaWGJob creates a new AmneziaWG reconcile/traffic job instance.
@@ -28,6 +33,17 @@ func (j *AmneziaWGJob) Run() {
 		logger.Warning("amneziawg job: get desired instances failed:", err)
 		return
 	}
+
+	// Only relevant once an admin actually has an AmneziaWG inbound: no
+	// point warning about a missing binary the panel never needed to touch.
+	if len(desired) > 0 && !amneziawg.IsAwgInstalled() {
+		if !j.warnedMissing {
+			j.warnedMissing = true
+			logger.Warningf("amneziawg job: %d AmneziaWG inbound(s) configured but awg/awg-quick not found on PATH; skipping reconcile until installed", len(desired))
+		}
+		return
+	}
+	j.warnedMissing = false
 
 	activeTags := make([]string, 0, len(desired))
 	for _, inst := range desired {

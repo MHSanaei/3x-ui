@@ -212,6 +212,29 @@ enable_tproxy_support() {
 # interface. Best-effort and never fatal to the overall x-ui install: the
 # panel works fine without it, an AmneziaWG inbound just won't start its
 # tunnel until the module is installed (surfaced in the panel/logs, not here).
+# AmneziaWG is opt-in (see should_install_amneziawg below): installing it
+# unconditionally for every user would mean building/loading a DKMS kernel
+# module and enabling host-wide IPv4/IPv6 forwarding on every panel install,
+# whether or not that install ever uses the protocol.
+#
+# should_install_amneziawg decides whether to run install_amneziawg at all.
+# XUI_INSTALL_AMNEZIAWG=true/false answers it outright (for non-interactive/
+# cloud-init runs); otherwise an interactive install prompts (default: no),
+# and a non-interactive one defaults to skipping it -- opt-in stays opt-in
+# even when nothing is there to answer the prompt.
+should_install_amneziawg() {
+    case "${XUI_INSTALL_AMNEZIAWG:-}" in
+        true | TRUE | 1 | yes | y | Y) return 0 ;;
+        false | FALSE | 0 | no | n | N) return 1 ;;
+    esac
+    if [[ "$NONINTERACTIVE" == "1" ]]; then
+        return 1
+    fi
+    local reply
+    read -rp "Install native AmneziaWG support (WireGuard + DPI-resistant obfuscation)? This builds a DKMS kernel module and enables host-wide IP forwarding. (y/N): " reply
+    [[ "$reply" == "y" || "$reply" == "Y" ]]
+}
+
 # ppa:amnezia/ppa (Ubuntu/Debian/Armbian) is the primary, tested path; other
 # distros fall back to plain wireguard-tools with a manual-install pointer.
 # See https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.
@@ -254,9 +277,19 @@ install_amneziawg() {
                     echo -e "${green}AmneziaWG installed successfully via PPA.${plain}" ||
                     echo -e "${red}PPA install failed. Install amneziawg manually: https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
             else
-                apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 57290828 2>/dev/null || true
-                echo "deb https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main" >> /etc/apt/sources.list
-                echo "deb-src https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main" >> /etc/apt/sources.list
+                # apt-key is deprecated/removed on Debian 12+ and Ubuntu 24.04;
+                # fetch the key into its own keyring file and reference it via
+                # signed-by= instead of the removed system-wide trust store.
+                local amneziawg_keyring="/etc/apt/keyrings/amneziawg.gpg"
+                local amneziawg_list_entry="deb [signed-by=${amneziawg_keyring}] https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main"
+                local amneziawg_src_entry="deb-src [signed-by=${amneziawg_keyring}] https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu focal main"
+                install -d -m 755 /etc/apt/keyrings
+                gpg --no-default-keyring --keyring "$amneziawg_keyring" --keyserver keyserver.ubuntu.com --recv-keys 57290828 2>/dev/null || true
+                # Guarded so a retried install (the PPA step failed last time,
+                # or install.sh simply ran again) doesn't keep appending
+                # duplicate sources.list entries.
+                grep -qxF "$amneziawg_list_entry" /etc/apt/sources.list 2>/dev/null || echo "$amneziawg_list_entry" >> /etc/apt/sources.list
+                grep -qxF "$amneziawg_src_entry" /etc/apt/sources.list 2>/dev/null || echo "$amneziawg_src_entry" >> /etc/apt/sources.list
                 apt-get update -q &&
                     apt-get install -y amneziawg &&
                     echo -e "${green}AmneziaWG installed successfully.${plain}" ||
@@ -1858,7 +1891,12 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-install_amneziawg
+if should_install_amneziawg; then
+    install_amneziawg
+else
+    echo -e "${yellow}Skipping AmneziaWG setup. Opt in later by re-running install.sh with XUI_INSTALL_AMNEZIAWG=true, or install it manually:${plain}"
+    echo -e "${yellow}  https://github.com/amnezia-vpn/amneziawg-linux-kernel-module${plain}"
+fi
 install_x-ui $1
 
 # Secure Boot blocks the AmneziaWG DKMS module from loading (it's unsigned).

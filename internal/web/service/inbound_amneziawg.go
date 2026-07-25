@@ -191,6 +191,15 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateIPv6Subnet(parsed.Server.IPv6Enabled, parsed.Server.IPv6Subnet); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	if err := amneziawg.ValidateSubnetIPv4(parsed.Server.SubnetIP, parsed.Server.SubnetCIDR); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateInterfaceName(parsed.Server.ExternalInterface); err != nil {
+		return fmt.Errorf("amneziawg: externalInterface: %w", err)
+	}
+	if err := amneziawg.ValidateInterfaceName(parsed.Server.IPv6ExternalInterface); err != nil {
+		return fmt.Errorf("amneziawg: ipv6ExternalInterface: %w", err)
+	}
 
 	bs, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {

@@ -156,6 +156,21 @@ func TestStructuralFingerprintStableAndSensitive(t *testing.T) {
 	if a.structuralFingerprint() != c.structuralFingerprint() {
 		t.Fatal("a peer-only change must NOT change the structural fingerprint")
 	}
+
+	d := baseInstance()
+	d.IPv6Enabled = true
+	if a.structuralFingerprint() == d.structuralFingerprint() {
+		t.Fatal("enabling IPv6 must change the structural fingerprint")
+	}
+
+	e := baseInstance()
+	e.IPv6Enabled = true
+	f := baseInstance()
+	f.IPv6Enabled = true
+	f.IPv6ExternalInterface = "eth1"
+	if e.structuralFingerprint() == f.structuralFingerprint() {
+		t.Fatal("changing IPv6ExternalInterface must change the structural fingerprint -- otherwise the edit is a complete no-op")
+	}
 }
 
 func TestPeersFingerprintOrderIndependentButContentSensitive(t *testing.T) {
@@ -230,6 +245,12 @@ func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
 	fewer.Peers = fewer.Peers[:1]
 	if a.hostRulesFingerprint() == fewer.hostRulesFingerprint() {
 		t.Fatal("removing a peer must change the host-rules fingerprint -- one fewer TPROXY rule is needed")
+	}
+
+	ip6Added := baseInstance()
+	ip6Added.Peers[0].AllowedIPs = []string{"10.8.1.2/32", "fd86:ea04:1115::2/128"}
+	if a.hostRulesFingerprint() == ip6Added.hostRulesFingerprint() {
+		t.Fatal("adding a peer's IPv6 address must change the host-rules fingerprint -- its NDP-proxy entry is keyed on it, and a change here must force the full bounce that (re-)runs PostUp")
 	}
 }
 
@@ -307,6 +328,9 @@ func TestDefaultPostUpDownEmitsTproxyForEveryPeer(t *testing.T) {
 	}
 	if !strings.Contains(up, fmt.Sprintf("ip rule add fwmark %#x", EgressFwmark)) {
 		t.Errorf("expected the shared policy route to be added once in PostUp, got:\n%s", up)
+	}
+	if wantCheck := fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d'", EgressFwmark, EgressTable); !strings.Contains(up, wantCheck) {
+		t.Errorf("expected an existence check before 'ip rule add', so repeated bounces don't accumulate duplicate rules, got:\n%s", up)
 	}
 	if strings.Contains(down, "ip rule") || strings.Contains(down, "ip route") {
 		t.Error("the shared policy route must never be removed in PostDown -- other instances may still need it")

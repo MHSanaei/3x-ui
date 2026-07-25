@@ -8,6 +8,7 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -727,5 +728,104 @@ func TestCheckPortConflict_ReservedAPIPortUDPCoexists(t *testing.T) {
 	}
 	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
 		t.Fatalf("udp-only inbound must coexist with the tcp API inbound; got=%v err=%v", got, err)
+	}
+}
+
+// An enabled AmneziaWG inbound's automatic Xray bridge (injectAmneziawgEgress)
+// is a synthetic loopback dokodemo-door inbound, not a database row, so
+// checkPortConflict needs its own check to catch a collision -- exactly the
+// same shape of problem as the reserved API port above.
+func TestCheckPortConflict_AmneziawgEgressBridgeBlockedLocal(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     bridgePort,
+		Protocol: model.VLESS,
+	}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("a local inbound on the AmneziaWG bridge port %d must conflict", bridgePort)
+	}
+	if msg := got.String(); !strings.Contains(msg, "awg-1") {
+		t.Fatalf("conflict message should name the owning AmneziaWG inbound; got %q", msg)
+	}
+}
+
+// Nodes run their own Xray, so a node inbound landing on the central panel's
+// AmneziaWG bridge port must be allowed -- the bridge only ever binds
+// 127.0.0.1 on the local panel's own Xray.
+func TestCheckPortConflict_AmneziawgEgressBridgeAllowedOnNode(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "node-bridge",
+		Listen:   "0.0.0.0",
+		Port:     bridgePort,
+		Protocol: model.VLESS,
+		NodeID:   new(1),
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("a node inbound on the local AmneziaWG bridge port must be allowed; got=%v err=%v", got, err)
+	}
+}
+
+// A disabled AmneziaWG inbound never gets a bridge injected
+// (injectAmneziawgEgress skips !inbound.Enable), so its "reserved" port must
+// not block anything.
+func TestCheckPortConflict_AmneziawgEgressBridgeIgnoredWhenDisabled(t *testing.T) {
+	setupConflictDB(t)
+	awg := &model.Inbound{Tag: "awg-1", Enable: false, Listen: "0.0.0.0", Port: 51820, Protocol: model.AmneziaWG, Settings: `{}`}
+	if err := database.GetDB().Create(awg).Error; err != nil {
+		t.Fatalf("seed disabled awg inbound: %v", err)
+	}
+	bridgePort := amneziawg.EgressPortForInbound(awg.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     bridgePort,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("a disabled AmneziaWG inbound's port must not be reserved; got=%v err=%v", got, err)
+	}
+}
+
+// An unrelated port never conflicts with the bridge.
+func TestCheckPortConflict_AmneziawgEgressBridgeDifferentPortAllowed(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-elsewhere",
+		Listen:   "0.0.0.0",
+		Port:     9999,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("an unrelated port must not conflict with the AmneziaWG bridge; got=%v err=%v", got, err)
 	}
 }
