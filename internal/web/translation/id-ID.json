@@ -1823,6 +1823,8 @@
         "ipv6SubnetHint": "mis. fd86:ea04:1115::/64. Wajib diisi saat IPv6 diaktifkan.",
         "ipv6ExternalInterface": "NIC Eksternal IPv6",
         "ipv6ExternalInterfaceHint": "NIC host untuk entri proxy NDP. Biarkan kosong untuk menggunakan NIC Eksternal.",
+        "routeThroughXray": "Rutekan melalui Xray",
+        "routeThroughXrayHint": "Nonaktif secara default: tunnel tidak bergantung pada Xray sama sekali. Jika diaktifkan, trafik setiap klien dialihkan ke bridge Xray milik inbound ini sendiri, dan outbound sebenarnya dipilih dari halaman Routing seperti protokol lainnya.",
         "obfuscation": "Parameter obfuskasi",
         "regenerateObfuscation": "Buat ulang",
         "jc": "Jc (jumlah paket sampah)",

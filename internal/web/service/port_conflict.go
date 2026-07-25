@@ -231,9 +231,12 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 
 // checkAmneziawgEgressConflict reports whether inbound's own port collides
 // with an existing, enabled local AmneziaWG inbound's automatic Xray bridge
-// port. ignoreId excludes one inbound id from the AmneziaWG candidates, the
-// same way the general DB-backed conflict query above excludes the inbound
-// being edited from matching itself.
+// port. Only inbounds that actually have RouteThroughXray on ever get a
+// bridge (see injectAmneziawgEgress); the others' "reserved" port isn't
+// really reserved, so they must not be flagged. ignoreId excludes one
+// inbound id from the AmneziaWG candidates, the same way the general
+// DB-backed conflict query above excludes the inbound being edited from
+// matching itself.
 func (s *InboundService) checkAmneziawgEgressConflict(inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
 	db := database.GetDB()
 	var candidates []*model.Inbound
@@ -245,6 +248,10 @@ func (s *InboundService) checkAmneziawgEgressConflict(inbound *model.Inbound, ig
 		return nil, err
 	}
 	for _, c := range candidates {
+		inst, ok := amneziawg.InstanceFromInbound(c)
+		if !ok || !inst.RouteThroughXray {
+			continue
+		}
 		if amneziawg.EgressPortForInbound(c.Id) != inbound.Port {
 			continue
 		}

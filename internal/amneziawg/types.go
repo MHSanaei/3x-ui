@@ -68,6 +68,18 @@ type Instance struct {
 	// entries specifically; empty means reuse ExternalInterface.
 	IPv6Enabled           bool
 	IPv6ExternalInterface string
+
+	// RouteThroughXray gates the entire TPROXY-into-Xray bridge (see
+	// EgressPortForInbound / injectAmneziawgEgress) for this instance: off by
+	// default, so a plain AmneziaWG tunnel never depends on Xray being up at
+	// all. Turning it on makes every peer's traffic TPROXY'd into this
+	// instance's own loopback Xray bridge, tagged with the inbound's own
+	// tag; the actual routing decision from there is left entirely to the
+	// panel's stock Routing page (pick this inbound's tag as source, an
+	// outbound, and optionally a peer's IP), exactly like routing any other
+	// protocol -- only whether the bridge exists at all is a per-inbound
+	// choice.
+	RouteThroughXray bool
 }
 
 // ServerSettings is the "server" block of an AmneziaWG inbound's Settings
@@ -100,6 +112,10 @@ type ServerSettings struct {
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
 	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
+
+	// RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see
+	// Instance.RouteThroughXray for what that means. Off by default.
+	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
 	// Obfuscation20's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an

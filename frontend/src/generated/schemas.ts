@@ -2836,6 +2836,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey": {
         "type": "string"
       },
+      "routeThroughXray": {
+        "description": "RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see\nInstance.RouteThroughXray for what that means. Off by default.",
+        "type": "boolean"
+      },
       "s1": {
         "type": "integer"
       },

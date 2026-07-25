@@ -731,13 +731,19 @@ func TestCheckPortConflict_ReservedAPIPortUDPCoexists(t *testing.T) {
 	}
 }
 
+// amneziawgRoutedSettings builds a minimal but complete AmneziaWG settings
+// blob with one qualifying, enabled peer and RouteThroughXray on -- the
+// shape that actually makes injectAmneziawgEgress (and therefore
+// checkAmneziawgEgressConflict) create a bridge at all.
+const amneziawgRoutedSettings = `{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"routeThroughXray":true},"clients":[{"email":"a@x","enable":true,"publicKey":"pub-a","allowedIPs":["10.8.1.2/32"]}]}`
+
 // An enabled AmneziaWG inbound's automatic Xray bridge (injectAmneziawgEgress)
 // is a synthetic loopback dokodemo-door inbound, not a database row, so
 // checkPortConflict needs its own check to catch a collision -- exactly the
 // same shape of problem as the reserved API port above.
 func TestCheckPortConflict_AmneziawgEgressBridgeBlockedLocal(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
 
 	var awgInbound model.Inbound
 	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
@@ -769,7 +775,7 @@ func TestCheckPortConflict_AmneziawgEgressBridgeBlockedLocal(t *testing.T) {
 // 127.0.0.1 on the local panel's own Xray.
 func TestCheckPortConflict_AmneziawgEgressBridgeAllowedOnNode(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
 
 	var awgInbound model.Inbound
 	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
@@ -810,6 +816,32 @@ func TestCheckPortConflict_AmneziawgEgressBridgeIgnoredWhenDisabled(t *testing.T
 	}
 	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
 		t.Fatalf("a disabled AmneziaWG inbound's port must not be reserved; got=%v err=%v", got, err)
+	}
+}
+
+// An enabled AmneziaWG inbound with RouteThroughXray off never gets a bridge
+// injected either (injectAmneziawgEgress requires it), so its port isn't
+// reserved -- an inbound created with the default settings, not just an
+// explicitly disabled one, must not block anything.
+func TestCheckPortConflict_AmneziawgEgressBridgeIgnoredWhenRouteThroughXrayOff(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     bridgePort,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("an AmneziaWG inbound with RouteThroughXray off must not reserve its bridge port; got=%v err=%v", got, err)
 	}
 }
 

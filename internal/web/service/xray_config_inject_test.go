@@ -561,7 +561,7 @@ func TestInjectMtprotoEgress_BadRoutingSkips(t *testing.T) {
 }
 
 func amneziawgInbound(id int, tag string, clients []model.Client) *model.Inbound {
-	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24}
+	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24, RouteThroughXray: true}
 	settings, _ := json.Marshal(amneziawg.InboundSettings{Server: &server, Clients: clients})
 	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
 }
@@ -640,6 +640,22 @@ func TestInjectAmneziawgEgress_NoQualifyingPeerSkipsBridge(t *testing.T) {
 				t.Fatalf("%s must be a no-op, got %d inbounds", c.name, len(cfg.InboundConfigs))
 			}
 		})
+	}
+}
+
+func TestInjectAmneziawgEgress_RouteThroughXrayOffSkipsBridge(t *testing.T) {
+	cfg := egressTestConfig()
+	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24} // RouteThroughXray left false
+	settings, _ := json.Marshal(amneziawg.InboundSettings{
+		Server: &server,
+		Clients: []model.Client{
+			{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
+		},
+	})
+	inbound := &model.Inbound{Id: 1, Tag: "awg-1", Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
+	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+	if len(cfg.InboundConfigs) != 1 {
+		t.Fatalf("an inbound with RouteThroughXray off must never get a bridge, got %+v", cfg.InboundConfigs)
 	}
 }
 

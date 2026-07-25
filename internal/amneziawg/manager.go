@@ -85,6 +85,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		ExternalInterface:     server.ExternalInterface,
 		IPv6Enabled:           server.IPv6Enabled,
 		IPv6ExternalInterface: server.IPv6ExternalInterface,
+		RouteThroughXray:      server.RouteThroughXray,
 	}, true
 }
 
@@ -136,6 +137,7 @@ func (inst Instance) structuralFingerprint() string {
 		inst.ExternalInterface,
 		strconv.FormatBool(inst.IPv6Enabled),
 		inst.IPv6ExternalInterface,
+		strconv.FormatBool(inst.RouteThroughXray),
 	}
 	return strings.Join(parts, "|")
 }
@@ -157,26 +159,30 @@ func (inst Instance) peersFingerprint() string {
 }
 
 // hostRulesFingerprint identifies per-peer state that only ever takes effect
-// through PostUp/PostDown shell rules — forwarded ports, the peer's IPv6
-// address (its NDP-proxy PostUp/PostDown entry), and (unconditionally, for
-// every peer with a usable IPv4 address) the TPROXY rule into this
-// instance's own Xray bridge — rather than the WireGuard peer table itself.
-// It is checked separately from peersFingerprint because `awg syncconf`
-// never re-runs PostUp/PostDown, so a change here must force a full
-// interface bounce (ensureRestart) to actually take effect, unlike a
-// key-only change that syncconf can apply in place. Since the TPROXY rule is
-// now tied to every peer's mere presence (there's no more per-peer opt-in
-// flag), every peer is included unconditionally: adding, removing, or
-// re-addressing a peer now also forces a bounce, the same way a
-// ForwardedPorts-only change always did. The IPv6 address must be included
-// here too: without it, a peer that only changes its IPv6 AllowedIPs entry
-// still matches on FirstIPv4 alone, so ensureActionFor would pick the
-// syncconf reload path — which never re-runs PostUp — leaving that peer's
-// NDP-proxy entry pointed at its old, now-wrong address.
+// through PostUp/PostDown shell rules — forwarded ports; when
+// RouteThroughXray is on, every peer's IPv4 address (the TPROXY rule into
+// this instance's own Xray bridge is keyed on it); and when IPv6 is enabled,
+// the peer's IPv6 address (its NDP-proxy PostUp/PostDown entry) — rather
+// than the WireGuard peer table itself. It is checked separately from
+// peersFingerprint because `awg syncconf` never re-runs PostUp/PostDown, so
+// a change here must force a full interface bounce (ensureRestart) to
+// actually take effect, unlike a key-only change that syncconf can apply in
+// place. The IPv4/IPv6 components are each included only when the feature
+// that actually reads them is on: including them unconditionally would force
+// a full bounce on every peer add/remove/re-IP even for an instance whose
+// PostUp/PostDown text never changes as a result, permanently losing the
+// syncconf fast path for no reason.
 func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
-		pairs = append(pairs, fmt.Sprintf("%s=fwd:%s;ip:%s;ip6:%s", p.Email, p.ForwardedPorts, FirstIPv4(p.AllowedIPs), firstIPv6(p.AllowedIPs)))
+		v := fmt.Sprintf("%s=fwd:%s", p.Email, p.ForwardedPorts)
+		if inst.RouteThroughXray {
+			v += ";ip:" + FirstIPv4(p.AllowedIPs)
+		}
+		if inst.IPv6Enabled {
+			v += ";ip6:" + firstIPv6(p.AllowedIPs)
+		}
+		pairs = append(pairs, v)
 	}
 	slices.Sort(pairs)
 	return strings.Join(pairs, "|")
@@ -612,15 +618,16 @@ func hOrDefault(v, def string) string {
 // rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
 // peer with an IPv6 address, so upstream routers see each client's IPv6 as
 // directly reachable on the LAN without NAT66. Also emits DNAT+FORWARD rules
-// for each enabled peer with a non-empty ForwardedPorts spec, and —
-// unconditionally, for every peer — a mangle-table TPROXY rule redirecting
-// that peer's traffic into this instance's own Xray bridge (see
-// EgressPortForInbound), plus the one-time policy route TPROXY needs to
-// deliver it there. There is no per-peer or per-inbound opt-in: the bridge
-// is always present by default, and it is entirely up to the admin's own
-// Xray Routing rules (targeting this inbound's own tag, which
-// injectAmneziawgEgress reuses for the bridge) whether that traffic ever
-// actually goes anywhere beyond Xray's default routing.
+// for each enabled peer with a non-empty ForwardedPorts spec, and — only
+// when the instance has RouteThroughXray enabled — a mangle-table TPROXY
+// rule redirecting every peer's traffic into this instance's own Xray
+// bridge (see EgressPortForInbound), plus the one-time policy route TPROXY
+// needs to deliver it there. RouteThroughXray is off by default: a plain
+// AmneziaWG tunnel has no Xray dependency at all unless the admin opts in.
+// When it is on, it is entirely up to the admin's own Xray Routing rules
+// (targeting this inbound's own tag, which injectAmneziawgEgress reuses for
+// the bridge) whether that traffic ever actually goes anywhere beyond
+// Xray's default routing.
 func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	iface := inst.InterfaceName
 	up := []string{
@@ -675,34 +682,37 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		down = append(down, portForwardLines("-D", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
 	}
 
-	egressPort := EgressPortForInbound(inst.Id)
-	anyPeerTproxied := false
-	for _, p := range inst.Peers {
-		clientIP := FirstIPv4(p.AllowedIPs)
-		if clientIP == "" {
-			continue
+	if inst.RouteThroughXray {
+		egressPort := EgressPortForInbound(inst.Id)
+		anyPeerTproxied := false
+		for _, p := range inst.Peers {
+			clientIP := FirstIPv4(p.AllowedIPs)
+			if clientIP == "" {
+				continue
+			}
+			up = append(up, routeEgressLines("-A", iface, clientIP, p.Email, egressPort)...)
+			down = append(down, routeEgressLines("-D", iface, clientIP, p.Email, egressPort)...)
+			anyPeerTproxied = true
 		}
-		up = append(up, routeEgressLines("-A", iface, clientIP, p.Email, egressPort)...)
-		down = append(down, routeEgressLines("-D", iface, clientIP, p.Email, egressPort)...)
-		anyPeerTproxied = true
-	}
-	if anyPeerTproxied {
-		// The fwmark->table->local-everywhere policy route is what lets TPROXY
-		// deliver a peer's packets to this instance's own Xray bridge even
-		// though their destination is never one of this host's own addresses.
-		// It is system-wide, not interface-specific, so — like the
-		// IPv6-forwarding sysctl above — it is added idempotently here and
-		// never torn down in PostDown; a second AmneziaWG instance must find
-		// it already in place, not race to remove what the first still needs.
-		// "ip rule add" is not itself idempotent (a second call inserts a
-		// duplicate rather than deduplicating), and hostRulesFingerprint keys
-		// on every peer's presence/IP, so PostUp re-runs on any client
-		// add/remove/re-IP — without the existence check below, "ip rule
-		// show" would accumulate one duplicate entry per bounce forever.
-		up = append(up,
-			fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d' || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
-			fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
-		)
+		if anyPeerTproxied {
+			// The fwmark->table->local-everywhere policy route is what lets TPROXY
+			// deliver a peer's packets to this instance's own Xray bridge even
+			// though their destination is never one of this host's own addresses.
+			// It is system-wide, not interface-specific, so — like the
+			// IPv6-forwarding sysctl above — it is added idempotently here and
+			// never torn down in PostDown; a second AmneziaWG instance must find
+			// it already in place, not race to remove what the first still needs.
+			// "ip rule add" is not itself idempotent (a second call inserts a
+			// duplicate rather than deduplicating), and hostRulesFingerprint keys
+			// on every peer's presence/IP when RouteThroughXray is on, so PostUp
+			// re-runs on any client add/remove/re-IP — without the existence
+			// check below, "ip rule show" would accumulate one duplicate entry
+			// per bounce forever.
+			up = append(up,
+				fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d' || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
+				fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
+			)
+		}
 	}
 
 	up = append(up, "sysctl -w net.ipv4.ip_forward=1")
