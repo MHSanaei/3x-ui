@@ -1,4 +1,4 @@
-name: Release 3X-UI for Docker
+name: Build and Push Docker Image
 
 permissions:
   contents: read
@@ -10,51 +10,70 @@ on:
     tags:
       - "v*.*.*"
 
+env:
+  IMAGE_NAME: 3x-ui
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: true
 
+      - name: Check Docker Hub secrets
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKER_HUB_USERNAME" ] || [ -z "$DOCKER_HUB_TOKEN" ]; then
+            echo "::error::请在仓库 Settings → Secrets and variables → Actions 中配置 DOCKER_HUB_USERNAME 与 DOCKER_HUB_TOKEN"
+            exit 1
+          fi
+          echo "DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME" >> "$GITHUB_ENV"
+
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v5
         with:
           images: |
-            hsanaeii/3x-ui
-            ghcr.io/mhsanaei/3x-ui
+            ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') }}
             type=ref,event=tag
             type=semver,pattern={{version}}
+            type=sha,prefix=sha-,format=short
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386
+          # 个人用先打 amd64/arm64；需要更多架构可自行加回
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
