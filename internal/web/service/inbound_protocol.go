@@ -53,6 +53,30 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	}
 }
 
+// nodeEligibleProtocols mirrors NODE_ELIGIBLE_PROTOCOLS from the frontend
+// (frontend/src/pages/inbounds/form/InboundFormModal.tsx), which hides the
+// "Deploy To" node picker for anything not in this set. MTProto and
+// AmneziaWG are both sidecar-managed rather than plain Xray inbounds, and
+// their reconcile loops (mtproto.Manager, amneziawg.Manager) only ever
+// query for NodeID IS NULL rows -- a node-assigned instance of either would
+// never be reconciled by the master, yet nothing previously stopped one
+// from being created that way (the frontend allowlist has no server-side
+// mirror). A future protocol defaults to ineligible until added here,
+// matching the frontend's own opt-in shape.
+var nodeEligibleProtocols = map[model.Protocol]bool{
+	model.VLESS:       true,
+	model.VMESS:       true,
+	model.Trojan:      true,
+	model.Shadowsocks: true,
+	model.Hysteria:    true,
+	model.WireGuard:   true,
+}
+
+// isNodeEligibleProtocol reports whether protocol may be assigned to a node.
+func isNodeEligibleProtocol(protocol model.Protocol) bool {
+	return nodeEligibleProtocols[protocol]
+}
+
 // vlessEncryptionEnabled reports whether a VLESS inbound has VLESS-level
 // encryption (vlessenc / ML-KEM) configured. When enabled these fields hold a
 // generated dotted string (e.g. "mlkem768x25519plus.native.0rtt.<key>"); "none"
