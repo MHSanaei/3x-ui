@@ -180,6 +180,17 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
         working-directory: frontend
+      # Known-accepted as of 2026-07-26: 2 high advisories (react-router via
+      # react-router-dom, GHSA-qwww-vcr4-c8h2; brace-expansion/minimatch via
+      # eslint-plugin-jsx-a11y, GHSA-mh99-v99m-4gvg). Neither is exploitable
+      # here -- the react-router CVE only affects the unstable RSC APIs
+      # (this app uses plain createBrowserRouter, no RSC anywhere), and the
+      # jsx-a11y chain only runs against this repo's own hardcoded lint globs,
+      # never untrusted input. Both "fixes" npm offers are downgrades (no
+      # patched release exists yet in the currently-depended-upon package
+      # line), so left as-is rather than trading a real regression for a
+      # vulnerability that doesn't apply. Re-check on a future bump in case
+      # upstream ships an actual forward fix.
       - name: Audit
         run: npm audit --audit-level=high
         working-directory: frontend
