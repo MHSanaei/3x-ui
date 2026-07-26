@@ -79,10 +79,22 @@
 ## 快速开始
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash
+```
+
+若要安装特定版本，请在命令后附加对应的标签（例如 `v3.5.0-awg.1`）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s v3.5.0-awg.1
+```
+
+若要安装滚动更新的 **dev** 版本（来自 `main` 的最新逐次提交预发布版本，而非稳定版本），请传入 `dev`：
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-本分支仅发布滚动更新的预发布版本 **`dev-latest`**（每次 push 到 `main` 都会自动重新构建）——目前还没有任何打标签的稳定版本，因此 `dev` 是当前唯一能解析到实际内容的渠道。
+本分支自己的稳定版本使用 `<上游基础版本>-awg.N` 的标签格式（例如 `v3.5.0-awg.1`，构建于上游所称的 `v3.5.0` 之上）——绝不会是单纯的 `vX.Y.Z`——这样就不会与 MHSanaei/3x-ui 官方相同编号的正式版本混淆。
 
 安装过程中会生成随机的用户名、密码和访问路径。安装完成后，运行 `x-ui` 打开管理菜单，您可以在其中启动/停止服务、查看或重置登录凭据、管理 SSL 证书等。
 

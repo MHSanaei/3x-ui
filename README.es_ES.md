@@ -79,10 +79,22 @@ Este fork se construyó para funcionar en los routers y servidores personales de
 ## Inicio Rápido
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash
+```
+
+Para instalar una versión específica, añade su etiqueta (p. ej. `v3.5.0-awg.1`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s v3.5.0-awg.1
+```
+
+Para instalar la compilación continua **dev** (el último prelanzamiento por commit desde `main`, no una versión estable), pasa `dev`:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-Este fork solo publica el prelanzamiento continuo **`dev-latest`** (reconstruido automáticamente con cada push a `main`) — todavía no existe ningún lanzamiento estable etiquetado, así que `dev` es el único canal que actualmente resuelve a algo.
+Los lanzamientos estables propios de este fork se etiquetan como `<versión base de upstream>-awg.N` (p. ej. `v3.5.0-awg.1`, construido sobre lo que upstream llama `v3.5.0`) — nunca un simple `vX.Y.Z` — para que nunca se confundan con un lanzamiento real de MHSanaei/3x-ui con el mismo número.
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `x-ui` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.
 

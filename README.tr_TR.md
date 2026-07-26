@@ -79,10 +79,22 @@ Bu fork, yazarının kendi yönlendiricileri ve kişisel sunucuları üzerinde �
 ## Hızlı Başlangıç
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash
+```
+
+Belirli bir sürümü kurmak için, etiketini (ör. `v3.5.0-awg.1`) ekleyin:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s v3.5.0-awg.1
+```
+
+Sürekli güncellenen **dev** sürümünü (kararlı bir sürüm değil; `main` dalından her commit'te oluşturulan en son ön sürüm) kurmak için `dev` değerini geçirin:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
 ```
 
-Bu fork yalnızca sürekli güncellenen **`dev-latest`** ön sürümünü yayınlar (her `main` push'unda otomatik olarak yeniden derlenir) — henüz etiketlenmiş kararlı bir sürüm yoktur, bu yüzden şu anda gerçekten bir şeye karşılık gelen tek kanal `dev`'dir.
+Bu fork'un kendi kararlı sürümleri `<upstream taban sürümü>-awg.N` biçiminde etiketlenir (ör. `v3.5.0-awg.1`, upstream'in `v3.5.0` dediği sürümün üzerine inşa edilmiştir) — asla düz bir `vX.Y.Z` değil — böylece hiçbir zaman aynı numaraya sahip gerçek bir MHSanaei/3x-ui sürümüyle karıştırılmaz.
 
 Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `x-ui` komutunu çalıştırın.
 
