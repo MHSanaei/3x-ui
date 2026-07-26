@@ -178,6 +178,7 @@ export default function AppSidebar() {
       { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
       { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
       { key: '/settings#email', icon: <MailOutlined />, label: t('pages.settings.emailSettings') },
+      { key: '/settings#webhook', icon: <ApiOutlined />, label: t('pages.settings.webhookSettings') },
       { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
     ];
     if (showSubFormats) {

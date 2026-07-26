@@ -364,6 +364,28 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "webhookCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "webhookEnable": {
+            "type": "boolean"
+          },
+          "webhookEnabledEvents": {
+            "type": "string"
+          },
+          "webhookMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "webhookSecret": {
+            "type": "string"
+          },
+          "webhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -468,7 +490,13 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "webhookCpu",
+          "webhookEnable",
+          "webhookEnabledEvents",
+          "webhookMemory",
+          "webhookSecret",
+          "webhookURL"
         ],
         "type": "object"
       },
@@ -506,6 +534,9 @@
             "type": "boolean"
           },
           "hasWarpSecret": {
+            "type": "boolean"
+          },
+          "hasWebhookSecret": {
             "type": "boolean"
           },
           "ldapAutoCreate": {
@@ -831,6 +862,28 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "webhookCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "webhookEnable": {
+            "type": "boolean"
+          },
+          "webhookEnabledEvents": {
+            "type": "string"
+          },
+          "webhookMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "webhookSecret": {
+            "type": "string"
+          },
+          "webhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -845,6 +898,7 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "hasWebhookSecret",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -942,7 +996,13 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "webhookCpu",
+          "webhookEnable",
+          "webhookEnabledEvents",
+          "webhookMemory",
+          "webhookSecret",
+          "webhookURL"
         ],
         "type": "object"
       },
@@ -9896,6 +9956,64 @@
                   "success": true,
                   "stage": "send",
                   "msg": "Test email sent successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testWebhook": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test the configured webhook by sending a synthetic \"test\" event to the configured URL, signed with the configured secret if one is set. Returns structured result with stage (config or send) and message.",
+        "operationId": "post_panel_api_setting_testWebhook",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "stage": "send",
+                  "msg": "webhookTestSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "stage": "config",
+                  "msg": "webhookUrlNotConfigured"
                 }
               }
             }

@@ -168,6 +168,14 @@ var defaultValueMap = map[string]string{
 	"smtpFromName":       "",
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
+
+	// Webhook
+	"webhookEnable":        "false",
+	"webhookURL":           "",
+	"webhookSecret":        "",
+	"webhookEnabledEvents": "login.attempt,cpu.high",
+	"webhookCpu":           "80",
+	"webhookMemory":        "80",
 }
 
 // SettingService provides business logic for application settings management.
@@ -270,6 +278,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
 	view.HasSmtpPassword = secretConfigured(allSetting.SmtpPassword)
+	view.HasWebhookSecret = secretConfigured(allSetting.WebhookSecret)
 	var apiTokenCount int64
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
@@ -278,6 +287,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	view.SmtpPassword = ""
+	view.WebhookSecret = ""
 	return view, nil
 }
 
@@ -943,7 +953,7 @@ func (s *SettingService) GetAccessLogEnable() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return (accessLogPath != "none" && accessLogPath != ""), nil
+	return accessLogPath != "none" && accessLogPath != "", nil
 }
 
 // GetLdapEnable returns whether LDAP is enabled.
@@ -1139,6 +1149,56 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
+// Webhook settings
+
+func (s *SettingService) GetWebhookEnable() (bool, error) {
+	return s.getBool("webhookEnable")
+}
+
+func (s *SettingService) SetWebhookEnable(value bool) error {
+	return s.setBool("webhookEnable", value)
+}
+
+func (s *SettingService) GetWebhookURL() (string, error) {
+	return s.getString("webhookURL")
+}
+
+func (s *SettingService) SetWebhookURL(value string) error {
+	return s.setString("webhookURL", value)
+}
+
+func (s *SettingService) GetWebhookSecret() (string, error) {
+	return s.getString("webhookSecret")
+}
+
+func (s *SettingService) SetWebhookSecret(value string) error {
+	return s.setString("webhookSecret", value)
+}
+
+func (s *SettingService) GetWebhookEnabledEvents() (string, error) {
+	return s.getString("webhookEnabledEvents")
+}
+
+func (s *SettingService) SetWebhookEnabledEvents(events string) error {
+	return s.setString("webhookEnabledEvents", events)
+}
+
+func (s *SettingService) GetWebhookCpu() (int, error) {
+	return s.getInt("webhookCpu")
+}
+
+func (s *SettingService) SetWebhookCpu(value int) error {
+	return s.setInt("webhookCpu", value)
+}
+
+func (s *SettingService) GetWebhookMemory() (int, error) {
+	return s.getInt("webhookMemory")
+}
+
+func (s *SettingService) SetWebhookMemory(value int) error {
+	return s.setInt("webhookMemory", value)
+}
+
 // GetOutboundDownThreshold returns how many consecutive failed observatory
 // probes an outbound must accumulate before an outbound.down notification is
 // emitted. 1 preserves the legacy "notify on the first failed probe" behaviour.
@@ -1154,9 +1214,10 @@ func (s *SettingService) SetOutboundDownThreshold(value int) error {
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
 type SecretClears struct {
-	TgBotToken   bool
-	LdapPassword bool
-	SmtpPassword bool
+	TgBotToken    bool
+	LdapPassword  bool
+	SmtpPassword  bool
+	WebhookSecret bool
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
@@ -1280,6 +1341,13 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, 
 		}
 		allSetting.SmtpPassword = value
 	}
+	if !clears.WebhookSecret && strings.TrimSpace(allSetting.WebhookSecret) == "" {
+		value, err := s.GetWebhookSecret()
+		if err != nil {
+			return err
+		}
+		allSetting.WebhookSecret = value
+	}
 	return nil
 }
 
@@ -1297,6 +1365,13 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 			return common.NewError("telegram API server URL is invalid:", err)
 		}
 		allSetting.TgBotAPIServer = u
+	}
+	if allSetting.WebhookURL != "" {
+		u, err := SanitizeHTTPURL(allSetting.WebhookURL)
+		if err != nil {
+			return common.NewError("webhook URL is invalid:", err)
+		}
+		allSetting.WebhookURL = u
 	}
 	// Support/profile links land in subscription headers and page data, where
 	// client apps resolve a scheme-less value against the panel's own domain.

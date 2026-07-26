@@ -102,7 +102,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "webhookCpu": 0,
+    "webhookEnable": false,
+    "webhookEnabledEvents": "",
+    "webhookMemory": 0,
+    "webhookSecret": "",
+    "webhookURL": ""
   },
   "AllSettingView": {
     "datepicker": "",
@@ -116,6 +122,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,
+    "hasWebhookSecret": false,
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
     "ldapBaseDN": "",
@@ -213,7 +220,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "webhookCpu": 0,
+    "webhookEnable": false,
+    "webhookEnabledEvents": "",
+    "webhookMemory": 0,
+    "webhookSecret": "",
+    "webhookURL": ""
   },
   "ApiToken": {
     "createdAt": 0,

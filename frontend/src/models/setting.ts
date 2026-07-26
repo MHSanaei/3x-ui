@@ -103,6 +103,12 @@ export class AllSetting {
   smtpEnabledEvents = '';
   smtpCpu = 80;
   smtpMemory = 80;
+  webhookEnable = false;
+  webhookURL = '';
+  webhookSecret = '';
+  webhookEnabledEvents = '';
+  webhookCpu = 80;
+  webhookMemory = 80;
   outboundDownThreshold = 3;
   hasTgBotToken = false;
   hasTwoFactorToken = false;
@@ -111,9 +117,11 @@ export class AllSetting {
   hasWarpSecret = false;
   hasNordSecret = false;
   hasSmtpPassword = false;
+  hasWebhookSecret = false;
   clearTgBotToken = false;
   clearLdapPassword = false;
   clearSmtpPassword = false;
+  clearWebhookSecret = false;
 
   constructor(data?: unknown) {
     if (data != null) {
@@ -123,6 +131,11 @@ export class AllSetting {
     this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
     const threshold = Math.round(Number(this.outboundDownThreshold));
     this.outboundDownThreshold = Number.isFinite(threshold) ? Math.min(100, Math.max(1, threshold)) : 3;
+
+    const webhookCpu = Math.round(Number(this.webhookCpu));
+    this.webhookCpu = Number.isFinite(webhookCpu) ? Math.min(100, Math.max(0, webhookCpu)) : 80;
+    const webhookMemory = Math.round(Number(this.webhookMemory));
+    this.webhookMemory = Number.isFinite(webhookMemory) ? Math.min(100, Math.max(0, webhookMemory)) : 80;
   }
 
   equals(other: AllSetting): boolean {

@@ -1192,6 +1192,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/setting/testWebhook',
+        summary: 'Test the configured webhook by sending a synthetic "test" event to the configured URL, signed with the configured secret if one is set. Returns structured result with stage (config or send) and message.',
+        response: '{\n  "success": true,\n  "stage": "send",\n  "msg": "webhookTestSuccess"\n}',
+        errorResponse: '{\n  "success": false,\n  "stage": "config",\n  "msg": "webhookUrlNotConfigured"\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/setting/testTgBot',
         summary: 'Test Telegram bot connection by sending a test message to the configured chat.',
         response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',

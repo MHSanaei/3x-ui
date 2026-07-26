@@ -338,6 +338,28 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "webhookCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "webhookEnable": {
+        "type": "boolean"
+      },
+      "webhookEnabledEvents": {
+        "type": "string"
+      },
+      "webhookMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "webhookSecret": {
+        "type": "string"
+      },
+      "webhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -442,7 +464,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "webhookCpu",
+      "webhookEnable",
+      "webhookEnabledEvents",
+      "webhookMemory",
+      "webhookSecret",
+      "webhookURL"
     ],
     "type": "object"
   },
@@ -480,6 +508,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "hasWarpSecret": {
+        "type": "boolean"
+      },
+      "hasWebhookSecret": {
         "type": "boolean"
       },
       "ldapAutoCreate": {
@@ -805,6 +836,28 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "webhookCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "webhookEnable": {
+        "type": "boolean"
+      },
+      "webhookEnabledEvents": {
+        "type": "string"
+      },
+      "webhookMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "webhookSecret": {
+        "type": "string"
+      },
+      "webhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -819,6 +872,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "hasWebhookSecret",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -916,7 +970,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "webhookCpu",
+      "webhookEnable",
+      "webhookEnabledEvents",
+      "webhookMemory",
+      "webhookSecret",
+      "webhookURL"
     ],
     "type": "object"
   },

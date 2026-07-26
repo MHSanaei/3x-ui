@@ -109,6 +109,12 @@ export interface AllSetting {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  webhookCpu: number;
+  webhookEnable: boolean;
+  webhookEnabledEvents: string;
+  webhookMemory: number;
+  webhookSecret: string;
+  webhookURL: string;
 }
 
 export interface AllSettingView {
@@ -123,6 +129,7 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  hasWebhookSecret: boolean;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -221,6 +228,12 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  webhookCpu: number;
+  webhookEnable: boolean;
+  webhookEnabledEvents: string;
+  webhookMemory: number;
+  webhookSecret: string;
+  webhookURL: string;
 }
 
 export interface ApiToken {

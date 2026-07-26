@@ -32,6 +32,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/webhook"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -430,6 +431,13 @@ func (s *Server) cpuAlarmWanted() bool {
 			return true
 		}
 	}
+	if on, _ := s.settingService.GetWebhookEnable(); on {
+		events, _ := s.settingService.GetWebhookEnabledEvents()
+		cpu, _ := s.settingService.GetWebhookCpu()
+		if wants(events, cpu) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -457,6 +465,13 @@ func (s *Server) memoryAlarmWanted() bool {
 		events, _ := s.settingService.GetSmtpEnabledEvents()
 		mem, _ := s.settingService.GetSmtpMemory()
 		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetWebhookEnable(); on {
+		events, _ := s.settingService.GetWebhookEnabledEvents()
+		cpu, _ := s.settingService.GetWebhookMemory()
+		if wants(events, cpu) {
 			return true
 		}
 	}
@@ -616,6 +631,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	// Wire email service to controller for test endpoint
 	controller.SetEmailService(emailService)
+
+	// Register webhook subscriber (always — it checks webhookEnable at runtime)
+	webhookService := webhook.NewWebhookService(s.settingService)
+	webhookSub := webhook.NewSubscriber(s.settingService, webhookService)
+	s.bus.Subscribe("webhook-notifier", webhookSub.HandleEvent)
+
+	// Wire webhook service to controller for test endpoint
+	controller.SetWebhookService(webhookService)
 
 	// Wire Telegram test function to controller
 	controller.SetTestTgFunc(func() error {

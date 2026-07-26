@@ -59,6 +59,13 @@ type AllSetting struct {
 	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
 
+	WebhookEnable        bool   `json:"webhookEnable" form:"webhookEnable"`
+	WebhookURL           string `json:"webhookURL" form:"webhookURL"`
+	WebhookSecret        string `json:"webhookSecret" form:"webhookSecret"`
+	WebhookEnabledEvents string `json:"webhookEnabledEvents" form:"webhookEnabledEvents"`
+	WebhookCpu           int    `json:"webhookCpu" form:"webhookCpu" validate:"gte=0,lte=100"`
+	WebhookMemory        int    `json:"webhookMemory" form:"webhookMemory" validate:"gte=0,lte=100"`
+
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
@@ -140,6 +147,7 @@ type AllSettingView struct {
 	HasWarpSecret     bool `json:"hasWarpSecret"`
 	HasNordSecret     bool `json:"hasNordSecret"`
 	HasSmtpPassword   bool `json:"hasSmtpPassword"`
+	HasWebhookSecret  bool `json:"hasWebhookSecret"`
 }
 
 func pathHasForbiddenChar(s string) bool {

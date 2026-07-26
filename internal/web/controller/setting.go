@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/webhook"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -33,10 +34,11 @@ type updateUserForm struct {
 // "unchanged", so clearing needs its own signal — see #5724).
 type updateSettingForm struct {
 	entity.AllSetting
-	TwoFactorCode     string `json:"twoFactorCode" form:"twoFactorCode"`
-	ClearTgBotToken   bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
-	ClearLdapPassword bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
-	ClearSmtpPassword bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
+	TwoFactorCode      string `json:"twoFactorCode" form:"twoFactorCode"`
+	ClearTgBotToken    bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
+	ClearLdapPassword  bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
+	ClearSmtpPassword  bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
+	ClearWebhookSecret bool   `json:"clearWebhookSecret" form:"clearWebhookSecret"`
 }
 
 type validateRegexForm struct {
@@ -76,6 +78,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.POST("/testSmtp", a.testSmtp)
 	g.POST("/testTgBot", a.testTgBot)
+	g.POST("/testWebhook", a.testWebhook)
 }
 
 func (a *SettingController) validateRegex(c *gin.Context) {
@@ -132,9 +135,10 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		}
 	}
 	err := a.settingService.UpdateAllSetting(allSetting, service.SecretClears{
-		TgBotToken:   form.ClearTgBotToken,
-		LdapPassword: form.ClearLdapPassword,
-		SmtpPassword: form.ClearSmtpPassword,
+		TgBotToken:    form.ClearTgBotToken,
+		LdapPassword:  form.ClearLdapPassword,
+		SmtpPassword:  form.ClearSmtpPassword,
+		WebhookSecret: form.ClearWebhookSecret,
 	})
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
@@ -288,6 +292,30 @@ func (a *SettingController) testSmtp(c *gin.Context) {
 	})
 }
 
+func (a *SettingController) testWebhook(c *gin.Context) {
+	if webhookService == nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.webhookNotInitialized"), errors.New("webhook service not available"))
+		return
+	}
+	logger.Info("Webhook test: starting...")
+	result := webhookService.TestConnection()
+	if !result.Success {
+		logger.Warning("Webhook test failed at", result.Stage+":", result.Message)
+		c.JSON(200, gin.H{
+			"success": false,
+			"stage":   result.Stage,
+			"msg":     result.Message,
+		})
+		return
+	}
+	logger.Info("Webhook test: success")
+	c.JSON(200, gin.H{
+		"success": true,
+		"stage":   result.Stage,
+		"msg":     result.Message,
+	})
+}
+
 func (a *SettingController) testTgBot(c *gin.Context) {
 	enabled, err := a.settingService.GetTgbotEnabled()
 	if err != nil || !enabled {
@@ -323,3 +351,9 @@ var emailService *email.EmailService
 
 // SetEmailService registers the email service for test endpoints.
 func SetEmailService(s *email.EmailService) { emailService = s }
+
+// webhookService is set from web layer.
+var webhookService *webhook.WebhookService
+
+// SetWebhookService registers the webhook service for test endpoints.
+func SetWebhookService(s *webhook.WebhookService) { webhookService = s }
