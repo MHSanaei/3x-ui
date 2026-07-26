@@ -117,6 +117,24 @@ export function computeClientsSummary(
   return { total: stats.length, active, online, depleted, expiring, deactive };
 }
 
+// A client_stats snapshot shorter than the server's own total means it does
+// not cover every client — computeClientsSummary would then drop the missing
+// ones out of every bucket while total still counts them (#6102). The server
+// summary is always internally consistent (its buckets sum to total), so
+// fall back to it rather than publish an undercount.
+export function pickClientsSummary(
+  serverSummary: ClientsSummary,
+  allClientStats: ClientStatRow[],
+  onlineSet: Set<string>,
+  expireDiffMs: number,
+  trafficDiffBytes: number,
+): ClientsSummary {
+  if (allClientStats.length === 0) return serverSummary;
+  if (serverSummary.total > allClientStats.length) return serverSummary;
+  const live = computeClientsSummary(allClientStats, onlineSet, expireDiffMs, trafficDiffBytes);
+  return { ...live, total: serverSummary.total || live.total };
+}
+
 function buildQS(p: ClientQueryParams): string {
   const sp = new URLSearchParams();
   sp.set('page', String(p.page || 1));
@@ -266,17 +284,14 @@ export function useClients() {
   const pageSize = (defaults.pageSize as number) ?? 0;
 
   // Live summary: the client_stats WS event refreshes allClientStats every few
-  // seconds, so the top counters track reality without a page refresh. Falls
-  // back to the server-computed summary until the first event lands, and keeps
-  // the server's authoritative total for the headline count.
+  // seconds, so the top counters track reality without a page refresh — see
+  // pickClientsSummary for why it isn't always trusted over the server value.
   const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
   const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
-  const summary = useMemo<ClientsSummary>(() => {
-    const serverSummary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
-    if (allClientStats.length === 0) return serverSummary;
-    const live = computeClientsSummary(allClientStats, new Set(onlines), expireDiff, trafficDiff);
-    return { ...live, total: serverSummary.total || live.total };
-  }, [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary]);
+  const summary = useMemo<ClientsSummary>(
+    () => pickClientsSummary(listQuery.data?.summary ?? DEFAULT_SUMMARY, allClientStats, new Set(onlines), expireDiff, trafficDiff),
+    [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary],
+  );
 
   const invalidateAll = useCallback(
     () => {

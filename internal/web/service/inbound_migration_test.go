@@ -129,6 +129,72 @@ func TestMigrationRequirements_CleansLegacyZeroAddrTag(t *testing.T) {
 	}
 }
 
+func TestMigrationRemoveOrphanedTraffics_KeepsDetachedClientAliveClient(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	const attachedEmail = "attached@example.com"
+	const detachedEmail = "detached@example.com"
+	const trulyOrphanedEmail = "deleted@example.com"
+
+	ib := &model.Inbound{
+		UserId:         1,
+		Tag:            "orphan-traffic-tag",
+		Enable:         true,
+		Port:           30003,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"email":"` + attachedEmail + `","id":"11111111-1111-1111-1111-111111111111","enable":true}]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	attachedRec := &model.ClientRecord{Email: attachedEmail, SubID: "sub-attached", Enable: true}
+	if err := db.Create(attachedRec).Error; err != nil {
+		t.Fatalf("seed attached client record: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: attachedRec.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed attached client_inbounds link: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{Email: attachedEmail, InboundId: ib.Id, Enable: true}).Error; err != nil {
+		t.Fatalf("seed attached client_traffics: %v", err)
+	}
+
+	if err := db.Create(&model.ClientRecord{Email: detachedEmail, SubID: "sub-detached", Enable: true}).Error; err != nil {
+		t.Fatalf("seed detached client record: %v", err)
+	}
+	// DelInboundClientByEmail(keepTraffic=true) never resets InboundId, so a
+	// detached-but-alive client's row still points at its last inbound.
+	if err := db.Create(&xray.ClientTraffic{Email: detachedEmail, InboundId: ib.Id, Enable: true, Up: 123, Down: 456}).Error; err != nil {
+		t.Fatalf("seed detached client_traffics: %v", err)
+	}
+
+	if err := db.Create(&xray.ClientTraffic{Email: trulyOrphanedEmail, InboundId: ib.Id, Enable: true}).Error; err != nil {
+		t.Fatalf("seed truly orphaned client_traffics: %v", err)
+	}
+
+	svc := InboundService{}
+	svc.MigrationRemoveOrphanedTraffics()
+
+	var attachedCount int64
+	db.Model(xray.ClientTraffic{}).Where("email = ?", attachedEmail).Count(&attachedCount)
+	if attachedCount != 1 {
+		t.Errorf("attached client's traffic row: got count %d, want 1", attachedCount)
+	}
+
+	var detachedCount int64
+	db.Model(xray.ClientTraffic{}).Where("email = ?", detachedEmail).Count(&detachedCount)
+	if detachedCount != 1 {
+		t.Errorf("detached-but-alive client's traffic row: got count %d, want 1 (must survive migration)", detachedCount)
+	}
+
+	var orphanedCount int64
+	db.Model(xray.ClientTraffic{}).Where("email = ?", trulyOrphanedEmail).Count(&orphanedCount)
+	if orphanedCount != 0 {
+		t.Errorf("truly orphaned traffic row: got count %d, want 0 (must be removed)", orphanedCount)
+	}
+}
+
 func TestMigrationRequirements_NormalizesShareAddressFields(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()

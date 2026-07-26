@@ -16,14 +16,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// MigrationRemoveOrphanedTraffics drops client_traffics rows with no owning
+// clients row. It used to key "orphaned" off presence in some inbound's
+// settings.clients[] JSON, which also matched a client detached from every
+// inbound — an intentional, still-alive state (ClientService.Detach) — and
+// deleted its traffic row on every x-ui migrate / backup restore.
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	db := database.GetDB()
-	query := fmt.Sprintf(
-		"DELETE FROM client_traffics WHERE email NOT IN (SELECT %s %s)",
-		database.JSONFieldText("client.value", "email"),
-		database.JSONClientsFromInbound(),
-	)
-	db.Exec(query)
+	db.Exec("DELETE FROM client_traffics WHERE email NOT IN (SELECT email FROM clients)")
 }
 
 func (s *InboundService) MigrationRequirements() {
