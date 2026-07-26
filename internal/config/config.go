@@ -14,6 +14,13 @@ import (
 	"testing"
 )
 
+// version must be bumped to match the exact tag BEFORE it's pushed -- unlike
+// buildCommit/buildDate below, nothing stamps this automatically for a
+// tagged release build, so a forgotten bump here makes the panel misreport
+// its own version and permanently show a bogus "update available" (the
+// already-installed tag never matches this stale string). See
+// isNewerVersion/parseVersionParts in internal/web/service/panel/panel.go.
+//
 //go:embed version
 var version string
 

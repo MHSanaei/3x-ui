@@ -529,13 +529,22 @@ func compareVersionStrings(a string, b string) (int, bool) {
 	return 0, true
 }
 
-func parseVersionParts(version string) ([3]int, bool) {
-	var result [3]int
-	parts := strings.Split(normalizeVersionTag(version), ".")
-	if len(parts) != 3 {
+// versionPartsPattern matches a plain "X.Y.Z" tag as well as this fork's own
+// "X.Y.Z-awg.N" release tags (see internal/config/version). The awg build
+// number is treated as a 4th, lower-priority component that defaults to 0 for
+// a plain upstream-style tag, so e.g. "3.5.0-awg.2" > "3.5.0-awg.1" > "3.5.0".
+var versionPartsPattern = regexp.MustCompile(`^v?(\d+)\.(\d+)\.(\d+)(?:-awg\.(\d+))?$`)
+
+func parseVersionParts(version string) ([4]int, bool) {
+	var result [4]int
+	matches := versionPartsPattern.FindStringSubmatch(strings.TrimSpace(version))
+	if matches == nil {
 		return result, false
 	}
-	for i, part := range parts {
+	for i, part := range matches[1:] {
+		if part == "" {
+			continue // awg build number omitted -- defaults to 0
+		}
 		n, err := strconv.Atoi(part)
 		if err != nil {
 			return result, false

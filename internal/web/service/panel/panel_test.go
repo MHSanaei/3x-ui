@@ -42,6 +42,31 @@ func TestCompareVersionStringsRejectsUnexpectedFormats(t *testing.T) {
 	}
 }
 
+// TestIsNewerVersionAwgSuffix covers this fork's own "-awg.N" release tags
+// (see internal/config/version), which must compare correctly against both
+// plain upstream-style tags and other awg builds of the same base version.
+func TestIsNewerVersionAwgSuffix(t *testing.T) {
+	cases := []struct {
+		latest  string
+		current string
+		want    bool
+	}{
+		{"v3.5.0-awg.1", "3.5.0-awg.1", false},
+		{"v3.5.0-awg.2", "3.5.0-awg.1", true},
+		{"v3.5.0-awg.1", "3.5.0-awg.2", false},
+		{"v3.5.0-awg.1", "3.5.0", true},
+		{"v3.5.0", "3.5.0-awg.1", false},
+		{"v3.6.0", "3.5.0-awg.1", true},
+		{"v3.5.0-awg.1", "3.6.0", false},
+	}
+
+	for _, tc := range cases {
+		if got := isNewerVersion(tc.latest, tc.current); got != tc.want {
+			t.Fatalf("isNewerVersion(%q, %q) = %v, want %v", tc.latest, tc.current, got, tc.want)
+		}
+	}
+}
+
 func TestShellQuote(t *testing.T) {
 	if got := shellQuote("/usr/bin/curl"); got != "'/usr/bin/curl'" {
 		t.Fatalf("unexpected quote result: %s", got)

@@ -30,6 +30,18 @@ describe('isPanelUpdateAvailable', () => {
     expect(isPanelUpdateAvailable('nightly-2', 'nightly-1')).toBe(true);
     expect(isPanelUpdateAvailable('nightly-1', 'nightly-1')).toBe(false);
   });
+
+  // Parity with web/service/panel.go TestIsNewerVersionAwgSuffix -- this
+  // fork's own "-awg.N" release tags (see internal/config/version).
+  it('handles this fork\'s -awg.N release tags', () => {
+    expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.5.0-awg.1')).toBe(false);
+    expect(isPanelUpdateAvailable('v3.5.0-awg.2', '3.5.0-awg.1')).toBe(true);
+    expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.5.0-awg.2')).toBe(false);
+    expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.5.0')).toBe(true);
+    expect(isPanelUpdateAvailable('v3.5.0', '3.5.0-awg.1')).toBe(false);
+    expect(isPanelUpdateAvailable('v3.6.0', '3.5.0-awg.1')).toBe(true);
+    expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.6.0')).toBe(false);
+  });
 });
 
 describe('formatPanelVersion', () => {
