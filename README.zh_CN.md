@@ -33,6 +33,12 @@
 - **`install.sh` 会为您安装内核模块**，适用于 Ubuntu/Debian/Armbian（`ppa:amnezia/ppa`），其他发行版则有回退方案。它唯一无法为您做的事：预先**禁用 VPS/VM 上的 Secure Boot**——DKMS 构建的模块未经签名，只要 Secure Boot 处于启用状态，内核就会拒绝加载它。
 - 协调（reconcile）方式与 [`internal/mtproto`](internal/mtproto) 管理 `mtg` sidecar 的方式完全相同：一个后台任务持续保持运行中的接口与数据库中存储的内容同步，并尽可能通过 `awg syncconf` 而非完整的接口重启来应用对等端变更。
 
+## 本分支的其他更改
+
+除 AmneziaWG 之外，本分支的其他小改进会在添加时记录于此：
+
+- **路由规则自动补全** — Xray 路由规则编辑器中的 Domain/IP 字段现在会根据 Xray bin 文件夹中实际安装的 `.dat` 文件实时提示 geosite/geoip 分类（例如输入 "you" 会提示 `geosite:youtube`），包括通过 Geodata 自动更新功能添加的自定义文件（例如 `geosite_roscom.dat`）。自由文本输入方式与之前完全相同。
+
 ## 功能特性
 
 - **多协议入站** — VLESS、VMess、Trojan、Shadowsocks、WireGuard、**AmneziaWG**、Hysteria2、HTTP、SOCKS (Mixed)、Dokodemo-door / Tunnel 和 TUN。

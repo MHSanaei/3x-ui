@@ -33,6 +33,12 @@ Bu fork, yazarının kendi yönlendiricileri ve kişisel sunucuları üzerinde �
 - **`install.sh` çekirdek modülünü sizin için kurar** — Ubuntu/Debian/Armbian üzerinde (`ppa:amnezia/ppa`), diğer dağıtımlar için bir yedek (fallback) ile birlikte. Sizin için yapamayacağı tek şey: VPS/VM'inizde **Secure Boot'u önceden devre dışı bırakmak** — DKMS ile derlenmiş bir modül imzasızdır ve Secure Boot etkin olduğu sürece çekirdek onu yüklemeyi reddeder.
 - Uzlaştırma (reconcile), [`internal/mtproto`](internal/mtproto)'nun `mtg` sidecar'ını yönetme biçimiyle tamamen aynı şekilde yapılır: arka planda çalışan bir görev, çalışan arabirimi veritabanında saklanan durumla senkronize tutar ve mümkün olduğunda eş (peer) değişikliklerini tam bir arabirim yeniden başlatması yerine `awg syncconf` üzerinden uygular.
 
+## Bu forktaki diğer değişiklikler
+
+AmneziaWG dışındaki, bu forka özgü daha küçük iyileştirmeler eklendikçe burada listelenir:
+
+- **Yönlendirme kuralı otomatik tamamlama** — Xray Routing kural düzenleyicisindeki Domain/IP alanları artık geosite/geoip kategorilerini önerir (örneğin "you" yazmak `geosite:youtube` önerir); bu öneriler, Xray bin klasöründe fiilen kurulu olan `.dat` dosyalarından (Geodata otomatik güncelleme özelliğiyle eklenen özel dosyalar dahil, örn. `geosite_roscom.dat`) anlık olarak oluşturulur. Serbest metin girişi eskisi gibi çalışmaya devam eder.
+
 ## Özellikler
 
 - **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.

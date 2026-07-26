@@ -33,6 +33,12 @@ Este fork se construyó para funcionar en los routers y servidores personales de
 - **`install.sh` instala el módulo de kernel por ti** en Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), con una alternativa de respaldo para otras distribuciones. Lo único que no puede hacer por ti: **deshabilitar Secure Boot** en tu VPS/VM de antemano — un módulo compilado con DKMS no está firmado, y el kernel se negará a cargarlo mientras Secure Boot esté habilitado.
 - La reconciliación se realiza exactamente igual que como [`internal/mtproto`](internal/mtproto) gestiona el sidecar `mtg`: un trabajo en segundo plano mantiene la interfaz en ejecución sincronizada con lo almacenado en la base de datos, aplicando los cambios de pares mediante `awg syncconf` en lugar de un reinicio completo de la interfaz siempre que sea posible.
 
+## Otros cambios en este fork
+
+Las mejoras más pequeñas específicas de este fork, más allá de AmneziaWG, se añaden aquí a medida que se incorporan:
+
+- **Autocompletado de reglas de enrutamiento** — los campos Domain/IP del editor de reglas de Routing de Xray ahora sugieren categorías geosite/geoip (por ejemplo, escribir "you" sugiere `geosite:youtube`) generadas en vivo a partir de los archivos `.dat` realmente instalados en la carpeta bin de Xray, incluidos los archivos personalizados añadidos mediante la función de actualización automática de Geodata (por ejemplo, `geosite_roscom.dat`). La entrada de texto libre sigue funcionando exactamente igual que antes.
+
 ## Características
 
 - **Entradas multiprotocolo** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel y TUN.
