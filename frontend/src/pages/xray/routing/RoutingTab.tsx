@@ -21,7 +21,7 @@ import RuleFormModal from './RuleFormModal';
 import type { RoutingRule } from './RuleFormModal';
 import RuleCardList from './RuleCardList';
 import { useRoutingColumns } from './useRoutingColumns';
-import { arrJoin, originalRuleIndex, isApiRule } from './helpers';
+import { arrJoin, originalRuleIndex } from './helpers';
 import type { RuleRow } from './types';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import type { RuleObject } from '@/schemas/routing';
@@ -209,20 +209,8 @@ export default function RoutingTab({
       if (!tt.routing) tt.routing = { rules: [] };
       if (!Array.isArray(tt.routing.rules)) tt.routing.rules = [];
       const typed = rule as unknown as RuleObject;
-      if (editingIndex == null) {
-        // Rules match top-to-bottom, first hit wins, so a brand-new rule
-        // appended at the end is silently shadowed by any earlier
-        // broader/catch-all rule that also happens to match its traffic —
-        // a real trap: the rule looks saved and enabled, but never actually
-        // fires. Insert it as early as possible instead (right after the
-        // pinned api rule, if present) so a newly created rule takes effect
-        // by default; the admin can still drag it lower with moveDown if
-        // that's genuinely what they want.
-        const insertAt = isApiRule(tt.routing.rules[0] as RuleObject) ? 1 : 0;
-        tt.routing.rules.splice(insertAt, 0, typed);
-      } else {
-        tt.routing.rules[editingIndex] = typed;
-      }
+      if (editingIndex == null) tt.routing.rules.push(typed);
+      else tt.routing.rules[editingIndex] = typed;
     });
     setRuleModalOpen(false);
   }
