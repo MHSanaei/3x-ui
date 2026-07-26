@@ -413,9 +413,6 @@ export default function ClientInfoModal({
                     <Tooltip title={t('copy')}>
                       <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyValue(subLink)} />
                     </Tooltip>
-                    <Tooltip title={t('download')}>
-                      <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} loading={downloadingFormat === 'standard'} disabled={downloadingFormat !== null} onClick={() => void downloadSubscription(subLink, 'standard')} />
-                    </Tooltip>
                     <Popover
                       trigger="click"
                       placement="left"
