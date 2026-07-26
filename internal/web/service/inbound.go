@@ -409,16 +409,22 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 
 // inboundAmneziaWGServer returns the AmneziaWG server block for the clients
 // page's config-download builder, or nil when the inbound isn't AmneziaWG or
-// its settings don't parse.
+// its settings don't parse. PrivateKey is redacted: GetInboundOptions is a
+// shared, admin-wide list used to fill dropdowns, not a place a live tunnel
+// secret needs to travel — the frontend's own AwgServerOptionSchema never
+// reads it, so nothing is lost by not sending it, and it shouldn't widen the
+// blast radius of a log capture, proxy cache, or browser devtools screenshot.
 func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerSettings {
 	if protocol != string(model.AmneziaWG) || strings.TrimSpace(settings) == "" {
 		return nil
 	}
 	var parsed amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
 		return nil
 	}
-	return parsed.Server
+	redacted := *parsed.Server
+	redacted.PrivateKey = ""
+	return &redacted
 }
 
 // inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by

@@ -401,6 +401,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 				return false, common.NewError("empty client ID")
 			}
 		}
+		if oldInbound.Protocol == model.AmneziaWG {
+			if hit, err := inboundSvc.checkForwardedPortsConflict(client.ForwardedPorts); err != nil {
+				return false, err
+			} else if hit != "" {
+				return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
+			}
+		}
 	}
 
 	var oldSettings map[string]any
@@ -650,6 +657,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		// existing port-forwarding spec.
 		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == "" {
 			clients[0].ForwardedPorts = old.ForwardedPorts
+		}
+	}
+	if oldInbound.Protocol == model.AmneziaWG {
+		if hit, err := inboundSvc.checkForwardedPortsConflict(clients[0].ForwardedPorts); err != nil {
+			return false, err
+		} else if hit != "" {
+			return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
 		}
 	}
 

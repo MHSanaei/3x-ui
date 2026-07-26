@@ -96,16 +96,28 @@ func interfaceNameForID(id int) string {
 }
 
 // serverAddress returns the server's own tunnel address for a subnet base,
-// e.g. "10.8.1.1/24" for base "10.8.1.0". The server holds the first usable
-// host; a base that isn't a bare network address is used as-is.
+// e.g. "10.8.1.1/24" for base "10.8.1.0" or "10.8.1.5". The server always
+// holds the first usable host of the network subnetIP/cidr actually
+// describes -- derived via netip rather than assuming subnetIP already ends
+// in ".0", so a subnetIP that isn't a bare network address (a typo, or a
+// manually edited value) can never collide with peer addresses, which are
+// allocated starting from the network's second host upward (see
+// allocateWireguardAddress). Falls back to the previous literal behavior
+// only if subnetIP/cidr doesn't parse as an IPv4 network at all -- normal
+// saves never reach that path since ValidateSubnetIPv4 already rejects it.
 func serverAddress(subnetIP string, cidr int) string {
 	if cidr <= 0 {
 		cidr = 24
 	}
-	if strings.HasSuffix(subnetIP, ".0") {
-		return strings.TrimSuffix(subnetIP, "0") + "1/" + strconv.Itoa(cidr)
+	// A /32 has no host bits at all -- "first usable host" is meaningless,
+	// and Next() would step outside the block entirely -- so a single-host
+	// base is used exactly as given, same as before this fix.
+	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%d", subnetIP, cidr))
+	if err != nil || !prefix.Addr().Is4() || cidr >= 32 {
+		return fmt.Sprintf("%s/%d", subnetIP, cidr)
 	}
-	return fmt.Sprintf("%s/%d", subnetIP, cidr)
+	host := prefix.Masked().Addr().Next()
+	return fmt.Sprintf("%s/%d", host, cidr)
 }
 
 // serverAddressV6 returns the server's own IPv6 tunnel address for a subnet
@@ -307,10 +319,24 @@ func (m *Manager) ensureLocked(inst Instance) error {
 
 	last := map[string]peerCounters{}
 	if exists {
-		last = cur.last
+		last = nextTrafficBaseline(action, cur.last)
 	}
 	m.ifaces[inst.Id] = &managed{inst: inst, structuralFP: structFP, hostRulesFP: hostRulesFP, peersFP: peersFP, last: last}
 	return nil
+}
+
+// nextTrafficBaseline decides what per-peer traffic counters ensureLocked
+// should carry into the next managed entry. Only a reload (awg syncconf)
+// preserves the kernel's own per-peer transfer counters; a full down+up
+// zeroes them. Carrying the old baseline forward after a restart would make
+// the next CollectTraffic compute a large negative delta (clamped to 0 by
+// the caller), silently discarding whatever the peers transferred since the
+// previous poll instead of just resuming the count from zero.
+func nextTrafficBaseline(action ensureAction, prev map[string]peerCounters) map[string]peerCounters {
+	if action == ensureReload {
+		return prev
+	}
+	return map[string]peerCounters{}
 }
 
 // Remove tears down and forgets the interface for an inbound id.
