@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { createBrowserRouter, type RouteObject } from 'react-router';
 
 import PanelLayout from '@/layouts/PanelLayout';
 

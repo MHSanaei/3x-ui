@@ -180,17 +180,26 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
         working-directory: frontend
-      # Known-accepted as of 2026-07-26: 2 high advisories (react-router via
-      # react-router-dom, GHSA-qwww-vcr4-c8h2; brace-expansion/minimatch via
-      # eslint-plugin-jsx-a11y, GHSA-mh99-v99m-4gvg). Neither is exploitable
-      # here -- the react-router CVE only affects the unstable RSC APIs
-      # (this app uses plain createBrowserRouter, no RSC anywhere), and the
-      # jsx-a11y chain only runs against this repo's own hardcoded lint globs,
-      # never untrusted input. Both "fixes" npm offers are downgrades (no
-      # patched release exists yet in the currently-depended-upon package
-      # line), so left as-is rather than trading a real regression for a
-      # vulnerability that doesn't apply. Re-check on a future bump in case
-      # upstream ships an actual forward fix.
+      # Known-accepted as of 2026-07-26: 1 high advisory,
+      # brace-expansion/minimatch via eslint-plugin-jsx-a11y's own pinned
+      # minimatch@^3.1.2 (GHSA-mh99-v99m-4gvg). Not exploitable here -- this
+      # chain only runs against this repo's own hardcoded lint globs, never
+      # untrusted input. The eslint-core minimatch@10.x instance of the same
+      # advisory is already fixed via the "minimatch@^10" override below
+      # (brace-expansion 5.0.8); jsx-a11y's own minimatch is pinned to an old
+      # major with no patched release in that line, and forcing it to 10.x
+      # via override breaks npm's own dependency-tree validation (a genuine
+      # incompatibility, not just an npm quirk) -- so this one can only be
+      # fixed by an eslint-plugin-jsx-a11y release bumping its own minimatch.
+      # `npm audit fix --force`'s suggestion is a downgrade to before jsx-a11y
+      # adopted the vulnerable chain at all; left as-is rather than trading a
+      # real regression for a vulnerability that doesn't apply.
+      # The other advisory this comment used to cover (react-router RSC CSRF
+      # bypass, GHSA-qwww-vcr4-c8h2) is actually fixed now: migrated off the
+      # abandoned react-router-dom (frozen at 7.18.1, pinning the vulnerable
+      # react-router 7.18.1) onto react-router 8.3.0 directly, which has the
+      # real forward fix -- not a downgrade. Re-check on a future bump in
+      # case upstream ships a real fix for the remaining advisory too.
       - name: Audit
         run: npm audit --audit-level=high
         working-directory: frontend
