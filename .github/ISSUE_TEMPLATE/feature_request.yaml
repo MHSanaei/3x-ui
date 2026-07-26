@@ -73,7 +73,6 @@ body:
         - Statistics / traffic counters
         - Database / migrations
         - Install / upgrade script
-        - Docker image
         - Multi-node (sub-nodes)
         - Telegram bot
         - Other

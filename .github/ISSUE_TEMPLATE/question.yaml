@@ -55,7 +55,6 @@ body:
       label: How did you install 3x-ui?
       options:
         - install.sh script
-        - Docker / Docker Compose
         - Manual build from source
         - Other
     validations:

@@ -148,23 +148,6 @@ systemctl restart x-ui
 
 El archivo SQLite de origen permanece intacto; elimínalo manualmente una vez que hayas verificado el nuevo backend.
 
-### Docker
-
-El comando predeterminado `docker compose up -d` sigue usando SQLite. Para ejecutarlo con el servicio PostgreSQL incluido, descomenta las dos líneas de variables de entorno `XUI_DB_*` en `docker-compose.yml` e inícialo con el perfil:
-
-```bash
-docker compose --profile postgres up -d
-```
-
-> [!NOTE]
-> Las entradas AmneziaWG necesitan `awg-quick`/`awg` y el módulo de kernel de AmneziaWG en el **host** — esto es exactamente lo que refleja la intención de diseño sin Docker descrita en la sección [En qué se diferencia este fork](#en-qué-se-diferencia-este-fork-amneziawg). Ejecutar el propio panel en Docker sigue funcionando para cualquier otro protocolo, pero una entrada AmneziaWG creada desde un panel en contenedor no tiene dónde levantar su interfaz, a menos que el contenedor obtenga acceso de red/kernel a nivel de host, lo cual anula el propósito. Si piensas usar AmneziaWG, ejecútalo de forma nativa en el host.
-
-La imagen incluye Fail2ban (habilitado de forma predeterminada) para aplicar **límites de IP** por cliente. Fail2ban banea a los infractores con `iptables`, lo que requiere la capacidad `NET_ADMIN`. `docker-compose.yml` ya la concede mediante `cap_add`; si en su lugar inicias el contenedor con `docker run`, añade tú mismo las capacidades, de lo contrario los baneos se registran pero nunca se aplican:
-
-```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
-```
-
 ## Variables de Entorno
 
 | Variable | Descripción | Predeterminado |

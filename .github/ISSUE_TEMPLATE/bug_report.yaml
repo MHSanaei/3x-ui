@@ -92,7 +92,6 @@ body:
       label: How did you install 3x-ui?
       options:
         - install.sh script
-        - Docker / Docker Compose
         - Manual build from source
         - Other (please describe in the bug body)
     validations:
@@ -120,7 +119,6 @@ body:
         - Statistics / traffic counters
         - Database / migrations
         - Install / upgrade script
-        - Docker image
         - Multi-node (sub-nodes)
         - Telegram bot
         - Other

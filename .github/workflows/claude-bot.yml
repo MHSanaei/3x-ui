@@ -117,7 +117,6 @@ jobs:
             - docs/                    extra docs (custom subscription templates)
             - install.sh, update.sh, x-ui.sh, x-ui.service.*  install/upgrade
               + systemd units
-            - Dockerfile, docker-compose.yml, DockerEntrypoint.sh, DockerInit.sh
             - windows_files/, x-ui.rc  Windows support files. (A top-level
               x-ui/ folder, if present, is gitignored local runtime data, not
               source.)
@@ -140,11 +139,8 @@ jobs:
             - SQLite -> PostgreSQL: `x-ui migrate-db --dsn "postgres://..."`, then
               set XUI_DB_TYPE/XUI_DB_DSN in /etc/default/x-ui and
               `systemctl restart x-ui`. The source SQLite file is left in place.
-            - Docker image: ghcr.io/mhsanaei/3x-ui. PostgreSQL profile:
-              `docker compose --profile postgres up -d`. Fail2ban IP-limit
-              enforcement needs NET_ADMIN + NET_RAW (compose grants them via
-              cap_add; a bare `docker run` must add
-              `--cap-add=NET_ADMIN --cap-add=NET_RAW`).
+            - This fork does not build or publish a Docker image; install is
+              always via install.sh/x-ui.sh on the host.
             - Protocols (inbound Protocol enum in internal/database/model/model.go):
               VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2 (stored
               as protocol "hysteria" with stream version 2), HTTP, SOCKS
@@ -775,7 +771,7 @@ jobs:
             - tools/openapigen generates the OpenAPI spec and frontend API types.
             - docs/ holds extra documentation.
 
-            Stack and runtime facts: Backend is Go (module github.com/mhsanaei/3x-ui/v3) with Gin and GORM; storage is SQLite by default at /etc/x-ui/x-ui.db or PostgreSQL via XUI_DB_TYPE and XUI_DB_DSN; further env vars include XUI_DB_FOLDER, XUI_DB_MAX_OPEN_CONNS, XUI_DB_MAX_IDLE_CONNS, XUI_INIT_WEB_BASE_PATH, XUI_ENABLE_FAIL2BAN; the installer writes env to /etc/default/x-ui; SQLite to PostgreSQL migration is x-ui migrate-db --dsn followed by a service restart; install uses install.sh and the x-ui menu, generating random initial credentials; Docker image is ghcr.io/mhsanaei/3x-ui and Fail2ban IP-limit enforcement needs NET_ADMIN and NET_RAW; Windows is a supported platform. Do not hardcode a version: for version or is-this-fixed questions, check the latest release and recent commits or closed PRs with gh.
+            Stack and runtime facts: Backend is Go (module github.com/mhsanaei/3x-ui/v3) with Gin and GORM; storage is SQLite by default at /etc/x-ui/x-ui.db or PostgreSQL via XUI_DB_TYPE and XUI_DB_DSN; further env vars include XUI_DB_FOLDER, XUI_DB_MAX_OPEN_CONNS, XUI_DB_MAX_IDLE_CONNS, XUI_INIT_WEB_BASE_PATH, XUI_ENABLE_FAIL2BAN; the installer writes env to /etc/default/x-ui; SQLite to PostgreSQL migration is x-ui migrate-db --dsn followed by a service restart; install uses install.sh and the x-ui menu, generating random initial credentials; this fork does not build or publish a Docker image; Fail2ban IP-limit enforcement needs NET_ADMIN and NET_RAW; this fork's release CI targets Linux only (amd64/386/arm64/armv5/armv6/armv7/s390x) and does not publish a Windows build, unlike upstream. Do not hardcode a version: for version or is-this-fixed questions, check the latest release and recent commits or closed PRs with gh.
 
             Style: professional, courteous, and matter-of-fact; no emoji, no exclamation marks, no filler; lead with the answer in the first sentence; use fenced code blocks for commands and backtick formatting for paths and setting names; distinguish what you confirmed in the source (name the file) from what you infer; never promise fixes, timelines, or releases. Ground every claim in the code or the README and wiki; do not invent features, paths, flags, or commands, and do not stop at the first plausible match. Token cost is not a concern, so investigate as deeply as the question needs.
 

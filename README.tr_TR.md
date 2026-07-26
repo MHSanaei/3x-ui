@@ -148,23 +148,6 @@ systemctl restart x-ui
 
 Kaynak SQLite dosyasına dokunulmaz; yeni veritabanının düzgün çalıştığını doğruladıktan sonra eski SQLite dosyasını manuel olarak silebilirsiniz.
 
-### Docker
-
-Varsayılan `docker compose up -d` komutu SQLite kullanmaya devam eder. Birlikte paketlenmiş PostgreSQL servisi ile çalıştırmak için, `docker-compose.yml` dosyasındaki iki `XUI_DB_*` değişken satırının yorumunu kaldırın ve profille başlatın:
-
-```bash
-docker compose --profile postgres up -d
-```
-
-> [!NOTE]
-> AmneziaWG gelen bağlantıları, **host** üzerinde `awg-quick`/`awg` ve AmneziaWG çekirdek moduline ihtiyaç duyar — bu tam olarak [Bu fork'ta ne farklı](#bu-forkta-ne-farklı-amneziawg) bölümünde açıklanan Docker'sız tasarım amacının yansımasıdır. Panelin kendisini Docker içinde çalıştırmak diğer tüm protokoller için işlemeye devam eder, ancak konteynerize edilmiş bir panelden oluşturulan bir AmneziaWG gelen bağlantısının, konteyner host düzeyinde ağ/çekirdek erişimi almadıkça arabirimini açacak bir yeri yoktur ki bu da temel amacı geçersiz kılar. AmneziaWG kullanmayı planlıyorsanız, host üzerinde yerel (native) olarak çalıştırın.
-
-Docker imajı, kullanıcı başına **IP limitlerini** zorunlu kılmak için Fail2ban ile (varsayılan olarak etkindir) paketlenmiştir. Fail2ban, ihlalcileri `iptables` ile engeller ve bunun için `NET_ADMIN` yetkisine ihtiyaç duyar. `docker-compose.yml` bunu zaten `cap_add` üzerinden vermektedir; ancak konteyneri bunun yerine `docker run` ile başlatırsanız bu yetkileri kendiniz eklemelisiniz, aksi takdirde yasaklamalar günlüğe kaydedilir ancak uygulanmaz:
-
-```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
-```
-
 ## Ortam Değişkenleri (Environment Variables)
 
 | Değişken | Açıklama | Varsayılan |

@@ -148,23 +148,6 @@ systemctl restart x-ui
 
 源 SQLite 文件保持不变；在确认新后端正常工作后，请手动删除它。
 
-### Docker
-
-默认的 `docker compose up -d` 仍使用 SQLite。若要使用捆绑的 PostgreSQL 服务运行，请取消注释 `docker-compose.yml` 中的两行 `XUI_DB_*` 环境变量，并使用该 profile 启动：
-
-```bash
-docker compose --profile postgres up -d
-```
-
-> [!NOTE]
-> AmneziaWG 入站需要**宿主机**上的 `awg-quick`/`awg` 和 AmneziaWG 内核模块——这正是[本分支的不同之处](#本分支的不同之处amneziawg)一节中所述的"不使用 Docker"设计初衷所在。将面板本身运行在 Docker 中对其他任何协议仍然有效，但由运行在容器中的面板创建的 AmneziaWG 入站将无法启动其接口，除非该容器获得宿主机级别的网络/内核访问权限，而这会违背整体设计初衷。如果您打算使用 AmneziaWG，请在宿主机上原生运行面板。
-
-该镜像捆绑了 Fail2ban（默认启用），用于强制执行按客户端的 **IP 限制**。Fail2ban 使用 `iptables` 封禁违规者，这需要 `NET_ADMIN` 权限。`docker-compose.yml` 已通过 `cap_add` 授予该权限；如果您改用 `docker run` 启动容器，请自行添加这些权限，否则封禁只会被记录而永远不会生效：
-
-```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
-```
-
 ## 环境变量
 
 | 变量 | 说明 | 默认值 |

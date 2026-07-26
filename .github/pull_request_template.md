@@ -28,7 +28,6 @@ Link related issues here: "Closes #123", "Refs #456".
 - [ ] Statistics / traffic counters
 - [ ] Database / migrations
 - [ ] Install / upgrade script
-- [ ] Docker image
 - [ ] Multi-node (sub-nodes)
 - [ ] Telegram bot
 

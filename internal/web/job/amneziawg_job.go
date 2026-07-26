@@ -16,7 +16,7 @@ type AmneziaWGJob struct {
 	inboundService service.InboundService
 	// warnedMissing tracks whether the "awg/awg-quick not found" warning has
 	// already been logged, so a host without the AmneziaWG kernel module
-	// (the Docker image, RHEL, Arch, or a failed install.sh PPA step) logs it
+	// (RHEL, Arch, a container, or a failed install.sh PPA step) logs it
 	// once instead of every @every-10s tick forever.
 	warnedMissing bool
 }

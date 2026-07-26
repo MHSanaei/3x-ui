@@ -1565,9 +1565,8 @@ EOF
 # setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
 # by invoking the freshly installed x-ui CLI. IP Limit is load-bearing on
 # fail2ban (without it the panel disables the limitIp field and zeroes existing
-# limits), so a fresh install should make it work out of the box, just like the
-# Docker image already does. Non-fatal by design: a fail2ban failure must never
-# abort the panel install.
+# limits), so a fresh install should make it work out of the box. Non-fatal by
+# design: a fail2ban failure must never abort the panel install.
 setup_fail2ban() {
     if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
         echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
