@@ -90,6 +90,23 @@ func parsePortNumber(s string) (int, bool) {
 	return n, true
 }
 
+// ForwardedPortsInclude reports whether port is covered by any spec in a raw
+// ForwardedPorts string (a single port or an inclusive range). For callers
+// outside this package that need to check a spec against something other
+// than rendering it into iptables rules -- e.g. save-time validation that a
+// client isn't about to hijack the panel's own port or another inbound's
+// port (portForwardLines has no -d restriction, so a forwarded port that
+// collides with one already in use on the host silently redirects it to the
+// tunnel client instead).
+func ForwardedPortsInclude(forwardedPorts string, port int) bool {
+	for _, spec := range parseForwardedPorts(forwardedPorts) {
+		if port >= spec.start && port <= spec.end {
+			return true
+		}
+	}
+	return false
+}
+
 // portForwardComment returns a short, shell-safe iptables comment tag for one
 // peer's forwarded-port rules, so PostDown removes exactly what PostUp added
 // regardless of ordering. Derived from a hash of the peer's email rather than

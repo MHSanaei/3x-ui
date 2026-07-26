@@ -201,10 +201,49 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		return fmt.Errorf("amneziawg: ipv6ExternalInterface: %w", err)
 	}
 
+	for _, c := range parsed.Clients {
+		if hit, err := s.checkForwardedPortsConflict(c.ForwardedPorts); err != nil {
+			return err
+		} else if hit != "" {
+			return fmt.Errorf("amneziawg: client %q forwardedPorts collides with %s", c.Email, hit)
+		}
+	}
+
 	bs, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return err
 	}
 	inbound.Settings = string(bs)
 	return nil
+}
+
+// checkForwardedPortsConflict reports whether a client's ForwardedPorts spec
+// covers the panel's own web port or any enabled inbound's own listen port.
+// portForwardLines has no destination restriction and nothing else checks
+// this, so a collision here would silently DNAT traffic meant for the panel
+// or another protocol straight to the tunnel client instead. Returns a
+// human-readable description of the first collision found, or "" when there
+// is none.
+func (s *InboundService) checkForwardedPortsConflict(forwardedPorts string) (string, error) {
+	if forwardedPorts == "" {
+		return "", nil
+	}
+	if webPort, err := (&SettingService{}).GetPort(); err == nil && amneziawg.ForwardedPortsInclude(forwardedPorts, webPort) {
+		return fmt.Sprintf("the panel's own port (%d)", webPort), nil
+	}
+	var inbounds []*model.Inbound
+	if err := database.GetDB().Model(model.Inbound{}).Where("enable = ?", true).Find(&inbounds).Error; err != nil {
+		return "", err
+	}
+	for _, ib := range inbounds {
+		if !amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+			continue
+		}
+		name := ib.Remark
+		if name == "" {
+			name = ib.Tag
+		}
+		return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port), nil
+	}
+	return "", nil
 }

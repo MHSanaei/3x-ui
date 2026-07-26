@@ -106,8 +106,10 @@ func TestServerAddress(t *testing.T) {
 		want   string
 	}{
 		{"10.8.1.0", 24, "10.8.1.1/24"},
-		{"10.8.1.0", 0, "10.8.1.1/24"}, // cidr <= 0 defaults to /24
-		{"192.168.5.10", 32, "192.168.5.10/32"},
+		{"10.8.1.0", 0, "10.8.1.1/24"},  // cidr <= 0 defaults to /24
+		{"10.8.1.5", 24, "10.8.1.1/24"}, // non-network base: must not collide with peer allocation starting at .2
+		{"10.8.1.254", 24, "10.8.1.1/24"},
+		{"192.168.5.10", 32, "192.168.5.10/32"}, // /32 has no host bits: used as-is
 	}
 	for _, c := range cases {
 		if got := serverAddress(c.subnet, c.cidr); got != c.want {
@@ -222,6 +224,17 @@ func TestEnsureActionFor(t *testing.T) {
 				t.Errorf("ensureActionFor() = %v, want %v", got, c.want)
 			}
 		})
+	}
+}
+
+func TestNextTrafficBaseline(t *testing.T) {
+	prev := map[string]peerCounters{"pubA": {rx: 100, tx: 200}}
+
+	if got := nextTrafficBaseline(ensureReload, prev); len(got) != 1 || got["pubA"] != prev["pubA"] {
+		t.Errorf("a reload must preserve the previous baseline (syncconf never resets kernel counters), got %v", got)
+	}
+	if got := nextTrafficBaseline(ensureRestart, prev); len(got) != 0 {
+		t.Errorf("a restart must reset the baseline to empty (awg-quick down+up zeroes kernel counters), got %v", got)
 	}
 }
 
