@@ -69,13 +69,17 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, v4Base)
+			// allowWidening=false: unlike WireGuard's Xray-native inbound,
+			// AmneziaWG's kernel interface Address is exactly the configured
+			// subnet, so an address allocated outside it would be silently
+			// unroutable. Exhaustion here must fail loudly instead.
+			addr, err := allocateWireguardAddress(used, v4Base, false)
 			if err != nil {
 				return err
 			}
 			allowed := []string{addr}
 			if v6Base != "" {
-				addr6, err := allocateWireguardAddress(used, v6Base)
+				addr6, err := allocateWireguardAddress(used, v6Base, false)
 				if err != nil {
 					return err
 				}

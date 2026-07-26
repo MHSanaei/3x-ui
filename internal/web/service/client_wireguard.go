@@ -52,7 +52,16 @@ const wireguardPoolFloorBits = 16
 // (suffixed /32 for an IPv4 base, /128 for IPv6) that is not already present
 // in used. The server holds the first host (.1 / ::1), so allocation starts
 // at the second host (.2 / ::2).
-func allocateWireguardAddress(used []string, base string) (string, error) {
+//
+// allowWidening controls what happens when base's own pool is exhausted:
+// WireGuard's own Xray-native inbound doesn't tie a client's AllowedIPs to a
+// strict kernel interface subnet, so widening to the containing /16 (and
+// retrying there) still produces a routable address -- pass true for that
+// caller. AmneziaWG must pass false: its kernel interface's own Address is
+// exactly the configured subnet, so a peer address allocated from outside it
+// would be silently unroutable once the pool fills up. Exhaustion there
+// fails loudly instead of handing out a broken address (PR #6105 Finding 12).
+func allocateWireguardAddress(used []string, base string, allowWidening bool) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase
 	}
@@ -71,7 +80,7 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 		}
 	}
 	scopes := []netip.Prefix{prefix}
-	if prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
+	if allowWidening && prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
 		if wider, wErr := prefix.Addr().Prefix(wireguardPoolFloorBits); wErr == nil {
 			scopes = append(scopes, wider)
 		}
@@ -158,7 +167,7 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, base)
+			addr, err := allocateWireguardAddress(used, base, true)
 			if err != nil {
 				return err
 			}
