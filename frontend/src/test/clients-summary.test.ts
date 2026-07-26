@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { computeClientsSummary, pickClientsSummary } from '@/hooks/useClients';
-import type { ClientTraffic } from '@/schemas/client';
-import type { ClientsSummary } from '@/schemas/client';
+import type { ClientTraffic, ClientsSummary } from '@/schemas/client';
 
 // Parity with web/service/client.go buildClientsSummary: the same client must
 // land in the same bucket whether the count comes from the server (list fetch)
@@ -68,9 +67,6 @@ describe('pickClientsSummary', () => {
   };
 
   it('keeps the server summary when the snapshot is short of the server total (#6102)', () => {
-    // Only 58 of 67 clients have a client_traffics row (e.g. a client
-    // detached from every inbound but not deleted) — computeClientsSummary
-    // would silently undercount every bucket if trusted here.
     const shortSnapshot: Row[] = Array.from({ length: 58 }, (_, i) => row({ email: `c${i}@x`, enable: true }));
     const s = pickClientsSummary(serverSummary, shortSnapshot, new Set(), 3 * DAY, 1 * GB);
     expect(s).toEqual(serverSummary);
