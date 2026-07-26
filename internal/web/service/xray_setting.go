@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -16,6 +17,13 @@ import (
 // It handles validation and storage of Xray template configurations.
 type XraySettingService struct {
 	SettingService
+
+	// geodataMu/geodataCache back GetGeodataCategories' in-memory cache (see
+	// xray_setting_geodata.go), keyed by the (name, size, modTime)
+	// fingerprint of the geosite*/geoip*.dat files currently present in
+	// config.GetBinFolderPath().
+	geodataMu    sync.Mutex
+	geodataCache *geodataCategoryCache
 }
 
 const (

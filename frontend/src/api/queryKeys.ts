@@ -37,5 +37,6 @@ export const keys = {
     root: () => ['xray'] as const,
     config: () => ['xray', 'config'] as const,
     outboundsTraffic: () => ['xray', 'outboundsTraffic'] as const,
+    geodataCategories: () => ['xray', 'geodataCategories'] as const,
   },
 } as const;
