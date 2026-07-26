@@ -10451,6 +10451,49 @@
         }
       }
     },
+    "/panel/api/xray/getGeodataCategories": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Return every geosite/geoip category found in the .dat files currently present in the Xray bin folder (including custom files added via the Geodata auto-update feature), formatted as ready-to-use routing rule values, e.g. \"geosite:youtube\" or \"ext:geosite_roscom.dat:some-code\".",
+        "operationId": "get_panel_api_xray_getGeodataCategories",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "domain": [
+                      "geosite:cn",
+                      "geosite:youtube"
+                    ],
+                    "ip": [
+                      "geoip:cn",
+                      "geoip:private"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/update": {
       "post": {
         "tags": [

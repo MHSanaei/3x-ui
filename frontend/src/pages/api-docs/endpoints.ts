@@ -1298,6 +1298,12 @@ export const sections: readonly Section[] = [
         summary: 'Return the most recent Xray process stdout/stderr output. Useful to check for startup errors or runtime warnings.',
       },
       {
+        method: 'GET',
+        path: '/panel/api/xray/getGeodataCategories',
+        summary: 'Return every geosite/geoip category found in the .dat files currently present in the Xray bin folder (including custom files added via the Geodata auto-update feature), formatted as ready-to-use routing rule values, e.g. "geosite:youtube" or "ext:geosite_roscom.dat:some-code".',
+        response: '{\n  "success": true,\n  "obj": {\n    "domain": ["geosite:cn", "geosite:youtube"],\n    "ip": ["geoip:cn", "geoip:private"]\n  }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/xray/update',
         summary: 'Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.',

@@ -12,6 +12,9 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
+export const geodataFileKindSchema = z.number().int();
+export type geodataFileKind = z.infer<typeof geodataFileKindSchema>;
+
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
