@@ -176,6 +176,77 @@ func TestHub_ShouldThrottle_DistinctTypesIndependent(t *testing.T) {
 	}
 }
 
+func TestHub_BroadcastUnthrottled_DeliversDespiteHotThrottleWindow(t *testing.T) {
+	h := NewHub()
+	defer h.Stop()
+	go h.Run()
+
+	c := NewClient("c1")
+	h.Register(c)
+	waitClientCount(t, h, 1)
+
+	// Consume the throttle window for MessageTypeTraffic, as
+	// TestHub_ShouldThrottle already does directly.
+	if h.shouldThrottle(MessageTypeTraffic) {
+		t.Fatal("first call should not throttle")
+	}
+	if !h.shouldThrottle(MessageTypeTraffic) {
+		t.Fatal("second immediate call should throttle -- window not hot as expected")
+	}
+
+	h.BroadcastUnthrottled(MessageTypeTraffic, map[string]string{"k": "v"})
+
+	select {
+	case raw := <-c.Send:
+		var m Message
+		if err := json.Unmarshal(raw, &m); err != nil {
+			t.Fatalf("payload is not valid JSON: %v\n%s", err, raw)
+		}
+		if m.Type != MessageTypeTraffic {
+			t.Fatalf("Type = %q, want %q", m.Type, MessageTypeTraffic)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("BroadcastUnthrottled should deliver even with a hot throttle window")
+	}
+}
+
+func TestHub_BroadcastUnthrottled_DropsWhenNoClients(t *testing.T) {
+	h := NewHub()
+	defer h.Stop()
+	go h.Run()
+
+	h.BroadcastUnthrottled(MessageTypeTraffic, "payload")
+
+	select {
+	case <-h.broadcast:
+		t.Fatal("BroadcastUnthrottled should drop when client count is zero")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestHub_BroadcastUnthrottled_DropsNilPayload(t *testing.T) {
+	h := NewHub()
+	defer h.Stop()
+	go h.Run()
+
+	c := NewClient("c1")
+	h.Register(c)
+	waitClientCount(t, h, 1)
+
+	h.BroadcastUnthrottled(MessageTypeTraffic, nil)
+
+	select {
+	case <-c.Send:
+		t.Fatal("nil payload should be dropped, not delivered")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestHub_BroadcastUnthrottled_NilReceiverDoesNotPanic(t *testing.T) {
+	var h *Hub
+	h.BroadcastUnthrottled(MessageTypeTraffic, "anything")
+}
+
 func TestTrySend_SucceedsWithRoom(t *testing.T) {
 	c := &Client{ID: "c", Send: make(chan []byte, 1)}
 	if !trySend(c, []byte("hi")) {

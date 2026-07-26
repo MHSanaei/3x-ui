@@ -32,7 +32,7 @@ import {
   type BulkDetachResult,
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
-import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { TRAFFIC_POLL_INTERVAL_S, SIDECAR_TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
 export type ExternalLinkInput = { kind: 'link' | 'subscription'; value: string; remark: string };
@@ -271,6 +271,18 @@ export function useClients() {
   // the server's authoritative total for the headline count.
   const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
   const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
+  // AmneziaWG/MTProto run entirely outside xray-core, so their live speed
+  // never arrives via the xray-native clientTraffics broadcast below -- each
+  // sidecar job broadcasts its own ~10s snapshot under protocol-named keys
+  // instead (see internal/web/job/sidecar_traffic.go). Kept as two
+  // independent, protocol-only maps rather than folding into clientSpeed: a
+  // client's email can't move between protocols, but this hook (unlike
+  // useInbounds.ts) has no cheap per-email protocol lookup, so a shared map's
+  // full-replace could only be made safe by tagging ownership per entry --
+  // two plain maps are simpler and just as correct, since each is written by
+  // exactly one job.
+  const [amneziawgClientSpeed, setAmneziawgClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
+  const [mtprotoClientSpeed, setMtprotoClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
   const summary = useMemo<ClientsSummary>(() => {
     const serverSummary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
     if (allClientStats.length === 0) return serverSummary;
@@ -553,6 +565,8 @@ export function useClients() {
     const p = payload as {
       onlineClients?: string[];
       clientTraffics?: { email: string; up: number; down: number }[];
+      amneziawgClientTraffics?: { email: string; up: number; down: number }[];
+      mtprotoClientTraffics?: { email: string; up: number; down: number }[];
     };
     if (Array.isArray(p.onlineClients)) {
       queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
@@ -567,6 +581,28 @@ export function useClients() {
         };
       }
       setClientSpeed(next);
+    }
+    // Mirrors the block above exactly, but as two independent, protocol-only
+    // maps (see the amneziawgClientSpeed/mtprotoClientSpeed declaration).
+    const applySidecarClientTraffics = (
+      traffics: { email: string; up: number; down: number }[],
+      setSpeed: (next: Record<string, ClientSpeedEntry>) => void,
+    ) => {
+      const next: Record<string, ClientSpeedEntry> = {};
+      for (const ct of traffics) {
+        if (!ct || !ct.email) continue;
+        next[ct.email] = {
+          up: (ct.up || 0) / SIDECAR_TRAFFIC_POLL_INTERVAL_S,
+          down: (ct.down || 0) / SIDECAR_TRAFFIC_POLL_INTERVAL_S,
+        };
+      }
+      setSpeed(next);
+    };
+    if (Array.isArray(p.amneziawgClientTraffics)) {
+      applySidecarClientTraffics(p.amneziawgClientTraffics, setAmneziawgClientSpeed);
+    }
+    if (Array.isArray(p.mtprotoClientTraffics)) {
+      applySidecarClientTraffics(p.mtprotoClientTraffics, setMtprotoClientSpeed);
     }
   }, [queryClient]);
 
@@ -605,6 +641,16 @@ export function useClients() {
   useEffect(() => {
     queryRef.current = query;
   }, [query]);
+
+  // AmneziaWG/MTProto speed lives in its own state (see above) and is merged
+  // in here only for consumers -- a client's email is always exactly one
+  // protocol, so this can never overwrite a real xray-native entry.
+  const clientSpeedOut = useMemo(() => {
+    if (Object.keys(amneziawgClientSpeed).length === 0 && Object.keys(mtprotoClientSpeed).length === 0) {
+      return clientSpeed;
+    }
+    return { ...clientSpeed, ...amneziawgClientSpeed, ...mtprotoClientSpeed };
+  }, [clientSpeed, amneziawgClientSpeed, mtprotoClientSpeed]);
 
   return {
     clients,
@@ -650,7 +696,7 @@ export function useClients() {
     exportClients,
     importClients,
     setEnable,
-    clientSpeed,
+    clientSpeed: clientSpeedOut,
     applyTrafficEvent,
     applyClientStatsEvent,
   };

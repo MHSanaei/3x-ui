@@ -2,6 +2,7 @@ package job
 
 import (
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -83,6 +84,10 @@ func (j *AmneziaWGJob) Run() {
 			logger.Warning("amneziawg job: add traffic failed:", err)
 		}
 	}
+
+	// Live speed: AmneziaWG never runs inside xray-core, so XrayTrafficJob's
+	// own 5s broadcast never mentions these tags. See sidecar_traffic.go.
+	broadcastSidecarTraffic(string(model.AmneziaWG), traffics, clientTraffics)
 
 	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
 }

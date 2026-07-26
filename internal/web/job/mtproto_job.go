@@ -1,6 +1,7 @@
 package job
 
 import (
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -76,6 +77,13 @@ func (j *MtprotoJob) Run() {
 			logger.Warning("mtproto job: add traffic failed:", err)
 		}
 	}
+
+	// Live speed: mtproto's mtg sidecar never runs inside xray-core, so
+	// XrayTrafficJob's own 5s broadcast never mentions these tags. traffics
+	// here already excludes routed-through-xray inbound tags (existing
+	// logic above, for cumulative-totals reasons) -- reused as-is, not
+	// recomputed. See sidecar_traffic.go.
+	broadcastSidecarTraffic(string(model.MTProto), traffics, clientTraffics)
 
 	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
 }

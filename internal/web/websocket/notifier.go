@@ -45,6 +45,19 @@ func BroadcastTraffic(traffic any) {
 	}
 }
 
+// BroadcastSidecarTraffic broadcasts an AmneziaWG/MTProto traffic delta under
+// the same "traffic" message type BroadcastTraffic uses, but bypasses the
+// hub's per-type throttle (see Hub.BroadcastUnthrottled) so the two sidecar
+// jobs' independent ~10s broadcasts can never starve each other. The payload
+// carries protocol-namespaced keys (see internal/web/job/sidecar_traffic.go),
+// so no new frontend message-type wiring is needed -- applyTrafficEvent
+// already receives every "traffic" message.
+func BroadcastSidecarTraffic(traffic any) {
+	if hub := GetHub(); hub != nil {
+		hub.BroadcastUnthrottled(MessageTypeTraffic, traffic)
+	}
+}
+
 // BroadcastClientStats broadcasts absolute per-client traffic counters. Small
 // installs send the complete row set each cycle (payload key snapshot=true);
 // above the traffic job's snapshot threshold only the rows active in the

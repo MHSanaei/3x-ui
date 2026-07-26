@@ -13,7 +13,7 @@ import { OnlinesSchema, OnlineByNodeSchema, ActiveInboundsByNodeSchema } from '@
 import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 import type { InboundSpeedEntry } from './list/types';
-import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { TRAFFIC_POLL_INTERVAL_S, SIDECAR_TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 export interface SubSettings {
   enable: boolean;
@@ -205,6 +205,16 @@ export function useInbounds() {
   useEffect(() => {
     inboundSpeedCache = { at: Date.now(), data: inboundSpeed };
   }, [inboundSpeed]);
+
+  // AmneziaWG/MTProto run entirely outside xray-core, so their live speed
+  // never arrives via the xray-native traffics/nodeTraffics broadcast above
+  // -- each sidecar job broadcasts its own ~10s snapshot under protocol-named
+  // keys instead (see internal/web/job/sidecar_traffic.go). Tracked in their
+  // own state, independent from inboundSpeed, and merged in only at read
+  // time (inboundSpeedOut below) -- a given inbound is exactly one protocol,
+  // so the maps never need to agree on the same id.
+  const [amneziawgInboundSpeed, setAmneziawgInboundSpeed] = useState<Record<number, InboundSpeedEntry>>({});
+  const [mtprotoInboundSpeed, setMtprotoInboundSpeed] = useState<Record<number, InboundSpeedEntry>>({});
 
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const onlineClientsRef = useRef<string[]>([]);
@@ -413,6 +423,8 @@ export function useInbounds() {
       const p = payload as {
         traffics?: TrafficDelta[];
         nodeTraffics?: TrafficDelta[];
+        amneziawgTraffics?: TrafficDelta[];
+        mtprotoTraffics?: TrafficDelta[];
         onlineClients?: string[];
         onlineByGuid?: Record<string, string[]>;
         activeInbounds?: Record<string, string[]>;
@@ -465,6 +477,48 @@ export function useInbounds() {
       };
       if (Array.isArray(p.traffics)) applyTraffics(p.traffics, (ib) => ib.nodeId == null);
       if (Array.isArray(p.nodeTraffics)) applyTraffics(p.nodeTraffics, (ib) => ib.nodeId != null);
+
+      // AmneziaWG/MTProto never appear in traffics/nodeTraffics above (they
+      // don't run inside xray-core), so each broadcasts its own ~10s
+      // snapshot under its own protocol-named keys instead (see
+      // internal/web/job/sidecar_traffic.go). Sidecar inbounds are always
+      // local-only (isNodeEligibleProtocol excludes both server-side), so
+      // no local/node scope split is needed here.
+      const applySidecarInboundTraffics = (
+        traffics: TrafficDelta[],
+        protocol: string,
+        setSpeed: (updater: (prev: Record<number, InboundSpeedEntry>) => Record<number, InboundSpeedEntry>) => void,
+      ) => {
+        const byTag = new Map<string, TrafficDelta>();
+        for (const tr of traffics) {
+          if (!tr || typeof tr.Tag !== 'string') continue;
+          if (tr.IsInbound === false) continue;
+          byTag.set(tr.Tag, tr);
+        }
+        setSpeed((prev) => {
+          const next = { ...prev };
+          for (const ib of dbInboundsRef.current) {
+            if (ib.protocol !== protocol) continue;
+            const delta = byTag.get(ib.tag);
+            if (delta) {
+              next[ib.id] = {
+                up: (delta.Up || 0) / SIDECAR_TRAFFIC_POLL_INTERVAL_S,
+                down: (delta.Down || 0) / SIDECAR_TRAFFIC_POLL_INTERVAL_S,
+              };
+            } else {
+              delete next[ib.id];
+            }
+          }
+          return next;
+        });
+      };
+      if (Array.isArray(p.amneziawgTraffics)) {
+        applySidecarInboundTraffics(p.amneziawgTraffics, Protocols.AMNEZIAWG, setAmneziawgInboundSpeed);
+      }
+      if (Array.isArray(p.mtprotoTraffics)) {
+        applySidecarInboundTraffics(p.mtprotoTraffics, Protocols.MTPROTO, setMtprotoInboundSpeed);
+      }
+
       rebuildClientCount();
     },
     [rebuildClientCount],
@@ -542,6 +596,16 @@ export function useInbounds() {
     return { up, down };
   }, [dbInbounds]);
 
+  // AmneziaWG/MTProto speed lives in its own state (see above) and is merged
+  // in here only for consumers -- a given inbound is exactly one protocol,
+  // so this can never overwrite a real xray-native entry.
+  const inboundSpeedOut = useMemo(() => {
+    if (Object.keys(amneziawgInboundSpeed).length === 0 && Object.keys(mtprotoInboundSpeed).length === 0) {
+      return inboundSpeed;
+    }
+    return { ...inboundSpeed, ...amneziawgInboundSpeed, ...mtprotoInboundSpeed };
+  }, [inboundSpeed, amneziawgInboundSpeed, mtprotoInboundSpeed]);
+
   return {
     fetched,
     fetchError,
@@ -549,7 +613,7 @@ export function useInbounds() {
     clientCount,
     onlineClients,
     lastOnlineMap,
-    inboundSpeed,
+    inboundSpeed: inboundSpeedOut,
     statsVersion,
     totals,
     expireDiff,
