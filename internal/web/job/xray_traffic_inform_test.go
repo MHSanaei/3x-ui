@@ -10,9 +10,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// stallingListener accepts connections, reads whatever is sent and then never
-// answers and never closes — the receiver shape that used to hold the traffic
-// job open indefinitely (#6115).
 func stallingListener(t *testing.T) (addr string, release func()) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -65,7 +62,6 @@ func TestExternalInformClient_StalledReceiverTimesOut(t *testing.T) {
 	if !errors.Is(err, fasthttp.ErrTimeout) {
 		t.Errorf("want a timeout error, got %v", err)
 	}
-	// The whole point is that the call cannot outlast the 5s poll cadence.
 	if elapsed > externalInformTimeout+2*time.Second {
 		t.Errorf("call took %v, must be bounded by %v", elapsed, externalInformTimeout)
 	}
@@ -80,8 +76,6 @@ func TestExternalInformClient_HasDeadlines(t *testing.T) {
 	}
 }
 
-// An idle panel posts nothing, which keeps a misbehaving receiver out of the
-// job's path entirely for most ticks.
 func TestInformSkippedWhenNothingToReport(t *testing.T) {
 	j := &XrayTrafficJob{}
 	done := make(chan struct{})

@@ -29,19 +29,8 @@ type XrayTrafficJob struct {
 // refetch for the rest.
 const clientStatsSnapshotMaxClients = 5000
 
-// externalInformTimeout bounds the traffic-notify POST. Run() is scheduled
-// every 5s under cron.SkipIfStillRunning, so an unbounded call to a receiver
-// that accepts the connection and then stalls does not merely delay one
-// notification: it holds the job, and every following tick is skipped for as
-// long as the stall lasts. AddTraffic — quota enforcement, auto-renew — and
-// the online/websocket work all sit in that same tick (#6115).
 const externalInformTimeout = 3 * time.Second
 
-// externalInformClient is kept separate from fasthttp's shared default client
-// so this endpoint's timeouts and connection handling cannot be influenced by,
-// or influence, any other caller. Idempotent-call retries stay off on purpose:
-// the payload carries per-tick deltas, so an attempt that reached the receiver
-// but failed on the response leg would be counted twice if it were resent.
 var externalInformClient = &fasthttp.Client{
 	ReadTimeout:         externalInformTimeout,
 	WriteTimeout:        externalInformTimeout,

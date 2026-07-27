@@ -7,10 +7,6 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-// The encoder's own parser reads every one of these back as a string, so a
-// round-trip through it proves nothing. What matters is the emitted text: a
-// plain scalar that the YAML resolution rules turn into a number, bool, null
-// or date is what breaks a Clash core, so those must carry quotes.
 func TestAmbiguousScalarsAreQuoted(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -54,7 +50,6 @@ func TestAmbiguousScalarsAreQuoted(t *testing.T) {
 			if !tt.mustQuote && quoted {
 				t.Errorf("%q needs no quoting, got %q", tt.value, got)
 			}
-			// Whatever the quoting decision, the document must still parse.
 			var decoded map[string]any
 			if err := yaml.Unmarshal(out, &decoded); err != nil {
 				t.Fatalf("output must stay parseable: %v\n%s", err, out)
@@ -63,8 +58,6 @@ func TestAmbiguousScalarsAreQuoted(t *testing.T) {
 	}
 }
 
-// The value in the report: unquoted, YAML reads 2351e1 as 23510, mihomo hex-
-// decodes an odd-length "23510" and the provider drops to zero nodes (#6104).
 func TestClashShortIDIsQuotedInOutput(t *testing.T) {
 	out, err := marshalClashYAML(map[string]any{
 		"proxies": []any{map[string]any{
@@ -80,8 +73,6 @@ func TestClashShortIDIsQuotedInOutput(t *testing.T) {
 	}
 }
 
-// A password or pre-shared key of the same shape reaches the output the same
-// way, so the guard is not specific to short-id.
 func TestAmbiguousPasswordIsQuoted(t *testing.T) {
 	out, err := marshalClashYAML(map[string]any{
 		"proxies": []any{map[string]any{
@@ -101,8 +92,6 @@ func TestAmbiguousPasswordIsQuoted(t *testing.T) {
 	}
 }
 
-// Values that are unambiguous must not pick up noise quoting, so the emitted
-// document stays byte-identical to what the encoder produced before.
 func TestUnambiguousScalarsAreUnchanged(t *testing.T) {
 	config := map[string]any{
 		"port":     7890,
@@ -125,7 +114,6 @@ func TestUnambiguousScalarsAreUnchanged(t *testing.T) {
 	}
 }
 
-// A quote inside the value must not terminate the scalar.
 func TestQuotedScalarEscapesQuotes(t *testing.T) {
 	out, err := marshalClashYAML(map[string]any{"password": "1e2'3"})
 	if err != nil {

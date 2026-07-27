@@ -28,9 +28,6 @@ func seedVlessInbound(t *testing.T, tag string, port int, clients []model.Client
 	}
 }
 
-// ClientRecord.Enable carries gorm:"default:true", so a false on insert is
-// replaced by the default. Production disables through an UPDATE
-// (disableInvalidClients); do the same here.
 func disableClients(t *testing.T, emails ...string) {
 	t.Helper()
 	if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -62,9 +59,6 @@ func emittedClients(t *testing.T, tag string) (any, bool) {
 	return nil, false
 }
 
-// An inbound whose clients are all filtered out must hand xray-core an empty
-// array. It used to emit "clients": null, which the panel treats as invalid
-// data elsewhere and coerces to [] at startup (#6117).
 func TestGetXrayConfig_EmptyClientListIsArrayNotNull(t *testing.T) {
 	seedVlessInbound(t, "vless-empty", 43101, []model.Client{
 		{Email: "gone@x", ID: "11111111-1111-1111-1111-111111111111", Enable: true},
@@ -87,8 +81,6 @@ func TestGetXrayConfig_EmptyClientListIsArrayNotNull(t *testing.T) {
 	}
 }
 
-// The disabled/depleted filter must keep working — an empty array is only
-// correct because those clients are genuinely excluded.
 func TestGetXrayConfig_EnabledClientsStillEmitted(t *testing.T) {
 	seedVlessInbound(t, "vless-mixed", 43102, []model.Client{
 		{Email: "live@x", ID: "22222222-2222-2222-2222-222222222222", Enable: true},

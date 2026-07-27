@@ -91,9 +91,6 @@ func TestDepletedCond_ProbeGuard(t *testing.T) {
 	}
 }
 
-// A master that stopped pushing leaves its last snapshot behind forever. Those
-// frozen counters must not keep enforcing quota, or a client well inside its
-// limit is disabled on every traffic poll with no way back (#6113).
 func TestStaleGlobalTraffic_Ignored(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -112,7 +109,6 @@ func TestStaleGlobalTraffic_Ignored(t *testing.T) {
 	}
 
 	t.Run("stale row alone neither enforces nor selects the cross-panel predicate", func(t *testing.T) {
-		// 200 of 1000 used locally, 1900 reported by a master gone for a day.
 		seedClientRow(t, "cap", 1, 100, 100, 1000)
 		seedStaleGlobal(t, "dead-master", "cap", 1000, 900)
 
@@ -138,8 +134,6 @@ func TestStaleGlobalTraffic_Ignored(t *testing.T) {
 	})
 
 	t.Run("a live master still enforces alongside the stale row", func(t *testing.T) {
-		// This is the #6113 shape: one dead master frozen over quota, one live
-		// master well under it. Only the live one may decide.
 		if err := svc.AcceptGlobalTraffic("live-master", []*xray.ClientTraffic{{Email: "cap", Up: 1, Down: 1}}); err != nil {
 			t.Fatalf("AcceptGlobalTraffic: %v", err)
 		}
@@ -152,7 +146,6 @@ func TestStaleGlobalTraffic_Ignored(t *testing.T) {
 			t.Fatalf("the live master reports usage well under quota, disabled %d", count)
 		}
 
-		// And once the live master reports real depletion, it takes effect.
 		if err := svc.AcceptGlobalTraffic("live-master", []*xray.ClientTraffic{{Email: "cap", Up: 600, Down: 500}}); err != nil {
 			t.Fatalf("AcceptGlobalTraffic: %v", err)
 		}

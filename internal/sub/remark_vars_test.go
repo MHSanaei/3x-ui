@@ -624,9 +624,6 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 	}
 }
 
-// Every link of a subscription carries the client's identity, because that is
-// what tells one imported profile from another in the client app. Only the
-// usage block, which is identical on all of them, is first-link-only (#6098).
 func TestEmailOnEveryLink(t *testing.T) {
 	s := &SubService{
 		remarkTemplate:   "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",

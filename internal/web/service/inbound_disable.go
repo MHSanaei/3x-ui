@@ -49,15 +49,6 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 	return needRestart, count, err
 }
 
-// globalTrafficFreshWindow bounds how long a pushed client_global_traffics row
-// stays authoritative. Masters refresh their rows every nodeGlobalPushInterval
-// (30s), so a row older than this belongs to a master that stopped pushing —
-// decommissioned, reinstalled under a new GUID, or detached from this node.
-// Such a row keeps its last-seen counters forever, and without this bound a
-// long-dead master's numbers permanently trip the cross-panel quota check and
-// disable clients that are nowhere near their limit (#6113). The window is far
-// wider than any real push gap, so a master that is merely unreachable for a
-// while keeps enforcing.
 const globalTrafficFreshWindow = 24 * time.Hour
 
 func globalTrafficFreshSince() int64 {
