@@ -199,7 +199,7 @@ export function useInboundColumns({
         sorter: (a, b) => compareText(a.protocol, b.protocol),
         render: (_, record) => {
           const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
-          if (record.isWireguard || record.isHysteria) {
+          if (record.isWireguard || record.isAmneziawg || record.isHysteria) {
             tags.push(<Tag key="n" color="green">UDP</Tag>);
           } else if (record.isSS) {
             const stream = readStreamHints(record.streamSettings);
