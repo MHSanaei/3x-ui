@@ -429,8 +429,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 	}
 
-	now := time.Now().Unix() * 1000
-	cond := depletedCond(db)
+	cond, condArgs := depletedCond(db)
 	candidateEmails := make([]string, 0, len(plan))
 	for email, entry := range plan {
 		if entry.applyExpiry || entry.applyTotal {
@@ -441,7 +440,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	for _, batch := range chunkStrings(candidateEmails, sqlInChunk) {
 		var rows []string
 		if err := db.Model(xray.ClientTraffic{}).
-			Where(cond+" AND enable = ? AND email IN ?", now, false, batch).
+			Where(cond+" AND enable = ? AND email IN ?", append(append([]any{}, condArgs...), false, batch)...).
 			Pluck("email", &rows).Error; err != nil {
 			return result, needRestart, err
 		}
@@ -503,7 +502,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		for _, batch := range chunkStrings(wasList, sqlInChunk) {
 			var rows []string
 			if err := db.Model(xray.ClientTraffic{}).
-				Where(cond+" AND email IN ?", now, batch).
+				Where(cond+" AND email IN ?", append(append([]any{}, condArgs...), batch)...).
 				Pluck("email", &rows).Error; err != nil {
 				return result, needRestart, err
 			}
