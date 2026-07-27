@@ -645,6 +645,19 @@ const amneziawgEgressDokodemoSettings = `{"allowedNetwork":"tcp,udp","followRedi
 // socket.
 const amneziawgEgressStreamSettings = `{"sockopt":{"tproxy":"tproxy"}}`
 
+// amneziawgEgressSniffingSettings enables sniffing on the bridge, matching
+// this fork's own normal per-inbound default (see default.json's "mixed"
+// inbound). Without this, domain-based Routing rules can never match a
+// single byte of RouteThroughXray traffic: an AmneziaWG peer resolves DNS
+// itself, through the tunnel, before ever sending a packet — by the time
+// TPROXY hands the decapsulated traffic to this bridge, the destination is
+// already a bare IP, with no domain name attached at the network layer at
+// all. Sniffing recovers it from the payload itself (TLS SNI / HTTP Host /
+// QUIC) the same way it already does for every other inbound; without it,
+// only tag/IP/network-based rules can ever match this bridge's traffic,
+// and any domain rule above it in the list is silently unreachable.
+const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+
 // injectAmneziawgEgress gives every enabled, RouteThroughXray-opted-in
 // AmneziaWG inbound with at least one qualifying peer its own loopback
 // dokodemo-door bridge — tagged with that inbound's own real tag, so it's
@@ -707,6 +720,7 @@ func injectAmneziawgEgress(cfg *xray.Config, inbounds []*model.Inbound) {
 			Protocol:       "dokodemo-door",
 			Settings:       json_util.RawMessage(amneziawgEgressDokodemoSettings),
 			StreamSettings: json_util.RawMessage(amneziawgEgressStreamSettings),
+			Sniffing:       json_util.RawMessage(amneziawgEgressSniffingSettings),
 			Tag:            inbound.Tag,
 		})
 	}
