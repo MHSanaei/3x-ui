@@ -386,8 +386,8 @@ func TestIdentityTokenBodyVsDisplay(t *testing.T) {
 
 	body := &SubService{remarkTemplate: tmpl, subscriptionBody: true, usageShown: map[string]bool{}}
 	_ = body.genTemplatedRemark(inbound, client, "", "ws") // first link consumes the usage block
-	if second := body.genTemplatedRemark(inbound, client, "", "ws"); strings.Contains(second, "john@x") {
-		t.Fatalf("repeat body link %q must drop the identity token", second)
+	if second := body.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(second, "john@x") {
+		t.Fatalf("repeat body link %q must keep the identity token", second)
 	}
 
 	display := &SubService{remarkTemplate: tmpl, subscriptionBody: false}
@@ -624,7 +624,10 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 	}
 }
 
-func TestEmailOnFirstLinkOnly(t *testing.T) {
+// Every link of a subscription carries the client's identity, because that is
+// what tells one imported profile from another in the client app. Only the
+// usage block, which is identical on all of them, is first-link-only (#6098).
+func TestEmailOnEveryLink(t *testing.T) {
 	s := &SubService{
 		remarkTemplate:   "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",
 		subscriptionBody: true,
@@ -640,15 +643,22 @@ func TestEmailOnFirstLinkOnly(t *testing.T) {
 	}
 	client := model.Client{Email: "alice@x"}
 	first := s.genTemplatedRemark(inbound, client, "", "ws")
-	s.usageShown["alice@x"] = true
 	second := s.genTemplatedRemark(inbound, client, "", "ws")
-	if !strings.Contains(first, "alice@x") {
-		t.Fatalf("first link should carry email: %q", first)
+	third := s.genTemplatedRemark(inbound, client, "", "ws")
+	for i, remark := range []string{first, second, third} {
+		if !strings.Contains(remark, "alice@x") {
+			t.Fatalf("link %d must carry the client email: %q", i+1, remark)
+		}
+		if !strings.Contains(remark, "DE") {
+			t.Fatalf("link %d must carry the inbound name: %q", i+1, remark)
+		}
 	}
-	if strings.Contains(second, "alice@x") {
-		t.Fatalf("second link must not carry email: %q", second)
+	if !strings.Contains(first, "📊") {
+		t.Fatalf("first link should carry the usage block: %q", first)
 	}
-	if !strings.Contains(second, "DE") {
-		t.Fatalf("second link should still carry the inbound name: %q", second)
+	for i, remark := range []string{second, third} {
+		if strings.Contains(remark, "📊") {
+			t.Fatalf("repeat link %d must still drop the usage block: %q", i+2, remark)
+		}
 	}
 }
