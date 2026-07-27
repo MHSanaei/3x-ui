@@ -385,3 +385,54 @@ func TestComputeHotDiff_RealityClientOnlyChangeStaysHot(t *testing.T) {
 		t.Fatalf("expected user b added via AlterInbound, got %+v", diff.AddedUsers)
 	}
 }
+
+// TestComputeHotDiff_NewTproxyInboundNeedsRestart reproduces a real incident:
+// enabling RouteThroughXray on an AmneziaWG inbound while Xray is already
+// running adds a brand-new dokodemo-door bridge with sockopt.tproxy set.
+// Xray-core's gRPC AddInbound reports success for this but never actually
+// binds a working listener, so TPROXY-redirected peer traffic silently goes
+// nowhere until the next full restart -- confirmed directly on a real box
+// (iptables TPROXY counters incrementing, but `ss` showing nothing listening
+// on the bridge port; the listener only appeared after `systemctl restart
+// x-ui`). This must force a restart instead of a hot add.
+func TestComputeHotDiff_NewTproxyInboundNeedsRestart(t *testing.T) {
+	oldCfg := makeHotConfig()
+	newCfg := makeHotConfig()
+	newCfg.InboundConfigs = append(newCfg.InboundConfigs, InboundConfig{
+		Listen:         json_util.RawMessage(`"127.0.0.1"`),
+		Port:           63110,
+		Protocol:       "dokodemo-door",
+		Tag:            "in-443-udp",
+		Settings:       json_util.RawMessage(`{"allowedNetwork":"tcp,udp","followRedirect":true}`),
+		StreamSettings: json_util.RawMessage(`{"sockopt":{"tproxy":"tproxy"}}`),
+	})
+
+	if _, ok := ComputeHotDiff(oldCfg, newCfg); ok {
+		t.Fatal("adding a new TPROXY-sockopt inbound must force a full restart, not a gRPC hot add")
+	}
+}
+
+// TestComputeHotDiff_TproxyStreamChangeNeedsRestart mirrors the REALITY
+// stream-change test above: an existing TPROXY bridge whose port changed
+// (e.g. the AmneziaWG inbound's own id-derived egress port shifted) must not
+// be hot-swapped either, for the same reliability reason.
+func TestComputeHotDiff_TproxyStreamChangeNeedsRestart(t *testing.T) {
+	tproxyIb := InboundConfig{
+		Listen:         json_util.RawMessage(`"127.0.0.1"`),
+		Port:           63110,
+		Protocol:       "dokodemo-door",
+		Tag:            "in-443-udp",
+		Settings:       json_util.RawMessage(`{"allowedNetwork":"tcp,udp","followRedirect":true}`),
+		StreamSettings: json_util.RawMessage(`{"sockopt":{"tproxy":"tproxy"}}`),
+	}
+	oldCfg := makeHotConfig()
+	oldCfg.InboundConfigs = append(oldCfg.InboundConfigs, tproxyIb)
+	newCfg := makeHotConfig()
+	changedIb := tproxyIb
+	changedIb.Port = 63111
+	newCfg.InboundConfigs = append(newCfg.InboundConfigs, changedIb)
+
+	if _, ok := ComputeHotDiff(oldCfg, newCfg); ok {
+		t.Fatal("a TPROXY bridge's port change must force a full restart, not a gRPC hot swap")
+	}
+}
