@@ -590,6 +590,9 @@ func TestInjectAmneziawgEgress_CreatesBridgeTaggedWithInboundsOwnTag(t *testing.
 	if !strings.Contains(string(ib.Settings), `"followRedirect":true`) {
 		t.Fatalf("bridge must set followRedirect, got %s", ib.Settings)
 	}
+	if !strings.Contains(string(ib.Sniffing), `"enabled":true`) {
+		t.Fatalf("bridge must enable sniffing -- a peer's own DNS resolution means the decapsulated traffic never carries a domain at the network layer, so domain-based Routing rules can only ever match via sniffing the payload, got %s", ib.Sniffing)
+	}
 	// No auto-generated routing rule: it's entirely up to the admin's own
 	// Routing-page rules, same as any other protocol's inbound tag.
 	if string(cfg.RouterConfig) != before {
