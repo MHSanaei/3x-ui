@@ -221,10 +221,15 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			settings["peers"] = wgPeers
 			mutated = true
 		} else {
-			_, hadClients := settings["clients"]
-			mutated = hadClients || len(finalClients) > 0
+			existingClients, hadClients := settings["clients"]
+			hasFinalClients := len(finalClients) > 0
+			mutated = hadClients || hasFinalClients
 			if mutated {
-				settings["clients"] = finalClients
+				if hasFinalClients {
+					settings["clients"] = finalClients
+				} else if existingClients != nil {
+					settings["clients"] = existingClients
+				}
 			}
 		}
 
