@@ -401,6 +401,35 @@ func TestDefaultPostUpDownEmitsTproxyForEveryPeerWhenRouteThroughXrayOn(t *testi
 	}
 }
 
+// TPROXY never rewrites a packet's own destination address -- only the
+// routing decision changes -- so a default-deny INPUT chain that sanity-checks
+// "is this destination actually local" (e.g. UFW's ufw-not-local, via
+// addrtype --dst-type LOCAL) drops it before Xray's socket ever sees it, even
+// though TPROXY's own mangle-table counters keep incrementing the whole time.
+// This was a real, hard-to-diagnose production outage: RouteThroughXray
+// looked fully configured (TPROXY rule present, Xray socket listening with
+// IP_TRANSPARENT set) yet every peer's traffic silently vanished.
+func TestDefaultPostUpDownAddsInputAcceptForFwmarkWhenRouteThroughXrayOn(t *testing.T) {
+	inst := baseInstance() // two peers, a@x and b@x
+	inst.RouteThroughXray = true
+	up, down := defaultPostUpDown(inst, "eth0")
+
+	wantCheck := fmt.Sprintf("iptables -C INPUT -m mark --mark %#x -j ACCEPT", EgressFwmark)
+	wantInsert := fmt.Sprintf("iptables -I INPUT 1 -m mark --mark %#x -j ACCEPT", EgressFwmark)
+	if !strings.Contains(up, wantCheck) || !strings.Contains(up, wantInsert) {
+		t.Errorf("expected an idempotent INPUT accept for the shared fwmark in PostUp, got:\n%s", up)
+	}
+	if strings.Contains(down, "-m mark --mark") {
+		t.Error("the shared INPUT accept must never be removed in PostDown -- other instances may still need it, same as the policy route")
+	}
+
+	none := Instance{Id: 2, InterfaceName: "awg2", RouteThroughXray: true} // no peers at all
+	upNone, _ := defaultPostUpDown(none, "eth0")
+	if strings.Contains(upNone, "-m mark --mark") {
+		t.Errorf("an instance with no peers must not emit the INPUT accept either, got:\n%s", upNone)
+	}
+}
+
 func TestGenerateServerConfigContainsExpectedLines(t *testing.T) {
 	inst := baseInstance()
 	inst.ExternalInterface = "eth0"
