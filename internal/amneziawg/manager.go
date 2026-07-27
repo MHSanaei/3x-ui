@@ -734,9 +734,27 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 			// re-runs on any client add/remove/re-IP — without the existence
 			// check below, "ip rule show" would accumulate one duplicate entry
 			// per bounce forever.
+			//
+			// TPROXY never rewrites the packet's own destination address — only
+			// the routing decision changes, via the fwmark+table trick above — so
+			// by the time this packet reaches the host's own INPUT chain, its
+			// destination still looks like some remote address (e.g. 8.8.8.8),
+			// never this host's own. A default-deny firewall whose INPUT chain
+			// sanity-checks "is this destination actually local" (UFW's
+			// ufw-not-local, using addrtype --dst-type LOCAL, is exactly this) can
+			// never see it as legitimate and silently drops it before Xray's
+			// socket ever sees a single byte — TPROXY's own counters keep
+			// incrementing the whole time, making this look like a Xray-side bug
+			// even though Xray never gets the chance to fail. The fix is the same
+			// shape as the policy route above: an idempotent, never-torn-down,
+			// system-wide accept for this fwmark, inserted at the very front of
+			// the base INPUT chain so it runs before any such sanity check,
+			// regardless of which firewall manager (ufw, firewalld, bare
+			// iptables) owns the rest of that chain.
 			up = append(up,
 				fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d' || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
 				fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
+				fmt.Sprintf("iptables -C INPUT -m mark --mark %#x -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -m mark --mark %#x -j ACCEPT", EgressFwmark, EgressFwmark),
 			)
 		}
 	}
