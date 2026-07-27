@@ -132,6 +132,10 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			logger.Debug("hot diff: inbound [", oldIb.Tag, "] REALITY configuration changed; a gRPC remove+add does not reliably rebuild the REALITY authenticator, forcing a full restart")
 			return false
 		}
+		if exists && (inboundUsesTproxy(oldIb) || inboundUsesTproxy(newIb)) {
+			logger.Debug("hot diff: inbound [", oldIb.Tag, "] is a TPROXY target; a gRPC add reports success but does not reliably bind a working listener, forcing a full restart instead of a hot swap")
+			return false
+		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
 		if exists {
 			raw, err := json.Marshal(newIb)
@@ -147,6 +151,10 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			continue
 		}
 		if newIb.Tag == apiTag || newIb.Tag == "api" {
+			return false
+		}
+		if inboundUsesTproxy(newIb) {
+			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a TPROXY target (e.g. internal/amneziawg's Xray egress bridge); a gRPC add reports success but does not reliably bind a working listener, forcing a full restart instead of a hot add")
 			return false
 		}
 		raw, err := json.Marshal(newIb)
@@ -262,6 +270,30 @@ func inboundUsesReality(ib *InboundConfig) bool {
 		return false
 	}
 	return stream.Security == "reality"
+}
+
+// inboundUsesTproxy reports whether an inbound's streamSettings mark it as a
+// TPROXY target (internal/amneziawg's own Xray egress bridge -- see
+// service.amneziawgEgressStreamSettings -- is the only inbound kind this
+// fork ever generates with sockopt.tproxy set). Confirmed directly against a
+// real Xray-core instance: adding this kind of inbound through the gRPC
+// HandlerService reports success, but no listener actually ends up bound on
+// the configured port, so TPROXY-redirected traffic silently goes nowhere
+// until the next full restart. Forcing a restart here is the same
+// defensive pattern already used for REALITY inbounds above.
+func inboundUsesTproxy(ib *InboundConfig) bool {
+	if ib == nil || len(ib.StreamSettings) == 0 {
+		return false
+	}
+	var stream struct {
+		Sockopt struct {
+			Tproxy string `json:"tproxy"`
+		} `json:"sockopt"`
+	}
+	if err := json.Unmarshal(ib.StreamSettings, &stream); err != nil {
+		return false
+	}
+	return stream.Sockopt.Tproxy != "" && stream.Sockopt.Tproxy != "off"
 }
 
 func inboundHasReverseClient(ib *InboundConfig) bool {
