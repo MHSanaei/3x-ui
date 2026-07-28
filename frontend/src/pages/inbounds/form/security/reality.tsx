@@ -5,7 +5,11 @@ import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/
 
 import { FormField } from '@/components/form/rhf';
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
-import { validateRealityTarget } from '@/lib/xray/stream-wire-normalize';
+import {
+  validateRealityClientVer,
+  validateRealityMaxClientVer,
+  validateRealityTarget,
+} from '@/lib/xray/stream-wire-normalize';
 import type { RealityScanResult } from '@/generated/types';
 import RealityTargetScannerModal from './RealityTargetScannerModal';
 
@@ -128,6 +132,12 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'minClientVer']}
         label={t('pages.inbounds.form.minClientVer')}
         tooltip={t('pages.inbounds.form.minClientVerHint')}
+        rules={{
+          validate: (value) => {
+            const errKey = validateRealityClientVer(typeof value === 'string' ? value : '');
+            return errKey ? errKey : true;
+          },
+        }}
       >
         <Input placeholder="26.3.27" />
       </FormField>
@@ -135,6 +145,14 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'maxClientVer']}
         label={t('pages.inbounds.form.maxClientVer')}
         tooltip={t('pages.inbounds.form.maxClientVerHint')}
+        rules={{
+          validate: (value, formValues) => {
+            const max = typeof value === 'string' ? value : '';
+            const min = formValues?.streamSettings?.realitySettings?.minClientVer;
+            const errKey = validateRealityMaxClientVer(max, typeof min === 'string' ? min : '');
+            return errKey ? errKey : true;
+          },
+        }}
       >
         <Input placeholder="x.y.z" />
       </FormField>

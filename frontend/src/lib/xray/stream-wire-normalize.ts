@@ -104,6 +104,58 @@ export function validateRealityTarget(target: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Parses a REALITY client-version string the way xray-core's config loader
+ * does: one to three dot-separated numeric parts, each 0-255. Returns the
+ * parts padded to three entries, or undefined when the string is not a valid
+ * version.
+ */
+export function parseRealityClientVer(value: string): [number, number, number] | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parts = trimmed.split('.');
+  if (parts.length > 3) return undefined;
+  const nums: number[] = [];
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) return undefined;
+    const n = Number(part);
+    if (n > 255) return undefined;
+    nums.push(n);
+  }
+  while (nums.length < 3) nums.push(0);
+  return nums as [number, number, number];
+}
+
+/** Validates a REALITY client-version field; empty means "not set" and is valid. */
+export function validateRealityClientVer(value: string): string | undefined {
+  if (!value.trim()) return undefined;
+  if (!parseRealityClientVer(value)) {
+    return 'pages.inbounds.form.clientVerInvalid';
+  }
+  return undefined;
+}
+
+/**
+ * Validates the max client-version field: format first, then that a non-empty
+ * max is not below a non-empty min (an inverted range rejects every client).
+ * An empty or malformed min is left to the min field's own validation.
+ */
+export function validateRealityMaxClientVer(max: string, min: string): string | undefined {
+  const formatError = validateRealityClientVer(max);
+  if (formatError) return formatError;
+  const maxParts = parseRealityClientVer(max);
+  const minParts = parseRealityClientVer(min);
+  if (!maxParts || !minParts) return undefined;
+  for (let i = 0; i < 3; i++) {
+    if (maxParts[i] !== minParts[i]) {
+      return maxParts[i] < minParts[i]
+        ? 'pages.inbounds.form.maxClientVerBelowMin'
+        : undefined;
+    }
+  }
+  return undefined;
+}
+
 function liftLegacyXhttpSessionKeys(obj: Record<string, unknown>): void {
   const lift = (legacy: string, renamed: string) => {
     const v = obj[legacy];

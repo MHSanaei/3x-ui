@@ -7,6 +7,8 @@ import {
   normalizeSockoptForWire,
   normalizeStreamSettingsForWire,
   normalizeXhttpForWire,
+  validateRealityClientVer,
+  validateRealityMaxClientVer,
   validateRealityTarget,
 } from '@/lib/xray/stream-wire-normalize';
 import { InboundFormSchema } from '@/schemas/forms/inbound-form';
@@ -23,6 +25,59 @@ describe('validateRealityTarget', () => {
   it('rejects host without port', () => {
     expect(validateRealityTarget('play.google.com')).toBe('pages.inbounds.form.realityTargetNeedsPort');
     expect(validateRealityTarget('')).toBe('pages.inbounds.form.realityTargetRequired');
+  });
+});
+
+describe('validateRealityClientVer', () => {
+  it('accepts empty (not set) and core-style versions', () => {
+    expect(validateRealityClientVer('')).toBeUndefined();
+    expect(validateRealityClientVer('  ')).toBeUndefined();
+    expect(validateRealityClientVer('26.3.27')).toBeUndefined();
+    expect(validateRealityClientVer('1.0.0')).toBeUndefined();
+    expect(validateRealityClientVer('26')).toBeUndefined();
+    expect(validateRealityClientVer('26.3')).toBeUndefined();
+    expect(validateRealityClientVer('0.0.255')).toBeUndefined();
+  });
+
+  it('rejects what the core parser rejects', () => {
+    expect(validateRealityClientVer('26.3.27.1')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer('26.3.256')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer('v26.3.27')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer('26..27')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer('26.3.')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer('-1.0.0')).toBe('pages.inbounds.form.clientVerInvalid');
+  });
+});
+
+describe('validateRealityMaxClientVer', () => {
+  it('accepts an empty max, an empty min, and a valid range', () => {
+    expect(validateRealityMaxClientVer('', '26.3.27')).toBeUndefined();
+    expect(validateRealityMaxClientVer('27.0.0', '')).toBeUndefined();
+    expect(validateRealityMaxClientVer('26.3.27', '26.3.27')).toBeUndefined();
+    expect(validateRealityMaxClientVer('27.1.2', '26.3.27')).toBeUndefined();
+  });
+
+  it('rejects a max below the min, the stale-placeholder trap included', () => {
+    expect(validateRealityMaxClientVer('25.9.11', '26.3.27')).toBe(
+      'pages.inbounds.form.maxClientVerBelowMin',
+    );
+    expect(validateRealityMaxClientVer('26.3.26', '26.3.27')).toBe(
+      'pages.inbounds.form.maxClientVerBelowMin',
+    );
+  });
+
+  it('pads short versions like the core does before comparing', () => {
+    expect(validateRealityMaxClientVer('26', '26.0.0')).toBeUndefined();
+    expect(validateRealityMaxClientVer('26', '26.3')).toBe(
+      'pages.inbounds.form.maxClientVerBelowMin',
+    );
+  });
+
+  it('reports format errors before range errors and skips a malformed min', () => {
+    expect(validateRealityMaxClientVer('25.9', 'not-a-version')).toBeUndefined();
+    expect(validateRealityMaxClientVer('nope', '26.3.27')).toBe(
+      'pages.inbounds.form.clientVerInvalid',
+    );
   });
 });
 
