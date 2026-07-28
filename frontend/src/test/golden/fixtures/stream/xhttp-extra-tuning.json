@@ -19,7 +19,6 @@
     },
     "xmux": {
       "maxConcurrency": "16-32",
-      "maxConnections": 4,
       "cMaxReuseTimes": 0,
       "hMaxRequestTimes": "600-900",
       "hMaxReusableSecs": "1800-3000",

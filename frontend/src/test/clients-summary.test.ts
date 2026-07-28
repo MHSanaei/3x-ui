@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import { computeClientsSummary } from '@/hooks/useClients';
-import type { ClientTraffic } from '@/schemas/client';
+import { computeClientsSummary, pickClientsSummary } from '@/hooks/useClients';
+import type { ClientTraffic, ClientsSummary } from '@/schemas/client';
 
 // Parity with web/service/client.go buildClientsSummary: the same client must
 // land in the same bucket whether the count comes from the server (list fetch)
@@ -58,5 +58,29 @@ describe('computeClientsSummary', () => {
     expect(s.active).toBe(1);
     expect(s.expiring).toEqual([]);
     expect(s.depleted).toEqual([]);
+  });
+});
+
+describe('pickClientsSummary', () => {
+  const serverSummary: ClientsSummary = {
+    total: 67, active: 58, online: [], depleted: [], expiring: [], deactive: [],
+  };
+
+  it('keeps the server summary when the snapshot is short of the server total (#6102)', () => {
+    const shortSnapshot: Row[] = Array.from({ length: 58 }, (_, i) => row({ email: `c${i}@x`, enable: true }));
+    const s = pickClientsSummary(serverSummary, shortSnapshot, new Set(), 3 * DAY, 1 * GB);
+    expect(s).toEqual(serverSummary);
+  });
+
+  it('uses the live recompute when the snapshot covers every client', () => {
+    const fullSnapshot: Row[] = Array.from({ length: 67 }, (_, i) => row({ email: `c${i}@x`, enable: true }));
+    const s = pickClientsSummary(serverSummary, fullSnapshot, new Set(), 3 * DAY, 1 * GB);
+    expect(s.total).toBe(67);
+    expect(s.active).toBe(67);
+  });
+
+  it('falls back to the server summary before the first WS snapshot arrives', () => {
+    const s = pickClientsSummary(serverSummary, [], new Set(), 3 * DAY, 1 * GB);
+    expect(s).toEqual(serverSummary);
   });
 });

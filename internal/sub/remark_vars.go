@@ -560,7 +560,11 @@ func (s *SubService) effectiveTemplate(email string) string {
 		s.usageShown = map[string]bool{}
 	}
 	if s.usageShown[email] {
-		return filterRemarkTemplate(translated, firstLinkOnlyBodyTokens)
+		remove := firstLinkOnlyBodyTokens
+		if s.showIdentityOnAllLinks {
+			remove = usageInfoTokens
+		}
+		return filterRemarkTemplate(translated, remove)
 	}
 	s.usageShown[email] = true
 	return translated

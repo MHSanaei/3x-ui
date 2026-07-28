@@ -8,9 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -592,6 +595,188 @@ func validateFinalMaskRealityCombo(streamSettings string) error {
 	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
 }
 
+var xmcProfileUsernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{3,16}$`)
+
+// xmcMaskProfilesComplete reports whether an xmc finalmask carries the signed
+// Minecraft session profiles xray-core has required since v26.7.28 (#6487).
+// The core replaced the old `usernames` string list with `profiles` objects
+// and removed the "default to Dream when empty" fallback, so a mask still on
+// the legacy shape — or one whose profiles are incomplete — now fails
+// conf.XMC.Build() and takes the entire config down with it rather than
+// degrading that one inbound.
+//
+// The texture fields are a signed blob only Mojang's session server can issue
+// (resolve the UUID by username, then fetch the profile with unsigned=false),
+// so the panel cannot synthesize a valid profile from a legacy username; an
+// incomplete mask can only be reported or dropped.
+func xmcMaskProfilesComplete(mask map[string]any) bool {
+	settings, ok := mask["settings"].(map[string]any)
+	if !ok {
+		return false
+	}
+	profiles, _ := settings["profiles"].([]any)
+	if len(profiles) == 0 {
+		return false
+	}
+	for _, entry := range profiles {
+		profile, ok := entry.(map[string]any)
+		if !ok {
+			return false
+		}
+		username, _ := profile["username"].(string)
+		if !xmcProfileUsernamePattern.MatchString(username) {
+			return false
+		}
+		id, _ := profile["uuid"].(string)
+		if _, err := uuid.Parse(id); err != nil {
+			return false
+		}
+		if value, _ := profile["texturesValue"].(string); value == "" {
+			return false
+		}
+		if signature, _ := profile["texturesSignature"].(string); signature == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// isIncompleteXmcMask reports whether a finalmask.tcp entry is an xmc mask
+// xray-core would refuse to build.
+func isIncompleteXmcMask(entry any) bool {
+	mask, ok := entry.(map[string]any)
+	if !ok {
+		return false
+	}
+	if maskType, _ := mask["type"].(string); maskType != "xmc" {
+		return false
+	}
+	return !xmcMaskProfilesComplete(mask)
+}
+
+// incompleteXmcMaskCount counts the stream's xmc finalmask entries that
+// xray-core would refuse to build.
+func incompleteXmcMaskCount(stream map[string]any) int {
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return 0
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	count := 0
+	for _, entry := range tcp {
+		if isIncompleteXmcMask(entry) {
+			count++
+		}
+	}
+	return count
+}
+
+// stripIncompleteXmcMasks removes every xmc finalmask entry xray-core would
+// refuse to build, returning how many were dropped, and clears the finalmask
+// object once nothing is left in it.
+//
+// AddInbound and UpdateInbound reject an incomplete mask at save time, but a
+// row that never went through those paths — an upgrade from a panel predating
+// v26.7.28, node sync, a restored backup, a direct DB edit — would otherwise
+// fail the whole config build and keep every other inbound offline too.
+// Dropping only the offending mask degrades that one inbound instead, which
+// the accompanying warning tells the admin to reconfigure.
+func stripIncompleteXmcMasks(stream map[string]any) int {
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return 0
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) == 0 {
+		return 0
+	}
+	kept := make([]any, 0, len(tcp))
+	dropped := 0
+	for _, entry := range tcp {
+		if isIncompleteXmcMask(entry) {
+			dropped++
+			continue
+		}
+		kept = append(kept, entry)
+	}
+	if dropped == 0 {
+		return 0
+	}
+	if len(kept) == 0 {
+		delete(finalmask, "tcp")
+	} else {
+		finalmask["tcp"] = kept
+	}
+	if len(finalmask) == 0 {
+		delete(stream, "finalmask")
+	}
+	return dropped
+}
+
+// dropEmptyRandPackets removes the leftover empty "packet" from finalmask
+// items that also carry a rand, and reports how many it cleared.
+//
+// xray-core treats even an empty array as a packet, and every item kind is
+// exclusive: noise refuses "len(item.Packet) > 0 && item.Rand.To > 0" and
+// header-custom refuses "exactly one item kind must be set". Either error
+// fails the whole config build, so one such item keeps every inbound offline.
+// The panel's mask editor wrote that pair whenever an item was switched to the
+// rand-driven array kind, so stored rows carry it; clearing an empty packet
+// changes nothing about the mask the admin configured.
+func dropEmptyRandPackets(node any) int {
+	switch value := node.(type) {
+	case map[string]any:
+		cleared := 0
+		if packet, ok := value["packet"].([]any); ok && len(packet) == 0 && randIsSet(value["rand"]) {
+			delete(value, "packet")
+			cleared++
+		}
+		for _, child := range value {
+			cleared += dropEmptyRandPackets(child)
+		}
+		return cleared
+	case []any:
+		cleared := 0
+		for _, child := range value {
+			cleared += dropEmptyRandPackets(child)
+		}
+		return cleared
+	default:
+		return 0
+	}
+}
+
+// randIsSet reports whether a finalmask item's rand selects a random packet.
+// It is a number on header-custom items and a dash-range string on noise ones.
+func randIsSet(value any) bool {
+	switch rand := value.(type) {
+	case float64:
+		return rand > 0
+	case string:
+		return rand != "" && rand != "0" && rand != "0-0"
+	default:
+		return false
+	}
+}
+
+// validateFinalMaskXmcProfiles rejects an xmc finalmask without complete
+// profiles at save time, so the admin gets a targeted error instead of a core
+// that refuses to start (or, after GetXrayConfig heals it, an inbound quietly
+// serving without the obfuscation they configured).
+func validateFinalMaskXmcProfiles(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if incompleteXmcMaskCount(stream) == 0 {
+		return nil
+	}
+	return common.NewError("XMC finalmask requires at least one complete Minecraft profile — each needs a username (3-16 of A-Z a-z 0-9 _), a UUID, and both texture fields from Mojang's session server (XTLS/Xray-core#6487). Complete the profiles or remove the XMC mask.")
+}
+
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
 // secret and adTag: MTProto is multi-client, so mtg and every share link read
@@ -723,6 +908,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -1146,6 +1334,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)

@@ -81,6 +81,7 @@ export interface AllSetting {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -193,6 +194,7 @@ export interface AllSettingView {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;

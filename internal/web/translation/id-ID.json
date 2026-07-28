@@ -636,6 +636,8 @@
         "maxTimeDiff": "Maks. selisih waktu (ms)",
         "minClientVer": "Min. versi klien",
         "maxClientVer": "Maks. versi klien",
+        "minClientVerHint": "Kosong bukan berarti tanpa batas: Xray-core akan memakai minimum bawaan dari build core yang dijalankan (26.3.27 pada rilis saat ini) dan menolak klien yang melaporkan versi lebih lama — termasuk core pihak ketiga seperti Mihomo dan sing-box. Isi 1.0.0 untuk menerimanya, dengan risiko mengizinkan sidik jari TLS yang usang.",
+        "maxClientVerHint": "Kosong berarti tanpa batas atas. Jika diisi, tidak boleh lebih rendah dari minimum efektif — versi klien minimum, atau minimum bawaan Xray-core saat kolom itu kosong — atau semua klien akan ditolak.",
         "shortIds": "Short IDs",
         "realityTargetHint": "Wajib. Harus menyertakan port (mis. example.com:443). Tanpa port, Xray-core menolak untuk mulai.",
         "realityTargetRequired": "Target REALITY wajib diisi",
@@ -1433,6 +1435,8 @@
       "eventMemoryHigh": "Penggunaan memori tinggi (%)",
       "remarkTemplate": "Templat Catatan",
       "remarkTemplateDesc": "Jika diatur, ini menggantikan model catatan untuk setiap tautan langganan — tulis format Anda sendiri dengan token variabel (gunakan tombol untuk menyisipkannya). Biarkan kosong untuk memakai model di atas.",
+      "subShowIdentityOnAllLinks": "Tampilkan identitas di setiap tautan",
+      "subShowIdentityOnAllLinksDesc": "Jika diaktifkan, {{EMAIL}} dan {{USERNAME}} tetap ada di catatan setiap tautan isi langganan. Token penggunaan tetap hanya di tautan pertama.",
       "validation": {
         "pathLeadingSlash": "Path harus diawali dengan /"
       },

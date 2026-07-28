@@ -156,7 +156,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			enableMap[clientTraffic.Email] = clientTraffic.Enable
 		}
 
-		var finalClients []any
+		finalClients := make([]any, 0, len(dbClients))
 		var wgPeers []any
 		for i := range dbClients {
 			c := dbClients[i]
@@ -279,6 +279,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if len(finalMaskRealityTcpMasks(stream)) > 0 {
 				logger.Warningf("Inbound %q: dropping finalmask, incompatible with REALITY security (crashes Xray-core, see XTLS/Xray-core#6453)", inbound.Tag)
 				delete(stream, "finalmask")
+			}
+
+			dropEmptyRandPackets(stream["finalmask"])
+
+			if dropped := stripIncompleteXmcMasks(stream); dropped > 0 {
+				logger.Warningf("Inbound %q: dropping %d XMC finalmask mask(s) without complete Minecraft profiles — reconfigure them to restore the obfuscation (see XTLS/Xray-core#6487)", inbound.Tag, dropped)
 			}
 
 			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
