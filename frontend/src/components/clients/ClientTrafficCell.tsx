@@ -64,6 +64,7 @@ export default function ClientTrafficCell({
         <span className="client-traffic-cell-used">{SizeFormatter.sizeFormat(display.used)}</span>
         <Progress
           className="client-traffic-cell-bar"
+          aria-label={`${SizeFormatter.sizeFormat(display.used)} / ${display.isUnlimited ? t('subscription.unlimited') : SizeFormatter.sizeFormat(total)}`}
           percent={display.percent}
           showInfo={false}
           strokeColor={display.strokeColor}
@@ -72,7 +73,7 @@ export default function ClientTrafficCell({
         />
         <span className="client-traffic-cell-limit">
           {display.isUnlimited ? (
-            <span className="client-traffic-cell-infinity" aria-label={t('subscription.unlimited')}>
+            <span className="client-traffic-cell-infinity" role="img" aria-label={t('subscription.unlimited')}>
               <InfinityIcon />
             </span>
           ) : (

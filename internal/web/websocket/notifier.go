@@ -63,9 +63,6 @@ func BroadcastInbounds(inbounds any) {
 	}
 }
 
-// BroadcastNodes broadcasts the fresh node list to all connected clients.
-// Pushed by NodeHeartbeatJob at the end of each 10s tick so the Nodes page
-// reflects status / latency / cpu / mem updates without polling.
 func BroadcastNodes(nodes any) {
 	if hub := GetHub(); hub != nil {
 		hub.Broadcast(MessageTypeNodes, nodes)

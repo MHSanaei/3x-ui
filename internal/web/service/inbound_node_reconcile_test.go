@@ -87,6 +87,7 @@ func reconcileTestNode(t *testing.T, ts *httptest.Server, name, mode string, tag
 		Status:              "online",
 		InboundSyncMode:     mode,
 		InboundTags:         tags,
+		InboundsAdoptedAt:   1,
 	}
 	if err := database.GetDB().Create(n).Error; err != nil {
 		t.Fatalf("create node: %v", err)
@@ -140,6 +141,31 @@ func TestReconcileNode_AllModeDeletesUndesiredRemoteInbounds(t *testing.T) {
 	got := deletedIDs()
 	if len(got) != 2 || got[0] != 2 || got[1] != 3 {
 		t.Fatalf("deleted remote ids = %v, want [2 3]", got)
+	}
+}
+
+// A node whose pre-existing inbounds were never adopted into the central DB
+// has zero local rows for legitimate reasons: reconcile before that first
+// adoption must not sweep — it would delete every real inbound on the node
+// right after onboarding (add node, save it again, watch it get wiped).
+func TestReconcileNode_SkipsSweepBeforeFirstAdoption(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{
+		"real-a": 1,
+		"real-b": 2,
+		"real-c": 3,
+	})
+	node := reconcileTestNode(t, ts, "fresh-node", "all", nil)
+	node.InboundsAdoptedAt = 0
+
+	svc := InboundService{}
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
+		t.Fatalf("ReconcileNode: %v", err)
+	}
+
+	if got := deletedIDs(); len(got) != 0 {
+		t.Fatalf("deleted remote ids = %v, want none before first adoption", got)
 	}
 }
 

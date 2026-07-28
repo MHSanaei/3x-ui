@@ -73,8 +73,8 @@ describe('HttpUtil', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('maps a thrown HttpError to a failure Msg via response.data.message', async () => {
-    mockRequest.mockRejectedValue(new HttpError(400, 'Bad Request', { message: 'bad input' }));
+  it('surfaces the backend error text from a thrown HttpError body (msg field)', async () => {
+    mockRequest.mockRejectedValue(new HttpError(400, 'Bad Request', { success: false, msg: 'bad input' }));
 
     const msg = await HttpUtil.post('/x', undefined, { silent: true });
 

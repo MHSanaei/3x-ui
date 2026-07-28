@@ -78,13 +78,28 @@ const STATISTIC_TOKENS = {
   contentFontSize: 17,
   titleFontSize: 11,
 };
+const LIGHT_CONTRAST_TOKENS = {
+  colorTextDescription: 'rgba(0, 0, 0, 0.58)',
+  colorTextTertiary: 'rgba(0, 0, 0, 0.58)',
+  colorTextPlaceholder: '#767676',
+  colorError: '#cf1322',
+  colorErrorText: '#cf1322',
+  colorSuccessText: '#237804',
+};
+const LIGHT_BUTTON_TOKENS = {
+  colorPrimary: '#0958d9',
+  colorPrimaryHover: '#2468e5',
+  colorPrimaryActive: '#073ea8',
+};
 
 export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {
   if (!isDark) {
     return {
       algorithm: antdTheme.defaultAlgorithm,
+      token: LIGHT_CONTRAST_TOKENS,
       components: {
         Statistic: STATISTIC_TOKENS,
+        Button: LIGHT_BUTTON_TOKENS,
       },
     };
   }

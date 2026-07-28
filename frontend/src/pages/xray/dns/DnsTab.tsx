@@ -240,7 +240,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                 <Alert
                   type="warning"
                   showIcon
-                  message={t('pages.xray.dns.dnsLeakWarning')}
+                  title={t('pages.xray.dns.dnsLeakWarning')}
                   style={{ marginBottom: 12 }}
                 />
                 <SettingListItem

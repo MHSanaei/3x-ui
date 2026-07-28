@@ -46,9 +46,8 @@ func wireguardAllocationBase(used []string, fallback string) string {
 	return fallback
 }
 
-// allocateWireguardAddress returns the first free /32 host address in base that
-// is not already present in used. The server holds the first host (.1), so
-// allocation starts at the second host (.2).
+const wireguardPoolFloorBits = 16
+
 func allocateWireguardAddress(used []string, base string) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase
@@ -63,14 +62,22 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 			taken[a] = struct{}{}
 		}
 	}
-	addr := prefix.Masked().Addr().Next().Next()
-	for prefix.Contains(addr) {
-		if _, ok := taken[addr]; !ok {
-			return addr.String() + "/32", nil
+	scopes := []netip.Prefix{prefix}
+	if prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
+		if wider, wErr := prefix.Addr().Prefix(wireguardPoolFloorBits); wErr == nil {
+			scopes = append(scopes, wider)
 		}
-		addr = addr.Next()
 	}
-	return "", common.NewError("wireguard: no free address available in", base)
+	for _, scope := range scopes {
+		addr := scope.Masked().Addr().Next().Next()
+		for scope.Contains(addr) {
+			if _, ok := taken[addr]; !ok {
+				return addr.String() + "/32", nil
+			}
+			addr = addr.Next()
+		}
+	}
+	return "", common.NewError("wireguard: no free address available in", scopes[len(scopes)-1].String())
 }
 
 // normalizeWireguardAllowedIPs validates user-supplied allowedIPs entries and

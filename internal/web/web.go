@@ -314,12 +314,7 @@ func (s *Server) startTask(restartXray bool) {
 
 	// Check if xray needs to be restarted every 30 seconds
 	_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
-		if s.xrayService.IsNeedRestartAndSetFalse() {
-			err := s.xrayService.RestartXray(false)
-			if err != nil {
-				logger.Error("restart xray failed:", err)
-			}
-		}
+		s.xrayService.ApplyPendingRestart()
 	})
 
 	go func() {

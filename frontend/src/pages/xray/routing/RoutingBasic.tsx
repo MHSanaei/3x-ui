@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Select, Switch } from 'antd';
 
@@ -13,7 +13,7 @@ import {
   directSettings,
   ipv4Settings,
 } from '../basics/constants';
-import { ruleGetter, ruleSetter, syncOutbound } from '../basics/helpers';
+import { getDefaultOutboundTag, ruleGetter, ruleSetter, setDefaultOutboundTag, syncOutbound } from '../basics/helpers';
 
 interface RoutingBasicProps {
   templateSettings: XraySettingsValue | null;
@@ -43,6 +43,14 @@ export default function RoutingBasic({ templateSettings, setTemplateSettings }: 
   const ipv4Domains = ruleGetter(templateSettings, 'IPv4', 'domain');
 
   const torrentActive = BITTORRENT_PROTOCOLS.every((p) => blockedProtocols.includes(p));
+  const defaultOutboundTag = getDefaultOutboundTag(templateSettings);
+  const defaultOutboundOptions = useMemo(() => {
+    const tags = new Set<string>(['direct', 'blocked']);
+    for (const o of templateSettings?.outbounds ?? []) {
+      if (o?.tag) tags.add(o.tag);
+    }
+    return [...tags].map((value) => ({ label: value, value }));
+  }, [templateSettings?.outbounds]);
 
   return (
     <>
@@ -51,6 +59,20 @@ export default function RoutingBasic({ templateSettings, setTemplateSettings }: 
         showIcon
         className="mb-12 hint-alert"
         title={t('pages.xray.blockConnectionsConfigsDesc')}
+      />
+
+      <SettingListItem
+        title={t('pages.xray.defaultOutbound')}
+        description={t('pages.xray.defaultOutboundDesc')}
+        paddings="small"
+        control={
+          <Select
+            value={defaultOutboundTag}
+            style={{ width: '100%' }}
+            options={defaultOutboundOptions}
+            onChange={(tag) => mutate((tt) => setDefaultOutboundTag(tt, tag))}
+          />
+        }
       />
 
       <SettingListItem

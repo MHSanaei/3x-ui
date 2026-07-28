@@ -290,6 +290,9 @@ func clientMatchesSearch(c ClientWithAttachments, needle string) bool {
 			return true
 		}
 	}
+	if c.TgID != 0 && strings.Contains(strconv.FormatInt(c.TgID, 10), needle) {
+		return true
+	}
 	return false
 }
 

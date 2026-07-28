@@ -152,8 +152,11 @@ export async function httpRequest(
 
   if (res.status === 403 && !SAFE_METHODS.has(method.toUpperCase())) {
     csrfToken = null;
-    const fresh = await ensureCsrfToken();
-    if (fresh) res = await performFetch(method, url, data, options, fresh);
+    const fresh = await fetchCsrfToken();
+    if (fresh) {
+      csrfToken = fresh;
+      res = await performFetch(method, url, data, options, fresh);
+    }
   }
 
   if (res.status === 401) {

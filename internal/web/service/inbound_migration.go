@@ -19,11 +19,18 @@ import (
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	db := database.GetDB()
 	query := fmt.Sprintf(
-		"DELETE FROM client_traffics WHERE email NOT IN (SELECT %s %s)",
+		"DELETE FROM client_traffics WHERE email NOT IN (SELECT email FROM clients) AND email NOT IN (SELECT %s %s)",
 		database.JSONFieldText("client.value", "email"),
 		database.JSONClientsFromInbound(),
 	)
-	db.Exec(query)
+	result := db.Exec(query)
+	if result.Error != nil {
+		logger.Warning("MigrationRemoveOrphanedTraffics failed:", result.Error)
+		return
+	}
+	if result.RowsAffected > 0 {
+		logger.Infof("MigrationRemoveOrphanedTraffics: removed %d orphaned client_traffics row(s)", result.RowsAffected)
+	}
 }
 
 func (s *InboundService) MigrationRequirements() {

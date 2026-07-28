@@ -122,7 +122,9 @@ Only valid when the protocol is **Hysteria2**.
 disguise transports that don't carry TLS (like mKCP) or add a second skin on top of
 TLS. Masks are configured per direction:
 
-- **TCP masks** — `fragment`, `sudoku`, `header-custom`.
+- **TCP masks** — `fragment`, `sudoku`, `header-custom`, `xmc` (disguises the
+  stream as Minecraft protocol traffic; requires a password, with optional
+  hostname and player usernames).
 - **UDP masks** — `salamander`, `mkcp-legacy`, `header-custom`, `xdns`, `xicmp`,
   `noise`, `sudoku`, `realm`. (`mkcp-legacy` reproduces the old mKCP header
   obfuscation.)

@@ -156,7 +156,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			enableMap[clientTraffic.Email] = clientTraffic.Enable
 		}
 
-		var finalClients []any
+		finalClients := make([]any, 0, len(dbClients))
 		var wgPeers []any
 		for i := range dbClients {
 			c := dbClients[i]
@@ -284,6 +284,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				delete(stream, "finalmask")
 			}
 
+			dropEmptyRandPackets(stream["finalmask"])
+
+			if dropped := stripIncompleteXmcMasks(stream); dropped > 0 {
+				logger.Warningf("Inbound %q: dropping %d XMC finalmask mask(s) without complete Minecraft profiles — reconfigure them to restore the obfuscation (see XTLS/Xray-core#6487)", inbound.Tag, dropped)
+			}
+
 			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
 			// kept no fallback. Lift legacy sessionPlacement/sessionKey onto the
 			// new names here so inbounds stored before the rename keep working
@@ -357,10 +363,10 @@ const PanelEgressInboundTag = "panel-egress"
 // already taken by other inbounds in the generated config are skipped.
 const panelEgressBasePort = 62790
 
-// injectPanelEgress appends a loopback SOCKS inbound to the generated config
-// and prepends a routing rule sending it to outboundTag. Both live only in the
-// generated config — the stored template is never modified — and both are
-// hot-appliable, so changing the panel outbound never restarts the core.
+// injectPanelEgress appends a loopback SOCKS inbound and routing rule only when
+// outboundTag resolves in the final outbound or balancer set. Otherwise the
+// entire injection is skipped. Generated state is hot-appliable and never
+// modifies the stored template or restarts the core.
 func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	for i := range cfg.InboundConfigs {
 		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {
@@ -377,6 +383,10 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 			logger.Warning("panel egress: routing section is unparsable, skipping injection:", err)
 			return
 		}
+	}
+	if !routingTargetExists(routing, cfg.OutboundConfigs, outboundTag) {
+		logger.Warning("panel egress: target tag [", outboundTag, "] not found, skipping injection")
+		return
 	}
 	rules, _ := routing["rules"].([]any)
 	rule := map[string]any{
@@ -421,6 +431,25 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	})
 }
 
+func outboundTagExists(outbounds json_util.RawMessage, tag string) bool {
+	var parsed []struct {
+		Tag string `json:"tag"`
+	}
+	if tag == "" || json.Unmarshal(outbounds, &parsed) != nil {
+		return false
+	}
+	for _, outbound := range parsed {
+		if outbound.Tag == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func routingTargetExists(routing map[string]any, outbounds json_util.RawMessage, tag string) bool {
+	return routingTagIsBalancer(routing, tag) || outboundTagExists(outbounds, tag)
+}
+
 // NodeEgressInboundTag returns the loopback SOCKS inbound tag for a given node.
 func NodeEgressInboundTag(nodeID int) string {
 	return fmt.Sprintf("node-egress-%d", nodeID)
@@ -453,6 +482,10 @@ func injectNodeEgresses(cfg *xray.Config, nodes []*model.Node) {
 
 	for _, n := range nodes {
 		if !n.Enable || n.OutboundTag == "" {
+			continue
+		}
+		if !routingTargetExists(routing, cfg.OutboundConfigs, n.OutboundTag) {
+			logger.Warning("node egress: target tag [", n.OutboundTag, "] not found, skipping node [", n.Id, "]")
 			continue
 		}
 		tag := NodeEgressInboundTag(n.Id)
@@ -532,11 +565,11 @@ func routingTagIsBalancer(routing map[string]any, tag string) bool {
 const mtprotoEgressSocksSettings = `{"auth":"noauth","udp":false}`
 
 // injectMtprotoEgress wires one routed mtproto inbound into the generated
-// config: it appends a loopback SOCKS inbound (tagged with the inbound's own tag,
-// on the egress port persisted in settings) and, when an outbound is selected,
-// prepends a routing rule sending that tag to it. Both live only in the generated
-// config — the stored template is untouched — and both are hot-appliable, so
-// toggling routing never forces a full Xray restart. Mirrors injectPanelEgress.
+// config after any selected outbound resolves in the final target set. Invalid
+// selected targets or routing data skip the entire injection; without a selected
+// outbound, the bridge retains default-route behavior. Generated state remains
+// hot-appliable, leaves the stored template untouched, and never forces a full
+// Xray restart. Mirrors injectPanelEgress.
 func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	var parsed struct {
 		RouteThroughXray bool   `json:"routeThroughXray"`
@@ -559,31 +592,33 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 
 	if parsed.OutboundTag != "" {
 		routing := map[string]any{}
-		parseOK := true
 		if len(cfg.RouterConfig) > 0 {
 			if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
-				logger.Warning("mtproto egress: routing section is unparsable, skipping rule:", err)
-				parseOK = false
+				logger.Warning("mtproto egress: routing section is unparsable, skipping injection:", err)
+				return
 			}
 		}
-		if parseOK {
-			rules, _ := routing["rules"].([]any)
-			rule := map[string]any{
-				"type":       "field",
-				"inboundTag": []any{tag},
-			}
-			if routingTagIsBalancer(routing, parsed.OutboundTag) {
-				rule["balancerTag"] = parsed.OutboundTag
-			} else {
-				rule["outboundTag"] = parsed.OutboundTag
-			}
-			routing["rules"] = append([]any{rule}, rules...)
-			if newRouting, err := json.Marshal(routing); err == nil {
-				cfg.RouterConfig = json_util.RawMessage(newRouting)
-			} else {
-				logger.Warning("mtproto egress: failed to rebuild routing section, skipping rule:", err)
-			}
+		if !routingTargetExists(routing, cfg.OutboundConfigs, parsed.OutboundTag) {
+			logger.Warning("mtproto egress: target tag [", parsed.OutboundTag, "] not found, skipping injection")
+			return
 		}
+		rules, _ := routing["rules"].([]any)
+		rule := map[string]any{
+			"type":       "field",
+			"inboundTag": []any{tag},
+		}
+		if routingTagIsBalancer(routing, parsed.OutboundTag) {
+			rule["balancerTag"] = parsed.OutboundTag
+		} else {
+			rule["outboundTag"] = parsed.OutboundTag
+		}
+		routing["rules"] = append([]any{rule}, rules...)
+		newRouting, err := json.Marshal(routing)
+		if err != nil {
+			logger.Warning("mtproto egress: failed to rebuild routing section, skipping injection:", err)
+			return
+		}
+		cfg.RouterConfig = json_util.RawMessage(newRouting)
 	}
 
 	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
@@ -908,16 +943,63 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 }
 
 // OverrideBalancer forces a balancer in the running core to use the given
-// outbound tag; an empty target clears the override.
+// outbound tag; an empty target clears the override. When target names
+// another balancer, the override resolves to the loopback outbound that
+// routes traffic through the target balancer via the routing rules.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
 	if !s.IsXrayRunning() {
 		return errors.New("xray is not running")
+	}
+	if target != "" {
+		resolved, err := s.resolveOverrideTarget(target)
+		if err != nil {
+			return err
+		}
+		if resolved != "" {
+			target = resolved
+		}
 	}
 	if err := s.xrayAPI.Init(p.GetAPIPort()); err != nil {
 		return err
 	}
 	defer s.xrayAPI.Close()
 	return s.xrayAPI.SetBalancerTarget(tag, target)
+}
+
+// resolveOverrideTarget checks if target names a balancer and, if so,
+// returns the loopback outbound tag that routes to it through the
+// routing rules. Returns empty if target is already a concrete outbound.
+func (s *XrayService) resolveOverrideTarget(target string) (string, error) {
+	template, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil {
+		return "", err
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
+		return "", err
+	}
+	routing, _ := cfg["routing"].(map[string]any)
+	if routing == nil {
+		return "", nil
+	}
+	rules, _ := routing["rules"].([]any)
+	for _, r := range rules {
+		rule, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if rule["balancerTag"] != target {
+			continue
+		}
+		inboundTags, ok := rule["inboundTag"].([]any)
+		if !ok || len(inboundTags) == 0 {
+			continue
+		}
+		if lbTag, ok := inboundTags[0].(string); ok && strings.HasPrefix(lbTag, "_bl_") {
+			return lbTag, nil
+		}
+	}
+	return "", nil
 }
 
 // TestRoute asks the running core which outbound its router picks for the
@@ -942,6 +1024,9 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
 	logger.Debug("restart Xray, force:", isForce)
+	if !isForce && isManuallyStopped.Load() {
+		return nil
+	}
 	isManuallyStopped.Store(false)
 
 	xrayConfig, err := s.GetXrayConfig()
@@ -1136,6 +1221,20 @@ func (s *XrayService) GetXrayAPIPort() int {
 // IsNeedRestartAndSetFalse checks if restart is needed and resets the flag to false.
 func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
+}
+
+// ApplyPendingRestart consumes the need-restart flag and restarts Xray. If the
+// restart fails (for example GetXrayConfig hits a transient DB error and leaves
+// the old process running), it re-arms the flag so the next tick retries instead
+// of silently dropping the pending config change.
+func (s *XrayService) ApplyPendingRestart() {
+	if !s.IsNeedRestartAndSetFalse() {
+		return
+	}
+	if err := s.RestartXray(false); err != nil {
+		logger.Error("restart xray failed:", err)
+		s.SetToNeedRestart()
+	}
 }
 
 // DidXrayCrash checks if Xray crashed by verifying it's not running and wasn't manually stopped.

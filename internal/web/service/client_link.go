@@ -9,6 +9,65 @@ import (
 	"gorm.io/gorm"
 )
 
+// applyClientRecordMerge merges incoming client-record fields onto row using the
+// same rules everywhere a client record is persisted: scalar quota / lifecycle /
+// subscription fields are applied unconditionally (so clearing them takes
+// effect), while credentials and identifiers are only overwritten when the
+// incoming value is non-empty (so a partial update preserves the stored UUID /
+// password / keys). CreatedAt keeps the earliest known value. Email, UpdatedAt,
+// and the Id primary key are intentionally not touched here — callers handle
+// those separately. Shared by SyncInbound (per-inbound persistence) and Update
+// (the no-attached-inbound fallback) so the two paths cannot diverge.
+func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecord) {
+	if incoming.UUID != "" {
+		row.UUID = incoming.UUID
+	}
+	if incoming.Password != "" {
+		row.Password = incoming.Password
+	}
+	if incoming.Auth != "" {
+		row.Auth = incoming.Auth
+	}
+	if incoming.Secret != "" {
+		row.Secret = incoming.Secret
+	}
+	if incoming.AdTag != "" {
+		row.AdTag = incoming.AdTag
+	}
+	row.Flow = incoming.Flow
+	if incoming.Security != "" {
+		row.Security = incoming.Security
+	}
+	if incoming.Reverse != "" {
+		row.Reverse = incoming.Reverse
+	}
+	if incoming.PrivateKey != "" {
+		row.PrivateKey = incoming.PrivateKey
+	}
+	if incoming.PublicKey != "" {
+		row.PublicKey = incoming.PublicKey
+	}
+	if incoming.AllowedIPs != "" {
+		row.AllowedIPs = incoming.AllowedIPs
+	}
+	row.PreSharedKey = incoming.PreSharedKey
+	row.KeepAlive = incoming.KeepAlive
+	row.SubID = incoming.SubID
+	row.LimitIP = incoming.LimitIP
+	row.TotalGB = incoming.TotalGB
+	row.ExpiryTime = incoming.ExpiryTime
+	row.Enable = incoming.Enable
+	row.TgID = incoming.TgID
+	if incoming.Group != "" {
+		row.Group = incoming.Group
+	}
+	row.Comment = incoming.Comment
+	row.Reset = incoming.Reset
+	if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
+		row.CreatedAt = incoming.CreatedAt
+	}
+}
+
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
 	if tx == nil {
 		tx = database.GetDB()
@@ -66,53 +125,7 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 
 		before := *row
-		if incoming.UUID != "" {
-			row.UUID = incoming.UUID
-		}
-		if incoming.Password != "" {
-			row.Password = incoming.Password
-		}
-		if incoming.Auth != "" {
-			row.Auth = incoming.Auth
-		}
-		if incoming.Secret != "" {
-			row.Secret = incoming.Secret
-		}
-		if incoming.AdTag != "" {
-			row.AdTag = incoming.AdTag
-		}
-		row.Flow = incoming.Flow
-		if incoming.Security != "" {
-			row.Security = incoming.Security
-		}
-		if incoming.Reverse != "" {
-			row.Reverse = incoming.Reverse
-		}
-		if incoming.PrivateKey != "" {
-			row.PrivateKey = incoming.PrivateKey
-		}
-		if incoming.PublicKey != "" {
-			row.PublicKey = incoming.PublicKey
-		}
-		if incoming.AllowedIPs != "" {
-			row.AllowedIPs = incoming.AllowedIPs
-		}
-		row.PreSharedKey = incoming.PreSharedKey
-		row.KeepAlive = incoming.KeepAlive
-		row.SubID = incoming.SubID
-		row.LimitIP = incoming.LimitIP
-		row.TotalGB = incoming.TotalGB
-		row.ExpiryTime = incoming.ExpiryTime
-		row.Enable = incoming.Enable
-		row.TgID = incoming.TgID
-		if incoming.Group != "" {
-			row.Group = incoming.Group
-		}
-		row.Comment = incoming.Comment
-		row.Reset = incoming.Reset
-		if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
-			row.CreatedAt = incoming.CreatedAt
-		}
+		applyClientRecordMerge(row, incoming)
 		preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 		row.UpdatedAt = preservedUpdatedAt
 

@@ -67,6 +67,47 @@ func TestMigrate_ExternalProxyToHosts(t *testing.T) {
 		b.Port != 80 || b.Remark != "B" {
 		t.Fatalf("host B mapping wrong: %+v", b)
 	}
+	if a.GroupId == "" || b.GroupId == "" {
+		t.Fatalf("group ids must be assigned at creation: a=%q b=%q", a.GroupId, b.GroupId)
+	}
+	if a.GroupId == b.GroupId {
+		t.Fatalf("each entry must get its own group id, both = %q", a.GroupId)
+	}
+}
+
+// #1b — a hosts row that entered the DB without a group_id (older-build import
+// or restored backup) is repaired on every start, so it stays addressable by
+// the group-scoped update/delete API instead of surfacing as fallback_<id>.
+func TestBackfillEmptyHostGroupIds_RepairsLegacyRows(t *testing.T) {
+	initMigrateDB(t)
+	ib := seedInboundWithStream(t, "m1b", 5556, `{"network":"tcp","security":"none"}`)
+	legacy := &model.Host{InboundId: ib.Id, Remark: "legacy", Address: "c.cdn.com", Port: 443, Security: "tls"}
+	if err := GetDB().Create(legacy).Error; err != nil {
+		t.Fatalf("create legacy host: %v", err)
+	}
+
+	if err := backfillEmptyHostGroupIds(); err != nil {
+		t.Fatalf("backfill: %v", err)
+	}
+
+	var got model.Host
+	if err := GetDB().First(&got, legacy.Id).Error; err != nil {
+		t.Fatalf("reload host: %v", err)
+	}
+	if got.GroupId == "" {
+		t.Fatal("group_id still empty after backfill")
+	}
+
+	if err := backfillEmptyHostGroupIds(); err != nil {
+		t.Fatalf("second backfill: %v", err)
+	}
+	var again model.Host
+	if err := GetDB().First(&again, legacy.Id).Error; err != nil {
+		t.Fatalf("reload host after second run: %v", err)
+	}
+	if again.GroupId != got.GroupId {
+		t.Fatalf("second run must not touch repaired rows: %q -> %q", got.GroupId, again.GroupId)
+	}
 }
 
 // #2 — a second run is a no-op (the HistoryOfSeeders gate).

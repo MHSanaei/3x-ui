@@ -1548,19 +1548,25 @@ ssl_cert_issue_for_ip() {
         fi
     done
 
-    if [[ -z "$server_ip" ]]; then
+    if [[ -n "$server_ip" ]]; then
+        LOGI "Server IP detected: ${server_ip}"
+        if ! confirm "Is ${server_ip} the correct incoming public IPv4 address for this server?" "y"; then
+            server_ip=""
+        fi
+    else
         LOGI "Could not auto-detect server IP from any provider."
-        while [[ -z "$server_ip" ]]; do
-            read -rp "Please enter your server's public IPv4 address: " server_ip
-            server_ip="${server_ip// /}"
-            if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                LOGE "Invalid IPv4 address. Please try again."
-                server_ip=""
-            fi
-        done
     fi
 
-    LOGI "Server IP detected: ${server_ip}"
+    while [[ -z "$server_ip" ]]; do
+        read -rp "Please enter your server's public IPv4 address: " server_ip
+        server_ip="${server_ip// /}"
+        if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            LOGE "Invalid IPv4 address. Please try again."
+            server_ip=""
+        fi
+    done
+
+    LOGI "Issuing certificate for server IP: ${server_ip}"
 
     # Ask for optional IPv6
     local ipv6_addr=""

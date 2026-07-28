@@ -212,3 +212,26 @@ func TestFilterNodeSnapshot(t *testing.T) {
 		t.Fatalf("empty selection kept %d inbounds, want 0", len(none.Inbounds))
 	}
 }
+
+func TestFilterNodeSnapshotMatchesPrefixedSelectedTag(t *testing.T) {
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
+		{Tag: "in-100-tcp"},
+		{Tag: "in-443-tcp"},
+	}}
+	FilterNodeSnapshot(&model.Node{
+		Id:              5,
+		InboundSyncMode: "selected",
+		InboundTags:     []string{"in-100-tcp", "n5-in-443-tcp"},
+	}, snap)
+
+	kept := make(map[string]bool, len(snap.Inbounds))
+	for _, ib := range snap.Inbounds {
+		kept[ib.Tag] = true
+	}
+	if !kept["in-443-tcp"] {
+		t.Fatalf("node-side tag in-443-tcp filtered out despite the prefixed central tag being selected; kept=%v", kept)
+	}
+	if !kept["in-100-tcp"] {
+		t.Fatalf("bare selected tag in-100-tcp was dropped; kept=%v", kept)
+	}
+}

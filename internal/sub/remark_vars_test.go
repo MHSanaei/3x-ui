@@ -128,6 +128,19 @@ func TestExpandRemarkVars_DropUnlimitedSegments(t *testing.T) {
 	}
 }
 
+func TestExpandRemarkVars_DropEmptySegments(t *testing.T) {
+	inbound := &model.Inbound{Remark: "host"}
+
+	noComment := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true}, inbound)
+	if got := expandRemarkVars("{{INBOUND}}|{{COMMENT}}", noComment); got != "host" {
+		t.Errorf("empty comment segment = %q, want %q (no trailing pipe)", got, "host")
+	}
+
+	if got := expandRemarkVars("{{INBOUND}}|📅{{EXPIRE_DATE}}", noComment); got != "host" {
+		t.Errorf("decorated empty segment = %q, want %q", got, "host")
+	}
+}
+
 func TestClientStatus(t *testing.T) {
 	cases := []struct {
 		name string
@@ -637,5 +650,42 @@ func TestEmailOnFirstLinkOnly(t *testing.T) {
 	}
 	if !strings.Contains(second, "DE") {
 		t.Fatalf("second link should still carry the inbound name: %q", second)
+	}
+}
+
+func TestIdentityOnAllLinks(t *testing.T) {
+	const template = "{{INBOUND}}-{{EMAIL}}|{{USERNAME}}|📊{{TRAFFIC_LEFT}}|{{STATUS_EMOJI}}"
+	inbound := &model.Inbound{
+		Remark: "DE",
+		ClientStats: []xray.ClientTraffic{{
+			Email:  "alice@x",
+			Enable: true,
+			Total:  100 * gb,
+			Up:     20 * gb,
+		}},
+	}
+	tests := []struct {
+		name       string
+		enabled    bool
+		wantSecond string
+	}{
+		{name: "disabled", wantSecond: "DE"},
+		{name: "enabled", enabled: true, wantSecond: "DE-alice@x|alice@x"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &SubService{
+				remarkTemplate:         template,
+				subscriptionBody:       true,
+				showIdentityOnAllLinks: tt.enabled,
+			}
+			client := model.Client{Email: "alice@x"}
+			if got := s.genTemplatedRemark(inbound, client, "", "ws"); got != "DE-alice@x|alice@x|📊80.00GB|✅" {
+				t.Fatalf("first link = %q", got)
+			}
+			if got := s.genTemplatedRemark(inbound, client, "", "ws"); got != tt.wantSecond {
+				t.Fatalf("second link = %q, want %q", got, tt.wantSecond)
+			}
+		})
 	}
 }

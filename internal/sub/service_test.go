@@ -335,6 +335,8 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 		"mode":                 "packet-up",
 		"xPaddingBytes":        "100-1000",
 		"uplinkHTTPMethod":     "GET",
+		"sessionIDPlacement":   "header",
+		"sessionIDKey":         "X-Session",
 		"uplinkChunkSize":      float64(4096),
 		"noGRPCHeader":         true,
 		"scMinPostsIntervalMs": "20-40",
@@ -375,6 +377,16 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 	if extra["mode"] != "packet-up" {
 		t.Fatalf("extra[mode] = %#v, want packet-up", extra["mode"])
 	}
+	for key, want := range map[string]string{
+		"sessionIDPlacement": "header",
+		"sessionIDKey":       "X-Session",
+		"sessionPlacement":   "header",
+		"sessionKey":         "X-Session",
+	} {
+		if extra[key] != want {
+			t.Fatalf("extra[%s] = %#v, want %q; extra %#v", key, extra[key], want, extra)
+		}
+	}
 
 	headers, ok := extra["headers"].(map[string]any)
 	if !ok {
@@ -385,6 +397,24 @@ func TestBuildXhttpExtra_IncludesClientSideFieldsWhenPresent(t *testing.T) {
 	}
 	if headers["X-Forwarded"] != "1" {
 		t.Fatalf("headers[X-Forwarded] = %#v, want 1", headers["X-Forwarded"])
+	}
+}
+
+func TestBuildXhttpExtra_LegacySessionFieldsEmitBothNames(t *testing.T) {
+	extra := buildXhttpExtra(map[string]any{
+		"sessionPlacement": "query",
+		"sessionKey":       "sess",
+	})
+
+	for key, want := range map[string]string{
+		"sessionIDPlacement": "query",
+		"sessionIDKey":       "sess",
+		"sessionPlacement":   "query",
+		"sessionKey":         "sess",
+	} {
+		if extra[key] != want {
+			t.Fatalf("extra[%s] = %#v, want %q; extra %#v", key, extra[key], want, extra)
+		}
 	}
 }
 
@@ -775,6 +805,26 @@ func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	}
 }
 
+func TestApplyExternalProxyTLSToStream_FingerprintNotDuplicated(t *testing.T) {
+	stream := map[string]any{
+		"security":    "tls",
+		"tlsSettings": map[string]any{},
+	}
+	ep := map[string]any{"dest": "proxy.example.com", "fingerprint": "chrome"}
+
+	applyExternalProxyTLSToStream(ep, stream, "tls")
+
+	ts, _ := stream["tlsSettings"].(map[string]any)
+	if ts["fingerprint"] != "chrome" {
+		t.Fatalf("tlsSettings.fingerprint = %v, want %q", ts["fingerprint"], "chrome")
+	}
+	if settings, ok := ts["settings"].(map[string]any); ok {
+		if got, dup := settings["fingerprint"]; dup {
+			t.Fatalf("fingerprint must not be duplicated into tlsSettings.settings, got %v", got)
+		}
+	}
+}
+
 func TestApplyExternalProxyTLSParams_SetsPinnedPeerCert(t *testing.T) {
 	params := map[string]string{"security": "tls"}
 	ep := map[string]any{
@@ -1016,6 +1066,21 @@ func TestMarshalFinalMask_UnknownTypeIsDropped(t *testing.T) {
 	}
 }
 
+func TestMarshalFinalMask_KeepsXmcTcpMask(t *testing.T) {
+	fm := map[string]any{
+		"tcp": []any{
+			map[string]any{"type": "xmc", "settings": map[string]any{"password": "p"}},
+		},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for an xmc tcp mask")
+	}
+	if !strings.Contains(out, "xmc") {
+		t.Fatalf("marshaled finalmask dropped the xmc mask: %s", out)
+	}
+}
+
 func TestHasFinalMaskContent(t *testing.T) {
 	if hasFinalMaskContent(nil) {
 		t.Fatal("nil should not count as content")
@@ -1093,5 +1158,34 @@ func TestHysteriaHopPorts(t *testing.T) {
 				t.Fatalf("hysteriaHopPorts() = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestGenHysteriaLinkOmitsFinalMaskQueryParam(t *testing.T) {
+	stream := `{
+		"security":"tls",
+		"tlsSettings":{"serverName":"hy.sni","alpn":["h3"],"settings":{"fingerprint":"chrome"}},
+		"finalmask":{"udp":[{"type":"salamander","settings":{"password":"obfs-secret"}}]}
+	}`
+	in := &model.Inbound{
+		Listen:         "203.0.113.1",
+		Port:           443,
+		Protocol:       model.Hysteria,
+		Remark:         "hy2",
+		Settings:       `{"version":2,"clients":[{"auth":"hyauth","email":"user"}]}`,
+		StreamSettings: stream,
+	}
+	got := (&SubService{}).genHysteriaLink(in, "user")
+	if got == "" {
+		t.Fatal("expected hysteria2 link")
+	}
+	if strings.Contains(got, "fm=") {
+		t.Fatalf("hysteria2 subscription URI must not include non-standard fm param: %s", got)
+	}
+	if !strings.Contains(got, "obfs=salamander") {
+		t.Fatalf("missing standard obfs=salamander: %s", got)
+	}
+	if !strings.Contains(got, "obfs-password=obfs-secret") {
+		t.Fatalf("missing standard obfs-password: %s", got)
 	}
 }

@@ -233,8 +233,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                   type={testResult.success ? 'success' : 'error'}
                   title={testResult.msg}
                   showIcon
-                  closable
-                  onClose={() => setTestResult(null)}
+                  closable={{ onClose: () => setTestResult(null) }}
                 />
               )}
             </Space>

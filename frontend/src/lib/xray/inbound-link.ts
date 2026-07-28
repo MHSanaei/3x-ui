@@ -42,8 +42,7 @@ function xhttpHostFallback(xhttp: XHttpStreamSettings | undefined): string {
 // Pull the bidirectional SplitHTTPConfig fields out of xhttp into a
 // compact extra payload. Server-only fields (noSSEHeader, scMaxBufferedPosts,
 // scStreamUpServerSecs, serverMaxHeaderBytes) are excluded — the client
-// reading the share link wouldn't honor them. Mirrors the legacy
-// Inbound.buildXhttpExtra exactly so the shadow link snapshots line up.
+// reading the share link wouldn't honor them.
 function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string, unknown> | null {
   if (!xhttp) return null;
   const extra: Record<string, unknown> = {};
@@ -84,6 +83,15 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
   for (const k of stringFields) {
     const v = xhttp[k];
     if (typeof v === 'string' && v.length > 0 && v !== coreDefaults[k]) extra[k] = v;
+  }
+  // xray-core #6258 renamed these fields, but older clients still read the
+  // legacy names from share-link extra. Emit both names so one link works
+  // across old and new clients while the stored panel config stays canonical.
+  if (typeof extra.sessionIDPlacement === 'string') {
+    extra.sessionPlacement = extra.sessionIDPlacement;
+  }
+  if (typeof extra.sessionIDKey === 'string') {
+    extra.sessionKey = extra.sessionIDKey;
   }
 
   // Headers on the wire are a record; emit them as a map upstream's
@@ -704,11 +712,12 @@ function hysteriaPinHex(pin: string): string {
   }
 }
 
-// Hysteria share link: hysteria://<auth>@<host>:<port>?<query>#<remark>.
-// The URL scheme is "hysteria2" when settings.version === 2 (hysteria v2
-// AKA hysteria2), "hysteria" otherwise. Salamander obfuscation pulls its
-// password from finalmask.udp[type=salamander] when present; the broader
-// finalmask payload still rides under `fm` like the other links.
+// Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
+// The scheme is always hysteria2 — xray-core builds version 2 only, so the
+// settings schema pins it there and the subscription server emits the same
+// scheme. Salamander obfuscation pulls its password from
+// finalmask.udp[type=salamander] when present; the broader finalmask payload
+// still rides under `fm` like the other links.
 //
 // Note: legacy genHysteriaLink reads stream.tls.settings.allowInsecure,
 // which isn't a field on TlsStreamSettings.Settings — the guard is always
@@ -727,8 +736,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   const stream = inbound.streamSettings;
   if (!stream || stream.security !== 'tls') return '';
 
-  const settings = inbound.settings;
-  const scheme = settings.version === 2 ? 'hysteria2' : 'hysteria';
+  const scheme = 'hysteria2';
 
   const params = new URLSearchParams();
   params.set('security', 'tls');
@@ -822,8 +830,8 @@ export function genWireguardLink(input: GenWireguardLinkInput): string {
     ? Wireguard.generateKeypair(settings.secretKey).publicKey
     : '';
   if (pubKey.length > 0) url.searchParams.set('publickey', pubKey);
-  if (peer.allowedIPs.length > 0 && peer.allowedIPs[0]) {
-    url.searchParams.set('address', peer.allowedIPs[0]);
+  if (peer.allowedIPs.length > 0) {
+    url.searchParams.set('address', peer.allowedIPs.join(','));
   }
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
     url.searchParams.set('mtu', String(settings.mtu));
@@ -850,7 +858,7 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
 
   let txt = `[Interface]\n`;
   txt += `PrivateKey = ${peer.privateKey ?? ''}\n`;
-  txt += `Address = ${peer.allowedIPs[0] ?? ''}\n`;
+  txt += `Address = ${peer.allowedIPs.join(', ')}\n`;
   txt += `DNS = ${settings.dns || '1.1.1.1, 1.0.0.1'}\n`;
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
     txt += `MTU = ${settings.mtu}\n`;

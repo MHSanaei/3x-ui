@@ -2,7 +2,7 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { Heart } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { TelegramIcon } from '@/components/icons';
-import { appName, productRepoUrl, telegramChannel, telegramChannelUrl, donateUrl } from './shared';
+import { appName, productRepoUrl, telegramChannel, telegramChannelUrl, donateUrl, siteUrl } from './shared';
 import { getSiteMessages } from './site-i18n';
 
 // Build locale-aware shared layout options. With `hideLocale: 'default-locale'`,
@@ -27,6 +27,12 @@ export function baseOptions(lang: string): BaseLayoutProps {
         text: m.documentation,
         url: `${prefix}/docs`,
         active: 'nested-url',
+      },
+      // Live component workbench built from frontend/ and published alongside the docs.
+      {
+        text: 'Storybook',
+        url: `${siteUrl}/storybook/`,
+        external: true,
       },
       {
         type: 'icon',

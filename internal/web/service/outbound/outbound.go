@@ -142,6 +142,7 @@ type TestOutboundResult struct {
 	TTFBMs     int64 `json:"ttfbMs,omitempty"`
 
 	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
+	Egress    *TestEgressResult    `json:"egress,omitempty"`
 }
 
 // TestEndpointResult is one entry in a TCP-mode probe — the per-endpoint
@@ -151,6 +152,15 @@ type TestEndpointResult struct {
 	Success bool   `json:"success"`
 	Delay   int64  `json:"delay"`
 	Error   string `json:"error,omitempty"`
+}
+
+// TestEgressResult is populated by HTTP-mode probes from Cloudflare's trace
+// endpoint. It reports what an external service sees after the outbound chain.
+type TestEgressResult struct {
+	IPv4    string `json:"ipv4,omitempty"`
+	IPv6    string `json:"ipv6,omitempty"`
+	Country string `json:"country,omitempty"`
+	Warp    string `json:"warp,omitempty"`
 }
 
 func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundResult, error) {

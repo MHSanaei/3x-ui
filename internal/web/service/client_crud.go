@@ -82,6 +82,20 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if existing.SubID == "" || existing.SubID != client.SubID {
 			return false, common.NewError("email already in use:", client.Email)
 		}
+		// Reuse stored credentials when re-adding an existing identity, or
+		// fillProtocolDefaults mints a fresh UUID that desyncs other inbounds.
+		if client.ID == "" {
+			client.ID = existing.UUID
+		}
+		if client.Password == "" {
+			client.Password = existing.Password
+		}
+		if client.Auth == "" {
+			client.Auth = existing.Auth
+		}
+		if client.Secret == "" {
+			client.Secret = existing.Secret
+		}
 	}
 
 	if client.SubID != "" {
@@ -94,6 +108,11 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if subTaken > 0 {
 			return false, common.NewError("subId already in use:", client.SubID)
 		}
+	}
+
+	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
+	if sidErr != nil {
+		return false, sidErr
 	}
 
 	needRestart := false
@@ -109,10 +128,10 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if mErr != nil {
 			return needRestart, mErr
 		}
-		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
+		nr, addErr := s.addInboundClient(inboundSvc, &model.Inbound{
 			Id:       ibId,
 			Settings: string(settingsPayload),
-		})
+		}, emailSubIDs)
 		if addErr != nil {
 			return needRestart, addErr
 		}
@@ -345,6 +364,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if updated.Auth == "" {
 		updated.Auth = existing.Auth
 	}
+	if updated.Secret == "" {
+		updated.Secret = existing.Secret
+	}
 
 	if updated.Email != existing.Email {
 		var collisionCount int64
@@ -356,14 +378,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if collisionCount > 0 {
 			return false, common.NewError("Duplicate email:", updated.Email)
 		}
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("id = ?", id).
-			Update("email", updated.Email).Error; err != nil {
-			return false, err
-		}
 	}
 
-	if updated.SubID != "" {
+	if updated.SubID != existing.SubID {
 		var subCollision int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
 			Where("sub_id = ? AND id <> ?", updated.SubID, id).
@@ -408,6 +425,45 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 		if nr {
 			needRestart = true
+		}
+	}
+
+	// UpdateInboundClient renames the record atomically with each inbound's
+	// settings JSON; this direct write only covers records with no inbound left.
+	if updated.Email != existing.Email {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ? AND email = ?", id, existing.Email).
+			Update("email", updated.Email).Error; err != nil {
+			return needRestart, err
+		}
+	}
+
+	if len(inboundIds) == 0 {
+		merged := *existing
+		applyClientRecordMerge(&merged, updated.ToRecord())
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Updates(map[string]any{
+				"sub_id":            merged.SubID,
+				"uuid":              merged.UUID,
+				"password":          merged.Password,
+				"auth":              merged.Auth,
+				"secret":            merged.Secret,
+				"flow":              merged.Flow,
+				"security":          merged.Security,
+				"wg_private_key":    merged.PrivateKey,
+				"wg_public_key":     merged.PublicKey,
+				"wg_allowed_ips":    merged.AllowedIPs,
+				"wg_pre_shared_key": merged.PreSharedKey,
+				"wg_keep_alive":     merged.KeepAlive,
+				"limit_ip":          merged.LimitIP,
+				"total_gb":          merged.TotalGB,
+				"expiry_time":       merged.ExpiryTime,
+				"tg_id":             merged.TgID,
+				"comment":           merged.Comment,
+				"reset":             merged.Reset,
+			}).Error; err != nil {
+			return needRestart, err
 		}
 	}
 
@@ -471,12 +527,14 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	}
 
 	needRestart := false
+	var delErrs []error
 	for _, ibId := range inboundIds {
 		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
 			if errors.Is(getErr, gorm.ErrRecordNotFound) {
 				continue
 			}
-			return needRestart, getErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, getErr))
+			continue
 		}
 
 		// Always delete by email — the client's stable identity. This removes
@@ -486,18 +544,24 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if existing.Email == "" {
 			continue
 		}
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, false, true)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, keepTraffic, true)
 		if delErr != nil {
 			// The client is already absent from this inbound (data drift or a
 			// retried delete). Skip it — deletion stays idempotent.
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
 			}
-			return needRestart, delErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, delErr))
+			continue
 		}
 		if nr {
 			needRestart = true
 		}
+	}
+	// A failed inbound still holds the client in its settings JSON: keep the
+	// record so the next delete retries exactly the leftovers, and report it.
+	if len(delErrs) > 0 {
+		return needRestart, errors.Join(delErrs...)
 	}
 
 	db := database.GetDB()
@@ -556,6 +620,11 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
 
+	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
+	if sidErr != nil {
+		return false, sidErr
+	}
+
 	needRestart := false
 	for _, ibId := range inboundIds {
 		if _, attached := have[ibId]; attached {
@@ -573,10 +642,10 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if mErr != nil {
 			return needRestart, mErr
 		}
-		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
+		nr, addErr := s.addInboundClient(inboundSvc, &model.Inbound{
 			Id:       ibId,
 			Settings: string(settingsPayload),
-		})
+		}, emailSubIDs)
 		if addErr != nil {
 			return needRestart, addErr
 		}
@@ -646,17 +715,22 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 		return false, common.NewError(fmt.Sprintf("client %q not found in any inbound or client record", email))
 	}
 	needRestart := false
+	var delErrs []error
 	for _, ibId := range inboundIds {
-		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, false, true)
+		nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, email, keepTraffic, true)
 		if delErr != nil {
 			if errors.Is(delErr, ErrClientNotInInbound) {
 				continue
 			}
-			return needRestart, delErr
+			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, delErr))
+			continue
 		}
 		if nr {
 			needRestart = true
 		}
+	}
+	if len(delErrs) > 0 {
+		return needRestart, errors.Join(delErrs...)
 	}
 	if !keepTraffic {
 		db := database.GetDB()

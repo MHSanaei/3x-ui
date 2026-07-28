@@ -103,7 +103,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 	}
 
-	finalYAML, err := yaml.Marshal(config)
+	finalYAML, err := marshalClashYAML(config)
 	if err != nil {
 		return "", "", err
 	}
@@ -168,16 +168,22 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 
 	proxies := make([]map[string]any, 0, len(externalProxies))
 	for _, ep := range externalProxies {
-		extPrxy := ep.(map[string]any)
+		extPrxy, ok := ep.(map[string]any)
+		if !ok {
+			continue
+		}
 		// Expand the host's {{VAR}} remark template for this client (no-op for
 		// the synthetic/legacy entry) before it becomes the proxy name.
 		subReq.renderHostRemark(inbound, client, extPrxy, network)
 		workingInbound := *inbound
-		workingInbound.Listen = extPrxy["dest"].(string)
-		workingInbound.Port = int(extPrxy["port"].(float64))
+		workingInbound.Listen, _ = extPrxy["dest"].(string)
+		if port, ok := extPrxy["port"].(float64); ok {
+			workingInbound.Port = int(port)
+		}
 		workingStream := cloneStreamForExternalProxy(stream)
 
-		switch extPrxy["forceTls"].(string) {
+		forceTls, _ := extPrxy["forceTls"].(string)
+		switch forceTls {
 		case "tls":
 			if workingStream["security"] != "tls" {
 				workingStream["security"] = "tls"
@@ -236,11 +242,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["type"] = "vmess"
 		proxy["uuid"] = client.ID
 		proxy["alterId"] = 0
-		cipher := client.Security
-		if cipher == "" {
-			cipher = "auto"
-		}
-		proxy["cipher"] = cipher
+		proxy["cipher"] = normalizeVmessSecurity(client.Security)
 	case model.VLESS:
 		proxy["type"] = "vless"
 		proxy["uuid"] = applyVlessRoute(client.ID, hostVlessRoute(ep))
@@ -336,6 +338,9 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 			}
 		}
 	}
+	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
+		proxy["skip-cert-verify"] = true
+	}
 
 	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
 	// block the subscription link generator uses.
@@ -413,7 +418,7 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	}
 	if dns, _ := inboundSettings["dns"].(string); dns != "" {
 		servers := make([]string, 0)
-		for _, server := range strings.Split(dns, ",") {
+		for server := range strings.SplitSeq(dns, ",") {
 			if server = strings.TrimSpace(server); server != "" {
 				servers = append(servers, server)
 			}
@@ -684,6 +689,9 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 				if insecure, ok := inner["allowInsecure"].(bool); ok && insecure {
 					proxy["skip-cert-verify"] = true
 				}
+			}
+			if pins, ok := tlsSettings["pin-sha256"].([]any); ok && len(pins) > 0 {
+				proxy["pin-sha256"] = pins
 			}
 		}
 		return true

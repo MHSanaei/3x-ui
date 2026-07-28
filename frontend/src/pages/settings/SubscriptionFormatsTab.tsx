@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Card,
   Input,
   InputNumber,
   Select,
@@ -8,6 +9,8 @@ import {
   Tabs,
 } from 'antd';
 import {
+  FileTextOutlined,
+  NodeIndexOutlined,
   PartitionOutlined,
   RocketOutlined,
   SendOutlined,
@@ -15,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
+import { GoRegexInput } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
@@ -148,9 +152,18 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
         key: '1',
         label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
         children: (
-          <>
+          <div className="subscription-format-sections">
             {allSetting.subJsonEnable && (
-              <>
+              <Card
+                size="small"
+                className="subscription-format-card"
+                title={(
+                  <span className="subscription-format-card-title">
+                    <FileTextOutlined />
+                    {t('pages.settings.subJsonEnableTitle')}
+                  </span>
+                )}
+              >
                 <SettingListItem paddings="small" title={<>JSON {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
                   <Input
                     value={allSetting.subJsonPath}
@@ -166,10 +179,40 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(e) => updateSetting({ subJsonURI: e.target.value })}
                   />
                 </SettingListItem>
-              </>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subJsonAlwaysArray')}
+                  description={t('pages.settings.subJsonAlwaysArrayDesc')}
+                >
+                  <Switch checked={allSetting.subJsonAlwaysArray} onChange={(value) => updateSetting({ subJsonAlwaysArray: value })} />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subJsonAutoDetect')} description={t('pages.settings.subJsonAutoDetectDesc')}>
+                  <Switch checked={allSetting.subJsonAutoDetect} onChange={(v) => updateSetting({ subJsonAutoDetect: v })} />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subJsonUserAgentRegex')}
+                  description={t('pages.settings.subJsonUserAgentRegexDesc')}
+                >
+                  <GoRegexInput
+                    value={allSetting.subJsonUserAgentRegex}
+                    placeholder="(?i)^myclient([ /]|$)"
+                    onChange={(value) => updateSetting({ subJsonUserAgentRegex: value })}
+                  />
+                </SettingListItem>
+              </Card>
             )}
             {allSetting.subClashEnable && (
-              <>
+              <Card
+                size="small"
+                className="subscription-format-card"
+                title={(
+                  <span className="subscription-format-card-title">
+                    <NodeIndexOutlined />
+                    {t('pages.settings.subClashEnableTitle')}
+                  </span>
+                )}
+              >
                 <SettingListItem paddings="small" title={<>Clash {t('pages.settings.subPath')}</>} description={t('pages.settings.subPathDesc')}>
                   <Input
                     value={allSetting.subClashPath}
@@ -185,9 +228,30 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     onChange={(e) => updateSetting({ subClashURI: e.target.value })}
                   />
                 </SettingListItem>
-              </>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subClashAutoDetect')}
+                  description={t('pages.settings.subClashAutoDetectDesc')}
+                >
+                  <Switch
+                    checked={allSetting.subClashAutoDetect}
+                    onChange={(v) => updateSetting({ subClashAutoDetect: v })}
+                  />
+                </SettingListItem>
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subClashUserAgentRegex')}
+                  description={t('pages.settings.subClashUserAgentRegexDesc')}
+                >
+                  <GoRegexInput
+                    value={allSetting.subClashUserAgentRegex}
+                    placeholder="(?i)(clash|mihomo)"
+                    onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
+                  />
+                </SettingListItem>
+              </Card>
             )}
-          </>
+          </div>
         ),
       },
       {

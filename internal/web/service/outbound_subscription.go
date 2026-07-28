@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,7 +18,40 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+// filterOutboundsRejectedByCore drops outbounds the vendored xray-core config
+// loader refuses to build — since v26.7.11 that includes unencrypted
+// vless/trojan outbounds to public addresses — because one such outbound in
+// the merged config would keep the whole core from starting. When the running
+// core predates that rejection, unencrypted outbounds are kept, mirroring
+// CheckXrayConfig's version gate.
+func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
+	coreVersion := "Unknown"
+	if p != nil {
+		coreVersion = p.GetXrayVersion()
+	}
+	kept := make([]any, 0, len(outbounds))
+	var dropped []string
+	for _, ob := range outbounds {
+		raw, err := json.Marshal(ob)
+		if err == nil {
+			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil && !shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, buildErr) {
+				tag := ""
+				if m, ok := ob.(map[string]any); ok {
+					tag, _ = m["tag"].(string)
+				}
+				logger.Warningf("%s: dropping outbound %q rejected by xray-core: %v", label, tag, buildErr)
+				dropped = append(dropped, fmt.Sprintf("%s: %v", tag, buildErr))
+				continue
+			}
+		}
+		kept = append(kept, ob)
+	}
+	return kept, dropped
+}
 
 // maxOutboundSubscriptionBytes caps a single outbound subscription response.
 // It is larger than the 2 MiB user-facing subscription cap because an outbound
@@ -128,7 +162,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) string
 	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId))
 }
 
-func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) (*model.OutboundSubscription, error) {
+func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return nil, common.NewError("invalid subscription URL:", err)
@@ -151,6 +185,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 		Url:            cleanURL,
 		Enabled:        enabled,
 		AllowPrivate:   allowPrivate,
+		AllowInsecure:  allowInsecure,
 		Prepend:        prepend,
 		Priority:       int(count),
 		TagPrefix:      prefix,
@@ -163,7 +198,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 }
 
 // Update updates editable fields.
-func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend bool) error {
+func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
 	sub, err := s.Get(id)
 	if err != nil {
 		return err
@@ -186,6 +221,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	sub.Url = cleanURL
 	sub.Enabled = enabled
 	sub.AllowPrivate = allowPrivate
+	sub.AllowInsecure = allowInsecure
 	sub.Prepend = prepend
 	sub.TagPrefix = prefix
 	sub.UpdateInterval = updateInterval
@@ -250,6 +286,36 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 	return refreshed, nil
 }
 
+// subscriptionFetchClient builds the HTTP client used to fetch a subscription.
+// A configured panel egress proxy dials the loopback SOCKS bridge (xray handles
+// the real egress), so its localhost dial must not be SSRF-blocked. A direct
+// fetch dials the target itself and re-resolves the hostname at dial time, so it
+// goes through the SSRF-guarded dialer, which resolves, checks and dials the same
+// IP atomically — closing the DNS-rebinding gap left by validating the hostname
+// separately from the dial.
+func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Duration, allowInsecure bool) *http.Client {
+	var client *http.Client
+	if s.settingService.PanelEgressProxyURL() != "" {
+		client = s.settingService.NewProxiedHTTPClient(timeout)
+	} else {
+		client = &http.Client{
+			Timeout:   timeout,
+			Transport: &http.Transport{DialContext: netsafe.SSRFGuardedDialContext},
+		}
+	}
+	if allowInsecure {
+		if tr, ok := client.Transport.(*http.Transport); ok && tr != nil {
+			cloned := tr.Clone()
+			if cloned.TLSClientConfig == nil {
+				cloned.TLSClientConfig = &tls.Config{}
+			}
+			cloned.TLSClientConfig.InsecureSkipVerify = true
+			client.Transport = cloned
+		}
+	}
+	return client
+}
+
 // fetchAndStore does the actual network + parse + stability + persist work.
 func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscription) ([]any, error) {
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
@@ -265,7 +331,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	sub.Url = cleanURL // persist the cleaned version
 
-	client := s.settingService.NewProxiedHTTPClient(30 * time.Second)
+	client := s.subscriptionFetchClient(30*time.Second, sub.AllowInsecure)
 	// Re-validate every redirect hop: the initial host is checked above, but a
 	// redirect could still point at a private/internal address (SSRF). Cap the
 	// redirect chain as well.
@@ -281,7 +347,8 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		return rejectPrivateHost(ctx, req.URL.Hostname())
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, sub.Url, nil)
+	reqCtx := netsafe.ContextWithAllowPrivate(context.Background(), sub.AllowPrivate)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, sub.Url, nil)
 	if err != nil {
 		s.recordError(sub, err)
 		return nil, err
@@ -347,24 +414,28 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 	identJSON, _ := json.Marshal(newIdent)
 
+	asAny := make([]any, len(parsed))
+	for i := range parsed {
+		asAny[i] = map[string]any(parsed[i])
+	}
+	kept, droppedByCore := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), asAny)
+
 	// Persist the outbounds (as compact JSON array)
-	obsJSON, _ := json.Marshal(parsed)
+	obsJSON, _ := json.Marshal(kept)
 
 	sub.LastFetchedOutbounds = string(obsJSON)
 	sub.LinkIdentities = string(identJSON)
 	sub.LastUpdated = time.Now().Unix()
 	sub.LastError = ""
+	if len(droppedByCore) > 0 {
+		sub.LastError = fmt.Sprintf("dropped %d outbound(s) the xray core rejects: %s", len(droppedByCore), droppedByCore[0])
+	}
 
 	if err := database.GetDB().Save(sub).Error; err != nil {
 		return nil, err
 	}
 
-	// Return as []any for the config merger
-	result := make([]any, len(parsed))
-	for i := range parsed {
-		result[i] = parsed[i]
-	}
-	return result, nil
+	return kept, nil
 }
 
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
@@ -456,6 +527,7 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			logger.Warningf("outbound sub %d has corrupt LastFetchedOutbounds: %v", sub.Id, err)
 			continue
 		}
+		arr, _ = filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), arr)
 		if sub.Prepend {
 			prepend = append(prepend, arr...)
 		} else {

@@ -30,8 +30,6 @@ export const USERS_SECURITY = Object.freeze({
   AES_128_GCM: 'aes-128-gcm',
   CHACHA20_POLY1305: 'chacha20-poly1305',
   AUTO: 'auto',
-  NONE: 'none',
-  ZERO: 'zero',
 });
 
 export const MODE_OPTION = Object.freeze({

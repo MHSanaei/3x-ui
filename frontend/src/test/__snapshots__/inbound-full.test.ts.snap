@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] = `
+exports[`InboundSchema (full) fixtures > parses hysteria-tls byte-stably 1`] = `
 {
   "down": 0,
   "enable": true,
@@ -9,7 +9,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
   "listen": "",
   "port": 36715,
   "protocol": "hysteria",
-  "remark": "gina-hysteria-v1",
+  "remark": "gina-hysteria",
   "settings": {
     "clients": [
       {
@@ -25,7 +25,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
         "totalGB": 0,
       },
     ],
-    "version": 1,
+    "version": 2,
   },
   "shareAddr": "",
   "shareAddrStrategy": "node",
@@ -78,7 +78,7 @@ exports[`InboundSchema (full) fixtures > parses hysteria-v1-tls byte-stably 1`] 
       },
     },
   },
-  "tag": "inbound-hysteria-v1",
+  "tag": "inbound-hysteria",
   "total": 0,
   "up": 0,
 }

@@ -107,7 +107,7 @@ function vmessFromWire(raw: Raw): VmessOutboundFormSettings {
     id: asString(u.id),
     security: ((): VmessOutboundFormSettings['security'] => {
       const s = asString(u.security);
-      const allowed = ['aes-128-gcm', 'chacha20-poly1305', 'auto', 'none', 'zero'];
+      const allowed = ['aes-128-gcm', 'chacha20-poly1305', 'auto'];
       return (allowed.includes(s) ? s : 'auto') as VmessOutboundFormSettings['security'];
     })(),
   };
@@ -387,10 +387,14 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
-export const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
+const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   const next = { ...stream };
+  if (typeof next.method === 'string' && next.method !== '') {
+    next.network = next.method;
+  }
+  delete next.method;
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
     const xhttp = { ...(xh as Raw) };

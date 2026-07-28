@@ -5,12 +5,12 @@ import { z } from 'zod';
 // plus optional QUIC tuning. The `settings` sub-object is polymorphic on
 // `type`; we model the wire-faithful shape with a permissive
 // record-of-unknown for `settings` and leave per-type tightening to
-// Step 6 — there are 8 UDP mask types plus 3 TCP mask types, each with
+// Step 6 — there are 8 UDP mask types plus 4 TCP mask types, each with
 // distinct setting fields, and modeling them all as discriminated unions
 // here would dwarf the rest of the stream module without buying anything
 // the safety net doesn't already cover.
 
-export const TcpMaskTypeSchema = z.enum(['fragment', 'sudoku', 'header-custom']);
+export const TcpMaskTypeSchema = z.enum(['fragment', 'sudoku', 'header-custom', 'xmc']);
 export type TcpMaskType = z.infer<typeof TcpMaskTypeSchema>;
 
 export const TcpMaskSchema = z.object({

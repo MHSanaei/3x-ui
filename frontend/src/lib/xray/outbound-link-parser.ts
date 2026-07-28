@@ -360,6 +360,8 @@ export function parseVmessLink(link: string): Raw | null {
     }
 
     const port = Number(json.port) || 443;
+    const rawScy = (json.scy as string) || 'auto';
+    const userSecurity = rawScy === 'none' || rawScy === 'zero' ? 'auto' : rawScy;
     return {
       protocol: 'vmess',
       tag: typeof json.ps === 'string' ? json.ps : '',
@@ -367,7 +369,7 @@ export function parseVmessLink(link: string): Raw | null {
         vnext: [{
           address: json.add ?? '',
           port,
-          users: [{ id: json.id ?? '', security: (json.scy as string) || 'auto' }],
+          users: [{ id: json.id ?? '', security: userSecurity }],
         }],
       },
       streamSettings: stream,

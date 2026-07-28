@@ -77,6 +77,18 @@ function injectBasePathPlugin() {
   };
 }
 
+// Cloudflare Rocket Loader rewrites script tags and runs bundles through its
+// own loader, breaking ES-module semantics; data-cfasync="false" opts out.
+function rocketLoaderOptOutPlugin() {
+  return {
+    name: 'xui-rocket-loader-opt-out',
+    apply: 'build',
+    transformIndexHtml(html) {
+      return html.replaceAll('<script ', '<script data-cfasync="false" ');
+    },
+  };
+}
+
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
@@ -140,7 +152,7 @@ function makeBackendProxy(target) {
 }
 
 export default defineConfig({
-  plugins: [react(), injectBasePathPlugin()],
+  plugins: [react(), injectBasePathPlugin(), rocketLoaderOptOutPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

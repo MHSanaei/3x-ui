@@ -6,6 +6,17 @@ const meta = {
   title: 'Clients/ClientSpeedTag',
   component: ClientSpeedTag,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Blue tag showing a live upload/download speed for one client, formatted for readability. Shown next to online clients that have active traffic.',
+      },
+    },
+  },
+  argTypes: {
+    speed: { description: 'Live upload/download rate in bytes per second (`{ up, down }`).' },
+  },
 } satisfies Meta<typeof ClientSpeedTag>;
 
 export default meta;

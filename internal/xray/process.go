@@ -126,11 +126,12 @@ func NewTestProcess(xrayConfig *Config, configPath string) *Process {
 }
 
 type process struct {
-	// mu guards the process lifecycle fields (cmd, done, exitErr) which are
-	// written by Start/startCommand and the waitForCommand goroutine while being
-	// read concurrently by IsRunning/GetErr/GetResult/Stop from other goroutines
-	// (status endpoint, check-xray-running job). Snapshot under the lock, then do
-	// any blocking syscall (Wait/Signal/Kill) on the local copy without holding it.
+	// mu guards the process lifecycle fields (cmd, done, exitErr) plus version and
+	// apiPort, which are written by Start/startCommand/refreshVersion/refreshAPIPort
+	// while being read concurrently by IsRunning/GetErr/GetResult/GetXrayVersion/
+	// GetAPIPort/Stop from other goroutines (status endpoint, check-xray-running
+	// and traffic jobs). Snapshot under the lock, then do any blocking syscall
+	// (Wait/Signal/Kill) on the local copy without holding it.
 	mu   sync.RWMutex
 	cmd  *exec.Cmd
 	done chan struct{}
@@ -281,11 +282,15 @@ func (p *process) GetResult() string {
 
 // GetXrayVersion returns the version string of the Xray process.
 func (p *process) GetXrayVersion() string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return p.version
 }
 
 // GetAPIPort returns the API port used by the Xray process.
 func (p *Process) GetAPIPort() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return p.apiPort
 }
 
@@ -474,28 +479,30 @@ func (p *Process) GetUptime() uint64 {
 
 // refreshAPIPort updates the API port from the inbound configs.
 func (p *process) refreshAPIPort() {
+	port := 0
 	for _, inbound := range p.config.InboundConfigs {
 		if inbound.Tag == "api" {
-			p.apiPort = inbound.Port
+			port = inbound.Port
 			break
 		}
 	}
+	p.mu.Lock()
+	p.apiPort = port
+	p.mu.Unlock()
 }
 
 // refreshVersion updates the version string by running the Xray binary with -version.
 func (p *process) refreshVersion() {
+	version := "Unknown"
 	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-version")
-	data, err := cmd.Output()
-	if err != nil {
-		p.version = "Unknown"
-	} else {
-		datas := bytes.Split(data, []byte(" "))
-		if len(datas) <= 1 {
-			p.version = "Unknown"
-		} else {
-			p.version = string(datas[1])
+	if data, err := cmd.Output(); err == nil {
+		if datas := bytes.Split(data, []byte(" ")); len(datas) > 1 {
+			version = string(datas[1])
 		}
 	}
+	p.mu.Lock()
+	p.version = version
+	p.mu.Unlock()
 }
 
 // Start launches the Xray process with the current configuration.

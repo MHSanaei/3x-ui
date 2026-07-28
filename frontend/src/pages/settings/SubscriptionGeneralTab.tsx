@@ -1,6 +1,7 @@
-import { Input, InputNumber, Switch, Tabs } from 'antd';
+import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
 import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -15,6 +16,7 @@ interface SubscriptionGeneralTabProps {
 
 export default function SubscriptionGeneralTab({ allSetting, updateSetting }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isMobile } = useMediaQuery();
 
   return (
@@ -33,6 +35,20 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subClashEnableTitle')}>
               <Switch checked={allSetting.subClashEnable} onChange={(v) => updateSetting({ subClashEnable: v })} />
             </SettingListItem>
+            {(allSetting.subJsonEnable || allSetting.subClashEnable) && (
+              <Alert
+                type="info"
+                showIcon
+                style={{ margin: '12px 20px' }}
+                title={t('pages.settings.subFormatsTipTitle')}
+                description={t('pages.settings.subFormatsTipDesc')}
+                action={(
+                  <Button size="small" onClick={() => navigate('/settings#subscription-formats')}>
+                    {t('pages.settings.subFormatsTipAction')}
+                  </Button>
+                )}
+              />
+            )}
             <SettingListItem paddings="small" title={t('pages.settings.subListen')} description={t('pages.settings.subListenDesc')}>
               <Input value={allSetting.subListen} onChange={(e) => updateSetting({ subListen: e.target.value })} />
             </SettingListItem>
@@ -41,7 +57,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subPort')} description={t('pages.settings.subPortDesc')}>
               <InputNumber value={allSetting.subPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ subPort: Number(v) || 0 })} />
+                onChange={(v) => { if (v != null) updateSetting({ subPort: v }); }} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subPath')} description={t('pages.settings.subPathDesc')}>
               <Input
@@ -75,6 +91,16 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 value={allSetting.remarkTemplate}
                 onChange={(v) => updateSetting({ remarkTemplate: v })}
                 maxLength={256}
+              />
+            </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.subShowIdentityOnAllLinks')}
+              description={t('pages.settings.subShowIdentityOnAllLinksDesc')}
+            >
+              <Switch
+                checked={allSetting.subShowIdentityOnAllLinks}
+                onChange={(v) => updateSetting({ subShowIdentityOnAllLinks: v })}
               />
             </SettingListItem>
 

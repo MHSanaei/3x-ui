@@ -86,7 +86,7 @@ export default function DnsPresetsModal({ open, onClose, onInstall }: DnsPresets
         type="warning"
         showIcon
         className="preset-warning"
-        message={t('pages.xray.dns.dnsLeakWarning')}
+        title={t('pages.xray.dns.dnsLeakWarning')}
       />
       <div className="preset-list">
         {PRESETS.map((preset) => (

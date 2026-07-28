@@ -25,7 +25,8 @@ import (
 // related tests.
 //
 // Important: When adding a new top-level model (like OutboundSubscription),
-// you must add it here **in addition to** the list in internal/database/db.go:initModels().
+// you must add it here **in addition to** allModels() in internal/database/db.go;
+// TestMigrationModelsMatchPanelModels fails when the two lists drift apart.
 // This list is used for:
 //   - Creating the destination schema during cross-DB migration
 //   - Truncating tables
@@ -48,17 +49,21 @@ func migrationModels() []any {
 		&model.ClientRecord{},
 		&model.ClientInbound{},
 		&model.ClientExternalLink{},
+		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
+		&model.ClientGlobalTraffic{},
 		&model.OutboundSubscription{},
 	}
 }
 
 // MigrateData copies every row from the configured SQLite file at srcPath into
 // a fresh PostgreSQL database described by dstDSN. The destination tables are
-// (re)created with AutoMigrate before the copy. Source data is left untouched.
+// (re)created with AutoMigrate; truncate and copy then run in one transaction,
+// so a failed migration leaves the destination data unchanged. Source data is
+// left untouched.
 func MigrateData(srcPath, dstDSN string) error {
 	if _, err := os.Stat(srcPath); err != nil {
 		return fmt.Errorf("source sqlite not found at %s: %w", srcPath, err)
@@ -100,33 +105,41 @@ func MigrateData(srcPath, dstDSN string) error {
 		}
 	}
 
-	// AutoMigrate re-creates the legacy client_traffics -> inbounds foreign key,
-	// but the running panel drops it (see dropLegacyForeignKeys) and tolerates
-	// client_traffics rows whose inbound was deleted. Drop it here too so copying
-	// such orphaned rows can't fail with an fk_inbounds_client_stats violation.
-	if err := dst.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
-		return fmt.Errorf("drop legacy foreign key: %w", err)
-	}
-
-	// Empty the destination tables so the migration is idempotent: a fresh
-	// PostgreSQL DB already holds an auto-seeded admin (id=1) from any prior
-	// panel start, and a partially-failed earlier run leaves rows behind. Either
-	// way a plain INSERT with explicit ids would collide on users_pkey, so clear
-	// our tables (only) before copying.
-	if err := truncatePostgresTables(dst, migrationModels()); err != nil {
-		return fmt.Errorf("clear destination tables: %w", err)
-	}
-
 	totalRows := 0
-	for _, m := range migrationModels() {
-		n, err := copyTable(src, dst, m)
-		if err != nil {
-			return fmt.Errorf("copy %T: %w", m, err)
+	txErr := dst.Transaction(func(tx *gorm.DB) error {
+		// AutoMigrate re-creates the legacy client_traffics -> inbounds foreign key,
+		// but the running panel drops it (see dropLegacyForeignKeys) and tolerates
+		// client_traffics rows whose inbound was deleted. Drop it here too so copying
+		// such orphaned rows can't fail with an fk_inbounds_client_stats violation.
+		if err := tx.Exec("ALTER TABLE client_traffics DROP CONSTRAINT IF EXISTS fk_inbounds_client_stats").Error; err != nil {
+			return fmt.Errorf("drop legacy foreign key: %w", err)
 		}
-		totalRows += n
-		log.Printf("  %-32s %d rows", reflect.TypeOf(m).Elem().Name(), n)
+
+		// Empty the destination tables before copying: a fresh PostgreSQL DB
+		// already holds an auto-seeded admin (id=1) from any prior panel start,
+		// so a plain INSERT with explicit ids would collide on users_pkey. Only
+		// the panel's own tables are cleared, and a failure anywhere in this
+		// transaction rolls the clear back with everything else.
+		if err := truncatePostgresTables(tx, migrationModels()); err != nil {
+			return fmt.Errorf("clear destination tables: %w", err)
+		}
+
+		for _, m := range migrationModels() {
+			n, err := copyTable(src, tx, m)
+			if err != nil {
+				return fmt.Errorf("copy %T: %w", m, err)
+			}
+			totalRows += n
+			log.Printf("  %-32s %d rows", reflect.TypeOf(m).Elem().Name(), n)
+		}
+		return nil
+	})
+	if txErr != nil {
+		return txErr
 	}
 
+	// setval is never rolled back by PostgreSQL, so sequences are resynced only
+	// after the transaction has committed.
 	if err := resetPostgresSequences(dst); err != nil {
 		log.Printf("warning: failed to reset some postgres sequences: %v", err)
 	}
@@ -300,4 +313,33 @@ func tableWithIdColumn(db *gorm.DB, m any) (string, bool) {
 		return "", false
 	}
 	return stmt.Table, true
+}
+
+// PrepareSQLiteForMigration rejects SQLite files that are not a panel database
+// before the caller causes any downtime, then AutoMigrates the panel schema
+// onto the file so backups from older versions gain the newer tables and
+// columns the row copy reads. Data-level upgrades are not needed here: they
+// run dialect-agnostically on the destination via InitDB after the import.
+func PrepareSQLiteForMigration(dbPath string) error {
+	gdb, err := gorm.Open(sqlite.Open(dbPath+"?_busy_timeout=10000"), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		return err
+	}
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+
+	for _, table := range []string{"users", "settings", "inbounds"} {
+		if !sqliteTableExists(sqlDB, table) {
+			return fmt.Errorf("not a 3x-ui panel database: required table %q is missing", table)
+		}
+	}
+	for _, m := range migrationModels() {
+		if err := gdb.AutoMigrate(m); err != nil && !isIgnorableDuplicateColumnErr(gdb, err, m) {
+			return fmt.Errorf("upgrade panel schema for %T: %w", m, err)
+		}
+	}
+	return nil
 }

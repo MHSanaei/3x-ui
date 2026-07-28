@@ -28,12 +28,12 @@ var (
 
 func lockInbound(inboundId int) *sync.Mutex {
 	inboundMutationLocksMu.Lock()
-	defer inboundMutationLocksMu.Unlock()
 	m, ok := inboundMutationLocks[inboundId]
 	if !ok {
 		m = &sync.Mutex{}
 		inboundMutationLocks[inboundId] = m
 	}
+	inboundMutationLocksMu.Unlock()
 	m.Lock()
 	return m
 }
