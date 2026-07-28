@@ -216,6 +216,11 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
             </SettingListItem>
 
+            <SettingListItem paddings="small" title={t('pages.settings.speedLimitEnable')} description={t('pages.settings.speedLimitEnableDesc')}>
+              <Switch checked={allSetting.speedLimitEnable}
+                onChange={(v) => updateSetting({ speedLimitEnable: v })} />
+            </SettingListItem>
+
             <SettingListItem paddings="small" title={t('pages.settings.language')}>
               <Select
                 value={lang}

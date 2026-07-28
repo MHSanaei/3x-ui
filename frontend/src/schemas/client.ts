@@ -24,6 +24,8 @@ export const ClientRecordSchema = z.object({
   totalGB: z.number().optional(),
   expiryTime: z.number().optional(),
   limitIp: z.number().optional(),
+  speedDown: z.number().optional(),
+  speedUp: z.number().optional(),
   tgId: z.union([z.number(), z.string()]).optional(),
   group: z.string().optional(),
   comment: z.string().optional(),
@@ -198,6 +200,8 @@ export const ClientFormSchema = z.object({
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
   limitIp: z.number().int().min(0),
+  speedDown: z.number().int().min(0),
+  speedUp: z.number().int().min(0),
   tgId: z.number().int().min(0),
   group: z.string(),
   comment: z.string(),
@@ -234,6 +238,8 @@ export const ClientBulkAddFormSchema = z.object({
   totalGB: z.number().min(0),
   expiryTime: z.number(),
   reset: z.number().int().min(0),
+  speedDown: z.number().int().min(0),
+  speedUp: z.number().int().min(0),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 

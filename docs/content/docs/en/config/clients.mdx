@@ -18,6 +18,8 @@ inbounds** at once, with per-client traffic accounting.
 | **Auth**       | Hysteria2             | The client credential.                                             |
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
 | **Limit IP**   | all                   | Max simultaneous source IPs (enforced via Fail2ban).               |
+| **Speed Down** | Xray protocols        | Max download rate in Mbps (`0` = unlimited). Requires **Client Speed Limit**. |
+| **Speed Up**   | Xray protocols        | Max upload rate in Mbps (`0` = unlimited). Requires **Client Speed Limit**. |
 | **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |
@@ -39,6 +41,12 @@ inbounds** at once, with per-client traffic accounting.
 - **Limit IP** caps simultaneous source IPs. Enforcement relies on Fail2ban —
   see [Security](/docs/operations/security). You can view a client's recent IPs
   and clear them from the client's actions.
+- **Speed Down / Speed Up** cap bandwidth for observed client IPs using Linux
+  `tc` (HTB on egress, shared ingress police for upload). Enable **Client Speed
+  Limit** under Settings → General (default **off**), then restart the panel.
+  Requires `tc` and sufficient privileges on the host; it takes over the primary
+  interface root qdisc when enabled. Not applied to MTProto-only clients (those
+  connections are outside Xray online-stats).
 - **Online status** and **last-online** times are tracked per client (and per
   node in multi-node setups).
 
