@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
+import { migrateXmcSettings, parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { FinalMaskStreamSettingsSchema } from '@/schemas/protocols/stream';
 
 const fixtures = import.meta.glob<unknown>(
@@ -24,6 +24,50 @@ describe('FinalMaskStreamSettingsSchema fixtures', () => {
       expect(parsed).toMatchSnapshot();
     });
   }
+});
+
+describe('migrateXmcSettings', () => {
+  it('carries legacy usernames into profile stubs and drops the dead key', () => {
+    const { next, changed } = migrateXmcSettings({
+      hostname: 'mc.example.com',
+      usernames: ['Dream', 'Notch'],
+      password: 'pw',
+    });
+
+    expect(changed).toBe(true);
+    expect(next.usernames).toBeUndefined();
+    expect(next.hostname).toBe('mc.example.com');
+    expect(next.password).toBe('pw');
+    expect(next.profiles).toEqual([
+      { username: 'Dream', uuid: '', texturesValue: '', texturesSignature: '' },
+      { username: 'Notch', uuid: '', texturesValue: '', texturesSignature: '' },
+    ]);
+  });
+
+  it('gives a mask with neither key an empty profiles list', () => {
+    const { next, changed } = migrateXmcSettings({ hostname: '', password: 'pw' });
+
+    expect(changed).toBe(true);
+    expect(next.profiles).toEqual([]);
+  });
+
+  it('leaves an already migrated mask untouched', () => {
+    const profiles = [
+      { username: 'Notch', uuid: '069a79f4-44e9-4726-a5be-fca90e38aaf5', texturesValue: 'dmFsdWU=', texturesSignature: 'c2ln' },
+    ];
+    const { next, changed } = migrateXmcSettings({ hostname: '', password: 'pw', profiles });
+
+    expect(changed).toBe(false);
+    expect(next.profiles).toEqual(profiles);
+  });
+
+  it('discards blank legacy usernames rather than seeding unfixable stubs', () => {
+    const { next } = migrateXmcSettings({ usernames: ['Dream', '', '   '], password: 'pw' });
+
+    expect(next.profiles).toEqual([
+      { username: 'Dream', uuid: '', texturesValue: '', texturesSignature: '' },
+    ]);
+  });
 });
 
 describe('parseGeckoPacketSize', () => {

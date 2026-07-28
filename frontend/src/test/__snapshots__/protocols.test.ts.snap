@@ -37,7 +37,7 @@ exports[`InboundSettingsSchema fixtures > parses hysteria-basic byte-stably 1`] 
         "totalGB": 0,
       },
     ],
-    "version": 1,
+    "version": 2,
   },
 }
 `;

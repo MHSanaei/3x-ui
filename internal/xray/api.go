@@ -345,6 +345,10 @@ func (x *XrayAPI) TestRoute(req RouteTestRequest) (*RouteTestResult, error) {
 		return nil, common.NewError("xray RoutingServiceClient is not initialized")
 	}
 
+	if req.Port < 0 || req.Port > math.MaxUint16 {
+		return nil, common.NewErrorf("invalid port: %d", req.Port)
+	}
+
 	network := xnet.Network_TCP
 	if strings.EqualFold(req.Network, "udp") {
 		network = xnet.Network_UDP
@@ -461,11 +465,71 @@ func collectStringSlice(value any) []string {
 	}
 }
 
+// legacyShadowsocksAccountType is the type URL serial.ToTypedMessage stamps on
+// a pre-2022 shadowsocks account, which identifies the one inbound whose user
+// list tolerates duplicate emails.
+const legacyShadowsocksAccountType = "xray.proxy.shadowsocks.Account"
+
+// shadowsocks2022Ciphers are the methods that select xray's shadowsocks-2022
+// inbound (sing's shadowaead_2022 list). They take a different account type
+// than the legacy AEAD ciphers, and the running inbound casts the account it
+// receives without checking, so a wrong guess takes the whole core down.
+var shadowsocks2022Ciphers = map[string]struct{}{
+	"2022-blake3-aes-128-gcm":       {},
+	"2022-blake3-aes-256-gcm":       {},
+	"2022-blake3-chacha20-poly1305": {},
+}
+
+// shadowsocksCipherName resolves the cipher a shadowsocks user's account must
+// be built for. Panel-built user maps carry it under "cipher"; client objects
+// taken verbatim from an inbound's settings carry the inbound's method under
+// "method" instead (HealShadowsocksClientMethods writes it onto every
+// legacy-cipher client).
+func shadowsocksCipherName(user map[string]any) (string, error) {
+	cipher, err := getOptionalUserString(user, "cipher")
+	if err != nil {
+		return "", err
+	}
+	if cipher != "" {
+		return cipher, nil
+	}
+	return getOptionalUserString(user, "method")
+}
+
+// shadowsocksCipherType mirrors xray-core's infra/conf cipherFromString,
+// aliases and case-insensitivity included, so the account the panel builds for
+// a live user matches the one the core built for that inbound from its config.
+func shadowsocksCipherType(cipher string) shadowsocks.CipherType {
+	switch strings.ToLower(cipher) {
+	case "aes-128-gcm", "aead_aes_128_gcm":
+		return shadowsocks.CipherType_AES_128_GCM
+	case "aes-256-gcm", "aead_aes_256_gcm":
+		return shadowsocks.CipherType_AES_256_GCM
+	case "chacha20-poly1305", "aead_chacha20_poly1305", "chacha20-ietf-poly1305":
+		return shadowsocks.CipherType_CHACHA20_POLY1305
+	case "xchacha20-poly1305", "aead_xchacha20_poly1305", "xchacha20-ietf-poly1305":
+		return shadowsocks.CipherType_XCHACHA20_POLY1305
+	default:
+		return shadowsocks.CipherType_UNKNOWN
+	}
+}
+
+// isShadowsocks2022Cipher reports whether the method selects the
+// shadowsocks-2022 inbound rather than the legacy AEAD one.
+func isShadowsocks2022Cipher(cipher string) bool {
+	_, ok := shadowsocks2022Ciphers[strings.ToLower(cipher)]
+	return ok
+}
+
 // buildUserAccount constructs the typed xray account for a user of the given
 // protocol. It returns (nil, nil) for protocols that cannot be altered live so
 // callers skip the AlterInbound call. WireGuard keys must be converted to the
 // hex form xray's wireguard proxy expects (its ParseKey uses hex.DecodeString),
 // unlike the file-config path which accepts base64 and converts internally.
+// Shadowsocks is resolved strictly from the inbound's cipher: the legacy and
+// 2022 inbounds take different account types and cast whatever they receive
+// without checking, so an unrecognized cipher is an error rather than a guess
+// that would panic the core and kill every connection on the server.
 func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMessage, error) {
 	switch protocolName {
 	case "vmess":
@@ -523,7 +587,7 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 			Password: password,
 		}), nil
 	case "shadowsocks":
-		cipher, err := getOptionalUserString(user, "cipher")
+		cipher, err := shadowsocksCipherName(user)
 		if err != nil {
 			return nil, err
 		}
@@ -533,28 +597,19 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 			return nil, err
 		}
 
-		var ssCipherType shadowsocks.CipherType
-		switch cipher {
-		case "aes-128-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_128_GCM
-		case "aes-256-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_256_GCM
-		case "chacha20-poly1305", "chacha20-ietf-poly1305":
-			ssCipherType = shadowsocks.CipherType_CHACHA20_POLY1305
-		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
-			ssCipherType = shadowsocks.CipherType_XCHACHA20_POLY1305
-		default:
-			ssCipherType = shadowsocks.CipherType_UNKNOWN
-		}
-
-		if ssCipherType != shadowsocks.CipherType_UNKNOWN {
-			return serial.ToTypedMessage(&shadowsocks.Account{
-				Password:   password,
-				CipherType: ssCipherType,
+		if isShadowsocks2022Cipher(cipher) {
+			return serial.ToTypedMessage(&shadowsocks_2022.Account{
+				Key: password,
 			}), nil
 		}
-		return serial.ToTypedMessage(&shadowsocks_2022.Account{
-			Key: password,
+
+		ssCipherType := shadowsocksCipherType(cipher)
+		if ssCipherType == shadowsocks.CipherType_UNKNOWN {
+			return nil, common.NewErrorf("shadowsocks: unknown cipher %q, cannot build an account for the running inbound", cipher)
+		}
+		return serial.ToTypedMessage(&shadowsocks.Account{
+			Password:   password,
+			CipherType: ssCipherType,
 		}), nil
 	case "hysteria":
 		auth, err := getRequiredUserString(user, "auth")
@@ -605,7 +660,11 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 	}
 }
 
-// AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
+// AddUser adds a user to an inbound in the Xray core using the specified
+// protocol and user data. On a legacy shadowsocks inbound the add first drops
+// any existing holder of the email: that is the one inbound whose validator
+// does not reject a duplicate email, and a later removal would then drop just
+// one of the two registrations, leaving a disabled client able to connect.
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
 	userEmail, err := getRequiredUserString(user, "email")
 	if err != nil {
@@ -624,6 +683,10 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		return common.NewError("xray HandlerServiceClient is not initialized")
 	}
 	client := *x.HandlerServiceClient
+
+	if account.Type == legacyShadowsocksAccountType {
+		_ = x.RemoveUser(inboundTag, userEmail)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
 	defer cancel()
@@ -663,7 +726,13 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	return nil
 }
 
-// GetTraffic queries traffic statistics from the Xray core, optionally resetting counters.
+// GetTraffic queries traffic statistics from the Xray core and reports what
+// accrued since the previous call; the counters themselves are never reset.
+// The first call of a process only records baselines, since it may be reading
+// counters that already hold traffic the panel cannot attribute. After that a
+// name the panel has not seen — xray creates a counter on a user's first use —
+// and a counter that moved backwards because the core restarted both count
+// from zero, so no client's traffic is dropped for a whole polling interval.
 func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
@@ -685,12 +754,16 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	tagTrafficMap := make(map[string]*Traffic)
 	emailTrafficMap := make(map[string]*ClientTraffic)
 
+	baselinePass := len(x.StatsLastValues) == 0
+
 	for _, stat := range resp.GetStat() {
 		lastValue, ok := x.StatsLastValues[stat.Name]
 		x.StatsLastValues[stat.Name] = stat.Value
-		if !ok || stat.Value < lastValue {
-			// skip first time of seen stat
+		if baselinePass {
 			continue
+		}
+		if !ok || stat.Value < lastValue {
+			lastValue = 0
 		}
 		value := stat.Value - lastValue
 		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
