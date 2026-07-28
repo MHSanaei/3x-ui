@@ -704,11 +704,12 @@ function hysteriaPinHex(pin: string): string {
   }
 }
 
-// Hysteria share link: hysteria://<auth>@<host>:<port>?<query>#<remark>.
-// The URL scheme is "hysteria2" when settings.version === 2 (hysteria v2
-// AKA hysteria2), "hysteria" otherwise. Salamander obfuscation pulls its
-// password from finalmask.udp[type=salamander] when present; the broader
-// finalmask payload still rides under `fm` like the other links.
+// Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
+// The scheme is always hysteria2 — xray-core builds version 2 only, so the
+// settings schema pins it there and the subscription server emits the same
+// scheme. Salamander obfuscation pulls its password from
+// finalmask.udp[type=salamander] when present; the broader finalmask payload
+// still rides under `fm` like the other links.
 //
 // Note: legacy genHysteriaLink reads stream.tls.settings.allowInsecure,
 // which isn't a field on TlsStreamSettings.Settings — the guard is always
@@ -727,8 +728,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
   const stream = inbound.streamSettings;
   if (!stream || stream.security !== 'tls') return '';
 
-  const settings = inbound.settings;
-  const scheme = settings.version === 2 ? 'hysteria2' : 'hysteria';
+  const scheme = 'hysteria2';
 
   const params = new URLSearchParams();
   params.set('security', 'tls');

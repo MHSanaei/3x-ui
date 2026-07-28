@@ -1146,12 +1146,18 @@ function ItemEditor({
   onRemove?: () => void;
 }) {
   const { t } = useTranslation();
+  /**
+   * Switching to `array` clears the packet instead of emptying it to `[]`:
+   * that branch is rand-driven, and xray-core counts even an empty array as a
+   * packet, rejecting an item that carries both a packet and a rand. That
+   * error fails the whole config, so one such item keeps every inbound offline.
+   */
   const onTypeChange = (v: string) => {
     if (v === 'base64') {
       form.setFieldValue([...absoluteItemPath, 'packet'], RandomUtil.randomBase64());
     } else if (v === 'array') {
       form.setFieldValue([...absoluteItemPath, 'rand'], delayMode === 'string' ? '1-8192' : 0);
-      form.setFieldValue([...absoluteItemPath, 'packet'], []);
+      form.setFieldValue([...absoluteItemPath, 'packet'], undefined);
     } else {
       form.setFieldValue([...absoluteItemPath, 'packet'], '');
     }

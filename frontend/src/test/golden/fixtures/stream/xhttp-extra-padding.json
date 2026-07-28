@@ -9,6 +9,6 @@
     "xPaddingKey": "secret-key",
     "xPaddingHeader": "X-Pad",
     "xPaddingPlacement": "header",
-    "xPaddingMethod": "random"
+    "xPaddingMethod": "tokenish"
   }
 }
