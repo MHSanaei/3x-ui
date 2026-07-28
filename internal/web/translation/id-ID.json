@@ -451,6 +451,7 @@
       "importInbound": "Impor Masuk",
       "periodicTrafficResetTitle": "Reset Trafik Berkala",
       "periodicTrafficResetDesc": "Reset otomatis penghitung trafik pada interval tertentu",
+      "periodicTrafficResetDay": "Hari reset bulanan",
       "lastReset": "Reset Terakhir",
       "periodicTrafficReset": {
         "never": "Tidak Pernah",

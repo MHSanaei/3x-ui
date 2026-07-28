@@ -451,6 +451,7 @@
       "importInbound": "インバウンドルールをインポート",
       "periodicTrafficResetTitle": "トラフィックリセット",
       "periodicTrafficResetDesc": "指定された間隔でトラフィックカウンタを自動的にリセット",
+      "periodicTrafficResetDay": "毎月のリセット日",
       "lastReset": "最後のリセット",
       "periodicTrafficReset": {
         "never": "なし",

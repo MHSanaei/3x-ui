@@ -33,6 +33,7 @@ import {
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
 import {
+  InboundDbFieldsSchema,
   InboundFormBaseSchema,
   InboundFormSchema,
   type InboundFormValues,
@@ -255,6 +256,7 @@ export default function InboundFormModal({
   const wTunnelNetwork = useWatch({ control, name: 'settings.allowedNetwork' });
   const wTotal = (useWatch({ control, name: 'total' }) as number | undefined) ?? 0;
   const wExpiry = (useWatch({ control, name: 'expiryTime' }) as number | undefined) ?? 0;
+  const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
   const currentTagInput = (): InboundTagInput => ({
@@ -618,6 +620,16 @@ export default function InboundFormModal({
           }))}
         />
       </FormField>
+
+      {trafficReset === 'monthly' && (
+        <FormField
+          name="trafficResetDay"
+          label={t('pages.inbounds.periodicTrafficResetDay')}
+          rules={{ validate: rhfZodValidate(InboundDbFieldsSchema.shape.trafficResetDay) }}
+        >
+          <InputNumber min={1} max={31} />
+        </FormField>
+      )}
 
       <Form.Item
         label={

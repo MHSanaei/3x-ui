@@ -451,6 +451,7 @@
       "importInbound": "Импорт подключений",
       "periodicTrafficResetTitle": "Сброс трафика",
       "periodicTrafficResetDesc": "Автоматический сброс счетчика трафика через указанные интервалы",
+      "periodicTrafficResetDay": "День ежемесячного сброса",
       "lastReset": "Последний сброс",
       "periodicTrafficReset": {
         "never": "Никогда",

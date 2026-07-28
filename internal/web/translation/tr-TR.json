@@ -451,6 +451,7 @@
       "importInbound": "Gelen Bağlantı İçe Aktar",
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDesc": "Belirtilen aralıklarla trafik sayacını otomatik olarak sıfırla",
+      "periodicTrafficResetDay": "Aylık sıfırlama günü",
       "lastReset": "Son Sıfırlama",
       "periodicTrafficReset": {
         "never": "Asla",

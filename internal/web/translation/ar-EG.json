@@ -451,6 +451,7 @@
       "importInbound": "استيراد إدخال",
       "periodicTrafficResetTitle": "إعادة تعيين حركة المرور",
       "periodicTrafficResetDesc": "إعادة تعيين عداد حركة المرور تلقائيًا في فترات محددة",
+      "periodicTrafficResetDay": "يوم إعادة التعيين الشهري",
       "lastReset": "آخر إعادة تعيين",
       "periodicTrafficReset": {
         "never": "أبداً",

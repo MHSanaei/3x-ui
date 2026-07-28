@@ -428,6 +428,7 @@ export interface Inbound {
   tag: string;
   total: number;
   trafficReset: string;
+  trafficResetDay: number;
   up: number;
 }
 

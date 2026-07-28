@@ -451,6 +451,7 @@
       "importInbound": "Імпортувати вхідний",
       "periodicTrafficResetTitle": "Скидання трафіку",
       "periodicTrafficResetDesc": "Автоматично скидати лічильник трафіку через певні проміжки часу",
+      "periodicTrafficResetDay": "День щомісячного скидання",
       "lastReset": "Останнє скидання",
       "periodicTrafficReset": {
         "never": "Ніколи",

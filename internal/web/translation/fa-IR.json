@@ -451,6 +451,7 @@
       "importInbound": "افزودن یک ورودی",
       "periodicTrafficResetTitle": "بازنشانی ترافیک",
       "periodicTrafficResetDesc": "بازنشانی خودکار شمارنده ترافیک در فواصل زمانی مشخص",
+      "periodicTrafficResetDay": "روز بازنشانی ماهانه",
       "lastReset": "آخرین بازنشانی",
       "periodicTrafficReset": {
         "never": "هرگز",

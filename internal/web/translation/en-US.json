@@ -451,6 +451,7 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDesc": "Automatically reset traffic counter at specified intervals",
+      "periodicTrafficResetDay": "Monthly reset day",
       "lastReset": "Last Reset",
       "periodicTrafficReset": {
         "never": "Never",

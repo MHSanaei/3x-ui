@@ -451,6 +451,7 @@
       "importInbound": "Nhập inbound",
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDesc": "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định",
+      "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
       "lastReset": "Đặt lại lần cuối",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
