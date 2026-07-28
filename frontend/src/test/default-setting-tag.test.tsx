@@ -24,6 +24,14 @@ describe('matchesFactoryDefault', () => {
   it('never matches when the key has no shipped default', () => {
     expect(matchesFactoryDefault(2096, undefined)).toBe(false);
   });
+
+  it('rejects blank or unparsable defaults instead of coercing them', () => {
+    expect(matchesFactoryDefault(0, '')).toBe(false);
+    expect(matchesFactoryDefault(0, '  ')).toBe(false);
+    expect(matchesFactoryDefault(0, 'none')).toBe(false);
+    expect(matchesFactoryDefault(false, '')).toBe(false);
+    expect(matchesFactoryDefault(false, 'no')).toBe(false);
+  });
 });
 
 describe('DefaultSettingTag', () => {

@@ -1109,6 +1109,7 @@
       "pinFetchFailed": "Không thể lấy chứng chỉ"
     },
     "settings": {
+      "defaultTag": "Mặc định",
       "title": "Cài đặt",
       "save": "Lưu",
       "infoDesc": "Mọi thay đổi được thực hiện ở đây cần phải được lưu. Vui lòng khởi động lại bảng điều khiển để áp dụng các thay đổi.",
@@ -1141,7 +1142,6 @@
       "panelUrlPathDesc": "Phải bắt đầu và kết thúc bằng '/'",
       "pageSize": "Kích thước phân trang",
       "pageSizeDesc": "Xác định kích thước trang cho bảng gửi đến. Đặt 0 để tắt",
-        "defaultTag": "Mặc định",
       "panelOutbound": "Outbound cho lưu lượng panel",
       "panelOutboundDesc": "Định tuyến các yêu cầu của chính bảng điều khiển — kiểm tra phiên bản và tải xuống panel/Xray, Telegram, và cập nhật tệp geo thông thường — qua outbound Xray này để vượt qua lọc GitHub/Telegram phía máy chủ. Một inbound cầu nối cục bộ được tự động thêm vào cấu hình đang chạy và áp dụng trực tiếp. Tính năng Tự động cập nhật Geodata gốc của Xray không bị ảnh hưởng; nó có outbound tải xuống riêng. Để trống để kết nối trực tiếp.",
       "panelOutboundPh": "Kết nối trực tiếp",

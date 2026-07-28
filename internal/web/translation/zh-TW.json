@@ -1109,6 +1109,7 @@
       "pinFetchFailed": "無法取得憑證"
     },
     "settings": {
+      "defaultTag": "預設",
       "title": "面板設定",
       "save": "儲存",
       "infoDesc": "此處的所有更改都需要儲存並重啟面板才能生效",
@@ -1141,7 +1142,6 @@
       "panelUrlPathDesc": "必須以 '/' 開頭，以 '/' 結尾",
       "pageSize": "分頁大小",
       "pageSizeDesc": "定義入站表的頁面大小。設定 0 表示禁用",
-        "defaultTag": "預設",
       "panelOutbound": "面板流量出站",
       "panelOutboundDesc": "透過此 Xray 出站路由面板自身的請求(面板/Xray 版本檢查與下載、Telegram、一般 geo 檔案更新),以繞過伺服器端對 GitHub/Telegram 的過濾。本地橋接入站會自動加入執行中的設定並即時生效。Xray 原生的 Geodata 自動更新不受影響,它有自己的下載出站。留空表示直連。",
       "panelOutboundPh": "直連",

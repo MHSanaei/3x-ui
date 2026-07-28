@@ -9,7 +9,8 @@ async function fetchFactoryDefaults(): Promise<FactoryDefaults> {
   const msg = await HttpUtil.post('/panel/api/setting/factoryDefaults', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch factory defaults');
   const validated = parseMsg(msg, FactoryDefaultsSchema, 'setting/factoryDefaults');
-  return validated.obj ?? {};
+  const parsed = FactoryDefaultsSchema.safeParse(validated.obj);
+  return parsed.success ? parsed.data : {};
 }
 
 export function useFactoryDefaults() {

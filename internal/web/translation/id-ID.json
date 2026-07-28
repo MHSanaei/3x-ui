@@ -1109,6 +1109,7 @@
       "pinFetchFailed": "Tidak dapat mengambil sertifikat"
     },
     "settings": {
+      "defaultTag": "Bawaan",
       "title": "Pengaturan Panel",
       "save": "Simpan",
       "infoDesc": "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan.",
@@ -1141,7 +1142,6 @@
       "panelUrlPathDesc": "URI path untuk panel web. (dimulai dengan ‘/‘ dan diakhiri dengan ‘/‘)",
       "pageSize": "Ukuran Halaman",
       "pageSizeDesc": "Tentukan ukuran halaman untuk tabel masuk. (0 = nonaktif)",
-        "defaultTag": "Bawaan",
       "panelOutbound": "Outbound lalu lintas panel",
       "panelOutboundDesc": "Mengarahkan permintaan panel sendiri — pemeriksaan versi dan unduhan panel/Xray, Telegram, dan pembaruan file geo biasa — melalui outbound Xray ini untuk melewati pemfilteran GitHub/Telegram di sisi server. Inbound jembatan lokal ditambahkan secara otomatis ke konfigurasi yang berjalan dan diterapkan langsung. Pembaruan Otomatis Geodata bawaan Xray tidak terpengaruh; ia memiliki outbound unduhan sendiri. Kosongkan untuk koneksi langsung.",
       "panelOutboundPh": "Koneksi langsung",

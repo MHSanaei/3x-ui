@@ -1454,12 +1454,13 @@ var factoryDefaultSecretKeys = map[string]bool{
 }
 
 /*
-GetFactoryDefaults returns the shipped default value for every browser-safe
-setting, keyed by the AllSetting json field name. Unlike GetDefaultSettings
-(which reports current effective values), this is the raw defaultValueMap
-filtered through the AllSetting field set, so per-install material such as
-secret, panelGuid and the node mTLS keys can never leave the server, and
-redacted credential fields are dropped rather than compared against blanks.
+GetFactoryDefaults returns the shipped default value per setting, keyed by
+the AllSetting json field name. Unlike GetDefaultSettings (which reports
+current effective values), this is defaultValueMap projected through the
+AllSetting field set: only keys that exist as an AllSetting json tag are
+returned, minus the credential fields in factoryDefaultSecretKeys. Keys
+with no AllSetting field (secret, panelGuid, the node mTLS material,
+xrayTemplateConfig) are excluded structurally rather than by deny-list.
 */
 func (s *SettingService) GetFactoryDefaults() map[string]string {
 	result := make(map[string]string)

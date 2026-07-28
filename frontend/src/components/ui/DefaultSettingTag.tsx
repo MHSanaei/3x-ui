@@ -10,8 +10,14 @@ import { useFactoryDefaults } from '@/api/queries/useFactoryDefaults';
  */
 export function matchesFactoryDefault(current: unknown, factoryDefault: string | undefined): boolean {
   if (factoryDefault === undefined) return false;
-  if (typeof current === 'number') return Number(factoryDefault) === current;
-  if (typeof current === 'boolean') return (factoryDefault === 'true') === current;
+  if (typeof current === 'number') {
+    const parsed = Number(factoryDefault);
+    return factoryDefault.trim() !== '' && !Number.isNaN(parsed) && parsed === current;
+  }
+  if (typeof current === 'boolean') {
+    if (factoryDefault !== 'true' && factoryDefault !== 'false') return false;
+    return (factoryDefault === 'true') === current;
+  }
   if (typeof current === 'string') return factoryDefault === current;
   return false;
 }

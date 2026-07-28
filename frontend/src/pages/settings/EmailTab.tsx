@@ -5,7 +5,7 @@ import { MailOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
 import type { AllSetting } from '@/models/setting';
-import { SettingListItem } from '@/components/ui';
+import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { EmailNotifications } from '@/components/ui/notifications/EmailNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
@@ -63,7 +63,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                 onChange={(e) => updateSetting({ smtpHost: e.target.value })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.smtpPort')} description={t('pages.settings.smtpPortDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.smtpPort')} badge={<DefaultSettingTag settingKey="smtpPort" value={allSetting.smtpPort} />} description={t('pages.settings.smtpPortDesc')}>
               <InputNumber value={allSetting.smtpPort} min={1} max={65535} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ smtpPort: v }))} />
             </SettingListItem>

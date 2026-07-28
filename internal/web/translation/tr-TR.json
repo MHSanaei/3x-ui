@@ -1109,6 +1109,7 @@
       "pinFetchFailed": "Sertifika alınamadı"
     },
     "settings": {
+      "defaultTag": "Varsayılan",
       "title": "Panel Ayarları",
       "save": "Kaydet",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",
@@ -1141,7 +1142,6 @@
       "panelUrlPathDesc": "Web paneli için URI yolu. ('/' ile başlar ve '/' ile biter)",
       "pageSize": "Sayfa Boyutu",
       "pageSizeDesc": "Gelen Bağlantılar tablosu için sayfa boyutunu belirler. (0 = devre dışı)",
-        "defaultTag": "Varsayılan",
       "panelOutbound": "Panel Trafiği Gideni",
       "panelOutboundDesc": "Panelin kendi isteklerini — panel/Xray sürüm kontrolleri ve indirmeleri, Telegram ve normal geo dosyası güncellemesi — bu Xray gideni üzerinden yönlendirir; sunucu tarafındaki GitHub/Telegram filtrelemesini aşmak için. Yerel bir köprü gelen bağlantısı çalışan yapılandırmaya otomatik eklenir ve canlı uygulanır. Xray'in yerel Geodata Otomatik Güncellemesi etkilenmez; kendi indirme gidenine sahiptir. Doğrudan bağlantı için boş bırakın.",
       "panelOutboundPh": "Doğrudan bağlantı",
