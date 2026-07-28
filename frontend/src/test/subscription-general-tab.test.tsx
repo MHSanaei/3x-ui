@@ -26,6 +26,7 @@ describe('SubscriptionGeneralTab', () => {
     fireEvent.blur(portInput);
 
     expect(updateSetting).not.toHaveBeenCalled();
+    expect((portInput as HTMLInputElement).value).toBe('2096');
   });
 
   it('forwards typed subscription ports unchanged', () => {
