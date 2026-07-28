@@ -2,6 +2,7 @@ package job
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -27,6 +28,15 @@ type XrayTrafficJob struct {
 // broadcasts only this poll's active rows and the UI leans on its 5s REST
 // refetch for the rest.
 const clientStatsSnapshotMaxClients = 5000
+
+const externalInformTimeout = 3 * time.Second
+
+var externalInformClient = &fasthttp.Client{
+	ReadTimeout:         externalInformTimeout,
+	WriteTimeout:        externalInformTimeout,
+	MaxIdleConnDuration: time.Minute,
+	MaxConnsPerHost:     4,
+}
 
 // NewXrayTrafficJob creates a new traffic collection job instance.
 func NewXrayTrafficJob() *XrayTrafficJob {
@@ -197,6 +207,9 @@ func (j *XrayTrafficJob) Run() {
 }
 
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {
+	if len(inboundTraffics) == 0 && len(clientTraffics) == 0 {
+		return
+	}
 	informURL, err := j.settingService.GetExternalTrafficInformURI()
 	if err != nil {
 		logger.Warning("get ExternalTrafficInformURI failed:", err)
@@ -218,9 +231,10 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 	request.Header.SetContentType("application/json; charset=UTF-8")
 	request.SetBody(requestBody)
 	request.SetRequestURI(informURL)
+	request.Header.SetConnectionClose()
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
-	if err := fasthttp.Do(request, response); err != nil {
+	if err := externalInformClient.DoTimeout(request, response, externalInformTimeout); err != nil {
 		logger.Warning("POST ExternalTrafficInformURI failed:", err)
 	}
 }

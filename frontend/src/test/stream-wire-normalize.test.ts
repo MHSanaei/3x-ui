@@ -158,8 +158,8 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(XHttpXmuxSchema.parse({}).maxConcurrency).toBe('16-32');
   });
 
-  it('XMUX_FRESH_DEFAULTS seeds the anti-RKN maxConnections=6 without a competing maxConcurrency', () => {
-    expect(XMUX_FRESH_DEFAULTS.maxConnections).toBe(6);
+  it('XMUX_FRESH_DEFAULTS seeds the core maxConnections fallback without a competing maxConcurrency', () => {
+    expect(XMUX_FRESH_DEFAULTS.maxConnections).toBe(3);
     expect(XMUX_FRESH_DEFAULTS.maxConcurrency).toBe('');
 
     const out = normalizeXhttpForWire({
@@ -170,7 +170,7 @@ describe('normalizeXhttpForWire stream-one', () => {
     }, 'outbound');
 
     const xmux = out.xmux as Record<string, unknown>;
-    expect(xmux.maxConnections).toBe(6);
+    expect(xmux.maxConnections).toBe(3);
     expect(xmux.maxConcurrency).toBe('');
   });
 });
