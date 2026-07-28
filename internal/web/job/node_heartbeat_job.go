@@ -63,7 +63,7 @@ func (j *NodeHeartbeatJob) Run() {
 	if !websocket.HasClients() {
 		return
 	}
-	updated, err := j.nodeService.GetNodeTree()
+	updated, err := j.nodeService.GetNodeTreeView()
 	if err != nil {
 		logger.Warning("node heartbeat: load nodes for broadcast failed:", err)
 		return
