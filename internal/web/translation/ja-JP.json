@@ -657,6 +657,8 @@
         "maxTimeDiff": "最大時間差 (ms)",
         "minClientVer": "最小クライアントバージョン",
         "maxClientVer": "最大クライアントバージョン",
+        "minClientVerHint": "空欄は無制限ではありません。Xray-core は実行中のコアに組み込まれた最低バージョン（現行リリースでは 26.3.27）を適用し、それより古いバージョンを名乗るクライアント（Mihomo や sing-box などのサードパーティコアを含む）を拒否します。1.0.0 を設定すると許可されますが、古い TLS フィンガープリントも受け入れることになります。",
+        "maxClientVerHint": "空欄は上限なしを意味します。設定する場合は実効的な下限（最小クライアントバージョン。その欄が空欄の場合は Xray-core 組み込みの最低バージョン）を下回らないでください。下回るとすべてのクライアントが拒否されます。",
         "shortIds": "Short IDs",
         "realityTargetHint": "必須です。ポートを含める必要があります（例: example.com:443）。ポートがないと Xray-core は起動しません。",
         "realityTargetRequired": "REALITY ターゲットは必須です",
