@@ -282,6 +282,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				delete(stream, "finalmask")
 			}
 
+			dropEmptyRandPackets(stream["finalmask"])
+
 			if dropped := stripIncompleteXmcMasks(stream); dropped > 0 {
 				logger.Warningf("Inbound %q: dropping %d XMC finalmask mask(s) without complete Minecraft profiles — reconfigure them to restore the obfuscation (see XTLS/Xray-core#6487)", inbound.Tag, dropped)
 			}

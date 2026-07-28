@@ -206,7 +206,7 @@ export default function ClientsPage() {
 
   const {
     clients, total, filtered,
-    summary: serverSummary,
+    summary,
     allGroups,
     setQuery,
     inbounds, onlines, loading, transitioning, fetched, fetchError, subSettings,
@@ -385,9 +385,6 @@ export default function ClientsPage() {
   // of the file (table dataSource, mobile cards, select-all) doesn't need
   // a rename.
   const filteredClients = clients;
-
-  // Server-computed counts that stay stable as the user paginates/filters.
-  const summary = serverSummary;
 
   // Sort is server-side now; the page already arrives in the requested
   // order, so we just hand it through.

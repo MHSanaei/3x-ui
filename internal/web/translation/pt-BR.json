@@ -657,6 +657,8 @@
         "maxTimeDiff": "Máx. diferença de tempo (ms)",
         "minClientVer": "Mín. versão cliente",
         "maxClientVer": "Máx. versão cliente",
+        "minClientVerHint": "Vazio não significa sem restrição: o Xray-core aplica o mínimo embutido da build do núcleo em uso (26.3.27 nas versões atuais) e rejeita clientes que reportam uma versão mais antiga — incluindo núcleos de terceiros como Mihomo e sing-box. Definir 1.0.0 os aceita, ao custo de admitir impressões digitais TLS desatualizadas.",
+        "maxClientVerHint": "Vazio significa sem limite superior. Se definido, não deve ser menor que o mínimo efetivo — a versão mínima do cliente ou, se aquele campo estiver vazio, o mínimo embutido do Xray-core — ou todos os clientes serão rejeitados.",
         "shortIds": "Short IDs",
         "realityTargetHint": "Obrigatório. Deve incluir uma porta (ex.: example.com:443). Sem porta, o Xray-core não inicia.",
         "realityTargetRequired": "O alvo REALITY é obrigatório",
@@ -1441,6 +1443,8 @@
       "eventMemoryHigh": "Uso de memória alto (%)",
       "remarkTemplate": "Modelo de Observação",
       "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima.",
+      "subShowIdentityOnAllLinks": "Mostrar identidade em todos os links",
+      "subShowIdentityOnAllLinksDesc": "Quando ativado, {{EMAIL}} e {{USERNAME}} permanecem na observação de cada link do corpo da assinatura. Tokens de uso continuam só no primeiro link.",
       "validation": {
         "pathLeadingSlash": "O caminho deve começar com /"
       },

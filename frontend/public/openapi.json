@@ -270,6 +270,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -441,6 +444,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -737,6 +741,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -915,6 +922,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -5909,6 +5917,47 @@
             "description": "Client email (unique identifier).",
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/get/tgId/{tgId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.",
+        "operationId": "get_panel_api_clients_get_tgId_tgId",
+        "parameters": [
+          {
+            "name": "tgId",
+            "in": "path",
+            "required": true,
+            "description": "Telegram user ID (numeric).",
+            "schema": {
+              "type": "integer"
             }
           }
         ],

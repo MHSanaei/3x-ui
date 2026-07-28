@@ -41,9 +41,10 @@ type SubService struct {
 	// usageShown tracks, per client email, whether the info part of the template
 	// has already been emitted this request, so it appears on the first body
 	// link only. Per-request state; reset in PrepareForRequest.
-	usageShown     map[string]bool
-	inboundService service.InboundService
-	settingService service.SettingService
+	usageShown             map[string]bool
+	showIdentityOnAllLinks bool
+	inboundService         service.InboundService
+	settingService         service.SettingService
 	// nodesByID is populated per request from the Node table so
 	// resolveInboundAddress can return the node's address for any
 	// inbound whose NodeID is set. Keeps the per-link host derivation
@@ -197,6 +198,10 @@ func (s *SubService) loadRemarkSettings() {
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
 		s.datepicker = "gregorian"
+	}
+	s.showIdentityOnAllLinks, err = s.settingService.GetSubShowIdentityOnAllLinks()
+	if err != nil {
+		s.showIdentityOnAllLinks = false
 	}
 }
 
@@ -1704,12 +1709,6 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	}
 	if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
 		tlsSettings["fingerprint"] = fp
-		settings, _ := tlsSettings["settings"].(map[string]any)
-		if settings == nil {
-			settings = map[string]any{}
-			tlsSettings["settings"] = settings
-		}
-		settings["fingerprint"] = fp
 	}
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
@@ -2096,6 +2095,15 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 				extra[renamed] = v
 			}
 		}
+	}
+	// Older clients still read the pre-#6258 names from the subscription
+	// extra JSON. Emit aliases after lifting legacy inputs so both old and
+	// new clients can consume the same link.
+	if v, ok := extra["sessionIDPlacement"].(string); ok && len(v) > 0 {
+		extra["sessionPlacement"] = v
+	}
+	if v, ok := extra["sessionIDKey"].(string); ok && len(v) > 0 {
+		extra["sessionKey"] = v
 	}
 
 	for _, field := range []string{"uplinkChunkSize"} {
