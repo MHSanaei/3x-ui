@@ -775,6 +775,26 @@ func TestApplyExternalProxyTLSToStream_DoesNotLeakAcrossProxies(t *testing.T) {
 	}
 }
 
+func TestApplyExternalProxyTLSToStream_FingerprintNotDuplicated(t *testing.T) {
+	stream := map[string]any{
+		"security":    "tls",
+		"tlsSettings": map[string]any{},
+	}
+	ep := map[string]any{"dest": "proxy.example.com", "fingerprint": "chrome"}
+
+	applyExternalProxyTLSToStream(ep, stream, "tls")
+
+	ts, _ := stream["tlsSettings"].(map[string]any)
+	if ts["fingerprint"] != "chrome" {
+		t.Fatalf("tlsSettings.fingerprint = %v, want %q", ts["fingerprint"], "chrome")
+	}
+	if settings, ok := ts["settings"].(map[string]any); ok {
+		if got, dup := settings["fingerprint"]; dup {
+			t.Fatalf("fingerprint must not be duplicated into tlsSettings.settings, got %v", got)
+		}
+	}
+}
+
 func TestApplyExternalProxyTLSParams_SetsPinnedPeerCert(t *testing.T) {
 	params := map[string]string{"security": "tls"}
 	ep := map[string]any{
