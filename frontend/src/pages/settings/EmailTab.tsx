@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
 import { MailOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
+import { onNumber } from '@/utils/onNumber';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { EmailNotifications } from '@/components/ui/notifications/EmailNotifications';
@@ -64,7 +65,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpPort')} description={t('pages.settings.smtpPortDesc')}>
               <InputNumber value={allSetting.smtpPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ smtpPort: Number(v) || 587 })} />
+                onChange={onNumber((v) => updateSetting({ smtpPort: v }))} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpUsername')} description={t('pages.settings.smtpUsernameDesc')}>

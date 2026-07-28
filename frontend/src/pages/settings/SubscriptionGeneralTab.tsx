@@ -3,6 +3,7 @@ import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import type { AllSetting } from '@/models/setting';
+import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -57,7 +58,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subPort')} description={t('pages.settings.subPortDesc')}>
               <InputNumber value={allSetting.subPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => { if (v != null) updateSetting({ subPort: v }); }} />
+                onChange={onNumber((v) => updateSetting({ subPort: v }))} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subPath')} description={t('pages.settings.subPathDesc')}>
               <Input
@@ -106,7 +107,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
 
             <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
               <InputNumber value={allSetting.subUpdates} min={0} max={525600} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ subUpdates: Number(v) || 0 })} />
+                onChange={onNumber((v) => updateSetting({ subUpdates: v }))} />
             </SettingListItem>
           </>
         ),
