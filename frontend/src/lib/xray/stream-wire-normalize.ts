@@ -126,10 +126,15 @@ export function parseRealityClientVer(value: string): [number, number, number] |
   return nums as [number, number, number];
 }
 
-/** Validates a REALITY client-version field; empty means "not set" and is valid. */
+/**
+ * Validates a REALITY client-version field; empty means "not set" and is
+ * valid. The value is saved exactly as typed and xray-core's part parser
+ * accepts no surrounding whitespace, so a value that differs from its
+ * trimmed form is rejected rather than silently passed to the wire.
+ */
 export function validateRealityClientVer(value: string): string | undefined {
-  if (!value.trim()) return undefined;
-  if (!parseRealityClientVer(value)) {
+  if (!value) return undefined;
+  if (value !== value.trim() || !parseRealityClientVer(value)) {
     return 'pages.inbounds.form.clientVerInvalid';
   }
   return undefined;

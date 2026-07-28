@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Descriptions, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
@@ -43,7 +44,14 @@ export default function RealityForm({
   clearMldsa65,
 }: RealityFormProps) {
   const { t } = useTranslation();
+  const { getFieldState, trigger } = useFormContext();
   const [scannerOpen, setScannerOpen] = useState(false);
+  const maxClientVerPath = 'streamSettings.realitySettings.maxClientVer';
+  const revalidateMaxClientVer = () => {
+    if (getFieldState(maxClientVerPath).error) {
+      void trigger(maxClientVerPath);
+    }
+  };
   return (
     <>
       <FormField
@@ -132,6 +140,7 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'minClientVer']}
         label={t('pages.inbounds.form.minClientVer')}
         tooltip={t('pages.inbounds.form.minClientVerHint')}
+        onAfterChange={revalidateMaxClientVer}
         rules={{
           validate: (value) => {
             const errKey = validateRealityClientVer(typeof value === 'string' ? value : '');

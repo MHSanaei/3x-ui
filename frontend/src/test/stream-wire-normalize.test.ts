@@ -31,12 +31,17 @@ describe('validateRealityTarget', () => {
 describe('validateRealityClientVer', () => {
   it('accepts empty (not set) and core-style versions', () => {
     expect(validateRealityClientVer('')).toBeUndefined();
-    expect(validateRealityClientVer('  ')).toBeUndefined();
     expect(validateRealityClientVer('26.3.27')).toBeUndefined();
     expect(validateRealityClientVer('1.0.0')).toBeUndefined();
     expect(validateRealityClientVer('26')).toBeUndefined();
     expect(validateRealityClientVer('26.3')).toBeUndefined();
     expect(validateRealityClientVer('0.0.255')).toBeUndefined();
+  });
+
+  it('rejects untrimmed values because the save path ships them verbatim', () => {
+    expect(validateRealityClientVer('26.3.27 ')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer(' 26.3.27')).toBe('pages.inbounds.form.clientVerInvalid');
+    expect(validateRealityClientVer(' ')).toBe('pages.inbounds.form.clientVerInvalid');
   });
 
   it('rejects what the core parser rejects', () => {
