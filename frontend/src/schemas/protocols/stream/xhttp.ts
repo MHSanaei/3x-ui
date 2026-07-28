@@ -31,12 +31,14 @@ export const XHttpXmuxSchema = z.object({
 export type XHttpXmux = z.infer<typeof XHttpXmuxSchema>;
 
 // Seed for freshly enabling XMUX on a config that had no xmux block:
-// mirrors xray-core v26.6.27's own anti-RKN maxConnections=6 fallback
-// rather than the concurrency strategy.
+// mirrors xray-core's own maxConnections fallback rather than the
+// concurrency strategy. v26.7.28 lowered that fallback from 6 to 3 for
+// anti-TSPU, so track it here to keep a fresh panel config matching what
+// the core would have picked on its own.
 export const XMUX_FRESH_DEFAULTS: XHttpXmux = {
   ...XHttpXmuxSchema.parse({}),
   maxConcurrency: '',
-  maxConnections: 6,
+  maxConnections: 3,
 };
 
 // Predefined sessionIDTable names xray-core accepts as a shorthand for a
