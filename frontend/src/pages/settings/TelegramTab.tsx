@@ -4,6 +4,7 @@ import { Alert, Button, Input, InputNumber, Select, Space, Switch, Tabs } from '
 import { BellOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { LanguageManager } from '@/utils';
 import { HttpUtil } from '@/utils';
+import { onNumber } from '@/utils/onNumber';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { TelegramNotifications } from '@/components/ui/notifications/TelegramNotifications';
@@ -124,7 +125,7 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
             min={1}
             style={{ width: '50%' }}
             value={state.num}
-            onChange={(v) => update({ num: Math.max(1, Number(v) || 1) })}
+            onChange={onNumber((v) => update({ num: Math.max(1, v) }))}
             aria-label={t('pages.settings.notifyTime.interval')}
           />
           <Select<Unit>

@@ -53,4 +53,19 @@ export default [
       'jsx-a11y/no-autofocus': 'off',
     },
   },
+  {
+    // The settings and xray pages write numeric input changes straight into
+    // state, so `Number(v) || N` turns a cleared field into a stored N (the
+    // cleared-port bug, #6121). Handlers here go through onNumber()
+    // (src/utils/onNumber.ts) instead. Form modals that stage values behind
+    // Zod validation keep their own clear-means-zero semantics and are
+    // deliberately outside this rule's scope.
+    files: ['src/pages/settings/**/*.tsx', 'src/pages/xray/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: 'JSXAttribute[name.name="onChange"] LogicalExpression[operator="||"] > CallExpression[callee.name="Number"]',
+        message: 'A cleared InputNumber must not write a synthetic value; wrap the handler with onNumber() from @/utils/onNumber (see #6127).',
+      }],
+    },
+  },
 ];
