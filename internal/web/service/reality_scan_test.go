@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/tls"
+	"net"
 	"testing"
 )
 
@@ -77,13 +78,13 @@ func TestSplitRealityTarget(t *testing.T) {
 }
 
 func TestScanRealityTargetInputValidation(t *testing.T) {
-	if _, err := (&ServerService{}).ScanRealityTarget(""); err == nil {
+	if _, err := (&ServerService{}).ScanRealityTarget("", 0); err == nil {
 		t.Error("ScanRealityTarget(empty) expected error, got nil")
 	}
 }
 
 func TestScanRealityTargetBlocksPrivate(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443")
+	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", 0)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(loopback) unexpected error: %v", err)
 	}
@@ -107,5 +108,59 @@ func TestScanRealityTargetsHandlesPrivateAndBadInput(t *testing.T) {
 		if r.Feasible {
 			t.Errorf("result %q unexpectedly feasible", r.Target)
 		}
+	}
+}
+
+func TestWriteProxyProtocolV1(t *testing.T) {
+	server, client := net.Pipe()
+	defer client.Close()
+
+	local := &net.TCPAddr{IP: net.ParseIP("192.0.2.10"), Port: 51234}
+	remote := &net.TCPAddr{IP: net.ParseIP("203.0.113.5"), Port: 443}
+
+	got := make(chan string, 1)
+	go func() {
+		buf := make([]byte, 128)
+		n, _ := server.Read(buf)
+		got <- string(buf[:n])
+	}()
+
+	if err := writeProxyProtocolV1(client, local, remote); err != nil {
+		t.Fatalf("writeProxyProtocolV1: %v", err)
+	}
+	line := <-got
+	want := "PROXY TCP4 192.0.2.10 203.0.113.5 51234 443\r\n"
+	if line != want {
+		t.Fatalf("v1 header = %q, want %q", line, want)
+	}
+}
+
+func TestWriteProxyProtocolV2Signature(t *testing.T) {
+	server, client := net.Pipe()
+	defer client.Close()
+
+	local := &net.TCPAddr{IP: net.ParseIP("192.0.2.10"), Port: 51234}
+	remote := &net.TCPAddr{IP: net.ParseIP("203.0.113.5"), Port: 443}
+
+	got := make(chan []byte, 1)
+	go func() {
+		buf := make([]byte, 128)
+		n, _ := server.Read(buf)
+		got <- append([]byte(nil), buf[:n]...)
+	}()
+
+	if err := writeProxyProtocolV2(client, local, remote); err != nil {
+		t.Fatalf("writeProxyProtocolV2: %v", err)
+	}
+	hdr := <-got
+	sig := []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
+	if len(hdr) < 16 || string(hdr[:12]) != string(sig) {
+		t.Fatalf("v2 header missing the protocol signature: %v", hdr)
+	}
+	if hdr[12] != 0x21 {
+		t.Fatalf("v2 version/command byte = 0x%02x, want 0x21", hdr[12])
+	}
+	if hdr[13] != 0x11 {
+		t.Fatalf("v2 family/protocol byte = 0x%02x, want 0x11 (TCP over IPv4)", hdr[13])
 	}
 }

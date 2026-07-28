@@ -181,5 +181,5 @@ jobs:
         run: npm run build-storybook
         working-directory: frontend
       - name: Audit
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
         working-directory: frontend

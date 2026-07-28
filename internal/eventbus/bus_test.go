@@ -197,7 +197,7 @@ func TestBusSubscriberRunsSerially(t *testing.T) {
 		wg.Done()
 	})
 
-	for i := 0; i < n; i++ {
+	for range n {
 		b.Publish(Event{Type: EventXrayCrash})
 	}
 

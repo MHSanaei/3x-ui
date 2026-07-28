@@ -218,6 +218,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "vless":
 			vc := client
 			vc.ID = applyVlessRoute(client.ID, hostVlessRoute(extPrxy))
+			// Same gate the raw link and the Clash proxy apply: a flow left
+			// over from a transport Vision supported produces an outbound
+			// xray refuses to start.
+			newNetwork, _ := newStream["network"].(string)
+			if vc.Flow != "" && !vlessFlowAllowed(newNetwork, security, subReq.linkSettings(inbound)) {
+				vc.Flow = ""
+			}
 			newOutbounds = append(newOutbounds, s.genVless(subReq, inbound, streamSettings, vc, jsonMux(mux, hostMux)))
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
