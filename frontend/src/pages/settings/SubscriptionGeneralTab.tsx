@@ -93,6 +93,16 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 maxLength={256}
               />
             </SettingListItem>
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.subShowIdentityOnAllLinks')}
+              description={t('pages.settings.subShowIdentityOnAllLinksDesc')}
+            >
+              <Switch
+                checked={allSetting.subShowIdentityOnAllLinks}
+                onChange={(v) => updateSetting({ subShowIdentityOnAllLinks: v })}
+              />
+            </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
               <InputNumber value={allSetting.subUpdates} min={0} max={525600} style={{ width: '100%' }}
