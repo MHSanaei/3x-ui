@@ -136,7 +136,7 @@ export default function RealityForm({
         label={t('pages.inbounds.form.maxClientVer')}
         tooltip={t('pages.inbounds.form.maxClientVerHint')}
       >
-        <Input />
+        <Input placeholder="x.y.z" />
       </FormField>
       <Form.Item label={t('pages.inbounds.form.shortIds')}>
         <Space.Compact block style={{ display: 'flex' }}>

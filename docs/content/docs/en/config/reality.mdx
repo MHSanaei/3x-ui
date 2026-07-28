@@ -119,11 +119,12 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
 - **Wrong flow.** REALITY + XTLS-Vision needs `flow = xtls-rprx-vision` on both
   the inbound client entry and the share link.
 - **Old client cores rejected by default.** An empty **Min Client Ver** is not
-  "no limit": Xray-core falls back to a built-in minimum (26.3.27 at the time of
-  writing) that keeps client TLS fingerprints fresh, so third-party cores such as
-  Mihomo and sing-box fail REALITY verification even with a correct config —
-  clients see timeouts while only Xray-core based apps connect. Set it to `1.0.0`
-  only if you must support them; that also re-admits outdated fingerprints.
+  "no limit": Xray-core falls back to the built-in minimum of the core build you
+  run (26.3.27 in current releases) that keeps client TLS fingerprints fresh, so
+  third-party cores such as Mihomo and sing-box fail REALITY verification even
+  with a correct config — clients see timeouts while only Xray-core based apps
+  connect. Set it to `1.0.0` only if you must support them; that also re-admits
+  outdated fingerprints.
 
 </Callout>
 
