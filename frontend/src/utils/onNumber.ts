@@ -1,17 +1,16 @@
 /**
- * Wraps an Ant Design InputNumber change handler so a cleared field never
- * writes a synthetic value: null, empty-string, and NaN change events are
- * ignored, leaving the stored value in place (the input snaps back on blur).
- * This is the port-field semantic from the sub-port fix, shared so new
- * numeric settings cannot reintroduce the `Number(v) || 0` clamp bug.
+ * Wraps an Ant Design InputNumber change handler with the shared
+ * cleared-field semantic: null and undefined change events (a cleared or
+ * unparsable field) are ignored, leaving the stored value in place — the
+ * input snaps back on blur — while real numbers pass through unchanged.
+ * Number-only by design: not for `stringMode` inputs, whose whole point is
+ * to avoid the IEEE-754 round trip this signature would force.
  */
 export function onNumber(
   apply: (value: number) => void,
-): (value: number | string | null | undefined) => void {
+): (value: number | null | undefined) => void {
   return (value) => {
-    if (value == null || value === '') return;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return;
-    apply(parsed);
+    if (typeof value !== 'number' || !Number.isFinite(value)) return;
+    apply(value);
   };
 }
