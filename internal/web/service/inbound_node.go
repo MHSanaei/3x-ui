@@ -311,7 +311,8 @@ func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
 		c.ExpiryTime != snapIb.ExpiryTime ||
 		c.StreamSettings != snapIb.StreamSettings ||
 		c.Sniffing != snapIb.Sniffing ||
-		c.TrafficReset != snapIb.TrafficReset
+		c.TrafficReset != snapIb.TrafficReset ||
+		c.TrafficResetDay != normalizeTrafficResetDay(snapIb.TrafficResetDay)
 }
 
 // adoptedWireInbound is the central inbound as it reads after adopting the
@@ -330,6 +331,7 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	a.StreamSettings = snapIb.StreamSettings
 	a.Sniffing = snapIb.Sniffing
 	a.TrafficReset = snapIb.TrafficReset
+	a.TrafficResetDay = normalizeTrafficResetDay(snapIb.TrafficResetDay)
 	return &a
 }
 
@@ -561,6 +563,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				StreamSettings:       snapIb.StreamSettings,
 				Sniffing:             snapIb.Sniffing,
 				TrafficReset:         snapIb.TrafficReset,
+				TrafficResetDay:      normalizeTrafficResetDay(snapIb.TrafficResetDay),
 				LastTrafficResetTime: snapIb.LastTrafficResetTime,
 				Enable:               snapIb.Enable,
 				Remark:               snapIb.Remark,
@@ -616,6 +619,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
+			updates["traffic_reset_day"] = normalizeTrafficResetDay(snapIb.TrafficResetDay)
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
 			if adoptedWireChanged(c, snapIb, adoptedSettings) {
 				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, adoptedSettings))

@@ -451,6 +451,7 @@
       "importInbound": "匯入入站規則",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDesc": "按指定間隔自動重置流量計數器",
+      "periodicTrafficResetDay": "每月重置日",
       "lastReset": "上次重置",
       "periodicTrafficReset": {
         "never": "從不",
@@ -638,6 +639,8 @@
         "maxClientVer": "最大客戶端版本",
         "minClientVerHint": "留空不等於不限制：Xray-core 會改用所執行核心版本的內建最低值（目前版本為 26.3.27），拒絕自報版本較低的客戶端——包括 Mihomo、sing-box 等第三方核心。填 1.0.0 可放行它們，代價是允許過時的 TLS 指紋。",
         "maxClientVerHint": "留空表示無上限。若填寫，不得低於實際生效的下限——最小客戶端版本，該欄位留空時則為 Xray-core 的內建最低值——否則所有客戶端都會被拒絕。",
+        "clientVerInvalid": "客戶端版本須為最多三段以點分隔的數字，每段 0-255（例如 26.3.27）",
+        "maxClientVerBelowMin": "最大客戶端版本不得低於最小客戶端版本",
         "shortIds": "Short IDs",
         "realityTargetHint": "必填。必須包含連接埠（例如 example.com:443）。沒有連接埠時 Xray-core 將無法啟動。",
         "realityTargetRequired": "REALITY 目標為必填項",

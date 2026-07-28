@@ -11,6 +11,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 
+import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
@@ -311,7 +312,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                       min={0}
                       step={60}
                       style={{ width: '100%' }}
-                      onChange={(v) => setDnsField('serveExpiredTTL', Number(v) || 0)}
+                      onChange={onNumber((v) => setDnsField('serveExpiredTTL', v))}
                     />
                   }
                 />
