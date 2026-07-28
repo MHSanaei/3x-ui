@@ -170,7 +170,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
             <SettingListItem paddings="small" title={t('pages.settings.panelPort')} description={t('pages.settings.panelPortDesc')}>
               <InputNumber value={allSetting.webPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ webPort: Number(v) || 0 })} />
+                onChange={(v) => { if (v != null) updateSetting({ webPort: v }); }} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.panelUrlPath')} description={t('pages.settings.panelUrlPathDesc')}>
@@ -313,7 +313,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.port')}>
               <InputNumber value={allSetting.ldapPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ ldapPort: Number(v) || 0 })} />
+                onChange={(v) => { if (v != null) updateSetting({ ldapPort: v }); }} />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.ldap.useTls')}>
               <Switch checked={allSetting.ldapUseTLS} onChange={(v) => updateSetting({ ldapUseTLS: v })} />

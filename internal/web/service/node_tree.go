@@ -157,6 +157,14 @@ func (s *NodeService) GetNodeTree() ([]*model.Node, error) {
 	return all, nil
 }
 
+func (s *NodeService) GetNodeTreeView() ([]*NodeView, error) {
+	nodes, err := s.GetNodeTree()
+	if err != nil {
+		return nil, err
+	}
+	return toNodeViews(nodes), nil
+}
+
 // recountByGuid recomputes InboundCount/OnlineCount/DepletedCount for every node
 // in the tree, keyed by the GUID that physically hosts each inbound, so a direct
 // node shows only its own inbounds and each transitive node shows its own

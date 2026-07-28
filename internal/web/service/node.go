@@ -336,6 +336,14 @@ func (s *NodeService) GetById(id int) (*model.Node, error) {
 	return n, nil
 }
 
+func (s *NodeService) GetViewById(id int) (*NodeView, error) {
+	n, err := s.GetById(id)
+	if err != nil {
+		return nil, err
+	}
+	return toNodeView(n), nil
+}
+
 // NodeExists reports whether a node with the given id exists on this panel.
 // Used to drop stale, cross-panel node references on inbound import. A Count
 // query distinguishes "no such node" (count 0, no error) from a real DB error.
@@ -424,6 +432,17 @@ func (s *NodeService) Create(n *model.Node) error {
 	return db.Create(n).Error
 }
 
+func (s *NodeService) CreateFromRequest(req *NodeMutationRequest) (*NodeView, error) {
+	if err := req.validateCredentials(true); err != nil {
+		return nil, err
+	}
+	n := req.toNode()
+	if err := s.Create(n); err != nil {
+		return nil, err
+	}
+	return toNodeView(n), nil
+}
+
 func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := s.normalize(in); err != nil {
 		return err
@@ -465,6 +484,110 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		mgr.InvalidateNode(id)
 	}
 	return nil
+}
+
+func (s *NodeService) UpdateFromRequest(id int, req *NodeMutationRequest) error {
+	if err := req.validateCredentials(false); err != nil {
+		return err
+	}
+	in := req.toNode()
+	if err := s.normalize(in); err != nil {
+		return err
+	}
+	inboundTagsJSON, err := json.Marshal(in.InboundTags)
+	if err != nil {
+		return err
+	}
+	db := database.GetDB()
+	existing := &model.Node{}
+	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
+		return err
+	}
+	apiToken := existing.ApiToken
+	switch {
+	case req.ClearApiToken:
+		apiToken = ""
+	case req.ApiToken != nil:
+		apiToken = *req.ApiToken
+	}
+	if apiToken == "" && in.Enable && in.TlsVerifyMode != "mtls" {
+		return common.NewError("apiToken is required unless mtls is enabled")
+	}
+	updates := map[string]any{
+		"name":                  in.Name,
+		"remark":                in.Remark,
+		"scheme":                in.Scheme,
+		"address":               in.Address,
+		"port":                  in.Port,
+		"base_path":             in.BasePath,
+		"api_token":             apiToken,
+		"enable":                in.Enable,
+		"allow_private_address": in.AllowPrivateAddress,
+		"tls_verify_mode":       in.TlsVerifyMode,
+		"pinned_cert_sha256":    in.PinnedCertSha256,
+		"inbound_sync_mode":     in.InboundSyncMode,
+		"inbound_tags":          string(inboundTagsJSON),
+		"outbound_tag":          in.OutboundTag,
+	}
+	if err := db.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return err
+	}
+	if dErr := s.MarkNodeDirty(id); dErr != nil {
+		logger.Warning("mark node dirty after update failed:", dErr)
+	}
+	if mgr := runtime.GetManager(); mgr != nil {
+		mgr.InvalidateNode(id)
+	}
+	return nil
+}
+
+func (s *NodeService) RuntimeNodeFromRequest(id int, req *NodeMutationRequest) (*model.Node, error) {
+	if err := req.validateCredentials(id == 0); err != nil {
+		return nil, err
+	}
+	var n *model.Node
+	if id > 0 {
+		existing, err := s.GetById(id)
+		if err != nil {
+			return nil, err
+		}
+		n = existing
+	} else {
+		n = &model.Node{}
+	}
+	overlay := req.toNode()
+	overlay.Id = id
+	if req.ApiToken == nil {
+		overlay.ApiToken = n.ApiToken
+	}
+	if req.ClearApiToken {
+		overlay.ApiToken = ""
+	}
+	*n = *overlay
+	if err := s.normalize(n); err != nil {
+		return nil, err
+	}
+	if n.ApiToken == "" && n.Enable && n.TlsVerifyMode != "mtls" {
+		return nil, common.NewError("apiToken is required unless mtls is enabled")
+	}
+	return n, nil
+}
+
+func (s *NodeService) NodeFromRequestForCertificate(req *NodeMutationRequest) (*model.Node, error) {
+	if req == nil {
+		return nil, common.NewError("node request is required")
+	}
+	n := req.toNode()
+	if n.Scheme == "" {
+		n.Scheme = "https"
+	}
+	if n.BasePath == "" {
+		n.BasePath = "/"
+	}
+	if err := s.normalize(n); err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 func (s *NodeService) GetRemoteInboundOptions(ctx context.Context, n *model.Node) ([]runtime.RemoteInboundOption, error) {

@@ -6,6 +6,7 @@ allowBuilds:
 # release — fixes GHSA-qx2v-qp2m-jg93 / CVE-2026-41305 (vulnerable < 8.5.10).
 overrides:
   'postcss@<8.5.10': '^8.5.15'
+  'sharp@<0.35.0': '^0.35.3'
 minimumReleaseAgeExclude:
   - '@mermaid-js/parser@1.2.0'
   - mermaid@11.16.0

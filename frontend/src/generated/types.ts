@@ -82,6 +82,7 @@ export interface AllSetting {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -195,6 +196,7 @@ export interface AllSettingView {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
@@ -483,7 +485,6 @@ export interface Node {
   activeCount: number;
   address: string;
   allowPrivateAddress: boolean;
-  apiToken: string;
   basePath: string;
   clientCount: number;
   configDirty: boolean;
@@ -494,6 +495,69 @@ export interface Node {
   disabledCount: number;
   enable: boolean;
   guid: string;
+  id: number;
+  inboundCount: number;
+  inboundSyncMode: string;
+  inboundTags: string[];
+  lastError: string;
+  lastHeartbeat: number;
+  latencyMs: number;
+  memPct: number;
+  name: string;
+  netDown: number;
+  netUp: number;
+  onlineCount: number;
+  outboundTag: string;
+  panelVersion: string;
+  parentGuid?: string;
+  pinnedCertSha256: string;
+  port: number;
+  remark: string;
+  scheme: string;
+  status: string;
+  tlsVerifyMode: string;
+  transitive?: boolean;
+  updatedAt: number;
+  uptimeSecs: number;
+  xrayError: string;
+  xrayState: string;
+  xrayVersion: string;
+}
+
+export interface NodeMutationRequest {
+  address: string;
+  allowPrivateAddress: boolean;
+  apiToken?: string | null;
+  basePath: string;
+  clearApiToken?: boolean;
+  enable: boolean;
+  id: number;
+  inboundSyncMode: string;
+  inboundTags: string[];
+  name: string;
+  outboundTag: string;
+  pinnedCertSha256: string;
+  port: number;
+  remark: string;
+  scheme: string;
+  tlsVerifyMode: string;
+}
+
+export interface NodeView {
+  activeCount: number;
+  address: string;
+  allowPrivateAddress: boolean;
+  basePath: string;
+  clientCount: number;
+  configDirty: boolean;
+  configDirtyAt: number;
+  cpuPct: number;
+  createdAt: number;
+  depletedCount: number;
+  disabledCount: number;
+  enable: boolean;
+  guid: string;
+  hasApiToken: boolean;
   id: number;
   inboundCount: number;
   inboundSyncMode: string;

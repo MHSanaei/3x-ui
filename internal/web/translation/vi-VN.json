@@ -657,6 +657,8 @@
         "maxTimeDiff": "Chênh lệch thời gian tối đa (ms)",
         "minClientVer": "Phiên bản client tối thiểu",
         "maxClientVer": "Phiên bản client tối đa",
+        "minClientVerHint": "Để trống không có nghĩa là không giới hạn: Xray-core sẽ áp dụng mức tối thiểu tích hợp của bản core đang chạy (26.3.27 ở các bản phát hành hiện tại) và từ chối các client khai báo phiên bản cũ hơn — bao gồm các core bên thứ ba như Mihomo và sing-box. Đặt 1.0.0 để chấp nhận chúng, đổi lại là cho phép các dấu vân tay TLS lỗi thời.",
+        "maxClientVerHint": "Để trống nghĩa là không có giới hạn trên. Nếu đặt, không được thấp hơn mức tối thiểu đang có hiệu lực — phiên bản client tối thiểu, hoặc mức tối thiểu tích hợp của Xray-core khi ô đó để trống — nếu không mọi client đều bị từ chối.",
         "shortIds": "Short IDs",
         "realityTargetHint": "Bắt buộc. Phải bao gồm cổng (ví dụ example.com:443). Không có cổng, Xray-core sẽ không khởi động.",
         "realityTargetRequired": "Mục tiêu REALITY là bắt buộc",
@@ -1011,6 +1013,7 @@
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token từ trang Cài đặt của panel từ xa",
       "apiTokenHint": "Panel từ xa hiển thị token API tại Bảo mật → Token API.",
+      "apiTokenKeepHint": "Để trống để giữ token hiện tại",
       "regenerate": "Tạo lại token",
       "regenerateConfirm": "Tạo lại sẽ vô hiệu hóa token hiện tại. Mọi panel trung tâm dùng nó sẽ mất quyền truy cập cho đến khi được cập nhật. Tiếp tục?",
       "allowPrivateAddress": "Cho phép địa chỉ riêng",
@@ -1438,6 +1441,8 @@
       "eventMemoryHigh": "Sử dụng bộ nhớ cao (%)",
       "remarkTemplate": "Mẫu ghi chú",
       "remarkTemplateDesc": "Khi được đặt, mục này thay thế mô hình ghi chú cho mọi liên kết đăng ký — hãy viết định dạng riêng của bạn bằng các token biến (dùng nút để chèn chúng). Để trống để dùng mô hình ở trên.",
+      "subShowIdentityOnAllLinks": "Hiện danh tính trên mọi liên kết",
+      "subShowIdentityOnAllLinksDesc": "Khi bật, {{EMAIL}} và {{USERNAME}} vẫn có trong ghi chú mọi liên kết phần thân đăng ký. Token dung lượng vẫn chỉ ở liên kết đầu tiên.",
       "validation": {
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },

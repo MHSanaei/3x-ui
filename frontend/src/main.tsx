@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { RouterProvider } from 'react-router-dom';
+import { RouterProvider } from 'react-router/dom';
 import { message } from 'antd';
 import 'antd/dist/reset.css';
 import '@/styles/utils.css';

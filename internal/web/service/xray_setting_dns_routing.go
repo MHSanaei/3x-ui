@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,7 +12,39 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
 
-// dnsAllowRuleShape identifies routing rules this file manages: a plain
+// dnsAllowRuleTag marks the routing rules this file manages. Both
+// xray-core and the Routing tab's rule editor round-trip ruleTag
+// untouched, so it is a stable provenance marker: only rules carrying it
+// (or legacy managed rules recognized by exact content, see
+// managedDnsAllowRule) are ever stripped and rebuilt.
+const dnsAllowRuleTag = "xui-dns-allow"
+
+// managedDnsAllowRule reports whether a routing rule was created by this
+// file. Current managed rules carry dnsAllowRuleTag. Rules written before
+// the tag existed are adopted only when their shape matches AND their
+// exact ip-set/port content equals a currently configured private DNS
+// endpoint group — a hand-written rule that merely resembles the managed
+// shape (e.g. a CIDR allow for a NAS on port 5000, #6056) never matches
+// and is left untouched.
+func managedDnsAllowRule(rule map[string]any, groups []dnsAllowPortGroup) bool {
+	if tag, _ := rule["ruleTag"].(string); tag == dnsAllowRuleTag {
+		return true
+	}
+	if !dnsAllowRuleShape(rule) {
+		return false
+	}
+	port, _ := rule["port"].(string)
+	ips := append([]string(nil), readRuleIPs(rule["ip"])...)
+	sort.Strings(ips)
+	for _, g := range groups {
+		if strconv.Itoa(g.port) == port && slices.Equal(ips, g.ips) {
+			return true
+		}
+	}
+	return false
+}
+
+// dnsAllowRuleShape identifies the legacy managed-rule shape: a plain
 // "type=field, ip=[...], port=..., outboundTag=direct" rule with no other
 // matchers. An "enabled" key is tolerated as long as it's true — the
 // Routing tab's rule editor (RuleFormModal.tsx submit()) and its enabled
@@ -21,10 +54,6 @@ import (
 // toggled off (enabled=false) is treated as no longer ours: the admin
 // explicitly turned it off, and re-enabling it on the next save would
 // silently override that choice.
-//
-// Rules shaped like this are kept in sync with the current dns.servers
-// config on every save; anything else (including rules an admin wrote by
-// hand that happen to also allow-list an IP) is left untouched.
 func dnsAllowRuleShape(rule map[string]any) bool {
 	if t, _ := rule["type"].(string); t != "field" {
 		return false
@@ -270,7 +299,7 @@ func collectPrivateDnsAllowGroups(dnsRaw json.RawMessage) []dnsAllowPortGroup {
 // otherwise silently reintroduce the stall with nothing to notice or fix
 // it). The rebuilt result is only written back if it actually differs
 // from the input, so well-formed configs aren't churned on every save.
-// Manually-authored rules are never touched — see dnsAllowRuleShape.
+// Manually-authored rules are never touched — see managedDnsAllowRule.
 func EnsureDnsServerRouting(raw string) (string, error) {
 	var cfg map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
@@ -339,7 +368,7 @@ func EnsureDnsServerRouting(raw string) (string, error) {
 func rebuildDnsAllowRules(rules []map[string]any, groups []dnsAllowPortGroup) []map[string]any {
 	clean := make([]map[string]any, 0, len(rules))
 	for _, rule := range rules {
-		if !dnsAllowRuleShape(rule) {
+		if !managedDnsAllowRule(rule, groups) {
 			clean = append(clean, rule)
 		}
 	}
@@ -353,6 +382,7 @@ func rebuildDnsAllowRules(rules []map[string]any, groups []dnsAllowPortGroup) []
 	for _, g := range groups {
 		managed = append(managed, map[string]any{
 			"type":        "field",
+			"ruleTag":     dnsAllowRuleTag,
 			"ip":          g.ips,
 			"port":        strconv.Itoa(g.port),
 			"outboundTag": "direct",
