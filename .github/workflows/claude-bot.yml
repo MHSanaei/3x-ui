@@ -1,24 +1,5 @@
 name: Claude Bot
 
-# Every prompt: / claude_args: block below interpolates ${{ }}, so GitHub parses
-# the whole block scalar as ONE expression and caps it at 21000 characters.
-# Going over does not fail a job - the entire workflow stops parsing and
-# vanishes from Actions, with the run reported only as a workflow file issue.
-# The two triage prompts are the ones to watch: roughly 15100 characters each.
-# Put shared context in CLAUDE.md and docs/architecture.md, which are in the
-# checkout, instead of pasting it here.
-#
-# CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 on the two jobs that set
-# allowed_non_write_users: the action otherwise turns subprocess isolation on
-# for them, installs bubblewrap, and every Bash call then dies in the sandbox
-# with "bwrap: Can't create file at /home/.mcp.json: Permission denied" before
-# the command runs. The job still reports success, so the bot silently answers
-# nothing - which is what the "Fail if ..." steps catch.
-#
-# Only resolve-conflicts may change code, and only the merge it is handed: the
-# model there has no shell at all, and the commit and push are done by a
-# workflow step from the event payload, never by the model.
-
 on:
   issues:
     types: [opened]
@@ -815,11 +796,11 @@ jobs:
           fi
           base=$(gh pr view "$PR" --json baseRefName --jq '.baseRefName')
           head=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
-          gh pr checkout "$PR"
           git config core.hooksPath /dev/null
           git config core.quotePath false
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh pr checkout "$PR"
           git fetch origin "$base"
           if git merge --no-commit --no-ff "origin/${base}"; then
             git merge --abort 2>/dev/null || true
@@ -837,6 +818,14 @@ jobs:
           if [ -z "$files" ]; then
             git merge --abort 2>/dev/null || true
             hand_back "The merge of \`${base}\` failed without leaving a conflicted file, so it needs a human. Nothing was changed."
+          fi
+          odd=$(printf '%s\n' "$files" | grep -vE '^[A-Za-z0-9._][A-Za-z0-9._/-]*$' || true)
+          if [ -n "$odd" ]; then
+            git merge --abort 2>/dev/null || true
+            hand_back "The merge of \`${base}\` conflicts over paths this job refuses to hand to its tooling:
+          $(printf '%s\n' "$odd" | sed 's/^/- /')
+
+          Nothing was changed. Resolve those by hand."
           fi
           rules=""
           while IFS= read -r f; do
