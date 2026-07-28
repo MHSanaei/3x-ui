@@ -1,0 +1,155 @@
+---
+title: AmneziaWG
+description: Set up an AmneziaWG inbound in 3x-ui — obfuscation parameters, native IPv6, per-client port-forwarding, and routing client traffic through Xray.
+icon: Lock
+---
+
+**AmneziaWG** is a WireGuard fork that adds traffic obfuscation (junk packets,
+randomized padding, and rewritten protocol magic values) so the tunnel doesn't
+look like WireGuard to deep-packet inspection. It's a popular choice where
+plain WireGuard is blocked but a WireGuard-shaped tunnel with a different
+fingerprint gets through.
+
+<Callout type="warn">
+  AmneziaWG is **not run by Xray**. Like MTProto, it's a separate process —
+  the panel manages a native `awg-quick`/`awg` interface as a host-level
+  sidecar, the same reconciler pattern the MTProto (`mtg`) sidecar already
+  uses. This means: it needs the **AmneziaWG kernel module** (DKMS) installed
+  on the host, and it is **not usable from inside the project's Docker
+  image** — Docker doesn't give the container the host network/kernel access
+  `awg-quick` needs. `install.sh` installs the kernel module automatically on
+  supported distros; see [Installation](/docs/guide/installation).
+</Callout>
+
+## Key settings
+
+### Server / interface
+
+| Field                    | What it is                                                              |
+| ------------------------ | ------------------------------------------------------------------------ |
+| **Subnet**                | The tunnel's IPv4 subnet (e.g. `10.8.1.0/24`); each client gets an address from it. |
+| **MTU**                   | Interface MTU. Leave at the default unless you have a reason to change it. |
+| **DNS (primary/secondary)** | Seeded into downloadable client configs; the server's own interface doesn't need one. |
+| **External interface**    | The host NIC PostUp/PostDown NAT rules attach to. Leave blank to auto-detect. |
+
+### Obfuscation (AmneziaWG 2.0)
+
+The same values must match on both ends of the tunnel, so the server stores
+them once and every client config inherits them. The panel generates a
+randomized set for you (with a **regenerate** button) — a static, reused
+value defeats the point, since DPI can fingerprint it over time.
+
+| Field        | What it is                                                                 |
+| ------------ | ---------------------------------------------------------------------------- |
+| **Jc**       | Number of junk packets sent before the handshake.                            |
+| **Jmin/Jmax** | Size range (bytes) for those junk packets. `Jmin` must not exceed `Jmax`.     |
+| **S1/S2**    | Padding added to the handshake init/response packets. `S1 + 56` must not equal `S2` — the kernel rejects a value that would make both packets the same size. |
+| **S3**       | Cookie-reply padding, `0`-`64`.                                               |
+| **S4**       | Transport (data) packet padding, `0`-`32`.                                    |
+| **H1-H4**    | Magic header values that replace WireGuard's standard message-type bytes. Each is a single integer or a `low-high` range; `1`-`4` are reserved (real WireGuard message types) and must not be used. |
+| **I1**       | An optional signature packet — random bytes prepended before the handshake, e.g. `<r 148>`. |
+
+<Callout type="info">
+  If you enter obfuscation values by hand instead of using the generated
+  defaults, keep `H1`-`H4` **non-overlapping** and above `4`, and double-check
+  `S1 + 56 != S2` — a bad value here can keep the interface from coming up at
+  all (`awg-quick up` fails).
+</Callout>
+
+## Set it up in the panel
+
+<Steps>
+
+<Step>
+### Add an inbound
+
+Add a new inbound, choose protocol **AmneziaWG**, and set the port and tunnel
+subnet.
+</Step>
+
+<Step>
+### Leave obfuscation on defaults (or regenerate)
+
+The panel fills in a randomized, kernel-valid obfuscation set automatically.
+Use **Regenerate** if you want a fresh one; there's no need to hand-edit these
+unless you have a specific reason to.
+</Step>
+
+<Step>
+### Add a client
+
+Each client gets its own keypair and tunnel address. Download the client's
+`.conf` or copy its share link (`vpn://…`, importable by the official
+AmneziaWG/AmneziaVPN apps) from the client list.
+</Step>
+
+<Step>
+### Optional: enable IPv6
+
+Turning on IPv6 allocates an IPv6 address alongside each client's IPv4 one
+from the configured IPv6 subnet, and the server proxies NDP for it — clients
+are directly reachable over IPv6 with **no NAT66** needed.
+</Step>
+
+<Step>
+### Optional: forward ports to a client
+
+Set a client's forwarded ports (e.g. `80, 443, 8000-8100`) to DNAT that
+traffic from the host straight to the client's tunnel address — useful for a
+client that needs to expose a service through the server.
+</Step>
+
+<Step>
+### Optional: route a client's traffic through Xray
+
+Turning on **RouteThroughXray** for the inbound TPROXYs every peer's traffic
+into a loopback bridge tagged with that inbound's own tag — it then shows up
+as a normal source on the [Routing](/docs/operations/outbounds-routing) page,
+exactly like any other protocol's inbound. Nothing else changes: a plain
+AmneziaWG tunnel with this off never depends on Xray being up at all.
+</Step>
+
+</Steps>
+
+## What the configuration looks like
+
+A client's downloadable `.conf` (also what the `vpn://` share link encodes,
+base64url'd) looks like this:
+
+```ini title="client .conf"
+[Interface]
+PrivateKey = <client private key>
+Address = 10.8.1.2/32
+DNS = 1.1.1.1
+Jc = 4
+Jmin = 65
+Jmax = 220
+S1 = 87
+S2 = 44
+S3 = 21
+S4 = 9
+H1 = 1417709896-1417711088
+H2 = 1417712345-1417713988
+H3 = 1417715001-1417716777
+H4 = 1417718002-1417719555
+I1 = <r 148>
+
+# my-client
+[Peer]
+PublicKey = <server public key>
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = your-server:443
+```
+
+## Not yet covered
+
+<Callout type="info">
+
+- **Docker** — not applicable; see the callout above.
+- **Multi-node (sub-nodes)** and **Telegram bot** — AmneziaWG inbounds haven't
+  been exercised through those paths yet. They likely work (the reconciler
+  runs the same way regardless of how the panel itself is deployed), but
+  that's not the same as a confirmed, tested claim — treat it as unverified
+  rather than assume it either way until someone reports back.
+
+</Callout>
