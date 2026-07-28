@@ -368,6 +368,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		}
 	}
 
+	var portCtx portConflictContext
+	if oldInbound.Protocol == model.AmneziaWG {
+		portCtx, err = inboundSvc.loadPortConflictContext()
+		if err != nil {
+			return false, err
+		}
+	}
 	for _, client := range clients {
 		if strings.TrimSpace(client.Email) == "" {
 			return false, common.NewError("client email is required")
@@ -402,9 +409,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 		if oldInbound.Protocol == model.AmneziaWG {
-			if hit, err := inboundSvc.checkForwardedPortsConflict(client.ForwardedPorts); err != nil {
-				return false, err
-			} else if hit != "" {
+			if hit := inboundSvc.checkForwardedPortsConflict(portCtx, client.ForwardedPorts); hit != "" {
 				return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
 			}
 		}
@@ -660,9 +665,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
-		if hit, err := inboundSvc.checkForwardedPortsConflict(clients[0].ForwardedPorts); err != nil {
+		portCtx, err := inboundSvc.loadPortConflictContext()
+		if err != nil {
 			return false, err
-		} else if hit != "" {
+		}
+		if hit := inboundSvc.checkForwardedPortsConflict(portCtx, clients[0].ForwardedPorts); hit != "" {
 			return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
 		}
 	}

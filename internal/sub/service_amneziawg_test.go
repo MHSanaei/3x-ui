@@ -1,7 +1,8 @@
 package sub
 
 import (
-	"net/url"
+	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -9,6 +10,9 @@ import (
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
+// TestGenAmneziaWGLinkFields covers the real AmneziaVPN app's vpn:// scheme:
+// base64url (no padding) of a plain AmneziaWG .conf text, parsed by the real
+// app as a flat "Key = Value" bag (confirmed by reading its own source).
 func TestGenAmneziaWGLinkFields(t *testing.T) {
 	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
 	if err != nil {
@@ -31,28 +35,29 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 	s := &SubService{}
 	link := s.genAmneziaWGLink(inbound, "user")
 
-	u, err := url.Parse(link)
+	if !strings.HasPrefix(link, "vpn://") {
+		t.Fatalf("link = %q, want vpn:// prefix", link)
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(link, "vpn://"))
 	if err != nil {
-		t.Fatalf("link does not parse: %v\n got: %s", err, link)
+		t.Fatalf("link body does not decode as base64url: %v\n got: %s", err, link)
 	}
-	if u.Scheme != "amneziawg" {
-		t.Fatalf("scheme = %q, want amneziawg", u.Scheme)
-	}
-	if u.Host != "203.0.113.7:51820" {
-		t.Fatalf("host = %q, want 203.0.113.7:51820", u.Host)
-	}
-	if u.User.Username() != clientPriv {
-		t.Fatalf("userinfo = %q, want client private key %q", u.User.Username(), clientPriv)
-	}
-	q := u.Query()
-	if q.Get("publickey") != serverPub {
-		t.Fatalf("publickey = %q, want server public key %q", q.Get("publickey"), serverPub)
-	}
-	if q.Get("address") != "10.8.1.2/32" {
-		t.Fatalf("address = %q, want 10.8.1.2/32", q.Get("address"))
-	}
-	if q.Get("mtu") != "1420" {
-		t.Fatalf("mtu = %q, want 1420", q.Get("mtu"))
+	text := string(raw)
+
+	for _, want := range []string{
+		"[Interface]",
+		"PrivateKey = " + clientPriv,
+		"Address = 10.8.1.2/32",
+		"MTU = 1420",
+		"DNS = 8.8.8.8",
+		"[Peer]",
+		"PublicKey = " + serverPub,
+		"Endpoint = 203.0.113.7:51820",
+		"PersistentKeepalive = 25",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("decoded config missing %q\n got: %s", want, text)
+		}
 	}
 }
 

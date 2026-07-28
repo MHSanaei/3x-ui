@@ -670,10 +670,79 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 
-// genAmneziaWGLink builds a per-client amneziawg:// share link mirroring
-// genWireguardLink: the client's private key is the userinfo, the server
-// public key and obfuscation parameters plus the client's tunnel address ride
-// in the query. Returns "" when the client or server has no key.
+// amneziaWGHeaderOrDefault mirrors the frontend's amneziaWGHLine: AmneziaWG's
+// H1-H4 magic-header fields always render into the config text, falling back
+// to their protocol-default values (1/2/3/4) when unset rather than being
+// omitted, since a native AmneziaWG client needs all four to be present.
+func amneziaWGHeaderOrDefault(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
+
+// amneziaWGConfigText builds the same plain AmneziaWG client .conf text the
+// frontend's genAmneziaWGConfig produces (same field order, same optional-field
+// conditionals) -- this is the payload wrapped into vpn:// links below.
+func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client, host string, port int, remark string) string {
+	var b strings.Builder
+
+	b.WriteString("[Interface]\n")
+	fmt.Fprintf(&b, "PrivateKey = %s\n", client.PrivateKey)
+	fmt.Fprintf(&b, "Address = %s\n", strings.Join(client.AllowedIPs, ", "))
+
+	var dns []string
+	if server.PrimaryDNS != "" {
+		dns = append(dns, server.PrimaryDNS)
+	}
+	if server.SecondaryDNS != "" {
+		dns = append(dns, server.SecondaryDNS)
+	}
+	if len(dns) > 0 {
+		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
+	}
+	if server.MTU > 0 {
+		fmt.Fprintf(&b, "MTU = %d\n", server.MTU)
+	}
+
+	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
+	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)
+	fmt.Fprintf(&b, "Jmax = %d\n", server.Jmax)
+	fmt.Fprintf(&b, "S1 = %d\n", server.S1)
+	fmt.Fprintf(&b, "S2 = %d\n", server.S2)
+	if server.S3 > 0 {
+		fmt.Fprintf(&b, "S3 = %d\n", server.S3)
+	}
+	if server.S4 > 0 {
+		fmt.Fprintf(&b, "S4 = %d\n", server.S4)
+	}
+	fmt.Fprintf(&b, "H1 = %s\n", amneziaWGHeaderOrDefault(server.H1, "1"))
+	fmt.Fprintf(&b, "H2 = %s\n", amneziaWGHeaderOrDefault(server.H2, "2"))
+	fmt.Fprintf(&b, "H3 = %s\n", amneziaWGHeaderOrDefault(server.H3, "3"))
+	fmt.Fprintf(&b, "H4 = %s\n", amneziaWGHeaderOrDefault(server.H4, "4"))
+	if server.I1 != "" {
+		fmt.Fprintf(&b, "I1 = %s\n", server.I1)
+	}
+
+	fmt.Fprintf(&b, "\n# %s\n", remark)
+	b.WriteString("[Peer]\n")
+	fmt.Fprintf(&b, "PublicKey = %s\n", server.PublicKey)
+	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
+	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
+	if client.PreSharedKey != "" {
+		fmt.Fprintf(&b, "\nPresharedKey = %s", client.PreSharedKey)
+	}
+	if client.KeepAlive > 0 {
+		fmt.Fprintf(&b, "\nPersistentKeepalive = %d\n", client.KeepAlive)
+	}
+
+	return b.String()
+}
+
+// genAmneziaWGLink builds a per-client vpn://<base64url .conf text> share
+// link matching the real AmneziaVPN app's own share-link scheme (see the
+// frontend's genAmneziaWGLink for the confirmed import-path reasoning).
+// Returns "" when the client or server has no key.
 func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.AmneziaWG {
 		return ""
@@ -690,60 +759,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	}
 	client := &resolved
 
-	link := fmt.Sprintf("amneziawg://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
-	params := make(map[string]string)
-	if server.PublicKey != "" {
-		params["publickey"] = server.PublicKey
-	}
-	if joined := strings.Join(client.AllowedIPs, ","); joined != "" {
-		params["address"] = joined
-	}
-	if server.MTU > 0 {
-		params["mtu"] = strconv.Itoa(server.MTU)
-	}
-	var dnsParts []string
-	if server.PrimaryDNS != "" {
-		dnsParts = append(dnsParts, server.PrimaryDNS)
-	}
-	if server.SecondaryDNS != "" {
-		dnsParts = append(dnsParts, server.SecondaryDNS)
-	}
-	if len(dnsParts) > 0 {
-		params["dns"] = strings.Join(dnsParts, ",")
-	}
-	if client.PreSharedKey != "" {
-		params["presharedkey"] = client.PreSharedKey
-	}
-	if client.KeepAlive > 0 {
-		params["keepalive"] = strconv.Itoa(client.KeepAlive)
-	}
-	params["jc"] = strconv.Itoa(server.Jc)
-	params["jmin"] = strconv.Itoa(server.Jmin)
-	params["jmax"] = strconv.Itoa(server.Jmax)
-	params["s1"] = strconv.Itoa(server.S1)
-	params["s2"] = strconv.Itoa(server.S2)
-	if server.S3 > 0 {
-		params["s3"] = strconv.Itoa(server.S3)
-	}
-	if server.S4 > 0 {
-		params["s4"] = strconv.Itoa(server.S4)
-	}
-	if server.H1 != "" {
-		params["h1"] = server.H1
-	}
-	if server.H2 != "" {
-		params["h2"] = server.H2
-	}
-	if server.H3 != "" {
-		params["h3"] = server.H3
-	}
-	if server.H4 != "" {
-		params["h4"] = server.H4
-	}
-	if server.I1 != "" {
-		params["i1"] = server.I1
-	}
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
+	text := amneziaWGConfigText(server, client, s.resolveInboundAddress(inbound), inbound.Port, s.genRemark(inbound, email, "", ""))
+	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
 }
 
 // genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto

@@ -878,7 +878,7 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
   return txt;
 }
 
-// Shared input shape for both the per-client amneziawg:// link and .conf
+// Shared input shape for both the per-client vpn:// link and .conf
 // builders below — settings.clients (not a peers array; unlike WireGuard,
 // AmneziaWG was multi-client from day one, so there's no legacy format).
 export interface GenAmneziaWGLinkInput {
@@ -893,30 +893,28 @@ function amneziaWGHLine(key: string, value: string | undefined, fallback: string
   return `${key} = ${value && value.trim() !== '' ? value : fallback}`;
 }
 
-// AmneziaWG share link: amneziawg://<clientPrivKey>@<host>:<port>
-//   ?publickey=<serverPub>&address=<clientAllowedIP>&mtu=<mtu>#<remark>
-// Unlike WireGuard, the server's publicKey is a real persisted field (not
-// derived from a secretKey at call time), so this just reads it straight off
-// settings.server. Mirrors genWireguardLink.
+// Base64url (RFC 4648 §5), no padding — matches the real AmneziaVPN app's
+// own Qt::Base64UrlEncoding | Qt::OmitTrailingEquals framing for vpn:// links.
+function toBase64Url(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// AmneziaWG share link: vpn://<base64url .conf text>, matching the real
+// AmneziaVPN app's own share-link scheme. The app's import path base64url-
+// decodes, best-effort qUncompresses (falls back to the raw bytes when the
+// input isn't qCompress-framed, which plain text never is), then parses the
+// result as a flat bag of "Key = Value" lines regardless of which
+// [Interface]/[Peer] section they came from — so wrapping the same .conf
+// text genAmneziaWGConfig already produces is sufficient; no JSON schema or
+// compression needs replicating. Confirmed against the app's own source
+// (importController.cpp's checkConfigFormat/extractWireGuardConfig).
 export function genAmneziaWGLink(input: GenAmneziaWGLinkInput): string {
-  const { settings, address, port, remark = '', peerIndex } = input;
-  const client = settings.clients[peerIndex];
-  if (!client) return '';
-  const server = settings.server;
-
-  const url = new URL(`amneziawg://${formatUrlHost(address)}:${port}`);
-  url.username = client.privateKey ?? '';
-
-  if (server.publicKey && server.publicKey.length > 0) url.searchParams.set('publickey', server.publicKey);
-  if ((client.allowedIPs ?? []).length > 0) {
-    url.searchParams.set('address', client.allowedIPs.join(','));
-  }
-  if (typeof server.mtu === 'number' && server.mtu > 0) {
-    url.searchParams.set('mtu', String(server.mtu));
-  }
-
-  url.hash = encodeURIComponent(remark);
-  return url.toString();
+  const cfgText = genAmneziaWGConfig(input);
+  if (!cfgText) return '';
+  return `vpn://${toBase64Url(cfgText)}`;
 }
 
 // Plain-text AmneziaWG client config (.conf format). Mirrors

@@ -2,6 +2,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  genAmneziaWGConfig,
+  genAmneziaWGLink,
   genHysteriaLink,
   genInboundLinks,
   genShadowsocksLink,
@@ -15,7 +17,16 @@ import {
   resolveAddr,
 } from '@/lib/xray/inbound-link';
 import { InboundSchema } from '@/schemas/api/inbound';
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
+
+// reverse of inbound-link.ts's own toBase64Url, for asserting on the
+// decoded vpn:// payload without depending on that helper being exported.
+function fromBase64Url(value: string): string {
+  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  return atob(padded);
+}
 
 // Snapshot baseline for the share-link generators. Snapshots were locked
 // at the close of the legacy class migration — at that point each
@@ -342,6 +353,60 @@ describe('genWireguardLink + genWireguardConfig multi allowedIPs', () => {
       peerIndex: 0,
     });
     expect(config).toContain('Address = 10.0.0.2/32, fd00::2/128\n');
+  });
+});
+
+// Real AmneziaVPN app's import path (confirmed by reading its own source)
+// base64url-decodes a vpn:// link, best-effort decompresses it (falling back
+// to the raw bytes for plain text, which is never qCompress-framed), then
+// parses the result as a flat "Key = Value" bag -- so genAmneziaWGLink just
+// needs to wrap genAmneziaWGConfig's already-correct .conf text.
+describe('genAmneziaWGLink vpn:// scheme', () => {
+  const settings = {
+    server: {
+      publicKey: 'serverPubKey==',
+      mtu: 1420,
+      primaryDns: '8.8.8.8',
+      secondaryDns: '8.8.4.4',
+      jc: 5,
+      jmin: 10,
+      jmax: 50,
+      s1: 30,
+      s2: 45,
+      s3: 10,
+      s4: 5,
+      h1: '',
+      h2: '',
+      h3: '',
+      h4: '',
+      i1: '',
+    },
+    clients: [
+      {
+        email: 'peer-1',
+        privateKey: 'clientPrivKey==',
+        allowedIPs: ['10.8.1.2/32'],
+        keepAlive: 25,
+      },
+    ],
+  } as unknown as AmneziawgInboundSettings;
+
+  const input = { settings, address: 'awg.example.test', port: 51820, remark: 'awg-peer-1', peerIndex: 0 };
+
+  it('wraps the .conf text as a base64url-encoded vpn:// link, byte-identical to genAmneziaWGConfig', () => {
+    const link = genAmneziaWGLink(input);
+    expect(link.startsWith('vpn://')).toBe(true);
+
+    const decoded = fromBase64Url(link.slice('vpn://'.length));
+    expect(decoded).toBe(genAmneziaWGConfig(input));
+    expect(decoded).toContain('PrivateKey = clientPrivKey==\n');
+    expect(decoded).toContain('PublicKey = serverPubKey==\n');
+    expect(decoded).toContain('Endpoint = awg.example.test:51820');
+    expect(decoded).toContain('PersistentKeepalive = 25\n');
+  });
+
+  it('returns an empty string when the peer index has no client', () => {
+    expect(genAmneziaWGLink({ ...input, peerIndex: 5 })).toBe('');
   });
 });
 

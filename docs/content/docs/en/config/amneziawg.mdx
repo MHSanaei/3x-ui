@@ -17,8 +17,10 @@ fingerprint gets through.
   uses. This means: it needs the **AmneziaWG kernel module** (DKMS) installed
   on the host, and it is **not usable from inside the project's Docker
   image** — Docker doesn't give the container the host network/kernel access
-  `awg-quick` needs. `install.sh` installs the kernel module automatically on
-  supported distros; see [Installation](/docs/guide/installation).
+  `awg-quick` needs. `install.sh` prompts to install the kernel module on
+  supported distros (answer `y`, or set `XUI_INSTALL_AMNEZIAWG=true` for a
+  non-interactive install) — it does **not** install it automatically; see
+  [Installation](/docs/guide/installation).
 </Callout>
 
 ## Key settings

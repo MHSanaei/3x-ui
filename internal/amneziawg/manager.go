@@ -171,24 +171,28 @@ func (inst Instance) peersFingerprint() string {
 }
 
 // hostRulesFingerprint identifies per-peer state that only ever takes effect
-// through PostUp/PostDown shell rules — forwarded ports; when
-// RouteThroughXray is on, every peer's IPv4 address (the TPROXY rule into
-// this instance's own Xray bridge is keyed on it); and when IPv6 is enabled,
-// the peer's IPv6 address (its NDP-proxy PostUp/PostDown entry) — rather
-// than the WireGuard peer table itself. It is checked separately from
+// through PostUp/PostDown shell rules — forwarded ports (whose DNAT rules
+// are keyed on the peer's IPv4 address, the same as the TPROXY rule below);
+// when RouteThroughXray is on, every peer's IPv4 address (the TPROXY rule
+// into this instance's own Xray bridge is keyed on it); and when IPv6 is
+// enabled, the peer's IPv6 address (its NDP-proxy PostUp/PostDown entry) —
+// rather than the WireGuard peer table itself. It is checked separately from
 // peersFingerprint because `awg syncconf` never re-runs PostUp/PostDown, so
 // a change here must force a full interface bounce (ensureRestart) to
 // actually take effect, unlike a key-only change that syncconf can apply in
-// place. The IPv4/IPv6 components are each included only when the feature
-// that actually reads them is on: including them unconditionally would force
-// a full bounce on every peer add/remove/re-IP even for an instance whose
-// PostUp/PostDown text never changes as a result, permanently losing the
-// syncconf fast path for no reason.
+// place. The IPv4 component is included whenever RouteThroughXray is on OR
+// the peer has forwarded ports — either one means PostUp/PostDown text is
+// keyed on that address, so a re-IP with either feature off must still force
+// a bounce (otherwise the old DNAT/TPROXY rule survives pointed at an
+// address the reconciler is now free to hand to a different peer). The IPv6
+// component stays IPv6Enabled-gated only, matching the single feature that
+// reads it. Skipping both entirely when neither applies preserves the
+// syncconf fast path for a plain instance's peer add/remove/re-IP.
 func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
 		v := fmt.Sprintf("%s=fwd:%s", p.Email, p.ForwardedPorts)
-		if inst.RouteThroughXray {
+		if inst.RouteThroughXray || p.ForwardedPorts != "" {
 			v += ";ip:" + FirstIPv4(p.AllowedIPs)
 		}
 		if inst.IPv6Enabled {
@@ -371,11 +375,15 @@ func (m *Manager) sweepOrphansLocked(want map[int]struct{}) {
 	if m.swept {
 		return
 	}
-	m.swept = true
 	entries, err := os.ReadDir(configDir)
 	if err != nil {
+		// Left false on purpose: a transient error (the directory not existing
+		// yet, a momentary filesystem hiccup) should let the next Reconcile
+		// tick retry the sweep, rather than permanently disabling it for this
+		// process's whole lifetime over a failure that may not recur.
 		return
 	}
+	m.swept = true
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -501,13 +509,18 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		id   int
 		inst Instance
 		last map[string]peerCounters
+		// entry is the exact *managed snapshotted below, kept so the
+		// write-back can detect a concurrent ensureRestart/ensureReload
+		// (which replaces the map entry with a fresh pointer, see
+		// ensureLocked) that happened while getPeerStats ran lock-free.
+		entry *managed
 	}
 	m.mu.Lock()
 	snaps := make([]snap, 0, len(m.ifaces))
 	for id, cur := range m.ifaces {
 		lastCopy := make(map[string]peerCounters, len(cur.last))
 		maps.Copy(lastCopy, cur.last)
-		snaps = append(snaps, snap{id: id, inst: cur.inst, last: lastCopy})
+		snaps = append(snaps, snap{id: id, inst: cur.inst, last: lastCopy, entry: cur})
 	}
 	m.mu.Unlock()
 
@@ -553,7 +566,16 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		}
 
 		m.mu.Lock()
-		if cur, ok := m.ifaces[s.id]; ok {
+		// Only write back if this is still the exact entry snapshotted above:
+		// getPeerStats ran without the lock held, so ensureLocked could have
+		// restarted (or reloaded) this same interface in the meantime,
+		// replacing the map entry with a fresh *managed and, for a restart,
+		// resetting last to empty (kernel counters zero on down+up). Writing
+		// newLast back over that unconditionally would silently resurrect the
+		// pre-restart counters as the new baseline, making the next poll
+		// compute a negative delta and clamp a real poll's worth of traffic
+		// to zero.
+		if cur, ok := m.ifaces[s.id]; ok && cur == s.entry {
 			cur.last = newLast
 		}
 		m.mu.Unlock()
@@ -570,7 +592,7 @@ func generateServerConfig(inst Instance) string {
 	var b strings.Builder
 
 	b.WriteString("[Interface]\n")
-	fmt.Fprintf(&b, "PrivateKey = %s\n", inst.PrivateKey)
+	fmt.Fprintf(&b, "PrivateKey = %s\n", sanitizeConfigValue(inst.PrivateKey))
 	if len(inst.Address) > 0 {
 		fmt.Fprintf(&b, "Address = %s\n", strings.Join(inst.Address, ", "))
 	}
@@ -591,16 +613,35 @@ func generateServerConfig(inst Instance) string {
 	for _, p := range inst.Peers {
 		b.WriteString("\n[Peer]\n")
 		if p.Email != "" {
-			fmt.Fprintf(&b, "# %s\n", p.Email)
+			fmt.Fprintf(&b, "# %s\n", sanitizeConfigValue(p.Email))
 		}
-		fmt.Fprintf(&b, "PublicKey = %s\n", p.PublicKey)
+		fmt.Fprintf(&b, "PublicKey = %s\n", sanitizeConfigValue(p.PublicKey))
 		if p.PresharedKey != "" {
-			fmt.Fprintf(&b, "PresharedKey = %s\n", p.PresharedKey)
+			fmt.Fprintf(&b, "PresharedKey = %s\n", sanitizeConfigValue(p.PresharedKey))
 		}
 		fmt.Fprintf(&b, "AllowedIPs = %s\n", strings.Join(p.AllowedIPs, ", "))
 	}
 
 	return b.String()
+}
+
+// sanitizeConfigValue strips newlines, carriage returns, and other control
+// characters from a value about to be interpolated into the generated
+// .conf. ValidateConfigValue rejects these at save time, but a row that
+// predates that validation (an upgrade, a node sync, a restored backup, a
+// direct DB edit) would otherwise still reach awg-quick's parser, where a
+// newline lets a later line re-open a new section and smuggle in a hook
+// awg-quick executes as root. This is the render-time backstop; it
+// silently drops the offending bytes rather than failing the whole config
+// build, matching how hOrDefault degrades a blank H value instead of
+// emitting an invalid line.
+func sanitizeConfigValue(v string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, v)
 }
 
 // writeObfuscation writes the AmneziaWG obfuscation parameters that must be
@@ -625,7 +666,7 @@ func writeObfuscation(b *strings.Builder, o Obfuscation20) {
 	fmt.Fprintf(b, "H3 = %s\n", hOrDefault(o.H3, "3"))
 	fmt.Fprintf(b, "H4 = %s\n", hOrDefault(o.H4, "4"))
 	if o.I1 != "" {
-		fmt.Fprintf(b, "I1 = %s\n", o.I1)
+		fmt.Fprintf(b, "I1 = %s\n", sanitizeConfigValue(o.I1))
 	}
 }
 
@@ -752,7 +793,13 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 			// regardless of which firewall manager (ufw, firewalld, bare
 			// iptables) owns the rest of that chain.
 			up = append(up,
-				fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d' || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
+				// grep -c (not -q): -q exits as soon as it matches, so "ip rule
+				// list" can take SIGPIPE; under `set -o pipefail` the pipeline then
+				// reports 141 even though the rule WAS found, and "ip rule add"
+				// below runs anyway -- reintroducing the exact duplicate-rule
+				// accumulation this existence check exists to prevent. -c reads
+				// every line to completion and still exits 1 on no match.
+				fmt.Sprintf("ip rule list | grep -c 'fwmark %#x lookup %d' >/dev/null || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
 				fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
 				fmt.Sprintf("iptables -C INPUT -m mark --mark %#x -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -m mark --mark %#x -j ACCEPT", EgressFwmark, EgressFwmark),
 			)
@@ -760,7 +807,25 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	}
 
 	up = append(up, "sysctl -w net.ipv4.ip_forward=1")
-	return strings.Join(up, "; "), strings.Join(down, "; ")
+	return strings.Join(up, "; "), strings.Join(appendOrTrue(down), "; ")
+}
+
+// appendOrTrue suffixes every command with " || true", making the whole
+// PostDown chain best-effort. wg-quick/awg-quick joins hook commands with
+// "; " and runs the result under `set -e -o pipefail`, so the first non-zero
+// command aborts everything after it. On teardown that matters: if
+// something has already flushed the filter table out from under the
+// interface (a ufw/firewalld reload, fail2ban rebuilding its chains), the
+// first "-D" fails and every command after it — including the nat-table DNAT
+// deletes a flush does NOT remove — is skipped, and the next PostUp re-adds
+// them, accumulating one set per bounce. PostUp is left alone: a real setup
+// failure there should still surface, not be silently swallowed.
+func appendOrTrue(cmds []string) []string {
+	out := make([]string, len(cmds))
+	for i, c := range cmds {
+		out[i] = c + " || true"
+	}
+	return out
 }
 
 // firstAddress returns the first configured interface address, used as the

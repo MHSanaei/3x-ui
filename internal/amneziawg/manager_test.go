@@ -267,6 +267,19 @@ func TestHostRulesFingerprintCoversForwardedPortsAndPeerIP(t *testing.T) {
 		t.Fatal("with RouteThroughXray off, changing a peer's IP must NOT change the host-rules fingerprint")
 	}
 
+	// A peer with forwarded ports has its DNAT rule keyed on its IPv4 address
+	// too, regardless of RouteThroughXray -- re-IPing it must force a bounce,
+	// or the old DNAT rule survives pointed at an address a different peer
+	// can be handed next.
+	forwardedReIPed := baseInstance()
+	forwardedReIPed.Peers[0].ForwardedPorts = "80,443"
+	forwardedBase := baseInstance()
+	forwardedBase.Peers[0].ForwardedPorts = "80,443"
+	forwardedReIPed.Peers[0].AllowedIPs = []string{"10.8.1.250/32"}
+	if forwardedBase.hostRulesFingerprint() == forwardedReIPed.hostRulesFingerprint() {
+		t.Fatal("with RouteThroughXray off but ForwardedPorts set, changing a peer's IP must change the host-rules fingerprint -- its DNAT rule is keyed on that IP")
+	}
+
 	// RouteThroughXray on: now the TPROXY rule really is keyed on the IP.
 	routed := baseInstance()
 	routed.RouteThroughXray = true
@@ -383,8 +396,12 @@ func TestDefaultPostUpDownEmitsTproxyForEveryPeerWhenRouteThroughXrayOn(t *testi
 	if !strings.Contains(up, fmt.Sprintf("ip rule add fwmark %#x", EgressFwmark)) {
 		t.Errorf("expected the shared policy route to be added once in PostUp, got:\n%s", up)
 	}
-	if wantCheck := fmt.Sprintf("ip rule list | grep -q 'fwmark %#x lookup %d'", EgressFwmark, EgressTable); !strings.Contains(up, wantCheck) {
-		t.Errorf("expected an existence check before 'ip rule add', so repeated bounces don't accumulate duplicate rules, got:\n%s", up)
+	// grep -c, not -q: -q's early exit can SIGPIPE "ip rule list" and, under
+	// pipefail, make the existence check itself report failure even when the
+	// rule was found -- which would re-run "ip rule add" and reintroduce the
+	// exact duplicate this check exists to prevent.
+	if wantCheck := fmt.Sprintf("ip rule list | grep -c 'fwmark %#x lookup %d' >/dev/null", EgressFwmark, EgressTable); !strings.Contains(up, wantCheck) {
+		t.Errorf("expected a pipefail-safe existence check before 'ip rule add', so repeated bounces don't accumulate duplicate rules, got:\n%s", up)
 	}
 	if strings.Contains(down, "ip rule") || strings.Contains(down, "ip route") {
 		t.Error("the shared policy route must never be removed in PostDown -- other instances may still need it")
@@ -427,6 +444,29 @@ func TestDefaultPostUpDownAddsInputAcceptForFwmarkWhenRouteThroughXrayOn(t *test
 	upNone, _ := defaultPostUpDown(none, "eth0")
 	if strings.Contains(upNone, "-m mark --mark") {
 		t.Errorf("an instance with no peers must not emit the INPUT accept either, got:\n%s", upNone)
+	}
+}
+
+// PostDown is joined with "; " and run under `set -e`, so one command that
+// fails because something already flushed the firewall state out from under
+// the interface (a ufw/firewalld reload) would otherwise abort every command
+// after it -- including the nat-table DNAT deletes a filter-table flush does
+// NOT remove, which then survive and accumulate across bounces. Every
+// teardown command must be best-effort; PostUp must not be.
+func TestDefaultPostUpDownMakesEveryTeardownCommandBestEffort(t *testing.T) {
+	inst := baseInstance() // two peers, a@x and b@x
+	inst.RouteThroughXray = true
+	inst.IPv6Enabled = true
+	inst.Peers[0].ForwardedPorts = "80,443"
+	up, down := defaultPostUpDown(inst, "eth0")
+
+	for _, cmd := range strings.Split(down, "; ") {
+		if !strings.HasSuffix(cmd, "|| true") {
+			t.Errorf("every PostDown command must end with '|| true' so a flushed firewall doesn't abort the rest, got: %q", cmd)
+		}
+	}
+	if strings.Contains(up, "|| true") {
+		t.Error("PostUp must stay strict -- a real setup failure there should surface, not be silently swallowed")
 	}
 }
 

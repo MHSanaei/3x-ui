@@ -189,6 +189,25 @@ func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
 	return nil
 }
 
+// ValidateConfigValue rejects a value containing a newline, carriage return,
+// or other control character before it's saved. PrivateKey/PublicKey/I1 on
+// the server block, and Email/PublicKey/PreSharedKey per client, all get
+// interpolated verbatim into the generated .conf by generateServerConfig; a
+// newline in any of them lets a later line re-open a new [Interface]/[Peer]
+// section, and awg-quick's parser collects a following "PostUp = ..." line
+// into a hook it executes as root on the next apply — the same class this
+// package already closes for ExternalInterface/IPv6ExternalInterface (see
+// ValidateInterfaceName) and SubnetIP (see ValidateSubnetIPv4). field names
+// the value in the returned error, e.g. "email" or "publicKey".
+func ValidateConfigValue(field, v string) error {
+	for _, r := range v {
+		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {
+			return fmt.Errorf("invalid %s: control characters are not allowed", field)
+		}
+	}
+	return nil
+}
+
 // validateHValue checks one H parameter: empty, a single uint32, or
 // "low-high" with 0 <= low <= high <= uint32 max.
 func validateHValue(v string) error {

