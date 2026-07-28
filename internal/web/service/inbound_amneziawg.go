@@ -200,12 +200,32 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateInterfaceName(parsed.Server.IPv6ExternalInterface); err != nil {
 		return fmt.Errorf("amneziawg: ipv6ExternalInterface: %w", err)
 	}
+	if err := amneziawg.ValidateConfigValue("privateKey", parsed.Server.PrivateKey); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateConfigValue("publicKey", parsed.Server.PublicKey); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateConfigValue("i1", parsed.Server.I1); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
 
+	portCtx, err := s.loadPortConflictContext()
+	if err != nil {
+		return err
+	}
 	for _, c := range parsed.Clients {
-		if hit, err := s.checkForwardedPortsConflict(c.ForwardedPorts); err != nil {
-			return err
-		} else if hit != "" {
+		if hit := s.checkForwardedPortsConflict(portCtx, c.ForwardedPorts); hit != "" {
 			return fmt.Errorf("amneziawg: client %q forwardedPorts collides with %s", c.Email, hit)
+		}
+		if err := amneziawg.ValidateConfigValue("email", c.Email); err != nil {
+			return fmt.Errorf("amneziawg: %w", err)
+		}
+		if err := amneziawg.ValidateConfigValue("publicKey", c.PublicKey); err != nil {
+			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
+		}
+		if err := amneziawg.ValidateConfigValue("preSharedKey", c.PreSharedKey); err != nil {
+			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
 		}
 	}
 
@@ -217,25 +237,47 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	return nil
 }
 
+// portConflictContext caches the state checkForwardedPortsConflict needs —
+// the panel's own port and this host's enabled inbound ports — so validating
+// N clients in one save (normalizeAmneziaWGSettings, or a bulk client add)
+// costs one query total instead of N. Load it once with
+// loadPortConflictContext and pass it to every checkForwardedPortsConflict
+// call in that batch.
+type portConflictContext struct {
+	webPort  int
+	inbounds []*model.Inbound
+}
+
+// loadPortConflictContext loads the panel's own port and every enabled
+// inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
+// different node listens on that node's own host, never this one, so it can
+// never collide with a DNAT rule this process installs.
+func (s *InboundService) loadPortConflictContext() (portConflictContext, error) {
+	var ctx portConflictContext
+	if webPort, err := (&SettingService{}).GetPort(); err == nil {
+		ctx.webPort = webPort
+	}
+	err := database.GetDB().Model(model.Inbound{}).
+		Where("enable = ? AND node_id IS NULL", true).
+		Find(&ctx.inbounds).Error
+	return ctx, err
+}
+
 // checkForwardedPortsConflict reports whether a client's ForwardedPorts spec
-// covers the panel's own web port or any enabled inbound's own listen port.
-// portForwardLines has no destination restriction and nothing else checks
-// this, so a collision here would silently DNAT traffic meant for the panel
-// or another protocol straight to the tunnel client instead. Returns a
-// human-readable description of the first collision found, or "" when there
-// is none.
-func (s *InboundService) checkForwardedPortsConflict(forwardedPorts string) (string, error) {
+// covers the panel's own web port or any of this host's own enabled inbound
+// listen ports. portForwardLines has no destination restriction and nothing
+// else checks this, so a collision here would silently DNAT traffic meant
+// for the panel or another protocol straight to the tunnel client instead.
+// Returns a human-readable description of the first collision found, or ""
+// when there is none.
+func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, forwardedPorts string) string {
 	if forwardedPorts == "" {
-		return "", nil
+		return ""
 	}
-	if webPort, err := (&SettingService{}).GetPort(); err == nil && amneziawg.ForwardedPortsInclude(forwardedPorts, webPort) {
-		return fmt.Sprintf("the panel's own port (%d)", webPort), nil
+	if ctx.webPort > 0 && amneziawg.ForwardedPortsInclude(forwardedPorts, ctx.webPort) {
+		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
-	var inbounds []*model.Inbound
-	if err := database.GetDB().Model(model.Inbound{}).Where("enable = ?", true).Find(&inbounds).Error; err != nil {
-		return "", err
-	}
-	for _, ib := range inbounds {
+	for _, ib := range ctx.inbounds {
 		if !amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
 			continue
 		}
@@ -243,7 +285,7 @@ func (s *InboundService) checkForwardedPortsConflict(forwardedPorts string) (str
 		if name == "" {
 			name = ib.Tag
 		}
-		return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port), nil
+		return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 	}
-	return "", nil
+	return ""
 }

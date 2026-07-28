@@ -175,7 +175,10 @@ install_ndppd() {
             dnf install -y ndppd 2>/dev/null || yum install -y ndppd 2>/dev/null || true
             ;;
         arch | manjaro | parch)
-            pacman -Syu --noconfirm ndppd 2>/dev/null || true
+            # -Sy (not -Syu): every other pacman call in this script only
+            # refreshes the package database, never does a full system
+            # upgrade as a side effect of installing one package.
+            pacman -Sy --noconfirm ndppd 2>/dev/null || true
             ;;
     esac
 }
@@ -219,11 +222,19 @@ enable_tproxy_support() {
 # forwarding it brings.
 #
 # should_install_amneziawg decides whether to run install_amneziawg at all.
+# Short-circuits to yes when awg is already on PATH, so `x-ui update` on a
+# host that already has it doesn't re-prompt an admin who already answered
+# this once -- install_amneziawg's own case statement would just skip the
+# actual DKMS/package work again anyway, but the interactive prompt itself
+# still fired every run, and answering "n" out of habit (since AmneziaWG is
+# already installed and working) skipped the harmless modprobe/ndppd/sysctl
+# refresh that same case statement also does unconditionally.
 # XUI_INSTALL_AMNEZIAWG=true/false answers it outright (for non-interactive/
 # cloud-init runs); otherwise an interactive install prompts (default: yes),
 # and a non-interactive one with nothing to answer the prompt defaults to
 # installing it too.
 should_install_amneziawg() {
+    command -v awg &>/dev/null && return 0
     case "${XUI_INSTALL_AMNEZIAWG:-}" in
         true | TRUE | 1 | yes | y | Y) return 0 ;;
         false | FALSE | 0 | no | n | N) return 1 ;;

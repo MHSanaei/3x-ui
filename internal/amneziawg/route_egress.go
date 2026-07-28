@@ -6,17 +6,18 @@ import (
 )
 
 // EgressBasePort is the first loopback port used for an AmneziaWG inbound's
-// own Xray TPROXY bridge. Every enabled inbound gets one bridge, always
-// present by default (no opt-in flag): defaultPostUpDown's TPROXY rules
-// redirect every peer's traffic there unconditionally, and
-// internal/web/service's injectAmneziawgEgress creates the matching
+// own Xray TPROXY bridge. The bridge is opt-in per inbound, gated on
+// Instance.RouteThroughXray (off by default): only when it's on does
+// defaultPostUpDown's TPROXY rules redirect a peer's traffic there, and only
+// then does internal/web/service's injectAmneziawgEgress create the matching
 // dokodemo-door inbound, tagged with the AmneziaWG inbound's own real tag so
 // it's already selectable in the panel's stock Routing page (the same
 // mechanism that already makes an mtproto inbound's own bridge routable
-// there — see injectMtprotoEgress). Whether — and where — that traffic
-// actually goes anywhere beyond Xray's default routing is entirely up to
-// whatever rules the admin adds on that page; this package and
-// injectAmneziawgEgress never generate a routing rule themselves.
+// there — see injectMtprotoEgress). A plain AmneziaWG tunnel with routing
+// left off never depends on Xray being up at all. Whether — and where —
+// routed traffic actually goes anywhere beyond Xray's default routing is
+// entirely up to whatever rules the admin adds on that page; this package
+// and injectAmneziawgEgress never generate a routing rule themselves.
 //
 // EgressPortForInbound derives each inbound's own port deterministically
 // from its id, so the two independent reconcile loops (this package's

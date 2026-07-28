@@ -11,21 +11,25 @@ import (
 func TestCheckForwardedPortsConflict_EmptySpecNoConflict(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
-	hit, err := svc.checkForwardedPortsConflict("")
-	if err != nil || hit != "" {
-		t.Fatalf("an empty spec must never conflict; got hit=%q err=%v", hit, err)
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	if hit := svc.checkForwardedPortsConflict(ctx, ""); hit != "" {
+		t.Fatalf("an empty spec must never conflict; got hit=%q", hit)
 	}
 }
 
 func TestCheckForwardedPortsConflict_CollidesWithPanelPort(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
 	// getString falls back to defaultValueMap's "webPort": "2053" on a fresh
 	// DB with no explicit setting row.
-	hit, err := svc.checkForwardedPortsConflict("2053")
-	if err != nil {
-		t.Fatalf("checkForwardedPortsConflict: %v", err)
-	}
+	hit := svc.checkForwardedPortsConflict(ctx, "2053")
 	if !strings.Contains(hit, "panel") {
 		t.Fatalf("expected a collision naming the panel's own port, got %q", hit)
 	}
@@ -36,10 +40,11 @@ func TestCheckForwardedPortsConflict_CollidesWithEnabledInboundPort(t *testing.T
 	seedInboundConflict(t, "vless-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
-	hit, err := svc.checkForwardedPortsConflict("8000-8100")
+	ctx, err := svc.loadPortConflictContext()
 	if err != nil {
-		t.Fatalf("checkForwardedPortsConflict: %v", err)
+		t.Fatalf("loadPortConflictContext: %v", err)
 	}
+	hit := svc.checkForwardedPortsConflict(ctx, "8000-8100")
 	if !strings.Contains(hit, "vless-8080") {
 		t.Fatalf("expected a collision naming the colliding inbound, got %q", hit)
 	}
@@ -53,9 +58,12 @@ func TestCheckForwardedPortsConflict_IgnoresDisabledInboundPort(t *testing.T) {
 	}
 
 	svc := &InboundService{}
-	hit, err := svc.checkForwardedPortsConflict("8080")
-	if err != nil || hit != "" {
-		t.Fatalf("a disabled inbound's port must not be reserved; got hit=%q err=%v", hit, err)
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	if hit := svc.checkForwardedPortsConflict(ctx, "8080"); hit != "" {
+		t.Fatalf("a disabled inbound's port must not be reserved; got hit=%q", hit)
 	}
 }
 
@@ -64,9 +72,32 @@ func TestCheckForwardedPortsConflict_NoCollisionWhenPortsDontOverlap(t *testing.
 	seedInboundConflict(t, "vless-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
-	hit, err := svc.checkForwardedPortsConflict("9000-9100")
-	if err != nil || hit != "" {
-		t.Fatalf("unrelated ports must not conflict; got hit=%q err=%v", hit, err)
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	if hit := svc.checkForwardedPortsConflict(ctx, "9000-9100"); hit != "" {
+		t.Fatalf("unrelated ports must not conflict; got hit=%q", hit)
+	}
+}
+
+// A port-forward spec matching a port used only by an inbound hosted on a
+// DIFFERENT node must not conflict: that inbound's DNAT/listen socket lives
+// on the node's own host, never on this panel's, so there is nothing here
+// for the forwarded port to actually collide with. Mirrors
+// TestCheckPortConflict_NodeScope's own reasoning for the general port-
+// conflict check.
+func TestCheckForwardedPortsConflict_IgnoresPortOnDifferentNode(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflictNode(t, "node1-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`, new(1))
+
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	if hit := svc.checkForwardedPortsConflict(ctx, "8080"); hit != "" {
+		t.Fatalf("a port used only on a different node must not conflict; got hit=%q", hit)
 	}
 }
 
