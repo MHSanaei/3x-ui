@@ -105,6 +105,7 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
 - **SNI 不匹配。** SNI / server names 必须与目标站点的真实证书匹配，否则握手会暴露伪装。
 - **私钥泄露。** 永远只把**公钥**分发给客户端。
 - **流控设置错误。** REALITY + XTLS-Vision 要求在入站的客户端条目和分享链接上都设置 `flow = xtls-rprx-vision`。
+- **旧客户端内核默认被拒。** **最小客户端版本**留空并不是"不限制"：Xray-core 会退回到内置最低值（本文撰写时为 26.3.27）以保证客户端 TLS 指纹的新鲜度，因此 Mihomo、sing-box 等第三方内核即使配置完全正确也会 REALITY 验证失败——表现为客户端超时，只有基于 Xray-core 的应用能连上。只有在必须支持它们时才填 `1.0.0`；这同时也会放行过时的指纹。
 
 </Callout>
 
