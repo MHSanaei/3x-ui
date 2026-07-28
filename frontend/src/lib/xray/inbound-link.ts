@@ -42,8 +42,7 @@ function xhttpHostFallback(xhttp: XHttpStreamSettings | undefined): string {
 // Pull the bidirectional SplitHTTPConfig fields out of xhttp into a
 // compact extra payload. Server-only fields (noSSEHeader, scMaxBufferedPosts,
 // scStreamUpServerSecs, serverMaxHeaderBytes) are excluded — the client
-// reading the share link wouldn't honor them. Mirrors the legacy
-// Inbound.buildXhttpExtra exactly so the shadow link snapshots line up.
+// reading the share link wouldn't honor them.
 function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string, unknown> | null {
   if (!xhttp) return null;
   const extra: Record<string, unknown> = {};
@@ -84,6 +83,15 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
   for (const k of stringFields) {
     const v = xhttp[k];
     if (typeof v === 'string' && v.length > 0 && v !== coreDefaults[k]) extra[k] = v;
+  }
+  // xray-core #6258 renamed these fields, but older clients still read the
+  // legacy names from share-link extra. Emit both names so one link works
+  // across old and new clients while the stored panel config stays canonical.
+  if (typeof extra.sessionIDPlacement === 'string') {
+    extra.sessionPlacement = extra.sessionIDPlacement;
+  }
+  if (typeof extra.sessionIDKey === 'string') {
+    extra.sessionKey = extra.sessionIDKey;
   }
 
   // Headers on the wire are a record; emit them as a map upstream's
