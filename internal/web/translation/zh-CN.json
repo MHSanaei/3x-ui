@@ -656,6 +656,8 @@
         "maxTimeDiff": "最大时间差 (ms)",
         "minClientVer": "最小客户端版本",
         "maxClientVer": "最大客户端版本",
+        "minClientVerHint": "留空不等于不限制：Xray-core 会改用内置最低版本（目前为 26.3.27），拒绝自报版本更低的客户端——包括 Mihomo、sing-box 等第三方内核。填 1.0.0 可放行它们，代价是允许过时的 TLS 指纹。",
+        "maxClientVerHint": "留空表示无上限。若填写，不得低于最小客户端版本，否则所有客户端都会被拒绝。",
         "shortIds": "Short IDs",
         "realityTargetHint": "必填。必须包含端口（例如 example.com:443）。没有端口时 Xray-core 将无法启动。",
         "realityTargetRequired": "REALITY 目标为必填项",

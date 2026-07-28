@@ -648,6 +648,8 @@
         "maxTimeDiff": "Max Time Diff (ms)",
         "minClientVer": "Min Client Ver",
         "maxClientVer": "Max Client Ver",
+        "minClientVerHint": "Empty does not mean unrestricted: Xray-core then enforces its built-in minimum (currently 26.3.27) and rejects clients that report an older version — including third-party cores such as Mihomo and sing-box. Set 1.0.0 to accept them, at the cost of admitting outdated TLS fingerprints.",
+        "maxClientVerHint": "Empty means no upper limit. If set, it must not be lower than Min Client Ver, or every client is rejected.",
         "shortIds": "Short IDs",
         "realityTargetHint": "Required. Must include a port (e.g. example.com:443). Without a port Xray-core refuses to start.",
         "realityTargetRequired": "REALITY target is required",
