@@ -638,6 +638,8 @@
         "maxClientVer": "Maks. Kullanıcı Sürümü",
         "minClientVerHint": "Boş bırakmak sınırsız demek değildir: Xray-core, çalıştırdığınız çekirdek sürümünün yerleşik alt sınırını (güncel sürümlerde 26.3.27) uygular ve daha eski sürüm bildiren istemcileri reddeder — Mihomo ve sing-box gibi üçüncü taraf çekirdekler dahil. 1.0.0 girmek onları kabul eder; bedeli eski TLS parmak izlerine izin vermektir.",
         "maxClientVerHint": "Boş, üst sınır yok demektir. Ayarlanırsa geçerli alt sınırın — Min. Kullanıcı Sürümü, o alan boşsa Xray-core'un yerleşik alt sınırı — altında olmamalıdır, aksi halde tüm istemciler reddedilir.",
+        "clientVerInvalid": "İstemci sürümü noktayla ayrılmış en fazla üç sayıdan oluşmalıdır, her biri 0-255 (örn. 26.3.27)",
+        "maxClientVerBelowMin": "Maks. istemci sürümü, en düşük istemci sürümünün altında olamaz",
         "shortIds": "Short IDs",
         "realityTargetHint": "Zorunlu. Bir port içermelidir (ör. example.com:443). Port belirtilmezse Xray-core başlamaz.",
         "realityTargetRequired": "REALITY hedefi zorunludur",
