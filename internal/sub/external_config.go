@@ -101,8 +101,8 @@ func linkDisplayName(rawLink string) string {
 	if rawLink == "" {
 		return ""
 	}
-	if strings.HasPrefix(rawLink, "vmess://") {
-		b64 := strings.TrimPrefix(rawLink, "vmess://")
+	if after, ok := strings.CutPrefix(rawLink, "vmess://"); ok {
+		b64 := after
 		raw, err := base64.StdEncoding.DecodeString(padBase64Sub(b64))
 		if err != nil {
 			raw, err = base64.RawURLEncoding.DecodeString(strings.TrimRight(b64, "="))

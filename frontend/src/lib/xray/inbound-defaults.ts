@@ -174,7 +174,7 @@ export function createDefaultShadowsocksInboundSettings(
 // constructor — the field discriminates v1 vs v2 inside the same settings
 // shape. Callers that explicitly want v1 pass `{ version: 1 }`.
 export interface HysteriaInboundSeed {
-  version?: number;
+  version?: 2;
 }
 
 export function createDefaultHysteriaInboundSettings(

@@ -127,14 +127,16 @@ export default function RealityForm({
       <FormField
         name={['streamSettings', 'realitySettings', 'minClientVer']}
         label={t('pages.inbounds.form.minClientVer')}
+        tooltip={t('pages.inbounds.form.minClientVerHint')}
       >
         <Input placeholder="26.3.27" />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'maxClientVer']}
         label={t('pages.inbounds.form.maxClientVer')}
+        tooltip={t('pages.inbounds.form.maxClientVerHint')}
       >
-        <Input placeholder="25.9.11" />
+        <Input placeholder="x.y.z" />
       </FormField>
       <Form.Item label={t('pages.inbounds.form.shortIds')}>
         <Space.Compact block style={{ display: 'flex' }}>

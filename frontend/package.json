@@ -30,7 +30,7 @@
     "@ant-design/icons": "^6.3.2",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/theme-one-dark": "^6.1.3",
-    "@hookform/resolvers": "^5.4.0",
+    "@hookform/resolvers": "^5.4.3",
     "@noble/hashes": "^2.2.0",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-query-devtools": "^5.101.4",
@@ -42,7 +42,7 @@
     "persian-calendar-suite": "^1.5.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-hook-form": "^7.82.0",
+    "react-hook-form": "^7.83.0",
     "react-i18next": "^17.0.11",
     "react-router": "^8.3.0",
     "swagger-ui-react": "^5.32.11",
@@ -73,7 +73,7 @@
     "msw": "^2.15.0",
     "playwright": "^1.62.0",
     "storybook": "^10.5.4",
-    "typescript": "^6.0.3",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.65.0",
     "vite": "8.1.5",
     "vitest": "^4.1.10"
@@ -90,6 +90,9 @@
     },
     "swagger-ui-react": {
       "js-yaml": "^4.2.0"
+    },
+    "@typeschema/valibot": {
+      "valibot": "^1.1.0"
     }
   },
   "allowScripts": {
