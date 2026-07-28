@@ -54,18 +54,36 @@ export default [
     },
   },
   {
-    // The settings and xray pages write numeric input changes straight into
-    // state, so `Number(v) || N` turns a cleared field into a stored N (the
-    // cleared-port bug, #6121). Handlers here go through onNumber()
-    // (src/utils/onNumber.ts) instead. Form modals that stage values behind
-    // Zod validation keep their own clear-means-zero semantics and are
-    // deliberately outside this rule's scope.
+    // The settings and xray pages write numeric InputNumber changes straight
+    // into state, so a null-collapsing handler (`Number(v) || N`, or the
+    // ternary `typeof v === 'number' ? v : N`) turns a cleared field into a
+    // stored N — the cleared-port bug, #6121. Handlers here go through
+    // onNumber() (src/utils/onNumber.ts) instead. Known limit: a handler
+    // extracted into a variable and passed as onChange={handler} is not
+    // matched; the inline shapes below are the ones that drift in practice.
     files: ['src/pages/settings/**/*.tsx', 'src/pages/xray/**/*.tsx'],
     rules: {
       'no-restricted-syntax': ['error', {
-        selector: 'JSXAttribute[name.name="onChange"] LogicalExpression[operator="||"] > CallExpression[callee.name="Number"]',
+        selector: 'JSXElement[openingElement.name.name="InputNumber"] JSXAttribute[name.name="onChange"] LogicalExpression[operator="||"] > CallExpression[callee.name="Number"]',
+        message: 'A cleared InputNumber must not write a synthetic value; wrap the handler with onNumber() from @/utils/onNumber (see #6127).',
+      }, {
+        selector: 'JSXElement[openingElement.name.name="InputNumber"] JSXAttribute[name.name="onChange"] ConditionalExpression[test.left.operator="typeof"][alternate.type="Literal"]',
+        message: 'A cleared InputNumber must not write a synthetic value; wrap the handler with onNumber() from @/utils/onNumber (see #6127).',
+      }, {
+        selector: 'JSXElement[openingElement.name.name="InputNumber"] JSXAttribute[name.name="onChange"] LogicalExpression[operator="??"][right.type="Literal"]',
         message: 'A cleared InputNumber must not write a synthetic value; wrap the handler with onNumber() from @/utils/onNumber (see #6127).',
       }],
+    },
+  },
+  {
+    // The xray form modals (OutboundFormModal, BalancerFormModal,
+    // DnsServerModal, WarpModal, …) stage values behind Zod validation like
+    // the clients/inbounds modals do, and some of their fields carry a
+    // deliberate clear-means-zero semantic — the direct-write rule above
+    // does not apply to them.
+    files: ['src/pages/xray/**/*Modal.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
 ];

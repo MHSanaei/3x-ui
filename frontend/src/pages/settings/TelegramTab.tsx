@@ -123,6 +123,7 @@ function NotifyTimeField({ value, onChange }: { value: string; onChange: (v: str
         <Space.Compact style={{ width: '100%' }}>
           <InputNumber
             min={1}
+            precision={0}
             style={{ width: '50%' }}
             value={state.num}
             onChange={onNumber((v) => update({ num: Math.max(1, v) }))}
