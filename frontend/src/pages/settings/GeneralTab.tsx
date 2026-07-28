@@ -18,7 +18,7 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
-import { SettingListItem } from '@/components/ui';
+import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
@@ -169,7 +169,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               <Input value={allSetting.webDomain} onChange={(e) => updateSetting({ webDomain: e.target.value })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.panelPort')} description={t('pages.settings.panelPortDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.panelPort')} badge={<DefaultSettingTag settingKey="webPort" value={allSetting.webPort} />} description={t('pages.settings.panelPortDesc')}>
               <InputNumber value={allSetting.webPort} min={1} max={65535} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ webPort: v }))} />
             </SettingListItem>
@@ -178,7 +178,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               <Input value={allSetting.webBasePath} onChange={(e) => updateSetting({ webBasePath: sanitizePath(e.target.value) })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.sessionMaxAge')} description={t('pages.settings.sessionMaxAgeDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.sessionMaxAge')} badge={<DefaultSettingTag settingKey="sessionMaxAge" value={allSetting.sessionMaxAge} />} description={t('pages.settings.sessionMaxAgeDesc')}>
               <InputNumber value={allSetting.sessionMaxAge} min={60} max={525600} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ sessionMaxAge: v }))} />
             </SettingListItem>
@@ -207,7 +207,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.pageSize')} description={t('pages.settings.pageSizeDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.pageSize')} badge={<DefaultSettingTag settingKey="pageSize" value={allSetting.pageSize} />} description={t('pages.settings.pageSizeDesc')}>
               <InputNumber value={allSetting.pageSize} min={0} max={1000} step={5} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ pageSize: v }))} />
             </SettingListItem>
@@ -233,11 +233,11 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
         children: (
           <>
-            <SettingListItem paddings="small" title={t('pages.settings.expireTimeDiff')} description={t('pages.settings.expireTimeDiffDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.expireTimeDiff')} badge={<DefaultSettingTag settingKey="expireDiff" value={allSetting.expireDiff} />} description={t('pages.settings.expireTimeDiffDesc')}>
               <InputNumber value={allSetting.expireDiff} min={0} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ expireDiff: v }))} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.trafficDiff')} description={t('pages.settings.trafficDiffDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.trafficDiff')} badge={<DefaultSettingTag settingKey="trafficDiff" value={allSetting.trafficDiff} />} description={t('pages.settings.trafficDiffDesc')}>
               <InputNumber value={allSetting.trafficDiff} min={0} max={100} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ trafficDiff: v }))} />
             </SettingListItem>
@@ -307,7 +307,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <SettingListItem paddings="small" title={t('pages.settings.ldap.host')}>
               <Input value={allSetting.ldapHost} onChange={(e) => updateSetting({ ldapHost: e.target.value })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.ldap.port')}>
+            <SettingListItem paddings="small" title={t('pages.settings.ldap.port')} badge={<DefaultSettingTag settingKey="ldapPort" value={allSetting.ldapPort} />}>
               <InputNumber value={allSetting.ldapPort} min={1} max={65535} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ ldapPort: v }))} />
             </SettingListItem>
@@ -386,15 +386,15 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <SettingListItem paddings="small" title={t('pages.settings.ldap.autoDelete')}>
               <Switch checked={allSetting.ldapAutoDelete} onChange={(v) => updateSetting({ ldapAutoDelete: v })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultTotalGb')}>
+            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultTotalGb')} badge={<DefaultSettingTag settingKey="ldapDefaultTotalGB" value={allSetting.ldapDefaultTotalGB} />}>
               <InputNumber value={allSetting.ldapDefaultTotalGB} min={0} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ ldapDefaultTotalGB: v }))} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultExpiryDays')}>
+            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultExpiryDays')} badge={<DefaultSettingTag settingKey="ldapDefaultExpiryDays" value={allSetting.ldapDefaultExpiryDays} />}>
               <InputNumber value={allSetting.ldapDefaultExpiryDays} min={0} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ ldapDefaultExpiryDays: v }))} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultIpLimit')}>
+            <SettingListItem paddings="small" title={t('pages.settings.ldap.defaultIpLimit')} badge={<DefaultSettingTag settingKey="ldapDefaultLimitIP" value={allSetting.ldapDefaultLimitIP} />}>
               <InputNumber value={allSetting.ldapDefaultLimitIP} min={0} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ ldapDefaultLimitIP: v }))} />
             </SettingListItem>

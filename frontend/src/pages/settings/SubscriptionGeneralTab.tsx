@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import type { AllSetting } from '@/models/setting';
 import { onNumber } from '@/utils/onNumber';
-import { SettingListItem } from '@/components/ui';
+import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
@@ -56,7 +56,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subDomain')} description={t('pages.settings.subDomainDesc')}>
               <Input value={allSetting.subDomain} onChange={(e) => updateSetting({ subDomain: e.target.value })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subPort')} description={t('pages.settings.subPortDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.subPort')} badge={<DefaultSettingTag settingKey="subPort" value={allSetting.subPort} />} description={t('pages.settings.subPortDesc')}>
               <InputNumber value={allSetting.subPort} min={1} max={65535} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ subPort: v }))} />
             </SettingListItem>
@@ -105,7 +105,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
               />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} description={t('pages.settings.subUpdatesDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.subUpdates')} badge={<DefaultSettingTag settingKey="subUpdates" value={allSetting.subUpdates} />} description={t('pages.settings.subUpdatesDesc')}>
               <InputNumber value={allSetting.subUpdates} min={0} max={525600} style={{ width: '100%' }}
                 onChange={onNumber((v) => updateSetting({ subUpdates: v }))} />
             </SettingListItem>

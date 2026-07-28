@@ -1445,3 +1445,32 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 
 	return result, nil
 }
+
+var factoryDefaultSecretKeys = map[string]bool{
+	"tgBotToken":     true,
+	"twoFactorToken": true,
+	"ldapPassword":   true,
+	"smtpPassword":   true,
+}
+
+/*
+GetFactoryDefaults returns the shipped default value for every browser-safe
+setting, keyed by the AllSetting json field name. Unlike GetDefaultSettings
+(which reports current effective values), this is the raw defaultValueMap
+filtered through the AllSetting field set, so per-install material such as
+secret, panelGuid and the node mTLS keys can never leave the server, and
+redacted credential fields are dropped rather than compared against blanks.
+*/
+func (s *SettingService) GetFactoryDefaults() map[string]string {
+	result := make(map[string]string)
+	for _, field := range reflect_util.GetFields(reflect.TypeFor[entity.AllSetting]()) {
+		key := field.Tag.Get("json")
+		if key == "" || factoryDefaultSecretKeys[key] {
+			continue
+		}
+		if value, ok := defaultValueMap[key]; ok {
+			result[key] = value
+		}
+	}
+	return result
+}

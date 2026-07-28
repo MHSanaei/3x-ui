@@ -103,3 +103,7 @@ export const AllSettingSchema = z.object({
 }).loose();
 
 export type AllSettingInput = z.infer<typeof AllSettingSchema>;
+
+export const FactoryDefaultsSchema = z.record(z.string(), z.string());
+
+export type FactoryDefaults = z.infer<typeof FactoryDefaultsSchema>;
