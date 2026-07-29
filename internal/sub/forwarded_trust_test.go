@@ -74,7 +74,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "stored shipped default keeps trusting forwarded headers",
-			stored:           storedAs(shippedTrustedProxyCIDRs()),
+			stored:           storedAs(service.DefaultTrustedProxyCIDRs),
 			remoteAddr:       "203.0.113.9:51000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
@@ -155,6 +155,27 @@ func TestResolveRequest_GatesRealIPFallback(t *testing.T) {
 	}
 	if hostHeader != "panel.example.com" {
 		t.Errorf("hostHeader = %q, want the request host", hostHeader)
+	}
+}
+
+func TestHasForwardedHeaders(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers map[string]string
+		want    bool
+	}{
+		{name: "no forwarded headers", want: false},
+		{name: "forwarded host", headers: map[string]string{"X-Forwarded-Host": "sub.example.net"}, want: true},
+		{name: "forwarded proto", headers: map[string]string{"X-Forwarded-Proto": "https"}, want: true},
+		{name: "real ip", headers: map[string]string{"X-Real-IP": "10.1.2.3"}, want: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hasForwardedHeaders(requestFrom(t, "10.1.2.3:1234", tc.headers)); got != tc.want {
+				t.Errorf("hasForwardedHeaders() = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

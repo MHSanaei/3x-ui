@@ -12,13 +12,15 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-var shippedTrustedProxyCIDRs = sync.OnceValue(func() string {
-	return (&service.SettingService{}).GetFactoryDefaults()["trustedProxyCIDRs"]
-})
-
 var warnSuppressedForwardedOnce sync.Once
 
+var forwardedHeaderNames = [...]string{"X-Forwarded-Host", "X-Forwarded-Proto", "X-Real-IP"}
+
 func (s *SubService) forwardedHeadersTrusted(c *gin.Context) (trusted bool) {
+	if !hasForwardedHeaders(c) {
+		return true
+	}
+
 	trusted = true
 	defer func() {
 		_ = recover()
@@ -29,15 +31,24 @@ func (s *SubService) forwardedHeadersTrusted(c *gin.Context) (trusted bool) {
 		return true
 	}
 	configured = strings.TrimSpace(configured)
-	if configured == "" || configured == shippedTrustedProxyCIDRs() {
+	if configured == "" || configured == service.DefaultTrustedProxyCIDRs {
 		return true
 	}
 	return remoteAddrInCIDRs(c.Request.RemoteAddr, configured)
 }
 
+func hasForwardedHeaders(c *gin.Context) bool {
+	for _, name := range forwardedHeaderNames {
+		if c.GetHeader(name) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func warnSuppressedForwardedHeaders(c *gin.Context) {
 	present := make([]string, 0, 3)
-	for _, name := range []string{"X-Forwarded-Host", "X-Forwarded-Proto", "X-Real-IP"} {
+	for _, name := range forwardedHeaderNames {
 		if c.GetHeader(name) != "" {
 			present = append(present, name)
 		}
