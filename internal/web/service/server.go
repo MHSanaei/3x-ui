@@ -1307,24 +1307,18 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(backupPath)
+	defer os.RemoveAll(filepath.Dir(backupPath))
 	return os.ReadFile(backupPath)
 }
 
 func (s *ServerService) backupSQLite() (string, error) {
-	temp, err := os.CreateTemp(filepath.Dir(config.GetDBPath()), ".x-ui-backup-*.db")
+	backupDir, err := os.MkdirTemp(filepath.Dir(config.GetDBPath()), ".x-ui-backup-")
 	if err != nil {
 		return "", err
 	}
-	backupPath := temp.Name()
-	if err := temp.Close(); err != nil {
-		_ = os.Remove(backupPath)
-		return "", err
-	}
-	if err := os.Remove(backupPath); err != nil {
-		return "", err
-	}
+	backupPath := filepath.Join(backupDir, "backup.db")
 	if err := database.BackupSQLite(backupPath); err != nil {
+		_ = os.RemoveAll(backupDir)
 		return "", err
 	}
 	return backupPath, nil
@@ -1431,7 +1425,7 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	defer os.Remove(backupPath)
+	defer os.RemoveAll(filepath.Dir(backupPath))
 	data, err := database.DumpSQLiteToBytes(backupPath)
 	if err != nil {
 		return nil, "", err

@@ -1,12 +1,15 @@
 package database
 
 import (
-	"bytes"
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -46,43 +49,6 @@ func TestSqliteJournalModeEnvOverrideDelete(t *testing.T) {
 	}
 }
 
-func TestWalCheckpointMakesRawFileBackupComplete(t *testing.T) {
-	t.Setenv("XUI_DB_JOURNAL_MODE", "")
-	dbDir := t.TempDir()
-	dbPath := filepath.Join(dbDir, "x-ui.db")
-	if err := InitDB(dbPath); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = CloseDB() })
-
-	if err := db.Create(&model.Setting{Key: "walBackupProbe", Value: "42"}).Error; err != nil {
-		t.Fatalf("write setting: %v", err)
-	}
-	if err := Checkpoint(); err != nil {
-		t.Fatalf("Checkpoint: %v", err)
-	}
-
-	raw, err := os.ReadFile(dbPath)
-	if err != nil {
-		t.Fatalf("read db file: %v", err)
-	}
-	copyPath := filepath.Join(t.TempDir(), "copy.db")
-	if err := os.WriteFile(copyPath, raw, 0o600); err != nil {
-		t.Fatalf("write copy: %v", err)
-	}
-	if err := ValidateSQLiteDB(copyPath); err != nil {
-		t.Fatalf("checkpointed raw copy must be a valid sqlite db: %v", err)
-	}
-
-	dump, err := DumpSQLiteToBytes(copyPath)
-	if err != nil {
-		t.Fatalf("dump copy: %v", err)
-	}
-	if !bytes.Contains(dump, []byte("walBackupProbe")) {
-		t.Fatal("raw-file backup taken after Checkpoint must contain the latest write")
-	}
-}
-
 func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
 	if err := InitDB(dbPath); err != nil {
@@ -90,8 +56,8 @@ func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = CloseDB() })
 
-	seed := make([]model.Setting, 256)
-	value := strings.Repeat("x", 4096)
+	seed := make([]model.Setting, 128)
+	value := strings.Repeat("x", 1024)
 	for i := range seed {
 		seed[i] = model.Setting{Key: fmt.Sprintf("backup-seed-%d", i), Value: value}
 	}
@@ -99,17 +65,20 @@ func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 		t.Fatalf("seed database: %v", err)
 	}
 
-	started := make(chan struct{})
 	stop := make(chan struct{})
+	firstWrite := make(chan error, 1)
 	writesDone := make(chan error, 1)
 	go func() {
-		for i := 0; i < 1024; i++ {
+		for i := 0; i < 128; i++ {
 			if err := db.Create(&model.Setting{Key: fmt.Sprintf("backup-write-%d", i), Value: value}).Error; err != nil {
+				if i == 0 {
+					firstWrite <- err
+				}
 				writesDone <- err
 				return
 			}
 			if i == 0 {
-				close(started)
+				firstWrite <- nil
 			}
 			select {
 			case <-stop:
@@ -121,7 +90,9 @@ func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 		writesDone <- nil
 	}()
 
-	<-started
+	if err := <-firstWrite; err != nil {
+		t.Fatalf("first concurrent write: %v", err)
+	}
 	backupPath := filepath.Join(t.TempDir(), "backup.db")
 	if err := BackupSQLite(backupPath); err != nil {
 		close(stop)
@@ -136,11 +107,50 @@ func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 		t.Fatalf("validate backup: %v", err)
 	}
 
-	backup, err := DumpSQLiteToBytes(backupPath)
+	backup, err := sql.Open("sqlite3", backupPath)
 	if err != nil {
-		t.Fatalf("dump backup: %v", err)
+		t.Fatalf("open backup: %v", err)
 	}
-	if !bytes.Contains(backup, []byte("backup-seed-0")) {
-		t.Fatal("backup lost data committed before the snapshot")
+	defer backup.Close()
+
+	var seedCount int
+	if err := backup.QueryRow("SELECT count(*) FROM settings WHERE key LIKE 'backup-seed-%'").Scan(&seedCount); err != nil {
+		t.Fatalf("count seeded rows: %v", err)
+	}
+	if seedCount != 128 {
+		t.Fatalf("seeded row count = %d, want 128", seedCount)
+	}
+	var firstWriteCount int
+	if err := backup.QueryRow("SELECT count(*) FROM settings WHERE key = 'backup-write-0'").Scan(&firstWriteCount); err != nil {
+		t.Fatalf("count first concurrent write: %v", err)
+	}
+	if firstWriteCount != 1 {
+		t.Fatalf("first concurrent write count = %d, want 1", firstWriteCount)
+	}
+}
+
+func TestBackupSQLiteTimesOutWaitingForSourceConnection(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get database connection pool: %v", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+	held, err := sqlDB.Conn(context.Background())
+	if err != nil {
+		t.Fatalf("hold source connection: %v", err)
+	}
+	defer held.Close()
+
+	previousTimeout := backupSQLiteTimeout
+	backupSQLiteTimeout = 20 * time.Millisecond
+	t.Cleanup(func() { backupSQLiteTimeout = previousTimeout })
+	err = BackupSQLite(filepath.Join(t.TempDir(), "backup.db"))
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("BackupSQLite error = %v, want context deadline exceeded", err)
 	}
 }

@@ -34,6 +34,8 @@ import (
 
 var db *gorm.DB
 
+var backupSQLiteTimeout = 2 * time.Minute
+
 const (
 	DialectSQLite   = "sqlite"
 	DialectPostgres = "postgres"
@@ -2101,13 +2103,6 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-func Checkpoint() error {
-	if IsPostgres() {
-		return nil
-	}
-	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
-}
-
 func BackupSQLite(dstPath string) (err error) {
 	if IsPostgres() {
 		return errors.New("sqlite backup is unavailable for PostgreSQL")
@@ -2126,11 +2121,14 @@ func BackupSQLite(dstPath string) (err error) {
 		}
 	}()
 
+	ctx, cancel := context.WithTimeout(context.Background(), backupSQLiteTimeout)
+	defer cancel()
+
 	sourceDB, err := db.DB()
 	if err != nil {
 		return err
 	}
-	sourceConn, err := sourceDB.Conn(context.Background())
+	sourceConn, err := sourceDB.Conn(ctx)
 	if err != nil {
 		return err
 	}
@@ -2141,7 +2139,7 @@ func BackupSQLite(dstPath string) (err error) {
 		return err
 	}
 	defer destinationDB.Close()
-	destinationConn, err := destinationDB.Conn(context.Background())
+	destinationConn, err := destinationDB.Conn(ctx)
 	if err != nil {
 		return err
 	}
@@ -2168,7 +2166,7 @@ func BackupSQLite(dstPath string) (err error) {
 				}
 			}()
 			for {
-				done, err := backup.Step(128)
+				done, err := backup.Step(-1)
 				if err != nil {
 					return err
 				}
@@ -2176,7 +2174,11 @@ func BackupSQLite(dstPath string) (err error) {
 					finished = true
 					return backup.Finish()
 				}
-				time.Sleep(10 * time.Millisecond)
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(10 * time.Millisecond):
+				}
 			}
 		})
 	})
