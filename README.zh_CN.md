@@ -32,12 +32,15 @@
 - **将客户端流量通过 Xray 路由**——每个 AmneziaWG 入站都会自动获得属于自己的本地回环 Xray 网桥（无需任何开关）；通过面板中已有的"路由"页面，将任意客户端的流量路由到任意已配置的 Xray 出站，方式与路由其他协议完全相同。
 - **`install.sh` 会为您安装内核模块**，适用于 Ubuntu/Debian/Armbian（`ppa:amnezia/ppa`），其他发行版则有回退方案。它唯一无法为您做的事：预先**禁用 VPS/VM 上的 Secure Boot**——DKMS 构建的模块未经签名，只要 Secure Boot 处于启用状态，内核就会拒绝加载它。
 - 协调（reconcile）方式与 [`internal/mtproto`](internal/mtproto) 管理 `mtg` sidecar 的方式完全相同：一个后台任务持续保持运行中的接口与数据库中存储的内容同步，并尽可能通过 `awg syncconf` 而非完整的接口重启来应用对等端变更。
+- **真正的 `vpn://` 分享链接** — 每个客户端的复制链接/二维码以及订阅端点现在会生成官方 AmneziaVPN 应用真正期望的 `vpn://` 格式（纯文本 `.conf` 的 base64url 编码），而不是该应用无法导入的自造 URI 格式。
 
 ## 本分支的其他更改
 
 除 AmneziaWG 之外，本分支的其他小改进会在添加时记录于此：
 
 - **路由规则自动补全** — Xray 路由规则编辑器中的 Domain/IP 字段现在会根据 Xray bin 文件夹中实际安装的 `.dat` 文件实时提示 geosite/geoip 分类（例如输入 "you" 会提示 `geosite:youtube`），包括通过 Geodata 自动更新功能添加的自定义文件（例如 `geosite_roscom.dat`）。自由文本输入方式与之前完全相同。
+- **AmneziaWG 与 MTProto 的实时速度** — 此前 AmneziaWG 和 MTProto（`mtg`）入站/客户端的 Speed 列会显示"--"，即使累计流量统计是正确的——因为两者都不在 Xray-core 自身的运行时内运行，因此对其统计 API 不可见。现在两者都会像其他协议一样广播实时速度。
+- **`bin/` 中的自定义文件在更新后得以保留** — 此前重新安装/更新会在解压新版本之前完全清空整个 `bin/` 文件夹，悄悄删除任何手动放置在那里的文件（最常见的是通过 `ext:<file>:<code>` 被路由规则引用的自定义 geoip/geosite 文件），并导致下次启动时所有入站全部失效。现在安装程序会先备份 `bin/`，仅恢复新版本未提供的文件。
 
 ## 功能特性
 

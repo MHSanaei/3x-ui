@@ -32,12 +32,15 @@ Este fork se construyó para funcionar en los routers y servidores personales de
 - **Enrutamiento del tráfico de un cliente a través de Xray** — cada entrada AmneziaWG obtiene automáticamente su propio puente Xray por loopback (sin ningún interruptor); enruta el tráfico de cualquier cliente hacia cualquier salida de Xray configurada desde la página de "Enrutamiento" ya existente en el panel, exactamente igual que al enrutar cualquier otro protocolo.
 - **`install.sh` instala el módulo de kernel por ti** en Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), con una alternativa de respaldo para otras distribuciones. Lo único que no puede hacer por ti: **deshabilitar Secure Boot** en tu VPS/VM de antemano — un módulo compilado con DKMS no está firmado, y el kernel se negará a cargarlo mientras Secure Boot esté habilitado.
 - La reconciliación se realiza exactamente igual que como [`internal/mtproto`](internal/mtproto) gestiona el sidecar `mtg`: un trabajo en segundo plano mantiene la interfaz en ejecución sincronizada con lo almacenado en la base de datos, aplicando los cambios de pares mediante `awg syncconf` en lugar de un reinicio completo de la interfaz siempre que sea posible.
+- **Enlaces de compartición `vpn://` reales** — el enlace de copia/código QR por cliente y el endpoint de suscripción ahora emiten el esquema `vpn://` real que espera la aplicación oficial AmneziaVPN (base64url de un `.conf` plano), no un formato de URI inventado que la app no podía importar.
 
 ## Otros cambios en este fork
 
 Las mejoras más pequeñas específicas de este fork, más allá de AmneziaWG, se añaden aquí a medida que se incorporan:
 
 - **Autocompletado de reglas de enrutamiento** — los campos Domain/IP del editor de reglas de Routing de Xray ahora sugieren categorías geosite/geoip (por ejemplo, escribir "you" sugiere `geosite:youtube`) generadas en vivo a partir de los archivos `.dat` realmente instalados en la carpeta bin de Xray, incluidos los archivos personalizados añadidos mediante la función de actualización automática de Geodata (por ejemplo, `geosite_roscom.dat`). La entrada de texto libre sigue funcionando exactamente igual que antes.
+- **Velocidad en vivo para AmneziaWG y MTProto** — la columna Speed mostraba «--» para las entradas/clientes de AmneziaWG y MTProto (`mtg`) aunque los totales de tráfico acumulado eran correctos, ya que ninguno de los dos se ejecuta dentro del propio runtime de Xray-core y por tanto son invisibles para su API de estadísticas. Ahora ambos difunden la velocidad en vivo junto con el resto de protocolos.
+- **Los archivos personalizados en `bin/` sobreviven a las actualizaciones** — una reinstalación/actualización solía borrar toda la carpeta `bin/` antes de volver a extraer la versión, eliminando silenciosamente cualquier cosa colocada allí manualmente (lo más común, un archivo geoip/geosite personalizado referenciado desde una regla de enrutamiento mediante `ext:<file>:<code>`) y rompiendo todas las entradas en el siguiente inicio. El instalador ahora respalda `bin/` primero y restaura solo lo que la nueva versión no incluye.
 
 ## Características
 

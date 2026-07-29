@@ -32,12 +32,15 @@ This fork exists to run the author's own routers and servers; it isn't trying to
 - **Routing a client's traffic through Xray** — every AmneziaWG inbound gets its own loopback Xray bridge automatically (no toggle to flip); route any client's traffic through any configured Xray outbound from the panel's existing Routing page, exactly like routing any other protocol.
 - **`install.sh` installs the kernel module for you** on Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), with a fallback for other distros. One thing it can't do for you: **disable Secure Boot** on your VPS/VM first — a DKMS-built module is unsigned and the kernel won't load it while Secure Boot is enforced.
 - Reconciled the same way [`internal/mtproto`](internal/mtproto) manages its `mtg` sidecar: a background job keeps the running interface in sync with what's saved in the database, hot-reloading peer changes via `awg syncconf` instead of bouncing the whole interface when it can.
+- **Real `vpn://` share links** — the per-client copy-link/QR and the subscription endpoint now emit the actual `vpn://` scheme the official AmneziaVPN app expects (base64url of a plain `.conf`), not an invented URI format it couldn't import.
 
 ## Other changes in this fork
 
 Smaller fork-specific improvements beyond AmneziaWG land here as they're added:
 
 - **Routing rule autocomplete** — the Domain/IP fields in the Xray Routing rule editor suggest geosite/geoip categories (e.g. typing "you" suggests `geosite:youtube`) built live from whatever `.dat` files are actually installed in the Xray bin folder, including custom ones added via the Geodata auto-update feature (e.g. `geosite_roscom.dat`). Free-text entry still works exactly as before.
+- **Live Speed for AmneziaWG and MTProto** — the Speed column used to show `--` for AmneziaWG and MTProto (`mtg`) inbounds/clients even though cumulative traffic totals were correct, since neither runs inside Xray-core's own runtime and so is invisible to its stats API. Both now broadcast live speed alongside every other protocol.
+- **Custom files in `bin/` survive updates** — a reinstall/update used to wipe the whole `bin/` folder before re-extracting the release, silently deleting anything hand-placed there (most commonly a custom geoip/geosite file referenced from a routing rule via `ext:<file>:<code>`) and breaking every inbound at next start. The installer now backs up `bin/` first and restores only what the new release doesn't ship.
 
 ## Features
 

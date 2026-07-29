@@ -32,12 +32,15 @@ Bu fork, yazarının kendi yönlendiricileri ve kişisel sunucuları üzerinde �
 - **Bir istemcinin trafiğini Xray üzerinden yönlendirme** — her AmneziaWG gelen bağlantısı otomatik olarak kendi loopback Xray köprüsünü alır (hiçbir anahtar/switch olmadan); herhangi bir istemcinin trafiğini, panelde zaten mevcut olan "Yönlendirme" sayfası üzerinden yapılandırılmış herhangi bir Xray giden bağlantısına, tıpkı başka herhangi bir protokolü yönlendirir gibi yönlendirin.
 - **`install.sh` çekirdek modülünü sizin için kurar** — Ubuntu/Debian/Armbian üzerinde (`ppa:amnezia/ppa`), diğer dağıtımlar için bir yedek (fallback) ile birlikte. Sizin için yapamayacağı tek şey: VPS/VM'inizde **Secure Boot'u önceden devre dışı bırakmak** — DKMS ile derlenmiş bir modül imzasızdır ve Secure Boot etkin olduğu sürece çekirdek onu yüklemeyi reddeder.
 - Uzlaştırma (reconcile), [`internal/mtproto`](internal/mtproto)'nun `mtg` sidecar'ını yönetme biçimiyle tamamen aynı şekilde yapılır: arka planda çalışan bir görev, çalışan arabirimi veritabanında saklanan durumla senkronize tutar ve mümkün olduğunda eş (peer) değişikliklerini tam bir arabirim yeniden başlatması yerine `awg syncconf` üzerinden uygular.
+- **Gerçek `vpn://` paylaşım bağlantıları** — istemci başına kopyalama bağlantısı/QR kodu ve abonelik uç noktası artık resmi AmneziaVPN uygulamasının beklediği gerçek `vpn://` şemasını üretiyor (düz bir `.conf` dosyasının base64url'i), uygulamanın içe aktaramadığı uydurma bir URI biçimi değil.
 
 ## Bu forktaki diğer değişiklikler
 
 AmneziaWG dışındaki, bu forka özgü daha küçük iyileştirmeler eklendikçe burada listelenir:
 
 - **Yönlendirme kuralı otomatik tamamlama** — Xray Routing kural düzenleyicisindeki Domain/IP alanları artık geosite/geoip kategorilerini önerir (örneğin "you" yazmak `geosite:youtube` önerir); bu öneriler, Xray bin klasöründe fiilen kurulu olan `.dat` dosyalarından (Geodata otomatik güncelleme özelliğiyle eklenen özel dosyalar dahil, örn. `geosite_roscom.dat`) anlık olarak oluşturulur. Serbest metin girişi eskisi gibi çalışmaya devam eder.
+- **AmneziaWG ve MTProto için canlı Hız** — toplam trafik doğru hesaplanmasına rağmen, AmneziaWG ve MTProto (`mtg`) gelen bağlantıları/istemcileri için Speed sütunu "--" gösteriyordu; çünkü ikisi de Xray-core'un kendi çalışma zamanı içinde çalışmıyor ve bu yüzden onun istatistik API'si için görünmezler. Artık ikisi de canlı hızı diğer tüm protokollerle birlikte yayınlıyor.
+- **`bin/` içindeki özel dosyalar güncellemelerden etkilenmez** — bir yeniden kurulum/güncelleme, sürümü yeniden ayıklamadan önce tüm `bin/` klasörünü siliyordu; bu da oraya elle eklenmiş her şeyi (en yaygın olarak bir yönlendirme kuralının `ext:<file>:<code>` ile işaret ettiği özel bir geoip/geosite dosyasını) sessizce siliyor ve bir sonraki başlatmada tüm gelen bağlantıları bozuyordu. Artık kurulum programı önce `bin/`'i yedekliyor ve yalnızca yeni sürümün sağlamadığı dosyaları geri yüklüyor.
 
 ## Özellikler
 
