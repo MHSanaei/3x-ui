@@ -30,8 +30,8 @@ import (
 // CheckXrayConfig's version gate.
 func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
 	coreVersion := "Unknown"
-	if p != nil {
-		coreVersion = p.GetXrayVersion()
+	if process := currentXrayProcess(); process != nil {
+		coreVersion = process.GetXrayVersion()
 	}
 	kept := make([]any, 0, len(outbounds))
 	var dropped []string

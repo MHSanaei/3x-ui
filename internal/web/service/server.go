@@ -624,8 +624,8 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.AppStats.Mem = rtm.Sys
 	}
 	status.AppStats.Threads = uint32(runtime.NumGoroutine())
-	if p != nil && p.IsRunning() {
-		status.AppStats.Uptime = p.GetUptime()
+	if process := currentXrayProcess(); process != nil && process.IsRunning() {
+		status.AppStats.Uptime = process.GetUptime()
 	} else {
 		status.AppStats.Uptime = 0
 	}
@@ -668,8 +668,8 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
 	systemMetrics.append("udpCount", t, float64(status.UdpCount))
 	online := 0
-	if p != nil && p.IsRunning() {
-		online = len(p.GetOnlineClients())
+	if process := currentXrayProcess(); process != nil && process.IsRunning() {
+		online = len(process.GetOnlineClients())
 	}
 	systemMetrics.append("online", t, float64(online))
 	if len(status.Loads) >= 3 {

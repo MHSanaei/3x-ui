@@ -54,8 +54,8 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 			return common.NewError("xray template config invalid: outbounds is not an array:", err)
 		}
 		coreVersion := "Unknown"
-		if p != nil {
-			coreVersion = p.GetXrayVersion()
+		if process := currentXrayProcess(); process != nil {
+			coreVersion = process.GetXrayVersion()
 		}
 		for _, outbound := range outbounds {
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
