@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
 import {
@@ -34,7 +34,6 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
-  const [hostsList, setHostsList] = useState<HostRow[]>([]);
   const [serverModalOpen, setServerModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<DnsServerValue | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -42,6 +41,13 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
   const dns = (templateSettings?.dns as DnsConfig | undefined) ?? null;
   const dnsEnabled = !!dns;
+  const hostsList = useMemo<HostRow[]>(() => {
+    const hosts = dns?.hosts || {};
+    return Object.entries(hosts).map(([domain, values]) => ({
+      domain,
+      values: Array.isArray(values) ? [...values] : [String(values)],
+    }));
+  }, [dns?.hosts]);
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -79,23 +85,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     });
   }
 
-  useEffect(() => {
-    if (!dns) {
-      setHostsList([]);
-      return;
-    }
-    const src = dns.hosts || {};
-    setHostsList(
-      Object.entries(src).map(([domain, val]) => ({
-        domain,
-        values: Array.isArray(val) ? [...val] : [String(val)],
-      })),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dnsEnabled]);
-
   function syncHosts(next: HostRow[]) {
-    setHostsList(next);
     mutate((tt) => {
       if (!tt.dns) return;
       const obj: Record<string, string | string[]> = {};
