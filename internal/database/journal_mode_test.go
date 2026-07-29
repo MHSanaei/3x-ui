@@ -2,8 +2,10 @@ package database
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -78,5 +80,67 @@ func TestWalCheckpointMakesRawFileBackupComplete(t *testing.T) {
 	}
 	if !bytes.Contains(dump, []byte("walBackupProbe")) {
 		t.Fatal("raw-file backup taken after Checkpoint must contain the latest write")
+	}
+}
+
+func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	seed := make([]model.Setting, 256)
+	value := strings.Repeat("x", 4096)
+	for i := range seed {
+		seed[i] = model.Setting{Key: fmt.Sprintf("backup-seed-%d", i), Value: value}
+	}
+	if err := db.Create(&seed).Error; err != nil {
+		t.Fatalf("seed database: %v", err)
+	}
+
+	started := make(chan struct{})
+	stop := make(chan struct{})
+	writesDone := make(chan error, 1)
+	go func() {
+		for i := 0; i < 1024; i++ {
+			if err := db.Create(&model.Setting{Key: fmt.Sprintf("backup-write-%d", i), Value: value}).Error; err != nil {
+				writesDone <- err
+				return
+			}
+			if i == 0 {
+				close(started)
+			}
+			select {
+			case <-stop:
+				writesDone <- nil
+				return
+			default:
+			}
+		}
+		writesDone <- nil
+	}()
+
+	<-started
+	backupPath := filepath.Join(t.TempDir(), "backup.db")
+	if err := BackupSQLite(backupPath); err != nil {
+		close(stop)
+		<-writesDone
+		t.Fatalf("BackupSQLite: %v", err)
+	}
+	close(stop)
+	if err := <-writesDone; err != nil {
+		t.Fatalf("concurrent write: %v", err)
+	}
+	if err := ValidateSQLiteDB(backupPath); err != nil {
+		t.Fatalf("validate backup: %v", err)
+	}
+
+	backup, err := DumpSQLiteToBytes(backupPath)
+	if err != nil {
+		t.Fatalf("dump backup: %v", err)
+	}
+	if !bytes.Contains(backup, []byte("backup-seed-0")) {
+		t.Fatal("backup lost data committed before the snapshot")
 	}
 }

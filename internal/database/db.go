@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-sqlite3"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
@@ -2104,6 +2106,80 @@ func Checkpoint() error {
 		return nil
 	}
 	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
+}
+
+func BackupSQLite(dstPath string) (err error) {
+	if IsPostgres() {
+		return errors.New("sqlite backup is unavailable for PostgreSQL")
+	}
+	if db == nil {
+		return errors.New("database is not initialized")
+	}
+	if _, err := os.Lstat(dstPath); err == nil {
+		return fmt.Errorf("sqlite backup destination already exists: %s", dstPath)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.Remove(dstPath)
+		}
+	}()
+
+	sourceDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	sourceConn, err := sourceDB.Conn(context.Background())
+	if err != nil {
+		return err
+	}
+	defer sourceConn.Close()
+
+	destinationDB, err := sql.Open("sqlite3", dstPath)
+	if err != nil {
+		return err
+	}
+	defer destinationDB.Close()
+	destinationConn, err := destinationDB.Conn(context.Background())
+	if err != nil {
+		return err
+	}
+	defer destinationConn.Close()
+
+	return sourceConn.Raw(func(sourceDriver any) error {
+		source, ok := sourceDriver.(*sqlite3.SQLiteConn)
+		if !ok {
+			return fmt.Errorf("unexpected SQLite source connection type %T", sourceDriver)
+		}
+		return destinationConn.Raw(func(destinationDriver any) error {
+			destination, ok := destinationDriver.(*sqlite3.SQLiteConn)
+			if !ok {
+				return fmt.Errorf("unexpected SQLite destination connection type %T", destinationDriver)
+			}
+			backup, err := destination.Backup("main", source, "main")
+			if err != nil {
+				return err
+			}
+			finished := false
+			defer func() {
+				if !finished {
+					_ = backup.Finish()
+				}
+			}()
+			for {
+				done, err := backup.Step(128)
+				if err != nil {
+					return err
+				}
+				if done {
+					finished = true
+					return backup.Finish()
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+		})
+	})
 }
 
 func ValidateSQLiteDB(dbPath string) error {
