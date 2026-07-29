@@ -193,4 +193,24 @@ describe('http-init fetch wrapper', () => {
 
     expect(initOf().signal).toBeInstanceOf(AbortSignal);
   });
+
+  it('preserves a caller cancellation signal when a timeout is set', async () => {
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+    const controller = new AbortController();
+
+    await http.httpRequest('GET', '/x', undefined, { timeout: 1_000, signal: controller.signal });
+    controller.abort();
+
+    expect(initOf().signal?.aborted).toBe(true);
+  });
+
+  it('appends encoded params to a URL that already has a query string', async () => {
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+
+    await http.httpRequest('GET', '/x?keep=1', undefined, { params: { added: 'yes' } });
+
+    expect(urlOf()).toBe('/x?keep=1&added=yes');
+  });
 });

@@ -98,7 +98,7 @@ export async function fetchXrayConfig(): Promise<XrayConfigPayload> {
   const result = XrayConfigPayloadSchema.safeParse(parsed);
   if (!result.success) {
     console.warn('[zod] xray/ config payload failed validation', result.error.issues);
-    return parsed as XrayConfigPayload;
+    throw new Error('xray/ config payload failed validation');
   }
   return result.data;
 }

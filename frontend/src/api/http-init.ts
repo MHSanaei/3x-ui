@@ -88,6 +88,21 @@ function encodeForm(data: unknown): string {
   return parts.join('&');
 }
 
+function appendQuery(url: string, query: string): string {
+  if (query === '') return url;
+  const hashIndex = url.indexOf('#');
+  const path = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? '' : url.slice(hashIndex);
+  const separator = path.includes('?') && !path.endsWith('?') && !path.endsWith('&') ? '&' : path.includes('?') ? '' : '?';
+  return `${path}${separator}${query}${hash}`;
+}
+
+function requestSignal(options: HttpRequestOptions): AbortSignal | undefined {
+  if (!options.timeout) return options.signal;
+  const timeout = AbortSignal.timeout(options.timeout);
+  return options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+}
+
 async function performFetch(
   method: string,
   url: string,
@@ -121,8 +136,8 @@ async function performFetch(
   }
 
   const query = encodeForm(options.params);
-  const fullUrl = basePathPrefix + url + (query ? `?${query}` : '');
-  const signal = options.timeout ? AbortSignal.timeout(options.timeout) : options.signal;
+  const fullUrl = basePathPrefix + appendQuery(url, query);
+  const signal = requestSignal(options);
 
   return fetch(fullUrl, { method: upper, headers, body, credentials: 'same-origin', signal });
 }
