@@ -28,7 +28,7 @@ export function useAllSettings() {
   });
 
   const server = useMemo(() => new AllSetting(query.data), [query.data]);
-  const { draft, setDraft, isDirty } = useServerDraft(
+  const { draft, setDraft, isDirty, markSaved } = useServerDraft(
     query.data === undefined ? undefined : server,
     (setting) => new AllSetting(setting),
     (left, right) => left.equals(right),
@@ -57,7 +57,12 @@ export function useAllSettings() {
     },
   });
 
-  const saveAll = useCallback(() => saveMut.mutateAsync({ ...allSetting }), [saveMut, allSetting]);
+  const saveAll = useCallback(async () => {
+    const saved = new AllSetting(allSetting);
+    const msg = await saveMut.mutateAsync({ ...saved });
+    if (msg?.success) markSaved(saved);
+    return msg;
+  }, [allSetting, markSaved, saveMut]);
   const savePayload = useCallback((payload: SettingSavePayload) => saveMut.mutateAsync(payload), [saveMut]);
   const saveDisabled = !isDirty;
 

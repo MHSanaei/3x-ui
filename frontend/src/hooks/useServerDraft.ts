@@ -10,10 +10,8 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
   const [baseline, setBaseline] = useState<T | undefined>();
   const draftRef = useRef(draft);
   const baselineRef = useRef(baseline);
-  const serverRef = useRef(server);
   draftRef.current = draft;
   baselineRef.current = baseline;
-  serverRef.current = server;
 
   useEffect(() => {
     if (server === undefined) return;
@@ -27,10 +25,8 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
     setDraft(cloneRef.current(server));
   }, [server]);
 
-  const discard = useCallback(() => {
-    if (serverRef.current === undefined) return;
-    setBaseline(serverRef.current);
-    setDraft(cloneRef.current(serverRef.current));
+  const markSaved = useCallback((value: T) => {
+    setBaseline(cloneRef.current(value));
   }, []);
 
   const isDirty = useMemo(
@@ -38,5 +34,5 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
     [baseline, draft],
   );
 
-  return { draft, setDraft, isDirty, discard };
+  return { draft, setDraft, isDirty, markSaved };
 }

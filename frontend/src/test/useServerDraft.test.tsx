@@ -59,7 +59,7 @@ describe('useServerDraft', () => {
     expect(result.current.isDirty).toBe(false);
   });
 
-  it('hydrates a clean draft and can explicitly discard edits', () => {
+  it('hydrates a clean draft', () => {
     const { result, rerender } = renderHook(
       ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
       { initialProps: { server: { value: 'one' } } },
@@ -67,9 +67,6 @@ describe('useServerDraft', () => {
 
     rerender({ server: { value: 'two' } });
     expect(result.current.draft).toEqual({ value: 'two' });
-    act(() => result.current.setDraft({ value: 'edited' }));
-    act(() => result.current.discard());
-
     expect(result.current.draft).toEqual({ value: 'two' });
     expect(result.current.isDirty).toBe(false);
   });
