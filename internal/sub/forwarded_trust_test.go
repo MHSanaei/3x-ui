@@ -25,9 +25,6 @@ func requestFrom(t *testing.T, remoteAddr string, headers map[string]string) *gi
 	return c
 }
 
-// setTrustedProxyCIDRs writes the setting row directly, then reads it back
-// through SettingService so the test fails loudly if the service ever stops
-// reading the key this helper writes.
 func setTrustedProxyCIDRs(t *testing.T, value string) {
 	t.Helper()
 	if err := database.GetDB().Create(&model.Setting{Key: "trustedProxyCIDRs", Value: value}).Error; err != nil {
@@ -47,12 +44,6 @@ func storedAs(value string) *string {
 	return &value
 }
 
-// The gate must engage only for an operator who declared a trust boundary.
-// Every other state — no stored row, an empty row, a row still holding the
-// shipped default — keeps the legacy behavior, where the forwarded host and
-// proto drive the generated subscription URLs. That is the compatibility
-// guarantee for every deployment whose reverse proxy is not on the loopback
-// default, and the assertion that should fail loudest if it ever regresses.
 func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -64,27 +55,36 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		wantHostHeader   string
 	}{
 		{
-			name:             "no stored row keeps trusting forwarded headers",
+			name:             "no stored row trusts only loopback",
 			stored:           nil,
 			remoteAddr:       "203.0.113.9:51000",
-			wantScheme:       "https",
-			wantHost:         "sub.example.net",
-			wantHostWithPort: "sub.example.net",
-			wantHostHeader:   "sub.example.net",
+			wantScheme:       "http",
+			wantHost:         "panel.example.com",
+			wantHostWithPort: "panel.example.com:2096",
+			wantHostHeader:   "panel.example.com",
 		},
 		{
-			name:             "empty stored value keeps trusting forwarded headers",
+			name:             "empty stored value trusts only loopback",
 			stored:           storedAs(""),
 			remoteAddr:       "203.0.113.9:51000",
-			wantScheme:       "https",
-			wantHost:         "sub.example.net",
-			wantHostWithPort: "sub.example.net",
-			wantHostHeader:   "sub.example.net",
+			wantScheme:       "http",
+			wantHost:         "panel.example.com",
+			wantHostWithPort: "panel.example.com:2096",
+			wantHostHeader:   "panel.example.com",
 		},
 		{
-			name:             "stored shipped default keeps trusting forwarded headers",
+			name:             "stored shipped default trusts only loopback",
 			stored:           storedAs(shippedTrustedProxyCIDRs()),
 			remoteAddr:       "203.0.113.9:51000",
+			wantScheme:       "http",
+			wantHost:         "panel.example.com",
+			wantHostWithPort: "panel.example.com:2096",
+			wantHostHeader:   "panel.example.com",
+		},
+		{
+			name:             "factory default trusts loopback",
+			stored:           nil,
+			remoteAddr:       "127.0.0.1:51000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
 			wantHostWithPort: "sub.example.net",
@@ -103,6 +103,15 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 			name:             "declared boundary trusts an origin inside it",
 			stored:           storedAs("10.0.0.0/8"),
 			remoteAddr:       "10.1.2.3:44000",
+			wantScheme:       "https",
+			wantHost:         "sub.example.net",
+			wantHostWithPort: "sub.example.net",
+			wantHostHeader:   "sub.example.net",
+		},
+		{
+			name:             "declared ipv4 cidr trusts an ipv4 mapped origin",
+			stored:           storedAs("10.0.0.0/8"),
+			remoteAddr:       "[::ffff:10.1.2.3]:44000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
 			wantHostWithPort: "sub.example.net",
@@ -149,9 +158,6 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 	}
 }
 
-// X-Real-IP is the fallback for both the base host and the displayed header
-// host, so it has to be gated alongside X-Forwarded-Host rather than left as a
-// second way to steer the same fields.
 func TestResolveRequest_GatesRealIPFallback(t *testing.T) {
 	initSubDB(t)
 	setTrustedProxyCIDRs(t, "10.0.0.0/8")
@@ -178,6 +184,7 @@ func TestRemoteAddrInCIDRs(t *testing.T) {
 		want       bool
 	}{
 		{name: "inside cidr", remoteAddr: "10.1.2.3:1234", cidrs: "10.0.0.0/8", want: true},
+		{name: "ipv4 mapped address inside cidr", remoteAddr: "[::ffff:10.1.2.3]:1234", cidrs: "10.0.0.0/8", want: true},
 		{name: "outside cidr", remoteAddr: "203.0.113.9:1234", cidrs: "10.0.0.0/8", want: false},
 		{name: "bare address entry", remoteAddr: "192.168.1.5:80", cidrs: "192.168.1.5", want: true},
 		{name: "ipv6 loopback", remoteAddr: "[::1]:8080", cidrs: "::1/128", want: true},
