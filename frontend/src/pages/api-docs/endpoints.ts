@@ -257,7 +257,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/openapi.json',
-        summary: 'Serve this API description as an OpenAPI 3 document — the same file that powers the API Docs page. Useful for generating clients or importing into API tooling.',
+        summary: 'Serve this API description as an OpenAPI 3 document — the same file that powers the API Docs page. Requires a session or Bearer token like the rest of /panel/api. Useful for generating clients or importing into API tooling.',
       },
       {
         method: 'GET',
