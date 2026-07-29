@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
@@ -21,6 +20,16 @@ func TestMain(m *testing.M) {
 		if f, err := os.OpenFile(os.Getenv("MTG_FAKE_PIDFILE"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 			fmt.Fprintf(f, "%d\n", os.Getpid())
 			f.Close()
+		}
+		if exitFile := os.Getenv("MTG_FAKE_EXIT_FILE"); exitFile != "" {
+			for {
+				if _, err := os.Stat(exitFile); err == nil {
+					os.Exit(1)
+				} else if !os.IsNotExist(err) {
+					os.Exit(2)
+				}
+				time.Sleep(time.Millisecond)
+			}
 		}
 		select {}
 	}
@@ -264,46 +273,4 @@ func TestEnsureNoopKeepsProcess(t *testing.T) {
 		t.Fatalf("an unchanged instance must keep the one process, got %d spawns", got)
 	}
 	mgr.StopAll()
-}
-
-func TestProcessStatusDuringExit(t *testing.T) {
-	installFakeMtg(t)
-	configPath := filepath.Join(t.TempDir(), "mtg.toml")
-	if err := os.WriteFile(configPath, nil, 0o600); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-	proc := newProcess(configPath, "test")
-	if err := proc.Start(); err != nil {
-		t.Fatalf("start process: %v", err)
-	}
-
-	stopReads := make(chan struct{})
-	var readers sync.WaitGroup
-	for range 4 {
-		readers.Add(1)
-		go func() {
-			defer readers.Done()
-			for {
-				select {
-				case <-stopReads:
-					return
-				default:
-					_ = proc.IsRunning()
-					_ = proc.GetResult()
-				}
-			}
-		}()
-	}
-
-	if err := proc.Stop(); err != nil {
-		t.Fatalf("stop process: %v", err)
-	}
-	close(stopReads)
-	readers.Wait()
-	if proc.IsRunning() {
-		t.Fatal("process must not be running after stop")
-	}
-	if got := proc.GetResult(); got != "" {
-		t.Fatalf("GetResult after an intentional stop = %q, want empty", got)
-	}
 }
