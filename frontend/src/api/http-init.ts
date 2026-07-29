@@ -101,7 +101,13 @@ function appendQuery(url: string, query: string): string {
 function requestSignal(options: HttpRequestOptions): AbortSignal | undefined {
   if (!options.timeout) return options.signal;
   const timeout = AbortSignal.timeout(options.timeout);
-  return options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+  if (!options.signal) return timeout;
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any([options.signal, timeout]);
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  options.signal.addEventListener('abort', abort, { once: true });
+  timeout.addEventListener('abort', abort, { once: true });
+  return controller.signal;
 }
 
 async function performFetch(

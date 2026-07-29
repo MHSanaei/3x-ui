@@ -205,23 +205,75 @@ describe('http-init fetch wrapper', () => {
     expect(initOf().signal?.aborted).toBe(true);
   });
 
+  it('preserves both cancellation paths when AbortSignal.any is unavailable', async () => {
+    const timeout = AbortSignal.timeout.bind(AbortSignal);
+    vi.resetModules();
+    vi.stubGlobal('AbortSignal', { timeout });
+    http = await import('@/api/http-init');
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+    const controller = new AbortController();
+
+    await http.httpRequest('GET', '/x', undefined, { timeout: 1_000, signal: controller.signal });
+    controller.abort();
+
+    expect(initOf().signal?.aborted).toBe(true);
+  });
+
+  it('times out when AbortSignal.any is unavailable', async () => {
+    const timeout = AbortSignal.timeout.bind(AbortSignal);
+    vi.resetModules();
+    vi.stubGlobal('AbortSignal', { timeout });
+    http = await import('@/api/http-init');
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+    const controller = new AbortController();
+
+    await http.httpRequest('GET', '/x', undefined, { timeout: 20, signal: controller.signal });
+    const signal = initOf().signal as AbortSignal;
+    await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
+
+    expect(signal.aborted).toBe(true);
+  });
+
   it('aborts on the timeout when a caller signal is present', async () => {
     http.setupHttp();
     fetchMock.mockResolvedValue(okEnvelope());
     const controller = new AbortController();
 
     await http.httpRequest('GET', '/x', undefined, { timeout: 20, signal: controller.signal });
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    const signal = initOf().signal as AbortSignal;
+    await new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+      signal.addEventListener('abort', () => resolve(), { once: true });
+    });
 
-    expect(initOf().signal?.aborted).toBe(true);
+    expect(signal.aborted).toBe(true);
   });
 
-  it('appends encoded params to a URL that already has a query string', async () => {
+  it.each([
+    ['/x?keep=1', '/x?keep=1&added=yes'],
+    ['/x?', '/x?added=yes'],
+    ['/x#frag', '/x?added=yes#frag'],
+    ['/x?keep=1#frag', '/x?keep=1&added=yes#frag'],
+  ])('appends encoded params to %s', async (url, expected) => {
     http.setupHttp();
     fetchMock.mockResolvedValue(okEnvelope());
 
-    await http.httpRequest('GET', '/x?keep=1', undefined, { params: { added: 'yes' } });
+    await http.httpRequest('GET', url, undefined, { params: { added: 'yes' } });
 
-    expect(urlOf()).toBe('/x?keep=1&added=yes');
+    expect(urlOf()).toBe(expected);
+  });
+
+  it('preserves the URL when no params are supplied', async () => {
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+
+    await http.httpRequest('GET', '/x?keep=1#frag');
+
+    expect(urlOf()).toBe('/x?keep=1#frag');
   });
 });
