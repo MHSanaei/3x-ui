@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HttpUtil, Msg } from '@/utils';
@@ -6,6 +6,7 @@ import { parseMsg } from '@/utils/zodValidate';
 import { AllSetting } from '@/models/setting';
 import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
+import { useServerDraft } from '@/hooks/useServerDraft';
 
 type SettingSavePayload = Partial<AllSetting> & Record<string, unknown>;
 
@@ -18,7 +19,6 @@ async function fetchAllSetting(): Promise<AllSettingInput | null> {
 
 export function useAllSettings() {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<AllSetting>(() => new AllSetting());
   const [extraSpinning, setExtraSpinning] = useState(false);
 
   const query = useQuery({
@@ -28,20 +28,20 @@ export function useAllSettings() {
   });
 
   const server = useMemo(() => new AllSetting(query.data), [query.data]);
-
-  useEffect(() => {
-    if (query.data !== undefined) {
-      setDraft(new AllSetting(query.data));
-    }
-  }, [query.data]);
+  const { draft, setDraft, isDirty, discard } = useServerDraft(
+    query.data === undefined ? undefined : server,
+    (setting) => new AllSetting(setting),
+    (left, right) => left.equals(right),
+  );
+  const allSetting = draft ?? server;
 
   const updateSetting = useCallback((patch: Partial<AllSetting>) => {
     setDraft((prev) => {
-      const next = new AllSetting(prev);
+      const next = new AllSetting(prev ?? server);
       Object.assign(next, patch);
       return next;
     });
-  }, []);
+  }, [server, setDraft]);
 
   const saveMut = useMutation({
     mutationFn: async (next: SettingSavePayload): Promise<Msg<unknown>> => {
@@ -57,12 +57,12 @@ export function useAllSettings() {
     },
   });
 
-  const saveAll = useCallback(() => saveMut.mutateAsync({ ...draft }), [saveMut, draft]);
+  const saveAll = useCallback(() => saveMut.mutateAsync({ ...allSetting }), [saveMut, allSetting]);
   const savePayload = useCallback((payload: SettingSavePayload) => saveMut.mutateAsync(payload), [saveMut]);
-  const saveDisabled = useMemo(() => server.equals(draft), [server, draft]);
+  const saveDisabled = !isDirty;
 
   return {
-    allSetting: draft,
+    allSetting,
     updateSetting,
     fetched: query.data !== undefined,
     spinning: extraSpinning || saveMut.isPending,
@@ -70,5 +70,6 @@ export function useAllSettings() {
     saveDisabled,
     saveAll,
     savePayload,
+    discard,
   };
 }
