@@ -2486,10 +2486,12 @@ type PageData struct {
 // ResolveRequest extracts scheme and host info from request/headers consistently.
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
-	// Forwarded headers only steer the generated URLs when the request comes
-	// from a proxy the operator declared trusted; see forwardedHeadersTrusted.
+	trusted := s.forwardedHeadersTrusted(c)
+	if !trusted {
+		warnSuppressedForwardedHeaders(c)
+	}
 	forwarded := func(name string) string {
-		if !s.forwardedHeadersTrusted(c) {
+		if !trusted {
 			return ""
 		}
 		return c.GetHeader(name)

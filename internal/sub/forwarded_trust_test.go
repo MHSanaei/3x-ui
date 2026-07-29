@@ -9,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 func requestFrom(t *testing.T, remoteAddr string, headers map[string]string) *gin.Context {
@@ -24,78 +25,148 @@ func requestFrom(t *testing.T, remoteAddr string, headers map[string]string) *gi
 	return c
 }
 
+// setTrustedProxyCIDRs writes the setting row directly, then reads it back
+// through SettingService so the test fails loudly if the service ever stops
+// reading the key this helper writes.
 func setTrustedProxyCIDRs(t *testing.T, value string) {
 	t.Helper()
 	if err := database.GetDB().Create(&model.Setting{Key: "trustedProxyCIDRs", Value: value}).Error; err != nil {
 		t.Fatalf("set trustedProxyCIDRs: %v", err)
 	}
-}
-
-// An install that never touched trustedProxyCIDRs must keep the legacy
-// behavior exactly: the forwarded host still drives the generated URLs, no
-// matter where the request came from. This is the compatibility guarantee for
-// every deployment whose reverse proxy is not on the loopback default.
-func TestResolveRequest_UnconfiguredInstallStillTrustsForwardedHost(t *testing.T) {
-	initSubDB(t)
-	s := &SubService{}
-
-	c := requestFrom(t, "203.0.113.9:51000", map[string]string{
-		"X-Forwarded-Host":  "sub.example.net",
-		"X-Forwarded-Proto": "https",
-	})
-	scheme, host, _, _ := s.ResolveRequest(c)
-
-	if host != "sub.example.net" {
-		t.Fatalf("unconfigured install must keep trusting X-Forwarded-Host, got host %q", host)
+	settingService := service.SettingService{}
+	stored, err := settingService.GetTrustedProxyCIDRs()
+	if err != nil {
+		t.Fatalf("read trustedProxyCIDRs back through SettingService: %v", err)
 	}
-	if scheme != "https" {
-		t.Fatalf("unconfigured install must keep trusting X-Forwarded-Proto, got scheme %q", scheme)
+	if stored != value {
+		t.Fatalf("SettingService reads trustedProxyCIDRs as %q, want %q — the key this helper writes has drifted", stored, value)
 	}
 }
 
-// Once the operator declares a trust boundary, a request arriving from outside
-// it can no longer point the generated subscription URLs at a host of its
-// choosing; the request's own Host stands.
-func TestResolveRequest_ConfiguredInstallIgnoresUntrustedForwardedHost(t *testing.T) {
+func storedAs(value string) *string {
+	return &value
+}
+
+// The gate must engage only for an operator who declared a trust boundary.
+// Every other state — no stored row, an empty row, a row still holding the
+// shipped default — keeps the legacy behavior, where the forwarded host and
+// proto drive the generated subscription URLs. That is the compatibility
+// guarantee for every deployment whose reverse proxy is not on the loopback
+// default, and the assertion that should fail loudest if it ever regresses.
+func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
+	tests := []struct {
+		name             string
+		stored           *string
+		remoteAddr       string
+		wantScheme       string
+		wantHost         string
+		wantHostWithPort string
+		wantHostHeader   string
+	}{
+		{
+			name:             "no stored row keeps trusting forwarded headers",
+			stored:           nil,
+			remoteAddr:       "203.0.113.9:51000",
+			wantScheme:       "https",
+			wantHost:         "sub.example.net",
+			wantHostWithPort: "sub.example.net",
+			wantHostHeader:   "sub.example.net",
+		},
+		{
+			name:             "empty stored value keeps trusting forwarded headers",
+			stored:           storedAs(""),
+			remoteAddr:       "203.0.113.9:51000",
+			wantScheme:       "https",
+			wantHost:         "sub.example.net",
+			wantHostWithPort: "sub.example.net",
+			wantHostHeader:   "sub.example.net",
+		},
+		{
+			name:             "stored shipped default keeps trusting forwarded headers",
+			stored:           storedAs(shippedTrustedProxyCIDRs()),
+			remoteAddr:       "203.0.113.9:51000",
+			wantScheme:       "https",
+			wantHost:         "sub.example.net",
+			wantHostWithPort: "sub.example.net",
+			wantHostHeader:   "sub.example.net",
+		},
+		{
+			name:             "declared boundary ignores an origin outside it",
+			stored:           storedAs("10.0.0.0/8"),
+			remoteAddr:       "203.0.113.9:51000",
+			wantScheme:       "http",
+			wantHost:         "panel.example.com",
+			wantHostWithPort: "panel.example.com:2096",
+			wantHostHeader:   "panel.example.com",
+		},
+		{
+			name:             "declared boundary trusts an origin inside it",
+			stored:           storedAs("10.0.0.0/8"),
+			remoteAddr:       "10.1.2.3:44000",
+			wantScheme:       "https",
+			wantHost:         "sub.example.net",
+			wantHostWithPort: "sub.example.net",
+			wantHostHeader:   "sub.example.net",
+		},
+		{
+			name:             "declared boundary ignores an unparsable origin",
+			stored:           storedAs("10.0.0.0/8"),
+			remoteAddr:       "not-an-ip",
+			wantScheme:       "http",
+			wantHost:         "panel.example.com",
+			wantHostWithPort: "panel.example.com:2096",
+			wantHostHeader:   "panel.example.com",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			initSubDB(t)
+			if tc.stored != nil {
+				setTrustedProxyCIDRs(t, *tc.stored)
+			}
+			s := &SubService{}
+
+			c := requestFrom(t, tc.remoteAddr, map[string]string{
+				"X-Forwarded-Host":  "sub.example.net",
+				"X-Forwarded-Proto": "https",
+			})
+			scheme, host, hostWithPort, hostHeader := s.ResolveRequest(c)
+
+			if scheme != tc.wantScheme {
+				t.Errorf("scheme = %q, want %q", scheme, tc.wantScheme)
+			}
+			if host != tc.wantHost {
+				t.Errorf("host = %q, want %q", host, tc.wantHost)
+			}
+			if hostWithPort != tc.wantHostWithPort {
+				t.Errorf("hostWithPort = %q, want %q", hostWithPort, tc.wantHostWithPort)
+			}
+			if hostHeader != tc.wantHostHeader {
+				t.Errorf("hostHeader = %q, want %q", hostHeader, tc.wantHostHeader)
+			}
+		})
+	}
+}
+
+// X-Real-IP is the fallback for both the base host and the displayed header
+// host, so it has to be gated alongside X-Forwarded-Host rather than left as a
+// second way to steer the same fields.
+func TestResolveRequest_GatesRealIPFallback(t *testing.T) {
 	initSubDB(t)
 	setTrustedProxyCIDRs(t, "10.0.0.0/8")
 	s := &SubService{}
 
 	c := requestFrom(t, "203.0.113.9:51000", map[string]string{
-		"X-Forwarded-Host":  "attacker.example.net",
-		"X-Forwarded-Proto": "https",
+		"X-Real-IP": "198.51.100.7",
 	})
-	scheme, host, hostWithPort, hostHeader := s.ResolveRequest(c)
+	_, host, _, hostHeader := s.ResolveRequest(c)
 
 	if host != "panel.example.com" {
-		t.Fatalf("forwarded host from an untrusted origin must be ignored, got %q", host)
+		t.Errorf("host = %q, want the request host — X-Real-IP from an untrusted origin must be ignored", host)
 	}
-	if hostWithPort != "panel.example.com:2096" || hostHeader != "panel.example.com" {
-		t.Fatalf("every forwarded-host read must be gated, got hostWithPort=%q hostHeader=%q", hostWithPort, hostHeader)
-	}
-	if scheme != "http" {
-		t.Fatalf("forwarded proto from an untrusted origin must be ignored, got %q", scheme)
-	}
-}
-
-// The declared boundary is honored in the affirmative direction too: a request
-// that really does arrive through the configured proxy keeps working.
-func TestResolveRequest_ConfiguredInstallTrustsProxyInsideTheBoundary(t *testing.T) {
-	initSubDB(t)
-	setTrustedProxyCIDRs(t, "10.0.0.0/8")
-	s := &SubService{}
-
-	c := requestFrom(t, "10.1.2.3:44000", map[string]string{
-		"X-Forwarded-Host":  "sub.example.net",
-		"X-Forwarded-Proto": "https",
-	})
-	scheme, host, _, _ := s.ResolveRequest(c)
-
-	if host != "sub.example.net" {
-		t.Fatalf("a request from inside the declared boundary must still be trusted, got %q", host)
-	}
-	if scheme != "https" {
-		t.Fatalf("scheme from inside the declared boundary must be trusted, got %q", scheme)
+	if hostHeader != "panel.example.com" {
+		t.Errorf("hostHeader = %q, want the request host", hostHeader)
 	}
 }
 

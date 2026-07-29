@@ -4,35 +4,68 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-// defaultTrustedProxyCIDRs mirrors the shipped default of the trustedProxyCIDRs
-// setting. An operator who never touched that setting still carries this value,
-// which is how forwardedHeadersTrusted tells "unconfigured" from "declared".
-const defaultTrustedProxyCIDRs = "127.0.0.1/32,::1/128"
+// shippedTrustedProxyCIDRs is the factory default of the trustedProxyCIDRs
+// setting, read from the setting service rather than restated here so the gate
+// cannot drift from the value an unconfigured install actually carries.
+var shippedTrustedProxyCIDRs = sync.OnceValue(func() string {
+	return (&service.SettingService{}).GetFactoryDefaults()["trustedProxyCIDRs"]
+})
+
+var forwardedHeaderNames = []string{"X-Forwarded-Host", "X-Forwarded-Proto", "X-Real-IP"}
+
+var warnSuppressedForwardedOnce sync.Once
 
 // forwardedHeadersTrusted reports whether X-Forwarded-* headers on this request
-// may drive the generated subscription URLs.
-//
-// The subscription server has always taken X-Forwarded-Host and
-// X-Forwarded-Proto at face value, so a client can point its own links at any
-// host by sending the header. Enforcing the panel's trustedProxyCIDRs
-// unconditionally would break every deployment whose reverse proxy is not on
-// the loopback default, so the check only engages once an operator has
-// declared a trust boundary by changing the setting away from its default.
-// Unconfigured installs keep the legacy behavior byte for byte.
-func (s *SubService) forwardedHeadersTrusted(c *gin.Context) bool {
+// may steer the generated subscription URLs. The gate engages only once the
+// operator has moved trustedProxyCIDRs off its shipped default; an install that
+// never touched the setting keeps the legacy behavior. The recover mirrors
+// internal/web/controller/util.go, where a setting read before InitDB panics
+// rather than returning an error.
+func (s *SubService) forwardedHeadersTrusted(c *gin.Context) (trusted bool) {
+	trusted = true
+	defer func() {
+		_ = recover()
+	}()
+
 	configured, err := s.settingService.GetTrustedProxyCIDRs()
 	if err != nil {
 		return true
 	}
 	configured = strings.TrimSpace(configured)
-	if configured == "" || configured == defaultTrustedProxyCIDRs {
+	if configured == "" || configured == shippedTrustedProxyCIDRs() {
 		return true
 	}
 	return remoteAddrInCIDRs(c.Request.RemoteAddr, configured)
+}
+
+// warnSuppressedForwardedHeaders makes the gate diagnosable: an operator whose
+// subscription links start carrying the raw request host otherwise has nothing
+// connecting that to the setting they changed. The warning fires once per
+// process so a polling client cannot flood the log; every occurrence is logged
+// at debug level.
+func warnSuppressedForwardedHeaders(c *gin.Context) {
+	present := make([]string, 0, len(forwardedHeaderNames))
+	for _, name := range forwardedHeaderNames {
+		if c.GetHeader(name) != "" {
+			present = append(present, name)
+		}
+	}
+	if len(present) == 0 {
+		return
+	}
+	headers := strings.Join(present, ", ")
+	logger.Debugf("sub: ignoring %s from %s, which is outside trustedProxyCIDRs", headers, c.Request.RemoteAddr)
+	warnSuppressedForwardedOnce.Do(func() {
+		logger.Warningf("sub: ignoring %s from %s because it is outside trustedProxyCIDRs; subscription URLs will use the request host. Add the proxy to that setting, or set subURI, if the generated links look wrong.", headers, c.Request.RemoteAddr)
+	})
 }
 
 // remoteAddrInCIDRs reports whether remoteAddr falls inside any CIDR or bare
