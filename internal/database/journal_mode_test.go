@@ -154,3 +154,27 @@ func TestBackupSQLiteTimesOutWaitingForSourceConnection(t *testing.T) {
 		t.Fatalf("BackupSQLite error = %v, want context deadline exceeded", err)
 	}
 }
+
+func TestBackupSQLiteRefusesExistingDestination(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	backupPath := filepath.Join(t.TempDir(), "backup.db")
+	if err := os.WriteFile(backupPath, []byte("existing backup"), 0o600); err != nil {
+		t.Fatalf("create existing destination: %v", err)
+	}
+	err := BackupSQLite(backupPath)
+	want := fmt.Sprintf("sqlite backup destination already exists: %s", backupPath)
+	if err == nil || err.Error() != want {
+		t.Fatalf("BackupSQLite error = %v, want %q", err, want)
+	}
+	data, err := os.ReadFile(backupPath)
+	if err != nil {
+		t.Fatalf("read existing destination: %v", err)
+	}
+	if string(data) != "existing backup" {
+		t.Fatalf("existing destination = %q, want %q", data, "existing backup")
+	}
+}
