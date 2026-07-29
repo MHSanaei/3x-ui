@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Empty, Input, InputNumber, Modal, Select, Space, Switch, Table, Tabs } from 'antd';
 import {
@@ -34,6 +34,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
+  const [hostsList, setHostsList] = useState<HostRow[]>([]);
   const [serverModalOpen, setServerModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<DnsServerValue | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -41,13 +42,18 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
   const dns = (templateSettings?.dns as DnsConfig | undefined) ?? null;
   const dnsEnabled = !!dns;
-  const hostsList = useMemo<HostRow[]>(() => {
-    const hosts = dns?.hosts || {};
-    return Object.entries(hosts).map(([domain, values]) => ({
+  const sourceHosts = dns?.hosts;
+  const incomingHosts = JSON.stringify(sourceHosts ?? {});
+  const lastWrittenHostsRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (incomingHosts === lastWrittenHostsRef.current) return;
+    lastWrittenHostsRef.current = incomingHosts;
+    setHostsList(Object.entries(sourceHosts ?? {}).map(([domain, values]) => ({
       domain,
       values: Array.isArray(values) ? [...values] : [String(values)],
-    }));
-  }, [dns?.hosts]);
+    })));
+  }, [incomingHosts, sourceHosts]);
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {
@@ -86,6 +92,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   }
 
   function syncHosts(next: HostRow[]) {
+    setHostsList(next);
     mutate((tt) => {
       if (!tt.dns) return;
       const obj: Record<string, string | string[]> = {};
@@ -95,6 +102,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
         if (vals.length === 0) continue;
         obj[row.domain] = vals.length === 1 ? vals[0] : vals;
       }
+      lastWrittenHostsRef.current = JSON.stringify(obj);
       if (Object.keys(obj).length > 0) {
         (tt.dns as DnsConfig).hosts = obj;
       } else if ('hosts' in (tt.dns as DnsConfig)) {

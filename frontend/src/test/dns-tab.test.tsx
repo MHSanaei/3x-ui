@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 
 import DnsTab from '@/pages/xray/dns/DnsTab';
@@ -16,6 +16,34 @@ function withHosts(hosts: Record<string, string>): XraySettingsValue {
 }
 
 describe('DnsTab', () => {
+  it('keeps an empty row after adding a host', () => {
+    renderWithProviders(
+      <DnsTab templateSettings={withHosts({ 'first.example': '1.1.1.1' })} setTemplateSettings={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add Host$/ }));
+
+    expect(screen.getAllByLabelText('Domain (e.g. domain:example.com)')).toHaveLength(2);
+  });
+
+  it('keeps a row visible while its domain is incomplete', () => {
+    function Harness() {
+      const [templateSettings, setTemplateSettings] = useState<XraySettingsValue | null>(withHosts({ 'first.example': '1.1.1.1' }));
+      const updateTemplate: SetTemplate = (next) => {
+        setTemplateSettings((current) => (typeof next === 'function' ? next(current) : next));
+      };
+
+      return <DnsTab templateSettings={templateSettings} setTemplateSettings={updateTemplate} />;
+    }
+
+    renderWithProviders(<Harness />);
+    fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
+    fireEvent.change(screen.getByLabelText('Domain (e.g. domain:example.com)'), { target: { value: '' } });
+
+    expect((screen.getByLabelText('Domain (e.g. domain:example.com)') as HTMLInputElement).value).toBe('');
+  });
+
   it('shows hosts from an externally refreshed configuration', () => {
     function Harness() {
       const [templateSettings, setTemplateSettings] = useState<XraySettingsValue | null>(withHosts({ 'first.example': '1.1.1.1' }));
