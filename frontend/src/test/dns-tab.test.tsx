@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 
 import DnsTab from '@/pages/xray/dns/DnsTab';
@@ -17,8 +17,17 @@ function withHosts(hosts: Record<string, string>): XraySettingsValue {
 
 describe('DnsTab', () => {
   it('keeps an empty row after adding a host', () => {
+    function Harness() {
+      const [templateSettings, setTemplateSettings] = useState<XraySettingsValue | null>(withHosts({ 'first.example': '1.1.1.1' }));
+      const updateTemplate: SetTemplate = (next) => {
+        setTemplateSettings((current) => (typeof next === 'function' ? next(current) : next));
+      };
+
+      return <DnsTab templateSettings={templateSettings} setTemplateSettings={updateTemplate} />;
+    }
+
     renderWithProviders(
-      <DnsTab templateSettings={withHosts({ 'first.example': '1.1.1.1' })} setTemplateSettings={vi.fn()} />,
+      <Harness />,
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
