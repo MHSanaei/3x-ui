@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
@@ -56,8 +57,9 @@ func Dialect() string {
 }
 
 const (
-	defaultUsername = "admin"
-	defaultPassword = "admin"
+	defaultUsername       = "admin"
+	defaultPassword       = "admin"
+	sqliteBackupDirPrefix = ".x-ui-backup-"
 )
 
 func allModels() []any {
@@ -1948,6 +1950,9 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
+		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
+			log.Printf("clean SQLite backup directories: %v", err)
+		}
 
 		sync := sqliteSynchronous()
 		journal := sqliteJournalMode()
@@ -2047,6 +2052,31 @@ func sqliteJournalMode() string {
 	default:
 		return "WAL"
 	}
+}
+
+func backupSQLiteStepPages() int {
+	if sqliteJournalMode() == "DELETE" {
+		return 128
+	}
+	return -1
+}
+
+func cleanupSQLiteBackupDirs(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), sqliteBackupDirPrefix) {
+			if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func sqliteSynchronous() string {
@@ -2166,7 +2196,7 @@ func BackupSQLite(dstPath string) (err error) {
 				}
 			}()
 			for {
-				done, err := backup.Step(-1)
+				done, err := backup.Step(backupSQLiteStepPages())
 				if err != nil {
 					return err
 				}

@@ -1303,25 +1303,26 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	if database.IsPostgres() {
 		return s.exportPostgresDB()
 	}
-	backupPath, err := s.backupSQLite()
+	backupPath, cleanup, err := s.backupSQLite()
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(filepath.Dir(backupPath))
+	defer cleanup()
 	return os.ReadFile(backupPath)
 }
 
-func (s *ServerService) backupSQLite() (string, error) {
+func (s *ServerService) backupSQLite() (string, func(), error) {
 	backupDir, err := os.MkdirTemp(filepath.Dir(config.GetDBPath()), ".x-ui-backup-")
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+	cleanup := func() { _ = os.RemoveAll(backupDir) }
 	backupPath := filepath.Join(backupDir, "backup.db")
 	if err := database.BackupSQLite(backupPath); err != nil {
-		_ = os.RemoveAll(backupDir)
-		return "", err
+		cleanup()
+		return "", nil, err
 	}
-	return backupPath, nil
+	return backupPath, cleanup, nil
 }
 
 // BackupFilename returns the filename for a database backup, named after the
@@ -1421,11 +1422,11 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 		return data, "x-ui.db", nil
 	}
 
-	backupPath, err := s.backupSQLite()
+	backupPath, cleanup, err := s.backupSQLite()
 	if err != nil {
 		return nil, "", err
 	}
-	defer os.RemoveAll(filepath.Dir(backupPath))
+	defer cleanup()
 	data, err := database.DumpSQLiteToBytes(backupPath)
 	if err != nil {
 		return nil, "", err
