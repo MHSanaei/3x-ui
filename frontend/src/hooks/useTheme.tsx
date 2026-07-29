@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
@@ -13,7 +13,8 @@ function readBool(key: string, fallback: boolean): boolean {
 }
 
 function applyDom(isDark: boolean, isUltra: boolean) {
-  document.body.setAttribute('class', isDark ? 'dark' : 'light');
+  document.body.classList.remove('dark', 'light');
+  document.body.classList.add(isDark ? 'dark' : 'light');
   if (isUltra) {
     document.documentElement.setAttribute('data-theme', 'ultra-dark');
   } else {
@@ -142,7 +143,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(initialDark);
   const [isUltra, setIsUltra] = useState<boolean>(initialUltra);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyDom(isDark, isUltra);
     localStorage.setItem(STORAGE_DARK, String(isDark));
     localStorage.setItem(STORAGE_ULTRA, String(isUltra));

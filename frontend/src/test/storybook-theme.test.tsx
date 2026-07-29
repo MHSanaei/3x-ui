@@ -2,6 +2,7 @@ import { render } from '@testing-library/react';
 import { expect, test } from 'vitest';
 
 import preview from '../../.storybook/preview';
+import { ThemeProvider } from '@/hooks/useTheme';
 
 const decorator = Array.isArray(preview.decorators) ? preview.decorators[0] : preview.decorators;
 
@@ -23,5 +24,15 @@ test('preserves unrelated body classes when applying the Storybook theme', () =>
 
   expect(document.body.classList.contains('storybook-fixture')).toBe(true);
   expect(document.body.classList.contains('light')).toBe(true);
+  document.body.className = '';
+});
+
+test('preserves unrelated body classes when applying the panel theme', () => {
+  document.body.className = 'panel-fixture';
+
+  render(<ThemeProvider><div>Panel</div></ThemeProvider>);
+
+  expect(document.body.classList.contains('panel-fixture')).toBe(true);
+  expect(document.body.classList.contains('dark') || document.body.classList.contains('light')).toBe(true);
   document.body.className = '';
 });
