@@ -51,6 +51,14 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'SECURITY', group: 'connection', sample: 'TLS' },
 ];
 
+export const SUBSCRIPTION_METADATA_VARIABLES: RemarkVar[] = REMARK_VARIABLES.filter((v) => (
+  v.token === 'EMAIL'
+  || v.token === 'ID'
+  || v.token === 'SHORT_ID'
+  || v.token === 'TELEGRAM_ID'
+  || v.token === 'SUB_ID'
+));
+
 const SAMPLE_BY_TOKEN: Record<string, string> = Object.fromEntries(
   REMARK_VARIABLES.map((v) => [v.token, v.sample]),
 );
@@ -70,9 +78,14 @@ export function hasRemarkTokens(template: string): boolean {
 /**
  * previewRemark renders a template against the sample values, mirroring the
  * backend substitution closely enough for an at-a-glance preview. Unknown
- * tokens collapse to empty, just like the server.
+ * tokens collapse to empty by default; metadata fields can keep unsupported
+ * tokens literal because the backend does the same for backwards compatibility.
  */
-export function previewRemark(template: string): string {
+export function previewRemark(template: string, variables: RemarkVar[] = REMARK_VARIABLES, keepUnknown = false): string {
   if (!hasRemarkTokens(template)) return template;
-  return template.replace(TOKEN_RE, (_m, tok: string) => SAMPLE_BY_TOKEN[tok] ?? '');
+  const allowed = new Set(variables.map((v) => v.token));
+  return template.replace(TOKEN_RE, (match, tok: string) => {
+    if (!allowed.has(tok)) return keepUnknown ? match : '';
+    return SAMPLE_BY_TOKEN[tok] ?? '';
+  });
 }
