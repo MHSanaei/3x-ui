@@ -9769,6 +9769,36 @@
         }
       }
     },
+    "/panel/api/setting/factoryDefaults": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the shipped (factory) default value per browser-safe setting key, so clients can tell a stored value apart from the default it would fall back to. Per-install material (secret, panelGuid, mTLS keys) and credential fields are never included.",
+        "operationId": "post_panel_api_setting_factoryDefaults",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/setting/update": {
       "post": {
         "tags": [

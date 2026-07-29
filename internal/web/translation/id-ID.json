@@ -998,6 +998,7 @@
       "pinFetchFailed": "Tidak dapat mengambil sertifikat"
     },
     "settings": {
+      "defaultTag": "Bawaan",
       "title": "Pengaturan Panel",
       "save": "Simpan",
       "infoDesc": "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan.",

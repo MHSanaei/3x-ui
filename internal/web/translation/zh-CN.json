@@ -998,6 +998,7 @@
       "pinFetchFailed": "无法获取证书"
     },
     "settings": {
+      "defaultTag": "默认",
       "title": "面板设置",
       "save": "保存",
       "infoDesc": "此处的所有更改都需要保存并重启面板才能生效",

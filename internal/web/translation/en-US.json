@@ -1115,6 +1115,7 @@
       "pinFetchFailed": "Could not fetch the certificate"
     },
     "settings": {
+      "defaultTag": "Default",
       "title": "Panel Settings",
       "save": "Save",
       "infoDesc": "Every change made here needs to be saved. Please restart the panel to apply changes.",

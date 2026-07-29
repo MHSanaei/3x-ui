@@ -998,6 +998,7 @@
       "pinFetchFailed": "証明書を取得できませんでした"
     },
     "settings": {
+      "defaultTag": "デフォルト",
       "title": "パネル設定",
       "save": "保存",
       "infoDesc": "ここでのすべての変更は、保存してパネルを再起動する必要があります",

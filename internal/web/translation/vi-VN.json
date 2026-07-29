@@ -998,6 +998,7 @@
       "pinFetchFailed": "Không thể lấy chứng chỉ"
     },
     "settings": {
+      "defaultTag": "Mặc định",
       "title": "Cài đặt",
       "save": "Lưu",
       "infoDesc": "Mọi thay đổi được thực hiện ở đây cần phải được lưu. Vui lòng khởi động lại bảng điều khiển để áp dụng các thay đổi.",

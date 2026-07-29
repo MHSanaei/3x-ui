@@ -998,6 +998,7 @@
       "pinFetchFailed": "No se pudo obtener el certificado"
     },
     "settings": {
+      "defaultTag": "Predeterminado",
       "title": "Configuraciones",
       "save": "Guardar",
       "infoDesc": "Cada cambio realizado aquí debe ser guardado. Por favor, reinicie el panel para aplicar los cambios.",

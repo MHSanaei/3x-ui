@@ -998,6 +998,7 @@
       "pinFetchFailed": "Sertifika alınamadı"
     },
     "settings": {
+      "defaultTag": "Varsayılan",
       "title": "Panel Ayarları",
       "save": "Kaydet",
       "infoDesc": "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın.",

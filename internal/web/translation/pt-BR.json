@@ -998,6 +998,7 @@
       "pinFetchFailed": "Não foi possível obter o certificado"
     },
     "settings": {
+      "defaultTag": "Padrão",
       "title": "Configurações do Painel",
       "save": "Salvar",
       "infoDesc": "Toda alteração feita aqui precisa ser salva. Reinicie o painel para aplicar as alterações.",
