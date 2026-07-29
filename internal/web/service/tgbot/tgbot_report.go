@@ -105,7 +105,10 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 		t.lastStatus = t.serverService.GetStatus(t.lastStatus)
 		t.setCachedStatus(t.lastStatus)
 	}
-	onlines := service.XrayProcess().GetOnlineClients()
+	var onlines []string
+	if process := service.XrayProcess(); process != nil {
+		onlines = process.GetOnlineClients()
+	}
 
 	info += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 	info += t.I18nBot("tgbot.messages.version", "Version=="+config.GetPanelVersion())
@@ -361,11 +364,12 @@ func (t *Tgbot) notifyExhausted() {
 
 // onlineClients retrieves and sends information about online clients.
 func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
-	if !service.XrayProcess().IsRunning() {
+	process := service.XrayProcess()
+	if process == nil || !process.IsRunning() {
 		return
 	}
 
-	onlines := service.XrayProcess().GetOnlineClients()
+	onlines := process.GetOnlineClients()
 	onlinesCount := len(onlines)
 	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(onlinesCount))
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(

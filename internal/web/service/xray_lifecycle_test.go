@@ -13,10 +13,15 @@ func TestXrayLifecycleSnapshotDoesNotOverwriteNewerResult(t *testing.T) {
 	second := xray.NewProcess(&xray.Config{})
 
 	state.replace(first)
+	state.storeResult(first, "first result")
+	process, result := state.snapshot()
+	if process != first || result != "first result" {
+		t.Fatalf("snapshot = (%p, %q), want (%p, %q)", process, result, first, "first result")
+	}
 	state.replace(second)
 	state.storeResult(first, "old result")
 
-	process, result := state.snapshot()
+	process, result = state.snapshot()
 	if process != second {
 		t.Fatal("snapshot returned the replaced process")
 	}
@@ -25,7 +30,7 @@ func TestXrayLifecycleSnapshotDoesNotOverwriteNewerResult(t *testing.T) {
 	}
 }
 
-func TestXrayLifecycleConcurrentStatusAndTrafficReads(t *testing.T) {
+func TestXrayLifecycleConcurrentStatusResultAndTrafficReads(t *testing.T) {
 	previousProcess, previousResult := xrayState.snapshot()
 	t.Cleanup(func() {
 		xrayState.mu.Lock()
@@ -39,25 +44,24 @@ func TestXrayLifecycleConcurrentStatusAndTrafficReads(t *testing.T) {
 	service := XrayService{}
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for range 200 {
 			xrayState.replace(first)
 			xrayState.replace(second)
 		}
-	}()
+	})
 
 	for range 4 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range 200 {
 				_ = service.IsXrayRunning()
 				_ = service.GetXrayResult()
-				_, _, _ = service.GetXrayTraffic()
+				_, _, err := service.GetXrayTraffic()
+				if err == nil || err.Error() != "xray is not running" {
+					t.Errorf("GetXrayTraffic error = %v, want xray is not running", err)
+				}
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

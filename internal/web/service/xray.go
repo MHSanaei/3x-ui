@@ -74,8 +74,8 @@ func (s *XrayService) IsXrayRunning() bool {
 }
 
 // XrayProcess returns the current Xray process instance (may be nil when Xray
-// is not running). It exposes the package-level process to callers outside this
-// package (e.g. the tgbot subpackage) without changing access semantics.
+// is not running). It exposes the lifecycle snapshot to callers outside this
+// package (e.g. the tgbot subpackage).
 func XrayProcess() *xray.Process {
 	return currentXrayProcess()
 }
@@ -1245,9 +1245,8 @@ func (s *XrayService) SetToNeedRestart() {
 
 // GetXrayAPIPort returns the port the local xray process is listening on
 // for its gRPC HandlerService, or 0 when xray isn't currently running.
-// Exposed for the runtime package's LocalRuntime adapter — runtime can't
-// reach into the package-level `p` directly without a service-package
-// import cycle.
+// Exposed for the runtime package's LocalRuntime adapter without a
+// service-package import cycle.
 func (s *XrayService) GetXrayAPIPort() int {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
