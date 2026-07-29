@@ -17,7 +17,7 @@ if (!i18next.isInitialized) {
   });
 }
 
-const withTheme: Decorator = (Story, context) => {
+export const withTheme: Decorator = (Story, context) => {
   const dark = context.globals.theme === 'dark';
   useLayoutEffect(() => {
     document.body.classList.remove('dark', 'light');
