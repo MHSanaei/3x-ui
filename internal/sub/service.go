@@ -2486,18 +2486,27 @@ type PageData struct {
 // ResolveRequest extracts scheme and host info from request/headers consistently.
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
+	// Forwarded headers only steer the generated URLs when the request comes
+	// from a proxy the operator declared trusted; see forwardedHeadersTrusted.
+	forwarded := func(name string) string {
+		if !s.forwardedHeadersTrusted(c) {
+			return ""
+		}
+		return c.GetHeader(name)
+	}
+
 	// scheme
 	scheme = "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+	if c.Request.TLS != nil || strings.EqualFold(forwarded("X-Forwarded-Proto"), "https") {
 		scheme = "https"
 	}
 
 	// base host (no port)
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil && h != "" {
+	if h, err := getHostFromXFH(forwarded("X-Forwarded-Host")); err == nil && h != "" {
 		host = h
 	}
 	if host == "" {
-		host = c.GetHeader("X-Real-IP")
+		host = forwarded("X-Real-IP")
 	}
 	if host == "" {
 		var err error
@@ -2508,7 +2517,7 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 	}
 
 	// host:port for URLs
-	hostWithPort = c.GetHeader("X-Forwarded-Host")
+	hostWithPort = forwarded("X-Forwarded-Host")
 	if hostWithPort == "" {
 		hostWithPort = c.Request.Host
 	}
@@ -2517,9 +2526,9 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 	}
 
 	// header display host
-	hostHeader = c.GetHeader("X-Forwarded-Host")
+	hostHeader = forwarded("X-Forwarded-Host")
 	if hostHeader == "" {
-		hostHeader = c.GetHeader("X-Real-IP")
+		hostHeader = forwarded("X-Real-IP")
 	}
 	if hostHeader == "" {
 		hostHeader = host
