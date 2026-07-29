@@ -188,10 +188,17 @@ install_ndppd() {
 # internal/amneziawg/manager.go's defaultPostUpDown), so this is a belt-and-
 # suspenders persistence step, not the only place it's set.
 enable_ipv6_forwarding() {
-    if ! grep -q "net.ipv6.conf.all.forwarding" /etc/sysctl.conf 2>/dev/null; then
+    # Checking /etc/sysctl.conf by name is not reliable: many distros split
+    # sysctl settings across /etc/sysctl.d/*.conf, and /etc/sysctl.conf is
+    # sometimes just a symlink into that directory, so grep can miss an
+    # already-active setting (false negative -> harmless duplicate line) or
+    # match a disabled/commented one (false positive -> forwarding silently
+    # stays off). Querying the live value directly is accurate regardless of
+    # which file actually set it.
+    if [ "$(sysctl -n net.ipv6.conf.all.forwarding 2>/dev/null)" != "1" ]; then
         echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.conf
     fi
-    if ! grep -q "net.ipv4.ip_forward" /etc/sysctl.conf 2>/dev/null; then
+    if [ "$(sysctl -n net.ipv4.ip_forward 2>/dev/null)" != "1" ]; then
         echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
     fi
     sysctl -p >/dev/null 2>&1 || true
