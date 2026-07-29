@@ -191,16 +191,20 @@ func (p *Process) wait(cmd *exec.Cmd, done chan struct{}) {
 	if err == nil || p.intentionalStop.Load() {
 		return
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	if runtime.GOOS == "windows" {
 		if strings.Contains(strings.ToLower(err.Error()), "exit status 1") {
-			p.exitErr = err
+			p.setExitErr(err)
 			return
 		}
 	}
 	logger.Errorf("mtproto: mtg process exited: %v", err)
+	p.setExitErr(err)
+}
+
+func (p *Process) setExitErr(err error) {
+	p.mu.Lock()
 	p.exitErr = err
+	p.mu.Unlock()
 }
 
 // Stop terminates the running mtg process gracefully, falling back to a kill.
@@ -241,7 +245,7 @@ func (p *Process) Stop() error {
 	return waitForExit(done, forceStopTimeout)
 }
 
-func waitForExit(done chan struct{}, timeout time.Duration) error {
+func waitForExit(done <-chan struct{}, timeout time.Duration) error {
 	if done == nil {
 		return nil
 	}

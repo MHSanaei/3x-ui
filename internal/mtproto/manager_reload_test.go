@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -263,4 +264,46 @@ func TestEnsureNoopKeepsProcess(t *testing.T) {
 		t.Fatalf("an unchanged instance must keep the one process, got %d spawns", got)
 	}
 	mgr.StopAll()
+}
+
+func TestProcessStatusDuringExit(t *testing.T) {
+	installFakeMtg(t)
+	configPath := filepath.Join(t.TempDir(), "mtg.toml")
+	if err := os.WriteFile(configPath, nil, 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	proc := newProcess(configPath, "test")
+	if err := proc.Start(); err != nil {
+		t.Fatalf("start process: %v", err)
+	}
+
+	stopReads := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stopReads:
+					return
+				default:
+					_ = proc.IsRunning()
+					_ = proc.GetResult()
+				}
+			}
+		}()
+	}
+
+	if err := proc.Stop(); err != nil {
+		t.Fatalf("stop process: %v", err)
+	}
+	close(stopReads)
+	readers.Wait()
+	if proc.IsRunning() {
+		t.Fatal("process must not be running after stop")
+	}
+	if got := proc.GetResult(); got != "" {
+		t.Fatalf("GetResult after an intentional stop = %q, want empty", got)
+	}
 }
