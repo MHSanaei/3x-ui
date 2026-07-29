@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -27,6 +28,34 @@ describe('useServerDraft', () => {
     rerender({ server: { value: 'saved' } });
 
     expect(result.current.draft).toEqual({ value: 'saved' });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('compares a preserved draft with the latest server value', () => {
+    const { result, rerender } = renderHook(
+      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      { initialProps: { server: { value: 'one' } } },
+    );
+
+    act(() => result.current.setDraft({ value: 'later' }));
+    rerender({ server: { value: 'saved' } });
+    act(() => result.current.setDraft({ value: 'one' }));
+
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('hydrates clean drafts under StrictMode', () => {
+    const { result, rerender } = renderHook(
+      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      {
+        initialProps: { server: { value: 'one' } },
+        wrapper: StrictMode,
+      },
+    );
+
+    rerender({ server: { value: 'two' } });
+
+    expect(result.current.draft).toEqual({ value: 'two' });
     expect(result.current.isDirty).toBe(false);
   });
 
