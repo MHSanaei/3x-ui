@@ -19,6 +19,7 @@ afterEach(() => {
 
 test('preserves unrelated body classes when applying the Storybook theme', () => {
   document.body.className = 'storybook-fixture dark';
+  document.documentElement.setAttribute('data-theme', 'ultra-dark');
   const { rerender } = render(<StorybookTheme theme="light" />);
 
   expect(document.body.classList.contains('storybook-fixture')).toBe(true);
@@ -39,5 +40,6 @@ test('preserves unrelated body classes when applying the panel theme', () => {
   render(<ThemeProvider><div>Panel</div></ThemeProvider>);
 
   expect(document.body.classList.contains('panel-fixture')).toBe(true);
-  expect(document.body.classList.contains('dark') || document.body.classList.contains('light')).toBe(true);
+  expect(document.body.classList.contains('dark')).toBe(true);
+  expect(document.body.classList.contains('light')).toBe(false);
 });
