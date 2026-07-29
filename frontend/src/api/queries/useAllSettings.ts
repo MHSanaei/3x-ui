@@ -69,8 +69,12 @@ export function useAllSettings() {
     return (await saveMut.mutateAsync({ payload: { ...saved }, saved })).msg;
   }, [allSetting, saveMut]);
   const savePayload = useCallback(
-    async (payload: SettingSavePayload) => (await saveMut.mutateAsync({ payload })).msg,
-    [saveMut],
+    async (payload: SettingSavePayload) => {
+      const saved = new AllSetting(allSetting);
+      Object.assign(saved, payload);
+      return (await saveMut.mutateAsync({ payload, saved })).msg;
+    },
+    [allSetting, saveMut],
   );
   const saveDisabled = !isDirty;
 

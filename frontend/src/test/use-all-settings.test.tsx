@@ -75,4 +75,31 @@ describe('useAllSettings', () => {
     expect(result.current.allSetting.hasTgBotToken).toBe(true);
     expect(result.current.saveDisabled).toBe(true);
   });
+
+  it('establishes a saved baseline for a full-payload security save', async () => {
+    let fetchCount = 0;
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
+      if (url === '/panel/api/setting/all') {
+        fetchCount += 1;
+        return new Msg(true, '', fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' });
+      }
+      return new Msg(true, '');
+    });
+    const queryClient = makeTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useAllSettings(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    act(() => result.current.updateSetting({ tgBotToken: 'secret' }));
+    await act(async () => {
+      await result.current.savePayload({ ...result.current.allSetting, twoFactorEnable: false, twoFactorToken: '' });
+    });
+
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(3));
+    expect(result.current.allSetting.tgBotToken).toBe('');
+    expect(result.current.allSetting.hasTgBotToken).toBe(true);
+    expect(result.current.saveDisabled).toBe(true);
+  });
 });

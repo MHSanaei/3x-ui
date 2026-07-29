@@ -49,7 +49,7 @@ describe('useXraySetting', () => {
     expect(result.current.xraySetting).toBe('{"outbounds":[]}');
   });
 
-  it('restores the effective default when the outbound test URL is cleared', async () => {
+  it('keeps the outbound test URL input empty when it is cleared', async () => {
     const payload = xrayPayload({ outboundTestUrl: 'https://www.google.com/generate_204' });
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/xray/') return new Msg(true, '', JSON.stringify(payload));
@@ -64,7 +64,7 @@ describe('useXraySetting', () => {
     await waitFor(() => expect(result.current.fetched).toBe(true));
     act(() => result.current.setOutboundTestUrl(''));
 
-    expect(result.current.outboundTestUrl).toBe('https://www.google.com/generate_204');
+    expect(result.current.outboundTestUrl).toBe('');
     expect(result.current.saveDisabled).toBe(true);
   });
 });
