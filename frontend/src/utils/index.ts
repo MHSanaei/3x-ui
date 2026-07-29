@@ -685,6 +685,14 @@ export class CPUFormatter {
 }
 
 export class TimeFormatter {
+  static formatClock(unixSec: number): string {
+    const d = new Date(unixSec * 1000);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+
   static formatSecond(second: number): string {
     if (second < 60) return second.toFixed(0) + 's';
     if (second < 3600) return (second / 60).toFixed(0) + 'm';
