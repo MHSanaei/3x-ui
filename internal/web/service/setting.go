@@ -37,6 +37,7 @@ const (
 	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
 	DefaultSubJsonUserAgentRegex  = ``
 	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
 	maxRegexLength                = 2048
 )
 
@@ -61,7 +62,7 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
+	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
