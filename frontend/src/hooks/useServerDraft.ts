@@ -7,35 +7,35 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
   equalsRef.current = equals;
 
   const [draft, setDraft] = useState<T | undefined>();
-  const baselineRef = useRef<T | undefined>(undefined);
+  const [baseline, setBaseline] = useState<T | undefined>();
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(baseline);
   const serverRef = useRef(server);
+  draftRef.current = draft;
+  baselineRef.current = baseline;
   serverRef.current = server;
 
   useEffect(() => {
     if (server === undefined) return;
-    setDraft((current) => {
-      if (
-        baselineRef.current !== undefined
-        && current !== undefined
-        && !equalsRef.current(current, baselineRef.current)
-        && !equalsRef.current(current, server)
-      ) {
-        return current;
-      }
-      baselineRef.current = server;
-      return cloneRef.current(server);
-    });
+    const currentDraft = draftRef.current;
+    const currentBaseline = baselineRef.current;
+    const isDirty = currentDraft !== undefined
+      && currentBaseline !== undefined
+      && !equalsRef.current(currentDraft, currentBaseline);
+    setBaseline(server);
+    if (isDirty && !equalsRef.current(currentDraft, server)) return;
+    setDraft(cloneRef.current(server));
   }, [server]);
 
   const discard = useCallback(() => {
     if (serverRef.current === undefined) return;
-    baselineRef.current = serverRef.current;
+    setBaseline(serverRef.current);
     setDraft(cloneRef.current(serverRef.current));
   }, []);
 
   const isDirty = useMemo(
-    () => draft !== undefined && baselineRef.current !== undefined && !equalsRef.current(draft, baselineRef.current),
-    [draft],
+    () => draft !== undefined && baseline !== undefined && !equalsRef.current(draft, baseline),
+    [baseline, draft],
   );
 
   return { draft, setDraft, isDirty, discard };
