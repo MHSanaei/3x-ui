@@ -171,7 +171,12 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
-    sourcemap: true,
+    // Everything in outDir is embedded into the Go binary via embed.FS, so
+    // production sourcemaps (~18MB across 112 files, 72% of dist) ship inside
+    // every release build. Nothing consumes them there; `npm run dev` serves
+    // its own maps regardless of this setting. Flip locally to debug a
+    // production bundle.
+    sourcemap: false,
     target: 'es2020',
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
