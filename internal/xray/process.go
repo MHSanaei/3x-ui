@@ -219,6 +219,7 @@ func (p *process) SetOnlineAPISupport(v OnlineAPISupport) {
 var (
 	xrayGracefulStopTimeout = 5 * time.Second
 	xrayForceStopTimeout    = 2 * time.Second
+	xrayVersionTimeout      = 5 * time.Second
 	// OnCrash is called when xray crashes unexpectedly. Set from web layer.
 	OnCrash func(err error)
 )
@@ -494,7 +495,9 @@ func (p *process) refreshAPIPort() {
 // refreshVersion updates the version string by running the Xray binary with -version.
 func (p *process) refreshVersion() {
 	version := "Unknown"
-	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-version")
+	ctx, cancel := context.WithTimeout(context.Background(), xrayVersionTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, GetBinaryPath(), "-version")
 	if data, err := cmd.Output(); err == nil {
 		if datas := bytes.Split(data, []byte(" ")); len(datas) > 1 {
 			version = string(datas[1])
