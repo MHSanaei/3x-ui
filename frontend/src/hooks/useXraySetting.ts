@@ -21,6 +21,10 @@ const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
 // results progressively.
 const HTTP_BATCH_CHUNK = 16;
 
+function normalizeOutboundTestUrl(url: string) {
+  return url || DEFAULT_TEST_URL;
+}
+
 export function isUdpOutbound(outbound: unknown): boolean {
   const o = outbound as { protocol?: string; streamSettings?: { network?: string } } | null | undefined;
   const p = o?.protocol;
@@ -127,6 +131,8 @@ export function useXraySetting(): UseXraySettingResult {
   const [xraySetting, setXraySettingState] = useState('');
   const [templateSettings, setTemplateSettingsState] = useState<XraySettingsValue | null>(null);
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
+  const [savedXraySetting, setSavedXraySetting] = useState('');
+  const [savedOutboundTestUrl, setSavedOutboundTestUrl] = useState(DEFAULT_TEST_URL);
   const [inboundTags, setInboundTags] = useState<string[]>([]);
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
   const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
@@ -137,40 +143,40 @@ export function useXraySetting(): UseXraySettingResult {
   const [subscriptionTestStates, setSubscriptionTestStates] = useState<Record<string, OutboundTestState>>({});
   const [testingAll, setTestingAll] = useState(false);
 
-  const oldXraySettingRef = useRef('');
-  const oldOutboundTestUrlRef = useRef(DEFAULT_TEST_URL);
   const syncingRef = useRef(false);
   const xraySettingRef = useRef('');
   const outboundTestUrlRef = useRef(outboundTestUrl);
+  const savedXraySettingRef = useRef(savedXraySetting);
+  const savedOutboundTestUrlRef = useRef(savedOutboundTestUrl);
   const templateSettingsRef = useRef<XraySettingsValue | null>(null);
   const subscriptionOutboundsRef = useRef<unknown[]>([]);
 
   xraySettingRef.current = xraySetting;
   outboundTestUrlRef.current = outboundTestUrl;
+  savedXraySettingRef.current = savedXraySetting;
+  savedOutboundTestUrlRef.current = savedOutboundTestUrl;
   templateSettingsRef.current = templateSettings;
   subscriptionOutboundsRef.current = subscriptionOutbounds;
 
-  // Seed local editor state from the config query. Runs on first fetch and
-  // every time the query refetches (e.g. after a successful save).
   useEffect(() => {
     if (!configQuery.data) return;
     const obj = configQuery.data;
     const pretty = JSON.stringify(obj.xraySetting, null, 2);
-    const isDirty = oldXraySettingRef.current !== xraySettingRef.current
-      || oldOutboundTestUrlRef.current !== outboundTestUrlRef.current;
-    if (isDirty) return;
-    syncingRef.current = true;
-    setXraySettingState(pretty);
-    setTemplateSettingsState(obj.xraySetting);
-    oldXraySettingRef.current = pretty;
-    syncingRef.current = false;
+    const nextUrl = normalizeOutboundTestUrl(obj.outboundTestUrl || '');
     setInboundTags(obj.inboundTags || []);
     setClientReverseTags(obj.clientReverseTags || []);
     setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
     setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
-    const nextUrl = obj.outboundTestUrl || DEFAULT_TEST_URL;
+    const isDirty = savedXraySettingRef.current !== xraySettingRef.current
+      || savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current);
+    if (isDirty) return;
+    syncingRef.current = true;
+    setXraySettingState(pretty);
+    setTemplateSettingsState(obj.xraySetting);
+    setSavedXraySetting(pretty);
+    syncingRef.current = false;
     setOutboundTestUrlState(nextUrl);
-    oldOutboundTestUrlRef.current = nextUrl;
+    setSavedOutboundTestUrl(nextUrl);
   }, [configQuery.data]);
 
   const fetched = configQuery.data !== undefined || configQuery.isError;
@@ -220,7 +226,7 @@ export function useXraySetting(): UseXraySettingResult {
   const saveMut = useMutation({
     mutationFn: async () => {
       const sentXraySetting = xraySettingRef.current;
-      const sentTestUrl = outboundTestUrlRef.current || DEFAULT_TEST_URL;
+      const sentTestUrl = normalizeOutboundTestUrl(outboundTestUrlRef.current);
       const msg = await HttpUtil.post('/panel/api/xray/update', {
         xraySetting: sentXraySetting,
         outboundTestUrl: sentTestUrl,
@@ -229,8 +235,8 @@ export function useXraySetting(): UseXraySettingResult {
     },
     onSuccess: ({ msg, sentXraySetting, sentTestUrl }) => {
       if (!msg?.success) return;
-      oldXraySettingRef.current = sentXraySetting;
-      oldOutboundTestUrlRef.current = sentTestUrl;
+      setSavedXraySetting(sentXraySetting);
+      setSavedOutboundTestUrl(sentTestUrl);
       queryClient.invalidateQueries({ queryKey: keys.xray.config() });
     },
   });
@@ -424,8 +430,8 @@ export function useXraySetting(): UseXraySettingResult {
     }
   }, [testingAll, testOutbound, testSubscriptionOutbound, postOutboundTestBatch]);
 
-  const saveDisabled = oldXraySettingRef.current === xraySetting
-    && oldOutboundTestUrlRef.current === outboundTestUrl;
+  const saveDisabled = savedXraySetting === xraySetting
+    && savedOutboundTestUrl === normalizeOutboundTestUrl(outboundTestUrl);
 
   const outboundsTraffic = useMemo(() => trafficQuery.data ?? [], [trafficQuery.data]);
 
