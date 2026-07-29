@@ -58,7 +58,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
       domain,
       values: Array.isArray(values) ? [...values] : [String(values)],
     })));
-  }, [incomingHosts, sourceHosts]);
+  }, [dnsEnabled, incomingHosts, sourceHosts]);
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {

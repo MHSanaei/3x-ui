@@ -78,4 +78,30 @@ describe('DnsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh hosts' }));
     expect((screen.getByLabelText('Domain (e.g. domain:example.com)') as HTMLInputElement).value).toBe('second.example');
   });
+
+  it('clears an incomplete host draft when DNS is disabled', () => {
+    function Harness() {
+      const [templateSettings, setTemplateSettings] = useState<XraySettingsValue | null>(withHosts({ 'first.example': '1.1.1.1' }));
+      const updateTemplate: SetTemplate = (next) => {
+        setTemplateSettings((current) => (typeof next === 'function' ? next(current) : next));
+      };
+
+      return (
+        <>
+          <button type="button" onClick={() => setTemplateSettings({})}>Disable DNS</button>
+          <button type="button" onClick={() => setTemplateSettings(withHosts({}))}>Enable DNS</button>
+          <DnsTab templateSettings={templateSettings} setTemplateSettings={updateTemplate} />
+        </>
+      );
+    }
+
+    renderWithProviders(<Harness />);
+    fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
+    fireEvent.change(screen.getByLabelText('Domain (e.g. domain:example.com)'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Disable DNS' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enable DNS' }));
+    fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
+
+    expect(screen.queryByLabelText('Domain (e.g. domain:example.com)')).toBeNull();
+  });
 });
