@@ -452,8 +452,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
 		return false, 0, err
 	}
-	if p != nil {
-		err1 = s.xrayApi.Init(p.GetAPIPort())
+	if process := currentXrayProcess(); process != nil {
+		err1 = s.xrayApi.Init(process.GetAPIPort())
 		if err1 != nil {
 			return true, int64(len(traffics)), nil
 		}

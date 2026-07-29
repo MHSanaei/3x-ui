@@ -1,8 +1,25 @@
+.ant-sidebar {
+  flex: 0 0 var(--sider-rail, 72px);
+  width: var(--sider-rail, 72px);
+  position: relative;
+  z-index: 210;
+}
+
 .ant-sidebar > .ant-layout-sider {
   position: sticky;
   top: 0;
   height: 100vh;
   align-self: flex-start;
+}
+
+.ant-sidebar > .ant-layout-sider:not(.ant-layout-sider-collapsed) {
+  box-shadow: 0 0 32px rgba(0, 0, 0, 0.22);
+}
+
+.sider-nav .ant-menu-item .anticon,
+.sider-nav .ant-menu-submenu-title .anticon,
+.sider-utility .ant-menu-item .anticon {
+  font-size: 16px;
 }
 
 .sider-brand,
@@ -18,16 +35,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px 14px 24px;
+  height: 58px;
+  padding: 0 16px 0 24px;
   border-bottom: 1px solid var(--ant-color-border-secondary);
   user-select: none;
-}
-
-.sider-brand-collapsed {
-  justify-content: center;
-  font-size: 16px;
-  padding: 14px 4px;
-  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .brand-block {
@@ -35,10 +48,6 @@
   align-items: center;
   min-width: 0;
   line-height: 1.1;
-}
-
-.sider-brand-collapsed .brand-block {
-  flex: 0 0 auto;
 }
 
 .brand-actions {
@@ -246,11 +255,6 @@
   outline: none;
 }
 
-.sider-version.is-collapsed {
-  justify-content: center;
-  padding: 8px 0;
-}
-
 .drawer-footer {
   flex: 0 0 auto;
   padding: 8px 8px 12px;
@@ -261,8 +265,7 @@
     display: inline-flex;
   }
 
-  .ant-sidebar > .ant-layout-sider .ant-layout-sider-children,
-  .ant-sidebar > .ant-layout-sider .ant-layout-sider-trigger {
+  .ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
     display: none;
   }
 
@@ -271,6 +274,11 @@
     max-width: 0 !important;
     min-width: 0 !important;
     width: 0 !important;
+  }
+
+  .ant-sidebar {
+    flex: 0 0 0;
+    width: 0;
   }
 }
 

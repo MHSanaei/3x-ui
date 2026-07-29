@@ -171,7 +171,13 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
-    sourcemap: true,
+    // Everything in outDir is embedded into the Go binary via embed.FS, so
+    // production sourcemaps (~18MB across 112 files, 72% of dist) ship inside
+    // every release build. Nothing consumes them there; `npm run dev` serves
+    // its own maps regardless of this setting. To debug a minified bundle
+    // (including the XUI_DEBUG serve-from-disk path), build once with
+    // XUI_SOURCEMAP=true — no tracked-file edit to accidentally commit.
+    sourcemap: process.env.XUI_SOURCEMAP === 'true',
     target: 'es2020',
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
