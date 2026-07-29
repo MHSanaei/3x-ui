@@ -14,7 +14,6 @@ import {
   type OutboundTrafficRow,
 } from '@/schemas/xray';
 
-const DIRTY_POLL_MS = 1000;
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
 // One HTTP-mode batch request tests this many outbounds through a single
 // shared temp xray instance; chunking keeps responses bounded (~30s worst
@@ -125,7 +124,6 @@ export function useXraySetting(): UseXraySettingResult {
     staleTime: Infinity,
   });
 
-  const [saveDisabled, setSaveDisabled] = useState(true);
   const [xraySetting, setXraySettingState] = useState('');
   const [templateSettings, setTemplateSettingsState] = useState<XraySettingsValue | null>(null);
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
@@ -140,7 +138,7 @@ export function useXraySetting(): UseXraySettingResult {
   const [testingAll, setTestingAll] = useState(false);
 
   const oldXraySettingRef = useRef('');
-  const oldOutboundTestUrlRef = useRef('');
+  const oldOutboundTestUrlRef = useRef(DEFAULT_TEST_URL);
   const syncingRef = useRef(false);
   const xraySettingRef = useRef('');
   const outboundTestUrlRef = useRef(outboundTestUrl);
@@ -158,6 +156,9 @@ export function useXraySetting(): UseXraySettingResult {
     if (!configQuery.data) return;
     const obj = configQuery.data;
     const pretty = JSON.stringify(obj.xraySetting, null, 2);
+    const isDirty = oldXraySettingRef.current !== xraySettingRef.current
+      || oldOutboundTestUrlRef.current !== outboundTestUrlRef.current;
+    if (isDirty) return;
     syncingRef.current = true;
     setXraySettingState(pretty);
     setTemplateSettingsState(obj.xraySetting);
@@ -170,7 +171,6 @@ export function useXraySetting(): UseXraySettingResult {
     const nextUrl = obj.outboundTestUrl || DEFAULT_TEST_URL;
     setOutboundTestUrlState(nextUrl);
     oldOutboundTestUrlRef.current = nextUrl;
-    setSaveDisabled(true);
   }, [configQuery.data]);
 
   const fetched = configQuery.data !== undefined || configQuery.isError;
@@ -231,7 +231,6 @@ export function useXraySetting(): UseXraySettingResult {
       if (!msg?.success) return;
       oldXraySettingRef.current = sentXraySetting;
       oldOutboundTestUrlRef.current = sentTestUrl;
-      setSaveDisabled(true);
       queryClient.invalidateQueries({ queryKey: keys.xray.config() });
     },
   });
@@ -425,14 +424,8 @@ export function useXraySetting(): UseXraySettingResult {
     }
   }, [testingAll, testOutbound, testSubscriptionOutbound, postOutboundTestBatch]);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      const dirtyXray = oldXraySettingRef.current !== xraySettingRef.current;
-      const dirtyUrl = oldOutboundTestUrlRef.current !== outboundTestUrlRef.current;
-      setSaveDisabled(!(dirtyXray || dirtyUrl));
-    }, DIRTY_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, []);
+  const saveDisabled = oldXraySettingRef.current === xraySetting
+    && oldOutboundTestUrlRef.current === outboundTestUrl;
 
   const outboundsTraffic = useMemo(() => trafficQuery.data ?? [], [trafficQuery.data]);
 
