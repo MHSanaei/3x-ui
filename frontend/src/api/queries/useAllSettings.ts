@@ -28,7 +28,7 @@ export function useAllSettings() {
   });
 
   const server = useMemo(() => new AllSetting(query.data), [query.data]);
-  const { draft, setDraft, isDirty, discard } = useServerDraft(
+  const { draft, setDraft, isDirty } = useServerDraft(
     query.data === undefined ? undefined : server,
     (setting) => new AllSetting(setting),
     (left, right) => left.equals(right),
@@ -70,6 +70,5 @@ export function useAllSettings() {
     saveDisabled,
     saveAll,
     savePayload,
-    discard,
   };
 }
