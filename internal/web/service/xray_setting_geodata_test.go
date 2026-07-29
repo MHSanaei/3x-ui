@@ -119,6 +119,28 @@ func TestParseGeodataFile(t *testing.T) {
 	}
 }
 
+func TestParseGeodataFileRejectsOversizedFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "geosite.dat")
+	// Sparse-write a file one byte past the cap without actually holding
+	// maxGeodataFileSize+1 bytes of valid protobuf in memory for the test.
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create fixture: %v", err)
+	}
+	if err := f.Truncate(maxGeodataFileSize + 1); err != nil {
+		t.Fatalf("truncate fixture to %d bytes: %v", maxGeodataFileSize+1, err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close fixture: %v", err)
+	}
+
+	_, err = parseGeodataFile(geodataFileEntry{name: "geosite.dat", path: path, kind: geositeFile})
+	if err == nil {
+		t.Fatal("expected parseGeodataFile to reject a file over the size limit, got nil error")
+	}
+}
+
 func TestFormatGeodataSuggestion(t *testing.T) {
 	tests := []struct {
 		name string
@@ -130,12 +152,20 @@ func TestFormatGeodataSuggestion(t *testing.T) {
 		{name: "geoip.dat", kind: geoipFile, code: "PRIVATE", want: "geoip:private"},
 		{name: "geosite_roscom.dat", kind: geositeFile, code: "SOME-CODE", want: "ext:geosite_roscom.dat:some-code"},
 		{name: "geoip_rosip.dat", kind: geoipFile, code: "RU", want: "ext:geoip_rosip.dat:ru"},
+		// Default filenames are matched case-insensitively, same as
+		// scanGeodataFiles -- a file that IS the default one on a
+		// case-insensitive filesystem (e.g. Windows) must still get the
+		// short geosite:/geoip: form, not ext:.
+		{name: "GEOSITE.DAT", kind: geositeFile, code: "CN", want: "geosite:cn"},
+		{name: "GeoIP.dat", kind: geoipFile, code: "PRIVATE", want: "geoip:private"},
 	}
 	for _, tt := range tests {
-		entry := geodataFileEntry{name: tt.name, kind: tt.kind}
-		if got := formatGeodataSuggestion(entry, tt.code); got != tt.want {
-			t.Errorf("formatGeodataSuggestion(%q, %q) = %q, want %q", tt.name, tt.code, got, tt.want)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			entry := geodataFileEntry{name: tt.name, kind: tt.kind}
+			if got := formatGeodataSuggestion(entry, tt.code); got != tt.want {
+				t.Errorf("formatGeodataSuggestion(%q, %q) = %q, want %q", tt.name, tt.code, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -144,29 +174,34 @@ func TestGeodataFingerprintOf(t *testing.T) {
 		{name: "geoip.dat", size: 100, modTime: time.Unix(1, 0)},
 		{name: "geosite.dat", size: 200, modTime: time.Unix(2, 0)},
 	}
-	b := []geodataFileEntry{ // same content, different order
-		{name: "geosite.dat", size: 200, modTime: time.Unix(2, 0)},
-		{name: "geoip.dat", size: 100, modTime: time.Unix(1, 0)},
-	}
-	if !slices.Equal(geodataFingerprintOf(a), geodataFingerprintOf(b)) {
-		t.Fatal("fingerprints should be equal regardless of input order")
-	}
 
-	c := []geodataFileEntry{
-		{name: "geoip.dat", size: 999, modTime: time.Unix(1, 0)}, // size changed
-		{name: "geosite.dat", size: 200, modTime: time.Unix(2, 0)},
-	}
-	if slices.Equal(geodataFingerprintOf(a), geodataFingerprintOf(c)) {
-		t.Fatal("fingerprints should differ when a file's size changes")
-	}
+	t.Run("order independent", func(t *testing.T) {
+		b := []geodataFileEntry{ // same content, different order
+			{name: "geosite.dat", size: 200, modTime: time.Unix(2, 0)},
+			{name: "geoip.dat", size: 100, modTime: time.Unix(1, 0)},
+		}
+		if !slices.Equal(geodataFingerprintOf(a), geodataFingerprintOf(b)) {
+			t.Fatal("fingerprints should be equal regardless of input order")
+		}
+	})
+
+	t.Run("size change invalidates", func(t *testing.T) {
+		c := []geodataFileEntry{
+			{name: "geoip.dat", size: 999, modTime: time.Unix(1, 0)}, // size changed
+			{name: "geosite.dat", size: 200, modTime: time.Unix(2, 0)},
+		}
+		if slices.Equal(geodataFingerprintOf(a), geodataFingerprintOf(c)) {
+			t.Fatal("fingerprints should differ when a file's size changes")
+		}
+	})
 }
 
 func TestGetGeodataCategories_SkipsMalformedFile(t *testing.T) {
 	dir := t.TempDir()
 	writeGeoSiteFixture(t, dir, "geosite.dat", "CN")
 	// An unterminated varint (continuation bit set on every byte) is
-	// guaranteed to fail proto.Unmarshal, unlike an arbitrary text string
-	// which might accidentally parse as protobuf garbage.
+	// guaranteed to fail parsing, unlike an arbitrary text string which
+	// might accidentally parse as protobuf garbage.
 	if err := os.WriteFile(filepath.Join(dir, "geosite_broken.dat"), []byte{0xFF, 0xFF, 0xFF}, 0o644); err != nil {
 		t.Fatalf("write broken fixture: %v", err)
 	}
@@ -174,8 +209,13 @@ func TestGetGeodataCategories_SkipsMalformedFile(t *testing.T) {
 	entries := scanGeodataFiles(dir)
 	result := buildGeodataCategories(entries)
 
-	if !slices.Contains(result.Domain, "geosite:cn") {
-		t.Fatalf("expected the valid file's category to survive, got %v", result.Domain)
+	// Exact equality, not just Contains: a regression that made the broken
+	// file emit junk suggestions alongside the good one must fail this.
+	if !slices.Equal(result.Domain, []string{"geosite:cn"}) {
+		t.Fatalf("result.Domain = %v, want [geosite:cn]", result.Domain)
+	}
+	if len(result.IP) != 0 {
+		t.Fatalf("result.IP = %v, want empty", result.IP)
 	}
 }
 
@@ -193,20 +233,62 @@ func TestGetGeodataCategories_EndToEnd(t *testing.T) {
 	svc := &XraySettingService{}
 	result := svc.GetGeodataCategories()
 
-	if !slices.Contains(result.Domain, "geosite:cn") {
-		t.Errorf("Domain = %v, want to contain geosite:cn", result.Domain)
+	wantDomain := []string{"ext:geosite_roscom.dat:some-code", "geosite:cn"}
+	if !slices.Equal(result.Domain, wantDomain) {
+		t.Errorf("Domain = %v, want %v", result.Domain, wantDomain)
 	}
-	if !slices.Contains(result.Domain, "ext:geosite_roscom.dat:some-code") {
-		t.Errorf("Domain = %v, want to contain ext:geosite_roscom.dat:some-code", result.Domain)
-	}
-	if !slices.Contains(result.IP, "geoip:private") {
-		t.Errorf("IP = %v, want to contain geoip:private", result.IP)
+	if !slices.Equal(result.IP, []string{"geoip:private"}) {
+		t.Errorf("IP = %v, want [geoip:private]", result.IP)
 	}
 
 	// Cache must reflect a file that appears after the first call.
 	writeGeoIPFixture(t, dir, "geoip_rosip.dat", "RU")
 	result = svc.GetGeodataCategories()
-	if !slices.Contains(result.IP, "ext:geoip_rosip.dat:ru") {
-		t.Errorf("IP after adding a new file = %v, want to contain ext:geoip_rosip.dat:ru", result.IP)
+	wantIP := []string{"ext:geoip_rosip.dat:ru", "geoip:private"}
+	if !slices.Equal(result.IP, wantIP) {
+		t.Errorf("IP after adding a new file = %v, want %v", result.IP, wantIP)
+	}
+}
+
+func TestGetGeodataCategories_CacheHitSkipsReparse(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", dir)
+	writeGeoSiteFixture(t, dir, "geosite.dat", "CN")
+	writeGeoIPFixture(t, dir, "geoip.dat", "PRIVATE")
+
+	svc := &XraySettingService{}
+
+	before := geodataParseCalls.Load()
+	first := svc.GetGeodataCategories()
+	afterFirst := geodataParseCalls.Load()
+	if afterFirst == before {
+		t.Fatal("expected the first call (a cache miss) to parse at least one file")
+	}
+
+	second := svc.GetGeodataCategories()
+	afterSecond := geodataParseCalls.Load()
+	if afterSecond != afterFirst {
+		t.Fatalf("expected a second call with an unchanged fingerprint to skip re-parsing entirely, but the parse count went from %d to %d", afterFirst, afterSecond)
+	}
+	if !slices.Equal(first.Domain, second.Domain) || !slices.Equal(first.IP, second.IP) {
+		t.Fatalf("cached result differs from the original: first=%+v second=%+v", first, second)
+	}
+}
+
+func TestGetGeodataCategories_ReturnsIndependentSlices(t *testing.T) {
+	// The cache must never hand out its own backing array: a caller that
+	// mutates its result (e.g. sorts or appends to it) must not corrupt what
+	// other callers read from the shared cache on their next call.
+	dir := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", dir)
+	writeGeoSiteFixture(t, dir, "geosite.dat", "CN", "YOUTUBE")
+
+	svc := &XraySettingService{}
+	first := svc.GetGeodataCategories()
+	first.Domain[0] = "tampered"
+
+	second := svc.GetGeodataCategories()
+	if slices.Contains(second.Domain, "tampered") {
+		t.Fatalf("mutating one caller's result leaked into the cache: %v", second.Domain)
 	}
 }

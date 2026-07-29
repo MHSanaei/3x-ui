@@ -330,6 +330,11 @@ export interface FallbackParentInfo {
   path?: string;
 }
 
+export interface GeodataCategories {
+  domain: string[];
+  ip: string[];
+}
+
 export interface HistoryOfSeeders {
   id: number;
   seederName: string;

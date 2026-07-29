@@ -1,19 +1,34 @@
 package service
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"github.com/xtls/xray-core/common/geodata"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protowire"
 )
+
+// maxGeodataFileSize bounds how much of one .dat file parseGeodataFile will
+// read from disk. Real Loyalsoldier-published geoip.dat/geosite.dat files
+// are a few MB to a few tens of MB; this leaves generous headroom while
+// still refusing an unbounded/corrupt file instead of reading it whole.
+const maxGeodataFileSize = 256 << 20 // 256 MiB
+
+// geodataParseCalls counts parseGeodataFile invocations. Not read by any
+// non-test code; exists so tests can assert that GetGeodataCategories'
+// cache actually skips re-parsing on an unchanged fingerprint, rather than
+// only checking the (identical either way) returned value.
+var geodataParseCalls atomic.Int64
 
 // GeodataCategories lists every geosite/geoip category found in the .dat
 // files currently present in the Xray bin folder, already formatted as
@@ -22,8 +37,8 @@ import (
 // GET /panel/api/xray/getGeodataCategories for the routing rule editor's
 // Domain/IP autocomplete.
 type GeodataCategories struct {
-	Domain []string `json:"domain"`
-	IP     []string `json:"ip"`
+	Domain []string `json:"domain" example:"[\"geosite:cn\",\"geosite:youtube\"]"`
+	IP     []string `json:"ip" example:"[\"geoip:cn\",\"geoip:private\"]"`
 }
 
 // geodataFileKind distinguishes a geosite-shaped .dat file (parsed as a
@@ -73,26 +88,36 @@ type geodataCategoryCache struct {
 // file actually changes -- e.g. because xray-core's own geodata auto-update
 // downloaded a new one. A file that fails to parse (e.g. an interrupted
 // download) is skipped with a logged warning; it never fails the request.
+//
+// The mutex is held for the full scan-and-maybe-parse instead of being
+// released around buildGeodataCategories: the work is bounded and
+// idempotent (a full-file parse, not an unbounded/blocking operation), so
+// serializing it is simpler and cheaper than the alternative of N
+// concurrent cache misses (e.g. several browser tabs open at once) each
+// independently re-parsing every .dat file before any of them get to store
+// a result.
 func (s *XraySettingService) GetGeodataCategories() GeodataCategories {
 	dir := config.GetBinFolderPath()
 	entries := scanGeodataFiles(dir)
 	fingerprint := geodataFingerprintOf(entries)
 
 	s.geodataMu.Lock()
+	defer s.geodataMu.Unlock()
+
 	if s.geodataCache != nil && slices.Equal(s.geodataCache.fingerprint, fingerprint) {
-		result := s.geodataCache.result
-		s.geodataMu.Unlock()
-		return result
+		return cloneGeodataCategories(s.geodataCache.result)
 	}
-	s.geodataMu.Unlock()
 
 	result := buildGeodataCategories(entries)
-
-	s.geodataMu.Lock()
 	s.geodataCache = &geodataCategoryCache{fingerprint: fingerprint, result: result}
-	s.geodataMu.Unlock()
+	return cloneGeodataCategories(result)
+}
 
-	return result
+// cloneGeodataCategories returns a copy whose slices don't alias the
+// cache's own, so a caller mutating (e.g. sorting, appending to) its result
+// can never corrupt what other goroutines read from the shared cache.
+func cloneGeodataCategories(c GeodataCategories) GeodataCategories {
+	return GeodataCategories{Domain: slices.Clone(c.Domain), IP: slices.Clone(c.IP)}
 }
 
 // scanGeodataFiles lists dir for files matched by name: geosite*.dat parses
@@ -195,45 +220,99 @@ func buildGeodataCategories(entries []geodataFileEntry) GeodataCategories {
 	return result
 }
 
-// parseGeodataFile fully unmarshals one geosite*/geoip*.dat file and returns
-// every category Code it contains. xray-core's own loaders (loadSite/loadIP
-// in common/geodata/geodat_loader.go) stream a single named category out of
-// a file via an unexported, custom varint-prefixed scanner; enumerating
-// *every* category instead needs a full-file proto.Unmarshal into the
-// package's exported GeoSiteList/GeoIPList message types.
+// parseGeodataFile returns every category Code found in one geosite*/geoip*.dat
+// file. xray-core's own loaders (loadSite/loadIP in
+// common/geodata/geodat_loader.go) stream a single named category out of a
+// file via an unexported, custom varint-prefixed scanner; enumerating
+// *every* category here instead walks the raw protobuf wire format directly
+// via codesFromGeodataList rather than a full proto.Unmarshal, since the
+// only field ever read is each entry's Code -- a full unmarshal would also
+// materialize every Domain/CIDR message the file contains (the bulk of a
+// real geoip.dat/geosite.dat's size) just to throw it away unused.
 func parseGeodataFile(entry geodataFileEntry) ([]string, error) {
-	data, err := os.ReadFile(entry.path)
+	geodataParseCalls.Add(1)
+
+	f, err := os.Open(entry.path)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
+
+	data, err := io.ReadAll(io.LimitReader(f, maxGeodataFileSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxGeodataFileSize {
+		return nil, fmt.Errorf("file exceeds %d byte limit", maxGeodataFileSize)
+	}
 
 	switch entry.kind {
-	case geositeFile:
-		var list geodata.GeoSiteList
-		if err := proto.Unmarshal(data, &list); err != nil {
-			return nil, err
-		}
-		codes := make([]string, 0, len(list.GetEntry()))
-		for _, site := range list.GetEntry() {
-			if code := site.GetCode(); code != "" {
-				codes = append(codes, code)
-			}
-		}
-		return codes, nil
-	case geoipFile:
-		var list geodata.GeoIPList
-		if err := proto.Unmarshal(data, &list); err != nil {
-			return nil, err
-		}
-		codes := make([]string, 0, len(list.GetEntry()))
-		for _, ip := range list.GetEntry() {
-			if code := ip.GetCode(); code != "" {
-				codes = append(codes, code)
-			}
-		}
-		return codes, nil
+	case geositeFile, geoipFile:
+		return codesFromGeodataList(data)
 	}
 	return nil, nil
+}
+
+// codesFromGeodataList extracts every entry's Code from a serialized
+// GeoSiteList or GeoIPList without unmarshaling into either message type.
+// Both list messages put their repeated "entry" on field 1, and both
+// GeoSite and GeoIP put "code" on field 1 of that entry (see
+// common/geodata/geodat.proto) -- so every other field, including the
+// repeated Domain/CIDR payloads that make up nearly all of a real file's
+// size, is skipped via protowire.ConsumeFieldValue without ever being
+// decoded into an allocated message.
+func codesFromGeodataList(data []byte) ([]string, error) {
+	var codes []string
+	for len(data) > 0 {
+		num, typ, n := protowire.ConsumeTag(data)
+		if n < 0 {
+			return nil, protowire.ParseError(n)
+		}
+		data = data[n:]
+		if num != 1 || typ != protowire.BytesType {
+			m := protowire.ConsumeFieldValue(num, typ, data)
+			if m < 0 {
+				return nil, protowire.ParseError(m)
+			}
+			data = data[m:]
+			continue
+		}
+		entry, m := protowire.ConsumeBytes(data)
+		if m < 0 {
+			return nil, protowire.ParseError(m)
+		}
+		data = data[m:]
+		if code, ok := geodataEntryCode(entry); ok && code != "" {
+			codes = append(codes, code)
+		}
+	}
+	return codes, nil
+}
+
+// geodataEntryCode returns field 1 (GeoSite.code / GeoIP.code, both plain
+// proto3 strings) of one serialized entry submessage.
+func geodataEntryCode(data []byte) (string, bool) {
+	for len(data) > 0 {
+		num, typ, n := protowire.ConsumeTag(data)
+		if n < 0 {
+			return "", false
+		}
+		data = data[n:]
+		if num != 1 || typ != protowire.BytesType {
+			m := protowire.ConsumeFieldValue(num, typ, data)
+			if m < 0 {
+				return "", false
+			}
+			data = data[m:]
+			continue
+		}
+		value, m := protowire.ConsumeBytes(data)
+		if m < 0 {
+			return "", false
+		}
+		return string(value), true
+	}
+	return "", false
 }
 
 // formatGeodataSuggestion builds the exact rule value xray-core's rule
@@ -248,11 +327,11 @@ func formatGeodataSuggestion(entry geodataFileEntry, code string) string {
 	lowerCode := strings.ToLower(code)
 	switch entry.kind {
 	case geositeFile:
-		if entry.name == geodata.DefaultGeoSiteDat {
+		if strings.EqualFold(entry.name, geodata.DefaultGeoSiteDat) {
 			return "geosite:" + lowerCode
 		}
 	case geoipFile:
-		if entry.name == geodata.DefaultGeoIPDat {
+		if strings.EqualFold(entry.name, geodata.DefaultGeoIPDat) {
 			return "geoip:" + lowerCode
 		}
 	}

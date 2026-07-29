@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, Modal, Select, Space, Switch, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
@@ -82,6 +82,51 @@ function filterBySubstring(input: string, option?: { value?: string }): boolean 
   return typeof option?.value === 'string' && option.value.toLowerCase().includes(input.toLowerCase());
 }
 
+interface TagsAutocompleteProps {
+  id?: string;
+  value?: string[];
+  onChange?: (value: string[]) => void;
+  onBlur?: () => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+// A plain Select mode="tags" only commits the text being typed into a tag on
+// Enter or a tokenSeparator character -- clicking Save directly (a blur, not
+// an Enter) silently drops it, with no `domain`/`ip` key at all ending up in
+// the saved rule. This wraps it with a controlled searchValue that also gets
+// committed as a tag on blur, so free-text entry behaves like the old Input
+// it replaced.
+function TagsAutocomplete({ id, value, onChange, onBlur, options, placeholder }: TagsAutocompleteProps) {
+  const [searchValue, setSearchValue] = useState('');
+
+  function commitSearchValue(next: string[]) {
+    const trimmed = searchValue.trim();
+    setSearchValue('');
+    if (!trimmed || next.includes(trimmed)) return next;
+    return [...next, trimmed];
+  }
+
+  return (
+    <Select
+      id={id}
+      mode="tags"
+      value={value}
+      searchValue={searchValue}
+      onSearch={setSearchValue}
+      onChange={(next) => onChange?.(next as string[])}
+      onBlur={() => {
+        onChange?.(commitSearchValue(value ?? []));
+        onBlur?.();
+      }}
+      options={options}
+      tokenSeparators={[',']}
+      filterOption={filterBySubstring}
+      placeholder={placeholder}
+    />
+  );
+}
+
 export default function RuleFormModal({
   open,
   rule,
@@ -98,7 +143,7 @@ export default function RuleFormModal({
   const { data: inboundOptions } = useInboundOptions();
   const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
 
-  const { data: geodataCategories } = useGeodataCategories();
+  const { data: geodataCategories } = useGeodataCategories(open);
   const domainOptions = useMemo(
     () => (geodataCategories?.domain ?? []).map((value) => ({ value, label: value })),
     [geodataCategories],
@@ -201,8 +246,9 @@ export default function RuleFormModal({
                 {t('pages.xray.ruleForm.sourceIps')} <QuestionCircleOutlined aria-hidden="true" />
               </Tooltip>
             }
+            transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Input placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <TagsAutocomplete id="sourceIP" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -283,13 +329,7 @@ export default function RuleFormModal({
             }
             transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Select
-              mode="tags"
-              options={ipOptions}
-              tokenSeparators={[',']}
-              filterOption={filterBySubstring}
-              placeholder="0.0.0.0/8, fc00::/7, geoip:ir"
-            />
+            <TagsAutocomplete id="ip" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -301,13 +341,7 @@ export default function RuleFormModal({
             }
             transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Select
-              mode="tags"
-              options={domainOptions}
-              tokenSeparators={[',']}
-              filterOption={filterBySubstring}
-              placeholder="google.com, geosite:cn"
-            />
+            <TagsAutocomplete id="domain" options={domainOptions} placeholder="google.com, geosite:cn" />
           </FormField>
 
           <FormField
