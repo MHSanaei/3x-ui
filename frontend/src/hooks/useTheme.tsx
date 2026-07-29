@@ -21,7 +21,10 @@ function applyDom(isDark: boolean, isUltra: boolean) {
     document.documentElement.removeAttribute('data-theme');
   }
   const msg = document.getElementById('message');
-  if (msg) msg.className = isDark ? 'dark' : 'light';
+  if (msg) {
+    msg.classList.remove('dark', 'light');
+    msg.classList.add(isDark ? 'dark' : 'light');
+  }
 }
 
 // module load so the document is in the right theme before React mounts.

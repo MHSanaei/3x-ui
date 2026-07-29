@@ -36,10 +36,16 @@ test('preserves unrelated body classes when applying the Storybook theme', () =>
 
 test('preserves unrelated body classes when applying the panel theme', () => {
   document.body.className = 'panel-fixture';
+  const message = document.createElement('div');
+  message.id = 'message';
+  message.className = 'message-fixture';
+  document.body.append(message);
 
   render(<ThemeProvider><div>Panel</div></ThemeProvider>);
 
   expect(document.body.classList.contains('panel-fixture')).toBe(true);
   expect(document.body.classList.contains('dark')).toBe(true);
   expect(document.body.classList.contains('light')).toBe(false);
+  expect(message.classList.contains('message-fixture')).toBe(true);
+  expect(message.classList.contains('dark')).toBe(true);
 });
