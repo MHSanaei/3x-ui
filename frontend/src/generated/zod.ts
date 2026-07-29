@@ -357,6 +357,12 @@ export const FallbackParentInfoSchema = z.object({
 });
 export type FallbackParentInfo = z.infer<typeof FallbackParentInfoSchema>;
 
+export const GeodataCategoriesSchema = z.object({
+  domain: z.array(z.string()),
+  ip: z.array(z.string()),
+});
+export type GeodataCategories = z.infer<typeof GeodataCategoriesSchema>;
+
 export const HistoryOfSeedersSchema = z.object({
   id: z.number().int(),
   seederName: z.string(),

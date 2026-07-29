@@ -1281,7 +1281,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/xray/getGeodataCategories',
         summary: 'Return every geosite/geoip category found in the .dat files currently present in the Xray bin folder (including custom files added via the Geodata auto-update feature), formatted as ready-to-use routing rule values, e.g. "geosite:youtube" or "ext:geosite_roscom.dat:some-code".',
-        response: '{\n  "success": true,\n  "obj": {\n    "domain": ["geosite:cn", "geosite:youtube"],\n    "ip": ["geoip:cn", "geoip:private"]\n  }\n}',
+        responseSchema: 'GeodataCategories',
       },
       {
         method: 'POST',
