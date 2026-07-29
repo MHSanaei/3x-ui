@@ -93,7 +93,8 @@ function appendQuery(url: string, query: string): string {
   const hashIndex = url.indexOf('#');
   const path = hashIndex === -1 ? url : url.slice(0, hashIndex);
   const hash = hashIndex === -1 ? '' : url.slice(hashIndex);
-  const separator = path.includes('?') && !path.endsWith('?') && !path.endsWith('&') ? '&' : path.includes('?') ? '' : '?';
+  const hasQuery = path.includes('?');
+  const separator = !hasQuery ? '?' : path.endsWith('?') || path.endsWith('&') ? '' : '&';
   return `${path}${separator}${query}${hash}`;
 }
 

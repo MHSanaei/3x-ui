@@ -12,7 +12,7 @@ type SettingSavePayload = Partial<AllSetting> & Record<string, unknown>;
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
   const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch settings');
-  const validated = parseMsg(msg, AllSettingSchema, 'setting/all');
+  const validated = parseMsg(msg, AllSettingSchema, 'setting/all', { strict: true });
   return validated.obj;
 }
 

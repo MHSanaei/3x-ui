@@ -155,7 +155,7 @@ async function fetchClientPage(params: ClientQueryParams): Promise<ClientPageRes
   const qs = buildQS(params);
   const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, { silent: true });
   if (!msg?.success || !msg.obj) throw new Error(msg?.msg || 'Failed to fetch clients');
-  const validated = parseMsg(msg, ClientPageResponseSchema, 'clients/list/paged');
+  const validated = parseMsg(msg, ClientPageResponseSchema, 'clients/list/paged', { strict: true });
   if (!validated.obj) throw new Error('Empty clients response');
   return validated.obj;
 }

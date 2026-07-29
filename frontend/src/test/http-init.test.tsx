@@ -205,6 +205,17 @@ describe('http-init fetch wrapper', () => {
     expect(initOf().signal?.aborted).toBe(true);
   });
 
+  it('aborts on the timeout when a caller signal is present', async () => {
+    http.setupHttp();
+    fetchMock.mockResolvedValue(okEnvelope());
+    const controller = new AbortController();
+
+    await http.httpRequest('GET', '/x', undefined, { timeout: 20, signal: controller.signal });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(initOf().signal?.aborted).toBe(true);
+  });
+
   it('appends encoded params to a URL that already has a query string', async () => {
     http.setupHttp();
     fetchMock.mockResolvedValue(okEnvelope());
