@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useXraySetting } from '@/hooks/useXraySetting';
 import { makeTestQueryClient } from '@/test/test-utils';
@@ -21,6 +21,10 @@ function xrayPayload(overrides: Record<string, unknown> = {}) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+beforeEach(() => {
+  vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
 });
 
 describe('useXraySetting', () => {
@@ -45,14 +49,10 @@ describe('useXraySetting', () => {
     expect(result.current.xraySetting).toBe('{"outbounds":[]}');
   });
 
-  it('becomes clean after saving an empty outbound test URL', async () => {
-    let payload = xrayPayload();
+  it('restores the effective default when the outbound test URL is cleared', async () => {
+    const payload = xrayPayload({ outboundTestUrl: 'https://www.google.com/generate_204' });
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/xray/') return new Msg(true, '', JSON.stringify(payload));
-      if (url === '/panel/api/xray/update') {
-        payload = xrayPayload({ outboundTestUrl: 'https://www.google.com/generate_204' });
-        return new Msg(true, '');
-      }
       return new Msg(true, '');
     });
     const queryClient = makeTestQueryClient();
@@ -63,9 +63,8 @@ describe('useXraySetting', () => {
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
     act(() => result.current.setOutboundTestUrl(''));
-    expect(result.current.saveDisabled).toBe(false);
-    await act(async () => result.current.saveAll());
 
-    await waitFor(() => expect(result.current.saveDisabled).toBe(true));
+    expect(result.current.outboundTestUrl).toBe('https://www.google.com/generate_204');
+    expect(result.current.saveDisabled).toBe(true);
   });
 });

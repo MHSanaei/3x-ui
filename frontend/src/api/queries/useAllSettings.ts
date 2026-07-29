@@ -9,6 +9,10 @@ import { keys } from '@/api/queryKeys';
 import { useServerDraft } from '@/hooks/useServerDraft';
 
 type SettingSavePayload = Partial<AllSetting> & Record<string, unknown>;
+type SettingSaveResult = {
+  msg: Msg<unknown>;
+  saved?: AllSetting;
+};
 
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
   const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
@@ -44,26 +48,30 @@ export function useAllSettings() {
   }, [server, setDraft]);
 
   const saveMut = useMutation({
-    mutationFn: async (next: SettingSavePayload): Promise<Msg<unknown>> => {
-      const payload = { ...next };
-      const body = AllSettingSchema.partial().safeParse(payload);
+    mutationFn: async ({ payload, saved }: { payload: SettingSavePayload; saved?: AllSetting }): Promise<SettingSaveResult> => {
+      const next = { ...payload };
+      const body = AllSettingSchema.partial().safeParse(next);
       if (!body.success) {
         console.warn('[zod] setting/update body failed validation', body.error.issues);
       }
-      return HttpUtil.post('/panel/api/setting/update', body.success ? { ...payload, ...body.data } : payload);
+      const msg = await HttpUtil.post('/panel/api/setting/update', body.success ? { ...next, ...body.data } : next);
+      return { msg, saved };
     },
-    onSuccess: (msg) => {
-      if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.settings.all() });
+    onSuccess: ({ msg, saved }) => {
+      if (!msg?.success) return;
+      if (saved) markSaved(saved);
+      queryClient.invalidateQueries({ queryKey: keys.settings.all() });
     },
   });
 
   const saveAll = useCallback(async () => {
     const saved = new AllSetting(allSetting);
-    const msg = await saveMut.mutateAsync({ ...saved });
-    if (msg?.success) markSaved(saved);
-    return msg;
-  }, [allSetting, markSaved, saveMut]);
-  const savePayload = useCallback((payload: SettingSavePayload) => saveMut.mutateAsync(payload), [saveMut]);
+    return (await saveMut.mutateAsync({ payload: { ...saved }, saved })).msg;
+  }, [allSetting, saveMut]);
+  const savePayload = useCallback(
+    async (payload: SettingSavePayload) => (await saveMut.mutateAsync({ payload })).msg,
+    [saveMut],
+  );
   const saveDisabled = !isDirty;
 
   return {

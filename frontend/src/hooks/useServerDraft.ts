@@ -18,8 +18,7 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
     const currentDraft = draftRef.current;
     const currentBaseline = baselineRef.current;
     const isDirty = currentDraft !== undefined
-      && currentBaseline !== undefined
-      && !equalsRef.current(currentDraft, currentBaseline);
+      && (currentBaseline === undefined || !equalsRef.current(currentDraft, currentBaseline));
     setBaseline(server);
     if (isDirty && !equalsRef.current(currentDraft, server)) return;
     setDraft(cloneRef.current(server));
@@ -30,7 +29,7 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
   }, []);
 
   const isDirty = useMemo(
-    () => draft !== undefined && baseline !== undefined && !equalsRef.current(draft, baseline),
+    () => draft !== undefined && (baseline === undefined || !equalsRef.current(draft, baseline)),
     [baseline, draft],
   );
 

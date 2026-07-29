@@ -59,15 +59,28 @@ describe('useServerDraft', () => {
     expect(result.current.isDirty).toBe(false);
   });
 
-  it('hydrates a clean draft', () => {
+  it('preserves an edit made before the first server response', () => {
     const { result, rerender } = renderHook(
+      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      { initialProps: { server: undefined as { value: string } | undefined } },
+    );
+
+    act(() => result.current.setDraft({ value: 'edited' }));
+    rerender({ server: { value: 'one' } });
+
+    expect(result.current.draft).toEqual({ value: 'edited' });
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('marks a sent draft clean before its refetch arrives', () => {
+    const { result } = renderHook(
       ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
       { initialProps: { server: { value: 'one' } } },
     );
 
-    rerender({ server: { value: 'two' } });
-    expect(result.current.draft).toEqual({ value: 'two' });
-    expect(result.current.draft).toEqual({ value: 'two' });
+    act(() => result.current.setDraft({ value: 'saved' }));
+    act(() => result.current.markSaved({ value: 'saved' }));
+
     expect(result.current.isDirty).toBe(false);
   });
 });

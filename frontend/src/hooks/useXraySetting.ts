@@ -212,7 +212,7 @@ export function useXraySetting(): UseXraySettingResult {
   }, []);
 
   const setOutboundTestUrl = useCallback((v: string) => {
-    setOutboundTestUrlState(v);
+    setOutboundTestUrlState(normalizeOutboundTestUrl(v));
   }, []);
 
   const fetchAll = useCallback(async () => {
