@@ -47,6 +47,11 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   const lastWrittenHostsRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!dns) {
+      lastWrittenHostsRef.current = '{}';
+      setHostsList([]);
+      return;
+    }
     if (incomingHosts === lastWrittenHostsRef.current) return;
     lastWrittenHostsRef.current = incomingHosts;
     setHostsList(Object.entries(sourceHosts ?? {}).map(([domain, values]) => ({
@@ -92,17 +97,17 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   }
 
   function syncHosts(next: HostRow[]) {
+    const obj: Record<string, string | string[]> = {};
+    for (const row of next) {
+      if (!row.domain) continue;
+      const vals = (row.values || []).filter(Boolean);
+      if (vals.length === 0) continue;
+      obj[row.domain] = vals.length === 1 ? vals[0] : vals;
+    }
+    lastWrittenHostsRef.current = JSON.stringify(obj);
     setHostsList(next);
     mutate((tt) => {
       if (!tt.dns) return;
-      const obj: Record<string, string | string[]> = {};
-      for (const row of next) {
-        if (!row.domain) continue;
-        const vals = (row.values || []).filter(Boolean);
-        if (vals.length === 0) continue;
-        obj[row.domain] = vals.length === 1 ? vals[0] : vals;
-      }
-      lastWrittenHostsRef.current = JSON.stringify(obj);
       if (Object.keys(obj).length > 0) {
         (tt.dns as DnsConfig).hosts = obj;
       } else if ('hosts' in (tt.dns as DnsConfig)) {
