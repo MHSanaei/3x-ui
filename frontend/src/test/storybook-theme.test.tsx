@@ -24,6 +24,7 @@ test('preserves unrelated body classes when applying the Storybook theme', () =>
 
   expect(document.body.classList.contains('storybook-fixture')).toBe(true);
   expect(document.body.classList.contains('light')).toBe(true);
+  expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
   document.body.className = '';
 });
 

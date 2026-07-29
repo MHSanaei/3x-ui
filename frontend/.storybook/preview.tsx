@@ -22,7 +22,7 @@ const withTheme: Decorator = (Story, context) => {
   useLayoutEffect(() => {
     document.body.classList.remove('dark', 'light');
     document.body.classList.add(dark ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.documentElement.removeAttribute('data-theme');
   }, [dark]);
   return (
     <ConfigProvider theme={buildAntdThemeConfig(dark, false)}>
