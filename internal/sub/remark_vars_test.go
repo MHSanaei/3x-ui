@@ -420,7 +420,12 @@ func TestIdentityTokenKeptInBodyAndDisplay(t *testing.T) {
 	}
 	client := model.Client{Email: "john@x"}
 
-	body := &SubService{remarkTemplate: tmpl, subscriptionBody: true, usageShown: map[string]bool{}}
+	body := &SubService{
+		remarkTemplate:         tmpl,
+		subscriptionBody:       true,
+		showIdentityOnAllLinks: true,
+		usageShown:             map[string]bool{},
+	}
 	_ = body.genTemplatedRemark(inbound, client, "", "ws") // first link consumes the usage block
 	if second := body.genTemplatedRemark(inbound, client, "", "ws"); !strings.Contains(second, "john@x") {
 		t.Fatalf("repeat body link %q must keep the identity token", second)
