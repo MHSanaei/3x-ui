@@ -46,8 +46,8 @@ const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 const RAIL_WIDTH = 72;
+const SIDER_WIDTH = 220;
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
-const railStyle = { '--sider-rail': `${RAIL_WIDTH}px` } as CSSProperties;
 
 let hoveredAcrossRemounts = false;
 
@@ -164,6 +164,10 @@ export default function AppSidebar() {
   const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const railCollapsed = !hovered && !pinned;
+  const railStyle = useMemo(
+    () => ({ '--sider-rail': `${pinned ? SIDER_WIDTH : RAIL_WIDTH}px` }) as CSSProperties,
+    [pinned],
+  );
   const rootRef = useRef<HTMLDivElement>(null);
 
   const updateHovered = useCallback((value: boolean) => {
@@ -172,12 +176,10 @@ export default function AppSidebar() {
   }, []);
 
   const togglePinned = useCallback(() => {
-    setPinned((value) => {
-      const next = !value;
-      saveSidebarPinned(next);
-      return next;
-    });
-  }, []);
+    const next = !pinned;
+    saveSidebarPinned(next);
+    setPinned(next);
+  }, [pinned]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -287,14 +289,14 @@ export default function AppSidebar() {
   return (
     <div
       ref={rootRef}
-      className="ant-sidebar"
+      className={`ant-sidebar${pinned ? ' sidebar-pinned' : ''}`}
       style={railStyle}
       onMouseEnter={() => updateHovered(true)}
       onMouseLeave={() => updateHovered(false)}
     >
       <Layout.Sider
         theme={currentTheme}
-        width={220}
+        width={SIDER_WIDTH}
         collapsedWidth={RAIL_WIDTH}
         collapsed={railCollapsed}
       >
@@ -307,7 +309,7 @@ export default function AppSidebar() {
               <button
                 type="button"
                 className="sidebar-pin"
-                aria-label={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+                aria-label={t('menu.pinSidebar')}
                 aria-pressed={pinned}
                 title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
                 onClick={togglePinned}

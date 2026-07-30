@@ -12,7 +12,7 @@
   align-self: flex-start;
 }
 
-.ant-sidebar > .ant-layout-sider:not(.ant-layout-sider-collapsed) {
+.ant-sidebar:not(.sidebar-pinned) > .ant-layout-sider:not(.ant-layout-sider-collapsed) {
   box-shadow: 0 0 32px rgba(0, 0, 0, 0.22);
 }
 
