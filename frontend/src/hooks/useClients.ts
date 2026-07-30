@@ -73,7 +73,9 @@ export interface ClientQueryParams {
 
 const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
 const DEFAULT_SUMMARY: ClientsSummary = {
-  total: 0, active: 0, online: [], depleted: [], expiring: [], deactive: [],
+  total: 0, active: 0,
+  onlineCount: 0, depletedCount: 0, expiringCount: 0, deactiveCount: 0,
+  online: [], depleted: [], expiring: [], deactive: [],
 };
 
 export interface ClientSpeedEntry {
@@ -114,7 +116,50 @@ export function computeClientsSummary(
     if (nearExpiry || nearLimit) expiring.push(email);
     else active += 1;
   }
-  return { total: stats.length, active, online, depleted, expiring, deactive };
+  return {
+    total: stats.length,
+    active,
+    onlineCount: online.length,
+    depletedCount: depleted.length,
+    expiringCount: expiring.length,
+    deactiveCount: deactive.length,
+    online,
+    depleted,
+    expiring,
+    deactive,
+  };
+}
+
+export function sameSpeedMap(
+  a: Record<string, ClientSpeedEntry>,
+  b: Record<string, ClientSpeedEntry>,
+): boolean {
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  for (const key of aKeys) {
+    const left = a[key];
+    const right = b[key];
+    if (!right || left.up !== right.up || left.down !== right.down) return false;
+  }
+  return true;
+}
+
+// The field list computeClientsSummary reads, and deliberately nothing else.
+// lastOnline in particular churns for every online client on every push and no
+// counter depends on it, so including it here would defeat the comparison.
+export function sameSummaryInputs(a: ClientStatRow[], b: ClientStatRow[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+    if (left.email !== right.email
+      || left.up !== right.up
+      || left.down !== right.down
+      || left.total !== right.total
+      || left.enable !== right.enable
+      || left.expiryTime !== right.expiryTime) return false;
+  }
+  return true;
 }
 
 export function pickClientsSummary(
@@ -174,17 +219,31 @@ async function fetchDefaults(): Promise<Record<string, unknown>> {
   return validated.obj || {};
 }
 
-export function useClients() {
+export interface UseClientsOptions {
+  // Callers that only need the mutations — the bulk modals, the groups page —
+  // pass false. Mounting them used to start a second 5-second poll of the paged
+  // list whose result they never read, which on a large panel means a full
+  // summary aggregate every 5 seconds for nothing.
+  list?: boolean;
+}
+
+export function useClients(options: UseClientsOptions = {}) {
+  const withList = options.list ?? true;
   const queryClient = useQueryClient();
 
-  const [query, setQueryState] = useState<ClientQueryParams>(DEFAULT_QUERY);
+  // Null until the page has settled on a query. The clients page cannot build
+  // one until the persisted sort and the panel's configured page size are both
+  // known, and fetching before then cost three sequential requests per load —
+  // the first two thrown away (#trace).
+  const [query, setQueryState] = useState<ClientQueryParams | null>(null);
   // setQuery shallow-compares so callers can pass a fresh object every render
   // (the common React pattern) without triggering a re-fetch when nothing
   // actually changed.
   const setQuery = useCallback((next: ClientQueryParams) => {
     setQueryState((prev) => {
       if (
-        prev.page === next.page
+        prev
+        && prev.page === next.page
         && prev.pageSize === next.pageSize
         && (prev.search ?? '') === (next.search ?? '')
         && (prev.filter ?? '') === (next.filter ?? '')
@@ -206,8 +265,9 @@ export function useClients() {
   }, []);
 
   const listQuery = useQuery({
-    queryKey: keys.clients.list(query),
-    queryFn: () => fetchClientPage(query),
+    queryKey: keys.clients.list(query ?? DEFAULT_QUERY),
+    queryFn: () => fetchClientPage(query ?? DEFAULT_QUERY),
+    enabled: withList && query !== null,
     staleTime: Infinity,
     // List is sorted/paged server-side, so the WS patch can't add new or
     // re-sort rows; poll the current page to keep it live (pauses when hidden).
@@ -218,6 +278,7 @@ export function useClients() {
   const inboundOptionsQuery = useQuery({
     queryKey: keys.inbounds.options(),
     queryFn: fetchInboundOptions,
+    enabled: withList,
     staleTime: Infinity,
   });
 
@@ -235,6 +296,7 @@ export function useClients() {
       const validated = parseMsg(msg, OnlinesSchema, 'clients/onlines');
       return Array.isArray(validated.obj) ? validated.obj : [];
     },
+    enabled: withList,
     staleTime: Infinity,
   });
 
@@ -244,7 +306,11 @@ export function useClients() {
   const allGroups = listQuery.data?.groups ?? [];
   const fetched = listQuery.data !== undefined || listQuery.isError;
   const fetchError = listQuery.error ? (listQuery.error as Error).message : '';
-  const loading = listQuery.isFetching;
+  // isFetching is deliberately NOT read here. Touching it makes it a tracked
+  // property, so the 5s refetchInterval notifies twice per cycle — two whole
+  // page renders even when structural sharing leaves the data identical, and
+  // each one bumps rc-table's immutable mark and re-runs every cell renderer.
+  // Callers that want a spinner for an explicit refresh drive it locally.
   // Showing kept-previous data for a new key (filter/sort/page) — drives the
   // table overlay so the 5s background poll doesn't flash it.
   const transitioning = listQuery.isPlaceholderData;
@@ -277,6 +343,11 @@ export function useClients() {
   const expireDiff = ((defaults.expireDiff as number) ?? 0) * 86400000;
   const trafficDiff = ((defaults.trafficDiff as number) ?? 0) * 1073741824;
   const pageSize = (defaults.pageSize as number) ?? 0;
+  // pageSize 0 means "one long page", which is indistinguishable from "the
+  // settings have not arrived yet" — so callers need this flag to know when the
+  // configured page size is real. isFetched (not isSuccess) so a failed
+  // settings request still lets the page fall back and render.
+  const settingsReady = defaultsQuery.isFetched;
 
   const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
   const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
@@ -565,15 +636,23 @@ export function useClients() {
       queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
     }
     if (Array.isArray(p.clientTraffics)) {
+      // Xray reports a row per client whether or not it moved a byte, so most of
+      // this map used to be zeros. A missing entry and a zero entry render
+      // identically (isActiveSpeed treats both as inactive), so the zeros are
+      // dropped and an unchanged result returns the previous object — which lets
+      // React bail out of the update instead of re-rendering the table.
       const next: Record<string, ClientSpeedEntry> = {};
       for (const ct of p.clientTraffics) {
         if (!ct || !ct.email) continue;
+        const up = ct.up || 0;
+        const down = ct.down || 0;
+        if (up === 0 && down === 0) continue;
         next[ct.email] = {
-          up: (ct.up || 0) / TRAFFIC_POLL_INTERVAL_S,
-          down: (ct.down || 0) / TRAFFIC_POLL_INTERVAL_S,
+          up: up / TRAFFIC_POLL_INTERVAL_S,
+          down: down / TRAFFIC_POLL_INTERVAL_S,
         };
       }
-      setClientSpeed(next);
+      setClientSpeed((prev) => (sameSpeedMap(prev, next) ? prev : next));
     }
   }, [queryClient]);
 
@@ -581,12 +660,17 @@ export function useClients() {
     if (!payload || typeof payload !== 'object') return;
     const p = payload as { clients?: ClientStatRow[]; snapshot?: boolean };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
-    if (p.snapshot !== false) setAllClientStats(p.clients);
+    if (p.snapshot !== false) {
+      const rows = p.clients;
+      setAllClientStats((prev) => (sameSummaryInputs(prev, rows) ? prev : rows));
+    }
+    const active = queryRef.current;
+    if (!active) return;
     const byEmail = new Map<string, ClientTraffic>();
     for (const row of p.clients) {
       if (row && row.email) byEmail.set(row.email, row);
     }
-    queryClient.setQueryData<ClientPageResponse>(keys.clients.list(queryRef.current), (prev) => {
+    queryClient.setQueryData<ClientPageResponse>(keys.clients.list(active), (prev) => {
       if (!prev) return prev;
       let touched = false;
       const next = prev.items.slice();
@@ -624,7 +708,6 @@ export function useClients() {
     setQuery,
     inbounds,
     onlines,
-    loading,
     transitioning,
     fetched,
     fetchError,
@@ -634,6 +717,7 @@ export function useClients() {
     expireDiff,
     trafficDiff,
     pageSize,
+    settingsReady,
     refresh,
     create,
     bulkCreate,

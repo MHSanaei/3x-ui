@@ -56,7 +56,7 @@ export default function ClientBulkAddModal({
 }: ClientBulkAddModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const { bulkCreate } = useClients();
+  const { bulkCreate } = useClients({ list: false });
 
   const methods = useForm<ClientBulkAddFormValues>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });

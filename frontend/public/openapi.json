@@ -5691,7 +5691,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
+        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters: the *Count fields are exact, while the email arrays beside them stop at 200 entries so the payload does not grow with the panel. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
         "operationId": "get_panel_api_clients_list_paged",
         "parameters": [
           {
@@ -5807,12 +5807,18 @@
                     "summary": {
                       "total": 2000,
                       "active": 1850,
+                      "onlineCount": 1,
+                      "depletedCount": 0,
+                      "expiringCount": 0,
+                      "deactiveCount": 150,
                       "online": [
                         "alice@example.com"
                       ],
                       "depleted": [],
                       "expiring": [],
-                      "deactive": []
+                      "deactive": [
+                        "bob@example.com"
+                      ]
                     }
                   }
                 }
