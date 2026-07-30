@@ -304,6 +304,16 @@ export default function AppSidebar() {
           </div>
           {!railCollapsed && (
             <div className="brand-actions">
+              <button
+                type="button"
+                className="sidebar-pin"
+                aria-label={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+                aria-pressed={pinned}
+                title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+                onClick={togglePinned}
+              >
+                {pinned ? <PushpinFilled /> : <PushpinOutlined />}
+              </button>
               <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <ThemeCycleButton
@@ -335,17 +345,6 @@ export default function AppSidebar() {
           onClick={onMenuClick}
         />
         <div className="sider-footer">
-          <button
-            type="button"
-            className="sidebar-pin"
-            aria-label={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
-            aria-pressed={pinned}
-            title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
-            onClick={togglePinned}
-          >
-            {pinned ? <PushpinFilled /> : <PushpinOutlined />}
-            {!railCollapsed && <span>{t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}</span>}
-          </button>
           <VersionBadge version={panelVersion} collapsed={railCollapsed} />
         </div>
       </Layout.Sider>

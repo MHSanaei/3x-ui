@@ -21,14 +21,20 @@ function renderSidebar() {
   );
 }
 
-test('keeps the sidebar expanded after pinning it and restores the choice', () => {
+test('keeps the sidebar expanded after pinning it from the header and restores the choice', () => {
   const first = renderSidebar();
   const sidebar = first.container.querySelector('.ant-layout-sider');
+  const sidebarRoot = first.container.querySelector('.ant-sidebar');
 
   expect(sidebar?.classList.contains('ant-layout-sider-collapsed')).toBe(true);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Pin sidebar' }));
-  fireEvent.mouseLeave(first.container.querySelector('.ant-sidebar')!);
+  fireEvent.mouseEnter(sidebarRoot!);
+
+  const pinButton = screen.getByRole('button', { name: 'Pin sidebar' });
+  expect(pinButton.closest('.brand-actions')).not.toBeNull();
+
+  fireEvent.click(pinButton);
+  fireEvent.mouseLeave(sidebarRoot!);
 
   expect(sidebar?.classList.contains('ant-layout-sider-collapsed')).toBe(false);
   expect(localStorage.getItem('sidebar-pinned')).toBe('true');
