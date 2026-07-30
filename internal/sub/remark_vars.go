@@ -525,6 +525,11 @@ var usageInfoTokens = map[string]bool{
 	"JALALI_EXPIRE_DATE": true,
 }
 
+var identityTokens = map[string]bool{
+	"EMAIL":    true,
+	"USERNAME": true,
+}
+
 var connectionTokens = map[string]bool{
 	"PROTOCOL":  true,
 	"TRANSPORT": true,
@@ -534,9 +539,9 @@ var connectionTokens = map[string]bool{
 var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
 
 // firstLinkOnlyBodyTokens are stripped from every subscription-body link after a
-// client's first one. Keep EMAIL/USERNAME on every link so a client attached to
-// multiple inbounds still imports as "inbound-client" / "inbound-client 2".
-var firstLinkOnlyBodyTokens = usageInfoTokens
+// client's first one. EMAIL/USERNAME are restored on later links only when
+// showIdentityOnAllLinks is enabled.
+var firstLinkOnlyBodyTokens = mergeTokenSets(usageInfoTokens, identityTokens)
 
 func mergeTokenSets(sets ...map[string]bool) map[string]bool {
 	out := make(map[string]bool)

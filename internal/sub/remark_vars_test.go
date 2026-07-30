@@ -678,9 +678,10 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 
 func TestEmailOnEveryBodyLink(t *testing.T) {
 	s := &SubService{
-		remarkTemplate:   "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",
-		subscriptionBody: true,
-		usageShown:       map[string]bool{},
+		remarkTemplate:         "{{INBOUND}} {{EMAIL}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody:       true,
+		showIdentityOnAllLinks: true,
+		usageShown:             map[string]bool{},
 	}
 	inbound := &model.Inbound{
 		Remark: "DE",
@@ -791,9 +792,10 @@ func TestRepeatedBodyRemarksGetNumericSuffix(t *testing.T) {
 
 func TestRepeatedTemplatedBodyRemarksGetNumericSuffix(t *testing.T) {
 	s := &SubService{
-		remarkTemplate:   "{{INBOUND}}-{{EMAIL}}",
-		subscriptionBody: true,
-		usageShown:       map[string]bool{},
+		remarkTemplate:         "{{INBOUND}}-{{EMAIL}}",
+		subscriptionBody:       true,
+		showIdentityOnAllLinks: true,
+		usageShown:             map[string]bool{},
 	}
 	inbound := &model.Inbound{Remark: "日本"}
 	client := model.Client{Email: "ZouJP"}
