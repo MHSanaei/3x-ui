@@ -1048,17 +1048,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// panelGuid. Remap just that entry to the node-unique key so the
 			// clones don't merge; descendant subtrees keep their distinct GUIDs.
 			if _, ok := tree[nodeRow.Guid]; ok {
-				remapped := make(map[string][]string, len(tree))
-				for g, emails := range tree {
-					if g == nodeRow.Guid {
-						g = selfKey
-					}
-					remapped[g] = emails
-				}
-				tree = remapped
+				tree = remapGuidTreeKey(tree, nodeRow.Guid, selfKey)
 			}
 		}
 		process.SetNodeOnlineTree(nodeID, tree)
+
+		activeTree := normalizeActiveInboundTreeTags(snap.ActiveInboundTree, tagToCentral)
+		if guidShared && len(activeTree) > 0 {
+			if _, ok := activeTree[nodeRow.Guid]; ok {
+				activeTree = remapGuidTreeKey(activeTree, nodeRow.Guid, selfKey)
+			}
+		}
+		if len(activeTree) > 0 {
+			activeTree = filterGuidTreeKeys(activeTree, activeInboundGuidKeys(snap.Inbounds, tagToCentral, originGuidFor))
+		}
+		process.SetNodeActiveInboundTree(nodeID, activeTree)
 	}
 
 	return structuralChange, nil
@@ -1092,23 +1096,25 @@ func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
 }
 
 // GetActiveInboundsByGuid returns the inbound tags that carried traffic within
-// the grace window for THIS panel, under its own GUID. Remote nodes don't
-// report per-inbound activity, so a GUID missing from the map means "don't
-// gate" for that node's inbounds.
+// the grace window, keyed by the panelGuid of the node that physically hosts
+// each inbound. A GUID missing from the map means "don't gate" for that node's
+// inbounds (old-build node or no active-inbound signal).
 func (s *InboundService) GetActiveInboundsByGuid() map[string][]string {
 	process := currentXrayProcess()
 	if process == nil {
 		return map[string][]string{}
 	}
+	out := process.GetMergedActiveInboundTrees()
 	active := process.GetLocalActiveInbounds()
 	if len(active) == 0 {
-		return map[string][]string{}
+		return out
 	}
 	guid := s.panelGuid()
 	if guid == "" {
-		return map[string][]string{}
+		return out
 	}
-	return map[string][]string{guid: active}
+	out[guid] = mergeEmails(out[guid], active)
+	return out
 }
 
 func (s *InboundService) SetNodeOnlineTree(nodeID int, tree map[string][]string) {
@@ -1156,6 +1162,85 @@ func mergeEmails(a, b []string) []string {
 			seen[e] = struct{}{}
 			out = append(out, e)
 		}
+	}
+	return out
+}
+
+func remapGuidTreeKey(tree map[string][]string, from, to string) map[string][]string {
+	if from == "" || to == "" || from == to {
+		return tree
+	}
+	remapped := make(map[string][]string, len(tree))
+	for guid, values := range tree {
+		if guid == from {
+			guid = to
+		}
+		remapped[guid] = mergeEmails(remapped[guid], values)
+	}
+	return remapped
+}
+
+func normalizeActiveInboundTreeTags(tree map[string][]string, tagToCentral map[string]*model.Inbound) map[string][]string {
+	if len(tree) == 0 {
+		return nil
+	}
+	out := make(map[string][]string, len(tree))
+	for guid, tags := range tree {
+		if guid == "" || len(tags) == 0 {
+			continue
+		}
+		seen := make(map[string]struct{}, len(tags))
+		for _, tag := range tags {
+			if tag == "" {
+				continue
+			}
+			if central, ok := tagToCentral[tag]; ok && central != nil && central.Tag != "" {
+				tag = central.Tag
+			}
+			if _, dup := seen[tag]; dup {
+				continue
+			}
+			seen[tag] = struct{}{}
+			out[guid] = append(out[guid], tag)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func activeInboundGuidKeys(inbounds []*model.Inbound, tagToCentral map[string]*model.Inbound, originGuidFor func(*model.Inbound) string) map[string]struct{} {
+	allowed := make(map[string]struct{})
+	for _, ib := range inbounds {
+		if ib == nil {
+			continue
+		}
+		if _, ok := tagToCentral[ib.Tag]; !ok {
+			continue
+		}
+		if guid := originGuidFor(ib); guid != "" {
+			allowed[guid] = struct{}{}
+		}
+	}
+	return allowed
+}
+
+func filterGuidTreeKeys(tree map[string][]string, allowed map[string]struct{}) map[string][]string {
+	if len(tree) == 0 || len(allowed) == 0 {
+		return nil
+	}
+	out := make(map[string][]string, len(tree))
+	for guid, values := range tree {
+		if _, ok := allowed[guid]; !ok {
+			continue
+		}
+		if len(values) > 0 {
+			out[guid] = values
+		}
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }
