@@ -109,7 +109,9 @@
     "donate": "Quyên góp",
     "hosts": "Hosts",
     "docs": "Tài liệu",
-    "openMenu": "Mở menu"
+    "openMenu": "Mở menu",
+    "pinSidebar": "Ghim thanh bên",
+    "unpinSidebar": "Bỏ ghim thanh bên"
   },
   "pages": {
     "login": {

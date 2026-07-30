@@ -23,6 +23,8 @@ import {
   MessageOutlined,
   MoonFilled,
   MoonOutlined,
+  PushpinFilled,
+  PushpinOutlined,
   ReadOutlined,
   SafetyOutlined,
   SettingOutlined,
@@ -44,6 +46,7 @@ const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 const RAIL_WIDTH = 72;
+const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
 const railStyle = { '--sider-rail': `${RAIL_WIDTH}px` } as CSSProperties;
 
 let hoveredAcrossRemounts = false;
@@ -135,6 +138,20 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
   );
 }
 
+function readSidebarPinned() {
+  try {
+    return localStorage.getItem(SIDEBAR_PINNED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveSidebarPinned(pinned: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_PINNED_KEY, String(pinned));
+  } catch {}
+}
+
 export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
@@ -144,13 +161,22 @@ export default function AppSidebar() {
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
+  const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const railCollapsed = !hovered;
+  const railCollapsed = !hovered && !pinned;
   const rootRef = useRef<HTMLDivElement>(null);
 
   const updateHovered = useCallback((value: boolean) => {
     hoveredAcrossRemounts = value;
     setHovered(value);
+  }, []);
+
+  const togglePinned = useCallback(() => {
+    setPinned((value) => {
+      const next = !value;
+      saveSidebarPinned(next);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -309,6 +335,17 @@ export default function AppSidebar() {
           onClick={onMenuClick}
         />
         <div className="sider-footer">
+          <button
+            type="button"
+            className="sidebar-pin"
+            aria-label={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+            aria-pressed={pinned}
+            title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+            onClick={togglePinned}
+          >
+            {pinned ? <PushpinFilled /> : <PushpinOutlined />}
+            {!railCollapsed && <span>{t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}</span>}
+          </button>
           <VersionBadge version={panelVersion} collapsed={railCollapsed} />
         </div>
       </Layout.Sider>
