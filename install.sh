@@ -1727,11 +1727,23 @@ install_x-ui() {
         # from a routing rule via "ext:<file>:<code>") and would otherwise be
         # silently deleted on every update, breaking Xray at next start with
         # "failed to open <file>: no such file or directory" for any routing
-        # rule that references it.
-        if [[ -d ${xui_folder}/bin ]]; then
-            custom_bin_backup=$(mktemp -d)
-            cp -a ${xui_folder}/bin/. "${custom_bin_backup}/" 2> /dev/null
+        # rule that references it. Moved aside rather than copied: a rename
+        # on the same filesystem is atomic (no truncated file if disk space
+        # runs out mid-copy, unlike `cp`) and keeps the snapshot under
+        # /usr/local rather than a separate, possibly small/tmpfs $TMPDIR.
+        if [[ -d "${xui_folder}/bin" ]]; then
+            custom_bin_backup="${xui_folder%/x-ui}/x-ui-bin-backup.$$"
+            rm -rf "${custom_bin_backup}"
+            if ! mv "${xui_folder}/bin" "${custom_bin_backup}"; then
+                custom_bin_backup=""
+                echo -e "${yellow}Could not back up bin/ -- custom files there will not be preserved across this update${plain}"
+            fi
         fi
+        # Sole cleanup path for the backup from here on -- covers both the
+        # two `exit 1`s below (extraction/binary-missing failures) and an
+        # interrupted update (Ctrl-C, signal) before the restore runs.
+        # Cleared once the restore below finishes normally.
+        trap '[[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"' EXIT INT TERM
         rm ${xui_folder}/ -rf
     fi
 
@@ -1740,7 +1752,6 @@ install_x-ui() {
     if [[ $? -ne 0 ]]; then
         rm x-ui-linux-$(arch).tar.gz -f
         rm -f "${xui_script_temp}"
-        [[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"
         echo -e "${red}Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
         exit 1
     fi
@@ -1749,33 +1760,11 @@ install_x-ui() {
     cd x-ui
     if [[ $? -ne 0 || ! -s x-ui ]]; then
         rm -f "${xui_script_temp}"
-        [[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"
         echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
         exit 1
     fi
     chmod +x x-ui
     chmod +x x-ui.sh
-
-    # Restore anything from the old bin/ that the fresh release doesn't ship
-    # (custom geoip/geosite files, or anything else an admin hand-placed
-    # there) -- never overwrites a same-named file the new release provides,
-    # so bundled assets (geoip.dat, geoip_RU.dat, ...) still get the fresh
-    # per-release copy.
-    if [[ -n "${custom_bin_backup}" ]]; then
-        local restored_custom_bin=()
-        while IFS= read -r -d '' f; do
-            local rel="${f#"${custom_bin_backup}"/}"
-            if [[ ! -e "bin/${rel}" ]]; then
-                mkdir -p "bin/$(dirname "${rel}")"
-                cp -a "${f}" "bin/${rel}"
-                restored_custom_bin+=("${rel}")
-            fi
-        done < <(find "${custom_bin_backup}" -type f -print0)
-        rm -rf "${custom_bin_backup}"
-        if [[ ${#restored_custom_bin[@]} -gt 0 ]]; then
-            echo -e "${green}Restored custom file(s) in bin/ not shipped by this release: ${restored_custom_bin[*]}${plain}"
-        fi
-    fi
 
     # Check the system's architecture and rename the file accordingly.
     # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
@@ -1794,6 +1783,39 @@ install_x-ui() {
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch)
     fi
+
+    # Restore anything from the old bin/ that the fresh release doesn't ship
+    # (custom geoip/geosite files, or anything else an admin hand-placed
+    # there) -- never overwrites a same-named file the new release provides,
+    # so bundled assets (geoip.dat, geoip_RU.dat, ...) still get the fresh
+    # per-release copy. Runs after the arch-rename above so xray-linux-arm32/
+    # mtg-linux-arm already exist under their final names there and aren't
+    # mistaken for custom files needing a restore. Skips paths the panel
+    # itself regenerates at runtime (config.json, mtproto/*.toml -- see
+    # internal/xray/process.go, internal/mtproto/manager.go): those aren't
+    # admin-placed, and restoring a stale one only resurrects dead state (an
+    # orphaned mtg config for a since-deleted inbound) or the wrong
+    # directory permissions.
+    if [[ -n "${custom_bin_backup}" ]]; then
+        local restored_custom_bin=()
+        while IFS= read -r -d '' f; do
+            local rel="${f#"${custom_bin_backup}"/}"
+            case "${rel}" in
+                config.json | mtproto | mtproto/*) continue ;;
+            esac
+            if [[ ! -e "bin/${rel}" ]]; then
+                mkdir -p "bin/$(dirname "${rel}")"
+                cp -a "${f}" "bin/${rel}"
+                restored_custom_bin+=("${rel}")
+            fi
+        done < <(find "${custom_bin_backup}" \( -type f -o -type l \) -print0)
+        rm -rf "${custom_bin_backup}"
+        custom_bin_backup=""
+        if [[ ${#restored_custom_bin[@]} -gt 0 ]]; then
+            echo -e "${green}Restored custom file(s) in bin/ not shipped by this release: ${restored_custom_bin[*]}${plain}"
+        fi
+    fi
+    trap - EXIT INT TERM
 
     # Update x-ui cli and se set permission
     mv -f "${xui_script_temp}" /usr/bin/x-ui
