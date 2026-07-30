@@ -40,10 +40,6 @@ func setTrustedProxyCIDRs(t *testing.T, value string) {
 	}
 }
 
-func storedAs(value string) *string {
-	return &value
-}
-
 func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -65,7 +61,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "empty stored value keeps trusting forwarded headers",
-			stored:           storedAs(""),
+			stored:           new(""),
 			remoteAddr:       "203.0.113.9:51000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
@@ -74,7 +70,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "stored shipped default keeps trusting forwarded headers",
-			stored:           storedAs(service.DefaultTrustedProxyCIDRs),
+			stored:           new(service.DefaultTrustedProxyCIDRs),
 			remoteAddr:       "203.0.113.9:51000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
@@ -83,7 +79,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "declared boundary ignores an origin outside it",
-			stored:           storedAs("10.0.0.0/8"),
+			stored:           new("10.0.0.0/8"),
 			remoteAddr:       "203.0.113.9:51000",
 			wantScheme:       "http",
 			wantHost:         "panel.example.com",
@@ -92,7 +88,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "declared boundary trusts an origin inside it",
-			stored:           storedAs("10.0.0.0/8"),
+			stored:           new("10.0.0.0/8"),
 			remoteAddr:       "10.1.2.3:44000",
 			wantScheme:       "https",
 			wantHost:         "sub.example.net",
@@ -101,7 +97,7 @@ func TestResolveRequest_ForwardedHeaderTrust(t *testing.T) {
 		},
 		{
 			name:             "declared boundary ignores an unparsable origin",
-			stored:           storedAs("10.0.0.0/8"),
+			stored:           new("10.0.0.0/8"),
 			remoteAddr:       "not-an-ip",
 			wantScheme:       "http",
 			wantHost:         "panel.example.com",

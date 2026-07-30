@@ -47,7 +47,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   const lastWrittenHostsRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!dns) {
+    if (!dnsEnabled) {
       lastWrittenHostsRef.current = '{}';
       setHostsList([]);
       return;
