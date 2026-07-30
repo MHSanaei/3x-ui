@@ -34,9 +34,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 8px;
   height: 58px;
-  padding: 0 12px 0 16px;
+  padding: 0 16px 0 24px;
   border-bottom: 1px solid var(--ant-color-border-secondary);
   user-select: none;
   white-space: nowrap;
@@ -55,6 +55,14 @@
   align-items: center;
   gap: 0;
   flex-shrink: 0;
+}
+
+.brand-actions .sidebar-pin,
+.brand-actions .sidebar-docs,
+.brand-actions .sidebar-donate,
+.brand-actions .sidebar-theme-cycle {
+  width: 26px;
+  height: 26px;
 }
 
 .sidebar-donate {
