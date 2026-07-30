@@ -109,7 +109,9 @@
     "donate": "捐赠",
     "hosts": "主机",
     "docs": "文档",
-    "openMenu": "打开菜单"
+    "openMenu": "打开菜单",
+    "pinSidebar": "固定侧边栏",
+    "unpinSidebar": "取消固定侧边栏"
   },
   "pages": {
     "login": {
