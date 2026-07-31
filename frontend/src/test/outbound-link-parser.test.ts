@@ -300,6 +300,7 @@ describe('parseHysteria2Link', () => {
     const finalmask = stream.finalmask as Record<string, unknown>;
     expect(finalmask).toBeDefined();
     const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
     expect(udp[0].type).toBe('salamander');
     expect((udp[0].settings as Record<string, unknown>).password).toBe('ftwfgb9655hh2mgo');
   });
@@ -327,6 +328,67 @@ describe('parseHysteria2Link', () => {
     const out = parseHysteria2Link('hysteria2://auth@srv:443?security=tls&obfs=salamander#hy2-nopw');
     expect(out).not.toBeNull();
     expect((out!.streamSettings as Record<string, unknown>).finalmask).toBeUndefined();
+  });
+
+  it.each([
+    ['obfs_password', 'obfs_password=aliaspw', 'aliaspw'],
+    ['obfsPassword', 'obfsPassword=camelpw', 'camelpw'],
+    ['case-insensitive type', 'obfs=Salamander&obfs-password=mixed', 'mixed'],
+  ])('accepts the %s form of the obfs pair', (_name, query, want) => {
+    const base = query.includes('obfs=') ? query : `obfs=salamander&${query}`;
+    const out = parseHysteria2Link(`hysteria2://auth@srv:443?security=tls&${base}#hy2-alias`);
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
+    expect(udp[0].type).toBe('salamander');
+    expect((udp[0].settings as Record<string, unknown>).password).toBe(want);
+  });
+
+  it('appends the obfs salamander mask alongside a non-salamander fm mask', () => {
+    const fm = encodeURIComponent(JSON.stringify({
+      udp: [{ type: 'mkcp-legacy', settings: { header: 'srtp' } }],
+    }));
+    const link = `hysteria2://auth@srv:443?security=tls&fm=${fm}&obfs=salamander&obfs-password=added#hy2-append`;
+    const out = parseHysteria2Link(link);
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(2);
+    expect(udp[0].type).toBe('mkcp-legacy');
+    expect(udp[1].type).toBe('salamander');
+    expect((udp[1].settings as Record<string, unknown>).password).toBe('added');
+  });
+
+  it('fills the password of a password-less fm salamander mask from obfs', () => {
+    const fm = encodeURIComponent(JSON.stringify({
+      udp: [{ type: 'salamander', settings: {} }],
+    }));
+    const link = `hysteria2://auth@srv:443?security=tls&fm=${fm}&obfs=salamander&obfs-password=fromobfs#hy2-fill`;
+    const out = parseHysteria2Link(link);
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
+    expect((udp[0].settings as Record<string, unknown>).password).toBe('fromobfs');
+  });
+
+  it('reconstructs udpHop from the standard mport param', () => {
+    const out = parseHysteria2Link('hysteria2://auth@srv:443?security=tls&mport=20000-50000#hy2-mport');
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const quic = finalmask.quicParams as Record<string, unknown>;
+    const udpHop = quic.udpHop as Record<string, unknown>;
+    expect(udpHop.ports).toBe('20000-50000');
+    expect(udpHop.interval).toBe('5-10');
+  });
+
+  it('lets an fm= udpHop win over mport', () => {
+    const fm = encodeURIComponent(JSON.stringify({
+      quicParams: { udpHop: { ports: '30000-40000', interval: '7-9' } },
+    }));
+    const link = `hysteria2://auth@srv:443?security=tls&mport=1-2&fm=${fm}#hy2-mport-fm`;
+    const out = parseHysteria2Link(link);
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    const udpHop = (finalmask.quicParams as Record<string, unknown>).udpHop as Record<string, unknown>;
+    expect(udpHop.ports).toBe('30000-40000');
+    expect(udpHop.interval).toBe('7-9');
   });
 
   it('round-trips the salamander packetSize (Gecko) under fm', () => {

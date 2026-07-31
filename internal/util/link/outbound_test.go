@@ -140,60 +140,144 @@ func salamanderPassword(t *testing.T, res *ParseResult) (string, bool) {
 	return "", false
 }
 
-func TestParseHysteria2_StandardObfs(t *testing.T) {
-	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&sni=ex.com&obfs=salamander&obfs-password=s3cr3t#node")
-	if err != nil {
-		t.Fatalf("parse hysteria2 with obfs: %v", err)
-	}
-	if res.Outbound["protocol"] != "hysteria" {
-		t.Fatalf("bad protocol: %v", res.Outbound["protocol"])
-	}
-	pw, ok := salamanderPassword(t, res)
+func finalmaskUDP(t *testing.T, res *ParseResult) []any {
+	t.Helper()
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	return udp
+}
+
+func hopPorts(t *testing.T, res *ParseResult) (string, bool) {
+	t.Helper()
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	quicParams, _ := finalmask["quicParams"].(map[string]any)
+	udpHop, ok := quicParams["udpHop"].(map[string]any)
 	if !ok {
-		t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
+		return "", false
 	}
-	if pw != "s3cr3t" {
-		t.Errorf("salamander password: expected s3cr3t, got %q", pw)
+	ports, _ := udpHop["ports"].(string)
+	return ports, true
+}
+
+func TestParseHysteria2_Obfs(t *testing.T) {
+	cases := []struct {
+		name    string
+		query   string
+		wantPw  string
+		wantSet bool
+	}{
+		{"standard", "obfs=salamander&obfs-password=s3cr3t", "s3cr3t", true},
+		{"snake-case alias", "obfs=salamander&obfs_password=aliaspw", "aliaspw", true},
+		{"camel-case alias", "obfs=salamander&obfsPassword=camelpw", "camelpw", true},
+		{"case-insensitive type", "obfs=Salamander&obfs-password=mixed", "mixed", true},
+		{"no obfs", "sni=ex.com", "", false},
+		{"obfs without password", "obfs=salamander", "", false},
+		{"unknown obfs type", "obfs=random&obfs-password=x", "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&" + c.query + "#node")
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			if res.Outbound["protocol"] != "hysteria" {
+				t.Fatalf("bad protocol: %v", res.Outbound["protocol"])
+			}
+			pw, ok := salamanderPassword(t, res)
+			if ok != c.wantSet {
+				t.Fatalf("salamander mask present = %v, want %v (stream: %v)", ok, c.wantSet, res.Outbound["streamSettings"])
+			}
+			if pw != c.wantPw {
+				t.Errorf("salamander password: got %q, want %q", pw, c.wantPw)
+			}
+		})
 	}
 }
 
-func TestParseHysteria2_NoObfs(t *testing.T) {
-	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&sni=ex.com#node")
-	if err != nil {
-		t.Fatalf("parse hysteria2: %v", err)
+func TestParseHysteria2_ObfsFinalMaskPrecedence(t *testing.T) {
+	cases := []struct {
+		name       string
+		fm         string
+		obfsPw     string
+		wantPw     string
+		wantUDPLen int
+	}{
+		{
+			name:       "fm password wins over obfs",
+			fm:         `{"udp":[{"type":"salamander","settings":{"password":"fromfm"}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromfm",
+			wantUDPLen: 1,
+		},
+		{
+			name:       "obfs fills password-less fm mask",
+			fm:         `{"udp":[{"type":"salamander","settings":{}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromobfs",
+			wantUDPLen: 1,
+		},
+		{
+			name:       "obfs appends alongside a non-salamander mask",
+			fm:         `{"udp":[{"type":"mkcp-legacy","settings":{"header":"srtp"}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromobfs",
+			wantUDPLen: 2,
+		},
 	}
-	if _, ok := salamanderPassword(t, res); ok {
-		t.Errorf("did not expect a salamander mask without obfs")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			link := "hysteria2://auth@1.2.3.4:443?security=tls&fm=" + url.QueryEscape(c.fm) +
+				"&obfs=salamander&obfs-password=" + c.obfsPw + "#node"
+			res, err := ParseLink(link)
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			pw, ok := salamanderPassword(t, res)
+			if !ok {
+				t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
+			}
+			if pw != c.wantPw {
+				t.Errorf("salamander password: got %q, want %q", pw, c.wantPw)
+			}
+			if udp := finalmaskUDP(t, res); len(udp) != c.wantUDPLen {
+				t.Errorf("udp mask count: got %d, want %d (%v)", len(udp), c.wantUDPLen, udp)
+			}
+		})
 	}
 }
 
-func TestParseHysteria2_ObfsWithoutPasswordIgnored(t *testing.T) {
-	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&obfs=salamander#node")
-	if err != nil {
-		t.Fatalf("parse hysteria2: %v", err)
+func TestParseHysteria2_Mport(t *testing.T) {
+	cases := []struct {
+		name      string
+		query     string
+		wantPorts string
+		wantHop   bool
+	}{
+		{"standard mport", "mport=20000-50000", "20000-50000", true},
+		{"no mport", "sni=ex.com", "", false},
+		{
+			name:      "fm udpHop wins over mport",
+			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
+			wantPorts: "30000-40000",
+			wantHop:   true,
+		},
 	}
-	if _, ok := salamanderPassword(t, res); ok {
-		t.Errorf("obfs without a password should not add a salamander mask")
-	}
-}
-
-func TestParseHysteria2_FinalMaskWinsOverObfs(t *testing.T) {
-	fm := url.QueryEscape(`{"udp":[{"type":"salamander","settings":{"password":"fromfm"}}]}`)
-	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&fm=" + fm + "&obfs=salamander&obfs-password=fromobfs#node")
-	if err != nil {
-		t.Fatalf("parse hysteria2: %v", err)
-	}
-	pw, ok := salamanderPassword(t, res)
-	if !ok {
-		t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
-	}
-	if pw != "fromfm" {
-		t.Errorf("fm= salamander should win, got %q", pw)
-	}
-	stream := res.Outbound["streamSettings"].(map[string]any)
-	finalmask := stream["finalmask"].(map[string]any)
-	if udp, _ := finalmask["udp"].([]any); len(udp) != 1 {
-		t.Errorf("expected a single salamander mask, got %d", len(udp))
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&" + c.query + "#node")
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			ports, ok := hopPorts(t, res)
+			if ok != c.wantHop {
+				t.Fatalf("udpHop present = %v, want %v (stream: %v)", ok, c.wantHop, res.Outbound["streamSettings"])
+			}
+			if ports != c.wantPorts {
+				t.Errorf("hop ports: got %q, want %q", ports, c.wantPorts)
+			}
+		})
 	}
 }
 
