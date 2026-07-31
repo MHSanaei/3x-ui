@@ -1435,6 +1435,33 @@
       "routing": {
         "dragToReorder": "Arrastra para reordenar"
       },
+      "geoBrowser": {
+        "title": "Categorías geo",
+        "openTooltip": "Explorar categorías geo",
+        "database": "Base de datos",
+        "searchCategory": "Buscar categoría",
+        "searchEntries": "Filtrar dentro de la categoría",
+        "selectFound": "Seleccionar encontradas",
+        "selected": "Seleccionadas: {count}",
+        "clearAll": "Limpiar todo",
+        "apply": "Aplicar",
+        "emptySelection": "Marca categorías: se convertirán en tokens de la regla",
+        "pickCategory": "Elige una categoría a la izquierda para ver su contenido",
+        "noMatches": "No se encontró nada",
+        "noFiles": "No hay bases geo en la carpeta de Xray",
+        "noFilesHint": "Aparecerán cuando Xray descargue geosite.dat y geoip.dat",
+        "fileMeta": "{count} categorías · {size} · actualizado {date}",
+        "entriesCount": "{count} entradas",
+        "subnetsCount": "{count} subredes",
+        "shownRange": "Mostrando {from}–{to} de {total}",
+        "loadFailed": "No se pudieron cargar las bases geo",
+        "parseFailed": "Archivo dañado o no es una base geosite/geoip",
+        "tooLarge": "Demasiado grande para explorarlo",
+        "unknownCategories": "No están en la base: {tokens}",
+        "missingDatabase": "No se encontró el archivo de la base: {tokens} — añádelo en la sección Geodata",
+        "unknownAttribute": "Atributo no encontrado, la regla no coincidirá con nada: {tokens}",
+        "invalidToken": "Xray no aceptará esta entrada: {tokens}"
+      },
       "ruleForm": {
         "sourceIps": "IPs de origen",
         "sourcePort": "Puerto de origen",

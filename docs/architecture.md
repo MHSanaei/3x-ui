@@ -147,7 +147,9 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   ├── inbound.go          # Inbound JSON shaping
 │   │   ├── client_traffic.go   # ClientTraffic model (persisted as client_traffics)
 │   │   ├── traffic.go          # Traffic type helpers
-│   │   └── log_writer.go       # Pipe Xray stdout/stderr into the panel logger
+│   │   ├── log_writer.go       # Pipe Xray stdout/stderr into the panel logger
+│   │   └── geodata/            # Browse geosite/geoip .dat: streaming protowire reader,
+│   │                           #   cached category index, routing-token parsing (token.go)
 │   │
 │   ├── web/                    # The panel server
 │   │   ├── web.go              # ⭐ Server bootstrap: initRouter (all routes) + startTask (all cron jobs)
@@ -159,7 +161,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   ├── host.go         #   /panel/api/hosts   (per-inbound subscription host overrides)
 │   │   │   ├── server.go       #   /panel/api/server  (status, xray version, certs, logs, DB import/export)
 │   │   │   ├── setting.go      #   /panel/api/setting (settings + API tokens)
-│   │   │   ├── xray_setting.go #   /panel/api/xray    (raw Xray config editor, WARP/Nord)
+│   │   │   ├── xray_setting.go #   /panel/api/xray    (raw Xray config editor, WARP/Nord, geodata)
 │   │   │   ├── api.go          #   /panel/api gateway (token auth, envelope + CSRF wiring)
 │   │   │   ├── index.go        #   login/logout/csrf/2FA
 │   │   │   ├── spa.go          #   SPA fallback for /panel UI routes
@@ -189,6 +191,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   ├── traffic_writer.go       # Batched persistence of traffic deltas to the DB
 │   │   │   ├── xray.go                 # ⭐ XrayService: config gen + restart/hot-apply (~1.2k lines)
 │   │   │   ├── xray_setting.go         # Raw Xray config persistence
+│   │   │   ├── geodata.go              # Geo database browsing + routing-token validation
 │   │   │   ├── xray_metrics.go         # Xray observability metrics
 │   │   │   ├── metric_history.go       # Historical system/xray metrics
 │   │   │   ├── reality_scan.go         # REALITY target scanner
@@ -265,7 +268,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │       │   └── queries/      #   TanStack Query hooks (useNodesQuery, useStatusQuery, …)
 │       ├── schemas/          # Zod schemas: protocols, forms, api, primitives
 │       ├── generated/        # ⚠️ GENERATED from Go (see §5.5): schemas.ts, types.ts, zod.ts, examples.ts
-│       ├── components/       # Reusable UI (clients/ form/ ui/ viz/ feedback/ utility/)
+│       ├── components/       # Reusable UI (clients/ form/ geodata/ ui/ viz/ feedback/ utility/)
 │       ├── lib/              # Frontend domain logic (xray/ inbounds/ clients/)
 │       ├── hooks/, models/, layouts/, i18n/, utils/, styles/
 │       └── test/             # Vitest + golden fixtures (config-generation snapshot tests)
@@ -484,6 +487,8 @@ for AutoMigrate in `internal/database/db.go`.
 | **API tokens** | `service/panel/api_token.go`, `controller/setting.go` | model `ApiToken` |
 | **Port conflict** on inbound add | `service/port_conflict.go` | `controller/inbound.go` |
 | **Fallbacks** (shared 443, SNI routing) | `service/fallback.go`, `controller/inbound.go` | model `InboundFallback` |
+| **Geo category browser** empty / won't open | `xray/geodata/` (`Store`, `reader.go`), `service/geodata.go` | `controller/xray_setting.go` (`/panel/api/xray/geodata/*`), asset dir = `config.GetBinFolderPath()` |
+| **`geosite:`/`geoip:` token** reported unknown in a routing rule | `xray/geodata/token.go`, `service/geodata.go` (`Validate`) | `frontend/src/lib/xray/geoTokens.ts`, `frontend/src/components/geodata/` |
 | **Telegram bot** commands | `service/tgbot/` | `job/stats_notify_job.go` |
 | **Email notifications** | `service/email/` | `internal/eventbus/` (consumers) |
 | **CPU / memory alerts** not firing | `job/check_cpu_usage.go`, `job/check_memory_usage.go` | `internal/eventbus/`, notifier settings in `service/setting.go` |
