@@ -524,3 +524,35 @@ func TestLookupDoesNotForgiveStraySpaces(t *testing.T) {
 		}
 	}
 }
+
+func TestSymlinkOutOfTheAssetFolderIsRefused(t *testing.T) {
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "secret.dat")
+	if err := os.WriteFile(secret, []byte("not yours"), 0o644); err != nil {
+		t.Fatalf("write secret: %v", err)
+	}
+
+	dir := t.TempDir()
+	sampleSiteDB(t, dir)
+	if err := os.Symlink(secret, filepath.Join(dir, "escape.dat")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	store := NewStore(dir)
+	if _, err := store.Categories("escape.dat", "", 0, 10); err == nil {
+		t.Error("Categories() read through a symlink pointing outside the asset folder")
+	}
+	if _, err := store.Entries("escape.dat", "google", "", 0, 10); err == nil {
+		t.Error("Entries() read through a symlink pointing outside the asset folder")
+	}
+
+	files, err := store.ListFiles()
+	if err != nil {
+		t.Fatalf("ListFiles() error = %v", err)
+	}
+	for _, file := range files {
+		if file.Name == "escape.dat" && file.Error == "" {
+			t.Error("ListFiles() reported an escaping symlink as a usable database")
+		}
+	}
+}

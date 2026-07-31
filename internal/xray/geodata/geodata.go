@@ -157,31 +157,31 @@ func (s *Store) ListFiles() ([]GeoFile, error) {
 // resolve validates a client-supplied file name and stats it through an
 // os.Root, so a symlink planted in the asset folder cannot be used to read a
 // file from elsewhere on disk.
-func (s *Store) resolve(name string) (string, os.FileInfo, error) {
+func (s *Store) resolve(name string) (os.FileInfo, error) {
 	if name == "" || name != filepath.Base(name) || !strings.HasSuffix(strings.ToLower(name), ".dat") {
-		return "", nil, ErrInvalidName
+		return nil, ErrInvalidName
 	}
 	root, err := os.OpenRoot(s.dir)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	defer root.Close()
 
 	info, err := root.Stat(name)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return "", nil, ErrInvalidName
+		return nil, ErrInvalidName
 	}
 	if info.Size() > MaxFileSize {
-		return "", nil, ErrFileTooLarge
+		return nil, ErrFileTooLarge
 	}
-	return filepath.Join(s.dir, name), info, nil
+	return info, nil
 }
 
 func (s *Store) index(name string) (*index, error) {
-	path, info, err := s.resolve(name)
+	info, err := s.resolve(name)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (s *Store) index(name string) (*index, error) {
 		return cached, cached.err
 	}
 
-	idx := buildIndex(path, name)
+	idx := buildIndex(s.dir, name)
 
 	s.mu.Lock()
 	s.indexes[key] = idx
@@ -216,8 +216,8 @@ func (s *Store) cachedIndex(key fileKey) (*index, bool) {
 // buildIndex never fails outright: a database that cannot be read is cached as
 // a failed index, so a broken download is reported without being re-parsed on
 // every request.
-func buildIndex(path, name string) *index {
-	data, err := readDatabase(path)
+func buildIndex(dir, name string) *index {
+	data, err := readDatabase(dir, name)
 	if err != nil {
 		return &index{err: err}
 	}
