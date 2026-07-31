@@ -1404,9 +1404,9 @@ export const sections: readonly Section[] = [
         summary: 'One page of a database\'s categories, each with its entry count and the attributes its domains carry (e.g. "ads", "cn").',
         params: [
           { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder, e.g. geosite.dat (required).' },
-          { name: 'q', in: 'query', type: 'string', desc: 'Case-insensitive substring filter on the category code.' },
-          { name: 'offset', in: 'query', type: 'integer', desc: 'Rows to skip. Defaults to 0.' },
-          { name: 'limit', in: 'query', type: 'integer', desc: 'Rows to return, capped at 500. Defaults to the cap.' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the category code.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Omit it to return every category — the index is small and the panel filters it client-side.' },
         ],
       },
       {
@@ -1416,9 +1416,9 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder (required).' },
           { name: 'code', in: 'query', type: 'string', desc: 'Category code, case-insensitive, e.g. google (required).' },
-          { name: 'q', in: 'query', type: 'string', desc: 'Case-insensitive substring filter on the rule value.' },
-          { name: 'offset', in: 'query', type: 'integer', desc: 'Rows to skip. Defaults to 0.' },
-          { name: 'limit', in: 'query', type: 'integer', desc: 'Rows to return, capped at 500. Defaults to the cap.' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the rule value.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Defaults to the cap.' },
         ],
       },
       {

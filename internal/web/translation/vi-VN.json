@@ -1455,12 +1455,14 @@
         "subnetsCount": "{count} dải mạng",
         "shownRange": "Hiển thị {from}–{to} trong {total}",
         "loadFailed": "Không thể tải cơ sở dữ liệu geo",
+        "checkFailed": "Không thể kiểm tra các giá trị này với cơ sở dữ liệu geo",
         "parseFailed": "Tệp bị hỏng hoặc không phải cơ sở dữ liệu geosite/geoip",
         "tooLarge": "Tệp quá lớn để duyệt",
         "unknownCategories": "Không có trong cơ sở dữ liệu: {tokens}",
         "missingDatabase": "Không tìm thấy tệp cơ sở dữ liệu: {tokens} — hãy thêm trong mục Geodata",
         "unknownAttribute": "Không tìm thấy thuộc tính, quy tắc sẽ không khớp với bất kỳ thứ gì: {tokens}",
-        "invalidToken": "Xray sẽ không chấp nhận mục này: {tokens}"
+        "invalidToken": "Xray sẽ không chấp nhận mục này: {tokens}",
+        "wrongKind": "Sai loại cơ sở dữ liệu cho trường này: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IP nguồn",

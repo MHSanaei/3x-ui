@@ -1455,12 +1455,14 @@
         "subnetsCount": "{count} 个网段",
         "shownRange": "显示第 {from}–{to} 项，共 {total} 项",
         "loadFailed": "无法加载 geo 数据库",
+        "checkFailed": "无法根据 geo 数据库校验这些值",
         "parseFailed": "文件已损坏或不是 geosite/geoip 数据库",
         "tooLarge": "文件过大，无法浏览",
         "unknownCategories": "数据库中不存在：{tokens}",
         "missingDatabase": "未找到数据库文件：{tokens} — 请在 Geodata 中添加",
         "unknownAttribute": "未找到该属性，规则不会匹配任何内容：{tokens}",
-        "invalidToken": "Xray 无法接受此写法：{tokens}"
+        "invalidToken": "Xray 无法接受此写法：{tokens}",
+        "wrongKind": "该字段的数据库类型不匹配：{tokens}"
       },
       "ruleForm": {
         "sourceIps": "源 IP",

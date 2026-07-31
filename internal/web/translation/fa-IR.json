@@ -1455,12 +1455,14 @@
         "subnetsCount": "{count} زیرشبکه",
         "shownRange": "نمایش {from}–{to} از {total}",
         "loadFailed": "بارگذاری پایگاه‌های geo ناموفق بود",
+        "checkFailed": "بررسی این مقادیر در برابر پایگاه‌های geo ممکن نشد",
         "parseFailed": "فایل خراب است یا پایگاه geosite/geoip نیست",
         "tooLarge": "فایل برای مرور بسیار بزرگ است",
         "unknownCategories": "در پایگاه داده وجود ندارد: {tokens}",
         "missingDatabase": "فایل پایگاه داده وجود ندارد: {tokens}. آن را در بخش Geodata اضافه کنید",
         "unknownAttribute": "ویژگی یافت نشد و قانون با هیچ چیزی مطابقت نخواهد کرد: {tokens}",
-        "invalidToken": "Xray چنین مقداری را نمی‌پذیرد: {tokens}"
+        "invalidToken": "Xray چنین مقداری را نمی‌پذیرد: {tokens}",
+        "wrongKind": "نوع پایگاه داده برای این فیلد نادرست است: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IPهای مبدا",

@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import GeoBrowserModal from '@/components/geodata/GeoBrowserModal';
+import GeoTokenInput from '@/components/geodata/GeoTokenInput';
 import { makeTestQueryClient } from '@/test/test-utils';
 import { HttpUtil, Msg } from '@/utils';
 
@@ -28,7 +29,7 @@ const CATEGORIES = {
 };
 
 function mockGeodata(files: unknown[] = FILES) {
-  vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string, params?: unknown) => {
+  const get = vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string, params?: unknown) => {
     const requestedFile = (params as { file?: string } | undefined)?.file;
     if (url.includes('/geodata/files')) return new Msg(true, '', files);
     if (url.includes('/geodata/categories')) {
@@ -38,6 +39,15 @@ function mockGeodata(files: unknown[] = FILES) {
     return new Msg(true, '', null);
   });
   vi.spyOn(HttpUtil, 'post').mockImplementation(async () => new Msg(true, '', []));
+  return get;
+}
+
+type GetSpy = ReturnType<typeof mockGeodata>;
+
+function entryFilters(get: GetSpy): string[] {
+  return get.mock.calls
+    .filter(([url]) => String(url).includes('/geodata/entries'))
+    .map(([, params]) => (params as { q?: string } | undefined)?.q ?? '');
 }
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -129,6 +139,33 @@ describe('GeoBrowserModal selection', () => {
     expect(screen.queryByText('private')).toBeNull();
   });
 
+  it('waits for the entry filter to settle instead of querying every keystroke', async () => {
+    const get = mockGeodata();
+    const user = userEvent.setup({ delay: null });
+    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, { wrapper });
+
+    await user.click(await screen.findByText('cn'));
+    await waitFor(() => expect(entryFilters(get)).toEqual(['']));
+
+    await user.type(screen.getByPlaceholderText('Filter inside category'), 'abcd');
+    expect(entryFilters(get)).toEqual(['']);
+
+    await waitFor(() => expect(entryFilters(get)).toEqual(['', 'abcd']), { timeout: 3000 });
+  });
+
+  it('drops the pending filter when another category is opened', async () => {
+    const get = mockGeodata();
+    const user = userEvent.setup({ delay: null });
+    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, { wrapper });
+
+    await user.click(await screen.findByText('cn'));
+    await user.type(screen.getByPlaceholderText('Filter inside category'), 'abcd');
+    await user.click(screen.getByText('telegram'));
+
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    expect(entryFilters(get)).toEqual(['', '']);
+  });
+
   it('ticks and unticks a category written in its long ext form', async () => {
     mockGeodata();
     const user = userEvent.setup();
@@ -149,5 +186,22 @@ describe('GeoBrowserModal selection', () => {
     await user.click(screen.getByRole('button', { name: /apply|применить/i }));
 
     expect(onApply).toHaveBeenCalledWith('google.com');
+  });
+});
+
+describe('GeoTokenInput validation feedback', () => {
+  it('says the check failed instead of dropping the warnings silently', async () => {
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
+    vi.spyOn(HttpUtil, 'post')
+      .mockResolvedValueOnce(new Msg(true, '', [{ token: 'geosite:nope', reason: 'categoryMissing' }]))
+      .mockResolvedValue(new Msg(false, 'too many tokens'));
+
+    const view = render(<GeoTokenInput kind="domain" value="geosite:nope" />, { wrapper });
+    await screen.findByText(/Not in the database/, {}, { timeout: 3000 });
+
+    view.rerender(<GeoTokenInput kind="domain" value="geosite:nope, geosite:other" />);
+
+    await screen.findByText('Could not check these values against the geo databases', {}, { timeout: 3000 });
+    expect(screen.queryByText(/Not in the database/)).toBeNull();
   });
 });

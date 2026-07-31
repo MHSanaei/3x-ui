@@ -14,9 +14,14 @@ const (
 	DefaultIPFile   = xraygeodata.DefaultGeoIPDat
 )
 
-// ErrInvalidToken reports a routing token that names a database but does not
-// resolve to a file and category.
-var ErrInvalidToken = errors.New("invalid geodata routing token")
+var (
+	// ErrInvalidToken reports a routing token that names a database but does not
+	// resolve to a file and category.
+	ErrInvalidToken = errors.New("invalid geodata routing token")
+	// ErrWrongKind reports a token carrying the other rule kind's prefix, such
+	// as geoip: typed into a domain field.
+	ErrWrongKind = errors.New("geodata token belongs to the other rule kind")
+)
 
 var (
 	sitePrefixes = []string{"ext:", "ext-domain:", "ext-site:"}
@@ -56,6 +61,13 @@ func ParseReference(token string, kind GeoKind) (Reference, error) {
 	}
 	if rest, found := strings.CutPrefix(token, shorthand); found {
 		token = "ext:" + defaultFile + ":" + rest
+	}
+
+	// A geoip: token in a domain field (or the reverse) parses as a plain
+	// domain and would be waved through, yet the core cannot resolve it as one.
+	// The field knows its own kind, so say so instead.
+	if strings.HasPrefix(token, otherShorthand(kind)) {
+		return Reference{}, ErrWrongKind
 	}
 
 	rest, matched := "", false
@@ -121,4 +133,11 @@ func cutNegation(value string) (string, bool) {
 		value = rest
 		negated = !negated
 	}
+}
+
+func otherShorthand(kind GeoKind) string {
+	if kind == KindIP {
+		return "geosite:"
+	}
+	return "geoip:"
 }

@@ -109,6 +109,8 @@ func TestParseReference(t *testing.T) {
 		{name: "ext with empty file", token: "ext::google", kind: KindSite, wantErr: ErrInvalidToken},
 		{name: "geosite without code", token: "geosite:", kind: KindSite, wantErr: ErrInvalidToken},
 		{name: "bare ext prefix", token: "ext:", kind: KindSite, wantErr: ErrInvalidToken},
+		{name: "geoip token in a domain field", token: "geoip:cn", kind: KindSite, wantErr: ErrWrongKind},
+		{name: "geosite token in an ip field", token: "geosite:cn", kind: KindIP, wantErr: ErrWrongKind},
 		{name: "empty attribute", token: "geosite:cn@", kind: KindSite, wantErr: ErrInvalidToken},
 		{
 			name:  "a space inside the code stays part of the code",

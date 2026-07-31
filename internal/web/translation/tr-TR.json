@@ -1455,12 +1455,14 @@
         "subnetsCount": "{count} alt ağ",
         "shownRange": "{total} kayıttan {from}–{to} arası gösteriliyor",
         "loadFailed": "Geo veritabanları yüklenemedi",
+        "checkFailed": "Bu değerler geo veritabanlarıyla doğrulanamadı",
         "parseFailed": "Dosya bozuk veya geosite/geoip veritabanı değil",
         "tooLarge": "Göz atmak için fazla büyük",
         "unknownCategories": "Veritabanında yok: {tokens}",
         "missingDatabase": "Veritabanı dosyası bulunamadı: {tokens} — Geodata bölümünden ekleyin",
         "unknownAttribute": "Öznitelik bulunamadı, kural hiçbir şeyle eşleşmez: {tokens}",
-        "invalidToken": "Xray böyle bir kaydı kabul etmez: {tokens}"
+        "invalidToken": "Xray böyle bir kaydı kabul etmez: {tokens}",
+        "wrongKind": "Bu alan için yanlış veritabanı türü: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "Kaynak IP'ler",

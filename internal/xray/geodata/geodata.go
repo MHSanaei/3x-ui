@@ -94,6 +94,7 @@ type index struct {
 	kind       GeoKind
 	categories []GeoCategory
 	byCode     map[string]GeoCategory
+	spans      map[string][]byteSpan
 	err        error
 }
 
@@ -113,6 +114,16 @@ type Store struct {
 	indexes map[fileKey]*index
 
 	scan sync.Mutex
+	// hot holds the records of the category being paged through, so a browsing
+	// session reads them once instead of once per page. Only one category is
+	// kept: paging is the repeated operation, switching categories is not.
+	hot hotRecord
+}
+
+type hotRecord struct {
+	key     fileKey
+	code    string
+	records [][]byte
 }
 
 // NewStore returns a Store reading databases from dir.
@@ -198,12 +209,24 @@ func (s *Store) index(name string) (*index, error) {
 	}
 
 	idx := buildIndex(s.dir, name)
+	if idx.err != nil && !isPermanent(idx.err) {
+		// A transient read failure (out of memory on a large file, too many open
+		// files) must not latch: the file is fine and the next request should
+		// try again rather than see it greyed out until it changes on disk.
+		return nil, idx.err
+	}
 
 	s.mu.Lock()
 	s.indexes[key] = idx
 	s.dropStaleIndexesLocked(name, key)
 	s.mu.Unlock()
 	return idx, idx.err
+}
+
+// isPermanent reports whether an error will repeat for the same bytes, and is
+// therefore worth caching instead of re-deriving on every request.
+func isPermanent(err error) bool {
+	return errors.Is(err, ErrUnrecognized) || errors.Is(err, ErrInvalidName) || errors.Is(err, ErrFileTooLarge)
 }
 
 func (s *Store) cachedIndex(key fileKey) (*index, bool) {
@@ -229,6 +252,7 @@ func buildIndex(dir, name string) *index {
 		kind:       kind,
 		categories: scan.categories,
 		byCode:     make(map[string]GeoCategory, len(scan.categories)),
+		spans:      scan.spans,
 	}
 	for _, category := range scan.categories {
 		idx.byCode[category.Code] = category

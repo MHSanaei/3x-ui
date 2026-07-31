@@ -1455,12 +1455,14 @@
         "subnetsCount": "{count} サブネット",
         "shownRange": "{total} 件中 {from}–{to} を表示",
         "loadFailed": "geo データベースを読み込めませんでした",
+        "checkFailed": "これらの値を geo データベースと照合できませんでした",
         "parseFailed": "ファイルが破損しているか、geosite/geoip データベースではありません",
         "tooLarge": "サイズが大きすぎて参照できません",
         "unknownCategories": "データベースに存在しません: {tokens}",
         "missingDatabase": "データベースファイルが見つかりません: {tokens} — Geodata から追加してください",
         "unknownAttribute": "属性が見つからないため、ルールは何にも一致しません: {tokens}",
-        "invalidToken": "Xray はこの記述を受け付けません: {tokens}"
+        "invalidToken": "Xray はこの記述を受け付けません: {tokens}",
+        "wrongKind": "このフィールドには合わないデータベース種別です: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "送信元 IP",
