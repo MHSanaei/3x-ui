@@ -40,8 +40,7 @@ func (s *Store) Entries(name, code, query string, offset, limit int) (GeoEntryPa
 	if _, ok := idx.byCode[code]; !ok {
 		return GeoEntryPage{}, ErrUnknownCategory
 	}
-	path, _, err := s.resolve(name)
-	if err != nil {
+	if _, err := s.resolve(name); err != nil {
 		return GeoEntryPage{}, err
 	}
 	if offset < 0 {
@@ -53,7 +52,7 @@ func (s *Store) Entries(name, code, query string, offset, limit int) (GeoEntryPa
 
 	s.scan.Lock()
 	defer s.scan.Unlock()
-	data, err := readDatabase(path)
+	data, err := readDatabase(s.dir, name)
 	if err != nil {
 		return GeoEntryPage{}, err
 	}

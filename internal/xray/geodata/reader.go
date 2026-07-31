@@ -3,6 +3,7 @@ package geodata
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/netip"
 	"os"
 	"sort"
@@ -182,8 +183,35 @@ func detectKind(data []byte, name string) (GeoKind, *categoryScan, error) {
 	return "", nil, ErrUnrecognized
 }
 
-func readDatabase(path string) ([]byte, error) {
-	return os.ReadFile(path)
+// readDatabase reads one database through an os.Root rooted at the asset
+// directory. Going through the root rather than a joined path means the file
+// name — which arrives from an HTTP request — never becomes a path this code
+// resolves itself: a symlink planted in the folder, or swapped in between the
+// check and the read, cannot pull in a file from elsewhere on disk.
+func readDatabase(dir, name string) ([]byte, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+
+	file, err := root.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, ErrInvalidName
+	}
+	if info.Size() > MaxFileSize {
+		return nil, ErrFileTooLarge
+	}
+	return io.ReadAll(io.LimitReader(file, MaxFileSize))
 }
 
 func eachListEntry(data []byte, visit func(entry []byte) error) error {
