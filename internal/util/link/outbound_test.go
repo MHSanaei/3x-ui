@@ -114,6 +114,89 @@ func TestSanitizeFinalMaskQuicParams_ClampsAndRejects(t *testing.T) {
 	}
 }
 
+func salamanderPassword(t *testing.T, res *ParseResult) (string, bool) {
+	t.Helper()
+	stream, ok := res.Outbound["streamSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing streamSettings: %v", res.Outbound)
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return "", false
+	}
+	udp, ok := finalmask["udp"].([]any)
+	if !ok {
+		return "", false
+	}
+	for _, m := range udp {
+		mask, _ := m.(map[string]any)
+		if mask == nil || mask["type"] != "salamander" {
+			continue
+		}
+		settings, _ := mask["settings"].(map[string]any)
+		pw, _ := settings["password"].(string)
+		return pw, true
+	}
+	return "", false
+}
+
+func TestParseHysteria2_StandardObfs(t *testing.T) {
+	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&sni=ex.com&obfs=salamander&obfs-password=s3cr3t#node")
+	if err != nil {
+		t.Fatalf("parse hysteria2 with obfs: %v", err)
+	}
+	if res.Outbound["protocol"] != "hysteria" {
+		t.Fatalf("bad protocol: %v", res.Outbound["protocol"])
+	}
+	pw, ok := salamanderPassword(t, res)
+	if !ok {
+		t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
+	}
+	if pw != "s3cr3t" {
+		t.Errorf("salamander password: expected s3cr3t, got %q", pw)
+	}
+}
+
+func TestParseHysteria2_NoObfs(t *testing.T) {
+	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&sni=ex.com#node")
+	if err != nil {
+		t.Fatalf("parse hysteria2: %v", err)
+	}
+	if _, ok := salamanderPassword(t, res); ok {
+		t.Errorf("did not expect a salamander mask without obfs")
+	}
+}
+
+func TestParseHysteria2_ObfsWithoutPasswordIgnored(t *testing.T) {
+	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&obfs=salamander#node")
+	if err != nil {
+		t.Fatalf("parse hysteria2: %v", err)
+	}
+	if _, ok := salamanderPassword(t, res); ok {
+		t.Errorf("obfs without a password should not add a salamander mask")
+	}
+}
+
+func TestParseHysteria2_FinalMaskWinsOverObfs(t *testing.T) {
+	fm := url.QueryEscape(`{"udp":[{"type":"salamander","settings":{"password":"fromfm"}}]}`)
+	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&fm=" + fm + "&obfs=salamander&obfs-password=fromobfs#node")
+	if err != nil {
+		t.Fatalf("parse hysteria2: %v", err)
+	}
+	pw, ok := salamanderPassword(t, res)
+	if !ok {
+		t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
+	}
+	if pw != "fromfm" {
+		t.Errorf("fm= salamander should win, got %q", pw)
+	}
+	stream := res.Outbound["streamSettings"].(map[string]any)
+	finalmask := stream["finalmask"].(map[string]any)
+	if udp, _ := finalmask["udp"].([]any); len(udp) != 1 {
+		t.Errorf("expected a single salamander mask, got %d", len(udp))
+	}
+}
+
 func TestParseShadowsocks(t *testing.T) {
 	modernUser := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
 	legacyBody := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass@1.2.3.4:8388"))

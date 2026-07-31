@@ -304,6 +304,31 @@ describe('parseHysteria2Link', () => {
     expect((udp[0].settings as Record<string, unknown>).password).toBe('ftwfgb9655hh2mgo');
   });
 
+  it('reconstructs the salamander mask from standard obfs= without fm=', () => {
+    const link = 'hysteria2://auth@news.domain.org:8443?security=tls&sni=news.domain.org'
+      + '&obfs=salamander&obfs-password=ftwfgb9655hh2mgo#hy2-std-obfs';
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as Record<string, unknown>;
+    expect(finalmask).toBeDefined();
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
+    expect(udp[0].type).toBe('salamander');
+    expect((udp[0].settings as Record<string, unknown>).password).toBe('ftwfgb9655hh2mgo');
+  });
+
+  it('adds no salamander mask when the link carries neither obfs nor fm', () => {
+    const out = parseHysteria2Link('hysteria2://auth@srv:443?security=tls&sni=srv#hy2-plain');
+    expect(out).not.toBeNull();
+    expect((out!.streamSettings as Record<string, unknown>).finalmask).toBeUndefined();
+  });
+
+  it('ignores obfs=salamander when no obfs-password is present', () => {
+    const out = parseHysteria2Link('hysteria2://auth@srv:443?security=tls&obfs=salamander#hy2-nopw');
+    expect(out).not.toBeNull();
+    expect((out!.streamSettings as Record<string, unknown>).finalmask).toBeUndefined();
+  });
+
   it('round-trips the salamander packetSize (Gecko) under fm', () => {
     const fm = encodeURIComponent(JSON.stringify({
       udp: [{ type: 'salamander', settings: { password: 'ftwfgb9655hh2mgo', packetSize: '100-200' } }],

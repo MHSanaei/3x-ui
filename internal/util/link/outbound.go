@@ -457,6 +457,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 		},
 	}
 	applyFinalMask(stream, params)
+	applyHysteria2Obfs(stream, params)
 
 	identity := "hysteria2:" + auth + "@" + host + ":" + strconv.Itoa(port) + "?" + canonicalQuery(params)
 
@@ -684,6 +685,39 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			stream["finalmask"] = parsed
 		}
 	}
+}
+
+// applyHysteria2Obfs reconstructs the salamander finalmask mask from the
+// standard Hysteria2 obfs=salamander & obfs-password=<pw> URI pair. Panels
+// (including this one) now emit those standard fields instead of the private
+// fm=<json> dump, and every other Hysteria2 client speaks the same pair, so an
+// importer that only reads fm= silently drops salamander and negotiates plain
+// QUIC against a server that expects obfuscation. When fm= already supplied a
+// salamander mask it wins and this is a no-op; otherwise the pair is folded
+// into finalmask.udp so the outbound round-trips.
+func applyHysteria2Obfs(stream map[string]any, p url.Values) {
+	if !strings.EqualFold(p.Get("obfs"), "salamander") {
+		return
+	}
+	password := firstParam(p, "obfs-password", "obfs_password", "obfsPassword")
+	if password == "" {
+		return
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		finalmask = map[string]any{}
+		stream["finalmask"] = finalmask
+	}
+	udp, _ := finalmask["udp"].([]any)
+	for _, m := range udp {
+		if mask, ok := m.(map[string]any); ok && mask["type"] == "salamander" {
+			return
+		}
+	}
+	finalmask["udp"] = append(udp, map[string]any{
+		"type":     "salamander",
+		"settings": map[string]any{"password": password},
+	})
 }
 
 // sanitizeFinalMaskQuicParams coerces the strictly numeric quicParams fields

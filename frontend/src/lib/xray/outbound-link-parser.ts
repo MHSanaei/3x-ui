@@ -226,6 +226,25 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   }
 }
 
+// Reconstruct the salamander finalmask mask from the standard Hysteria2
+// obfs=salamander & obfs-password=<pw> URI pair. Panels (including this one)
+// now emit those standard fields instead of the private fm=<json> dump, and
+// every other Hysteria2 client speaks the same pair — so reading only fm=
+// here silently drops salamander and imports an outbound that negotiates plain
+// QUIC against a server that expects obfuscation. When fm= already carried a
+// salamander mask it wins and this is a no-op.
+function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
+  if ((params.get('obfs') ?? '').toLowerCase() !== 'salamander') return;
+  const password = firstParam(params, 'obfs-password', 'obfs_password', 'obfsPassword');
+  if (!password) return;
+  const finalmask = (stream.finalmask && typeof stream.finalmask === 'object'
+    ? stream.finalmask
+    : (stream.finalmask = {})) as Record<string, unknown>;
+  const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as Raw[]) : [];
+  if (udp.some((m) => m && typeof m === 'object' && (m as Raw).type === 'salamander')) return;
+  finalmask.udp = [...udp, { type: 'salamander', settings: { password } }];
+}
+
 const QUIC_PARAMS_NUMERIC_KEYS = [
   'initStreamReceiveWindow',
   'maxStreamReceiveWindow',
@@ -525,6 +544,7 @@ export function parseHysteria2Link(link: string): Raw | null {
     },
   };
   applyFinalMaskParam(stream, params);
+  applyHysteria2Obfs(stream, params);
   return {
     protocol: 'hysteria',
     tag: decodeRemark(url),
