@@ -1437,6 +1437,33 @@
       "routing": {
         "dragToReorder": "برای تغییر ترتیب بکشید"
       },
+      "geoBrowser": {
+        "title": "دسته‌های پایگاه geo",
+        "openTooltip": "مرور دسته‌های geo",
+        "database": "پایگاه داده",
+        "searchCategory": "جستجوی دسته",
+        "searchEntries": "فیلتر درون دسته",
+        "selectFound": "انتخاب موارد یافت‌شده",
+        "selected": "انتخاب‌شده: {count}",
+        "clearAll": "پاک کردن همه",
+        "apply": "اعمال",
+        "emptySelection": "دسته‌ها را علامت بزنید تا به مقادیر قانون تبدیل شوند",
+        "pickCategory": "برای دیدن محتوا، یک دسته را از فهرست انتخاب کنید",
+        "noMatches": "چیزی یافت نشد",
+        "noFiles": "در پوشه Xray هیچ پایگاه geo وجود ندارد",
+        "noFilesHint": "پس از آنکه Xray فایل‌های geosite.dat و geoip.dat را دانلود کند، نمایش داده می‌شوند",
+        "fileMeta": "{count} دسته · {size} · به‌روزرسانی {date}",
+        "entriesCount": "{count} مورد",
+        "subnetsCount": "{count} زیرشبکه",
+        "shownRange": "نمایش {from}–{to} از {total}",
+        "loadFailed": "بارگذاری پایگاه‌های geo ناموفق بود",
+        "parseFailed": "فایل خراب است یا پایگاه geosite/geoip نیست",
+        "tooLarge": "فایل برای مرور بسیار بزرگ است",
+        "unknownCategories": "در پایگاه داده وجود ندارد: {tokens}",
+        "missingDatabase": "فایل پایگاه داده وجود ندارد: {tokens}. آن را در بخش Geodata اضافه کنید",
+        "unknownAttribute": "ویژگی یافت نشد و قانون با هیچ چیزی مطابقت نخواهد کرد: {tokens}",
+        "invalidToken": "Xray چنین مقداری را نمی‌پذیرد: {tokens}"
+      },
       "ruleForm": {
         "sourceIps": "IPهای مبدا",
         "sourcePort": "پورت مبدا",

@@ -1437,6 +1437,33 @@
       "routing": {
         "dragToReorder": "拖曳以重新排序"
       },
+      "geoBrowser": {
+        "title": "geo 分類",
+        "openTooltip": "瀏覽 geo 分類",
+        "database": "資料庫",
+        "searchCategory": "搜尋分類",
+        "searchEntries": "在分類內篩選",
+        "selectFound": "勾選搜尋結果",
+        "selected": "已選 {count} 項",
+        "clearAll": "全部清除",
+        "apply": "套用",
+        "emptySelection": "勾選分類，它們將成為規則中的項目",
+        "pickCategory": "在左側選擇一個分類以查看其內容",
+        "noMatches": "找不到任何內容",
+        "noFiles": "Xray 目錄中沒有 geo 資料庫",
+        "noFilesHint": "Xray 下載 geosite.dat 與 geoip.dat 後即會出現",
+        "fileMeta": "{count} 個分類 · {size} · 更新於 {date}",
+        "entriesCount": "{count} 筆記錄",
+        "subnetsCount": "{count} 個網段",
+        "shownRange": "顯示第 {from}–{to} 項，共 {total} 項",
+        "loadFailed": "無法載入 geo 資料庫",
+        "parseFailed": "檔案已損毀或不是 geosite/geoip 資料庫",
+        "tooLarge": "檔案過大，無法瀏覽",
+        "unknownCategories": "資料庫中不存在：{tokens}",
+        "missingDatabase": "找不到資料庫檔案：{tokens} — 請在 Geodata 中新增",
+        "unknownAttribute": "找不到該屬性，規則不會比對到任何內容：{tokens}",
+        "invalidToken": "Xray 無法接受此寫法：{tokens}"
+      },
       "ruleForm": {
         "sourceIps": "來源 IP",
         "sourcePort": "來源連接埠",
