@@ -109,7 +109,9 @@
     "donate": "捐贈",
     "hosts": "Hosts",
     "docs": "文件",
-    "openMenu": "開啟選單"
+    "openMenu": "開啟選單",
+    "pinSidebar": "固定側邊欄",
+    "unpinSidebar": "取消固定側邊欄"
   },
   "pages": {
     "login": {

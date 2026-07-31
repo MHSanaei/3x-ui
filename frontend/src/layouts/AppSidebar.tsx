@@ -23,6 +23,8 @@ import {
   MessageOutlined,
   MoonFilled,
   MoonOutlined,
+  PushpinFilled,
+  PushpinOutlined,
   ReadOutlined,
   SafetyOutlined,
   SettingOutlined,
@@ -44,7 +46,8 @@ const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
 const RAIL_WIDTH = 72;
-const railStyle = { '--sider-rail': `${RAIL_WIDTH}px` } as CSSProperties;
+const SIDER_WIDTH = 220;
+const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
 
 let hoveredAcrossRemounts = false;
 
@@ -135,6 +138,20 @@ function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
   );
 }
 
+function readSidebarPinned() {
+  try {
+    return localStorage.getItem(SIDEBAR_PINNED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveSidebarPinned(pinned: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_PINNED_KEY, String(pinned));
+  } catch {}
+}
+
 export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
@@ -144,14 +161,25 @@ export default function AppSidebar() {
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
 
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
+  const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const railCollapsed = !hovered;
+  const railCollapsed = !hovered && !pinned;
+  const railStyle = useMemo(
+    () => ({ '--sider-rail': `${pinned ? SIDER_WIDTH : RAIL_WIDTH}px` }) as CSSProperties,
+    [pinned],
+  );
   const rootRef = useRef<HTMLDivElement>(null);
 
   const updateHovered = useCallback((value: boolean) => {
     hoveredAcrossRemounts = value;
     setHovered(value);
   }, []);
+
+  const togglePinned = useCallback(() => {
+    const next = !pinned;
+    saveSidebarPinned(next);
+    setPinned(next);
+  }, [pinned]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -261,14 +289,14 @@ export default function AppSidebar() {
   return (
     <div
       ref={rootRef}
-      className="ant-sidebar"
+      className={`ant-sidebar${pinned ? ' sidebar-pinned' : ''}`}
       style={railStyle}
       onMouseEnter={() => updateHovered(true)}
       onMouseLeave={() => updateHovered(false)}
     >
       <Layout.Sider
         theme={currentTheme}
-        width={220}
+        width={SIDER_WIDTH}
         collapsedWidth={RAIL_WIDTH}
         collapsed={railCollapsed}
       >
@@ -278,6 +306,16 @@ export default function AppSidebar() {
           </div>
           {!railCollapsed && (
             <div className="brand-actions">
+              <button
+                type="button"
+                className="sidebar-pin"
+                aria-label={t('menu.pinSidebar')}
+                aria-pressed={pinned}
+                title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
+                onClick={togglePinned}
+              >
+                {pinned ? <PushpinFilled /> : <PushpinOutlined />}
+              </button>
               <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <ThemeCycleButton

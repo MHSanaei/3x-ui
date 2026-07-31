@@ -109,7 +109,9 @@
     "donate": "Donar",
     "hosts": "Hosts",
     "docs": "Documentación",
-    "openMenu": "Abrir menú"
+    "openMenu": "Abrir menú",
+    "pinSidebar": "Fijar barra lateral",
+    "unpinSidebar": "Desfijar barra lateral"
   },
   "pages": {
     "login": {

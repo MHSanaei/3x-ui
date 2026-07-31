@@ -109,7 +109,9 @@
     "apiDocs": "API Docs",
     "donate": "Donate",
     "docs": "Documentation",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "pinSidebar": "Pin sidebar",
+    "unpinSidebar": "Unpin sidebar"
   },
   "pages": {
     "login": {
