@@ -1457,12 +1457,14 @@
         "subnetsCount": "{count} subredes",
         "shownRange": "Mostrando {from}–{to} de {total}",
         "loadFailed": "No se pudieron cargar las bases geo",
+        "checkFailed": "No se pudieron verificar estos valores con las bases geo",
         "parseFailed": "Archivo dañado o no es una base geosite/geoip",
         "tooLarge": "Demasiado grande para explorarlo",
         "unknownCategories": "No están en la base: {tokens}",
         "missingDatabase": "No se encontró el archivo de la base: {tokens} — añádelo en la sección Geodata",
         "unknownAttribute": "Atributo no encontrado, la regla no coincidirá con nada: {tokens}",
-        "invalidToken": "Xray no aceptará esta entrada: {tokens}"
+        "invalidToken": "Xray no aceptará esta entrada: {tokens}",
+        "wrongKind": "Tipo de base incorrecto para este campo: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IPs de origen",

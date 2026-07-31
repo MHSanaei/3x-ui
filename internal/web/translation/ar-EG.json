@@ -1457,12 +1457,14 @@
         "subnetsCount": "{count} شبكة فرعية",
         "shownRange": "عرض {from}–{to} من {total}",
         "loadFailed": "تعذر تحميل قواعد geo",
+        "checkFailed": "تعذر التحقق من هذه القيم مقابل قواعد geo",
         "parseFailed": "الملف تالف أو ليس قاعدة geosite/geoip",
         "tooLarge": "الملف أكبر من أن يتم استعراضه",
         "unknownCategories": "غير موجود في القاعدة: {tokens}",
         "missingDatabase": "ملف القاعدة غير موجود: {tokens}. أضِفه من قسم Geodata",
         "unknownAttribute": "السمة غير موجودة، ولن تطابق القاعدة أي نطاق: {tokens}",
-        "invalidToken": "لن يقبل Xray هذه الصيغة: {tokens}"
+        "invalidToken": "لن يقبل Xray هذه الصيغة: {tokens}",
+        "wrongKind": "نوع قاعدة البيانات غير مناسب لهذا الحقل: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IPs المصدر",

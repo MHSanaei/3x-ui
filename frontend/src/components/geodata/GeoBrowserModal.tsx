@@ -12,6 +12,7 @@ import './GeoBrowserModal.css';
 
 const ENTRY_PAGE_SIZE = 100;
 const CATEGORY_SCROLL_HEIGHT = 438;
+const ENTRY_FILTER_DELAY = 500;
 
 export interface GeoBrowserModalProps {
   open: boolean;
@@ -43,6 +44,7 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
   const [categoryQuery, setCategoryQuery] = useState('');
   const [activeCode, setActiveCode] = useState<string | undefined>(undefined);
   const [entryQuery, setEntryQuery] = useState('');
+  const [entryFilter, setEntryFilter] = useState('');
   const [entryPage, setEntryPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -64,14 +66,35 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
     [categoriesLoaded, categoriesQuery.data],
   );
 
+  // Only the settled filter reaches the query key: every request rescans the
+  // whole .dat file server-side, so a per-keystroke fetch would be one full
+  // scan per character while the box itself stays instant.
   const entriesQuery = useGeodataEntries(
     file,
     activeCode,
-    entryQuery,
+    entryFilter,
     (entryPage - 1) * ENTRY_PAGE_SIZE,
     ENTRY_PAGE_SIZE,
     open && !!file && !!activeCode,
   );
+
+  // Resets clear both halves at once so a switch of database or category never
+  // renders with the previous filter still in the key, which would fire the
+  // very request the debounce exists to avoid.
+  const clearEntryFilter = useCallback(() => {
+    setEntryQuery('');
+    setEntryFilter('');
+    setEntryPage(1);
+  }, []);
+
+  useEffect(() => {
+    if (entryQuery === entryFilter) return;
+    const handle = window.setTimeout(() => {
+      setEntryFilter(entryQuery);
+      setEntryPage(1);
+    }, ENTRY_FILTER_DELAY);
+    return () => window.clearTimeout(handle);
+  }, [entryQuery, entryFilter]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +102,7 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
     seededFilesRef.current = new Set();
     setCategoryQuery('');
     setEntryQuery('');
+    setEntryFilter('');
     setActiveCode(undefined);
     setEntryPage(1);
     setSelected([]);
@@ -243,8 +267,7 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
                 setFile(next);
                 setActiveCode(undefined);
                 setCategoryQuery('');
-                setEntryQuery('');
-                setEntryPage(1);
+                clearEntryFilter();
               }}
               style={{ minWidth: 200 }}
               aria-label={t('pages.xray.geoBrowser.database')}
@@ -287,8 +310,7 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
                   onClick: (event) => {
                     if ((event.target as HTMLElement).closest('.ant-table-selection-column')) return;
                     setActiveCode(category.code);
-                    setEntryQuery('');
-                    setEntryPage(1);
+                    clearEntryFilter();
                   },
                 })}
                 rowClassName={(category) => (category.code === activeCode ? 'geo-row-active' : '')}
@@ -305,10 +327,7 @@ export default function GeoBrowserModal({ open, kind, value, onApply, onClose }:
                     <Typography.Text type="secondary">{countLabel}</Typography.Text>
                     <Input
                       value={entryQuery}
-                      onChange={(event) => {
-                        setEntryQuery(event.target.value);
-                        setEntryPage(1);
-                      }}
+                      onChange={(event) => setEntryQuery(event.target.value)}
                       placeholder={t('pages.xray.geoBrowser.searchEntries')}
                       allowClear
                       className="geo-entry-filter"

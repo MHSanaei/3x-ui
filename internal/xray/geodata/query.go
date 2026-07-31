@@ -50,20 +50,18 @@ func (s *Store) Entries(name, code, query string, offset, limit int) (GeoEntryPa
 		limit = MaxPageSize
 	}
 
-	s.scan.Lock()
-	defer s.scan.Unlock()
-	data, err := readDatabase(s.dir, name)
-	if err != nil {
-		return GeoEntryPage{}, err
-	}
-	page, found, err := scanEntries(data, idx.kind, code, strings.ToLower(strings.TrimSpace(query)), offset, limit)
-	if err != nil {
-		return GeoEntryPage{}, err
-	}
-	if !found {
+	spans := idx.spans[code]
+	if len(spans) == 0 {
 		return GeoEntryPage{}, ErrUnknownCategory
 	}
-	return page, nil
+
+	s.scan.Lock()
+	defer s.scan.Unlock()
+	records, err := s.recordsLocked(name, code, spans)
+	if err != nil {
+		return GeoEntryPage{}, err
+	}
+	return scanEntries(records, idx.kind, code, strings.ToLower(strings.TrimSpace(query)), offset, limit)
 }
 
 // Lookup reports whether a category exists in the database, without paying for
@@ -110,4 +108,21 @@ func sliceBounds(total, offset, limit int) (int, int) {
 		to = total
 	}
 	return offset, to
+}
+
+func (s *Store) recordsLocked(name, code string, spans []byteSpan) ([][]byte, error) {
+	info, err := s.resolve(name)
+	if err != nil {
+		return nil, err
+	}
+	key := fileKey{name: name, size: info.Size(), modTime: info.ModTime().UnixNano()}
+	if s.hot.key == key && s.hot.code == code {
+		return s.hot.records, nil
+	}
+	records, err := readSpans(s.dir, name, spans)
+	if err != nil {
+		return nil, err
+	}
+	s.hot = hotRecord{key: key, code: code, records: records}
+	return records, nil
 }

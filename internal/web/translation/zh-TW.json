@@ -1457,12 +1457,14 @@
         "subnetsCount": "{count} 個網段",
         "shownRange": "顯示第 {from}–{to} 項，共 {total} 項",
         "loadFailed": "無法載入 geo 資料庫",
+        "checkFailed": "無法依據 geo 資料庫檢查這些值",
         "parseFailed": "檔案已損毀或不是 geosite/geoip 資料庫",
         "tooLarge": "檔案過大，無法瀏覽",
         "unknownCategories": "資料庫中不存在：{tokens}",
         "missingDatabase": "找不到資料庫檔案：{tokens} — 請在 Geodata 中新增",
         "unknownAttribute": "找不到該屬性，規則不會比對到任何內容：{tokens}",
-        "invalidToken": "Xray 無法接受此寫法：{tokens}"
+        "invalidToken": "Xray 無法接受此寫法：{tokens}",
+        "wrongKind": "此欄位的資料庫類型不符：{tokens}"
       },
       "ruleForm": {
         "sourceIps": "來源 IP",

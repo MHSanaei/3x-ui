@@ -1457,12 +1457,14 @@
         "subnetsCount": "{count} подсетей",
         "shownRange": "Показано {from}–{to} из {total}",
         "loadFailed": "Не удалось загрузить geo-базы",
+        "checkFailed": "Не удалось проверить эти значения по geo-базам",
         "parseFailed": "Файл повреждён или это не база geosite/geoip",
         "tooLarge": "Слишком большой файл для просмотра",
         "unknownCategories": "Нет в базе: {tokens}",
         "missingDatabase": "Файла базы нет: {tokens} — добавьте её в разделе Geodata",
         "unknownAttribute": "Атрибут не найден, правило ничего не сматчит: {tokens}",
-        "invalidToken": "Xray не примет такую запись: {tokens}"
+        "invalidToken": "Xray не примет такую запись: {tokens}",
+        "wrongKind": "База не того типа для этого поля: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IP источника",

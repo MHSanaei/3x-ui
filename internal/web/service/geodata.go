@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"sync"
 
@@ -23,6 +24,7 @@ const (
 	geodataReasonFileMissing      = "fileMissing"
 	geodataReasonCategoryMissing  = "categoryMissing"
 	geodataReasonAttributeMissing = "attributeMissing"
+	geodataReasonWrongKind        = "wrongKind"
 )
 
 // geodataStores keys the cache by asset directory rather than holding a single
@@ -31,12 +33,26 @@ const (
 var geodataStores sync.Map
 
 func assetStore() *geodata.Store {
-	dir := config.GetBinFolderPath()
+	dir := assetDir()
 	if cached, ok := geodataStores.Load(dir); ok {
 		return cached.(*geodata.Store)
 	}
 	store, _ := geodataStores.LoadOrStore(dir, geodata.NewStore(dir))
 	return store.(*geodata.Store)
+}
+
+// assetDir resolves the folder the running core reads its databases from,
+// with the same precedence the core itself uses (see ensureXrayAssetLocation
+// in internal/xray). An install that points XRAY_LOCATION_ASSET at a shared
+// asset directory would otherwise have the panel browsing an empty bin folder
+// and reporting perfectly valid geosite:/geoip: tokens as missing.
+func assetDir() string {
+	for _, key := range [...]string{"XRAY_LOCATION_ASSET", "xray.location.asset"} {
+		if dir := os.Getenv(key); dir != "" {
+			return dir
+		}
+	}
+	return config.GetBinFolderPath()
 }
 
 // GeodataService browses the geosite/geoip databases Xray resolves its
@@ -74,7 +90,11 @@ func (s *GeodataService) Validate(isIP bool, tokens []string) []GeodataTokenIssu
 		}
 		reference, err := geodata.ParseReference(token, kind)
 		if err != nil {
-			issues = append(issues, GeodataTokenIssue{Token: token, Reason: geodataReasonSyntax})
+			reason := geodataReasonSyntax
+			if errors.Is(err, geodata.ErrWrongKind) {
+				reason = geodataReasonWrongKind
+			}
+			issues = append(issues, GeodataTokenIssue{Token: token, Reason: reason})
 			continue
 		}
 		if reference.File == "" {

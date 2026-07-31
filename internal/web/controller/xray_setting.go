@@ -445,7 +445,7 @@ func (a *XraySettingController) geodataValidate(c *gin.Context) {
 	// Split with a bound rather than splitting first: a 10 MB body of commas
 	// would otherwise allocate millions of strings before the limit is checked.
 	tokens := strings.SplitN(c.PostForm("tokens"), ",", maxGeodataTokens+1)
-	if len(tokens) > maxGeodataTokens || (len(tokens) == maxGeodataTokens && strings.Contains(tokens[len(tokens)-1], ",")) {
+	if len(tokens) > maxGeodataTokens {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewErrorf("too many tokens: over %d", maxGeodataTokens))
 		return
 	}

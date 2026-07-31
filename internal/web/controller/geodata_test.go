@@ -213,6 +213,13 @@ func TestGeodataValidate(t *testing.T) {
 			wantTokens: []string{"ext:absent.dat:corp"},
 			wantReason: "fileMissing",
 		},
+		{
+			name:       "a geoip token in a domain field is reported",
+			kind:       "domain",
+			tokens:     "geoip:cn",
+			wantTokens: []string{"geoip:cn"},
+			wantReason: "wrongKind",
+		},
 		{name: "plain cidr passes", kind: "ip", tokens: "10.0.0.0/8,geoip:private"},
 		{
 			name:       "missing ip category",
@@ -247,5 +254,25 @@ func TestGeodataValidate(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGeodataFollowsXrayAssetLocation(t *testing.T) {
+	engine := newGeodataEngine(t)
+
+	shared := t.TempDir()
+	writeGeositeDB(t, shared)
+	t.Setenv("XRAY_LOCATION_ASSET", shared)
+
+	env := doGeodataGet(t, engine, "/panel/api/xray/geodata/files")
+	var files []geodata.GeoFile
+	if err := json.Unmarshal(env.Obj, &files); err != nil {
+		t.Fatalf("decode files: %v", err)
+	}
+	if len(files) != 1 || files[0].Name != "geosite.dat" {
+		t.Fatalf("files = %+v, want only the database from XRAY_LOCATION_ASSET", files)
+	}
+	if files[0].Categories != 2 {
+		t.Errorf("categories = %d, want 2 — the shared asset folder should be read", files[0].Categories)
 	}
 }

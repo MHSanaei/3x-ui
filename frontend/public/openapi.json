@@ -11010,7 +11010,7 @@
           {
             "name": "q",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Case-insensitive substring filter on the category code.",
             "schema": {
               "type": "string"
@@ -11019,7 +11019,7 @@
           {
             "name": "offset",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Rows to skip. Defaults to 0.",
             "schema": {
               "type": "integer"
@@ -11028,8 +11028,8 @@
           {
             "name": "limit",
             "in": "query",
-            "required": true,
-            "description": "Rows to return, capped at 500. Defaults to the cap.",
+            "required": false,
+            "description": "Rows to return, capped at 500. Omit it to return every category — the index is small and the panel filters it client-side.",
             "schema": {
               "type": "integer"
             }
@@ -11087,7 +11087,7 @@
           {
             "name": "q",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Case-insensitive substring filter on the rule value.",
             "schema": {
               "type": "string"
@@ -11096,7 +11096,7 @@
           {
             "name": "offset",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Rows to skip. Defaults to 0.",
             "schema": {
               "type": "integer"
@@ -11105,7 +11105,7 @@
           {
             "name": "limit",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Rows to return, capped at 500. Defaults to the cap.",
             "schema": {
               "type": "integer"

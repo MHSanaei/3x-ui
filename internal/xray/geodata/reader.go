@@ -37,30 +37,34 @@ const (
 type categoryScan struct {
 	kind       GeoKind
 	categories []GeoCategory
+	spans      map[string][]byteSpan
 	usable     int
+}
+
+// byteSpan locates one category's record inside the database file, so a page of
+// its rules can be read without pulling the whole file into memory again.
+type byteSpan struct {
+	offset int64
+	length int64
 }
 
 // scanIndex walks the database once and reports every category with its entry
 // count and attribute keys, holding nothing else in memory.
 func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
-	scan := &categoryScan{kind: kind}
+	scan := &categoryScan{kind: kind, spans: make(map[string][]byteSpan)}
 	byCode := make(map[string]int)
 
-	err := eachListEntry(data, func(entry []byte) error {
-		code, payloads, err := splitEntry(entry)
-		if err != nil || code == "" {
-			return err
-		}
+	err := eachListEntry(data, func(entry []byte, span byteSpan) error {
 		count := 0
 		attributes := make(map[string]struct{})
-		for _, payload := range payloads {
+		code, err := walkEntry(entry, func(payload []byte) error {
 			if kind == KindSite {
 				value, attrs, err := domainValue(payload)
 				if err != nil {
 					return err
 				}
 				if len(value) == 0 {
-					continue
+					return nil
 				}
 				for _, attr := range attrs {
 					attributes[attr] = struct{}{}
@@ -71,12 +75,17 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 					return err
 				}
 				if !ok {
-					continue
+					return nil
 				}
 			}
 			count++
+			return nil
+		})
+		if err != nil || code == "" {
+			return err
 		}
 		scan.usable += count
+		scan.spans[code] = append(scan.spans[code], span)
 		if position, seen := byCode[code]; seen {
 			scan.categories[position].Entries += count
 			scan.categories[position].Attributes = mergeAttributes(scan.categories[position].Attributes, attributes)
@@ -100,23 +109,18 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 // scanEntries walks the database once and materialises only the requested page
 // of one category, so browsing a category with hundreds of thousands of rules
 // costs no more than browsing a small one.
-func scanEntries(data []byte, kind GeoKind, code, query string, offset, limit int) (GeoEntryPage, bool, error) {
+func scanEntries(records [][]byte, kind GeoKind, code, query string, offset, limit int) (GeoEntryPage, error) {
 	page := GeoEntryPage{Items: []GeoEntry{}}
-	found := false
 	matched := 0
 
-	err := eachListEntry(data, func(entry []byte) error {
-		entryCode, payloads, err := splitEntry(entry)
-		if err != nil || entryCode != code {
-			return err
-		}
-		found = true
-		for _, payload := range payloads {
-			// Values stay as raw bytes until a row is known to belong on the
-			// requested page: turning all 170k rules of a category into strings
-			// to serve one screenful is what made this expensive.
+	for _, entry := range records {
+		// Values stay as raw bytes until a row is known to belong on the
+		// requested page: turning all 170k rules of a category into strings
+		// to serve one screenful is what made this expensive.
+		if _, err := walkEntry(entry, func(payload []byte) error {
 			var raw []byte
 			var ok bool
+			var err error
 			if kind == KindSite {
 				raw, _, err = domainValue(payload)
 				if err != nil {
@@ -130,10 +134,10 @@ func scanEntries(data []byte, kind GeoKind, code, query string, offset, limit in
 				}
 			}
 			if !ok {
-				continue
+				return nil
 			}
 			if query != "" && !containsFold(raw, query) {
-				continue
+				return nil
 			}
 			if matched >= offset && len(page.Items) < limit {
 				if kind == KindSite {
@@ -143,14 +147,13 @@ func scanEntries(data []byte, kind GeoKind, code, query string, offset, limit in
 				}
 			}
 			matched++
+			return nil
+		}); err != nil {
+			return GeoEntryPage{}, err
 		}
-		return nil
-	})
-	if err != nil {
-		return GeoEntryPage{}, false, err
 	}
 	page.Total = matched
-	return page, found, nil
+	return page, nil
 }
 
 // detectKind reports which layout the file uses. The two share a wire layout
@@ -181,6 +184,36 @@ func detectKind(data []byte, name string) (GeoKind, *categoryScan, error) {
 		return "", nil, fmt.Errorf("%w: %w", ErrUnrecognized, firstErr)
 	}
 	return "", nil, ErrUnrecognized
+}
+
+// readSpans reads only the recorded slices of the file, so serving a page of a
+// category costs its own record rather than the whole database. The handle is
+// opened through an os.Root for the same reason readDatabase is.
+func readSpans(dir, name string, spans []byteSpan) ([][]byte, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+
+	file, err := root.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	records := make([][]byte, 0, len(spans))
+	for _, span := range spans {
+		if span.length <= 0 || span.length > MaxFileSize {
+			return nil, ErrUnrecognized
+		}
+		record := make([]byte, span.length)
+		if _, err := file.ReadAt(record, span.offset); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	return records, nil
 }
 
 // readDatabase reads one database through an os.Root rooted at the asset
@@ -214,8 +247,10 @@ func readDatabase(dir, name string) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(file, MaxFileSize))
 }
 
-func eachListEntry(data []byte, visit func(entry []byte) error) error {
+func eachListEntry(data []byte, visit func(entry []byte, span byteSpan) error) error {
+	total := int64(len(data))
 	for len(data) > 0 {
+		consumedSoFar := total - int64(len(data))
 		number, wireType, consumed := protowire.ConsumeTag(data)
 		if consumed < 0 {
 			return protowire.ParseError(consumed)
@@ -226,7 +261,8 @@ func eachListEntry(data []byte, visit func(entry []byte) error) error {
 			if size < 0 {
 				return protowire.ParseError(size)
 			}
-			if err := visit(entry); err != nil {
+			span := byteSpan{offset: consumedSoFar + int64(consumed) + int64(size) - int64(len(entry)), length: int64(len(entry))}
+			if err := visit(entry, span); err != nil {
 				return err
 			}
 			data = data[size:]
@@ -241,39 +277,46 @@ func eachListEntry(data []byte, visit func(entry []byte) error) error {
 	return nil
 }
 
-func splitEntry(entry []byte) (string, [][]byte, error) {
+// walkEntry reports a record's category code and hands each rule to visit.
+// The rules are not collected into a slice first: a single category can hold
+// a hundred thousand of them, and that slice was the bulk of what serving one
+// page allocated.
+func walkEntry(entry []byte, visit func(payload []byte) error) (string, error) {
 	code := ""
-	var payloads [][]byte
 	for len(entry) > 0 {
 		number, wireType, consumed := protowire.ConsumeTag(entry)
 		if consumed < 0 {
-			return "", nil, protowire.ParseError(consumed)
+			return "", protowire.ParseError(consumed)
 		}
 		entry = entry[consumed:]
 		switch {
 		case number == fieldEntryCode && wireType == protowire.BytesType:
 			value, size := protowire.ConsumeBytes(entry)
 			if size < 0 {
-				return "", nil, protowire.ParseError(size)
+				return "", protowire.ParseError(size)
 			}
 			code = strings.ToLower(string(value))
 			entry = entry[size:]
 		case number == fieldEntryPayload && wireType == protowire.BytesType:
 			payload, size := protowire.ConsumeBytes(entry)
 			if size < 0 {
-				return "", nil, protowire.ParseError(size)
+				return "", protowire.ParseError(size)
 			}
-			payloads = append(payloads, payload)
+			if visit != nil {
+				if err := visit(payload); err != nil {
+					return "", err
+				}
+			}
 			entry = entry[size:]
 		default:
 			size := protowire.ConsumeFieldValue(number, wireType, entry)
 			if size < 0 {
-				return "", nil, protowire.ParseError(size)
+				return "", protowire.ParseError(size)
 			}
 			entry = entry[size:]
 		}
 	}
-	return code, payloads, nil
+	return code, nil
 }
 
 func containsFold(haystack []byte, needle string) bool {

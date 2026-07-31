@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Tooltip, Typography } from 'antd';
+import type { InputRef } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 
 import { useValidateGeoTokens, type GeoTokenKind } from '@/api/queries/useGeodata';
@@ -18,6 +20,7 @@ const REASON_KEYS: Record<string, string> = {
   categoryMissing: 'pages.xray.geoBrowser.unknownCategories',
   attributeMissing: 'pages.xray.geoBrowser.unknownAttribute',
   syntax: 'pages.xray.geoBrowser.invalidToken',
+  wrongKind: 'pages.xray.geoBrowser.wrongKind',
 };
 
 export interface GeoTokenInputProps {
@@ -27,12 +30,14 @@ export interface GeoTokenInputProps {
   kind: GeoTokenKind;
   placeholder?: string;
   id?: string;
+  ref?: Ref<InputRef>;
 }
 
-export default function GeoTokenInput({ value = '', onChange, onBlur, kind, placeholder, id }: GeoTokenInputProps) {
+export default function GeoTokenInput({ value = '', onChange, onBlur, kind, placeholder, id, ref }: GeoTokenInputProps) {
   const { t } = useTranslation();
   const [browsing, setBrowsing] = useState(false);
   const [issues, setIssues] = useState<GeodataTokenIssue[]>([]);
+  const [checkFailed, setCheckFailed] = useState(false);
   const validate = useValidateGeoTokens();
   const { mutateAsync } = validate;
 
@@ -40,16 +45,23 @@ export default function GeoTokenInput({ value = '', onChange, onBlur, kind, plac
     const tokens = parseTokens(value);
     if (tokens.length === 0) {
       setIssues([]);
+      setCheckFailed(false);
       return;
     }
     let cancelled = false;
     const timer = setTimeout(() => {
       mutateAsync({ tokens, kind })
         .then((found) => {
-          if (!cancelled) setIssues(found);
+          if (cancelled) return;
+          setIssues(found);
+          setCheckFailed(false);
         })
+        // A rejected check says nothing about the tokens, so the warnings are
+        // dropped but replaced by a notice — silence here reads as "all valid".
         .catch(() => {
-          if (!cancelled) setIssues([]);
+          if (cancelled) return;
+          setIssues([]);
+          setCheckFailed(true);
         });
     }, VALIDATION_DELAY);
     return () => {
@@ -61,6 +73,7 @@ export default function GeoTokenInput({ value = '', onChange, onBlur, kind, plac
   return (
     <>
       <Input
+        ref={ref}
         id={id}
         value={value}
         placeholder={placeholder}
@@ -83,6 +96,11 @@ export default function GeoTokenInput({ value = '', onChange, onBlur, kind, plac
           {t(REASON_KEYS[reason] ?? REASON_KEYS.categoryMissing, { tokens: tokens.join(', ') })}
         </Typography.Text>
       ))}
+      {checkFailed && (
+        <Typography.Text type="secondary" className="geo-unknown-hint">
+          {t('pages.xray.geoBrowser.checkFailed')}
+        </Typography.Text>
+      )}
       <GeoBrowserModal
         open={browsing}
         kind={(kind === 'ip' ? 'ip' : 'site') as GeoKind}
