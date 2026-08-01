@@ -63,7 +63,7 @@ Two key ideas that explain most of the complexity:
 **Frontend (`frontend/`):**
 - **React 19** + **Ant Design 6** + **Vite 8** + **TypeScript**.
 - Data layer: **TanStack Query** (`@tanstack/react-query`) over the native **Fetch API**; **Zod 4** schemas.
-- Router: **react-router-dom 7**. Charts: **uPlot** (`frontend/src/components/viz/Sparkline.tsx`). Editor: **CodeMirror 6**.
+- Router: **react-router 8**. Charts: **uPlot** (`frontend/src/components/viz/Sparkline.tsx`). Editor: **CodeMirror 6**.
 - **Build output goes to `internal/web/dist/`** (see `vite.config.js` → `outDir`) and is
   embedded into the Go binary with `go:embed`. Three HTML entries: `index.html` (panel SPA),
   `login.html`, `subpage.html`. The Go server serves the SPA; there is no separate frontend
@@ -368,8 +368,8 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 5m` | `outbound_subscription_job` | Refresh outbound provider configs |
 | `@every 10m` | `clear_logs_job` (`PruneXrayLogsJob`) | Truncate Xray access/error logs once either exceeds 64 MiB |
 | `@hourly` | `warp_ip_job`, `periodic_traffic_reset_job("hourly")` | WARP IP rotation; traffic resets |
-| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")` | IP-limit and Xray access/error log cleanup; traffic resets |
-| `@weekly` / `@monthly` | `periodic_traffic_reset_job(...)` | Weekly/monthly traffic resets |
+| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")`, `periodic_traffic_reset_job("monthly")` | IP-limit and Xray access/error log cleanup; daily resets and due monthly resets |
+| `@weekly` | `periodic_traffic_reset_job("weekly")` | Weekly traffic resets |
 | default `@every 1m` | `ldap_sync_job` | Only if LDAP enabled; schedule configurable |
 | default `@daily` | `stats_notify_job` | Only if TG bot enabled; schedule configurable |
 | `@every 2m` | `check_hash_storage` | Only if TG bot enabled; expires bot callback hashes |

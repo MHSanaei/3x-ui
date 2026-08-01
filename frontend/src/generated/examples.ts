@@ -75,6 +75,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
+    "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -186,6 +187,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
+    "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -460,6 +462,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",
+    "trafficResetDay": 1,
     "up": 0
   },
   "InboundClientIps": {

@@ -18,6 +18,7 @@ export const AllSettingSchema = z.object({
   expireDiff: nonNegativeInt.optional(),
   trafficDiff: nonNegativeInt.max(100).optional(),
   remarkTemplate: z.string().optional(),
+  subShowIdentityOnAllLinks: z.boolean().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   tgBotEnable: z.boolean().optional(),
   tgBotToken: z.string().optional(),
@@ -102,3 +103,7 @@ export const AllSettingSchema = z.object({
 }).loose();
 
 export type AllSettingInput = z.infer<typeof AllSettingSchema>;
+
+export const FactoryDefaultsSchema = z.record(z.string(), z.string());
+
+export type FactoryDefaults = z.infer<typeof FactoryDefaultsSchema>;

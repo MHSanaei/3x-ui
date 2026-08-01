@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
@@ -24,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -31,6 +34,8 @@ import (
 )
 
 var db *gorm.DB
+
+var backupSQLiteTimeout = 2 * time.Minute
 
 const (
 	DialectSQLite   = "sqlite"
@@ -52,8 +57,9 @@ func Dialect() string {
 }
 
 const (
-	defaultUsername = "admin"
-	defaultPassword = "admin"
+	defaultUsername       = "admin"
+	defaultPassword       = "admin"
+	sqliteBackupDirPrefix = ".x-ui-backup-"
 )
 
 func allModels() []any {
@@ -129,6 +135,12 @@ func initModels() error {
 		return err
 	}
 	if err := migrateVmessRemovedSecurities(); err != nil {
+		return err
+	}
+	if err := migrateTgIDIndex(); err != nil {
+		return err
+	}
+	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
 	if IsPostgres() {
@@ -286,6 +298,15 @@ func rebuildInboundsWithoutInlineUniquePort() error {
 		}
 		return tx.Exec(`DROP TABLE inbounds_legacy_rebuild`).Error
 	})
+}
+
+// AutoMigrate adds the column; this only backfills the NULLs an older SQLite
+// ALTER TABLE leaves behind, so the reaper's predicate never compares to NULL.
+func migrateSyncOrphanColumns() error {
+	if !db.Migrator().HasColumn(&model.ClientRecord{}, "sync_orphaned_at") {
+		return nil
+	}
+	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
@@ -882,6 +903,17 @@ func migrateVmessRemovedSecurities() error {
 		log.Printf("Rewrote removed vmess security values on %d inbound(s)", migrated)
 	}
 	return nil
+}
+
+// migrateTgIDIndex creates an index on the clients.tg_id column so that
+// lookups by Telegram ID do not require a full table scan. The index tag
+// on the struct field already causes AutoMigrate to create it on new
+// installations; the explicit migration ensures existing databases get it.
+func migrateTgIDIndex() error {
+	if db.Migrator().HasIndex(&model.ClientRecord{}, "idx_clients_tg_id") {
+		return nil
+	}
+	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
 }
 
 // normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
@@ -1930,6 +1962,9 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
+		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
+			log.Printf("clean SQLite backup directories: %v", err)
+		}
 
 		sync := sqliteSynchronous()
 		journal := sqliteJournalMode()
@@ -2031,6 +2066,31 @@ func sqliteJournalMode() string {
 	}
 }
 
+func backupSQLiteStepPages() int {
+	if sqliteJournalMode() == "DELETE" {
+		return 128
+	}
+	return -1
+}
+
+func cleanupSQLiteBackupDirs(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), sqliteBackupDirPrefix) {
+			if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func sqliteSynchronous() string {
 	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
 	case "OFF":
@@ -2085,11 +2145,85 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-func Checkpoint() error {
+func BackupSQLite(dstPath string) (err error) {
 	if IsPostgres() {
-		return nil
+		return errors.New("sqlite backup is unavailable for PostgreSQL")
 	}
-	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
+	if db == nil {
+		return errors.New("database is not initialized")
+	}
+	if _, err := os.Lstat(dstPath); err == nil {
+		return fmt.Errorf("sqlite backup destination already exists: %s", dstPath)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.Remove(dstPath)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), backupSQLiteTimeout)
+	defer cancel()
+
+	sourceDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	sourceConn, err := sourceDB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer sourceConn.Close()
+
+	destinationDB, err := sql.Open("sqlite3", dstPath)
+	if err != nil {
+		return err
+	}
+	defer destinationDB.Close()
+	destinationConn, err := destinationDB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer destinationConn.Close()
+
+	return sourceConn.Raw(func(sourceDriver any) error {
+		source, ok := sourceDriver.(*sqlite3.SQLiteConn)
+		if !ok {
+			return fmt.Errorf("unexpected SQLite source connection type %T", sourceDriver)
+		}
+		return destinationConn.Raw(func(destinationDriver any) error {
+			destination, ok := destinationDriver.(*sqlite3.SQLiteConn)
+			if !ok {
+				return fmt.Errorf("unexpected SQLite destination connection type %T", destinationDriver)
+			}
+			backup, err := destination.Backup("main", source, "main")
+			if err != nil {
+				return err
+			}
+			finished := false
+			defer func() {
+				if !finished {
+					_ = backup.Finish()
+				}
+			}()
+			for {
+				done, err := backup.Step(backupSQLiteStepPages())
+				if err != nil {
+					return err
+				}
+				if done {
+					finished = true
+					return backup.Finish()
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(10 * time.Millisecond):
+				}
+			}
+		})
+	})
 }
 
 func ValidateSQLiteDB(dbPath string) error {

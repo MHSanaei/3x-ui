@@ -99,6 +99,7 @@ export const AllSettingSchema = z.object({
   subPort: z.number().int().min(1).max(65535),
   subProfileUrl: z.string(),
   subRoutingRules: z.string(),
+  subShowIdentityOnAllLinks: z.boolean(),
   subSupportUrl: z.string(),
   subThemeDir: z.string(),
   subTitle: z.string(),
@@ -212,6 +213,7 @@ export const AllSettingViewSchema = z.object({
   subPort: z.number().int().min(1).max(65535),
   subProfileUrl: z.string(),
   subRoutingRules: z.string(),
+  subShowIdentityOnAllLinks: z.boolean(),
   subSupportUrl: z.string(),
   subThemeDir: z.string(),
   subTitle: z.string(),
@@ -465,6 +467,7 @@ export const InboundSchema = z.object({
   tag: z.string(),
   total: z.number().int(),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+  trafficResetDay: z.number().int().min(1).max(31),
   up: z.number().int(),
 });
 export type Inbound = z.infer<typeof InboundSchema>;

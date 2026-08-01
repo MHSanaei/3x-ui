@@ -55,9 +55,9 @@ func TestDesiredMtprotoInstancesFiltersDepleted(t *testing.T) {
 	})
 
 	t.Run("matchesInteractivePushFiltering", func(t *testing.T) {
-		built, err := svc.buildRuntimeInboundForAPI(database.GetDB(), served)
+		built, err := svc.buildInboundForLocalRuntime(database.GetDB(), served)
 		if err != nil {
-			t.Fatalf("buildRuntimeInboundForAPI: %v", err)
+			t.Fatalf("buildInboundForLocalRuntime: %v", err)
 		}
 		pushInst, ok := mtproto.InstanceFromInbound(built)
 		if !ok {

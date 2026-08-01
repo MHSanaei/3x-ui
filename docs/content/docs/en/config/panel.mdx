@@ -19,7 +19,7 @@ browser in full.
 | `webBasePath`       | `/`                     | URL path the panel is served under (always normalized to `/…/`).        |
 | `webCertFile` / `webKeyFile` | _(none)_       | TLS certificate + key. When both are set, the panel serves **HTTPS**.   |
 | `sessionMaxAge`     | `360`                   | Session lifetime in **minutes** (default 6 hours).                      |
-| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | IPs/CIDRs whose forwarded headers (real client IP) are trusted.         |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | IPs/CIDRs whose forwarded headers (real client IP) are trusted. A custom value also controls forwarded host and scheme in subscription links; include the subscription proxy or set `subURI` to override those links. |
 | `panelOutbound`     | _(none)_                | Route the panel's own egress (update checks, Telegram, geo/sub fetches) through a named Xray outbound. |
 
 After changing the port or base path, the panel URL becomes

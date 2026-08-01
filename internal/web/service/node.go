@@ -652,9 +652,9 @@ func (s *NodeService) EnsureInboundTagAllowedTx(tx *gorm.DB, nodeID int, tag str
 		Updates(map[string]any{"inbound_tags": string(buf)}).Error
 }
 
-func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
-	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
-		return
+func nodeSelectedTagSet(n *model.Node) map[string]struct{} {
+	if n == nil || n.InboundSyncMode != "selected" {
+		return nil
 	}
 	prefix := nodeTagPrefix(&n.Id)
 	allowed := make(map[string]struct{}, len(n.InboundTags)*2)
@@ -668,6 +668,27 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 			}
 		}
 	}
+	return allowed
+}
+
+// A deselected tag is still served by the node — FilterNodeSnapshot just stops
+// reporting it — so its absence must never be read as "the node deleted it".
+func unmanagedTagPredicate(n *model.Node) func(string) bool {
+	managed := nodeSelectedTagSet(n)
+	if managed == nil {
+		return func(string) bool { return false }
+	}
+	return func(tag string) bool {
+		_, ok := managed[tag]
+		return !ok
+	}
+}
+
+func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
+	if n == nil || snap == nil || n.InboundSyncMode != "selected" {
+		return
+	}
+	allowed := nodeSelectedTagSet(n)
 	filtered := make([]*model.Inbound, 0, len(snap.Inbounds))
 	for _, inbound := range snap.Inbounds {
 		if inbound == nil {

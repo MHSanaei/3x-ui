@@ -57,8 +57,15 @@ file locations when it can answer in one hop.
   `frontend/scripts/build-openapi.mjs`.
 
 ## Hard rules (non-negotiable)
-- NO `//` line comments in committed Go/TS. Names carry meaning; rename instead
-  of annotating. Exempt: `//go:build`, `//go:generate`, and other directives.
+- Fix size must match bug size. Find the root cause, then make the SMALLEST
+  change that removes it — a one-line guard beats a new subsystem. A small bug
+  does not earn new columns, jobs, abstractions, config knobs or helper layers.
+  If a fix genuinely needs new architecture, say so and get agreement first;
+  never ship it unasked next to the fix.
+- Comments in committed Go/TS: 2 lines MAX per comment block. Make the name
+  carry the meaning first and rename rather than annotate; spend the 2 lines on
+  the *why* a name cannot hold — an invariant, an issue number, a non-obvious
+  constraint. Exempt: `//go:build`, `//go:generate`, and other directives.
   HTML `<!-- -->` is fine. (A linter cannot enforce this — you must.)
 - New `g.POST`/`g.GET` in `internal/web/controller/` REQUIRES a matching entry
   in `frontend/src/pages/api-docs/endpoints.ts`, then `make gen` (or
@@ -83,6 +90,12 @@ file locations when it can answer in one hop.
   `database.InitDB(filepath.Join(t.TempDir(), "x-ui.db"))` +
   `t.Cleanup(func() { _ = database.CloseDB() })`; `httptest` for HTTP.
   `internal/sub`'s `initSubDB(t)` is the template.
+- A test must fail without its fix. Write it, revert the fix, watch it go red,
+  restore. A test that passes either way is worse than no test: it certifies
+  nothing and then gets cited as proof the fix works.
+- Test what can actually break. No test for a getter, a constant, a rename, a
+  pure map lookup, or inputs the function can never receive. One real test that
+  drives the bug through the actual code path beats five that restate the code.
 - Code must pass `golangci-lint run` (gofumpt + goimports formatting): `make lint`.
 
 ## Frontend conventions (summary; full version in frontend/CLAUDE.md)

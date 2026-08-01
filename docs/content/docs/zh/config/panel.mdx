@@ -15,7 +15,7 @@ icon: SlidersHorizontal
 | `webBasePath`       | `/`                     | 面板对外提供服务所使用的 URL 路径（始终规范化为 `/…/`）。               |
 | `webCertFile` / `webKeyFile` | _（无）_       | TLS 证书 + 密钥。两者都设置后，面板将以 **HTTPS** 提供服务。           |
 | `sessionMaxAge`     | `360`                   | 会话有效期，单位为**分钟**（默认 6 小时）。                              |
-| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | 其转发头（真实客户端 IP）受信任的 IP/CIDR。                            |
+| `trustedProxyCIDRs` | `127.0.0.1/32,::1/128`  | 其转发头（真实客户端 IP）受信任的 IP/CIDR。自定义值还会控制订阅链接中转发的主机和协议；请将订阅代理加入列表，或设置 `subURI` 覆盖这些链接。 |
 | `panelOutbound`     | _（无）_                | 通过一个命名的 Xray 出站来路由面板自身的出口流量（更新检查、Telegram、地理/订阅拉取）。 |
 
 更改端口或基础路径后，面板 URL 将变为

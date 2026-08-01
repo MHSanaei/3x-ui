@@ -102,6 +102,41 @@ func TestExpandRemarkVars_EdgeCases(t *testing.T) {
 	}
 }
 
+// defaultRemarkTemplate mirrors the panel's shipped remark template, the one an
+// inbound with no remark used to render with a leading hyphen.
+const defaultRemarkTemplate = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+
+func TestExpandRemarkVars_DropsHyphenBetweenEmptyTokens(t *testing.T) {
+	cases := []struct {
+		name    string
+		tmpl    string
+		inbound string
+		email   string
+		want    string
+	}{
+		{name: "both values", tmpl: "{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "Germany-john"},
+		{name: "empty inbound", tmpl: "{{INBOUND}}-{{EMAIL}}", email: "john", want: "john"},
+		{name: "empty email", tmpl: "{{INBOUND}} - {{EMAIL}}", inbound: "Germany", want: "Germany"},
+		{name: "literal leading hyphen", tmpl: "-{{EMAIL}}", email: "john", want: "-john"},
+		{name: "literal leading hyphen before an empty token", tmpl: "-{{INBOUND}}-{{EMAIL}}", email: "john", want: "-john"},
+		{name: "empty var between two values keeps one separator", tmpl: "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}", email: "john", want: "john-john"},
+		{name: "emoji decoration before an empty token", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", email: "john", want: "🌐john"},
+		{name: "literal word before an empty token", tmpl: "Sub {{INBOUND}}-{{EMAIL}}", email: "john", want: "Sub john"},
+		{name: "decoration kept when both tokens resolve", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "🌐Germany-john"},
+		{name: "default template, empty inbound", tmpl: defaultRemarkTemplate, email: "john", want: "john"},
+		{name: "default template, empty email", tmpl: defaultRemarkTemplate, inbound: "Germany", want: "Germany"},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := expandCtx(model.Client{Email: tt.email}, xray.ClientTraffic{Enable: true}, &model.Inbound{Remark: tt.inbound})
+			if got := expandRemarkVars(tt.tmpl, ctx); got != tt.want {
+				t.Errorf("expandRemarkVars(%q) = %q, want %q", tt.tmpl, got, tt.want)
+			}
+		})
+	}
+}
+
 // An unlimited client drops the quota/expiry segments whole — decoration and the
 // "|" separator included — instead of printing "📊∞|⏳∞D".
 func TestExpandRemarkVars_DropUnlimitedSegments(t *testing.T) {
@@ -650,5 +685,42 @@ func TestEmailOnFirstLinkOnly(t *testing.T) {
 	}
 	if !strings.Contains(second, "DE") {
 		t.Fatalf("second link should still carry the inbound name: %q", second)
+	}
+}
+
+func TestIdentityOnAllLinks(t *testing.T) {
+	const template = "{{INBOUND}}-{{EMAIL}}|{{USERNAME}}|📊{{TRAFFIC_LEFT}}|{{STATUS_EMOJI}}"
+	inbound := &model.Inbound{
+		Remark: "DE",
+		ClientStats: []xray.ClientTraffic{{
+			Email:  "alice@x",
+			Enable: true,
+			Total:  100 * gb,
+			Up:     20 * gb,
+		}},
+	}
+	tests := []struct {
+		name       string
+		enabled    bool
+		wantSecond string
+	}{
+		{name: "disabled", wantSecond: "DE"},
+		{name: "enabled", enabled: true, wantSecond: "DE-alice@x|alice@x"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &SubService{
+				remarkTemplate:         template,
+				subscriptionBody:       true,
+				showIdentityOnAllLinks: tt.enabled,
+			}
+			client := model.Client{Email: "alice@x"}
+			if got := s.genTemplatedRemark(inbound, client, "", "ws"); got != "DE-alice@x|alice@x|📊80.00GB|✅" {
+				t.Fatalf("first link = %q", got)
+			}
+			if got := s.genTemplatedRemark(inbound, client, "", "ws"); got != tt.wantSecond {
+				t.Fatalf("second link = %q, want %q", got, tt.wantSecond)
+			}
+		})
 	}
 }

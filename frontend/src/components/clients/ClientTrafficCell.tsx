@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover, Progress } from 'antd';
 
@@ -17,7 +17,11 @@ export interface ClientTrafficCellProps {
   compact?: boolean;
 }
 
-export default function ClientTrafficCell({
+// Every prop is a primitive and the component is pure, so the memo bails out
+// whenever a client's counters did not move — which is most of them on most
+// pushes. Each skipped instance is one antd Popover (rc-trigger), one Progress,
+// a useTranslation subscription and a theme context read, times up to 200 rows.
+const ClientTrafficCell = memo(function ClientTrafficCell({
   up = 0,
   down = 0,
   total = 0,
@@ -83,4 +87,6 @@ export default function ClientTrafficCell({
       </div>
     </Popover>
   );
-}
+});
+
+export default ClientTrafficCell;

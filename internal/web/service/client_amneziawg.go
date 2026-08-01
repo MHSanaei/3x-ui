@@ -69,13 +69,13 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, v4Base)
+			addr, err := allocateWireguardAddress(used, v4Base, false)
 			if err != nil {
 				return err
 			}
 			allowed := []string{addr}
 			if v6Base != "" {
-				addr6, err := allocateWireguardAddress(used, v6Base)
+				addr6, err := allocateWireguardAddress(used, v6Base, false)
 				if err != nil {
 					return err
 				}

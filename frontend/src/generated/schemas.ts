@@ -244,6 +244,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "type": "string"
       },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
+      },
       "subSupportUrl": {
         "type": "string"
       },
@@ -415,6 +418,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -711,6 +715,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "type": "string"
       },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
+      },
       "subSupportUrl": {
         "type": "string"
       },
@@ -889,6 +896,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -1873,6 +1881,13 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "trafficResetDay": {
+        "description": "Day of month for monthly traffic resets",
+        "example": 1,
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "up": {
         "description": "Upload traffic in bytes",
         "format": "int64",
@@ -1899,6 +1914,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tag",
       "total",
       "trafficReset",
+      "trafficResetDay",
       "up"
     ],
     "type": "object"

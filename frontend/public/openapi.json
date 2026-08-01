@@ -270,6 +270,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -441,6 +444,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -737,6 +741,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -915,6 +922,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -1899,6 +1907,13 @@
             ],
             "type": "string"
           },
+          "trafficResetDay": {
+            "description": "Day of month for monthly traffic resets",
+            "example": 1,
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
           "up": {
             "description": "Upload traffic in bytes",
             "format": "int64",
@@ -1925,6 +1940,7 @@
           "tag",
           "total",
           "trafficReset",
+          "trafficResetDay",
           "up"
         ],
         "type": "object"
@@ -3299,6 +3315,7 @@
                       "tag": "in-443-tcp",
                       "total": 0,
                       "trafficReset": "never",
+                      "trafficResetDay": 1,
                       "up": 0
                     }
                   ]
@@ -4105,6 +4122,36 @@
                 "example": {
                   "success": true,
                   "msg": "Inbound updated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/openapi.json": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Serve this API description as an OpenAPI 3 document — the same file that powers the API Docs page. Requires a session or Bearer token like the rest of /panel/api. Useful for generating clients or importing into API tooling.",
+        "operationId": "get_panel_api_openapi_json",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
@@ -5793,7 +5840,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
+        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters: the *Count fields are exact, while the email arrays beside them stop at 200 entries so the payload does not grow with the panel. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
         "operationId": "get_panel_api_clients_list_paged",
         "parameters": [
           {
@@ -5909,12 +5956,18 @@
                     "summary": {
                       "total": 2000,
                       "active": 1850,
+                      "onlineCount": 1,
+                      "depletedCount": 0,
+                      "expiringCount": 0,
+                      "deactiveCount": 150,
                       "online": [
                         "alice@example.com"
                       ],
                       "depleted": [],
                       "expiring": [],
-                      "deactive": []
+                      "deactive": [
+                        "bob@example.com"
+                      ]
                     }
                   }
                 }
@@ -5939,6 +5992,47 @@
             "description": "Client email (unique identifier).",
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/get/tgId/{tgId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.",
+        "operationId": "get_panel_api_clients_get_tgId_tgId",
+        "parameters": [
+          {
+            "name": "tgId",
+            "in": "path",
+            "required": true,
+            "description": "Telegram user ID (numeric).",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -9807,6 +9901,36 @@
         ],
         "summary": "Return the computed default settings based on the request host. Useful to preview what a fresh install would use.",
         "operationId": "post_panel_api_setting_defaultSettings",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/factoryDefaults": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the shipped (factory) default value per browser-safe setting key, so clients can tell a stored value apart from the default it would fall back to. Per-install material (secret, panelGuid, mTLS keys) and credential fields are never included.",
+        "operationId": "post_panel_api_setting_factoryDefaults",
         "responses": {
           "200": {
             "description": "Successful response",

@@ -429,8 +429,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		}
 	}
 
-	now := time.Now().Unix() * 1000
-	cond := depletedCond(db)
+	cond, condArgs := depletedCond(db)
 	candidateEmails := make([]string, 0, len(plan))
 	for email, entry := range plan {
 		if entry.applyExpiry || entry.applyTotal {
@@ -441,7 +440,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	for _, batch := range chunkStrings(candidateEmails, sqlInChunk) {
 		var rows []string
 		if err := db.Model(xray.ClientTraffic{}).
-			Where(cond+" AND enable = ? AND email IN ?", now, false, batch).
+			Where(cond+" AND enable = ? AND email IN ?", append(append([]any{}, condArgs...), false, batch)...).
 			Pluck("email", &rows).Error; err != nil {
 			return result, needRestart, err
 		}
@@ -503,7 +502,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 		for _, batch := range chunkStrings(wasList, sqlInChunk) {
 			var rows []string
 			if err := db.Model(xray.ClientTraffic{}).
-				Where(cond+" AND email IN ?", now, batch).
+				Where(cond+" AND email IN ?", append(append([]any{}, condArgs...), batch)...).
 				Pluck("email", &rows).Error; err != nil {
 				return result, needRestart, err
 			}
@@ -836,13 +835,16 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	successEmails := make([]string, 0, len(recordsByEmail))
 	successIds := make([]int, 0, len(recordsByEmail))
+	failedEmails := make([]string, 0, len(recordsByEmail))
 	for email, rec := range recordsByEmail {
 		if _, skipped := skippedReasons[email]; skipped {
+			failedEmails = append(failedEmails, email)
 			continue
 		}
 		successEmails = append(successEmails, email)
 		successIds = append(successIds, rec.Id)
 	}
+	withdrawClientTombstones(failedEmails...)
 
 	if len(successIds) > 0 {
 		// Serialize the row cleanup against the traffic poll to avoid the
@@ -876,6 +878,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 			}
 			return nil
 		}); err != nil {
+			withdrawClientTombstones(successEmails...)
 			return result, needRestart, err
 		}
 	}

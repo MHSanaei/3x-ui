@@ -14,6 +14,7 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses combined byte-stably 1`
   "tcp": [
     {
       "settings": {
+        "length": "10-20",
         "packets": "1-3",
       },
       "type": "fragment",
@@ -145,9 +146,7 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
           [
             {
               "delay": 0,
-              "packet": [
-                "GET / HTTP/1.1",
-              ],
+              "packet": "GET / HTTP/1.1",
               "type": "str",
             },
           ],
@@ -157,9 +156,7 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
           [
             {
               "delay": 0,
-              "packet": [
-                "HTTP/1.1 200 OK",
-              ],
+              "packet": "HTTP/1.1 200 OK",
               "type": "str",
             },
           ],
@@ -171,8 +168,13 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
       "settings": {
         "hostname": "mc.example.com",
         "password": "s3cr3t",
-        "usernames": [
-          "Dream",
+        "profiles": [
+          {
+            "texturesSignature": "Zm9yLWZpeHR1cmUtdXNlLW9ubHktbm90LWEtcmVhbC1tb2phbmctc2lnbmF0dXJl",
+            "texturesValue": "eyJ0aW1lc3RhbXAiOjE3MDAwMDAwMDAwMDAsInByb2ZpbGVJZCI6ImVjNzBiY2FmNzAyZjRiYjhiNDhkMjc2ZmE1MmE3ODBjIn0=",
+            "username": "Dream",
+            "uuid": "ec70bcaf-702f-4bb8-b48d-276fa52a780c",
+          },
         ],
       },
       "type": "xmc",
@@ -219,13 +221,11 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`
           {
             "delay": "10-16",
             "rand": "10-20",
-            "type": "rand",
+            "type": "array",
           },
           {
             "delay": "5",
-            "packet": [
-              "ping",
-            ],
+            "packet": "ping",
             "type": "str",
           },
         ],

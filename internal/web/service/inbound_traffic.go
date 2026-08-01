@@ -287,6 +287,23 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 	return dbClientTraffics, newExpiryByEmail, nil
 }
 
+// apiUserFromClient prepares a stored client object for the runtime AddUser
+// call. The copy matters twice over: the stored object keeps being mutated and
+// marshalled back into the inbound's settings, which must not gain an API-only
+// key, and shadowsocks clients carry no cipher of their own — it lives on the
+// inbound, and without it the API cannot tell which of xray's two shadowsocks
+// account types the running inbound expects.
+func apiUserFromClient(client map[string]any, cipher string) map[string]any {
+	user := maps.Clone(client)
+	if user == nil {
+		user = map[string]any{}
+	}
+	if cipher != "" {
+		user["cipher"] = cipher
+	}
+	return user
+}
+
 func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	// check for time expired
 	var traffics []*xray.ClientTraffic
@@ -367,6 +384,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 		if len(clients) == 0 {
 			continue
 		}
+		cipher := ""
+		if inbounds[inbound_index].Protocol == model.Shadowsocks {
+			cipher, _ = settings["method"].(string)
+		}
 		for client_index := range clients {
 			c := clients[client_index].(map[string]any)
 			email, _ := c["email"].(string)
@@ -393,7 +414,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 					}{
 						protocol: string(inbounds[inbound_index].Protocol),
 						tag:      inbounds[inbound_index].Tag,
-						client:   c,
+						client:   apiUserFromClient(c, cipher),
 					})
 			}
 			clients[client_index] = any(c)
@@ -431,8 +452,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
 		return false, 0, err
 	}
-	if p != nil {
-		err1 = s.xrayApi.Init(p.GetAPIPort())
+	if process := currentXrayProcess(); process != nil {
+		err1 = s.xrayApi.Init(process.GetAPIPort())
 		if err1 != nil {
 			return true, int64(len(traffics)), nil
 		}
@@ -603,7 +624,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 					if err != nil {
 						return false, err
 					}
-					cipher = oldSettings["method"].(string)
+					cipher, _ = oldSettings["method"].(string)
 				}
 				err1 := rt.AddUser(context.Background(), inbound, map[string]any{
 					"email":    client.Email,

@@ -8,9 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -30,6 +33,13 @@ type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
 	fallbackService FallbackService
+}
+
+func normalizeTrafficResetDay(day int) int {
+	if day < 1 {
+		return 1
+	}
+	return min(day, 31)
 }
 
 func normalizeInboundShareAddrStrategy(strategy string) string {
@@ -618,6 +628,188 @@ func validateFinalMaskRealityCombo(streamSettings string) error {
 	return common.NewError("Finalmask is not supported with REALITY security — it crashes Xray-core on the first connection (see XTLS/Xray-core#6453). Remove the finalmask configuration or switch security to tls/none.")
 }
 
+var xmcProfileUsernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{3,16}$`)
+
+// xmcMaskProfilesComplete reports whether an xmc finalmask carries the signed
+// Minecraft session profiles xray-core has required since v26.7.28 (#6487).
+// The core replaced the old `usernames` string list with `profiles` objects
+// and removed the "default to Dream when empty" fallback, so a mask still on
+// the legacy shape — or one whose profiles are incomplete — now fails
+// conf.XMC.Build() and takes the entire config down with it rather than
+// degrading that one inbound.
+//
+// The texture fields are a signed blob only Mojang's session server can issue
+// (resolve the UUID by username, then fetch the profile with unsigned=false),
+// so the panel cannot synthesize a valid profile from a legacy username; an
+// incomplete mask can only be reported or dropped.
+func xmcMaskProfilesComplete(mask map[string]any) bool {
+	settings, ok := mask["settings"].(map[string]any)
+	if !ok {
+		return false
+	}
+	profiles, _ := settings["profiles"].([]any)
+	if len(profiles) == 0 {
+		return false
+	}
+	for _, entry := range profiles {
+		profile, ok := entry.(map[string]any)
+		if !ok {
+			return false
+		}
+		username, _ := profile["username"].(string)
+		if !xmcProfileUsernamePattern.MatchString(username) {
+			return false
+		}
+		id, _ := profile["uuid"].(string)
+		if _, err := uuid.Parse(id); err != nil {
+			return false
+		}
+		if value, _ := profile["texturesValue"].(string); value == "" {
+			return false
+		}
+		if signature, _ := profile["texturesSignature"].(string); signature == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// isIncompleteXmcMask reports whether a finalmask.tcp entry is an xmc mask
+// xray-core would refuse to build.
+func isIncompleteXmcMask(entry any) bool {
+	mask, ok := entry.(map[string]any)
+	if !ok {
+		return false
+	}
+	if maskType, _ := mask["type"].(string); maskType != "xmc" {
+		return false
+	}
+	return !xmcMaskProfilesComplete(mask)
+}
+
+// incompleteXmcMaskCount counts the stream's xmc finalmask entries that
+// xray-core would refuse to build.
+func incompleteXmcMaskCount(stream map[string]any) int {
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return 0
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	count := 0
+	for _, entry := range tcp {
+		if isIncompleteXmcMask(entry) {
+			count++
+		}
+	}
+	return count
+}
+
+// stripIncompleteXmcMasks removes every xmc finalmask entry xray-core would
+// refuse to build, returning how many were dropped, and clears the finalmask
+// object once nothing is left in it.
+//
+// AddInbound and UpdateInbound reject an incomplete mask at save time, but a
+// row that never went through those paths — an upgrade from a panel predating
+// v26.7.28, node sync, a restored backup, a direct DB edit — would otherwise
+// fail the whole config build and keep every other inbound offline too.
+// Dropping only the offending mask degrades that one inbound instead, which
+// the accompanying warning tells the admin to reconfigure.
+func stripIncompleteXmcMasks(stream map[string]any) int {
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return 0
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) == 0 {
+		return 0
+	}
+	kept := make([]any, 0, len(tcp))
+	dropped := 0
+	for _, entry := range tcp {
+		if isIncompleteXmcMask(entry) {
+			dropped++
+			continue
+		}
+		kept = append(kept, entry)
+	}
+	if dropped == 0 {
+		return 0
+	}
+	if len(kept) == 0 {
+		delete(finalmask, "tcp")
+	} else {
+		finalmask["tcp"] = kept
+	}
+	if len(finalmask) == 0 {
+		delete(stream, "finalmask")
+	}
+	return dropped
+}
+
+// dropEmptyRandPackets removes the leftover empty "packet" from finalmask
+// items that also carry a rand, and reports how many it cleared.
+//
+// xray-core treats even an empty array as a packet, and every item kind is
+// exclusive: noise refuses "len(item.Packet) > 0 && item.Rand.To > 0" and
+// header-custom refuses "exactly one item kind must be set". Either error
+// fails the whole config build, so one such item keeps every inbound offline.
+// The panel's mask editor wrote that pair whenever an item was switched to the
+// rand-driven array kind, so stored rows carry it; clearing an empty packet
+// changes nothing about the mask the admin configured.
+func dropEmptyRandPackets(node any) int {
+	switch value := node.(type) {
+	case map[string]any:
+		cleared := 0
+		if packet, ok := value["packet"].([]any); ok && len(packet) == 0 && randIsSet(value["rand"]) {
+			delete(value, "packet")
+			cleared++
+		}
+		for _, child := range value {
+			cleared += dropEmptyRandPackets(child)
+		}
+		return cleared
+	case []any:
+		cleared := 0
+		for _, child := range value {
+			cleared += dropEmptyRandPackets(child)
+		}
+		return cleared
+	default:
+		return 0
+	}
+}
+
+// randIsSet reports whether a finalmask item's rand selects a random packet.
+// It is a number on header-custom items and a dash-range string on noise ones.
+func randIsSet(value any) bool {
+	switch rand := value.(type) {
+	case float64:
+		return rand > 0
+	case string:
+		return rand != "" && rand != "0" && rand != "0-0"
+	default:
+		return false
+	}
+}
+
+// validateFinalMaskXmcProfiles rejects an xmc finalmask without complete
+// profiles at save time, so the admin gets a targeted error instead of a core
+// that refuses to start (or, after GetXrayConfig heals it, an inbound quietly
+// serving without the obfuscation they configured).
+func validateFinalMaskXmcProfiles(streamSettings string) error {
+	if streamSettings == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	if incompleteXmcMaskCount(stream) == 0 {
+		return nil
+	}
+	return common.NewError("XMC finalmask requires at least one complete Minecraft profile — each needs a username (3-16 of A-Z a-z 0-9 _), a UUID, and both texture fields from Mojang's session server (XTLS/Xray-core#6487). Complete the profiles or remove the XMC mask.")
+}
+
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
 // secret and adTag: MTProto is multi-client, so mtg and every share link read
@@ -746,9 +938,13 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	inbound.Id = 0
+	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -914,7 +1110,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					payload := inbound
 					pushable := true
 					if inbound.Protocol == model.MTProto {
-						if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+						if built, bErr := s.buildInboundForLocalRuntime(tx, inbound); bErr == nil {
 							payload = built
 						} else {
 							logger.Debug("Unable to prepare runtime inbound config:", bErr)
@@ -1162,7 +1358,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return needRestart, nil
 	}
 
-	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+	runtimeInbound, err := s.buildInboundForLocalRuntime(db, inbound)
 	if err != nil {
 		logger.Debug("SetInboundEnable: build runtime config failed:", err)
 		return true, nil
@@ -1175,9 +1371,13 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -1307,6 +1507,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Enable = inbound.Enable
 		oldInbound.ExpiryTime = inbound.ExpiryTime
 		oldInbound.TrafficReset = inbound.TrafficReset
+		oldInbound.TrafficResetDay = inbound.TrafficResetDay
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
@@ -1348,7 +1549,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				payload := oldInbound
 				pushable := true
 				if inbound.Enable {
-					if built, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound); err2 == nil {
+					if built, err2 := s.buildInboundForLocalRuntime(tx, oldInbound); err2 == nil {
 						payload = built
 					} else {
 						logger.Debug("Unable to prepare runtime inbound config:", err2)
@@ -1374,7 +1575,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				var runtimeInbound *model.Inbound
 				if inbound.Enable {
 					var err2 error
-					runtimeInbound, err2 = s.buildRuntimeInboundForAPI(tx, oldInbound)
+					runtimeInbound, err2 = s.buildInboundForLocalRuntime(tx, oldInbound)
 					if err2 != nil {
 						logger.Debug("Unable to prepare runtime inbound config:", err2)
 						needRestart = true
@@ -1445,81 +1646,95 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	return inbound, needRestart, nil
 }
 
-func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+// A node mirrors this payload into its own DB, so every client must survive:
+// filtering one out makes the node delete it, and the master then mirrors that.
+func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
 	if inbound == nil {
 		return nil, fmt.Errorf("inbound is nil")
 	}
 
-	runtimeInbound := *inbound
+	built := *inbound
 	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 		return nil, err
 	}
 
-	mutated := false
-	if clients, ok := settings["clients"].([]any); ok {
-		var clientStats []xray.ClientTraffic
-		err := tx.Model(xray.ClientTraffic{}).
-			Where("inbound_id = ?", inbound.Id).
-			Select("email", "enable").
-			Find(&clientStats).Error
-		if err != nil {
-			return nil, err
-		}
+	if !inboundCanHostFallbacks(inbound) {
+		return &built, nil
+	}
+	fallbacks, err := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)
+	if err != nil {
+		return nil, err
+	}
+	if len(fallbacks) == 0 {
+		return &built, nil
+	}
+	generic := make([]any, 0, len(fallbacks))
+	for _, f := range fallbacks {
+		generic = append(generic, f)
+	}
+	settings["fallbacks"] = generic
 
-		enableMap := make(map[string]bool, len(clientStats))
-		for _, clientTraffic := range clientStats {
-			enableMap[clientTraffic.Email] = clientTraffic.Enable
-		}
+	modifiedSettings, mErr := json.MarshalIndent(settings, "", "  ")
+	if mErr != nil {
+		return nil, mErr
+	}
+	built.Settings = string(modifiedSettings)
+	return &built, nil
+}
 
-		finalClients := make([]any, 0, len(clients))
-		for _, client := range clients {
-			c, ok := client.(map[string]any)
-			if !ok {
-				continue
-			}
-
-			email, _ := c["email"].(string)
-			if enable, exists := enableMap[email]; exists && !enable {
-				continue
-			}
-
-			if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
-				continue
-			}
-
-			finalClients = append(finalClients, c)
-		}
-
-		settings["clients"] = finalClients
-		mutated = true
+// Strips disabled clients on top of the node payload. Safe only because the
+// target here is an in-memory Xray/mtg config, not another panel's database.
+func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	built, err := s.buildInboundForNodePush(tx, inbound)
+	if err != nil {
+		return nil, err
 	}
 
-	if inboundCanHostFallbacks(inbound) {
-		fallbacks, fbErr := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)
-		if fbErr != nil {
-			return nil, fbErr
-		}
-		if len(fallbacks) > 0 {
-			generic := make([]any, 0, len(fallbacks))
-			for _, f := range fallbacks {
-				generic = append(generic, f)
-			}
-			settings["fallbacks"] = generic
-			mutated = true
-		}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
+		return nil, err
+	}
+	clients, ok := settings["clients"].([]any)
+	if !ok {
+		return built, nil
 	}
 
-	if !mutated {
-		return &runtimeInbound, nil
+	var clientStats []xray.ClientTraffic
+	if err := tx.Model(xray.ClientTraffic{}).
+		Where("inbound_id = ?", built.Id).
+		Select("email", "enable").
+		Find(&clientStats).Error; err != nil {
+		return nil, err
 	}
+	enableMap := make(map[string]bool, len(clientStats))
+	for _, clientTraffic := range clientStats {
+		enableMap[clientTraffic.Email] = clientTraffic.Enable
+	}
+
+	finalClients := make([]any, 0, len(clients))
+	for _, client := range clients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+		email, _ := c["email"].(string)
+		if enable, exists := enableMap[email]; exists && !enable {
+			continue
+		}
+		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+			continue
+		}
+		finalClients = append(finalClients, c)
+	}
+	settings["clients"] = finalClients
 
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return nil, err
 	}
+	runtimeInbound := *built
 	runtimeInbound.Settings = string(modifiedSettings)
-
 	return &runtimeInbound, nil
 }
 

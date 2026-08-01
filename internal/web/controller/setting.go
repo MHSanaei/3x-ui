@@ -65,6 +65,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/all", a.getAllSetting)
 	g.POST("/defaultSettings", a.getDefaultSettings)
+	g.POST("/factoryDefaults", a.getFactoryDefaults)
 	g.POST("/update", a.updateSetting)
 	g.POST("/validateRegex", a.validateRegex)
 	g.POST("/updateUser", a.updateUser)
@@ -110,6 +111,10 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 		return
 	}
 	jsonObj(c, result, nil)
+}
+
+func (a *SettingController) getFactoryDefaults(c *gin.Context) {
+	jsonObj(c, a.settingService.GetFactoryDefaults(), nil)
 }
 
 // updateSetting updates all settings with the provided data.

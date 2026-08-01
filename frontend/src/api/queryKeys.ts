@@ -17,6 +17,7 @@ export const keys = {
     root: () => ['settings'] as const,
     all: () => ['settings', 'all'] as const,
     defaults: () => ['settings', 'defaults'] as const,
+    factoryDefaults: () => ['settings', 'factoryDefaults'] as const,
   },
   inbounds: {
     root: () => ['inbounds'] as const,

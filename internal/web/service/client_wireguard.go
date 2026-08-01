@@ -46,11 +46,23 @@ func wireguardAllocationBase(used []string, fallback string) string {
 	return fallback
 }
 
+const wireguardPoolFloorBits = 16
+
 // allocateWireguardAddress returns the first free single-host address in base
 // (suffixed /32 for an IPv4 base, /128 for IPv6) that is not already present
 // in used. The server holds the first host (.1 / ::1), so allocation starts
-// at the second host (.2 / ::2).
-func allocateWireguardAddress(used []string, base string) (string, error) {
+// at the second host (.2 / ::2). When allowWidening is set and base is an
+// IPv4 prefix narrower than wireguardPoolFloorBits, falls back to a wider
+// /16 scope once the configured base is exhausted, so a small pool doesn't
+// hard-fail while a wider address space is genuinely available.
+//
+// allowWidening must be false for AmneziaWG: unlike plain WireGuard, an
+// AmneziaWG peer's address must fall inside the kernel interface's own
+// configured Address subnet to be routable at all, so silently handing out
+// an address from a wider scope would produce an address the interface can
+// never actually reach — better to fail loudly on pool exhaustion than hand
+// out a client config that will never connect.
+func allocateWireguardAddress(used []string, base string, allowWidening bool) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase
 	}
@@ -68,14 +80,22 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 			taken[a] = struct{}{}
 		}
 	}
-	addr := prefix.Masked().Addr().Next().Next()
-	for prefix.Contains(addr) {
-		if _, ok := taken[addr]; !ok {
-			return addr.String() + "/" + hostBits, nil
+	scopes := []netip.Prefix{prefix}
+	if allowWidening && prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
+		if wider, wErr := prefix.Addr().Prefix(wireguardPoolFloorBits); wErr == nil {
+			scopes = append(scopes, wider)
 		}
-		addr = addr.Next()
 	}
-	return "", common.NewError("wireguard: no free address available in", base)
+	for _, scope := range scopes {
+		addr := scope.Masked().Addr().Next().Next()
+		for scope.Contains(addr) {
+			if _, ok := taken[addr]; !ok {
+				return addr.String() + "/" + hostBits, nil
+			}
+			addr = addr.Next()
+		}
+	}
+	return "", common.NewError("wireguard: no free address available in", scopes[len(scopes)-1].String())
 }
 
 // normalizeWireguardAllowedIPs validates user-supplied allowedIPs entries and
@@ -148,7 +168,7 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, base)
+			addr, err := allocateWireguardAddress(used, base, true)
 			if err != nil {
 				return err
 			}

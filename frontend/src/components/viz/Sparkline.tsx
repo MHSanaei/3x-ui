@@ -48,6 +48,7 @@ interface SparklineProps {
   yTickStep?: number;
   tickCountX?: number;
   showTooltip?: boolean;
+  showLegend?: boolean;
   valueMin?: number;
   valueMax?: number | null;
   yFormatter?: (v: number) => string;
@@ -80,13 +81,23 @@ interface SparklineView {
   extremaPoints: ExtremaResult | null;
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-  let h = hex.trim();
+function hexToRgba(color: string, alpha: number): string {
+  const trimmed = color.trim();
+  const fn = trimmed.match(/^rgba?\(([^)]+)\)$/i);
+  if (fn) {
+    const parts = fn[1].split(/[,/]\s*|\s+/).filter(Boolean).map(Number);
+    if (parts.length >= 3 && parts.slice(0, 3).every((n) => Number.isFinite(n))) {
+      const baseAlpha = parts.length > 3 && Number.isFinite(parts[3]) ? parts[3] : 1;
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${baseAlpha * alpha})`;
+    }
+    return trimmed;
+  }
+  let h = trimmed;
   if (h.startsWith('#')) h = h.slice(1);
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  if (h.length !== 6) return hex;
+  if (h.length !== 6) return trimmed;
   const int = Number.parseInt(h, 16);
-  if (Number.isNaN(int)) return hex;
+  if (Number.isNaN(int)) return trimmed;
   const r = (int >> 16) & 255;
   const g = (int >> 8) & 255;
   const b = int & 255;
@@ -129,6 +140,7 @@ export default function Sparkline(props: SparklineProps) {
     yTickStep = 25,
     tickCountX = 4,
     showTooltip = false,
+    showLegend = true,
     valueMin = 0,
     valueMax = 100,
     yFormatter = (v: number) => `${Math.round(v)}%`,
@@ -543,10 +555,6 @@ export default function Sparkline(props: SparklineProps) {
   }, [points, hasSeries2, hasSeries3, valueMin, valueMax]);
 
   useEffect(() => {
-    plotRef.current?.redraw(false);
-  });
-
-  useEffect(() => {
     const redraw = () => plotRef.current?.redraw(false);
     const moBody = new MutationObserver(redraw);
     moBody.observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -570,7 +578,7 @@ export default function Sparkline(props: SparklineProps) {
           </span>
         </div>
       )}
-      {legendItems.length > 0 && (
+      {showLegend && legendItems.length > 0 && (
         <div className="sparkline-legend" aria-hidden="true">
           {legendItems.map((s) => (
             <span key={s.name} className="extrema-item" style={{ color: s.color }}>● {s.name}</span>

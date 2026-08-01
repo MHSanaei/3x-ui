@@ -770,6 +770,9 @@ func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
 	}
+	if ib.TrafficResetDay > 0 {
+		v.Set("trafficResetDay", strconv.Itoa(ib.TrafficResetDay))
+	}
 	return v
 }
 
