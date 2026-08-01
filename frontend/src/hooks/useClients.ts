@@ -85,51 +85,6 @@ export interface ClientSpeedEntry {
 
 type ClientStatRow = ClientTraffic & { email?: string };
 
-// Mirror of the server's buildClientsSummary (web/service/client.go). The
-// client_stats WS event already carries every client's traffic, so the
-// summary card can be recomputed live from it instead of waiting for a list
-// refetch — keep the two in lockstep.
-export function computeClientsSummary(
-  stats: ClientStatRow[],
-  onlineSet: Set<string>,
-  expireDiffMs: number,
-  trafficDiffBytes: number,
-): ClientsSummary {
-  const now = Date.now();
-  const online: string[] = [];
-  const depleted: string[] = [];
-  const expiring: string[] = [];
-  const deactive: string[] = [];
-  let active = 0;
-  for (const c of stats) {
-    const email = c.email;
-    if (!email) continue;
-    const used = (c.up || 0) + (c.down || 0);
-    const total = c.total || 0;
-    const exhausted = total > 0 && used >= total;
-    const expired = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) <= now;
-    if (c.enable && onlineSet.has(email)) online.push(email);
-    if (exhausted || expired) { depleted.push(email); continue; }
-    if (!c.enable) { deactive.push(email); continue; }
-    const nearExpiry = (c.expiryTime || 0) > 0 && (c.expiryTime || 0) - now < expireDiffMs;
-    const nearLimit = total > 0 && total - used < trafficDiffBytes;
-    if (nearExpiry || nearLimit) expiring.push(email);
-    else active += 1;
-  }
-  return {
-    total: stats.length,
-    active,
-    onlineCount: online.length,
-    depletedCount: depleted.length,
-    expiringCount: expiring.length,
-    deactiveCount: deactive.length,
-    online,
-    depleted,
-    expiring,
-    deactive,
-  };
-}
-
 export function sameSpeedMap(
   a: Record<string, ClientSpeedEntry>,
   b: Record<string, ClientSpeedEntry>,
@@ -142,37 +97,6 @@ export function sameSpeedMap(
     if (!right || left.up !== right.up || left.down !== right.down) return false;
   }
   return true;
-}
-
-// The field list computeClientsSummary reads, and deliberately nothing else.
-// lastOnline in particular churns for every online client on every push and no
-// counter depends on it, so including it here would defeat the comparison.
-export function sameSummaryInputs(a: ClientStatRow[], b: ClientStatRow[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const left = a[i];
-    const right = b[i];
-    if (left.email !== right.email
-      || left.up !== right.up
-      || left.down !== right.down
-      || left.total !== right.total
-      || left.enable !== right.enable
-      || left.expiryTime !== right.expiryTime) return false;
-  }
-  return true;
-}
-
-export function pickClientsSummary(
-  serverSummary: ClientsSummary,
-  allClientStats: ClientStatRow[],
-  onlineSet: Set<string>,
-  expireDiffMs: number,
-  trafficDiffBytes: number,
-): ClientsSummary {
-  if (allClientStats.length === 0) return serverSummary;
-  if (serverSummary.total > allClientStats.length) return serverSummary;
-  const live = computeClientsSummary(allClientStats, onlineSet, expireDiffMs, trafficDiffBytes);
-  return { ...live, total: serverSummary.total || live.total };
 }
 
 function buildQS(p: ClientQueryParams): string {
@@ -349,17 +273,12 @@ export function useClients(options: UseClientsOptions = {}) {
   // settings request still lets the page fall back and render.
   const settingsReady = defaultsQuery.isFetched;
 
-  const [allClientStats, setAllClientStats] = useState<ClientStatRow[]>([]);
   const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
-  const summary = useMemo<ClientsSummary>(
-    () => pickClientsSummary(listQuery.data?.summary ?? DEFAULT_SUMMARY, allClientStats, new Set(onlines), expireDiff, trafficDiff),
-    [allClientStats, onlines, expireDiff, trafficDiff, listQuery.data?.summary],
-  );
+  const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
 
   const invalidateAll = useCallback(
     () => {
       markLocalInvalidate();
-      setAllClientStats([]);
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
         queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
@@ -658,12 +577,8 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const applyClientStatsEvent = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: ClientStatRow[]; snapshot?: boolean };
+    const p = payload as { clients?: ClientStatRow[] };
     if (!Array.isArray(p.clients) || p.clients.length === 0) return;
-    if (p.snapshot !== false) {
-      const rows = p.clients;
-      setAllClientStats((prev) => (sameSummaryInputs(prev, rows) ? prev : rows));
-    }
     const active = queryRef.current;
     if (!active) return;
     const byEmail = new Map<string, ClientTraffic>();
