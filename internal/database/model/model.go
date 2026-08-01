@@ -911,6 +911,9 @@ type ClientRecord struct {
 	Reset        int    `json:"reset" gorm:"default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
+	// deleting; orphans from any other cause stay at zero and are never reaped.
+	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }

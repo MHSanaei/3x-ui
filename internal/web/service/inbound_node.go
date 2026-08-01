@@ -125,11 +125,8 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 				}
 			}
 		}
-		// Reconcile with the same runtime-built payload interactive pushes
-		// send (disabled clients filtered, settings.fallbacks injected) so
-		// fingerprints line up and fallback edits actually reach the node.
 		runtimeIb := ib
-		if built, bErr := s.buildRuntimeInboundForAPI(db, ib); bErr == nil {
+		if built, bErr := s.buildInboundForNodePush(db, ib); bErr == nil {
 			runtimeIb = built
 		}
 		if _, err := rt.ReconcileInbound(ctx, runtimeIb, existsOnNode); err != nil {
@@ -352,7 +349,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// origin (an inbound the node forwards from its own sub-node) is kept as-is,
 	// so a chained Node1->Node2->Node3 still attributes Node3's inbounds to Node3.
 	var nodeRow model.Node
-	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	db.Select("guid", "config_dirty", "inbound_sync_mode", "inbound_tags").Where("id = ?", nodeID).First(&nodeRow)
+	// Re-read inside the serialized writer: a client added while this snapshot
+	// was in flight marks the node dirty after the caller sampled the flag.
+	dirty = dirty || nodeRow.ConfigDirty
+	nodeRow.Id = nodeID
+	unmanagedTag := unmanagedTagPredicate(&nodeRow)
 	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
 	guidShared := nodeRow.Guid != "" && selfKey != nodeRow.Guid
 	originGuidFor := func(snapIb *model.Inbound) string {
@@ -671,6 +673,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if _, kept := snapTags[c.Tag]; kept {
 			continue
 		}
+		if unmanagedTag(c.Tag) {
+			continue
+		}
 		var goneEmails []string
 		if err := tx.Model(xray.ClientTraffic{}).
 			Where("inbound_id = ?", c.Id).
@@ -886,7 +891,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if uErr != nil {
 				return false, uErr
 			}
-			if !stillUsed {
+			// Usage, quota and expiry live on this row, so a client the orphan
+			// sweep will mark keeps it until the reaper confirms the removal.
+			if !stillUsed && !clientRecordExists(tx, existing.Email) {
 				if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
 					Delete(&xray.ClientTraffic{}).Error; err != nil {
 					return false, err
@@ -901,6 +908,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		emails    map[string]struct{}
 	}
 	var perInboundOld []oldSet
+	syncFailedInbounds := map[int]struct{}{}
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -973,10 +981,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
 			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, err)
+			syncFailedInbounds[c.Id] = struct{}{}
 		}
 	}
 
 	for _, old := range perInboundOld {
+		// The sweep's premise is that links were just rebuilt from the snapshot,
+		// which is exactly what a failed SyncInbound violates.
+		if _, failed := syncFailedInbounds[old.inboundID]; failed {
+			continue
+		}
 		var stillAttached []string
 		if err := tx.Table("clients").
 			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
@@ -1002,17 +1016,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if attachmentCount > 0 {
 				continue
 			}
-			if err := tx.Where("email = ?", email).Delete(&model.ClientRecord{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete ClientRecord %q failed: %v", email, err)
-			}
-			if err := tx.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete ClientTraffic %q failed: %v", email, err)
-			}
-			if err := tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete NodeClientTraffic %q failed: %v", email, err)
+			// "Ended the merge unattached" is true for a real remote deletion and
+			// equally true for a bad merge, so record a strike instead of deleting.
+			if err := markSyncOrphan(tx, email, now); err != nil {
+				logger.Warningf("setRemoteTraffic: mark orphan %q failed: %v", email, err)
+				continue
 			}
 			structuralChange = true
 		}
+	}
+
+	if err := clearSyncOrphanMarks(tx); err != nil {
+		logger.Warning("setRemoteTraffic: clear orphan marks failed:", err)
 	}
 
 	if err := liftActivatedClientRecordExpiries(tx); err != nil {
