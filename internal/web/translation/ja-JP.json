@@ -109,7 +109,9 @@
     "donate": "寄付",
     "hosts": "ホスト",
     "docs": "ドキュメント",
-    "openMenu": "メニューを開く"
+    "openMenu": "メニューを開く",
+    "pinSidebar": "サイドバーを固定",
+    "unpinSidebar": "サイドバーの固定を解除"
   },
   "pages": {
     "login": {

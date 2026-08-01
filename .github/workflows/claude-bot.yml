@@ -766,7 +766,7 @@ jobs:
           fi
 
   resolve-conflicts:
-    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'resolve pr conflicts') && github.event.comment.user.login == github.repository_owner
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'resolve pr conflicts') && github.event.comment.user.login == github.repository_owner && github.event.comment.author_association == 'OWNER'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -774,6 +774,29 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      - name: Refuse a head that moved after the request
+        id: freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/${REPO}/pulls/${PR}" --jq '"\(.head.sha) \(.head.repo.pushed_at // "")"')
+          HEAD_SHA=${head%% *}
+          HEAD_PUSHED_AT=${head#* }
+          if [ -z "$HEAD_PUSHED_AT" ]; then
+            gh pr comment "$PR" --repo "$REPO" --body "The head repository of this pull request is gone, so its branch cannot be verified or merged. Nothing was changed."
+            echo "::error::The head repository is unavailable; refusing to check it out."
+            exit 1
+          fi
+          if [ "$(date -d "$HEAD_PUSHED_AT" +%s)" -gt "$(date -d "$COMMENT_AT" +%s)" ]; then
+            gh pr comment "$PR" --repo "$REPO" --body "The head branch was pushed to at ${HEAD_PUSHED_AT}, after this was requested at ${COMMENT_AT}, so the code that would be checked out here is not the code that was reviewed. Nothing was changed. Ask again to act on the current head."
+            echo "::error::The head moved after the request; refusing to check it out."
+            exit 1
+          fi
+          echo "sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -783,6 +806,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.issue.number }}
+          PINNED_SHA: ${{ steps.freshness.outputs.sha }}
         run: |
           set -euo pipefail
           hand_back() {
@@ -801,6 +825,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           gh pr checkout "$PR"
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$PINNED_SHA" ]; then
+            gh pr comment "$PR" --body "The head of this pull request moved from \`${PINNED_SHA}\` to \`${checked_out}\` while this run was starting, so nothing was changed."
+            echo "::error::The head moved from ${PINNED_SHA} to ${checked_out} during the run."
+            exit 1
+          fi
           git fetch origin "$base"
           if git merge --no-commit --no-ff "origin/${base}"; then
             git merge --abort 2>/dev/null || true

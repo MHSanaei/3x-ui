@@ -96,9 +96,15 @@ export const InboundOptionSchema = z.object({
 
 export const InboundOptionsSchema = z.array(InboundOptionSchema);
 
+// The *Count fields are exact; the email arrays stop at the server's cap and
+// only feed the hover popovers, so never derive a counter from their length.
 export const ClientsSummarySchema = z.object({
   total: z.number(),
   active: z.number(),
+  onlineCount: z.number().optional().default(0),
+  depletedCount: z.number().optional().default(0),
+  expiringCount: z.number().optional().default(0),
+  deactiveCount: z.number().optional().default(0),
   online: nullableStringArray,
   depleted: nullableStringArray,
   expiring: nullableStringArray,

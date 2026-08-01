@@ -835,13 +835,16 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 
 	successEmails := make([]string, 0, len(recordsByEmail))
 	successIds := make([]int, 0, len(recordsByEmail))
+	failedEmails := make([]string, 0, len(recordsByEmail))
 	for email, rec := range recordsByEmail {
 		if _, skipped := skippedReasons[email]; skipped {
+			failedEmails = append(failedEmails, email)
 			continue
 		}
 		successEmails = append(successEmails, email)
 		successIds = append(successIds, rec.Id)
 	}
+	withdrawClientTombstones(failedEmails...)
 
 	if len(successIds) > 0 {
 		// Serialize the row cleanup against the traffic poll to avoid the
@@ -875,6 +878,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 			}
 			return nil
 		}); err != nil {
+			withdrawClientTombstones(successEmails...)
 			return result, needRestart, err
 		}
 	}

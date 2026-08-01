@@ -43,11 +43,9 @@ func TestFetchSubscriptionLinksSharesConcurrentRefresh(t *testing.T) {
 	results := make(chan []string, callers)
 	var wg sync.WaitGroup
 	for range callers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			results <- fetchSubscriptionLinks(srv.URL)
-		}()
+		})
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -123,11 +121,9 @@ func TestFetchSubscriptionLinksSharesStaleResultAfterRefreshFailure(t *testing.T
 	results := make(chan []string, callers)
 	var wg sync.WaitGroup
 	for range callers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			results <- fetchSubscriptionLinks(staleURL)
-		}()
+		})
 	}
 
 	time.Sleep(100 * time.Millisecond)

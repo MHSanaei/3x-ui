@@ -109,7 +109,9 @@
     "donate": "Doar",
     "hosts": "Hosts",
     "docs": "Documentação",
-    "openMenu": "Abrir menu"
+    "openMenu": "Abrir menu",
+    "pinSidebar": "Fixar barra lateral",
+    "unpinSidebar": "Desafixar barra lateral"
   },
   "pages": {
     "login": {

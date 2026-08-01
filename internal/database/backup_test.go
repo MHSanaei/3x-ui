@@ -35,7 +35,7 @@ func TestBackupSQLiteProducesValidSnapshotDuringWrites(t *testing.T) {
 	firstWrite := make(chan error, 1)
 	writesDone := make(chan error, 1)
 	go func() {
-		for i := 0; i < 128; i++ {
+		for i := range 128 {
 			if err := db.Create(&model.Setting{Key: fmt.Sprintf("backup-write-%d", i), Value: value}).Error; err != nil {
 				if i == 0 {
 					firstWrite <- err
