@@ -85,7 +85,7 @@ func getLogPath(key string) (string, error) {
 			return logPath, nil
 		}
 	}
-	return "", err
+	return "", nil
 }
 
 // GetAccessLogPath reads the Xray config and returns the access log file path.
@@ -93,7 +93,6 @@ func GetAccessLogPath() (string, error) {
 	return getLogPath("access")
 }
 
-// GetErrorLogPath reads the Xray config and returns the error log file path.
 // GetErrorLogPath reads the Xray config and returns the error log file path.
 func GetErrorLogPath() (string, error) {
 	return getLogPath("error")
