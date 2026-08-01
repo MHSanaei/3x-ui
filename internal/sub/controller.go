@@ -416,8 +416,11 @@ func (a *SUBController) subs(c *gin.Context) {
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
-			result.WriteString(a.subIncyRoutingRules)
-			result.WriteString("\n")
+			incyRules, _, err := resolveIncyRoutingSource(a.subIncyRoutingRules)
+			if err == nil && strings.TrimSpace(incyRules) != "" {
+				result.WriteString(incyRules)
+				result.WriteString("\n")
+			}
 		}
 
 		if a.subEncrypt {
@@ -759,12 +762,17 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ)
+	// Advanced (Happ). Inline values keep the stock behaviour. A single HTTPS
+	// URL is resolved to a validated deeplink; on a first-ever fetch failure we
+	// omit both routing headers instead of sending an unusable directive.
 	if profileEnableRouting {
-		c.Writer.Header().Set("Routing-Enable", "true")
-	}
-	if profileRoutingRules != "" {
-		c.Writer.Header().Set("Routing", profileRoutingRules)
+		rules, remote, err := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+		if err == nil || !remote {
+			c.Writer.Header().Set("Routing-Enable", "true")
+			if strings.TrimSpace(rules) != "" {
+				c.Writer.Header().Set("Routing", rules)
+			}
+		}
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
