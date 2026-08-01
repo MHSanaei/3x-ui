@@ -18,7 +18,7 @@ import (
 // should be running: one instance per enabled local AmneziaWG inbound,
 // serving only the peers of clients that are both enabled in the inbound
 // settings and not depletion-disabled in client_traffics. That is the same
-// effective peer set buildRuntimeInboundForAPI pushes on interactive edits,
+// effective peer set buildInboundForLocalRuntime pushes on interactive edits,
 // so the reconcile job and the push path agree on one fingerprint — see
 // DesiredMtprotoInstances, which this mirrors exactly.
 func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, error) {
@@ -96,7 +96,7 @@ func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 	}
 	payload := inbound
 	if inbound.Enable {
-		if built, bErr := s.buildRuntimeInboundForAPI(database.GetDB(), inbound); bErr == nil {
+		if built, bErr := s.buildInboundForLocalRuntime(database.GetDB(), inbound); bErr == nil {
 			payload = built
 		}
 	}
