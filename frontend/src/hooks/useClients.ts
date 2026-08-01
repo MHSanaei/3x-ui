@@ -196,6 +196,7 @@ export function useClients(options: UseClientsOptions = {}) {
     // List is sorted/paged server-side, so the WS patch can't add new or
     // re-sort rows; poll the current page to keep it live (pauses when hidden).
     refetchInterval: 5000,
+    refetchOnWindowFocus: 'always',
     placeholderData: keepPreviousData,
   });
 
