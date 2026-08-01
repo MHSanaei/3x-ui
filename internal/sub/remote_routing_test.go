@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -35,24 +36,74 @@ func remoteRoutingResponse(status int, body string) *http.Response {
 	}
 }
 
+func waitRemoteRoutingIdle(t *testing.T, resolver *remoteRoutingResolver) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		resolver.mu.Lock()
+		inflight := len(resolver.inflight)
+		resolver.mu.Unlock()
+		if inflight == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("remote routing refresh did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func waitRemoteRoutingLoadIdle(t *testing.T, resolver *remoteRoutingResolver) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		resolver.mu.Lock()
+		loading := resolver.loadInFlight
+		resolver.mu.Unlock()
+		if !loading {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("persisted routing cache load did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func primeRemoteRouting(t *testing.T, resolver *remoteRoutingResolver, kind remoteRoutingKind, source string) string {
+	t.Helper()
+	if err := resolver.refreshSource(kind, source); err != nil {
+		t.Fatalf("prime remote routing: %v", err)
+	}
+	value, remote, err := resolver.resolve(kind, source)
+	if err != nil || !remote || value == "" {
+		t.Fatalf("primed resolve got=%q remote=%v err=%v", value, remote, err)
+	}
+	return value
+}
+
 func TestParseRemoteRoutingURLKeepsInlineCompatibility(t *testing.T) {
-	inline := "happ://routing/onadd/abc"
-	if got, remote, err := parseRemoteRoutingURL(inline); err != nil || remote || got != "" {
-		t.Fatalf("inline classified as got=%q remote=%v err=%v", got, remote, err)
+	tests := []struct {
+		name       string
+		input      string
+		wantSource string
+		wantRemote bool
+		wantErr    bool
+	}{
+		{name: "deeplink stays inline", input: "happ://routing/onadd/abc"},
+		{name: "plain HTTP stays inline", input: "http://example.com/rules"},
+		{name: "multiline stays inline", input: "https://example.com/rules\nMATCH,PROXY"},
+		{name: "HTTPS source", input: "  https://example.com/rules#ignored  ", wantSource: "https://example.com/rules", wantRemote: true},
+		{name: "credentials rejected", input: "https://user:pass@example.com/rules", wantRemote: true, wantErr: true},
+		{name: "missing host rejected", input: "https:///rules", wantRemote: true, wantErr: true},
 	}
-
-	got, remote, err := parseRemoteRoutingURL("  https://example.com/rules#ignored  ")
-	if err != nil || !remote || got != "https://example.com/rules" {
-		t.Fatalf("HTTPS classified as got=%q remote=%v err=%v", got, remote, err)
-	}
-
-	if _, remote, err := parseRemoteRoutingURL("http://example.com/rules"); err == nil || !remote {
-		t.Fatalf("plain HTTP should be recognized and rejected: remote=%v err=%v", remote, err)
-	}
-
-	multiline := "https://example.com/rules\nMATCH,PROXY"
-	if got, remote, err := parseRemoteRoutingURL(multiline); err != nil || remote || got != "" {
-		t.Fatalf("mixed inline text classified as got=%q remote=%v err=%v", got, remote, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, remote, err := parseRemoteRoutingURL(tt.input)
+			if got != tt.wantSource || remote != tt.wantRemote || (err != nil) != tt.wantErr {
+				t.Fatalf("got=%q remote=%v err=%v", got, remote, err)
+			}
+		})
 	}
 }
 
@@ -94,7 +145,11 @@ func TestRemoteRoutingResolverAcceptsHappRedirect(t *testing.T) {
 	client.CheckRedirect = checkRemoteRoutingRedirect
 	resolver := newRemoteRoutingResolver(client, false)
 
-	got, remote, err := resolver.resolve(remoteRoutingHapp, "https://routing.example/")
+	const source = "https://routing.example/"
+	if err := resolver.refreshSource(remoteRoutingHapp, source); err != nil {
+		t.Fatalf("refresh redirect: %v", err)
+	}
+	got, remote, err := resolver.resolve(remoteRoutingHapp, source)
 	if err != nil || !remote || got != deeplink {
 		t.Fatalf("redirect resolve got=%q remote=%v err=%v", got, remote, err)
 	}
@@ -121,15 +176,13 @@ func TestRemoteRoutingResolverHandlesHappNotModified(t *testing.T) {
 	resolver.now = func() time.Time { return now }
 	const source = "https://example.com/default.json"
 
-	first, _, err := resolver.resolve(remoteRoutingHapp, source)
-	if err != nil {
-		t.Fatalf("initial resolve: %v", err)
-	}
+	first := primeRemoteRouting(t, resolver, remoteRoutingHapp, source)
 	now = now.Add(remoteRoutingCacheTTL + time.Second)
 	second, _, err := resolver.resolve(remoteRoutingHapp, source)
 	if err != nil || second != first {
-		t.Fatalf("304 resolve got=%q err=%v", second, err)
+		t.Fatalf("stale resolve got=%q err=%v", second, err)
 	}
+	waitRemoteRoutingIdle(t, resolver)
 	now = now.Add(time.Minute)
 	third, _, err := resolver.resolve(remoteRoutingHapp, source)
 	if err != nil || third != first {
@@ -140,7 +193,7 @@ func TestRemoteRoutingResolverHandlesHappNotModified(t *testing.T) {
 	}
 }
 
-func TestRemoteRoutingResolverCachesAndCoalescesColdFetch(t *testing.T) {
+func TestRemoteRoutingResolverDoesNotBlockAndCoalescesColdFetch(t *testing.T) {
 	var requests atomic.Int32
 	started := make(chan struct{})
 	release := make(chan struct{})
@@ -154,30 +207,35 @@ func TestRemoteRoutingResolverCachesAndCoalescesColdFetch(t *testing.T) {
 	resolver := newRemoteRoutingResolver(client, false)
 	const source = "https://example.com/default.json"
 
-	results := make(chan string, 8)
+	results := make(chan error, 8)
 	for range 8 {
 		go func() {
-			value, remote, err := resolver.resolve(remoteRoutingHapp, source)
-			if err != nil || !remote {
-				results <- "error"
+			_, remote, err := resolver.resolve(remoteRoutingHapp, source)
+			if !remote {
+				results <- errors.New("source was not classified as remote")
 				return
 			}
-			results <- value
+			results <- err
 		}()
 	}
 	<-started
-	close(release)
-
 	for range 8 {
-		if value := <-results; !strings.HasPrefix(value, "happ://routing/onadd/") {
-			t.Fatalf("unexpected result %q", value)
+		select {
+		case err := <-results:
+			if !errors.Is(err, errRemoteRoutingUnavailable) {
+				t.Fatalf("cold resolve err=%v", err)
+			}
+		case <-time.After(100 * time.Millisecond):
+			t.Fatal("cold resolve blocked on the remote fetch")
 		}
 	}
 	if got := requests.Load(); got != 1 {
 		t.Fatalf("requests = %d, want 1", got)
 	}
-	if _, _, err := resolver.resolve(remoteRoutingHapp, source); err != nil {
-		t.Fatalf("cached resolve: %v", err)
+	close(release)
+	waitRemoteRoutingIdle(t, resolver)
+	if got, _, err := resolver.resolve(remoteRoutingHapp, source); err != nil || !strings.HasPrefix(got, "happ://routing/onadd/") {
+		t.Fatalf("cached resolve got=%q err=%v", got, err)
 	}
 	if got := requests.Load(); got != 1 {
 		t.Fatalf("cached request count = %d, want 1", got)
@@ -186,12 +244,15 @@ func TestRemoteRoutingResolverCachesAndCoalescesColdFetch(t *testing.T) {
 
 func TestRemoteRoutingResolverServesStaleAfterFailedRefresh(t *testing.T) {
 	var requests atomic.Int32
-	refreshDone := make(chan struct{}, 1)
+	refreshStarted := make(chan struct{})
+	releaseRefresh := make(chan struct{})
+	var startOnce sync.Once
 	fail := atomic.Bool{}
 	client := remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
 		requests.Add(1)
 		if fail.Load() {
-			refreshDone <- struct{}{}
+			startOnce.Do(func() { close(refreshStarted) })
+			<-releaseRefresh
 			return remoteRoutingResponse(http.StatusBadGateway, "bad gateway"), nil
 		}
 		return remoteRoutingResponse(http.StatusOK, `{"Name":"last-good"}`), nil
@@ -201,35 +262,25 @@ func TestRemoteRoutingResolverServesStaleAfterFailedRefresh(t *testing.T) {
 	resolver.now = func() time.Time { return now }
 	const source = "https://example.com/default.json"
 
-	first, _, err := resolver.resolve(remoteRoutingHapp, source)
-	if err != nil {
-		t.Fatalf("initial resolve: %v", err)
-	}
+	first := primeRemoteRouting(t, resolver, remoteRoutingHapp, source)
 	fail.Store(true)
 	now = now.Add(remoteRoutingCacheTTL + time.Second)
+	startedAt := time.Now()
 	stale, remote, err := resolver.resolve(remoteRoutingHapp, source)
 	if err != nil || !remote || stale != first {
 		t.Fatalf("stale resolve got=%q remote=%v err=%v", stale, remote, err)
 	}
+	if elapsed := time.Since(startedAt); elapsed > 100*time.Millisecond {
+		t.Fatalf("stale resolve blocked for %v", elapsed)
+	}
 	select {
-	case <-refreshDone:
-	default:
+	case <-refreshStarted:
+	case <-time.After(time.Second):
 		t.Fatal("refresh did not run")
 	}
+	close(releaseRefresh)
 
-	deadline := time.Now().Add(time.Second)
-	for {
-		resolver.mu.Lock()
-		inflight := len(resolver.inflight)
-		resolver.mu.Unlock()
-		if inflight == 0 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("refresh did not finish")
-		}
-		time.Sleep(time.Millisecond)
-	}
+	waitRemoteRoutingIdle(t, resolver)
 
 	if got, _, err := resolver.resolve(remoteRoutingHapp, source); err != nil || got != first {
 		t.Fatalf("negative-cache resolve got=%q err=%v", got, err)
@@ -240,10 +291,7 @@ func TestRemoteRoutingResolverServesStaleAfterFailedRefresh(t *testing.T) {
 }
 
 func TestRemoteRoutingResolverLoadsPersistedLastGood(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("init db: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	initSubDB(t)
 
 	deeplink, err := normalizeHappRouting([]byte(`{"Name":"persisted"}`))
 	if err != nil {
@@ -258,9 +306,72 @@ func TestRemoteRoutingResolverLoadsPersistedLastGood(t *testing.T) {
 	resolver := newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
 		return remoteRoutingResponse(http.StatusServiceUnavailable, "offline"), nil
 	}), true)
+	resolver.ensurePersistedLoaded()
 	got, remote, err := resolver.resolve(remoteRoutingHapp, source)
 	if err != nil || !remote || got != deeplink {
 		t.Fatalf("persisted resolve got=%q remote=%v err=%v", got, remote, err)
+	}
+	waitRemoteRoutingIdle(t, resolver)
+}
+
+func TestRemoteRoutingResolverDoesNotBlockOnPersistedLoad(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var startOnce sync.Once
+	resolver := newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		startOnce.Do(func() { close(started) })
+		<-release
+		return remoteRoutingResponse(http.StatusServiceUnavailable, "offline"), nil
+	}), true)
+
+	resolver.loadMu.Lock()
+	loadLocked := true
+	t.Cleanup(func() {
+		if loadLocked {
+			resolver.loadMu.Unlock()
+		}
+	})
+
+	startedAt := time.Now()
+	_, remote, err := resolver.resolve(remoteRoutingHapp, "https://example.com/default.json")
+	if !remote || !errors.Is(err, errRemoteRoutingUnavailable) {
+		t.Fatalf("resolve remote=%v err=%v", remote, err)
+	}
+	if elapsed := time.Since(startedAt); elapsed > 100*time.Millisecond {
+		t.Fatalf("resolve blocked on persisted cache load for %v", elapsed)
+	}
+
+	resolver.loadMu.Unlock()
+	loadLocked = false
+	close(release)
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("background refresh did not start")
+	}
+	waitRemoteRoutingIdle(t, resolver)
+	waitRemoteRoutingLoadIdle(t, resolver)
+}
+
+func TestRemoteRoutingResolverRejectsOversizedPersistedHappValue(t *testing.T) {
+	initSubDB(t)
+
+	deeplink, err := normalizeHappRouting([]byte(`{"Name":"` + strings.Repeat("x", remoteRoutingHappMaxValue) + `"}`))
+	if err != nil || len(deeplink) <= remoteRoutingHappMaxValue {
+		t.Fatalf("oversized fixture length=%d err=%v", len(deeplink), err)
+	}
+	const source = "https://example.com/oversized.json"
+	newRemoteRoutingResolver(nil, false).persistEntry(remoteRoutingHapp, remoteRoutingCacheEntry{
+		Source: source, Content: deeplink, FetchedAt: time.Now().Unix(),
+	})
+
+	resolver := newRemoteRoutingResolver(nil, true)
+	resolver.ensurePersistedLoaded()
+	resolver.mu.Lock()
+	_, exists := resolver.entries[remoteRoutingKey{kind: remoteRoutingHapp, source: source}]
+	resolver.mu.Unlock()
+	if exists {
+		t.Fatal("oversized persisted Happ routing value was loaded")
 	}
 }
 
@@ -277,14 +388,16 @@ func TestRemoteRoutingResolverDoesNotReplaceClashCacheWithInvalidSchema(t *testi
 	resolver.now = func() time.Time { return now }
 	const source = "https://example.com/routing.yaml"
 
-	first, _, err := resolver.resolve(remoteRoutingClash, source)
-	if err != nil {
-		t.Fatalf("initial resolve: %v", err)
-	}
+	first := primeRemoteRouting(t, resolver, remoteRoutingClash, source)
 	now = now.Add(remoteRoutingCacheTTL + time.Second)
 	second, _, err := resolver.resolve(remoteRoutingClash, source)
 	if err != nil || second != first {
 		t.Fatalf("invalid refresh replaced last-good: got=%q err=%v", second, err)
+	}
+	waitRemoteRoutingIdle(t, resolver)
+	second, _, err = resolver.resolve(remoteRoutingClash, source)
+	if err != nil || second != first {
+		t.Fatalf("invalid refresh replaced last-good after completion: got=%q err=%v", second, err)
 	}
 	if requests.Load() != 2 {
 		t.Fatalf("requests = %d, want 2", requests.Load())
@@ -299,11 +412,20 @@ func TestApplyCommonHeadersResolvesRemoteHappAndFailsClosed(t *testing.T) {
 	routingSourceResolver = newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
 		return remoteRoutingResponse(http.StatusOK, `{"Name":"RoscomVPN"}`), nil
 	}), false)
+	const source = "https://example.com/default.json"
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, "https://example.com/default.json", false)
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, source, false)
 	if recorder.Header().Get("Routing-Enable") != "true" || !strings.HasPrefix(recorder.Header().Get("Routing"), "happ://routing/onadd/") {
 		t.Fatalf("headers = %#v", recorder.Header())
+	}
+
+	recorder = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(recorder)
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, source, false)
+	if recorder.Header().Get("Routing-Enable") != "" || !strings.HasPrefix(recorder.Header().Get("Routing"), "happ://routing/onadd/") {
+		t.Fatalf("independent routing headers = %#v", recorder.Header())
 	}
 
 	routingSourceResolver = newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
@@ -312,9 +434,10 @@ func TestApplyCommonHeadersResolvesRemoteHappAndFailsClosed(t *testing.T) {
 	recorder = httptest.NewRecorder()
 	ctx, _ = gin.CreateTestContext(recorder)
 	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, "https://example.com/bad", false)
-	if recorder.Header().Get("Routing-Enable") != "" || recorder.Header().Get("Routing") != "" {
+	if recorder.Header().Get("Routing-Enable") != "true" || recorder.Header().Get("Routing") != "" {
 		t.Fatalf("invalid remote source leaked routing headers: %#v", recorder.Header())
 	}
+	waitRemoteRoutingIdle(t, routingSourceResolver)
 }
 
 func TestResolveIncyRemoteSourceUsesAutorouting(t *testing.T) {
@@ -344,6 +467,12 @@ proxy-providers:
   prov:
     url: <SUBSCRIPTION PLACEHOLDER>
 external-controller: 0.0.0.0:9090
+allow-lan: true
+mixed-port: 7890
+dns:
+  enable: true
+tun:
+  enable: true
 proxy-groups:
   - name: VPN
     type: select
@@ -372,6 +501,11 @@ rules:
 	if _, exists := base["external-controller"]; exists {
 		t.Fatal("unsafe top-level key was imported")
 	}
+	for _, key := range []string{"allow-lan", "mixed-port", "dns", "tun"} {
+		if _, exists := base[key]; exists {
+			t.Fatalf("client-local key %q was imported", key)
+		}
+	}
 	if _, exists := base["rule-providers"]; !exists {
 		t.Fatal("rule-providers were not imported")
 	}
@@ -387,6 +521,7 @@ rules:
 
 func TestMergeRemoteClashRulesKeepsBaseProxyGroupWhenRemoteOmitsIt(t *testing.T) {
 	base := map[string]any{
+		"proxies": []map[string]any{{"name": "vpn-node", "type": "vless"}},
 		"proxy-groups": []map[string]any{{
 			"name": "PROXY", "type": "select", "proxies": []string{"vpn-node", "DIRECT"},
 		}},
@@ -404,5 +539,214 @@ rules:
 	groups, ok := asAnySlice(base["proxy-groups"])
 	if !ok || len(groups) != 2 || clashProxyGroupName(groups[0]) != "Extra" || clashProxyGroupName(groups[1]) != "PROXY" {
 		t.Fatalf("proxy groups = %#v", base["proxy-groups"])
+	}
+}
+
+func TestRemoteRoutingRejectsOversizedHappValues(t *testing.T) {
+	largeJSON := `{"Name":"large","Rules":"` + strings.Repeat("a", remoteRoutingHappMaxValue) + `"}`
+	largeDeeplink, err := normalizeHappRouting([]byte(largeJSON))
+	if err != nil {
+		t.Fatalf("prepare large deeplink: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		response func(*http.Request) *http.Response
+		wantErr  string
+	}{
+		{
+			name: "response body",
+			response: func(*http.Request) *http.Response {
+				return remoteRoutingResponse(http.StatusOK, strings.Repeat("x", remoteRoutingHappMaxBody+1))
+			},
+			wantErr: "response exceeds the size limit",
+		},
+		{
+			name: "normalized header",
+			response: func(*http.Request) *http.Response {
+				return remoteRoutingResponse(http.StatusOK, largeJSON)
+			},
+			wantErr: "header exceeds the size limit",
+		},
+		{
+			name: "redirect header",
+			response: func(req *http.Request) *http.Response {
+				response := remoteRoutingResponse(http.StatusFound, "")
+				response.Header.Set("Location", largeDeeplink)
+				response.Request = req
+				return response
+			},
+			wantErr: "header exceeds the size limit",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := remoteRoutingTestClient(func(req *http.Request) (*http.Response, error) {
+				return tt.response(req), nil
+			})
+			client.CheckRedirect = checkRemoteRoutingRedirect
+			resolver := newRemoteRoutingResolver(client, false)
+			err := resolver.refreshSource(remoteRoutingHapp, "https://example.com/rules")
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("err=%v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRemoteRoutingHTTPClientRejectsLoopback(t *testing.T) {
+	resolver := newRemoteRoutingResolver(newRemoteRoutingHTTPClient(), false)
+	startedAt := time.Now()
+	err := resolver.refreshSource(remoteRoutingHapp, "https://127.0.0.1:1/rules")
+	if err == nil {
+		t.Fatal("loopback remote source was accepted")
+	}
+	if elapsed := time.Since(startedAt); elapsed > 2*time.Second {
+		t.Fatalf("loopback rejection took %v", elapsed)
+	}
+}
+
+func TestRemoteRoutingPersistedLoadRetriesAfterDatabaseBecomesReady(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := database.InitDB(dbPath); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	deeplink, err := normalizeHappRouting([]byte(`{"Name":"persisted-after-ready"}`))
+	if err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	const source = "https://example.com/default.json"
+	newRemoteRoutingResolver(nil, false).persistEntry(remoteRoutingHapp, remoteRoutingCacheEntry{
+		Source: source, Content: deeplink, FetchedAt: time.Now().Unix(),
+	})
+	if err := database.CloseDB(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	resolver := newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		return remoteRoutingResponse(http.StatusServiceUnavailable, "offline"), nil
+	}), true)
+	if _, _, err := resolver.resolve(remoteRoutingHapp, source); !errors.Is(err, errRemoteRoutingUnavailable) {
+		t.Fatalf("closed-db resolve err=%v", err)
+	}
+	waitRemoteRoutingIdle(t, resolver)
+	waitRemoteRoutingLoadIdle(t, resolver)
+	if err := database.InitDB(dbPath); err != nil {
+		t.Fatalf("reopen db: %v", err)
+	}
+	resolver.triggerPersistedLoad()
+	waitRemoteRoutingLoadIdle(t, resolver)
+	got, remote, err := resolver.resolve(remoteRoutingHapp, source)
+	if err != nil || !remote || got != deeplink {
+		t.Fatalf("reloaded resolve got=%q remote=%v err=%v", got, remote, err)
+	}
+}
+
+func TestRemoteClashRouteGraphValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		remote  string
+		wantErr string
+	}{
+		{
+			name:    "missing group name",
+			remote:  "proxy-groups:\n  - type: select\n    proxies: [vpn-node]\nrules:\n  - MATCH,PROXY\n",
+			wantErr: "named group maps",
+		},
+		{
+			name:    "duplicate group name",
+			remote:  "proxy-groups:\n  - {name: A, type: select, proxies: [vpn-node]}\n  - {name: A, type: select, proxies: [vpn-node]}\nrules:\n  - MATCH,A\n",
+			wantErr: "duplicated",
+		},
+		{
+			name:    "unknown group reference",
+			remote:  "proxy-groups:\n  - {name: A, type: select, proxies: [missing]}\nrules:\n  - MATCH,A\n",
+			wantErr: "unknown proxy or group",
+		},
+		{
+			name:    "remote proxy provider use",
+			remote:  "proxy-groups:\n  - name: A\n    type: select\n    use: [manual-provider]\nrules:\n  - MATCH,A\n",
+			wantErr: "cannot use proxy-providers",
+		},
+		{
+			name:    "unknown rule provider",
+			remote:  "proxy-groups:\n  - {name: A, type: select, proxies: [vpn-node]}\nrules:\n  - RULE-SET,missing,A\n  - MATCH,A\n",
+			wantErr: "unknown rule-provider",
+		},
+		{
+			name:    "unknown rule target",
+			remote:  "proxy-groups:\n  - {name: A, type: select, proxies: [vpn-node]}\nrules:\n  - MATCH,missing\n",
+			wantErr: "unknown proxy or group",
+		},
+		{
+			name:    "unknown provider download proxy",
+			remote:  "proxy-groups:\n  - {name: A, type: select, proxies: [vpn-node]}\nrule-providers:\n  p: {type: http, url: https://example.com/p.mrs, proxy: missing}\nrules:\n  - RULE-SET,p,A\n  - MATCH,A\n",
+			wantErr: "rule-provider \"p\" references unknown",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			base := map[string]any{
+				"proxies": []map[string]any{{"name": "vpn-node", "type": "vless"}},
+				"proxy-groups": []map[string]any{{
+					"name": "PROXY", "type": "select", "proxies": []string{"vpn-node", "DIRECT"},
+				}},
+				"rules": []string{"MATCH,PROXY"},
+			}
+			err := mergeRemoteClashRulesYAML(base, tt.remote)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("err=%v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRemoteClashRouteGraphAcceptsLogicalRulesAndCachedDocument(t *testing.T) {
+	const remote = `
+proxy-groups:
+  - name: Auto
+    type: url-test
+    include-all: true
+  - name: Video
+    type: select
+    proxies: [Auto, DIRECT]
+rule-providers:
+  video:
+    type: http
+    url: https://example.com/video.mrs
+    proxy: Auto
+rules:
+  - RULE-SET,video,Video
+  - AND,((NETWORK,TCP),(DST-PORT,443)),Video
+  - GEOIP,private,DIRECT,no-resolve
+  - MATCH,Auto
+`
+	var requests atomic.Int32
+	resolver := newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		requests.Add(1)
+		return remoteRoutingResponse(http.StatusOK, remote), nil
+	}), false)
+	const source = "https://example.com/routing.yaml"
+	if err := resolver.refreshSource(remoteRoutingClash, source); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	entry, remoteSource, err := resolver.resolveEntry(remoteRoutingClash, source)
+	if err != nil || !remoteSource || entry.Clash == nil {
+		t.Fatalf("entry remote=%v parsed=%v err=%v", remoteSource, entry.Clash != nil, err)
+	}
+	base := map[string]any{
+		"proxies": []map[string]any{{"name": "vpn-node", "type": "vless"}},
+		"proxy-groups": []map[string]any{{
+			"name": "PROXY", "type": "select", "proxies": []string{"vpn-node", "DIRECT"},
+		}},
+		"rules": []string{"MATCH,PROXY"},
+	}
+	if err := mergeRemoteClashRules(base, entry.Clash); err != nil {
+		t.Fatalf("merge cached document: %v", err)
+	}
+	if requests.Load() != 1 {
+		t.Fatalf("requests=%d, want 1", requests.Load())
 	}
 }

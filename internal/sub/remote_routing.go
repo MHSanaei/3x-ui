@@ -36,8 +36,9 @@ const (
 	remoteRoutingCacheTTL     = 10 * time.Minute
 	remoteRoutingRetryDelay   = 30 * time.Second
 	remoteRoutingHTTPTimeout  = 6 * time.Second
-	remoteRoutingHappMaxBody  = 1 << 20 // 1 MiB
-	remoteRoutingClashMaxBody = 2 << 20 // 2 MiB
+	remoteRoutingHappMaxBody  = 16 << 10 // 16 KiB; Happ emits the result in a response header
+	remoteRoutingHappMaxValue = 8 << 10  // normalized Routing header value
+	remoteRoutingClashMaxBody = 2 << 20  // 2 MiB
 )
 
 var errRemoteRoutingUnavailable = errors.New("remote routing source is temporarily unavailable")
@@ -48,11 +49,12 @@ type remoteRoutingKey struct {
 }
 
 type remoteRoutingCacheEntry struct {
-	Source       string `json:"source"`
-	Content      string `json:"content"`
-	FetchedAt    int64  `json:"fetchedAt"`
-	ETag         string `json:"etag,omitempty"`
-	LastModified string `json:"lastModified,omitempty"`
+	Source       string         `json:"source"`
+	Content      string         `json:"content"`
+	FetchedAt    int64          `json:"fetchedAt"`
+	ETag         string         `json:"etag,omitempty"`
+	LastModified string         `json:"lastModified,omitempty"`
+	Clash        map[string]any `json:"-"`
 }
 
 func (e remoteRoutingCacheEntry) fetchedTime() time.Time {
@@ -60,20 +62,21 @@ func (e remoteRoutingCacheEntry) fetchedTime() time.Time {
 }
 
 type remoteRoutingFetch struct {
-	done    chan struct{}
-	content string
-	err     error
+	done chan struct{}
+	err  error
 }
 
 type remoteRoutingResolver struct {
-	mu          sync.Mutex
-	entries     map[remoteRoutingKey]remoteRoutingCacheEntry
-	inflight    map[remoteRoutingKey]*remoteRoutingFetch
-	lastAttempt map[remoteRoutingKey]time.Time
-	loadOnce    sync.Once
-	client      *http.Client
-	now         func() time.Time
-	persist     bool
+	mu           sync.Mutex
+	loadMu       sync.Mutex
+	loaded       bool
+	loadInFlight bool
+	entries      map[remoteRoutingKey]remoteRoutingCacheEntry
+	inflight     map[remoteRoutingKey]*remoteRoutingFetch
+	lastAttempt  map[remoteRoutingKey]time.Time
+	client       *http.Client
+	now          func() time.Time
+	persist      bool
 }
 
 func newRemoteRoutingResolver(client *http.Client, persist bool) *remoteRoutingResolver {
@@ -90,24 +93,39 @@ func newRemoteRoutingResolver(client *http.Client, persist bool) *remoteRoutingR
 var routingSourceResolver = newRemoteRoutingResolver(newRemoteRoutingHTTPClient(), true)
 
 // resolveRoutingSource returns inline values unchanged. A single HTTPS URL is
-// fetched and validated for the requested client. The bool reports whether the
-// input was recognized as a remote source even when the first fetch failed.
+// served only from the validated cache; a cold or stale value starts one
+// background refresh without delaying the subscription response. The bool
+// reports whether the input was recognized as a remote source.
 func resolveRoutingSource(kind remoteRoutingKind, raw string) (string, bool, error) {
 	return routingSourceResolver.resolve(kind, raw)
 }
 
 func (r *remoteRoutingResolver) resolve(kind remoteRoutingKind, raw string) (string, bool, error) {
+	entry, remote, err := r.resolveEntry(kind, raw)
+	if !remote {
+		return raw, false, err
+	}
+	return entry.Content, true, err
+}
+
+func resolveClashRoutingSource(raw string) (string, map[string]any, bool, error) {
+	entry, remote, err := routingSourceResolver.resolveEntry(remoteRoutingClash, raw)
+	if !remote {
+		return raw, nil, false, err
+	}
+	return entry.Content, entry.Clash, true, err
+}
+
+func (r *remoteRoutingResolver) resolveEntry(kind remoteRoutingKind, raw string) (remoteRoutingCacheEntry, bool, error) {
 	source, remote, err := parseRemoteRoutingURL(raw)
 	if err != nil {
-		return "", true, err
+		return remoteRoutingCacheEntry{}, true, err
 	}
 	if !remote {
-		return raw, false, nil
+		return remoteRoutingCacheEntry{}, false, nil
 	}
 
-	if r.persist {
-		r.loadOnce.Do(r.loadPersisted)
-	}
+	r.triggerPersistedLoad()
 
 	key := remoteRoutingKey{kind: kind, source: source}
 	now := r.now()
@@ -116,37 +134,87 @@ func (r *remoteRoutingResolver) resolve(kind remoteRoutingKind, raw string) (str
 	cached, hasCached := r.entries[key]
 	if hasCached && now.Sub(cached.fetchedTime()) < remoteRoutingCacheTTL {
 		r.mu.Unlock()
-		return cached.Content, true, nil
+		return cached, true, nil
 	}
 
-	if fetch, ok := r.inflight[key]; ok {
+	if _, ok := r.inflight[key]; ok {
 		r.mu.Unlock()
-		<-fetch.done
-		if fetch.content != "" {
-			return fetch.content, true, nil
+		if hasCached {
+			return cached, true, nil
 		}
-		return fetch.content, true, fetch.err
+		return remoteRoutingCacheEntry{}, true, errRemoteRoutingUnavailable
 	}
 
 	if attemptedAt, attempted := r.lastAttempt[key]; attempted && now.Sub(attemptedAt) < remoteRoutingRetryDelay {
 		r.mu.Unlock()
 		if hasCached {
-			return cached.Content, true, nil
+			return cached, true, nil
 		}
-		return "", true, errRemoteRoutingUnavailable
+		return remoteRoutingCacheEntry{}, true, errRemoteRoutingUnavailable
 	}
 
 	fetch := &remoteRoutingFetch{done: make(chan struct{})}
 	r.inflight[key] = fetch
 	r.mu.Unlock()
 
-	r.refresh(key, cached, hasCached, fetch)
-	if fetch.content != "" {
-		// A stale last-good value remains successful from the client's point of
-		// view when the bounded refresh fails.
-		return fetch.content, true, nil
+	go r.refresh(key, cached, hasCached, fetch)
+	if hasCached {
+		return cached, true, nil
 	}
-	return fetch.content, true, fetch.err
+	return remoteRoutingCacheEntry{}, true, errRemoteRoutingUnavailable
+}
+
+// RefreshRemoteRoutingSources is used by the panel's background job to warm
+// and periodically refresh configured remote sources. It is safe to call while
+// subscription requests are reading the same resolver; in-flight work is
+// coalesced per source.
+func RefreshRemoteRoutingSources(happ, clash string) {
+	for kind, raw := range map[remoteRoutingKind]string{
+		remoteRoutingHapp:  happ,
+		remoteRoutingClash: clash,
+	} {
+		_, remote, parseErr := parseRemoteRoutingURL(raw)
+		if parseErr != nil {
+			logger.Warningf("Remote %s routing source is invalid", kind)
+			continue
+		}
+		if remote {
+			_ = routingSourceResolver.refreshSource(kind, raw)
+		}
+	}
+}
+
+func (r *remoteRoutingResolver) refreshSource(kind remoteRoutingKind, raw string) error {
+	source, remote, err := parseRemoteRoutingURL(raw)
+	if err != nil || !remote {
+		return err
+	}
+	r.ensurePersistedLoaded()
+
+	key := remoteRoutingKey{kind: kind, source: source}
+	now := r.now()
+	r.mu.Lock()
+	previous, hasPrevious := r.entries[key]
+	if hasPrevious && now.Sub(previous.fetchedTime()) < remoteRoutingCacheTTL {
+		r.mu.Unlock()
+		return nil
+	}
+	if fetch, ok := r.inflight[key]; ok {
+		done := fetch.done
+		r.mu.Unlock()
+		<-done
+		return fetch.err
+	}
+	if attemptedAt, attempted := r.lastAttempt[key]; attempted && now.Sub(attemptedAt) < remoteRoutingRetryDelay {
+		r.mu.Unlock()
+		return errRemoteRoutingUnavailable
+	}
+	fetch := &remoteRoutingFetch{done: make(chan struct{})}
+	r.inflight[key] = fetch
+	r.mu.Unlock()
+
+	r.refresh(key, previous, hasPrevious, fetch)
+	return fetch.err
 }
 
 func (r *remoteRoutingResolver) refresh(key remoteRoutingKey, previous remoteRoutingCacheEntry, hasPrevious bool, fetch *remoteRoutingFetch) {
@@ -157,9 +225,6 @@ func (r *remoteRoutingResolver) refresh(key remoteRoutingKey, previous remoteRou
 	r.lastAttempt[key] = now
 	if err == nil {
 		r.entries[key] = entry
-		fetch.content = entry.Content
-	} else if hasPrevious {
-		fetch.content = previous.Content
 	}
 	fetch.err = err
 	delete(r.inflight, key)
@@ -167,7 +232,11 @@ func (r *remoteRoutingResolver) refresh(key remoteRoutingKey, previous remoteRou
 	r.mu.Unlock()
 
 	if err != nil {
-		logger.Warningf("Remote %s routing refresh from %s failed; keeping the last valid value", key.kind, remoteRoutingHost(key.source))
+		if hasPrevious {
+			logger.Warningf("Remote %s routing refresh from %s failed; keeping the last valid value", key.kind, remoteRoutingHost(key.source))
+		} else {
+			logger.Warningf("Remote %s routing refresh from %s failed; no validated value is cached", key.kind, remoteRoutingHost(key.source))
+		}
 		return
 	}
 	if r.persist {
@@ -215,6 +284,9 @@ func (r *remoteRoutingResolver) fetch(key remoteRoutingKey, previous remoteRouti
 		if locationErr != nil {
 			return remoteRoutingCacheEntry{}, fmt.Errorf("invalid Happ redirect target: %w", locationErr)
 		}
+		if len(content) > remoteRoutingHappMaxValue {
+			return remoteRoutingCacheEntry{}, errors.New("Happ routing header exceeds the size limit")
+		}
 		return remoteRoutingCacheEntry{
 			Source:    key.source,
 			Content:   content,
@@ -237,9 +309,12 @@ func (r *remoteRoutingResolver) fetch(key remoteRoutingKey, previous remoteRouti
 		return remoteRoutingCacheEntry{}, errors.New("remote routing response exceeds the size limit")
 	}
 
-	content, err := normalizeRemoteRoutingContent(key.kind, body)
+	content, clash, err := normalizeRemoteRoutingContent(key.kind, body)
 	if err != nil {
 		return remoteRoutingCacheEntry{}, err
+	}
+	if key.kind == remoteRoutingHapp && len(content) > remoteRoutingHappMaxValue {
+		return remoteRoutingCacheEntry{}, errors.New("Happ routing header exceeds the size limit")
 	}
 	return remoteRoutingCacheEntry{
 		Source:       key.source,
@@ -247,6 +322,7 @@ func (r *remoteRoutingResolver) fetch(key remoteRoutingKey, previous remoteRouti
 		FetchedAt:    r.now().Unix(),
 		ETag:         strings.TrimSpace(resp.Header.Get("ETag")),
 		LastModified: strings.TrimSpace(resp.Header.Get("Last-Modified")),
+		Clash:        clash,
 	}, nil
 }
 
@@ -266,15 +342,12 @@ func parseRemoteRoutingURL(raw string) (string, bool, error) {
 		return "", false, nil
 	}
 	lower := strings.ToLower(trimmed)
-	if !strings.HasPrefix(lower, "https://") && !strings.HasPrefix(lower, "http://") {
+	if !strings.HasPrefix(lower, "https://") {
 		return "", false, nil
 	}
 	u, err := url.Parse(trimmed)
 	if err != nil || u.Host == "" || u.Hostname() == "" {
 		return "", true, errors.New("remote routing source must be an absolute HTTPS URL")
-	}
-	if !strings.EqualFold(u.Scheme, "https") {
-		return "", true, errors.New("remote routing source must use HTTPS")
 	}
 	if u.User != nil {
 		return "", true, errors.New("remote routing source must not contain URL credentials")
@@ -284,14 +357,15 @@ func parseRemoteRoutingURL(raw string) (string, bool, error) {
 	return u.String(), true, nil
 }
 
-func normalizeRemoteRoutingContent(kind remoteRoutingKind, body []byte) (string, error) {
+func normalizeRemoteRoutingContent(kind remoteRoutingKind, body []byte) (string, map[string]any, error) {
 	switch kind {
 	case remoteRoutingHapp:
-		return normalizeHappRouting(body)
+		content, err := normalizeHappRouting(body)
+		return content, nil, err
 	case remoteRoutingClash:
 		return normalizeClashRouting(body)
 	default:
-		return "", fmt.Errorf("unsupported remote routing kind %q", kind)
+		return "", nil, fmt.Errorf("unsupported remote routing kind %q", kind)
 	}
 }
 
@@ -362,17 +436,17 @@ func decodeRoutingBase64(value string) ([]byte, error) {
 	return nil, lastErr
 }
 
-func normalizeClashRouting(body []byte) (string, error) {
+func normalizeClashRouting(body []byte) (string, map[string]any, error) {
 	text := strings.TrimSpace(string(body))
 	if text == "" {
-		return "", errors.New("empty Clash routing response")
+		return "", nil, errors.New("empty Clash routing response")
 	}
 	var document map[string]any
 	if err := yaml.Unmarshal([]byte(text), &document); err != nil {
-		return "", fmt.Errorf("invalid Clash routing YAML: %w", err)
+		return "", nil, fmt.Errorf("invalid Clash routing YAML: %w", err)
 	}
 	if len(document) == 0 {
-		return "", errors.New("Clash routing response must be a YAML map")
+		return "", nil, errors.New("Clash routing response must be a YAML map")
 	}
 	hasSupportedKey := false
 	for key := range document {
@@ -382,7 +456,7 @@ func normalizeClashRouting(body []byte) (string, error) {
 		}
 	}
 	if !hasSupportedKey {
-		return "", errors.New("Clash routing response has no supported routing keys")
+		return "", nil, errors.New("Clash routing response has no supported routing keys")
 	}
 	base := map[string]any{
 		"proxies": []map[string]any{{"name": "validation-node", "type": "vless"}},
@@ -391,10 +465,10 @@ func normalizeClashRouting(body []byte) (string, error) {
 		}},
 		"rules": []string{"MATCH,PROXY"},
 	}
-	if err := mergeRemoteClashRulesYAML(base, text); err != nil {
-		return "", fmt.Errorf("invalid remote Clash routing schema: %w", err)
+	if err := mergeRemoteClashRules(base, document); err != nil {
+		return "", nil, fmt.Errorf("invalid remote Clash routing schema: %w", err)
 	}
-	return text, nil
+	return text, document, nil
 }
 
 func resolveIncyRoutingSource(raw string) (string, bool, error) {
@@ -451,10 +525,66 @@ func remoteRoutingSettingKey(kind remoteRoutingKind) string {
 	return "_subRemoteRoutingCache_" + string(kind)
 }
 
-func (r *remoteRoutingResolver) loadPersisted() {
-	if database.GetDB() == nil {
+func (r *remoteRoutingResolver) ensurePersistedLoaded() {
+	if !r.persist {
 		return
 	}
+	r.mu.Lock()
+	loaded := r.loaded
+	r.mu.Unlock()
+	if loaded {
+		return
+	}
+
+	r.loadMu.Lock()
+	defer r.loadMu.Unlock()
+	r.mu.Lock()
+	loaded = r.loaded
+	r.mu.Unlock()
+	if loaded {
+		return
+	}
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	sqlDB, err := db.DB()
+	if err != nil || sqlDB.Ping() != nil {
+		return
+	}
+	r.loadPersisted()
+	r.mu.Lock()
+	r.loaded = true
+	r.mu.Unlock()
+}
+
+// triggerPersistedLoad keeps SQLite work out of the subscription request path.
+// The startup job uses ensurePersistedLoaded synchronously before refreshing;
+// requests only schedule at most one best-effort background load.
+func (r *remoteRoutingResolver) triggerPersistedLoad() {
+	if !r.persist {
+		return
+	}
+	r.mu.Lock()
+	if r.loaded || r.loadInFlight {
+		r.mu.Unlock()
+		return
+	}
+	r.loadInFlight = true
+	r.mu.Unlock()
+
+	go func() {
+		defer func() {
+			r.mu.Lock()
+			r.loadInFlight = false
+			r.mu.Unlock()
+		}()
+		r.ensurePersistedLoaded()
+	}()
+}
+
+func (r *remoteRoutingResolver) loadPersisted() {
+	loaded := make(map[remoteRoutingKey]remoteRoutingCacheEntry, 2)
 	for _, kind := range []remoteRoutingKind{remoteRoutingHapp, remoteRoutingClash} {
 		var setting model.Setting
 		err := database.GetDB().Where("key = ?", remoteRoutingSettingKey(kind)).First(&setting).Error
@@ -468,13 +598,25 @@ func (r *remoteRoutingResolver) loadPersisted() {
 		if _, remote, err := parseRemoteRoutingURL(entry.Source); err != nil || !remote {
 			continue
 		}
-		if _, err := normalizeRemoteRoutingContent(kind, []byte(entry.Content)); err != nil {
+		normalized, clash, err := normalizeRemoteRoutingContent(kind, []byte(entry.Content))
+		if err != nil {
 			continue
 		}
-		r.mu.Lock()
-		r.entries[remoteRoutingKey{kind: kind, source: entry.Source}] = entry
-		r.mu.Unlock()
+		if kind == remoteRoutingHapp && len(normalized) > remoteRoutingHappMaxValue {
+			continue
+		}
+		entry.Content = normalized
+		entry.Clash = clash
+		loaded[remoteRoutingKey{kind: kind, source: entry.Source}] = entry
 	}
+	r.mu.Lock()
+	for key, entry := range loaded {
+		current, exists := r.entries[key]
+		if !exists || entry.FetchedAt > current.FetchedAt {
+			r.entries[key] = entry
+		}
+	}
+	r.mu.Unlock()
 }
 
 func (r *remoteRoutingResolver) persistEntry(kind remoteRoutingKind, entry remoteRoutingCacheEntry) {

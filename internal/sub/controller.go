@@ -762,17 +762,15 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ). Inline values keep the stock behaviour. A single HTTPS
-	// URL is resolved to a validated deeplink; on a first-ever fetch failure we
-	// omit both routing headers instead of sending an unusable directive.
+	// Advanced (Happ). Keep the stock headers independent: a saved routing value
+	// is still emitted when the global enable flag is off. Remote values are read
+	// only from the validated cache and never delay this response.
+	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if profileEnableRouting {
-		rules, remote, err := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
-		if err == nil || !remote {
-			c.Writer.Header().Set("Routing-Enable", "true")
-			if strings.TrimSpace(rules) != "" {
-				c.Writer.Header().Set("Routing", rules)
-			}
-		}
+		c.Writer.Header().Set("Routing-Enable", "true")
+	}
+	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
+		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")

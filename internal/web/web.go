@@ -292,6 +292,7 @@ const (
 	cadenceNodeTraffic   = "@every 5s"
 	cadenceOutboundSub   = "@every 5m"
 	cadenceReapOrphans   = "@every 5m"
+	cadenceRemoteRouting = "@every 5m"
 	cadenceXrayLogPrune  = "@every 10m"
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
@@ -338,6 +339,12 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	_, _ = s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
 	_, _ = s.cron.AddJob(cadenceReapOrphans, job.NewReapSyncOrphansJob())
+
+	// Warm permanent routing URLs immediately and refresh them outside the
+	// latency-sensitive subscription request path.
+	remoteRoutingJob := job.NewRemoteRoutingJob()
+	_, _ = s.cron.AddJob(cadenceRemoteRouting, remoteRoutingJob)
+	go remoteRoutingJob.Run()
 
 	// check client ips from log file every day
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
