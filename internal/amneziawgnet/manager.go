@@ -2,8 +2,11 @@ package amneziawgnet
 
 import (
 	"fmt"
+	"net/netip"
 	"strings"
 	"sync"
+
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -18,12 +21,13 @@ type Desired struct {
 	Options  DeviceOptions
 }
 
-// managed is one running embedded interface: the live Device, the peer
-// lookup index built from its current peer list, and enough of its own
-// configuration to decide whether a later Ensure call can reconfigure it in
-// place or needs to rebuild it from scratch.
+// managed is one running embedded interface: the live Device, its UDP relay
+// sessions, the peer lookup index built from its current peer list, and
+// enough of its own configuration to decide whether a later Ensure call can
+// reconfigure it in place or needs to rebuild it from scratch.
 type managed struct {
 	dev      *Device
+	udpRelay *UDPRelay
 	peers    *PeerIndex
 	inst     amneziawg.Instance
 	structFP string
@@ -33,12 +37,11 @@ type managed struct {
 // inbound id -- the same shape as internal/amneziawg.Manager (GetManager()
 // + sync.Once, mu-guarded map, Ensure/Reconcile/StopAll/HasRunning), so a
 // caller already familiar with that Manager needs to learn nothing new here.
-// Unlike that Manager, this one doesn't attach any traffic handling by
-// itself: Ensure/Reconcile only bring each Instance's Device up to date.
-// Attaching a forwarder/UDP handler (see forwarder.go / udp.go) using the
-// Device and PeerIndex returned by Lookup is left to the caller -- today a
-// test harness, later the Phase 2 SOCKS5 relay wiring -- since this package
-// doesn't yet know what that handler should do with a recovered connection.
+// Every Device this Manager builds gets its TCP forwarder and UDP handler
+// attached automatically (see ensureLocked), relaying into that instance's
+// own loopback SOCKS5 inbound (SOCKSPortForInbound/SocksPassword) -- a
+// caller only needs to keep calling Ensure/Reconcile with fresh Instance
+// data; it doesn't need to know relay.go exists at all.
 type Manager struct {
 	mu     sync.Mutex
 	ifaces map[int]*managed
@@ -97,6 +100,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	}
 
 	if exists {
+		cur.udpRelay.Close()
 		cur.dev.Close()
 		delete(m.ifaces, inst.Id)
 	}
@@ -104,14 +108,64 @@ func (m *Manager) ensureLocked(d Desired) error {
 	if err != nil {
 		return err
 	}
+
+	relay := socksRelayForInstance(inst)
+	udpRelay := NewUDPRelay(relay, dev.Stack)
+	inboundID := inst.Id // captured for the closures below, which outlive this call
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
+		if err != nil {
+			conn.Close()
+			return
+		}
+		// Re-fetched on every connection, not captured once at attach time:
+		// a reconfigure-in-place (peers added/removed, no rebuild) replaces
+		// cur.peers without ever re-attaching the forwarder, so a stale
+		// captured index would silently miss newly-added peers.
+		_, peers, ok := m.Lookup(inboundID)
+		if !ok {
+			conn.Close()
+			return
+		}
+		peer, ok := peers.Lookup(srcAddrPort.Addr().Unmap())
+		if !ok {
+			conn.Close()
+			return
+		}
+		relay.RelayTCP(conn, peer.Email, dest)
+	})
+	AttachUDPHandler(dev.Stack, func(src, dst netip.AddrPort, payload []byte) {
+		_, peers, ok := m.Lookup(inboundID)
+		if !ok {
+			return
+		}
+		peer, ok := peers.Lookup(src.Addr())
+		if !ok {
+			return
+		}
+		udpRelay.Handle(src, dst, peer.Email, payload)
+	})
+
 	m.ifaces[inst.Id] = &managed{
 		dev:      dev,
+		udpRelay: udpRelay,
 		peers:    NewPeerIndex(inst.Peers),
 		inst:     inst,
 		structFP: structFP,
 	}
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
 	return nil
+}
+
+// socksRelayForInstance derives the loopback SOCKS5 relay address/password
+// for inst -- both fully determined by its id and the process-wide
+// password (SOCKSPortForInbound/SocksPassword), so no per-instance state
+// needs threading through Desired/DeviceOptions for this.
+func socksRelayForInstance(inst amneziawg.Instance) SocksRelay {
+	return SocksRelay{
+		Addr:     fmt.Sprintf("127.0.0.1:%d", SOCKSPortForInbound(inst.Id)),
+		Password: SocksPassword(),
+	}
 }
 
 // addressFingerprint captures the two Instance fields that can't be changed
@@ -137,6 +191,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 		if _, ok := want[id]; ok {
 			continue
 		}
+		cur.udpRelay.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
 		logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -153,6 +208,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, cur := range m.ifaces {
+		cur.udpRelay.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
 	}
@@ -166,9 +222,10 @@ func (m *Manager) HasRunning() bool {
 }
 
 // Lookup returns the running Device and PeerIndex for inbound id, if any --
-// for a caller that wants to attach its own forwarder/handler (a test
-// harness today, the Phase 2 SOCKS5 relay wiring later) once the interface
-// is up.
+// the forwarder/UDP-handler closures ensureLocked attaches use this to
+// re-fetch the current peer index on every connection (see ensureLocked's
+// comment on why), and it's equally available to a test harness or any
+// other caller that wants read access to a managed interface's state.
 func (m *Manager) Lookup(id int) (dev *Device, peers *PeerIndex, ok bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

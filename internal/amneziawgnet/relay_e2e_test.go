@@ -284,6 +284,193 @@ func TestSocksRelayAgainstRealXray(t *testing.T) {
 	}
 }
 
+// TestManagerEnsureAutomaticallyWiresRelay is Phase 3's own real proof: unlike
+// TestSocksRelayAgainstRealXray above (which builds a Device and attaches
+// RelayTCP/UDPRelay by hand), this drives everything through the public
+// Manager.Ensure entry point the real app actually calls -- confirming
+// ensureLocked's own forwarder/UDP-handler attachment (added this phase)
+// really does relay a fresh Device's traffic into Xray with zero manual
+// wiring from the caller. Uses the exact port/password
+// (SOCKSPortForInbound/SocksPassword) the Manager computes internally, so
+// this only passes if that internal derivation and the externally-visible
+// contract genuinely agree.
+func TestManagerEnsureAutomaticallyWiresRelay(t *testing.T) {
+	bin := os.Getenv("XRAY_E2E_BINARY")
+	if bin == "" {
+		t.Skip("set XRAY_E2E_BINARY to an xray binary to run this test")
+	}
+	localIP, ok := firstNonLoopbackIPv4()
+	if !ok {
+		t.Skip("no non-loopback IPv4 address available on this host")
+	}
+
+	const wantEmail = "manager-e2e-peer@example.com"
+	const listenPort = 58716
+	const inboundID = 5
+
+	tcpEcho, tcpEchoAddr := startTCPEcho(t, localIP)
+	defer tcpEcho.Close()
+
+	serverPriv, serverPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate client keypair: %v", err)
+	}
+
+	inst := amneziawg.Instance{
+		Id:            inboundID,
+		InterfaceName: "awgtest5",
+		ListenPort:    listenPort,
+		PrivateKey:    serverPriv,
+		PublicKey:     serverPub,
+		Address:       []string{"10.205.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+		Peers: []amneziawg.Peer{{
+			Email:      wantEmail,
+			PublicKey:  clientPub,
+			AllowedIPs: []string{"10.205.0.2/32"},
+		}},
+	}
+
+	// A real xray-core process with a SOCKS5 inbound at exactly the port and
+	// password ensureLocked will derive on its own for this instance --
+	// SocksPassword() is cached (sync.Once), so calling it here first and
+	// again inside Manager.Ensure below returns the identical value.
+	socksPort := SOCKSPortForInbound(inboundID)
+	password := SocksPassword()
+	settingsJSON, err := SocksInboundSettings([]string{wantEmail}, password)
+	if err != nil {
+		t.Fatalf("SocksInboundSettings: %v", err)
+	}
+	var rawSettings any
+	if err := json.Unmarshal(settingsJSON, &rawSettings); err != nil {
+		t.Fatalf("unmarshal generated SOCKS5 settings: %v", err)
+	}
+	xrayCfg := map[string]any{
+		"log": map[string]any{"loglevel": "debug"},
+		"inbounds": []any{
+			map[string]any{
+				"listen":   "127.0.0.1",
+				"port":     socksPort,
+				"protocol": "socks",
+				"settings": rawSettings,
+				"tag":      "awg-e2e-manager",
+			},
+		},
+		"outbounds": []any{
+			map[string]any{"protocol": "freedom", "settings": map[string]any{}, "tag": "direct"},
+		},
+		"policy": map[string]any{
+			"levels": map[string]any{
+				"0": map[string]any{"statsUserUplink": true, "statsUserDownlink": true},
+			},
+		},
+		"stats": map[string]any{},
+	}
+	cfgBytes, err := json.MarshalIndent(xrayCfg, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal xray config: %v", err)
+	}
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(cfgPath, cfgBytes, 0o644); err != nil {
+		t.Fatalf("write xray config: %v", err)
+	}
+
+	var xrayLog syncBuffer
+	cmd := exec.Command(bin, "-c", cfgPath)
+	cmd.Stdout = &xrayLog
+	cmd.Stderr = &xrayLog
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("start xray: %v", err)
+	}
+	defer func() {
+		_ = cmd.Process.Kill()
+		_, _ = cmd.Process.Wait()
+	}()
+	waitForPort(t, socksPort)
+
+	// A throwaway Manager, not the process-wide singleton, so this test
+	// doesn't interact with any other test's state.
+	m := &Manager{ifaces: map[int]*managed{}}
+	defer m.StopAll()
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Manager.Ensure: %v", err)
+	}
+	dev, _, ok := m.Lookup(inboundID)
+	if !ok {
+		t.Fatal("Lookup after Ensure: not found")
+	}
+	defer dev.Close() // StopAll would also do this; explicit for clarity
+
+	clientTun, clientNet, err := netstack.CreateNetTUN(
+		[]netip.Addr{netip.MustParseAddr("10.205.0.2")},
+		[]netip.Addr{netip.MustParseAddr("1.1.1.1")}, 1420)
+	if err != nil {
+		t.Fatalf("client CreateNetTUN: %v", err)
+	}
+	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	defer clientDev.Close()
+
+	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
+	if err != nil {
+		t.Fatalf("client key to hex: %v", err)
+	}
+	serverPubHex, err := wireguard.KeyToHex(serverPub)
+	if err != nil {
+		t.Fatalf("server key to hex: %v", err)
+	}
+	clientConf := fmt.Sprintf(
+		"private_key=%s\njc=4\njmin=40\njmax=70\ns1=20\ns2=30\ns3=20\ns4=20\npublic_key=%s\nendpoint=127.0.0.1:%d\nallowed_ip=0.0.0.0/0\n",
+		clientPrivHex, serverPubHex, listenPort)
+	if err := clientDev.IpcSet(clientConf); err != nil {
+		t.Fatalf("client IpcSet: %v", err)
+	}
+	if err := clientDev.Up(); err != nil {
+		t.Fatalf("client Up: %v", err)
+	}
+
+	const tcpMsg = "hello via Manager.Ensure's automatic relay wiring"
+	dialDeadline := time.Now().Add(10 * time.Second)
+	var conn net.Conn
+	for {
+		c, dialErr := clientNet.DialContext(t.Context(), "tcp", tcpEchoAddr.String())
+		if dialErr == nil {
+			conn = c
+			break
+		}
+		if time.Now().After(dialDeadline) {
+			t.Fatalf("client TCP dial via tunnel never succeeded: %v", dialErr)
+		}
+		time.Sleep(150 * time.Millisecond)
+	}
+	defer conn.Close()
+	if _, err := conn.Write([]byte(tcpMsg)); err != nil {
+		t.Fatalf("client TCP write: %v", err)
+	}
+	buf := make([]byte, len(tcpMsg))
+	if _, err := readFull(conn, buf, 10*time.Second); err != nil {
+		t.Fatalf("client TCP read: %v", err)
+	}
+	if string(buf) != tcpMsg {
+		t.Errorf("TCP echo = %q, want %q", buf, tcpMsg)
+	}
+
+	_ = cmd.Process.Kill()
+	_, _ = cmd.Process.Wait()
+	log := xrayLog.String()
+	wantUp := fmt.Sprintf("user>>>%s>>>traffic>>>uplink", wantEmail)
+	if !strings.Contains(log, wantUp) {
+		t.Errorf("xray log missing uplink stats counter %q (Manager.Ensure's automatic relay wiring may not be attributing traffic correctly)\nfull log:\n%s", wantUp, log)
+	}
+}
+
 // firstNonLoopbackIPv4 finds a real, locally-bound IPv4 address suitable as
 // a relay-reachable test destination.
 func firstNonLoopbackIPv4() (netip.Addr, bool) {
