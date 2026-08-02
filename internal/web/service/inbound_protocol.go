@@ -57,7 +57,7 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 // (frontend/src/pages/inbounds/form/InboundFormModal.tsx), which hides the
 // "Deploy To" node picker for anything not in this set. MTProto and
 // AmneziaWG are both sidecar-managed rather than plain Xray inbounds, and
-// their reconcile loops (mtproto.Manager, amneziawg.Manager) only ever
+// their reconcile loops (mtproto.Manager, amneziawgnet.Manager) only ever
 // query for NodeID IS NULL rows -- a node-assigned instance of either would
 // never be reconciled by the master, yet nothing previously stopped one
 // from being created that way (the frontend allowlist has no server-side

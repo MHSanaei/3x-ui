@@ -58,27 +58,29 @@ type Instance struct {
 	Obfuscation Obfuscation20
 	Peers       []Peer
 
-	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
-	// Empty means auto-detect at config-generation time.
+	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
+	// attached to under the retired kernel-module architecture. Not read by
+	// the embedded path (internal/amneziawgnet) as of the hard cutover --
+	// kept for Phase 3.5's planned real-IPv6-address-alias mechanism, which
+	// will need to know which host NIC to alias an address onto.
 	ExternalInterface string
 
-	// IPv6Enabled turns on the per-peer NDP proxy PostUp/PostDown entries
-	// (ip -6 neigh add/del proxy) for peers that have an IPv6 AllowedIPs
-	// entry. IPv6ExternalInterface overrides ExternalInterface for those
-	// entries specifically; empty means reuse ExternalInterface.
+	// IPv6Enabled/IPv6ExternalInterface controlled the per-peer NDP proxy
+	// PostUp/PostDown entries (ip -6 neigh add/del proxy) under the retired
+	// kernel-module architecture. Not read by the embedded path as of the
+	// hard cutover -- distinct-per-peer public IPv6 identity is Phase 3.5,
+	// see the migration plan.
 	IPv6Enabled           bool
 	IPv6ExternalInterface string
 
-	// RouteThroughXray gates the entire TPROXY-into-Xray bridge (see
-	// EgressPortForInbound / injectAmneziawgEgress) for this instance: off by
-	// default, so a plain AmneziaWG tunnel never depends on Xray being up at
-	// all. Turning it on makes every peer's traffic TPROXY'd into this
-	// instance's own loopback Xray bridge, tagged with the inbound's own
-	// tag; the actual routing decision from there is left entirely to the
-	// panel's stock Routing page (pick this inbound's tag as source, an
-	// outbound, and optionally a peer's IP), exactly like routing any other
-	// protocol -- only whether the bridge exists at all is a per-inbound
-	// choice.
+	// RouteThroughXray gated the kernel-module architecture's opt-in
+	// TPROXY-into-Xray bridge. The embedded path (internal/amneziawgnet)
+	// has no equivalent opt-in at all -- every peer's traffic already goes
+	// through Xray's own SOCKS5 inbound unconditionally, since there's no
+	// other way for decapsulated gVisor traffic to reach the real internet
+	// -- so this field is now vestigial: read from existing stored settings
+	// for backward compatibility, but not acted on by anything. Slated for
+	// removal alongside the frontend toggle in a follow-up.
 	RouteThroughXray bool
 }
 
@@ -99,22 +101,17 @@ type ServerSettings struct {
 	PrimaryDNS   string `json:"primaryDns,omitempty"`
 	SecondaryDNS string `json:"secondaryDns,omitempty"`
 
-	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
-	// Empty means auto-detect.
+	// ExternalInterface, IPv6Enabled/IPv6Subnet/IPv6ExternalInterface, and
+	// RouteThroughXray are all vestigial as of the hard cutover to the
+	// embedded path (internal/amneziawgnet) -- see the matching fields on
+	// Instance for what each used to do under the retired kernel-module
+	// architecture and what (if anything) is planned to read them again.
 	ExternalInterface string `json:"externalInterface,omitempty"`
 
-	// IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is
-	// allocated from IPv6Subnet alongside each client's IPv4 one, and the
-	// server proxies NDP for each enabled client's address so upstream
-	// routers see it as directly reachable (no NAT66). IPv6ExternalInterface
-	// overrides ExternalInterface for the NDP-proxy PostUp/PostDown entries
-	// specifically; empty reuses ExternalInterface.
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
 	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
 
-	// RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see
-	// Instance.RouteThroughXray for what that means. Off by default.
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
 	// Obfuscation20's fields, repeated flat (not embedded) rather than

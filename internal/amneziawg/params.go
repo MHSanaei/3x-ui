@@ -148,13 +148,14 @@ var interfaceNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.@:-]{1,15}$`)
 
 // ValidateInterfaceName rejects a value that isn't a plausible network
 // interface name before it's saved. ExternalInterface and
-// IPv6ExternalInterface are interpolated unescaped into a shell-executed
-// PostUp/PostDown line by generateServerConfig, so — unlike the client email
-// (already hashed for exactly this reason, see routeEgressComment) — an
-// unvalidated value here could carry a shell metacharacter straight into a
-// root-executed command. A blank value is allowed: it means "auto-detect"
-// for ExternalInterface, or "reuse ExternalInterface" for
-// IPv6ExternalInterface.
+// IPv6ExternalInterface are vestigial as of the hard cutover to the
+// embedded path (see types.go's ServerSettings), but this validation stays:
+// Phase 3.5's planned real-IPv6-address-alias mechanism will shell out to
+// `ip -6 addr add ... dev <ext6>`, and an unvalidated value here could carry
+// a shell metacharacter straight into that root-executed command, the same
+// risk the retired kernel-module PostUp/PostDown generator had. A blank
+// value is allowed: it means "auto-detect" for ExternalInterface, or "reuse
+// ExternalInterface" for IPv6ExternalInterface.
 func ValidateInterfaceName(name string) error {
 	if name == "" {
 		return nil
