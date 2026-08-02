@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
@@ -561,46 +562,46 @@ func TestInjectMtprotoEgress_BadRoutingSkips(t *testing.T) {
 }
 
 func amneziawgInbound(id int, tag string, clients []model.Client) *model.Inbound {
-	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24, RouteThroughXray: true}
+	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24}
 	settings, _ := json.Marshal(amneziawg.InboundSettings{Server: &server, Clients: clients})
 	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
 }
 
-func TestInjectAmneziawgEgress_CreatesBridgeTaggedWithInboundsOwnTag(t *testing.T) {
+func TestInjectAmneziawgnetSocks_CreatesRelayTaggedWithInboundsOwnTag(t *testing.T) {
 	cfg := egressTestConfig()
 	before := string(cfg.RouterConfig)
 	inbound := amneziawgInbound(7, "awg-7", []model.Client{
 		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
 	})
-	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{inbound})
 
 	if len(cfg.InboundConfigs) != 2 {
-		t.Fatalf("expected the bridge to be appended, got %d inbounds", len(cfg.InboundConfigs))
+		t.Fatalf("expected the relay inbound to be appended, got %d inbounds", len(cfg.InboundConfigs))
 	}
 	ib := cfg.InboundConfigs[1]
-	if ib.Tag != "awg-7" || ib.Protocol != "dokodemo-door" || ib.Port != amneziawg.EgressPortForInbound(7) {
-		t.Fatalf("bridge must reuse the inbound's own tag (so it's already selectable in the stock Routing page) and this instance's own derived port, got %+v", ib)
+	if ib.Tag != "awg-7" || ib.Protocol != "socks" || ib.Port != amneziawgnet.SOCKSPortForInbound(7) {
+		t.Fatalf("relay inbound must reuse the inbound's own tag (so per-inbound stats totals keep matching, and it's already selectable in the stock Routing page) and this instance's own derived port, got %+v", ib)
 	}
 	if string(ib.Listen) != `"127.0.0.1"` {
-		t.Fatalf("bridge must listen on loopback, got %s", ib.Listen)
+		t.Fatalf("relay inbound must listen on loopback, got %s", ib.Listen)
 	}
-	if !strings.Contains(string(ib.StreamSettings), `"tproxy":"tproxy"`) {
-		t.Fatalf("bridge must set sockopt.tproxy, got %s", ib.StreamSettings)
+	if !strings.Contains(string(ib.Settings), `"auth":"password"`) || !strings.Contains(string(ib.Settings), `"udp":true`) {
+		t.Fatalf("relay inbound must require password auth and allow UDP ASSOCIATE, got %s", ib.Settings)
 	}
-	if !strings.Contains(string(ib.Settings), `"followRedirect":true`) {
-		t.Fatalf("bridge must set followRedirect, got %s", ib.Settings)
+	if !strings.Contains(string(ib.Settings), `"a@x"`) {
+		t.Fatalf("relay inbound must have an account for the peer's email, got %s", ib.Settings)
 	}
 	if !strings.Contains(string(ib.Sniffing), `"enabled":true`) {
-		t.Fatalf("bridge must enable sniffing -- a peer's own DNS resolution means the decapsulated traffic never carries a domain at the network layer, so domain-based Routing rules can only ever match via sniffing the payload, got %s", ib.Sniffing)
+		t.Fatalf("relay inbound must enable sniffing -- a peer's own DNS resolution means the decapsulated traffic never carries a domain at the network layer, so domain-based Routing rules can only ever match via sniffing the payload, got %s", ib.Sniffing)
 	}
 	// No auto-generated routing rule: it's entirely up to the admin's own
 	// Routing-page rules, same as any other protocol's inbound tag.
 	if string(cfg.RouterConfig) != before {
-		t.Fatalf("injectAmneziawgEgress must never touch the routing section, got %s", cfg.RouterConfig)
+		t.Fatalf("injectAmneziawgnetSocks must never touch the routing section, got %s", cfg.RouterConfig)
 	}
 }
 
-func TestInjectAmneziawgEgress_MultipleInboundsEachGetOwnBridge(t *testing.T) {
+func TestInjectAmneziawgnetSocks_MultipleInboundsEachGetOwnRelay(t *testing.T) {
 	cfg := egressTestConfig()
 	inbound1 := amneziawgInbound(1, "awg-1", []model.Client{
 		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
@@ -608,21 +609,21 @@ func TestInjectAmneziawgEgress_MultipleInboundsEachGetOwnBridge(t *testing.T) {
 	inbound2 := amneziawgInbound(2, "awg-2", []model.Client{
 		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"10.9.1.2/32"}},
 	})
-	injectAmneziawgEgress(cfg, []*model.Inbound{inbound1, inbound2})
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{inbound1, inbound2})
 
 	if len(cfg.InboundConfigs) != 3 {
-		t.Fatalf("expected one bridge per inbound (plus the pre-existing one), got %d inbounds: %+v", len(cfg.InboundConfigs), cfg.InboundConfigs)
+		t.Fatalf("expected one relay inbound per inbound (plus the pre-existing one), got %d inbounds: %+v", len(cfg.InboundConfigs), cfg.InboundConfigs)
 	}
 	byTag := map[string]int{}
 	for _, ib := range cfg.InboundConfigs[1:] {
 		byTag[ib.Tag] = ib.Port
 	}
-	if byTag["awg-1"] != amneziawg.EgressPortForInbound(1) || byTag["awg-2"] != amneziawg.EgressPortForInbound(2) {
+	if byTag["awg-1"] != amneziawgnet.SOCKSPortForInbound(1) || byTag["awg-2"] != amneziawgnet.SOCKSPortForInbound(2) {
 		t.Fatalf("each inbound must get its own tag and its own derived port, got %+v", byTag)
 	}
 }
 
-func TestInjectAmneziawgEgress_NoQualifyingPeerSkipsBridge(t *testing.T) {
+func TestInjectAmneziawgnetSocks_NoQualifyingPeerSkipsRelay(t *testing.T) {
 	cases := []struct {
 		name   string
 		client model.Client
@@ -632,13 +633,14 @@ func TestInjectAmneziawgEgress_NoQualifyingPeerSkipsBridge(t *testing.T) {
 		{"no PublicKey", model.Client{Email: "a@x", Enable: true, AllowedIPs: []string{"10.8.1.2/32"}}, true},
 		{"no AllowedIPs", model.Client{Email: "a@x", Enable: true, PublicKey: "pub-a"}, true},
 		{"inbound disabled", model.Client{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}}, false},
+		{"no Email", model.Client{Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}}, true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			cfg := egressTestConfig()
 			inbound := amneziawgInbound(1, "awg-1", []model.Client{c.client})
 			inbound.Enable = c.enable
-			injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
+			injectAmneziawgnetSocks(cfg, []*model.Inbound{inbound})
 			if len(cfg.InboundConfigs) != 1 {
 				t.Fatalf("%s must be a no-op, got %d inbounds", c.name, len(cfg.InboundConfigs))
 			}
@@ -646,9 +648,13 @@ func TestInjectAmneziawgEgress_NoQualifyingPeerSkipsBridge(t *testing.T) {
 	}
 }
 
-func TestInjectAmneziawgEgress_RouteThroughXrayOffSkipsBridge(t *testing.T) {
+func TestInjectAmneziawgnetSocks_AlwaysOnRegardlessOfLegacyRouteThroughXrayField(t *testing.T) {
+	// Unlike the retired kernel-module bridge, the embedded relay has no
+	// opt-in gate: there is no alternative datapath once traffic is
+	// decapsulated in gVisor. A stale RouteThroughXray=false left over from
+	// a pre-cutover install must not suppress the relay inbound.
 	cfg := egressTestConfig()
-	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24} // RouteThroughXray left false
+	server := amneziawg.ServerSettings{SubnetIP: "10.8.1.0", SubnetCIDR: 24, RouteThroughXray: false}
 	settings, _ := json.Marshal(amneziawg.InboundSettings{
 		Server: &server,
 		Clients: []model.Client{
@@ -656,13 +662,13 @@ func TestInjectAmneziawgEgress_RouteThroughXrayOffSkipsBridge(t *testing.T) {
 		},
 	})
 	inbound := &model.Inbound{Id: 1, Tag: "awg-1", Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
-	injectAmneziawgEgress(cfg, []*model.Inbound{inbound})
-	if len(cfg.InboundConfigs) != 1 {
-		t.Fatalf("an inbound with RouteThroughXray off must never get a bridge, got %+v", cfg.InboundConfigs)
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{inbound})
+	if len(cfg.InboundConfigs) != 2 {
+		t.Fatalf("the relay inbound must always be created regardless of RouteThroughXray, got %+v", cfg.InboundConfigs)
 	}
 }
 
-func TestInjectAmneziawgEgress_WrongProtocolOrNodeSkipped(t *testing.T) {
+func TestInjectAmneziawgnetSocks_WrongProtocolOrNodeSkipped(t *testing.T) {
 	cfg := egressTestConfig()
 	vless := &model.Inbound{Id: 1, Tag: "in-1", Protocol: model.VLESS, Enable: true}
 	nodeID := 5
@@ -670,13 +676,13 @@ func TestInjectAmneziawgEgress_WrongProtocolOrNodeSkipped(t *testing.T) {
 		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
 	})
 	nodeHosted.NodeID = &nodeID
-	injectAmneziawgEgress(cfg, []*model.Inbound{vless, nodeHosted})
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{vless, nodeHosted})
 	if len(cfg.InboundConfigs) != 1 {
-		t.Fatalf("a non-AmneziaWG or node-hosted inbound must never get a bridge, got %+v", cfg.InboundConfigs)
+		t.Fatalf("a non-AmneziaWG or node-hosted inbound must never get a relay inbound, got %+v", cfg.InboundConfigs)
 	}
 }
 
-func TestInjectAmneziawgEgress_TagCollisionSkipsThatInboundOnly(t *testing.T) {
+func TestInjectAmneziawgnetSocks_TagCollisionSkipsThatInboundOnly(t *testing.T) {
 	cfg := egressTestConfig()
 	cfg.InboundConfigs = append(cfg.InboundConfigs,
 		xray.InboundConfig{Port: 1234, Protocol: "vless", Tag: "awg-1"})
@@ -686,20 +692,20 @@ func TestInjectAmneziawgEgress_TagCollisionSkipsThatInboundOnly(t *testing.T) {
 	inbound2 := amneziawgInbound(2, "awg-2", []model.Client{
 		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"10.9.1.2/32"}},
 	})
-	injectAmneziawgEgress(cfg, []*model.Inbound{inbound1, inbound2})
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{inbound1, inbound2})
 
-	// Started with 2 (api + the colliding vless entry); only awg-2's bridge
-	// should have been added, awg-1's skipped since its tag is taken.
+	// Started with 2 (api + the colliding vless entry); only awg-2's relay
+	// inbound should have been added, awg-1's skipped since its tag is taken.
 	if len(cfg.InboundConfigs) != 3 {
-		t.Fatalf("expected only the non-colliding inbound's bridge to be added, got %+v", cfg.InboundConfigs)
+		t.Fatalf("expected only the non-colliding inbound's relay inbound to be added, got %+v", cfg.InboundConfigs)
 	}
 	found := false
 	for _, ib := range cfg.InboundConfigs {
-		if ib.Tag == "awg-2" && ib.Protocol == "dokodemo-door" {
+		if ib.Tag == "awg-2" && ib.Protocol == "socks" {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatal("awg-2's bridge must still be created despite awg-1's tag collision")
+		t.Fatal("awg-2's relay inbound must still be created despite awg-1's tag collision")
 	}
 }
