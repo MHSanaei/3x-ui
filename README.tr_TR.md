@@ -24,15 +24,12 @@ Bu fork, yazarının kendi yönlendiricileri ve kişisel sunucuları üzerinde �
 
 [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module), DPI tabanlı protokol parmak izi çıkarmayı yenmek için tasarlanmış bir gizleme (obfuscation) katmanı (çöp paketler, rastgele dolgu, sihirli başlıkların yeniden yazılması) ekleyen bir WireGuard varyantıdır — aynı tünel, ama artık hat üzerinde bir tünel gibi görünmeyen bir tünel.
 
-- **Yerel (native), Docker değil.** AmneziaWG, host üzerinde gerçek bir çekirdek arabirimi olarak çalışır; `awg-quick`/`awg` ile açılıp kapatılır — size yerel bir `wg0` arabirimi kazandıran aynı DKMS çekirdek modülü yaklaşımı. Ayrıcalıklı bir sidecar konteynerine gerek yoktur.
+- **Gömülü (embedded), çekirdek modülü değil.** AmneziaWG tamamen panel sürecinin kendi içinde çalışır ([amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go), kullanıcı alanında çalışan bir ağ yığını üzerinden) — DKMS derlemesi yok, Secure Boot ile çakışma yok, ayrıcalıklı bir sidecar konteyner yok ve host üzerine kurulacak hiçbir şey yok.
 - **Birinci sınıf bir protokol.** Bir AmneziaWG gelen bağlantısı, diğerleriyle aynı `Inbound` tablosunda yaşar; bu sayede toplu işlemleri (bulk operations), QR kodu/yapılandırma indirme modalını ve abonelik bağlantılarını hiçbir ek çaba olmadan kazanır — öğrenilecek yeni bir şey yoktur.
 - **Tam AmneziaWG 2.0 gizlemesi** — Jc/Jmin/Jmax (çöp paketler), S1–S4 (paket dolgusu), H1–H4 (sihirli başlıklar) ve I1 imza paketi; her biri gelen bağlantı başına düzenlenebilir ve tek tıkla rastgeleleştirme düğmesine sahiptir, ayrıca eski istemciler için 1.x uyumlu bir mod da bulunur.
-- **Yerel IPv6**, kullanıcı başına NDP proxy desteğiyle; böylece her eş (peer) doğrudan erişilebilir bir IPv6 adresi alır — NAT66 gerekmez.
-- **Kullanıcı başına port yönlendirme** — belirli portları/aralıkları doğrudan bir eşin tünel adresine DNAT edin.
-- **Bir istemcinin trafiğini Xray üzerinden yönlendirme** — her AmneziaWG gelen bağlantısı otomatik olarak kendi loopback Xray köprüsünü alır (hiçbir anahtar/switch olmadan); herhangi bir istemcinin trafiğini, panelde zaten mevcut olan "Yönlendirme" sayfası üzerinden yapılandırılmış herhangi bir Xray giden bağlantısına, tıpkı başka herhangi bir protokolü yönlendirir gibi yönlendirin.
-- **`install.sh` çekirdek modülünü sizin için kurar** — Ubuntu/Debian/Armbian üzerinde (`ppa:amnezia/ppa`), diğer dağıtımlar için bir yedek (fallback) ile birlikte. Sizin için yapamayacağı tek şey: VPS/VM'inizde **Secure Boot'u önceden devre dışı bırakmak** — DKMS ile derlenmiş bir modül imzasızdır ve Secure Boot etkin olduğu sürece çekirdek onu yüklemeyi reddeder.
-- Uzlaştırma (reconcile), [`internal/mtproto`](internal/mtproto)'nun `mtg` sidecar'ını yönetme biçimiyle tamamen aynı şekilde yapılır: arka planda çalışan bir görev, çalışan arabirimi veritabanında saklanan durumla senkronize tutar ve mümkün olduğunda eş (peer) değişikliklerini tam bir arabirim yeniden başlatması yerine `awg syncconf` üzerinden uygular.
-- **Gerçek `vpn://` paylaşım bağlantıları** — istemci başına kopyalama bağlantısı/QR kodu ve abonelik uç noktası artık resmi AmneziaVPN uygulamasının beklediği gerçek `vpn://` şemasını üretiyor (düz bir `.conf` dosyasının base64url'i), uygulamanın içe aktaramadığı uydurma bir URI biçimi değil.
+- **Her istemcinin trafiği zaten Xray üzerinden geçiyor.** TPROXY yok, ayrıca etkinleştirilmesi gereken bir köprü yok: her AmneziaWG gelen bağlantısı, loopback üzerinden doğrudan kendi Xray SOCKS5 gelen bağlantısına aktarılır; bu sayede istemci başına trafik istatistikleri, çevrimiçi durumu, sniffing ve panelde zaten mevcut olan "Yönlendirme" sayfasının kuralları, ek bir yapılandırma gerekmeden, tıpkı başka herhangi bir protokolde olduğu gibi çalışır.
+- **Gerçek `vpn://` paylaşım bağlantıları** — istemci başına kopyalama bağlantısı/QR kodu ve abonelik uç noktası, resmi AmneziaVPN uygulamasının beklediği gerçek `vpn://` şemasını üretir (düz bir `.conf` dosyasının base64url'i), uygulamanın içe aktaramadığı uydurma bir URI biçimi değil.
+- **Bu geçişten sonra geçici olarak desteklenmiyor:** istemci başına ayrı bir genel (public) IPv6 adresi ve istemci başına port yönlendirmenin ikisi de eski çekirdek modülünün host düzeyindeki iptables kurallarına dayanıyordu; bunların gömülü mimaride henüz bir karşılığı yok. Her ikisi de yakın zamanda ayrı sürümler olarak planlanıyor; her ikisi için de mevcut ayarlar kaybolmadı, sadece o zamana kadar etkisiz durumdalar.
 
 ## Bu forktaki diğer değişiklikler
 
@@ -121,11 +118,11 @@ sona hiçbir soru sormadan tamamlanır, rastgele kimlik bilgileri oluşturup bun
 
 ## Desteklenen Platformlar
 
-**İşletim sistemleri:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) ve Alpine. (Orijinal proje ayrıca bir Windows sürümü de yayınlar; bu fork'un CI'ı bunu yapmaz — buradaki her şey Linux çalıştıran sunucuları/yönlendiricileri hedefler ve AmneziaWG zaten her durumda bir Linux çekirdek modülüne ihtiyaç duyar.)
+**İşletim sistemleri:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) ve Alpine. (Orijinal proje ayrıca bir Windows sürümü de yayınlar; bu fork'un CI'ı bunu yapmaz — buradaki her şey Linux çalıştıran sunucuları/yönlendiricileri hedefler.)
 
 **Mimariler:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
-AmneziaWG özellikle gerçek bir Linux çekirdeği ve AmneziaWG'ye özgü DKMS çekirdek modülüne ihtiyaç duyar — Windows üzerinde çalışmaz ve `install_amneziawg` bugün yalnızca Ubuntu/Debian/Armbian üzerinde çekirdek modülü kurulumunu otomatikleştirir ([Bu fork'ta ne farklı](#bu-forkta-ne-farklı-amneziawg) bölümüne bakın).
+AmneziaWG doğrudan panel ikili dosyasının (binary) kendi içine gömülüdür ([Bu fork'ta ne farklı](#bu-forkta-ne-farklı-amneziawg) bölümüne bakın) — çekirdek modülü yok, ayrı bir kurulum adımı yok, dağıtıma özgü bir kurulum yok.
 
 ## Veritabanı Seçenekleri
 
@@ -195,10 +192,11 @@ Bu fork tamamen [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) üzerine in�
    <img src="./media/donation-button-black.svg" alt="NOWPayments üzerinden Kripto Bağış Butonu">
 </a>
 
-Bu fork'taki yerel AmneziaWG uygulaması şunlardan alınmış/ilham almıştır:
+Bu fork'taki AmneziaWG uygulaması şunlardan alınmış/ilham almıştır:
 
-- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — orijinal projeye karşı açılan orijinal AmneziaWG pull request'i (Docker sidecar yaklaşımı); bu fork onun şema/ön yüz (frontend) yapısını yeniden kullanır ancak arka ucu (backend) yerel, Docker'sız bir yöneticiyle değiştirir.
-- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — üretimde zaten yerel AmneziaWG çalıştıran bağımsız bir fork; bu fork'un `awg-quick` süreç yönetimi, yapılandırma üretimi ve AmneziaWG 2.0 gizleme parametresi üreticisi onun `awg/` paketinden alınmıştır.
+- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — bu forkun, aşağıdaki eski çekirdek-modülü tabanlı arka ucun yerine, doğrudan panel süreci içine, bir [gVisor](https://gvisor.dev/) ağ yığını üzerinden gömdüğü kullanıcı alanı AmneziaWG uygulaması.
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — orijinal projeye karşı açılan orijinal AmneziaWG pull request'i (Docker sidecar yaklaşımı); bu fork onun şema/ön yüz (frontend) yapısını yeniden kullanır.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — üretimde zaten yerel AmneziaWG çalıştıran bağımsız bir fork; bu fork'un bu yeniden yazımdan önceki çekirdek modülü tabanlı (`awg-quick`) yöneticisi ve AmneziaWG 2.0 gizleme parametresi üreticisi onun `awg/` paketinden alınmıştı.
 
 ## Özel Teşekkürler
 
