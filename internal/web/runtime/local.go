@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -59,7 +60,7 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		return amneziawg.GetManager().Ensure(inst)
+		return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
 	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
@@ -76,7 +77,7 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		return nil
 	}
 	if ib.Protocol == model.AmneziaWG {
-		amneziawg.GetManager().Remove(ib.Id)
+		amneziawgnet.GetManager().Remove(ib.Id)
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -130,11 +131,12 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 // updateAmneziaWGInbound mirrors updateMtprotoInbound: it skips the
 // Remove+Ensure sequence a plain Del+Add would force so that, on an
 // AmneziaWG-to-AmneziaWG edit, Manager.Ensure's own fingerprint comparison
-// can pick a peers-only `syncconf` instead of always bouncing the interface
-// (see internal/amneziawg.Manager.ensureLocked).
+// can reconfigure the running embedded Device in place via IpcSet instead
+// of always rebuilding it (see internal/amneziawgnet.Manager.ensureLocked --
+// only an address/MTU change forces a rebuild there, not a peer edit).
 func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if oldIb.Protocol == model.AmneziaWG && newIb.Protocol != model.AmneziaWG {
-		amneziawg.GetManager().Remove(oldIb.Id)
+		amneziawgnet.GetManager().Remove(oldIb.Id)
 		if !newIb.Enable {
 			return nil
 		}
@@ -144,15 +146,15 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 		_ = l.DelInbound(ctx, oldIb)
 	}
 	if !newIb.Enable {
-		amneziawg.GetManager().Remove(newIb.Id)
+		amneziawgnet.GetManager().Remove(newIb.Id)
 		return nil
 	}
 	inst, ok := amneziawg.InstanceFromInbound(newIb)
 	if !ok {
-		amneziawg.GetManager().Remove(newIb.Id)
+		amneziawgnet.GetManager().Remove(newIb.Id)
 		return nil
 	}
-	return amneziawg.GetManager().Ensure(inst)
+	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {

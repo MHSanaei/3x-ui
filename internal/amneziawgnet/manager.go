@@ -203,6 +203,23 @@ func (m *Manager) Reconcile(desired []Desired) {
 	}
 }
 
+// Remove tears down inbound id's embedded interface, if any -- mirrors
+// internal/amneziawg.Manager.Remove, for a caller that needs to drop a
+// single inbound outside a full Reconcile pass (e.g. the immediate-apply
+// CRUD path in internal/web/runtime/local.go).
+func (m *Manager) Remove(id int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cur, exists := m.ifaces[id]
+	if !exists {
+		return
+	}
+	cur.udpRelay.Close()
+	cur.dev.Close()
+	delete(m.ifaces, id)
+	logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
+}
+
 // StopAll tears down every managed interface. Called on panel shutdown.
 func (m *Manager) StopAll() {
 	m.mu.Lock()
