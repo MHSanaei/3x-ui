@@ -7,6 +7,7 @@
 package amneziawgnet
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -80,8 +81,8 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 	defer upstream.Close()
 
 	done := make(chan struct{}, 2)
-	go func() { io.Copy(upstream, conn); done <- struct{}{} }()
-	go func() { io.Copy(conn, upstream); done <- struct{}{} }()
+	go func() { _, _ = io.Copy(upstream, conn); done <- struct{}{} }()
+	go func() { _, _ = io.Copy(conn, upstream); done <- struct{}{} }()
 	<-done
 }
 
@@ -101,7 +102,8 @@ type socks5UDPSession struct {
 // types, not reusable as a standalone dialer -- so this is a small, direct,
 // from-the-RFC implementation rather than an existing library call.
 func newSocks5UDPSession(addr, user, password string) (*socks5UDPSession, error) {
-	ctrl, err := net.DialTimeout("tcp", addr, 5*time.Second)
+	dialer := net.Dialer{Timeout: 5 * time.Second}
+	ctrl, err := dialer.DialContext(context.Background(), "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("amneziawgnet: dial SOCKS5 control connection: %w", err)
 	}
