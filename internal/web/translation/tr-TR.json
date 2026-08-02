@@ -1654,8 +1654,6 @@
         "ipv6SubnetHint": "örn. fd86:ea04:1115::/64. IPv6 etkinken zorunludur.",
         "ipv6ExternalInterface": "IPv6 Harici Arayüzü",
         "ipv6ExternalInterfaceHint": "NDP proxy girişleri için sunucu ağ arayüzü. Harici Arayüzü kullanmak için boş bırakın.",
-        "routeThroughXray": "Xray üzerinden yönlendir",
-        "routeThroughXrayHint": "Varsayılan olarak kapalıdır: tünelin Xray'e hiçbir bağımlılığı yoktur. Açıldığında, her istemcinin trafiği bu gelen bağlantıya ait Xray köprüsüne yönlendirilir ve gerçek giden bağlantı, diğer tüm protokollerde olduğu gibi Yönlendirme sayfasından seçilir.",
         "obfuscation": "Gizleme parametreleri",
         "regenerateObfuscation": "Yeniden oluştur",
         "jc": "Jc (gereksiz paket sayısı)",
