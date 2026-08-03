@@ -42,7 +42,13 @@ func defaultAmneziaWGSubnetBases(settingsJSON string) (v4Base, v6Base string, er
 // client never rotates its keys. Mirrors defaultWireguardClients, reusing
 // its IP allocation and validation helpers — the only real difference is
 // where the allocation base comes from.
-func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any) error {
+//
+// crossInboundUsed maps AllowedIPs already claimed by clients on every OTHER
+// WireGuard/AmneziaWG inbound on this panel to a human-readable description
+// of which inbound holds it (see otherTunnelAllowedIPs) — it only narrows
+// which addresses are free to hand out or accept, and lets a manual-entry
+// collision name the other inbound instead of just the address.
+func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	v4Base, v6Base, err := defaultAmneziaWGSubnetBases(settingsJSON)
 	if err != nil {
 		return err
@@ -51,6 +57,9 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 	used := make([]string, 0)
 	for i := range existing {
 		used = append(used, existing[i].AllowedIPs...)
+	}
+	for addr := range crossInboundUsed {
+		used = append(used, addr)
 	}
 	for i := range clients {
 		c := &clients[i]
@@ -91,6 +100,9 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 				return common.NewError("amneziawg: allowedIPs has no usable entry")
 			}
 			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
+				if where := crossInboundUsed[hit]; where != "" {
+					return common.NewError("amneziawg: allowedIPs entry", hit, "is already used by a client on", where)
+				}
 				return common.NewError("amneziawg: allowedIPs entry already used by another client:", hit)
 			}
 			c.AllowedIPs = normalized
