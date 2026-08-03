@@ -132,6 +132,21 @@ func (t *stackTun) Events() <-chan awgtun.Event { return t.events }
 func (t *stackTun) MTU() (int, error)           { return t.mtu, nil }
 func (t *stackTun) BatchSize() int              { return 1 }
 
+// Read blocks for the first packet, then opportunistically drains any more
+// that are already buffered (non-blocking), up to len(buf). amneziawg-go's
+// caller (RoutineReadFromTUN) sizes buf/sizes to device.BatchSize(), which
+// is the UDP bind's own batch size (128 on Linux, see conn.IdealBatchSize)
+// since that's larger than BatchSize()'s 1 below -- so real buffer capacity
+// for a batch is already there. Without this drain loop, Read always
+// returned exactly one packet no matter how many buf could hold, so every
+// downstream step (peer lookup, per-peer staging, and ultimately the UDP
+// bind's own genuinely batched Send/sendmmsg) processed the download
+// direction one packet at a time while the upload direction's equivalent
+// (bind.Receive/recvmmsg -> decrypt -> stackTun.Write, which already loops
+// over its whole buf) processed up to 128 per cycle. That asymmetry is
+// real, not gVisor/amneziawg-go's -- both the receive and send paths on the
+// UDP bind support batching identically, only this Read implementation
+// didn't use it.
 func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 	view, ok := <-t.incomingPacket
 	if !ok {
@@ -142,7 +157,24 @@ func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 		return 0, err
 	}
 	sizes[0] = n
-	return 1, nil
+	count := 1
+	for count < len(buf) {
+		select {
+		case view, ok := <-t.incomingPacket:
+			if !ok {
+				return count, nil
+			}
+			n, err := view.Read(buf[count][offset:])
+			if err != nil {
+				return count, nil
+			}
+			sizes[count] = n
+			count++
+		default:
+			return count, nil
+		}
+	}
+	return count, nil
 }
 
 func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
