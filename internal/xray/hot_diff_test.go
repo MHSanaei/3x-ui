@@ -436,3 +436,78 @@ func TestComputeHotDiff_TproxyStreamChangeNeedsRestart(t *testing.T) {
 		t.Fatal("a TPROXY bridge's port change must force a full restart, not a gRPC hot swap")
 	}
 }
+
+// TestComputeHotDiff_SocksAccountsSettingsChangeNeedsRestart reproduces a
+// real incident: editing one client under an AmneziaWG inbound left its
+// relay's settings.json byte-different (a new account list) while Xray was
+// already running. A gRPC remove+add reported success but silently dropped
+// an account with a non-ASCII email; a full restart always produced the
+// correct account list. This must force a restart, not a hot swap.
+func TestComputeHotDiff_SocksAccountsSettingsChangeNeedsRestart(t *testing.T) {
+	relayIb := InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     65110,
+		Protocol: "socks",
+		Tag:      "in-443-udp",
+		Settings: json_util.RawMessage(`{"auth":"password","udp":true,"accounts":[{"user":"Роутер_awg","pass":"p"}]}`),
+	}
+	oldCfg := makeHotConfig()
+	oldCfg.InboundConfigs = append(oldCfg.InboundConfigs, relayIb)
+	newCfg := makeHotConfig()
+	changedIb := relayIb
+	changedIb.Settings = json_util.RawMessage(`{"auth":"password","udp":true,"accounts":[{"user":"Роутер_awg","pass":"p"},{"user":"Майфун🛟","pass":"p"}]}`)
+	newCfg.InboundConfigs = append(newCfg.InboundConfigs, changedIb)
+
+	if _, ok := ComputeHotDiff(oldCfg, newCfg); ok {
+		t.Fatal("a password-auth SOCKS5 relay's account-list change must force a full restart, not a gRPC hot swap")
+	}
+}
+
+// TestComputeHotDiff_NewSocksAccountsInboundNeedsRestart mirrors the TPROXY
+// new-inbound test above: a brand-new AmneziaWG relay inbound must also
+// force a restart, for the same reliability reason.
+func TestComputeHotDiff_NewSocksAccountsInboundNeedsRestart(t *testing.T) {
+	oldCfg := makeHotConfig()
+	newCfg := makeHotConfig()
+	newCfg.InboundConfigs = append(newCfg.InboundConfigs, InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     65110,
+		Protocol: "socks",
+		Tag:      "in-443-udp",
+		Settings: json_util.RawMessage(`{"auth":"password","udp":true,"accounts":[{"user":"Майфун🛟","pass":"p"}]}`),
+	})
+
+	if _, ok := ComputeHotDiff(oldCfg, newCfg); ok {
+		t.Fatal("adding a new password-auth SOCKS5 relay inbound must force a full restart, not a gRPC hot add")
+	}
+}
+
+// TestComputeHotDiff_NoauthSocksBridgeStaysHot confirms the check above is
+// scoped to password-auth accounts specifically: this fork's other SOCKS5
+// bridges (panel egress, per-node egress, mtproto egress) use "noauth" with
+// no per-account identity, have no history of this failure mode, and must
+// keep using the ordinary remove+add hot path rather than pay for an
+// unnecessary restart on every port/tag change.
+func TestComputeHotDiff_NoauthSocksBridgeStaysHot(t *testing.T) {
+	bridgeIb := InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     62790,
+		Protocol: "socks",
+		Tag:      "panel-egress",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+	}
+	oldCfg := makeHotConfig()
+	oldCfg.InboundConfigs = append(oldCfg.InboundConfigs, bridgeIb)
+	newCfg := makeHotConfig()
+	changedIb := bridgeIb
+	changedIb.Port = 62791
+	newCfg.InboundConfigs = append(newCfg.InboundConfigs, changedIb)
+
+	diff, ok := ComputeHotDiff(oldCfg, newCfg)
+	if !ok {
+		t.Fatal("a noauth SOCKS5 bridge's port change should stay hot-appliable")
+	}
+	if len(diff.RemovedInboundTags) != 1 || len(diff.AddedInbounds) != 1 {
+		t.Fatalf("expected a plain remove+add for the changed bridge, got %+v", diff)
+	}
+}
