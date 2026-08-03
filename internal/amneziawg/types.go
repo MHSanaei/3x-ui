@@ -58,27 +58,35 @@ type Instance struct {
 	Obfuscation Obfuscation20
 	Peers       []Peer
 
-	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
-	// Empty means auto-detect at config-generation time.
+	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
+	// attached to under the retired kernel-module architecture. Also the
+	// fallback host NIC internal/amneziawgnet's IPv6-address-alias
+	// mechanism (desiredV6Aliases) uses when IPv6ExternalInterface is left
+	// blank.
 	ExternalInterface string
 
-	// IPv6Enabled turns on the per-peer NDP proxy PostUp/PostDown entries
-	// (ip -6 neigh add/del proxy) for peers that have an IPv6 AllowedIPs
-	// entry. IPv6ExternalInterface overrides ExternalInterface for those
-	// entries specifically; empty means reuse ExternalInterface.
+	// IPv6Enabled/IPv6ExternalInterface gate internal/amneziawgnet's
+	// IPv6-address-alias mechanism (desiredV6Aliases,
+	// internal/web/service/xray.go's injectAmneziawgV6Egress): each peer
+	// with an IPv6 AllowedIPs entry gets that address aliased onto this
+	// host NIC (ip -6 addr add) and a dedicated Xray freedom outbound bound
+	// to it, giving that peer's own outbound connections a distinct public
+	// source identity. Narrower in scope than these identically-named
+	// fields' role under the retired kernel-module architecture, which used
+	// per-peer NDP-proxy entries (ip -6 neigh add proxy) to also support
+	// unsolicited inbound connections toward the peer -- that capability is
+	// the separate, not-yet-built Phase 3.6 (port-forwarding).
 	IPv6Enabled           bool
 	IPv6ExternalInterface string
 
-	// RouteThroughXray gates the entire TPROXY-into-Xray bridge (see
-	// EgressPortForInbound / injectAmneziawgEgress) for this instance: off by
-	// default, so a plain AmneziaWG tunnel never depends on Xray being up at
-	// all. Turning it on makes every peer's traffic TPROXY'd into this
-	// instance's own loopback Xray bridge, tagged with the inbound's own
-	// tag; the actual routing decision from there is left entirely to the
-	// panel's stock Routing page (pick this inbound's tag as source, an
-	// outbound, and optionally a peer's IP), exactly like routing any other
-	// protocol -- only whether the bridge exists at all is a per-inbound
-	// choice.
+	// RouteThroughXray gated the kernel-module architecture's opt-in
+	// TPROXY-into-Xray bridge. The embedded path (internal/amneziawgnet)
+	// has no equivalent opt-in at all -- every peer's traffic already goes
+	// through Xray's own SOCKS5 inbound unconditionally, since there's no
+	// other way for decapsulated gVisor traffic to reach the real internet
+	// -- so this field is now vestigial: read from existing stored settings
+	// for backward compatibility, but not acted on by anything. Slated for
+	// removal alongside the frontend toggle in a follow-up.
 	RouteThroughXray bool
 }
 
@@ -99,22 +107,21 @@ type ServerSettings struct {
 	PrimaryDNS   string `json:"primaryDns,omitempty"`
 	SecondaryDNS string `json:"secondaryDns,omitempty"`
 
-	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
-	// Empty means auto-detect.
+	// ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live
+	// again as of Phase 3.5 -- see the matching fields on Instance for what
+	// they gate (internal/amneziawgnet's IPv6-address-alias mechanism).
+	// IPv6Subnet was never actually vestigial either: InstanceFromInbound
+	// already consumes it (via serverAddressV6) to build the server's own
+	// tunnel address, same as always. Only RouteThroughXray, below, remains
+	// genuinely vestigial as of the hard cutover to the embedded path
+	// (internal/amneziawgnet) -- read from existing stored settings for
+	// backward compatibility, but not acted on by anything.
 	ExternalInterface string `json:"externalInterface,omitempty"`
 
-	// IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is
-	// allocated from IPv6Subnet alongside each client's IPv4 one, and the
-	// server proxies NDP for each enabled client's address so upstream
-	// routers see it as directly reachable (no NAT66). IPv6ExternalInterface
-	// overrides ExternalInterface for the NDP-proxy PostUp/PostDown entries
-	// specifically; empty reuses ExternalInterface.
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
 	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
 
-	// RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see
-	// Instance.RouteThroughXray for what that means. Off by default.
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
 	// Obfuscation20's fields, repeated flat (not embedded) rather than

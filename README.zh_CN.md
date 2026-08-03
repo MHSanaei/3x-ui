@@ -24,15 +24,12 @@
 
 [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) 是 WireGuard 的一个变体，增加了一层混淆（垃圾数据包、随机填充、重写魔术头部），旨在击败基于 DPI 的协议指纹识别——同样的隧道，但在线路上不再表现得像一条隧道。
 
-- **原生实现，而非 Docker。** AmneziaWG 作为真正的内核接口运行在宿主机上，通过 `awg-quick`/`awg` 启动和停止——采用与拥有原生 `wg0` 接口相同的 DKMS 内核模块方案。无需特权 sidecar 容器。
+- **内置实现，而非内核模块。** AmneziaWG 完全在面板进程内部运行（[amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) 基于用户态网络协议栈实现）——无需编译 DKMS 模块，不与 Secure Boot 冲突，无需特权 sidecar 容器，宿主机上完全不需要安装任何东西。
 - **一等协议。** AmneziaWG 入站与其他协议共享同一张 `Inbound` 表，因此可以免费获得批量操作、二维码/配置下载弹窗以及订阅链接——无需学习任何新东西。
 - **完整的 AmneziaWG 2.0 混淆功能**——Jc/Jmin/Jmax（垃圾数据包）、S1–S4（数据包填充）、H1–H4（魔术头部）以及 I1 签名数据包，均可按入站单独编辑，并提供一键随机化按钮，同时为旧版客户端提供 1.x 兼容模式。
-- **原生 IPv6**，支持按客户端的 NDP 代理，使每个对等端都获得可直接访问的 IPv6 地址——无需 NAT66。
-- **按客户端端口转发**——将特定端口/端口范围直接 DNAT 到某个对等端的隧道地址。
-- **将客户端流量通过 Xray 路由**——每个 AmneziaWG 入站都会自动获得属于自己的本地回环 Xray 网桥（无需任何开关）；通过面板中已有的"路由"页面，将任意客户端的流量路由到任意已配置的 Xray 出站，方式与路由其他协议完全相同。
-- **`install.sh` 会为您安装内核模块**，适用于 Ubuntu/Debian/Armbian（`ppa:amnezia/ppa`），其他发行版则有回退方案。它唯一无法为您做的事：预先**禁用 VPS/VM 上的 Secure Boot**——DKMS 构建的模块未经签名，只要 Secure Boot 处于启用状态，内核就会拒绝加载它。
-- 协调（reconcile）方式与 [`internal/mtproto`](internal/mtproto) 管理 `mtg` sidecar 的方式完全相同：一个后台任务持续保持运行中的接口与数据库中存储的内容同步，并尽可能通过 `awg syncconf` 而非完整的接口重启来应用对等端变更。
-- **真正的 `vpn://` 分享链接** — 每个客户端的复制链接/二维码以及订阅端点现在会生成官方 AmneziaVPN 应用真正期望的 `vpn://` 格式（纯文本 `.conf` 的 base64url 编码），而不是该应用无法导入的自造 URI 格式。
+- **每个客户端的流量已经在通过 Xray。** 无需 TPROXY，也无需另行启用网桥：每个 AmneziaWG 入站都会通过本地回环直接转发到其专属的 Xray SOCKS5 入站，因此按客户端的流量统计、在线状态、sniffing，以及面板中已有的"路由"页面规则，都会像其他任何协议一样自动生效——无需额外配置。
+- **真正的 `vpn://` 分享链接** — 每个客户端的复制链接/二维码以及订阅端点会生成官方 AmneziaVPN 应用真正期望的 `vpn://` 格式（纯文本 `.conf` 的 base64url 编码），而不是该应用无法导入的自造 URI 格式。
+- **本次迁移之后暂不支持**：每个客户端独立的公网 IPv6 地址，以及按客户端的端口转发，二者都依赖于旧内核模块在宿主机层面的 iptables 规则，而内置架构目前还没有与之等效的实现。两者均已计划在后续版本中推出；已保存的相关设置不会丢失，只是在此之前处于未生效状态。
 
 ## 本分支的其他更改
 
@@ -121,11 +118,11 @@ curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bas
 
 ## 支持的平台
 
-**操作系统：** Ubuntu、Debian、Armbian、Fedora、CentOS、RHEL、AlmaLinux、Rocky Linux、Oracle Linux、Amazon Linux、Virtuozzo、Arch、Manjaro、Parch、openSUSE (Tumbleweed / Leap) 和 Alpine。（原项目也发布 Windows 版本；本分支的 CI 不这样做——这里的一切都面向运行 Linux 的服务器/路由器，而且 AmneziaWG 无论如何都需要 Linux 内核模块。）
+**操作系统：** Ubuntu、Debian、Armbian、Fedora、CentOS、RHEL、AlmaLinux、Rocky Linux、Oracle Linux、Amazon Linux、Virtuozzo、Arch、Manjaro、Parch、openSUSE (Tumbleweed / Leap) 和 Alpine。（原项目也发布 Windows 版本；本分支的 CI 不这样做——这里的一切都面向运行 Linux 的服务器/路由器。）
 
 **架构：** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`。
 
-AmneziaWG 特别需要真正的 Linux 内核以及 AmneziaWG 专用的 DKMS 内核模块——它无法在 Windows 上运行，而目前 `install_amneziawg` 只能在 Ubuntu/Debian/Armbian 上自动完成内核模块安装（参见[本分支的不同之处](#本分支的不同之处amneziawg)一节）。
+AmneziaWG 直接内置于面板二进制文件本身（参见[本分支的不同之处](#本分支的不同之处amneziawg)一节）——无需内核模块，无需单独的安装步骤，也无需针对特定发行版的设置。
 
 ## 数据库选项
 
@@ -195,10 +192,11 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-本分支中原生 AmneziaWG 的实现参考/借鉴自：
+本分支中 AmneziaWG 的实现参考/借鉴自：
 
-- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — 针对原项目提出的原始 AmneziaWG PR（Docker sidecar 方案）；本分支重用了其 schema/前端结构，但将后端替换为原生、无 Docker 的管理器。
-- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — 一个独立的分支，已经在生产环境中运行原生 AmneziaWG；本分支中 `awg-quick` 进程管理、配置生成以及 AmneziaWG 2.0 混淆参数生成器均源自其 `awg/` 包。
+- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — 本分支直接内嵌到面板进程中的用户态 AmneziaWG 实现，基于 [gVisor](https://gvisor.dev/) 网络协议栈，取代了下方原先基于内核模块的后端。
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — 针对原项目提出的原始 AmneziaWG PR（Docker sidecar 方案）；本分支重用了其 schema/前端结构。
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — 一个独立的分支，已经在生产环境中运行原生 AmneziaWG；本分支在此次重写之前基于内核模块的 (`awg-quick`) 管理器以及 AmneziaWG 2.0 混淆参数生成器均源自其 `awg/` 包。
 
 ## 特别感谢
 

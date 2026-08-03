@@ -12,9 +12,6 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
-export const ensureActionSchema = z.number().int();
-export type ensureAction = z.infer<typeof ensureActionSchema>;
-
 export const geodataFileKindSchema = z.number().int();
 export type geodataFileKind = z.infer<typeof geodataFileKindSchema>;
 

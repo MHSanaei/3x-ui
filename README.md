@@ -24,15 +24,12 @@ This fork exists to run the author's own routers and servers; it isn't trying to
 
 [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) is WireGuard with an added obfuscation layer (junk packets, randomized padding, magic-header rewriting) designed to defeat DPI-based protocol fingerprinting — the same tunnel, but one that doesn't look like a tunnel on the wire.
 
-- **Native, not Docker.** AmneziaWG runs as a real kernel interface on the host, brought up and torn down with `awg-quick`/`awg` — the same DKMS kernel module approach as a native `wg0` interface. No privileged sidecar containers.
+- **Embedded, not a kernel module.** AmneziaWG runs entirely inside the panel process ([amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) over a userspace network stack) — no DKMS build, no Secure Boot conflict, no privileged sidecar container, and nothing to install on the host at all.
 - **A first-class protocol.** An AmneziaWG inbound lives in the same `Inbound` table as everything else, so it gets bulk operations, the QR/config-download modal, and subscription links for free — nothing bespoke to learn.
 - **Full AmneziaWG 2.0 obfuscation** — Jc/Jmin/Jmax (junk packets), S1–S4 (packet padding), H1–H4 (magic headers), and the I1 signature packet, all editable per-inbound with a one-click randomize button, plus a 1.x-compatible fallback for older clients.
-- **Native IPv6**, with per-client NDP proxying so each peer gets a directly-reachable IPv6 address — no NAT66.
-- **Per-client port-forwarding** — DNAT specific ports/ranges straight to one peer's tunnel address.
-- **Routing a client's traffic through Xray** — every AmneziaWG inbound gets its own loopback Xray bridge automatically (no toggle to flip); route any client's traffic through any configured Xray outbound from the panel's existing Routing page, exactly like routing any other protocol.
-- **`install.sh` installs the kernel module for you** on Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), with a fallback for other distros. One thing it can't do for you: **disable Secure Boot** on your VPS/VM first — a DKMS-built module is unsigned and the kernel won't load it while Secure Boot is enforced.
-- Reconciled the same way [`internal/mtproto`](internal/mtproto) manages its `mtg` sidecar: a background job keeps the running interface in sync with what's saved in the database, hot-reloading peer changes via `awg syncconf` instead of bouncing the whole interface when it can.
-- **Real `vpn://` share links** — the per-client copy-link/QR and the subscription endpoint now emit the actual `vpn://` scheme the official AmneziaVPN app expects (base64url of a plain `.conf`), not an invented URI format it couldn't import.
+- **Every client's traffic already goes through Xray.** No TPROXY, no bridge to opt into: each AmneziaWG inbound relays straight into its own loopback Xray SOCKS5 inbound, so per-client traffic stats, online status, sniffing, and the panel's existing Routing-page rules all just work, exactly like any other protocol — no extra configuration.
+- **Real `vpn://` share links** — the per-client copy-link/QR and the subscription endpoint emit the actual `vpn://` scheme the official AmneziaVPN app expects (base64url of a plain `.conf`), not an invented URI format it couldn't import.
+- **Temporarily unsupported** after this rewrite: distinct per-client public IPv6 addresses and per-client port-forwarding both relied on the old kernel-module's host-level iptables rules, which don't have an embedded equivalent yet. Both are planned fast-follow releases; existing settings for either aren't lost, they're just inert until then.
 
 ## Other changes in this fork
 
@@ -121,11 +118,11 @@ zero prompts, generating random credentials and writing them to
 
 ## Supported Platforms
 
-**Operating systems:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), and Alpine. (Upstream also publishes a Windows build; this fork's CI doesn't — everything here targets Linux servers/routers, and AmneziaWG needs a Linux kernel module regardless.)
+**Operating systems:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), and Alpine. (Upstream also publishes a Windows build; this fork's CI doesn't — everything here targets Linux servers/routers.)
 
 **Architectures:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
-AmneziaWG specifically needs a real Linux kernel with the AmneziaWG DKMS module — it will not come up on Windows, and `install_amneziawg` only automates the kernel-module install on Ubuntu/Debian/Armbian today (see [What's different in this fork](#whats-different-in-this-fork-amneziawg)).
+AmneziaWG is embedded in the panel binary itself (see [What's different in this fork](#whats-different-in-this-fork-amneziawg)) — no kernel module, no separate install step, no distro-specific setup.
 
 ## Database Options
 
@@ -195,10 +192,11 @@ This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSana
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-The native AmneziaWG implementation in this fork was ported from/inspired by:
+The AmneziaWG implementation in this fork was ported from/inspired by:
 
-- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — the original AmneziaWG PR against upstream (Docker-sidecar approach); this fork reuses its frontend schema/UI structure but replaces the backend with a native, no-Docker manager.
-- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — an independent fork already running native AmneziaWG in production; this fork's `awg-quick` process management, config generation, and AmneziaWG 2.0 obfuscation parameter generator are ported from its `awg/` package.
+- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — the userspace AmneziaWG implementation this fork embeds directly in the panel process, over a [gVisor](https://gvisor.dev/) network stack, replacing the original kernel-module-based backend below.
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — the original AmneziaWG PR against upstream (Docker-sidecar approach); this fork reuses its frontend schema/UI structure.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — an independent fork already running native AmneziaWG in production; this fork's original kernel-module (`awg-quick`) manager and AmneziaWG 2.0 obfuscation parameter generator were ported from its `awg/` package before this rewrite.
 
 ## Acknowledgment
 

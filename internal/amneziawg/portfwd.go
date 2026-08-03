@@ -2,7 +2,6 @@ package amneziawg
 
 import (
 	"fmt"
-	"hash/fnv"
 	"strconv"
 	"strings"
 )
@@ -13,31 +12,10 @@ type portSpec struct {
 	end   int
 }
 
-func (p portSpec) isRange() bool { return p.end > p.start }
-
-// dportArg returns the iptables --dport argument: "N" or "N:M".
-func (p portSpec) dportArg() string {
-	if p.isRange() {
-		return fmt.Sprintf("%d:%d", p.start, p.end)
-	}
-	return strconv.Itoa(p.start)
-}
-
-// dnatTarget returns the DNAT target: "ip:N" or "ip:N-M".
-func (p portSpec) dnatTarget(clientIP string) string {
-	if p.isRange() {
-		return fmt.Sprintf("%s:%d-%d", clientIP, p.start, p.end)
-	}
-	return fmt.Sprintf("%s:%d", clientIP, p.start)
-}
-
 // parseForwardedPorts splits a user-supplied string ("80, 443; 8000-8100")
 // into validated port specs. Tokens are separated by comma or semicolon;
 // whitespace is ignored. Invalid tokens are silently dropped — the input is
-// a free-form text field and validation is best-effort by design. Every
-// returned spec's bounds are integers in [1, 65535], so callers can safely
-// embed them in a shell-executed PostUp/PostDown line without further
-// escaping.
+// a free-form text field and validation is best-effort by design.
 func parseForwardedPorts(input string) []portSpec {
 	if input == "" {
 		return nil
@@ -91,13 +69,20 @@ func parsePortNumber(s string) (int, bool) {
 }
 
 // ForwardedPortsInclude reports whether port is covered by any spec in a raw
-// ForwardedPorts string (a single port or an inclusive range). For callers
-// outside this package that need to check a spec against something other
-// than rendering it into iptables rules -- e.g. save-time validation that a
-// client isn't about to hijack the panel's own port or another inbound's
-// port (portForwardLines has no -d restriction, so a forwarded port that
-// collides with one already in use on the host silently redirects it to the
-// tunnel client instead).
+// ForwardedPorts string (a single port or an inclusive range). Used for
+// save-time validation that a client isn't about to hijack the panel's own
+// port or another inbound's port -- see
+// internal/web/service/inbound_amneziawg.go's port-conflict checks.
+//
+// The field itself is currently inert: per-client port-forwarding was
+// implemented via PostUp/PostDown iptables DNAT rules under the retired
+// kernel-module architecture (internal/amneziawg's old Manager), which had
+// no equivalent under the embedded amneziawg-go path
+// (internal/amneziawgnet) as of the hard cutover -- see the migration
+// plan's Phase 3.6 for the panel-side relay design that will restore it.
+// The field and this validation are kept so existing values aren't lost and
+// re-validated identically once that phase lands, not because anything
+// currently acts on them.
 func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	for _, spec := range parseForwardedPorts(forwardedPorts) {
 		if port >= spec.start && port <= spec.end {
@@ -105,63 +90,4 @@ func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 		}
 	}
 	return false
-}
-
-// portForwardComment returns a short, shell-safe iptables comment tag for one
-// peer's forwarded-port rules, so PostDown removes exactly what PostUp added
-// regardless of ordering. Derived from a hash of the peer's email rather than
-// the email itself: email is admin/API-supplied free text that ends up
-// embedded in a shell-executed PostUp/PostDown line, and a hash can never
-// carry a shell metacharacter through.
-func portForwardComment(email string) string {
-	if email == "" {
-		return "awg-fwd"
-	}
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(email))
-	return fmt.Sprintf("awg-fwd-%08x", h.Sum32())
-}
-
-// portForwardLines returns the PostUp ("-A") or PostDown ("-D") iptables
-// lines for one peer's forwarded-ports spec: a DNAT rule (tcp and udp) per
-// spec in the nat table, plus a matching FORWARD accept rule. UDP is
-// included unconditionally since many common uses (games, P2P) need it.
-// Returns nil when forwardedPorts has no valid spec or clientIP is empty.
-func portForwardLines(action, extIface, tunIface, clientIP, email, forwardedPorts string) []string {
-	specs := parseForwardedPorts(forwardedPorts)
-	if len(specs) == 0 {
-		return nil
-	}
-	clientIP = stripCIDRMask(clientIP)
-	if clientIP == "" {
-		return nil
-	}
-	comment := portForwardComment(email)
-
-	lines := make([]string, 0, len(specs)*4)
-	for _, spec := range specs {
-		dport := spec.dportArg()
-		target := spec.dnatTarget(clientIP)
-		for _, proto := range []string{"tcp", "udp"} {
-			nat := fmt.Sprintf("iptables -t nat %s PREROUTING -p %s", action, proto)
-			if extIface != "" {
-				nat += fmt.Sprintf(" -i %s", extIface)
-			}
-			nat += fmt.Sprintf(" --dport %s -m comment --comment %s -j DNAT --to-destination %s", dport, comment, target)
-			lines = append(lines, nat)
-
-			fwd := fmt.Sprintf("iptables %s FORWARD -d %s -p %s -o %s --dport %s -m comment --comment %s -j ACCEPT",
-				action, clientIP, proto, tunIface, dport, comment)
-			lines = append(lines, fwd)
-		}
-	}
-	return lines
-}
-
-// stripCIDRMask removes a "/N" suffix if present.
-func stripCIDRMask(addr string) string {
-	if idx := strings.IndexByte(addr, '/'); idx >= 0 {
-		return addr[:idx]
-	}
-	return addr
 }

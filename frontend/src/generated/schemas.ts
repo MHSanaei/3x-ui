@@ -2831,7 +2831,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {
       "externalInterface": {
-        "description": "ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.\nEmpty means auto-detect.",
+        "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
         "type": "string"
       },
       "h1": {
@@ -2850,7 +2850,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "ipv6Enabled": {
-        "description": "IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is\nallocated from IPv6Subnet alongside each client's IPv4 one, and the\nserver proxies NDP for each enabled client's address so upstream\nrouters see it as directly reachable (no NAT66). IPv6ExternalInterface\noverrides ExternalInterface for the NDP-proxy PostUp/PostDown entries\nspecifically; empty reuses ExternalInterface.",
         "type": "boolean"
       },
       "ipv6ExternalInterface": {
@@ -2883,7 +2882,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "routeThroughXray": {
-        "description": "RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see\nInstance.RouteThroughXray for what that means. Off by default.",
         "type": "boolean"
       },
       "s1": {

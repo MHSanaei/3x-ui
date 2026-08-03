@@ -233,12 +233,3 @@ func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
 		}
 	}
 }
-
-func TestSanitizeConfigValueStripsControlCharactersOnly(t *testing.T) {
-	if got := sanitizeConfigValue("a@x\nPostUp = evil\r\n"); got != "a@xPostUp = evil" {
-		t.Errorf("sanitizeConfigValue must drop newlines/CR without altering the rest, got %q", got)
-	}
-	if got := sanitizeConfigValue("plain-value_123"); got != "plain-value_123" {
-		t.Errorf("sanitizeConfigValue must not touch an already-clean value, got %q", got)
-	}
-}

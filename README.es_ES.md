@@ -24,15 +24,12 @@ Este fork se construyó para funcionar en los routers y servidores personales de
 
 [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) es una variante de WireGuard que añade una capa de ofuscación (paquetes basura, relleno aleatorio, reescritura de cabeceras mágicas) diseñada para vencer la identificación de huella digital de protocolo basada en DPI — el mismo túnel, pero uno que ya no parece un túnel en el cable.
 
-- **Nativo, no Docker.** AmneziaWG se ejecuta como una interfaz de kernel real en el host, activada y desactivada mediante `awg-quick`/`awg` — el mismo enfoque de módulo de kernel DKMS que te da una interfaz `wg0` nativa. No se necesita ningún contenedor sidecar con privilegios.
+- **Integrado, no un módulo de kernel.** AmneziaWG se ejecuta enteramente dentro del propio proceso del panel ([amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) sobre una pila de red en espacio de usuario) — sin compilación DKMS, sin conflictos con Secure Boot, sin contenedor sidecar con privilegios, y nada que instalar en el host en absoluto.
 - **Un protocolo de primera clase.** Una entrada AmneziaWG vive en la misma tabla `Inbound` que el resto, por lo que obtiene gratuitamente las operaciones masivas, el modal de código QR/descarga de configuración y los enlaces de suscripción — nada nuevo que aprender.
 - **Ofuscación completa de AmneziaWG 2.0** — Jc/Jmin/Jmax (paquetes basura), S1–S4 (relleno de paquetes), H1–H4 (cabeceras mágicas) y el paquete de firma I1, todos editables por entrada con un botón de aleatorización de un solo clic, además de un modo compatible con 1.x para clientes más antiguos.
-- **IPv6 nativo**, con proxy NDP por cliente para que cada par obtenga una dirección IPv6 directamente accesible — sin NAT66.
-- **Reenvío de puertos por cliente** — DNAT de puertos/rangos específicos directamente a la dirección de túnel de un par.
-- **Enrutamiento del tráfico de un cliente a través de Xray** — cada entrada AmneziaWG obtiene automáticamente su propio puente Xray por loopback (sin ningún interruptor); enruta el tráfico de cualquier cliente hacia cualquier salida de Xray configurada desde la página de "Enrutamiento" ya existente en el panel, exactamente igual que al enrutar cualquier otro protocolo.
-- **`install.sh` instala el módulo de kernel por ti** en Ubuntu/Debian/Armbian (`ppa:amnezia/ppa`), con una alternativa de respaldo para otras distribuciones. Lo único que no puede hacer por ti: **deshabilitar Secure Boot** en tu VPS/VM de antemano — un módulo compilado con DKMS no está firmado, y el kernel se negará a cargarlo mientras Secure Boot esté habilitado.
-- La reconciliación se realiza exactamente igual que como [`internal/mtproto`](internal/mtproto) gestiona el sidecar `mtg`: un trabajo en segundo plano mantiene la interfaz en ejecución sincronizada con lo almacenado en la base de datos, aplicando los cambios de pares mediante `awg syncconf` en lugar de un reinicio completo de la interfaz siempre que sea posible.
-- **Enlaces de compartición `vpn://` reales** — el enlace de copia/código QR por cliente y el endpoint de suscripción ahora emiten el esquema `vpn://` real que espera la aplicación oficial AmneziaVPN (base64url de un `.conf` plano), no un formato de URI inventado que la app no podía importar.
+- **El tráfico de cada cliente ya pasa por Xray.** Sin TPROXY, sin un puente que activar aparte: cada entrada AmneziaWG reenvía directamente al propio inbound SOCKS5 de Xray por loopback, por lo que las estadísticas por cliente, el estado en línea, el sniffing y las reglas de la página "Enrutamiento" ya existente en el panel simplemente funcionan, igual que con cualquier otro protocolo — sin configuración adicional.
+- **Enlaces de compartición `vpn://` reales** — el enlace de copia/código QR por cliente y el endpoint de suscripción emiten el esquema `vpn://` real que espera la aplicación oficial AmneziaVPN (base64url de un `.conf` plano), no un formato de URI inventado que la app no podía importar.
+- **Temporalmente sin soporte** tras esta reescritura: una dirección IPv6 pública distinta por cliente y el reenvío de puertos por cliente dependían ambos de las reglas de iptables a nivel de host del antiguo módulo de kernel, que aún no tienen un equivalente integrado. Ambos están planificados como próximas versiones; la configuración ya guardada de cualquiera de los dos no se pierde, simplemente queda inactiva hasta entonces.
 
 ## Otros cambios en este fork
 
@@ -121,11 +118,11 @@ ninguna pregunta, generando credenciales aleatorias y escribiéndolas en
 
 ## Plataformas Compatibles
 
-**Sistemas operativos:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) y Alpine. (El proyecto original también publica una versión para Windows; la CI de este fork no lo hace — todo aquí está orientado a servidores/routers que ejecutan Linux, y AmneziaWG necesita un módulo de kernel de Linux de todos modos.)
+**Sistemas operativos:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap) y Alpine. (El proyecto original también publica una versión para Windows; la CI de este fork no lo hace — todo aquí está orientado a servidores/routers que ejecutan Linux.)
 
 **Arquitecturas:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
-AmneziaWG requiere específicamente un kernel de Linux real con el módulo de kernel DKMS de AmneziaWG — no funcionará en Windows, y `install_amneziawg` hoy solo automatiza la instalación del módulo de kernel en Ubuntu/Debian/Armbian (consulta la sección [En qué se diferencia este fork](#en-qué-se-diferencia-este-fork-amneziawg)).
+AmneziaWG está integrado directamente en el propio binario del panel (consulta la sección [En qué se diferencia este fork](#en-qué-se-diferencia-este-fork-amneziawg)) — sin módulo de kernel, sin paso de instalación aparte, sin configuración específica por distribución.
 
 ## Opciones de Base de Datos
 
@@ -195,10 +192,11 @@ Este fork está construido enteramente sobre [MHSanaei/3x-ui](https://github.com
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-La implementación nativa de AmneziaWG en este fork se basa en / está inspirada por:
+La implementación de AmneziaWG en este fork se basa en / está inspirada por:
 
-- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — el pull request original de AmneziaWG contra el proyecto original (enfoque de sidecar Docker); este fork reutiliza su estructura de schema/frontend pero reemplaza el backend por un gestor nativo sin Docker.
-- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — un fork independiente que ya ejecuta AmneziaWG nativo en producción; la gestión del proceso `awg-quick`, la generación de configuración y el generador de parámetros de ofuscación de AmneziaWG 2.0 de este fork provienen de su paquete `awg/`.
+- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — la implementación de AmneziaWG en espacio de usuario que este fork integra directamente en el proceso del panel, sobre una pila de red [gVisor](https://gvisor.dev/), sustituyendo al backend original basado en módulo de kernel de abajo.
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — el pull request original de AmneziaWG contra el proyecto original (enfoque de sidecar Docker); este fork reutiliza su estructura de schema/frontend.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — un fork independiente que ya ejecuta AmneziaWG nativo en producción; el gestor original de este fork basado en el módulo de kernel (`awg-quick`) y el generador de parámetros de ofuscación de AmneziaWG 2.0 se portaron desde su paquete `awg/` antes de esta reescritura.
 
 ## Un Agradecimiento Especial a
 

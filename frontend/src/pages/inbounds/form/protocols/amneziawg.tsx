@@ -68,14 +68,6 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
       >
         <Input placeholder="eth0" />
       </FormField>
-      <FormField
-        name={['settings', 'server', 'routeThroughXray']}
-        label={t('pages.xray.amneziawg.routeThroughXray')}
-        extra={t('pages.xray.amneziawg.routeThroughXrayHint')}
-        valueProp="checked"
-      >
-        <Switch />
-      </FormField>
       <Form.Item label={t('pages.xray.amneziawg.obfuscation')}>
         <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}
