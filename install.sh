@@ -1411,7 +1411,17 @@ _install_xui_service_unit() {
 }
 
 install_x-ui() {
-    cd ${xui_folder%/x-ui}/
+    # If this cd ever silently failed, every later step that builds a path
+    # by string-concatenating ${xui_folder} (absolute, CWD-independent)
+    # would still land in the right place, but the tar extraction below
+    # references its archive by a bare relative filename -- it would then
+    # look for that file wherever the shell's PREVIOUS cwd happened to be
+    # instead, failing with a confusing "No such file or directory" no one
+    # could easily connect back to a failed cd two hundred lines earlier.
+    if ! cd "${xui_folder%/x-ui}/"; then
+        echo -e "${red}Failed to cd into ${xui_folder%/x-ui}/ -- cannot continue${plain}"
+        exit 1
+    fi
 
     # Download resources
     if [ $# == 0 ]; then
@@ -1476,8 +1486,57 @@ install_x-ui() {
         exit 1
     fi
 
-    # Stop x-ui service and remove old resources
+    # Extract into a staging directory and fully verify + prepare it there
+    # BEFORE anything live is touched. A real production incident: an
+    # earlier version of this script stopped the service and deleted the
+    # previous installation first, then extracted straight into place --
+    # when the extraction failed (the archive never even reached disk that
+    # time), the panel was left completely gone with no way back short of a
+    # manual recovery. Staging first means a bad download/extraction just
+    # fails the update with the old installation never touched; running it
+    # again is always safe.
+    local staging="${xui_folder%/x-ui}/x-ui-staging.$$"
     local custom_bin_backup=""
+    trap '[[ -n "${staging}" ]] && rm -rf "${staging}"; [[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"' EXIT INT TERM
+    rm -rf "${staging}"
+    mkdir -p "${staging}"
+    tar zxf x-ui-linux-$(arch).tar.gz -C "${staging}"
+    if [[ $? -ne 0 ]]; then
+        rm x-ui-linux-$(arch).tar.gz -f
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Failed to extract the x-ui release archive -- the previous installation was not touched, it is safe to just try running the installer again${plain}"
+        exit 1
+    fi
+    rm x-ui-linux-$(arch).tar.gz -f
+
+    if [[ ! -s "${staging}/x-ui/x-ui" ]]; then
+        rm -f "${xui_script_temp}"
+        echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation was not touched, it is safe to just try running the installer again${plain}"
+        exit 1
+    fi
+    chmod +x "${staging}/x-ui/x-ui"
+    chmod +x "${staging}/x-ui/x-ui.sh"
+
+    # Check the system's architecture and rename the file accordingly.
+    # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
+    # so the Xray binary must be named xray-linux-arm32; mtg keeps plain "arm".
+    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
+        mv "${staging}/x-ui/bin/xray-linux-$(arch)" "${staging}/x-ui/bin/xray-linux-arm32"
+        chmod +x "${staging}/x-ui/bin/xray-linux-arm32"
+        if [[ -f "${staging}/x-ui/bin/mtg-linux-$(arch)" ]]; then
+            mv "${staging}/x-ui/bin/mtg-linux-$(arch)" "${staging}/x-ui/bin/mtg-linux-arm"
+            chmod +x "${staging}/x-ui/bin/mtg-linux-arm"
+        fi
+    fi
+    chmod +x "${staging}/x-ui/x-ui" "${staging}/x-ui/bin/xray-linux-$(arch)"
+    if [[ -f "${staging}/x-ui/bin/mtg-linux-arm" ]]; then
+        chmod +x "${staging}/x-ui/bin/mtg-linux-arm"
+    elif [[ -f "${staging}/x-ui/bin/mtg-linux-$(arch)" ]]; then
+        chmod +x "${staging}/x-ui/bin/mtg-linux-$(arch)"
+    fi
+
+    # The staged build is now fully verified and prepared -- only now is it
+    # safe to stop the service and replace the live installation.
     if [[ -e ${xui_folder}/ ]]; then
         if [[ $release == "alpine" ]]; then
             rc-service x-ui stop
@@ -1490,7 +1549,7 @@ install_x-ui() {
         # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
 
-        # bin/ is about to be wiped wholesale by the tar extraction below. The
+        # bin/ is about to be replaced wholesale by the staged build below. The
         # release only ships known assets (xray/mtg binaries, the bundled
         # geoip*/geosite*.dat sets) -- anything else in bin/ was placed there
         # by the admin (e.g. a hand-added custom geoip/geosite file referenced
@@ -1509,49 +1568,13 @@ install_x-ui() {
                 echo -e "${yellow}Could not back up bin/ -- custom files there will not be preserved across this update${plain}"
             fi
         fi
-        # Sole cleanup path for the backup from here on -- covers both the
-        # two `exit 1`s below (extraction/binary-missing failures) and an
-        # interrupted update (Ctrl-C, signal) before the restore runs.
-        # Cleared once the restore below finishes normally.
-        trap '[[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"' EXIT INT TERM
         rm ${xui_folder}/ -rf
     fi
-
-    # Extract resources and set permissions
-    tar zxvf x-ui-linux-$(arch).tar.gz
-    if [[ $? -ne 0 ]]; then
-        rm x-ui-linux-$(arch).tar.gz -f
-        rm -f "${xui_script_temp}"
-        echo -e "${red}Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
+    mv "${staging}/x-ui" "${xui_folder}"
+    rm -rf "${staging}"
+    if ! cd "${xui_folder}"; then
+        echo -e "${red}Failed to cd into ${xui_folder} after installing -- cannot continue${plain}"
         exit 1
-    fi
-    rm x-ui-linux-$(arch).tar.gz -f
-
-    cd x-ui
-    if [[ $? -ne 0 || ! -s x-ui ]]; then
-        rm -f "${xui_script_temp}"
-        echo -e "${red}Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the installer again${plain}"
-        exit 1
-    fi
-    chmod +x x-ui
-    chmod +x x-ui.sh
-
-    # Check the system's architecture and rename the file accordingly.
-    # The panel binary maps GOARCH=arm to "arm32" (internal/xray/process.go),
-    # so the Xray binary must be named xray-linux-arm32; mtg keeps plain "arm".
-    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
-        mv bin/xray-linux-$(arch) bin/xray-linux-arm32
-        chmod +x bin/xray-linux-arm32
-        if [[ -f bin/mtg-linux-$(arch) ]]; then
-            mv bin/mtg-linux-$(arch) bin/mtg-linux-arm
-            chmod +x bin/mtg-linux-arm
-        fi
-    fi
-    chmod +x x-ui bin/xray-linux-$(arch)
-    if [[ -f bin/mtg-linux-arm ]]; then
-        chmod +x bin/mtg-linux-arm
-    elif [[ -f bin/mtg-linux-$(arch) ]]; then
-        chmod +x bin/mtg-linux-$(arch)
     fi
 
     # Restore anything from the old bin/ that the fresh release doesn't ship
