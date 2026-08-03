@@ -1078,7 +1078,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					payload := inbound
 					pushable := true
 					if inbound.Protocol == model.MTProto {
-						if built, bErr := s.buildRuntimeInboundForAPI(tx, inbound); bErr == nil {
+						if built, bErr := s.buildInboundForLocalRuntime(tx, inbound); bErr == nil {
 							payload = built
 						} else {
 							logger.Debug("Unable to prepare runtime inbound config:", bErr)
@@ -1326,7 +1326,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 		return needRestart, nil
 	}
 
-	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+	runtimeInbound, err := s.buildInboundForLocalRuntime(db, inbound)
 	if err != nil {
 		logger.Debug("SetInboundEnable: build runtime config failed:", err)
 		return true, nil
@@ -1511,7 +1511,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				payload := oldInbound
 				pushable := true
 				if inbound.Enable {
-					if built, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound); err2 == nil {
+					if built, err2 := s.buildInboundForLocalRuntime(tx, oldInbound); err2 == nil {
 						payload = built
 					} else {
 						logger.Debug("Unable to prepare runtime inbound config:", err2)
@@ -1537,7 +1537,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				var runtimeInbound *model.Inbound
 				if inbound.Enable {
 					var err2 error
-					runtimeInbound, err2 = s.buildRuntimeInboundForAPI(tx, oldInbound)
+					runtimeInbound, err2 = s.buildInboundForLocalRuntime(tx, oldInbound)
 					if err2 != nil {
 						logger.Debug("Unable to prepare runtime inbound config:", err2)
 						needRestart = true
@@ -1608,81 +1608,95 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	return inbound, needRestart, nil
 }
 
-func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+// A node mirrors this payload into its own DB, so every client must survive:
+// filtering one out makes the node delete it, and the master then mirrors that.
+func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
 	if inbound == nil {
 		return nil, fmt.Errorf("inbound is nil")
 	}
 
-	runtimeInbound := *inbound
+	built := *inbound
 	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
 		return nil, err
 	}
 
-	mutated := false
-	if clients, ok := settings["clients"].([]any); ok {
-		var clientStats []xray.ClientTraffic
-		err := tx.Model(xray.ClientTraffic{}).
-			Where("inbound_id = ?", inbound.Id).
-			Select("email", "enable").
-			Find(&clientStats).Error
-		if err != nil {
-			return nil, err
-		}
+	if !inboundCanHostFallbacks(inbound) {
+		return &built, nil
+	}
+	fallbacks, err := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)
+	if err != nil {
+		return nil, err
+	}
+	if len(fallbacks) == 0 {
+		return &built, nil
+	}
+	generic := make([]any, 0, len(fallbacks))
+	for _, f := range fallbacks {
+		generic = append(generic, f)
+	}
+	settings["fallbacks"] = generic
 
-		enableMap := make(map[string]bool, len(clientStats))
-		for _, clientTraffic := range clientStats {
-			enableMap[clientTraffic.Email] = clientTraffic.Enable
-		}
+	modifiedSettings, mErr := json.MarshalIndent(settings, "", "  ")
+	if mErr != nil {
+		return nil, mErr
+	}
+	built.Settings = string(modifiedSettings)
+	return &built, nil
+}
 
-		finalClients := make([]any, 0, len(clients))
-		for _, client := range clients {
-			c, ok := client.(map[string]any)
-			if !ok {
-				continue
-			}
-
-			email, _ := c["email"].(string)
-			if enable, exists := enableMap[email]; exists && !enable {
-				continue
-			}
-
-			if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
-				continue
-			}
-
-			finalClients = append(finalClients, c)
-		}
-
-		settings["clients"] = finalClients
-		mutated = true
+// Strips disabled clients on top of the node payload. Safe only because the
+// target here is an in-memory Xray/mtg config, not another panel's database.
+func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	built, err := s.buildInboundForNodePush(tx, inbound)
+	if err != nil {
+		return nil, err
 	}
 
-	if inboundCanHostFallbacks(inbound) {
-		fallbacks, fbErr := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)
-		if fbErr != nil {
-			return nil, fbErr
-		}
-		if len(fallbacks) > 0 {
-			generic := make([]any, 0, len(fallbacks))
-			for _, f := range fallbacks {
-				generic = append(generic, f)
-			}
-			settings["fallbacks"] = generic
-			mutated = true
-		}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
+		return nil, err
+	}
+	clients, ok := settings["clients"].([]any)
+	if !ok {
+		return built, nil
 	}
 
-	if !mutated {
-		return &runtimeInbound, nil
+	var clientStats []xray.ClientTraffic
+	if err := tx.Model(xray.ClientTraffic{}).
+		Where("inbound_id = ?", built.Id).
+		Select("email", "enable").
+		Find(&clientStats).Error; err != nil {
+		return nil, err
 	}
+	enableMap := make(map[string]bool, len(clientStats))
+	for _, clientTraffic := range clientStats {
+		enableMap[clientTraffic.Email] = clientTraffic.Enable
+	}
+
+	finalClients := make([]any, 0, len(clients))
+	for _, client := range clients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+		email, _ := c["email"].(string)
+		if enable, exists := enableMap[email]; exists && !enable {
+			continue
+		}
+		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+			continue
+		}
+		finalClients = append(finalClients, c)
+	}
+	settings["clients"] = finalClients
 
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return nil, err
 	}
+	runtimeInbound := *built
 	runtimeInbound.Settings = string(modifiedSettings)
-
 	return &runtimeInbound, nil
 }
 

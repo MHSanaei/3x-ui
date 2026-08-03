@@ -105,6 +105,19 @@ func tombstoneClientEmail(email string) {
 	}
 }
 
+func withdrawClientTombstones(emails ...string) {
+	if len(emails) == 0 {
+		return
+	}
+	recentlyDeletedMu.Lock()
+	defer recentlyDeletedMu.Unlock()
+	for _, email := range emails {
+		if email != "" {
+			delete(recentlyDeleted, email)
+		}
+	}
+}
+
 func tombstoneClientEmails(emails []string) {
 	if len(emails) == 0 {
 		return

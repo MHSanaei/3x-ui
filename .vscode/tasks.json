@@ -8,9 +8,17 @@
       "args": [
         "build",
         "-o",
-        "bin/3x-ui.exe",
+        "bin/3x-ui",
         "./main.go"
       ],
+      "windows": {
+        "args": [
+          "build",
+          "-o",
+          "bin/3x-ui.exe",
+          "./main.go"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}"
       },

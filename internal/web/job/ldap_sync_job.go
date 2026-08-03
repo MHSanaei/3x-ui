@@ -2,6 +2,7 @@ package job
 
 import (
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -12,11 +13,16 @@ import (
 
 var DefaultTruthyValues = []string{"true", "1", "yes", "on"}
 
+// Share of the previous successful fetch a new one must still return to be
+// trusted: a sudden collapse means a broken directory far more often than churn.
+const ldapAutoDeleteMinRetainPercent = 50
+
 type LdapSyncJob struct {
 	settingService service.SettingService
 	inboundService service.InboundService
 	clientService  service.ClientService
 	xrayService    service.XrayService
+	lastFlagCount  atomic.Int64
 }
 
 // --- Helper functions for mustGet ---
@@ -77,7 +83,7 @@ func (j *LdapSyncJob) Run() {
 		UserFilter:         mustGetString(j.settingService.GetLdapUserFilter),
 		UserAttr:           mustGetString(j.settingService.GetLdapUserAttr),
 		FlagField:          mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
-		TruthyVals:         splitCsv(mustGetString(j.settingService.GetLdapTruthyValues)),
+		TruthyVals:         truthyValuesOrDefault(mustGetString(j.settingService.GetLdapTruthyValues)),
 		Invert:             mustGetBool(j.settingService.GetLdapInvertFlag),
 	}
 
@@ -157,7 +163,7 @@ func (j *LdapSyncJob) Run() {
 
 	// --- Auto delete clients not in LDAP ---
 	autoDelete := mustGetBool(j.settingService.GetLdapAutoDelete)
-	if autoDelete {
+	if autoDelete && j.autoDeleteSafeForFetch(len(flags)) {
 		ldapEmailSet := map[string]struct{}{}
 		for e := range flags {
 			ldapEmailSet[e] = struct{}{}
@@ -166,11 +172,35 @@ func (j *LdapSyncJob) Run() {
 			j.deleteClientsNotInLDAP(tag, ldapEmailSet)
 		}
 	}
+	j.lastFlagCount.Store(int64(len(flags)))
+}
+
+// FetchVlessFlags returns (empty, nil) when the bind succeeds but the search
+// yields nothing — a renamed OU, a lost read grant — which is not "all gone".
+func (j *LdapSyncJob) autoDeleteSafeForFetch(fetched int) bool {
+	if fetched == 0 {
+		logger.Warning("LDAP auto-delete skipped: directory returned no usable users")
+		return false
+	}
+	previous := j.lastFlagCount.Load()
+	if previous > 0 && int64(fetched)*100 < previous*ldapAutoDeleteMinRetainPercent {
+		logger.Warningf("LDAP auto-delete skipped: fetched %d users, previous successful sync saw %d (below %d%% retention)",
+			fetched, previous, ldapAutoDeleteMinRetainPercent)
+		return false
+	}
+	return true
+}
+
+func truthyValuesOrDefault(s string) []string {
+	if vals := splitCsv(s); len(vals) > 0 {
+		return vals
+	}
+	return DefaultTruthyValues
 }
 
 func splitCsv(s string) []string {
 	if s == "" {
-		return DefaultTruthyValues
+		return nil
 	}
 	parts := strings.Split(s, ",")
 	out := make([]string, 0, len(parts))
