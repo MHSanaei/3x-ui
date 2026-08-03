@@ -144,12 +144,23 @@ func wireguardAllowedIPsCollision(entries, used []string) string {
 // inbound's subnet. It mutates both the typed clients and the parallel raw client
 // maps that get persisted into the inbound settings. Existing values are never
 // overwritten, so editing a client never rotates its keys.
-func defaultWireguardClients(existing, clients []model.Client, interfaceClients []any) error {
+//
+// crossInboundUsed maps AllowedIPs already claimed by clients on every OTHER
+// WireGuard/AmneziaWG inbound on this panel to a human-readable description
+// of which inbound holds it (see otherTunnelAllowedIPs). It is folded into
+// used only AFTER wireguardAllocationBase runs, so an unrelated inbound's
+// subnet can never skew this inbound's own base-subnet inference — it only
+// ever narrows which addresses are free to hand out or accept, and lets a
+// manual-entry collision name the other inbound instead of just the address.
+func defaultWireguardClients(existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	used := make([]string, 0)
 	for i := range existing {
 		used = append(used, existing[i].AllowedIPs...)
 	}
 	base := wireguardAllocationBase(used, defaultWireguardBase)
+	for addr := range crossInboundUsed {
+		used = append(used, addr)
+	}
 	for i := range clients {
 		c := &clients[i]
 		if c.PrivateKey == "" && c.PublicKey == "" {
@@ -181,6 +192,9 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 				return common.NewError("wireguard: allowedIPs has no usable entry")
 			}
 			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
+				if where := crossInboundUsed[hit]; where != "" {
+					return common.NewError("wireguard: allowedIPs entry", hit, "is already used by a client on", where)
+				}
 				return common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
 			}
 			c.AllowedIPs = normalized

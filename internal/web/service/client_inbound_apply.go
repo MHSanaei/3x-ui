@@ -239,6 +239,45 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	return needRestart, nil
 }
 
+// otherTunnelAllowedIPs collects every AllowedIPs entry already claimed by a
+// WireGuard/AmneziaWG client on any OTHER enabled inbound of either protocol
+// on this panel, mapped to a short human-readable description of which
+// inbound holds it. defaultWireguardClients/defaultAmneziaWGClients only
+// ever check uniqueness against their OWN inbound's client list, so two
+// inbounds (whether the same protocol or not) that happen to share a subnet
+// could otherwise silently hand out or accept the same address — this is
+// the cross-inbound half of that guarantee.
+// Deliberately not filtered by enable: a disabled sibling inbound's
+// addresses stay reserved so re-enabling it later can't collide with
+// something handed out in the meantime.
+func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int) (map[string]string, error) {
+	var inbounds []*model.Inbound
+	err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol IN ? AND id != ?", []model.Protocol{model.WireGuard, model.AmneziaWG}, excludeID).
+		Find(&inbounds).Error
+	if err != nil {
+		return nil, err
+	}
+	used := make(map[string]string)
+	for _, ib := range inbounds {
+		clients, cErr := inboundSvc.GetClients(ib)
+		if cErr != nil {
+			continue
+		}
+		name := ib.Remark
+		if name == "" {
+			name = ib.Tag
+		}
+		label := fmt.Sprintf("inbound '%s' (#%d)", name, ib.Id)
+		for _, c := range clients {
+			for _, addr := range c.AllowedIPs {
+				used[addr] = label
+			}
+		}
+	}
+	return used, nil
+}
+
 func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client, emailSubIDs map[string]string) (string, error) {
 	if emailSubIDs == nil {
 		var err error
@@ -357,14 +396,20 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		interfaceClients = keptWire
 	}
 
-	if oldInbound.Protocol == model.WireGuard {
-		if dErr := defaultWireguardClients(existingClients, clients, interfaceClients); dErr != nil {
-			return false, dErr
+	if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
+		crossUsed, cErr := s.otherTunnelAllowedIPs(inboundSvc, oldInbound.Id)
+		if cErr != nil {
+			return false, cErr
 		}
-	}
-	if oldInbound.Protocol == model.AmneziaWG {
-		if dErr := defaultAmneziaWGClients(oldInbound.Settings, existingClients, clients, interfaceClients); dErr != nil {
-			return false, dErr
+		if oldInbound.Protocol == model.WireGuard {
+			if dErr := defaultWireguardClients(existingClients, clients, interfaceClients, crossUsed); dErr != nil {
+				return false, dErr
+			}
+		}
+		if oldInbound.Protocol == model.AmneziaWG {
+			if dErr := defaultAmneziaWGClients(oldInbound.Settings, existingClients, clients, interfaceClients, crossUsed); dErr != nil {
+				return false, dErr
+			}
 		}
 	}
 
