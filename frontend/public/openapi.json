@@ -2857,7 +2857,7 @@
         "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
         "properties": {
           "externalInterface": {
-            "description": "ExternalInterface, IPv6Enabled/IPv6Subnet/IPv6ExternalInterface, and\nRouteThroughXray are all vestigial as of the hard cutover to the\nembedded path (internal/amneziawgnet) -- see the matching fields on\nInstance for what each used to do under the retired kernel-module\narchitecture and what (if anything) is planned to read them again.",
+            "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
             "type": "string"
           },
           "h1": {
