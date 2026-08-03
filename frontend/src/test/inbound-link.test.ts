@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  amneziawgConfigFromLink,
   genAmneziaWGConfig,
   genAmneziaWGLink,
   genHysteriaLink,
@@ -407,6 +408,29 @@ describe('genAmneziaWGLink vpn:// scheme', () => {
 
   it('returns an empty string when the peer index has no client', () => {
     expect(genAmneziaWGLink({ ...input, peerIndex: 5 })).toBe('');
+  });
+
+  // The subscription page's own reverse of the above: recovers a vpn://
+  // link's .conf text for the same copy/download/QR "Config" block
+  // WireGuard already gets there (wireguardConfigFromLink's AmneziaWG
+  // counterpart) -- found missing from that page in production (no
+  // download-config affordance for AmneziaWG links, unlike WireGuard's),
+  // even though every other surface in the panel (InboundInfoModal,
+  // ClientInfoModal, ClientQrModal) already had parity.
+  it('amneziawgConfigFromLink round-trips genAmneziaWGLink byte-identical to genAmneziaWGConfig', () => {
+    const link = genAmneziaWGLink(input);
+    expect(amneziawgConfigFromLink(link)).toBe(genAmneziaWGConfig(input));
+  });
+});
+
+describe('amneziawgConfigFromLink edge cases', () => {
+  it('returns an empty string for a non-vpn:// link', () => {
+    expect(amneziawgConfigFromLink('wireguard://abc')).toBe('');
+    expect(amneziawgConfigFromLink('')).toBe('');
+  });
+
+  it('returns an empty string for an unparseable vpn:// payload', () => {
+    expect(amneziawgConfigFromLink('vpn://not-valid-base64url!!!')).toBe('');
   });
 });
 

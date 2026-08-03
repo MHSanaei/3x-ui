@@ -1064,6 +1064,34 @@ export function wireguardConfigFromLink(link: string, fallbackRemark = ''): stri
   return lines.join('\n');
 }
 
+// Reverse of toBase64Url above -- recovers a vpn:// link's plain .conf
+// payload for display/copy/download/QR, the AmneziaWG counterpart of
+// wireguardConfigFromLink. Simpler than that function: a vpn:// link's
+// payload already *is* the .conf text (see genAmneziaWGLink's own doc
+// comment), so there's nothing to reconstruct from query params -- just
+// decode. Mirrors link-label.tsx's own private fromBase64Url (used there
+// only to pull the remark/port back out for the tag label); duplicated
+// rather than imported since both are tiny, self-contained, and each
+// file already owns the matching encode or decode half of this pair.
+function fromBase64Url(value: string): string {
+  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+export function amneziawgConfigFromLink(link: string): string {
+  const trimmed = link.trim();
+  if (!trimmed.startsWith('vpn://')) return '';
+  try {
+    return fromBase64Url(trimmed.slice('vpn://'.length));
+  } catch {
+    return '';
+  }
+}
+
 export type { WireguardInboundPeer };
 
 function isUnixSocketListen(listen: string): boolean {
