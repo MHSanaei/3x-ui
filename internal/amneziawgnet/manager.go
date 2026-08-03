@@ -3,14 +3,33 @@ package amneziawgnet
 import (
 	"fmt"
 	"net/netip"
+	"os"
 	"strings"
 	"sync"
 
+	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
+
+// verboseLoggerIfEnabled returns a real amneziawg-go verbose logger (real
+// handshake/keepalive/decrypt-error diagnostics -- the device is otherwise
+// completely silent by design, see DeviceOptions' own doc comment) when the
+// AMNEZIAWGNET_DEBUG environment variable is set to any non-empty value,
+// nil otherwise (NewDevice's own default -- LogLevelSilent -- applies).
+// Deliberately opt-in and env-var-gated rather than a permanent log-level
+// setting: this device's own protocol-level logging has no per-peer
+// filtering, so enabling it on a busy real inbound would be noisy; it's
+// meant for exactly this kind of "why did this one handshake go quiet"
+// investigation on a low-traffic box.
+func verboseLoggerIfEnabled(inboundID int) *device.Logger {
+	if os.Getenv("AMNEZIAWGNET_DEBUG") == "" {
+		return nil
+	}
+	return device.NewLogger(device.LogLevelVerbose, fmt.Sprintf("(awg#%d) ", inboundID))
+}
 
 // Desired pairs an amneziawg.Instance (the shared, DB-backed shape
 // internal/amneziawg's own kernel-module Manager also reconciles toward)
@@ -83,6 +102,9 @@ func (m *Manager) Ensure(d Desired) error {
 // makes the address/MTU rebuild path worth avoiding too.
 func (m *Manager) ensureLocked(d Desired) error {
 	inst, opts := d.Instance, d.Options
+	if opts.Logger == nil {
+		opts.Logger = verboseLoggerIfEnabled(inst.Id)
+	}
 	structFP := addressFingerprint(inst)
 
 	cur, exists := m.ifaces[inst.Id]
