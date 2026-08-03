@@ -45,11 +45,12 @@ type Desired struct {
 // enough of its own configuration to decide whether a later Ensure call can
 // reconfigure it in place or needs to rebuild it from scratch.
 type managed struct {
-	dev      *Device
-	udpRelay *UDPRelay
-	peers    *PeerIndex
-	inst     amneziawg.Instance
-	structFP string
+	dev        *Device
+	udpRelay   *UDPRelay
+	peers      *PeerIndex
+	inst       amneziawg.Instance
+	structFP   string
+	uapiConfig string
 }
 
 // Manager owns the set of running embedded AmneziaWG interfaces, keyed by
@@ -89,17 +90,23 @@ func (m *Manager) Ensure(d Desired) error {
 }
 
 // ensureLocked decides between three actions: nothing changed since the
-// last apply (skip entirely); only peers/obfuscation/keys/listen_port
-// changed (reconfigure the existing Device in place via IpcSet, which
-// already sends replace_peers=true -- see buildUAPIConfig -- so removed
-// peers are dropped correctly without a full rebuild); or the interface's
-// own address(es)/MTU changed (these are fixed at netstack-construction
-// time, so the only option is closing the old Device and building a fresh
-// one). This is a coarser split than internal/amneziawg's own three-tier
-// noop/reload/restart fingerprinting (that one also tracks host-side
-// TPROXY/NDP rules this embedded path has no equivalent of) -- correct and
-// sufficient for Phase 1; revisit only if reconcile frequency at real scale
-// makes the address/MTU rebuild path worth avoiding too.
+// last apply (skip entirely -- this is the common case on every 10s
+// reconcile tick when no admin edit happened, and it MUST actually skip the
+// IpcSet call, not just look like it should: amneziawg-go's IpcSet always
+// includes replace_peers=true -- see buildUAPIConfig -- and its own
+// implementation of that op is device.RemoveAllPeers(), unconditionally,
+// even when the new peer list is byte-identical to the old one. A real
+// production bug, found via a live test connection that reset every ~10s:
+// calling IpcSet on every tick regardless of whether anything changed was
+// tearing down every peer's live handshake/session state on every single
+// reconcile, so no connection could ever survive past one tick); only
+// peers/obfuscation/keys/listen_port changed (reconfigure the existing
+// Device in place via IpcSet); or the interface's own address(es)/MTU
+// changed (these are fixed at netstack-construction time, so the only
+// option is closing the old Device and building a fresh one). This is a
+// coarser split than internal/amneziawg's own three-tier noop/reload/
+// restart fingerprinting (that one also tracks host-side TPROXY/NDP rules
+// this embedded path has no equivalent of) -- correct and sufficient here.
 func (m *Manager) ensureLocked(d Desired) error {
 	inst, opts := d.Instance, d.Options
 	if opts.Logger == nil {
@@ -123,11 +130,25 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if err != nil {
 			return fmt.Errorf("amneziawgnet: %w", err)
 		}
+		// True no-op: the rendered UAPI config -- which already covers every
+		// field IpcSet can act on (keys, listen port, obfuscation, AWG 3.0
+		// options, the full peer list) -- is byte-identical to what's
+		// already live. Comparing the rendered string instead of inst
+		// directly means this can never drift out of sync with whatever
+		// buildUAPIConfig actually reads, the way a hand-maintained field
+		// list could.
+		if conf == cur.uapiConfig {
+			cur.peers = NewPeerIndex(inst.Peers)
+			cur.inst = inst
+			applyV6Aliases(diffV6Aliases(oldInst, inst))
+			return nil
+		}
 		if err := cur.dev.IpcSet(conf); err != nil {
 			return fmt.Errorf("amneziawgnet: reconfigure inbound %d: %w", inst.Id, err)
 		}
 		cur.peers = NewPeerIndex(inst.Peers)
 		cur.inst = inst
+		cur.uapiConfig = conf
 		applyV6Aliases(diffV6Aliases(oldInst, inst))
 		return nil
 	}
@@ -141,6 +162,13 @@ func (m *Manager) ensureLocked(d Desired) error {
 	if err != nil {
 		return err
 	}
+	// NewDevice already rendered and applied this exact config internally;
+	// recomputing it here (cheap, pure, guaranteed to succeed since
+	// NewDevice just proved these inputs are valid) is simpler than
+	// threading the string back out of NewDevice's own signature, and gives
+	// the no-op check above a correct baseline to compare the next tick
+	// against instead of an empty string.
+	conf, _ := buildUAPIConfig(inst, opts)
 
 	relay := socksRelayForInstance(inst)
 	udpRelay := NewUDPRelay(relay, dev.Stack)
@@ -180,11 +208,12 @@ func (m *Manager) ensureLocked(d Desired) error {
 	})
 
 	m.ifaces[inst.Id] = &managed{
-		dev:      dev,
-		udpRelay: udpRelay,
-		peers:    NewPeerIndex(inst.Peers),
-		inst:     inst,
-		structFP: structFP,
+		dev:        dev,
+		udpRelay:   udpRelay,
+		peers:      NewPeerIndex(inst.Peers),
+		inst:       inst,
+		structFP:   structFP,
+		uapiConfig: conf,
 	}
 	applyV6Aliases(diffV6Aliases(oldInst, inst))
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)

@@ -3,6 +3,8 @@ package amneziawgnet
 import (
 	"testing"
 
+	"github.com/amnezia-vpn/amneziawg-go/v3/device"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -81,5 +83,89 @@ func TestManagerLifecycle(t *testing.T) {
 	}
 	if _, _, ok := m.Lookup(inst.Id); ok {
 		t.Error("Lookup succeeded after Reconcile([]) removed the interface")
+	}
+}
+
+// TestEnsureUnchangedInstanceDoesNotResetLivePeers is a regression test for a
+// real production bug: an unchanged Ensure call (the common case on every
+// 10s AmneziaWGJob reconcile tick when no admin edit happened) was calling
+// IpcSet unconditionally. amneziawg-go's IpcSet always includes
+// replace_peers=true (see buildUAPIConfig), and its own implementation of
+// that op is device.RemoveAllPeers() -- unconditionally, even when the new
+// peer list is byte-identical to the old one. That tore down every peer's
+// live handshake/session state on every single reconcile tick, so no real
+// connection could ever survive past ~10 seconds. Caught via a live test
+// connection that reset every ~10s with amneziawg-go's own verbose logging
+// enabled (AMNEZIAWGNET_DEBUG) showing "UAPI: Removing all peers" +
+// peer "Stopping"/"Starting" on every tick.
+//
+// Verified here by comparing the *device.Peer pointer LookupPeer returns
+// before and after a no-op Ensure: identical pointer proves the peer object
+// itself survived (no RemoveAllPeers), not just that some higher-level
+// abstraction looks unchanged.
+func TestEnsureUnchangedInstanceDoesNotResetLivePeers(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	_, peerPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate peer keypair: %v", err)
+	}
+
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            4,
+		InterfaceName: "awgtest4",
+		ListenPort:    58715,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.204.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+		Peers: []amneziawg.Peer{
+			{Email: "peer@test", PublicKey: peerPub, AllowedIPs: []string{"10.204.0.2/32"}},
+		},
+	}
+	defer m.StopAll()
+
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure (create): %v", err)
+	}
+
+	peerPubHex, err := wireguard.KeyToHex(peerPub)
+	if err != nil {
+		t.Fatalf("KeyToHex: %v", err)
+	}
+	var npk device.NoisePublicKey
+	if err := npk.FromHex(peerPubHex); err != nil {
+		t.Fatalf("NoisePublicKey.FromHex: %v", err)
+	}
+
+	dev, _, ok := m.Lookup(inst.Id)
+	if !ok {
+		t.Fatal("Lookup after Ensure: not found")
+	}
+	peerBefore := dev.LookupPeer(npk)
+	if peerBefore == nil {
+		t.Fatal("LookupPeer returned nil right after Ensure created the peer")
+	}
+
+	// Simulate the reconcile job firing again with byte-identical data --
+	// this is what AmneziaWGJob does every 10 seconds regardless of whether
+	// anything actually changed.
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure (unchanged, second tick): %v", err)
+	}
+	peerAfter := dev.LookupPeer(npk)
+	if peerAfter == nil {
+		t.Fatal("LookupPeer returned nil after the unchanged Ensure -- peer was removed and never re-added")
+	}
+	if peerBefore != peerAfter {
+		t.Error("unchanged Ensure recreated the peer object (RemoveAllPeers + re-add) -- " +
+			"any live handshake/session on this peer would have been reset for no reason")
 	}
 }
