@@ -60,7 +60,16 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
+		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
+		// A brand new inbound can be the first one to qualify for
+		// injectAmneziawgnetSocks's Xray-side relay inbound (e.g. its first
+		// valid peer). Ensure only updates the embedded Device -- flag Xray
+		// for a resync so the relay actually gets created within the next
+		// ApplyPendingRestart tick instead of only at the next full restart.
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return err
 	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
@@ -78,6 +87,12 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.AmneziaWG {
 		amneziawgnet.GetManager().Remove(ib.Id)
+		// The removed inbound may have been the only one backing Xray's
+		// injectAmneziawgnetSocks relay inbound for this tag -- flag a
+		// resync so the now-stale relay gets torn down promptly.
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -134,7 +149,18 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 // can reconfigure the running embedded Device in place via IpcSet instead
 // of always rebuilding it (see internal/amneziawgnet.Manager.ensureLocked --
 // only an address/MTU change forces a rebuild there, not a peer edit).
+//
+// Every exit path below only touches the embedded Device via
+// amneziawgnet.GetManager() -- none of it rebuilds Xray's own config, which
+// is what actually creates/removes injectAmneziawgnetSocks's relay inbound.
+// A peer edit that changes whether this inbound has a qualifying peer at
+// all (its first peer added, or its last one removed) must still get that
+// relay created or torn down, so flag Xray for a resync unconditionally
+// here rather than trying to enumerate which of the branches below need it.
 func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if l.deps.SetNeedRestart != nil {
+		l.deps.SetNeedRestart()
+	}
 	if oldIb.Protocol == model.AmneziaWG && newIb.Protocol != model.AmneziaWG {
 		amneziawgnet.GetManager().Remove(oldIb.Id)
 		if !newIb.Enable {
