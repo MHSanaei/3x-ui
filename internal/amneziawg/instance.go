@@ -141,3 +141,26 @@ func FirstIPv4(allowedIPs []string) string {
 	}
 	return ""
 }
+
+// FirstIPv6 returns the first IPv6 address (mask stripped) among allowedIPs,
+// or "" if none — the IPv6 counterpart of FirstIPv4, used by
+// internal/amneziawgnet's IPv6-address-alias mechanism to find which
+// address, if any, a peer wants aliased onto the host, and by
+// internal/web/service/xray.go's injectAmneziawgV6Egress to build that
+// peer's own freedom outbound (sendThrough). Only the first match is
+// returned, exactly like FirstIPv4 — more than one IPv6 AllowedIPs entry
+// per peer is not a supported configuration for either feature.
+func FirstIPv6(allowedIPs []string) string {
+	for _, a := range allowedIPs {
+		if prefix, err := netip.ParsePrefix(a); err == nil {
+			if prefix.Addr().Is6() && !prefix.Addr().Is4In6() {
+				return prefix.Addr().String()
+			}
+			continue
+		}
+		if addr, err := netip.ParseAddr(a); err == nil && addr.Is6() && !addr.Is4In6() {
+			return addr.String()
+		}
+	}
+	return ""
+}

@@ -120,3 +120,46 @@ func TestInterfaceNameForID(t *testing.T) {
 		t.Errorf("interfaceNameForID(42) = %q, want awg42", got)
 	}
 }
+
+func TestFirstIPv4(t *testing.T) {
+	cases := []struct {
+		name string
+		ips  []string
+		want string
+	}{
+		{"single v4 CIDR", []string{"10.8.1.2/32"}, "10.8.1.2"},
+		{"bare v4 address, no mask", []string{"10.8.1.2"}, "10.8.1.2"},
+		{"v6 first, v4 second", []string{"fd86:ea04:1115::2/128", "10.8.1.2/32"}, "10.8.1.2"},
+		{"v4-only among several", []string{"10.8.1.2/32", "10.8.1.3/32"}, "10.8.1.2"},
+		{"v6 only", []string{"fd86:ea04:1115::2/128"}, ""},
+		{"empty input", nil, ""},
+		{"unparseable entries skipped", []string{"not-an-ip", "10.8.1.2/32"}, "10.8.1.2"},
+	}
+	for _, c := range cases {
+		if got := FirstIPv4(c.ips); got != c.want {
+			t.Errorf("%s: FirstIPv4(%v) = %q, want %q", c.name, c.ips, got, c.want)
+		}
+	}
+}
+
+func TestFirstIPv6(t *testing.T) {
+	cases := []struct {
+		name string
+		ips  []string
+		want string
+	}{
+		{"single v6 CIDR", []string{"fd86:ea04:1115::2/128"}, "fd86:ea04:1115::2"},
+		{"bare v6 address, no mask", []string{"fd86:ea04:1115::2"}, "fd86:ea04:1115::2"},
+		{"v4 first, v6 second", []string{"10.8.1.2/32", "fd86:ea04:1115::2/128"}, "fd86:ea04:1115::2"},
+		{"only first of two v6 entries returned", []string{"fd86:ea04:1115::2/128", "fd86:ea04:1115::3/128"}, "fd86:ea04:1115::2"},
+		{"v4 only", []string{"10.8.1.2/32"}, ""},
+		{"empty input", nil, ""},
+		{"unparseable entries skipped", []string{"not-an-ip", "fd86:ea04:1115::2/128"}, "fd86:ea04:1115::2"},
+		{"v4-mapped v6 is not a real v6 identity", []string{"::ffff:10.8.1.2/128"}, ""},
+	}
+	for _, c := range cases {
+		if got := FirstIPv6(c.ips); got != c.want {
+			t.Errorf("%s: FirstIPv6(%v) = %q, want %q", c.name, c.ips, got, c.want)
+		}
+	}
+}

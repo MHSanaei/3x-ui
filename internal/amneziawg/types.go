@@ -59,17 +59,23 @@ type Instance struct {
 	Peers       []Peer
 
 	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
-	// attached to under the retired kernel-module architecture. Not read by
-	// the embedded path (internal/amneziawgnet) as of the hard cutover --
-	// kept for Phase 3.5's planned real-IPv6-address-alias mechanism, which
-	// will need to know which host NIC to alias an address onto.
+	// attached to under the retired kernel-module architecture. Also the
+	// fallback host NIC internal/amneziawgnet's IPv6-address-alias
+	// mechanism (desiredV6Aliases) uses when IPv6ExternalInterface is left
+	// blank.
 	ExternalInterface string
 
-	// IPv6Enabled/IPv6ExternalInterface controlled the per-peer NDP proxy
-	// PostUp/PostDown entries (ip -6 neigh add/del proxy) under the retired
-	// kernel-module architecture. Not read by the embedded path as of the
-	// hard cutover -- distinct-per-peer public IPv6 identity is Phase 3.5,
-	// see the migration plan.
+	// IPv6Enabled/IPv6ExternalInterface gate internal/amneziawgnet's
+	// IPv6-address-alias mechanism (desiredV6Aliases,
+	// internal/web/service/xray.go's injectAmneziawgV6Egress): each peer
+	// with an IPv6 AllowedIPs entry gets that address aliased onto this
+	// host NIC (ip -6 addr add) and a dedicated Xray freedom outbound bound
+	// to it, giving that peer's own outbound connections a distinct public
+	// source identity. Narrower in scope than these identically-named
+	// fields' role under the retired kernel-module architecture, which used
+	// per-peer NDP-proxy entries (ip -6 neigh add proxy) to also support
+	// unsolicited inbound connections toward the peer -- that capability is
+	// the separate, not-yet-built Phase 3.6 (port-forwarding).
 	IPv6Enabled           bool
 	IPv6ExternalInterface string
 
@@ -101,11 +107,15 @@ type ServerSettings struct {
 	PrimaryDNS   string `json:"primaryDns,omitempty"`
 	SecondaryDNS string `json:"secondaryDns,omitempty"`
 
-	// ExternalInterface, IPv6Enabled/IPv6Subnet/IPv6ExternalInterface, and
-	// RouteThroughXray are all vestigial as of the hard cutover to the
-	// embedded path (internal/amneziawgnet) -- see the matching fields on
-	// Instance for what each used to do under the retired kernel-module
-	// architecture and what (if anything) is planned to read them again.
+	// ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live
+	// again as of Phase 3.5 -- see the matching fields on Instance for what
+	// they gate (internal/amneziawgnet's IPv6-address-alias mechanism).
+	// IPv6Subnet was never actually vestigial either: InstanceFromInbound
+	// already consumes it (via serverAddressV6) to build the server's own
+	// tunnel address, same as always. Only RouteThroughXray, below, remains
+	// genuinely vestigial as of the hard cutover to the embedded path
+	// (internal/amneziawgnet) -- read from existing stored settings for
+	// backward compatibility, but not acted on by anything.
 	ExternalInterface string `json:"externalInterface,omitempty"`
 
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`

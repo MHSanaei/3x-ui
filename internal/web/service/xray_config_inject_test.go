@@ -709,3 +709,266 @@ func TestInjectAmneziawgnetSocks_TagCollisionSkipsThatInboundOnly(t *testing.T) 
 		t.Fatal("awg-2's relay inbound must still be created despite awg-1's tag collision")
 	}
 }
+
+// amneziawgV6Inbound builds an AmneziaWG inbound with IPv6 enabled and a
+// given external interface -- amneziawgInbound's own ServerSettings never
+// sets these, so injectAmneziawgV6Egress's tests need their own variant.
+func amneziawgV6Inbound(id int, tag string, ext6 string, clients []model.Client) *model.Inbound {
+	server := amneziawg.ServerSettings{
+		SubnetIP: "10.8.1.0", SubnetCIDR: 24,
+		IPv6Enabled: true, IPv6ExternalInterface: ext6,
+	}
+	settings, _ := json.Marshal(amneziawg.InboundSettings{Server: &server, Clients: clients})
+	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
+}
+
+// injectAmneziawgV6Egress runs after injectAmneziawgnetSocks in the real
+// GetXrayConfig() pipeline and depends on its relay inbound already
+// existing (see the "live" tag check) -- every test below calls both, in
+// that order, to match production.
+func injectAmneziawgSocksThenV6(cfg *xray.Config, inbounds []*model.Inbound) {
+	injectAmneziawgnetSocks(cfg, inbounds)
+	injectAmneziawgV6Egress(cfg, inbounds)
+}
+
+type v6EgressRouting struct {
+	Rules []struct {
+		InboundTag  []string `json:"inboundTag"`
+		User        []string `json:"user"`
+		OutboundTag string   `json:"outboundTag"`
+		Type        string   `json:"type"`
+	} `json:"rules"`
+}
+
+type v6EgressOutbound struct {
+	Tag         string `json:"tag"`
+	Protocol    string `json:"protocol"`
+	SendThrough string `json:"sendThrough"`
+}
+
+func TestInjectAmneziawgV6Egress_CreatesOutboundAndRuleForV6Peer(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgV6Inbound(7, "awg-7", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32", "fd86:ea04:1115::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+
+	var outbounds []v6EgressOutbound
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	wantTag := amneziawgV6EgressTag(7, "a@x")
+	var got *v6EgressOutbound
+	for i := range outbounds {
+		if outbounds[i].Tag == wantTag {
+			got = &outbounds[i]
+		}
+	}
+	if got == nil {
+		t.Fatalf("expected an outbound tagged %q, got %+v", wantTag, outbounds)
+	}
+	if got.Protocol != "freedom" || got.SendThrough != "fd86:ea04:1115::2" {
+		t.Fatalf("outbound must be a freedom outbound bound to the peer's own v6 address, got %+v", got)
+	}
+	// Pre-existing outbounds (direct, warp) must survive untouched.
+	if len(outbounds) != 3 {
+		t.Fatalf("expected the 2 pre-existing outbounds plus 1 new one, got %+v", outbounds)
+	}
+
+	var routing v6EgressRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	ruleIdx := -1
+	for i := range routing.Rules {
+		if routing.Rules[i].OutboundTag == wantTag {
+			ruleIdx = i
+		}
+	}
+	if ruleIdx == -1 {
+		t.Fatalf("expected a routing rule targeting %q, got %+v", wantTag, routing.Rules)
+	}
+	rule := routing.Rules[ruleIdx]
+	if rule.Type != "field" || len(rule.User) != 1 || rule.User[0] != "a@x" ||
+		len(rule.InboundTag) != 1 || rule.InboundTag[0] != "awg-7" {
+		t.Fatalf("rule must match this peer's email and inbound tag, got %+v", rule)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_SkipsPeerWithoutV6Address(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.OutboundConfigs)
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}}, // v4 only
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != before {
+		t.Fatalf("a peer with no v6 AllowedIPs entry must not get an outbound, got %s", cfg.OutboundConfigs)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_MultiplePeersEachGetOwnOutboundAndRule(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"fd86:ea04:1115::3/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+
+	var outbounds []v6EgressOutbound
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	tagA, tagB := amneziawgV6EgressTag(1, "a@x"), amneziawgV6EgressTag(1, "b@x")
+	seen := map[string]string{}
+	for _, o := range outbounds {
+		seen[o.Tag] = o.SendThrough
+	}
+	if seen[tagA] != "fd86:ea04:1115::2" || seen[tagB] != "fd86:ea04:1115::3" {
+		t.Fatalf("each peer must get its own outbound bound to its own address, got %+v", seen)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_StableTagAcrossRegenerations(t *testing.T) {
+	// Same instance data, two independent injections -- hot_diff.go relies on
+	// the tag being a pure function of (inboundID, email) so it recognizes
+	// "unchanged" rather than remove+recreate on every poll.
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+	cfg1 := egressTestConfig()
+	injectAmneziawgSocksThenV6(cfg1, []*model.Inbound{inbound})
+	cfg2 := egressTestConfig()
+	injectAmneziawgSocksThenV6(cfg2, []*model.Inbound{inbound})
+
+	var out1, out2 []v6EgressOutbound
+	json.Unmarshal(cfg1.OutboundConfigs, &out1)
+	json.Unmarshal(cfg2.OutboundConfigs, &out2)
+	if len(out1) != len(out2) || out1[len(out1)-1].Tag != out2[len(out2)-1].Tag {
+		t.Fatalf("tag must be stable across independent regenerations, got %+v vs %+v", out1, out2)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_SkipsWrongProtocolOrNodeHostedOrDisabled(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.OutboundConfigs)
+	vless := &model.Inbound{Id: 1, Tag: "in-1", Protocol: model.VLESS, Enable: true}
+	nodeID := 5
+	nodeHosted := amneziawgV6Inbound(2, "awg-2", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+	nodeHosted.NodeID = &nodeID
+	disabled := amneziawgV6Inbound(3, "awg-3", "eth0", []model.Client{
+		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"fd86:ea04:1115::3/128"}},
+	})
+	disabled.Enable = false
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{vless, nodeHosted, disabled})
+	if string(cfg.OutboundConfigs) != before {
+		t.Fatalf("wrong-protocol, node-hosted, and disabled inbounds must never get a v6 outbound, got %s", cfg.OutboundConfigs)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_SkipsWhenRelayInboundNotCreated(t *testing.T) {
+	cfg := egressTestConfig()
+	// A pre-existing inbound already holds this AmneziaWG inbound's tag, so
+	// injectAmneziawgnetSocks (called first, matching production order)
+	// skips creating its relay SOCKS5 inbound entirely.
+	cfg.InboundConfigs = append(cfg.InboundConfigs,
+		xray.InboundConfig{Port: 1234, Protocol: "vless", Tag: "awg-1"})
+	before := string(cfg.OutboundConfigs)
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != before {
+		t.Fatalf("no v6 outbound should be created when the relay inbound itself never got created, got %s", cfg.OutboundConfigs)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_OutboundTagCollisionSkipsThatPeerOnly(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+		{Email: "b@x", Enable: true, PublicKey: "pub-b", AllowedIPs: []string{"fd86:ea04:1115::3/128"}},
+	})
+	// Pre-seed a colliding outbound tag for a@x specifically.
+	collidingTag := amneziawgV6EgressTag(1, "a@x")
+	existing, _ := json.Marshal([]any{map[string]any{"tag": collidingTag, "protocol": "freedom"}})
+	cfg.OutboundConfigs = json_util.RawMessage(existing)
+
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+
+	var outbounds []v6EgressOutbound
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	tagB := amneziawgV6EgressTag(1, "b@x")
+	foundB := false
+	countA := 0
+	for _, o := range outbounds {
+		if o.Tag == collidingTag {
+			countA++
+		}
+		if o.Tag == tagB {
+			foundB = true
+		}
+	}
+	if countA != 1 {
+		t.Fatalf("a@x's pre-existing outbound must not be duplicated, got %d copies", countA)
+	}
+	if !foundB {
+		t.Fatal("b@x must still get its own outbound despite a@x's tag collision")
+	}
+}
+
+func TestInjectAmneziawgV6Egress_BadOutboundsOrRoutingSkips(t *testing.T) {
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+
+	cfg := egressTestConfig()
+	cfg.OutboundConfigs = json_util.RawMessage(`{not json`)
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != `{not json` {
+		t.Fatalf("unparsable outbounds must be left untouched, got %s", cfg.OutboundConfigs)
+	}
+
+	cfg2 := egressTestConfig()
+	cfg2.RouterConfig = json_util.RawMessage(`{not json`)
+	injectAmneziawgSocksThenV6(cfg2, []*model.Inbound{inbound})
+	if string(cfg2.RouterConfig) != `{not json` {
+		t.Fatalf("unparsable routing must be left untouched, got %s", cfg2.RouterConfig)
+	}
+}
+
+func TestInjectAmneziawgV6Egress_NoQualifyingPeerLeavesConfigUntouched(t *testing.T) {
+	cfg := egressTestConfig()
+	beforeOut, beforeRoute := string(cfg.OutboundConfigs), string(cfg.RouterConfig)
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", nil) // no clients at all
+	injectAmneziawgV6Egress(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != beforeOut || string(cfg.RouterConfig) != beforeRoute {
+		t.Fatalf("an inbound with no qualifying peer must leave the config byte-identical")
+	}
+}
+
+func TestInjectAmneziawgV6Egress_RulesPrependedBeforeExistingRules(t *testing.T) {
+	cfg := egressTestConfig() // already has one rule, targeting "api"
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+
+	var routing v6EgressRouting
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 2 {
+		t.Fatalf("expected the new rule plus the pre-existing one, got %+v", routing.Rules)
+	}
+	if routing.Rules[0].OutboundTag != amneziawgV6EgressTag(1, "a@x") {
+		t.Fatalf("the new infra rule must be prepended ahead of the pre-existing rule, got %+v", routing.Rules[0])
+	}
+	if routing.Rules[1].OutboundTag != "api" {
+		t.Fatalf("the pre-existing rule must survive, got %+v", routing.Rules[1])
+	}
+}

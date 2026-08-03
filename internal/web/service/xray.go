@@ -379,6 +379,17 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// like routing any other protocol.
 	injectAmneziawgnetSocks(xrayConfig, inbounds)
 
+	// Restores each opted-in peer's own distinct public IPv6 source identity
+	// for its outbound connections, dropped by the hard cutover above (see
+	// Phase 3.5 of the migration plan) — a peer that has an IPv6 address in
+	// its AllowedIPs, on an inbound with IPv6Enabled, gets its own freedom
+	// outbound bound to that exact address via sendThrough.
+	// internal/amneziawgnet's own Manager is responsible for actually
+	// aliasing that address onto the host (see v6alias.go) so the kernel
+	// lets Xray bind an egress socket to it at all; this call only builds
+	// the Xray-side outbound/routing-rule half.
+	injectAmneziawgV6Egress(xrayConfig, inbounds)
+
 	// Wire the panel's own HTTP traffic through the configured outbound, after
 	// the subscription merge so subscription outbound tags are valid targets.
 	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
@@ -751,6 +762,152 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			Tag:      inbound.Tag,
 		})
 	}
+}
+
+// amneziawgV6EgressTag returns the stable, globally-unique freedom outbound
+// tag for one peer's IPv6 source-identity egress. Stable across config
+// regenerations (a pure function of two stable identifiers), so
+// internal/xray/hot_diff.go's tag-keyed outbound/routing diffing recognizes
+// "unchanged" rather than remove+recreate on every poll. The inbound.Id
+// prefix is defense in depth, not load-bearing on its own: email is already
+// enforced globally unique across the whole panel's client table
+// (model.ClientRecord.Email has a gorm uniqueIndex) — kept anyway since it
+// costs nothing and makes the tag self-describing, matching
+// NodeEgressInboundTag's own style.
+func amneziawgV6EgressTag(inboundID int, email string) string {
+	return fmt.Sprintf("amneziawg-v6-%d-%s", inboundID, email)
+}
+
+// injectAmneziawgV6Egress gives every enabled, non-node-hosted AmneziaWG
+// peer with an IPv6 AllowedIPs entry its own single-purpose freedom
+// outbound, bound via sendThrough to that exact address, plus a routing
+// rule sending only that peer's own traffic through it — restoring the
+// per-client public IPv6 identity the hard cutover temporarily dropped
+// (Phase 3.5 of the migration plan). Scoped to outbound source identity
+// only: it depends on internal/amneziawgnet's own alias mechanism actually
+// giving the host that address at the OS level (see v6alias.go) — without
+// that, sendThrough would simply fail to bind and Xray would fall back to
+// its default outbound, not error out.
+//
+// The routing rule matches both inboundTag and user: SocksInboundSettings
+// (used by injectAmneziawgnetSocks above) already authenticates each
+// connection as the peer's own email via stock SOCKS5 auth, and a stock
+// Xray SOCKS5 inbound sets that connection's stats/routing identity from
+// the authenticated username — so "user" reliably isolates exactly one
+// peer's traffic, the same building block Finding 3 of the migration plan
+// already established for per-client stats.
+//
+// Modeled on injectNodeEgresses (the established N-per-slice inbound+rule
+// precedent, not injectAmneziawgnetSocks itself, which only ever emits a
+// single inbound and never touches outbounds/routing) and
+// mergeSubscriptionOutbounds's unmarshal-append-remarshal pattern for
+// cfg.OutboundConfigs. Synthetic rules are prepended ahead of whatever's
+// already in the routing rules array, the same pattern injectNodeEgresses/
+// injectMtprotoEgress already use for their own always-must-win infra
+// rules — this never touches the admin's own saved Routing-page rule
+// order.
+func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
+	// Protocol is checked alongside Tag, not just Tag alone: a tag collision
+	// with some unrelated (non-socks) inbound must not be mistaken for this
+	// instance's own relay having been created.
+	liveInboundTags := make(map[string]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Protocol == "socks" {
+			liveInboundTags[cfg.InboundConfigs[i].Tag] = struct{}{}
+		}
+	}
+
+	var existingOutbounds []any
+	if len(cfg.OutboundConfigs) > 0 {
+		if err := json.Unmarshal(cfg.OutboundConfigs, &existingOutbounds); err != nil {
+			logger.Warning("amneziawg v6 egress: outbounds section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+	usedOutboundTags := make(map[string]struct{}, len(existingOutbounds))
+	for _, o := range existingOutbounds {
+		if m, ok := o.(map[string]any); ok {
+			if t, ok := m["tag"].(string); ok {
+				usedOutboundTags[t] = struct{}{}
+			}
+		}
+	}
+
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			logger.Warning("amneziawg v6 egress: routing section is unparsable, skipping injection:", err)
+			return
+		}
+	}
+	rules, _ := routing["rules"].([]any)
+	newRules := make([]any, 0)
+	newOutbounds := make([]any, 0)
+
+	for _, inbound := range inbounds {
+		if inbound.Protocol != model.AmneziaWG || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		if _, live := liveInboundTags[inbound.Tag]; !live {
+			// The relay inbound itself wasn't created this pass (e.g. a tag
+			// collision inside injectAmneziawgnetSocks) -- no SOCKS5 inbound
+			// exists for hot_diff.go's inboundTag match to ever fire against.
+			continue
+		}
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
+			continue
+		}
+		for _, p := range inst.Peers {
+			if p.Email == "" {
+				continue
+			}
+			v6 := amneziawg.FirstIPv6(p.AllowedIPs)
+			if v6 == "" {
+				continue
+			}
+			tag := amneziawgV6EgressTag(inbound.Id, p.Email)
+			if _, taken := usedOutboundTags[tag]; taken {
+				logger.Warning("amneziawg v6 egress: outbound tag [", tag, "] already exists, skipping peer [", p.Email, "]")
+				continue
+			}
+			usedOutboundTags[tag] = struct{}{}
+			newOutbounds = append(newOutbounds, map[string]any{
+				"tag":         tag,
+				"protocol":    "freedom",
+				"sendThrough": v6,
+				"settings":    map[string]any{},
+			})
+			newRules = append(newRules, map[string]any{
+				"type":        "field",
+				"inboundTag":  []any{inbound.Tag},
+				"user":        []any{p.Email},
+				"outboundTag": tag,
+			})
+		}
+	}
+
+	if len(newOutbounds) == 0 {
+		return
+	}
+
+	merged := make([]any, 0, len(existingOutbounds)+len(newOutbounds))
+	merged = append(merged, existingOutbounds...)
+	merged = append(merged, newOutbounds...)
+	combined, err := json.MarshalIndent(merged, "", "  ")
+	if err != nil {
+		logger.Warning("amneziawg v6 egress: failed to rebuild outbounds section, skipping injection:", err)
+		return
+	}
+	cfg.OutboundConfigs = json_util.RawMessage(combined)
+
+	routing["rules"] = append(newRules, rules...)
+	newRouting, err := json.Marshal(routing)
+	if err != nil {
+		logger.Warning("amneziawg v6 egress: failed to rebuild routing section, skipping injection:", err)
+		return
+	}
+	cfg.RouterConfig = json_util.RawMessage(newRouting)
 }
 
 // mergeSubscriptionOutbounds appends the subscription outbounds to the

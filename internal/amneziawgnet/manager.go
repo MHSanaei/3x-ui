@@ -86,6 +86,16 @@ func (m *Manager) ensureLocked(d Desired) error {
 	structFP := addressFingerprint(inst)
 
 	cur, exists := m.ifaces[inst.Id]
+	// Captured before either branch below: peers/AllowedIPs can change
+	// (and so can each peer's IPv6 alias) without the address/MTU
+	// fingerprint changing at all, so both the reconfigure-in-place branch
+	// and the rebuild branch need to diff IPv6 aliases against whatever
+	// this id had before, not just on a rebuild.
+	var oldInst amneziawg.Instance
+	if exists {
+		oldInst = cur.inst
+	}
+
 	if exists && cur.structFP == structFP {
 		conf, err := buildUAPIConfig(inst, opts)
 		if err != nil {
@@ -96,6 +106,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		}
 		cur.peers = NewPeerIndex(inst.Peers)
 		cur.inst = inst
+		applyV6Aliases(diffV6Aliases(oldInst, inst))
 		return nil
 	}
 
@@ -153,6 +164,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		inst:     inst,
 		structFP: structFP,
 	}
+	applyV6Aliases(diffV6Aliases(oldInst, inst))
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
 	return nil
 }
@@ -191,6 +203,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 		if _, ok := want[id]; ok {
 			continue
 		}
+		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.udpRelay.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
@@ -214,6 +227,7 @@ func (m *Manager) Remove(id int) {
 	if !exists {
 		return
 	}
+	applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 	cur.udpRelay.Close()
 	cur.dev.Close()
 	delete(m.ifaces, id)
@@ -225,6 +239,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, cur := range m.ifaces {
+		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.udpRelay.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
