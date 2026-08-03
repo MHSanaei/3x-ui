@@ -30,6 +30,11 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
 
+// tunQueueDepth is the outbound packet queue depth for both the gVisor
+// channel endpoint and the handoff channel to amneziawg-go's TUN reader
+// (see the stackTun literal in createNetTUNWithStack for why both need it).
+const tunQueueDepth = 1024
+
 // stackTun implements amneziawg-go's tun.Device directly against a gVisor
 // channel endpoint, the same approach amneziawg-go's own tun/netstack
 // package and xray-core's proxy/wireguard/netstack.go both take. Neither of
@@ -61,10 +66,24 @@ func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device,
 		HandleLocal: false,
 	}
 	dev := &stackTun{
-		ep:             channel.New(1024, uint32(mtu), ""),
+		// tunQueueDepth matches channel.New's own outbound queue depth
+		// below. WriteNotify (called synchronously from whatever gVisor
+		// goroutine is sending TCP data for the download/server->client
+		// direction) pushes into incomingPacket; RoutineReadFromTUN (a
+		// single amneziawg-go goroutine that encrypts and sends each
+		// packet over UDP) is the only reader. With no buffer, every
+		// outbound packet forced a full synchronous handoff between the
+		// two -- gVisor's sender blocked until the encrypt loop was ready
+		// for the next one, one packet at a time, no pipelining. The
+		// upload/client->server direction has no equivalent stall:
+		// Write->InjectInbound->DeliverNetworkPacket hands off into
+		// gVisor's own ~1MB per-connection TCP receive buffer and returns
+		// immediately. Buffering this channel gives the download
+		// direction the same slack the upload direction already had.
+		ep:             channel.New(tunQueueDepth, uint32(mtu), ""),
 		stack:          stack.New(opts),
 		events:         make(chan awgtun.Event, 10),
-		incomingPacket: make(chan *buffer.View),
+		incomingPacket: make(chan *buffer.View, tunQueueDepth),
 		mtu:            mtu,
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true)
