@@ -85,6 +85,7 @@ interface ClientFormModalProps {
   inbounds: InboundOption[];
   attachedExternalLinks?: ExternalLink[];
   attachedIds?: number[];
+  tunnelAllowedIPs?: Record<number, string>;
   tgBotEnable?: boolean;
   groups?: string[];
   save: (
@@ -102,6 +103,7 @@ type Values = ClientFormValues & {
   wgPublicKey: string;
   wgPreSharedKey: string;
   wgAllowedIPs: string;
+  awgAllowedIPs: string;
   awgForwardedPorts: string;
   secret: string;
   adTag: string;
@@ -132,6 +134,7 @@ const EMPTY: Values = {
   wgPublicKey: '',
   wgPreSharedKey: '',
   wgAllowedIPs: '',
+  awgAllowedIPs: '',
   awgForwardedPorts: '',
   secret: '',
   adTag: '',
@@ -155,6 +158,31 @@ export function gbToBytes(gb: number): number {
   return Math.round(gb * 1024 * 1024 * 1024);
 }
 
+export function parseAllowedIPsList(raw: string): string[] {
+  return raw.split(',').map((s) => s.trim()).filter((s) => s !== '');
+}
+
+// Maps each of the two AllowedIPs fields to the specific wg/awg inbound the
+// client is currently attached to, so a save with both protocols attached at
+// once can send each its own value instead of one shared field ambiguously
+// covering both (see model.Client.AllowedIPsByInbound on the Go side).
+// Absent from the result when the client isn't actually attached to that
+// protocol's inbound (e.g. mid-edit, before the attach takes effect).
+export function resolveTunnelAllowedIPsByInbound(
+  attachedInboundIds: number[],
+  wireguardInboundIds: Set<number>,
+  amneziawgInboundIds: Set<number>,
+  wgAllowedIPs: string[],
+  awgAllowedIPs: string[],
+): Record<number, string[]> {
+  const wgId = attachedInboundIds.find((id) => wireguardInboundIds.has(id));
+  const awgId = attachedInboundIds.find((id) => amneziawgInboundIds.has(id));
+  const result: Record<number, string[]> = {};
+  if (wgId != null) result[wgId] = wgAllowedIPs;
+  if (awgId != null) result[awgId] = awgAllowedIPs;
+  return result;
+}
+
 export function resolveTotalBytes(originalBytes: number | null | undefined, displayedGB: number): number {
   if (originalBytes != null && displayedGB === bytesToGB(originalBytes)) {
     return originalBytes;
@@ -169,6 +197,7 @@ export default function ClientFormModal({
   inbounds,
   attachedExternalLinks = [],
   attachedIds = [],
+  tunnelAllowedIPs = {},
   tgBotEnable = false,
   groups = [],
   save,
@@ -210,6 +239,27 @@ export default function ClientFormModal({
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
+  // Declared ahead of the seeding effect below (which needs them to resolve
+  // which specific wg/awg inbound this client is attached to, for seeding
+  // wgAllowedIPs/awgAllowedIPs from tunnelAllowedIPs) -- both are pure
+  // derivations of the stable `inbounds` prop, so moving them earlier is
+  // just a declaration-order change, not a behavior change.
+  const wireguardIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'wireguard') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const amneziawgIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'amneziawg') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
   function addExternalLinkRow(kind: 'link' | 'subscription') {
     appendExternalLink({ kind, value: '', remark: '' });
   }
@@ -220,6 +270,11 @@ export default function ClientFormModal({
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
+      const seedIds = Array.isArray(attachedIds) ? attachedIds : [];
+      const attachedWireguardId = seedIds.find((id) => wireguardIds.has(id));
+      const attachedAmneziawgId = seedIds.find((id) => amneziawgIds.has(id));
+      const wgTunnelIPs = attachedWireguardId != null ? tunnelAllowedIPs[attachedWireguardId] : undefined;
+      const awgTunnelIPs = attachedAmneziawgId != null ? tunnelAllowedIPs[attachedAmneziawgId] : undefined;
       const seed: Values = {
         ...EMPTY,
         email: client.email || '',
@@ -244,7 +299,8 @@ export default function ClientFormModal({
         wgPrivateKey: client.privateKey || '',
         wgPublicKey: client.publicKey || '',
         wgPreSharedKey: client.preSharedKey || '',
-        wgAllowedIPs: client.allowedIPs || '',
+        wgAllowedIPs: wgTunnelIPs ?? client.allowedIPs ?? '',
+        awgAllowedIPs: awgTunnelIPs ?? client.allowedIPs ?? '',
         awgForwardedPorts: client.forwardedPorts || '',
         secret: client.secret || '',
         adTag: client.adTag || '',
@@ -297,22 +353,6 @@ export default function ClientFormModal({
     const ids = new Set<number>();
     for (const row of inbounds || []) {
       if (row && row.protocol === 'vmess') ids.add(row.id);
-    }
-    return ids;
-  }, [inbounds]);
-
-  const wireguardIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const row of inbounds || []) {
-      if (row && row.protocol === 'wireguard') ids.add(row.id);
-    }
-    return ids;
-  }, [inbounds]);
-
-  const amneziawgIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const row of inbounds || []) {
-      if (row && row.protocol === 'amneziawg') ids.add(row.id);
     }
     return ids;
   }, [inbounds]);
@@ -554,12 +594,25 @@ export default function ClientFormModal({
       if (values.wgPreSharedKey) {
         clientPayload.preSharedKey = values.wgPreSharedKey;
       }
-      const allowedIPs = values.wgAllowedIPs
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s !== '');
-      if (allowedIPs.length > 0) {
-        clientPayload.allowedIPs = allowedIPs;
+      const wgAllowedIPs = parseAllowedIPsList(values.wgAllowedIPs);
+      if (showWireguard && showAmneziawg) {
+        // Both protocols are attached at once: the two fields hold genuinely
+        // different addresses, so each must land on its own inbound instead
+        // of one broadcast value overwriting the other's (allowedIPsByInbound
+        // is what Update/Create key their per-inbound override off of).
+        const awgAllowedIPs = parseAllowedIPsList(values.awgAllowedIPs);
+        clientPayload.allowedIPsByInbound = resolveTunnelAllowedIPsByInbound(
+          values.inboundIds || [],
+          wireguardIds,
+          amneziawgIds,
+          wgAllowedIPs,
+          awgAllowedIPs,
+        );
+        if (wgAllowedIPs.length > 0) {
+          clientPayload.allowedIPs = wgAllowedIPs;
+        }
+      } else if (wgAllowedIPs.length > 0) {
+        clientPayload.allowedIPs = wgAllowedIPs;
       }
       // Port-forwarding has no WireGuard equivalent — Xray-native WireGuard
       // has no host-level iptables layer to hang per-client DNAT off of.
@@ -901,13 +954,32 @@ export default function ClientFormModal({
                           >
                             <Input />
                           </FormField>
-                          <FormField
-                            name="wgAllowedIPs"
-                            label={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPs' : 'pages.clients.wireguardAllowedIPs')}
-                            extra={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPsHint' : 'pages.clients.wireguardAllowedIPsHint')}
-                          >
-                            <Input placeholder="10.8.1.2/32" />
-                          </FormField>
+                          {showWireguard && showAmneziawg ? (
+                            <>
+                              <FormField
+                                name="wgAllowedIPs"
+                                label={t('pages.clients.wireguardAllowedIPs')}
+                                extra={t('pages.clients.wireguardAllowedIPsHint')}
+                              >
+                                <Input placeholder="10.0.0.2/32" />
+                              </FormField>
+                              <FormField
+                                name="awgAllowedIPs"
+                                label={t('pages.clients.amneziaWgAllowedIPs')}
+                                extra={t('pages.clients.amneziaWgAllowedIPsHint')}
+                              >
+                                <Input placeholder="10.8.1.2/32" />
+                              </FormField>
+                            </>
+                          ) : (
+                            <FormField
+                              name="wgAllowedIPs"
+                              label={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPs' : 'pages.clients.wireguardAllowedIPs')}
+                              extra={t(showAmneziawg ? 'pages.clients.amneziaWgAllowedIPsHint' : 'pages.clients.wireguardAllowedIPsHint')}
+                            >
+                              <Input placeholder="10.8.1.2/32" />
+                            </FormField>
+                          )}
                           {showAmneziawg && (
                             <FormField
                               name="awgForwardedPorts"

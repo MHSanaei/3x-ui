@@ -133,10 +133,17 @@ export const ExternalLinkSchema = z.object({
 
 export const ExternalLinkListSchema = z.array(ExternalLinkSchema).nullable().transform((v) => v ?? []);
 
+// tunnelAllowedIPs carries the real, per-inbound AllowedIPs value (keyed by
+// inbound id) for every WireGuard/AmneziaWG inbound this client is attached
+// to. ClientRecord's own allowedIPs is a single string and cannot represent
+// two different addresses when one identity holds both a WireGuard and an
+// AmneziaWG attachment at once -- this is what lets the edit form show each
+// protocol's real, distinct address instead of one ambiguous shared field.
 export const ClientHydrateSchema = z.object({
   client: ClientRecordSchema,
   inboundIds: nullableNumberArray,
   externalLinks: ExternalLinkListSchema.optional(),
+  tunnelAllowedIPs: z.record(z.number().int(), z.string()).optional(),
 });
 
 export const BulkAdjustResultSchema = z.object({

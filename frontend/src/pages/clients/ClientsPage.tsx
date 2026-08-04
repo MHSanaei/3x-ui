@@ -256,6 +256,7 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [editingAttachedIds, setEditingAttachedIds] = useState<number[]>([]);
   const [editingExternalLinks, setEditingExternalLinks] = useState<ExternalLink[]>([]);
+  const [editingTunnelAllowedIPs, setEditingTunnelAllowedIPs] = useState<Record<number, string>>({});
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoClient, setInfoClient] = useState<ClientRecord | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
@@ -503,6 +504,7 @@ export default function ClientsPage() {
     setEditingClient(null);
     setEditingAttachedIds([]);
     setEditingExternalLinks([]);
+    setEditingTunnelAllowedIPs({});
     setFormOpen(true);
   }
 
@@ -518,6 +520,7 @@ export default function ClientsPage() {
     const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
     setEditingAttachedIds([...ids]);
     setEditingExternalLinks(Array.isArray(full?.externalLinks) ? [...full.externalLinks] : []);
+    setEditingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
     setFormOpen(true);
   }, [hydrate]);
 
@@ -1506,6 +1509,7 @@ export default function ClientsPage() {
             client={editingClient}
             attachedIds={editingAttachedIds}
             attachedExternalLinks={editingExternalLinks}
+            tunnelAllowedIPs={editingTunnelAllowedIPs}
             inbounds={inbounds}
             tgBotEnable={tgBotEnable}
             groups={allGroups}

@@ -124,11 +124,16 @@ func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, e
 	if t, tErr := a.inboundService.GetClientTrafficByEmail(rec.Email); tErr == nil && t != nil {
 		usedTraffic = t.Up + t.Down
 	}
+	tunnelAllowedIPs, err := a.clientService.TunnelAllowedIPsByInbound(&a.inboundService, rec.Email, inboundIds)
+	if err != nil {
+		return nil, err
+	}
 	return gin.H{
-		"client":        rec,
-		"inboundIds":    inboundIds,
-		"externalLinks": externalLinks,
-		"usedTraffic":   usedTraffic,
+		"client":           rec,
+		"inboundIds":       inboundIds,
+		"externalLinks":    externalLinks,
+		"usedTraffic":      usedTraffic,
+		"tunnelAllowedIPs": tunnelAllowedIPs,
 	}, nil
 }
 
