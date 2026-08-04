@@ -603,6 +603,23 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	return needRestart, nil
 }
 
+// hasTunnelAttachment reports whether any of inboundIds is a currently
+// existing WireGuard or AmneziaWG inbound. Inbounds that fail to load are
+// skipped rather than treated as an error -- Attach's own loop already
+// surfaces a real error for any inbound it can't load when it gets there.
+func (s *ClientService) hasTunnelAttachment(inboundSvc *InboundService, inboundIds []int) bool {
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			continue
+		}
+		if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
@@ -624,6 +641,18 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	}
 	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
+
+	// If this identity has no CURRENT WireGuard/AmneziaWG attachment,
+	// clientWire.AllowedIPs (from the ClientRecord) is a leftover from
+	// whenever it last had one -- nothing reserves it anymore. Clear it so
+	// attaching to a tunnel inbound now allocates a fresh address instead
+	// of resurrecting the old one, which may no longer even be the lowest
+	// free slot. Left untouched when the identity already has an active
+	// tunnel elsewhere, so extending it to a second protocol still keeps
+	// the same address on both.
+	if !s.hasTunnelAttachment(inboundSvc, currentIds) {
+		clientWire.AllowedIPs = nil
+	}
 
 	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
 	if sidErr != nil {
