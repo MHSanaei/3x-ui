@@ -76,6 +76,43 @@ func TestUpdateInboundClientCaseOnlyRenameDoesNotDuplicateRecord(t *testing.T) {
 	}
 }
 
+// The IP-limit job keys its tracking rows on the casing Xray reports, so an
+// inbound whose settings JSON drifted in case leaves a row under each spelling.
+func TestUpdateInboundClientCaseOnlyRenameSurvivesExistingClientIpsRow(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	source := []model.Client{{Email: "Sanaei", ID: "aaaaaaaa-0000-0000-0000-000000000009", SubID: "sub-ips", Enable: true}}
+	ib := mkInbound(t, 22011, model.VLESS, clientsSettings(t, source))
+	if err := svc.SyncInbound(nil, ib.Id, source); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	for _, email := range []string{"Sanaei", "sanaei"} {
+		row := &model.InboundClientIps{ClientEmail: email, Ips: `[{"ip":"1.2.3.4","timestamp":1700000000}]`}
+		if err := database.GetDB().Create(row).Error; err != nil {
+			t.Fatalf("seed client ips for %q: %v", email, err)
+		}
+	}
+
+	lowered := source
+	lowered[0].Email = "sanaei"
+	if _, err := svc.UpdateInboundClient(inboundSvc, &model.Inbound{
+		Id:       ib.Id,
+		Settings: clientsSettings(t, lowered),
+	}, "sanaei"); err != nil {
+		t.Fatalf("UpdateInboundClient with a colliding client ips row: %v", err)
+	}
+
+	var rows []model.InboundClientIps
+	if err := database.GetDB().Find(&rows).Error; err != nil {
+		t.Fatalf("read client ips: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ClientEmail != "sanaei" {
+		t.Fatalf("client ips rows after rename = %+v, want a single row for %q", rows, "sanaei")
+	}
+}
+
 func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}

@@ -542,7 +542,7 @@ golangci-lint run                   # full lint (gofumpt + goimports formatting)
 go run main.go                      # run the panel locally (serves embedded dist if built)
 ```
 
-**Frontend (`cd frontend`, Node ≥ 22):**
+**Frontend (`cd frontend`, Node 24 — see `.nvmrc`):**
 ```bash
 npm install
 npm run dev          # Vite dev server on :5173; proxies API to Go backend on :2053 (run `go run main.go` too)

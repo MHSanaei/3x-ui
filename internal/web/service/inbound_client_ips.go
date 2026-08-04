@@ -152,6 +152,13 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 }
 
 func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail string) error {
+	// The caller only renames onto a free identity, so a row already sitting on
+	// newEmail is stale tracking data — drop it instead of failing the edit.
+	if oldEmail != newEmail {
+		if err := tx.Where("client_email = ?", newEmail).Delete(model.InboundClientIps{}).Error; err != nil {
+			return err
+		}
+	}
 	return tx.Model(model.InboundClientIps{}).Where("client_email = ?", oldEmail).Update("client_email", newEmail).Error
 }
 
