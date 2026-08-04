@@ -57,8 +57,13 @@ func TestOtherTunnelAllowedIPs(t *testing.T) {
 // never a genuine different client.
 func TestOtherTunnelAllowedIPsExcludesSelfEmail(t *testing.T) {
 	setupConflictDB(t)
-	seedInboundConflict(t, "awg-1", "0.0.0.0", 443, model.AmneziaWG, ``, `{"server":{"subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"shared@id","allowedIPs":["10.8.1.21/32"]}]}`)
-	seedInboundConflict(t, "wg-1", "0.0.0.0", 51820, model.WireGuard, ``, `{"clients":[{"email":"other@wg","allowedIPs":["10.8.1.5/32"]}]}`)
+	// Both shared@id (to be excluded) and other@awg (a genuinely different
+	// client, must still be reported) live on the SAME sibling inbound --
+	// otherTunnelAllowedIPs already excludes the asking inbound entirely via
+	// excludeID, so putting other@awg there instead would make it invisible
+	// to the scan regardless of the selfEmails fix, proving nothing.
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 443, model.AmneziaWG, ``, `{"server":{"subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"shared@id","allowedIPs":["10.8.1.21/32"]},{"email":"other@awg","allowedIPs":["10.8.1.5/32"]}]}`)
+	seedInboundConflict(t, "wg-1", "0.0.0.0", 51820, model.WireGuard, ``, `{"clients":[]}`)
 
 	var wgInbound model.Inbound
 	if err := database.GetDB().Where("tag = ?", "wg-1").First(&wgInbound).Error; err != nil {
