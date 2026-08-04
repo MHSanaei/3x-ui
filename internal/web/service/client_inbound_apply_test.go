@@ -24,7 +24,7 @@ func TestOtherTunnelAllowedIPs(t *testing.T) {
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
-	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id)
+	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, nil)
 	if err != nil {
 		t.Fatalf("otherTunnelAllowedIPs: %v", err)
 	}
@@ -40,6 +40,45 @@ func TestOtherTunnelAllowedIPs(t *testing.T) {
 	}
 }
 
+// TestOtherTunnelAllowedIPsExcludesSelfEmail is a regression test for a real
+// bug in ClientService.Attach: attaching one identity to multiple
+// WireGuard/AmneziaWG inbounds in the same call copies that identity's own
+// stored AllowedIPs into every inbound it processes (by design -- the same
+// person should get the same tunnel address on every protocol they use).
+// Attach's loop calls addInboundClient once per inbound, and each of those
+// calls independently computes otherTunnelAllowedIPs -- so by the second
+// inbound in the loop, the first inbound's now-successful copy of the
+// identity's own address looked like a cross-inbound collision against
+// itself, and the attach failed with exactly the error a real user hit:
+// "wireguard: allowedIPs entry 10.8.1.21/32 is already used by a client on
+// inbound 'awg' (#10)". selfEmails must exclude this identity's own entries
+// on sibling inbounds -- safe to do unconditionally because ClientRecord.Email
+// is globally unique, so a same-email match can only ever be this identity,
+// never a genuine different client.
+func TestOtherTunnelAllowedIPsExcludesSelfEmail(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 443, model.AmneziaWG, ``, `{"server":{"subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"shared@id","allowedIPs":["10.8.1.21/32"]}]}`)
+	seedInboundConflict(t, "wg-1", "0.0.0.0", 51820, model.WireGuard, ``, `{"clients":[{"email":"other@wg","allowedIPs":["10.8.1.5/32"]}]}`)
+
+	var wgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "wg-1").First(&wgInbound).Error; err != nil {
+		t.Fatalf("read seeded wg row: %v", err)
+	}
+
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, map[string]struct{}{"shared@id": {}})
+	if err != nil {
+		t.Fatalf("otherTunnelAllowedIPs: %v", err)
+	}
+	if _, stillThere := used["10.8.1.21/32"]; stillThere {
+		t.Fatalf("shared@id's own address on the awg inbound must be excluded from used, got %v", used)
+	}
+	if _, ok := used["10.8.1.5/32"]; !ok {
+		t.Fatalf("a genuinely different client's address must still be reported as used, got %v", used)
+	}
+}
+
 func TestOtherTunnelAllowedIPsEmptyWhenNoSiblings(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "wg-1", "0.0.0.0", 51820, model.WireGuard, ``, `{"clients":[{"email":"a@wg","allowedIPs":["10.0.0.5/32"]}]}`)
@@ -51,7 +90,7 @@ func TestOtherTunnelAllowedIPsEmptyWhenNoSiblings(t *testing.T) {
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
-	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id)
+	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, nil)
 	if err != nil {
 		t.Fatalf("otherTunnelAllowedIPs: %v", err)
 	}

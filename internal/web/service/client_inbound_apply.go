@@ -250,7 +250,18 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 // Deliberately not filtered by enable: a disabled sibling inbound's
 // addresses stay reserved so re-enabling it later can't collide with
 // something handed out in the meantime.
-func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int) (map[string]string, error) {
+//
+// selfEmails excludes a sibling inbound's entry from being treated as a
+// collision when it belongs to one of these emails — the identity currently
+// being added/attached, not some other client. Since ClientRecord.Email is
+// globally unique, a match here can only ever be this same identity's own
+// entry on another inbound, never a genuine different-client collision.
+// This matters for Attach: it deliberately gives one identity the same
+// AllowedIPs on every inbound it's attached to (ClientService.Attach copies
+// the ClientRecord's stored address into each inbound it processes), so
+// attaching the same email to a second inbound right after the first must
+// not see the first inbound's now-fresh copy of its own address as taken.
+func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
 	var inbounds []*model.Inbound
 	err := database.GetDB().Model(model.Inbound{}).
 		Where("protocol IN ? AND id != ?", []model.Protocol{model.WireGuard, model.AmneziaWG}, excludeID).
@@ -270,6 +281,9 @@ func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, exclud
 		}
 		label := fmt.Sprintf("inbound '%s' (#%d)", name, ib.Id)
 		for _, c := range clients {
+			if _, self := selfEmails[strings.ToLower(c.Email)]; self {
+				continue
+			}
 			for _, addr := range c.AllowedIPs {
 				used[addr] = label
 			}
@@ -397,7 +411,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	}
 
 	if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
-		crossUsed, cErr := s.otherTunnelAllowedIPs(inboundSvc, oldInbound.Id)
+		selfEmails := make(map[string]struct{}, len(clients))
+		for _, c := range clients {
+			if c.Email != "" {
+				selfEmails[strings.ToLower(c.Email)] = struct{}{}
+			}
+		}
+		crossUsed, cErr := s.otherTunnelAllowedIPs(inboundSvc, oldInbound.Id, selfEmails)
 		if cErr != nil {
 			return false, cErr
 		}
