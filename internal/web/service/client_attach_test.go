@@ -54,3 +54,44 @@ func TestHasTunnelAttachmentDetectsWireguardOrAmneziaWG(t *testing.T) {
 		t.Error("an AmneziaWG inbound must count as a tunnel attachment")
 	}
 }
+
+// TestAddressesFitAmneziaWGInbound is a regression test for a real
+// production bug: hasTunnelAttachment only asked "does this identity have
+// ANY tunnel attachment", not "is the address it would inherit actually
+// valid for THIS inbound" -- so an identity whose stored address came from
+// WireGuard's own fallback subnet (10.0.0.0/24, used when that inbound has
+// no other clients to infer a base from) got that exact address silently
+// carried over onto a second, AmneziaWG inbound configured for a completely
+// different subnet (10.8.1.0/24). defaultAmneziaWGClients's already-set
+// branch only checks for collisions, not subnet membership, so the mismatch
+// was accepted with no error -- producing a peer that can never actually
+// connect (an AmneziaWG address must fall inside the kernel interface's own
+// configured subnet to be routable at all). addressesFitAmneziaWGInbound is
+// the check Attach now runs per inbound before deciding whether to keep an
+// inherited address or force a fresh allocation.
+func TestAddressesFitAmneziaWGInbound(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 443, model.AmneziaWG, ``, `{"server":{"subnetIp":"10.8.1.0","subnetCidr":24},"clients":[]}`)
+	seedInboundConflict(t, "wg-1", "0.0.0.0", 51820, model.WireGuard, ``, `{"clients":[]}`)
+
+	var awgInbound, wgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded awg row: %v", err)
+	}
+	if err := database.GetDB().Where("tag = ?", "wg-1").First(&wgInbound).Error; err != nil {
+		t.Fatalf("read seeded wg row: %v", err)
+	}
+
+	if !addressesFitAmneziaWGInbound(nil, &awgInbound) {
+		t.Error("no addresses at all must trivially fit (Attach's own fresh-allocate path)")
+	}
+	if !addressesFitAmneziaWGInbound([]string{"10.0.0.2/32"}, &wgInbound) {
+		t.Error("WireGuard has no strict subnet requirement -- must never be rejected here")
+	}
+	if addressesFitAmneziaWGInbound([]string{"10.0.0.2/32"}, &awgInbound) {
+		t.Fatal("the real bug: a WireGuard-fallback-subnet address must NOT be accepted as fitting an AmneziaWG inbound configured for a different subnet")
+	}
+	if !addressesFitAmneziaWGInbound([]string{"10.8.1.21/32"}, &awgInbound) {
+		t.Error("an address genuinely inside the awg inbound's own configured subnet must fit")
+	}
+}
