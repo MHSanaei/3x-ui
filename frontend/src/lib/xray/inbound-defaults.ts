@@ -257,12 +257,20 @@ export interface WireguardInboundSeed {
   mtu?: number;
   secretKey?: string;
   noKernelTun?: boolean;
+  subnetIp?: string;
+  subnetCidr?: number;
 }
 
 // WireGuard is multi-client now: a new inbound holds only the server identity
 // (secretKey/mtu) and starts with no clients. Clients (peers) are added later
 // through the client modal, which generates each one's keypair and a unique
 // tunnel address. peers stays empty for backward-compatible parsing.
+//
+// subnetIp/subnetCidr default to 10.0.0.0/24 here — the same value the Go
+// backend has always fallen back to for an inbound with no clients yet — so
+// a freshly created inbound shows an explicit, editable value from the
+// start (matching AmneziaWG's own subnet field), rather than an empty one
+// that silently relies on server-side inference until an admin fills it in.
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
@@ -272,6 +280,8 @@ export function createDefaultWireguardInboundSettings(
     peers: [],
     clients: [],
     noKernelTun: seed.noKernelTun ?? false,
+    subnetIp: seed.subnetIp ?? '10.0.0.0',
+    subnetCidr: seed.subnetCidr ?? 24,
   };
 }
 

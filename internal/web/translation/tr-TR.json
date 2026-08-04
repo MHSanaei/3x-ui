@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "Gizli Anahtar",
         "publicKey": "Genel Anahtar",
+        "subnetIp": "Alt Ağ",
+        "subnetCidr": "Alt Ağ CIDR",
         "allowedIPs": "İzin Verilen IP'ler",
         "endpoint": "Uç Nokta",
         "domainStrategy": "Alan Adı Stratejisi"

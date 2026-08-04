@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "金鑰",
         "publicKey": "公鑰",
+        "subnetIp": "子網路",
+        "subnetCidr": "子網路 CIDR",
         "allowedIPs": "允許的 IP",
         "endpoint": "端點",
         "domainStrategy": "域策略"

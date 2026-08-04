@@ -47,7 +47,7 @@ func TestAllocateWireguardAddress(t *testing.T) {
 func TestDefaultWireguardClientsGeneratesKeypair(t *testing.T) {
 	clients := []model.Client{{Email: "a@wg"}}
 	ifaces := []any{map[string]any{"email": "a@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	c := clients[0]
@@ -74,7 +74,7 @@ func TestDefaultWireguardClientsDerivesPublicKey(t *testing.T) {
 	}
 	clients := []model.Client{{Email: "b@wg", PrivateKey: priv}}
 	ifaces := []any{map[string]any{"email": "b@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if clients[0].PublicKey != wantPub {
@@ -90,7 +90,7 @@ func TestDefaultWireguardClientsPreservesProvided(t *testing.T) {
 		AllowedIPs: []string{"10.0.0.50/32"},
 	}}
 	ifaces := []any{map[string]any{"email": "c@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if clients[0].PrivateKey != "keep-priv" || clients[0].PublicKey != "keep-pub" {
@@ -125,7 +125,7 @@ func TestDefaultWireguardClientsHonorsExistingSubnet(t *testing.T) {
 	existing := []model.Client{{Email: "old@wg", AllowedIPs: []string{"172.16.0.2/32"}}}
 	clients := []model.Client{{Email: "new@wg"}}
 	ifaces := []any{map[string]any{"email": "new@wg"}}
-	if err := defaultWireguardClients(existing, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", existing, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if got := clients[0].AllowedIPs[0]; got != "172.16.0.3/32" {
@@ -184,7 +184,7 @@ func TestAllocateWireguardAddressWithoutWideningFailsClosed(t *testing.T) {
 func TestDefaultWireguardClientsAllocatesDistinctIPs(t *testing.T) {
 	clients := []model.Client{{Email: "x@wg"}, {Email: "y@wg"}}
 	ifaces := []any{map[string]any{"email": "x@wg"}, map[string]any{"email": "y@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if clients[0].AllowedIPs[0] == clients[1].AllowedIPs[0] {
@@ -237,7 +237,7 @@ func TestDefaultWireguardClientsHonorsAndValidatesSuppliedAllowedIPs(t *testing.
 
 	clients := []model.Client{{Email: "c@wg", AllowedIPs: []string{"10.0.0.9"}}}
 	ifaces := []any{map[string]any{"email": "c@wg"}}
-	if err := defaultWireguardClients(existing, clients, ifaces, nil); err != nil {
+	if err := defaultWireguardClients("", existing, clients, ifaces, nil); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if len(clients[0].AllowedIPs) != 1 || clients[0].AllowedIPs[0] != "10.0.0.9/32" {
@@ -245,13 +245,13 @@ func TestDefaultWireguardClientsHonorsAndValidatesSuppliedAllowedIPs(t *testing.
 	}
 
 	dup := []model.Client{{Email: "d@wg", AllowedIPs: []string{"10.0.0.2/32"}}}
-	err := defaultWireguardClients(existing, dup, []any{map[string]any{"email": "d@wg"}}, nil)
+	err := defaultWireguardClients("", existing, dup, []any{map[string]any{"email": "d@wg"}}, nil)
 	if err == nil {
 		t.Fatal("duplicate allowedIPs across clients must be rejected")
 	}
 
 	bad := []model.Client{{Email: "e@wg", AllowedIPs: []string{"not-an-ip"}}}
-	if err := defaultWireguardClients(existing, bad, []any{map[string]any{"email": "e@wg"}}, nil); err == nil {
+	if err := defaultWireguardClients("", existing, bad, []any{map[string]any{"email": "e@wg"}}, nil); err == nil {
 		t.Fatal("invalid allowedIPs entry must be rejected")
 	}
 }
@@ -264,7 +264,7 @@ func TestDefaultWireguardClientsHonorsAndValidatesSuppliedAllowedIPs(t *testing.
 func TestDefaultWireguardClientsRejectsCrossInboundDuplicate(t *testing.T) {
 	crossUsed := map[string]string{"10.8.1.21/32": "inbound 'awg' (#10)"}
 	dup := []model.Client{{Email: "d@wg", AllowedIPs: []string{"10.8.1.21/32"}}}
-	err := defaultWireguardClients(nil, dup, []any{map[string]any{"email": "d@wg"}}, crossUsed)
+	err := defaultWireguardClients("", nil, dup, []any{map[string]any{"email": "d@wg"}}, crossUsed)
 	if err == nil {
 		t.Fatal("allowedIPs already used on another inbound must be rejected")
 	}
@@ -279,7 +279,7 @@ func TestDefaultWireguardClientsAutoAllocateSkipsCrossInboundUsed(t *testing.T) 
 	crossUsed := map[string]string{"10.0.0.2/32": "inbound 'other-wg' (#7)"}
 	clients := []model.Client{{Email: "f@wg"}}
 	ifaces := []any{map[string]any{"email": "f@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, crossUsed); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, crossUsed); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if clients[0].AllowedIPs[0] != "10.0.0.3/32" {
@@ -296,10 +296,70 @@ func TestDefaultWireguardClientsCrossInboundUsedDoesNotSkewSubnetInference(t *te
 	crossUsed := map[string]string{"10.8.1.21/32": "inbound 'awg' (#10)"}
 	clients := []model.Client{{Email: "g@wg"}}
 	ifaces := []any{map[string]any{"email": "g@wg"}}
-	if err := defaultWireguardClients(nil, clients, ifaces, crossUsed); err != nil {
+	if err := defaultWireguardClients("", nil, clients, ifaces, crossUsed); err != nil {
 		t.Fatalf("defaultWireguardClients: %v", err)
 	}
 	if got := clients[0].AllowedIPs[0]; got != "10.0.0.2/32" {
 		t.Fatalf("base subnet must stay the default 10.0.0.0/24, not be skewed by a cross-inbound address; got %v", got)
+	}
+}
+
+func TestExplicitWireguardSubnetBase(t *testing.T) {
+	tests := []struct {
+		name         string
+		settingsJSON string
+		want         string
+	}{
+		{name: "unset settings", settingsJSON: `{"secretKey":"x"}`, want: ""},
+		{name: "empty subnetIp", settingsJSON: `{"subnetIp":"","subnetCidr":24}`, want: ""},
+		{name: "zero cidr", settingsJSON: `{"subnetIp":"10.8.1.0","subnetCidr":0}`, want: ""},
+		{name: "invalid ip", settingsJSON: `{"subnetIp":"not-an-ip","subnetCidr":24}`, want: ""},
+		{name: "invalid json", settingsJSON: `not json`, want: ""},
+		{name: "configured subnet", settingsJSON: `{"subnetIp":"10.8.1.0","subnetCidr":24}`, want: "10.8.1.0/24"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := explicitWireguardSubnetBase(tt.settingsJSON); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestDefaultWireguardClientsPrefersExplicitSubnetOverInference is the
+// backend half of a user-requested feature: WireGuard previously had no
+// admin-configurable subnet at all, only an implicit one (inferred from
+// existing clients' own addresses, or a hardcoded 10.0.0.0/24 fallback when
+// none exist yet) -- unlike AmneziaWG, which has always had a real
+// server.subnetIp/subnetCidr field. An explicit subnetIp/subnetCidr in the
+// inbound's own settings must now win outright, even when existing clients
+// would otherwise suggest a different base via wireguardAllocationBase.
+func TestDefaultWireguardClientsPrefersExplicitSubnetOverInference(t *testing.T) {
+	existing := []model.Client{{Email: "old@wg", AllowedIPs: []string{"172.16.0.2/32"}}}
+	clients := []model.Client{{Email: "new@wg"}}
+	ifaces := []any{map[string]any{"email": "new@wg"}}
+	settingsJSON := `{"subnetIp":"10.8.1.0","subnetCidr":24}`
+	if err := defaultWireguardClients(settingsJSON, existing, clients, ifaces, nil); err != nil {
+		t.Fatalf("defaultWireguardClients: %v", err)
+	}
+	if got := clients[0].AllowedIPs[0]; got != "10.8.1.2/32" {
+		t.Fatalf("explicit subnet must win over inference from existing clients (172.16.0.0/24); got %v", got)
+	}
+}
+
+// TestDefaultWireguardClientsFallsBackWhenNoExplicitSubnet locks in the
+// backward-compat half of the same feature: an inbound saved before this
+// field existed (settingsJSON carries no subnetIp/subnetCidr at all) must
+// keep allocating exactly as it always has.
+func TestDefaultWireguardClientsFallsBackWhenNoExplicitSubnet(t *testing.T) {
+	existing := []model.Client{{Email: "old@wg", AllowedIPs: []string{"172.16.0.2/32"}}}
+	clients := []model.Client{{Email: "new@wg"}}
+	ifaces := []any{map[string]any{"email": "new@wg"}}
+	settingsJSON := `{"secretKey":"x","peers":[],"clients":[]}`
+	if err := defaultWireguardClients(settingsJSON, existing, clients, ifaces, nil); err != nil {
+		t.Fatalf("defaultWireguardClients: %v", err)
+	}
+	if got := clients[0].AllowedIPs[0]; got != "172.16.0.3/32" {
+		t.Fatalf("with no explicit subnet, inference from existing clients must still apply; got %v", got)
 	}
 }

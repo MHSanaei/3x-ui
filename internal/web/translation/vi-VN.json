@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "Khoá bí mật",
         "publicKey": "Khóa công khai",
+        "subnetIp": "Mạng con",
+        "subnetCidr": "CIDR mạng con",
         "allowedIPs": "IP được phép",
         "endpoint": "Điểm cuối",
         "domainStrategy": "Chiến lược tên miền"

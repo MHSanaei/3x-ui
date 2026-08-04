@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "المفتاح السري",
         "publicKey": "المفتاح العام",
+        "subnetIp": "الشبكة الفرعية",
+        "subnetCidr": "بادئة الشبكة الفرعية (CIDR)",
         "allowedIPs": "عناوين IP المسموح بها",
         "endpoint": "النهاية",
         "domainStrategy": "استراتيجية الدومين"
