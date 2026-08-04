@@ -10,8 +10,9 @@ const optionalClearedInt = (schema: z.ZodNumber) =>
 // WireguardClientSchema — the panel's generic ClientRecord already has those
 // exact keys (privateKey/publicKey/preSharedKey/allowedIPs/keepAlive), so
 // bulk operations, the QR modal and subscriptions all work unmodified — plus
-// one AmneziaWG-only addition, forwardedPorts (WireGuard's Xray-native
-// inbound has no host-level iptables layer to hang per-client DNAT off of).
+// one AmneziaWG-only addition, forwardedPorts (its embedded listener
+// supervisor can forward into a peer's tunnel address; WireGuard's stock
+// Xray-native inbound has no equivalent mechanism).
 // Keys are optional on the wire — the backend generates them when absent.
 export const AmneziawgClientSchema = z.object({
   privateKey: z.string().optional(),

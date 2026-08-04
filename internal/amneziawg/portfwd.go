@@ -2,6 +2,7 @@ package amneziawg
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -74,15 +75,13 @@ func parsePortNumber(s string) (int, bool) {
 // port or another inbound's port -- see
 // internal/web/service/inbound_amneziawg.go's port-conflict checks.
 //
-// The field itself is currently inert: per-client port-forwarding was
-// implemented via PostUp/PostDown iptables DNAT rules under the retired
-// kernel-module architecture (internal/amneziawg's old Manager), which had
-// no equivalent under the embedded amneziawg-go path
-// (internal/amneziawgnet) as of the hard cutover -- see the migration
-// plan's Phase 3.6 for the panel-side relay design that will restore it.
-// The field and this validation are kept so existing values aren't lost and
-// re-validated identically once that phase lands, not because anything
-// currently acts on them.
+// Per-client port-forwarding is implemented by internal/amneziawgnet's
+// listener supervisor (PortForwardSet), which dials directly into the
+// embedded gVisor netstack toward the peer's tunnel-internal address --
+// the retired kernel-module architecture used PostUp/PostDown iptables DNAT
+// rules instead, which had no equivalent path once that architecture was
+// cut over; ExpandForwardedPorts below is what the supervisor uses to turn
+// a raw spec into the concrete ports it listens on.
 func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	for _, spec := range parseForwardedPorts(forwardedPorts) {
 		if port >= spec.start && port <= spec.end {
@@ -90,4 +89,38 @@ func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 		}
 	}
 	return false
+}
+
+// MaxForwardedPorts caps how many unique ports a single client's
+// ForwardedPorts spec can expand to. internal/amneziawgnet's listener
+// supervisor opens up to two real sockets (TCP+UDP) per port, so this bounds
+// worst-case file descriptor usage to a fixed, sane amount regardless of how
+// large a stored spec claims to be -- a legacy or hand-edited "1-65535"
+// costs exactly the same as "1-100" once expansion stops at the cap.
+const MaxForwardedPorts = 100
+
+// ExpandForwardedPorts parses forwardedPorts the same way
+// ForwardedPortsInclude does and returns every unique port it covers, in
+// ascending order, capped at MaxForwardedPorts. Expansion stops the instant
+// the cap is reached rather than expanding fully and truncating afterward,
+// so this is safe to call unconditionally against arbitrary -- including
+// pre-existing, pre-cap -- stored data.
+func ExpandForwardedPorts(forwardedPorts string) []int {
+	seen := make(map[int]struct{}, MaxForwardedPorts)
+	ports := make([]int, 0, MaxForwardedPorts)
+outer:
+	for _, spec := range parseForwardedPorts(forwardedPorts) {
+		for p := spec.start; p <= spec.end; p++ {
+			if len(ports) >= MaxForwardedPorts {
+				break outer
+			}
+			if _, dup := seen[p]; dup {
+				continue
+			}
+			seen[p] = struct{}{}
+			ports = append(ports, p)
+		}
+	}
+	sort.Ints(ports)
+	return ports
 }

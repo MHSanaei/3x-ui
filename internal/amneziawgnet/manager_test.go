@@ -1,7 +1,10 @@
 package amneziawgnet
 
 import (
+	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 
@@ -168,4 +171,69 @@ func TestEnsureUnchangedInstanceDoesNotResetLivePeers(t *testing.T) {
 		t.Error("unchanged Ensure recreated the peer object (RemoveAllPeers + re-add) -- " +
 			"any live handshake/session on this peer would have been reset for no reason")
 	}
+}
+
+// TestForwardedPortsOnlyChangeStillReconcilesPortForwards is a regression
+// test for the Phase 3.6 port-forwarding wiring: buildUAPIConfig never reads
+// ForwardedPorts (it's a panel-level concept, not a WireGuard UAPI field),
+// so a ForwardedPorts-only edit renders a byte-identical UAPI config and
+// takes ensureLocked's true no-op branch -- the exact same branch
+// TestEnsureUnchangedInstanceDoesNotResetLivePeers exists to guard, just for
+// a different subsystem. Without an explicit portForwards.Reconcile call on
+// that branch, a ForwardedPorts-only edit would silently never open (or
+// close) a listener until some unrelated change also happened to touch this
+// inbound. Verified end to end here: a real host-facing listener must exist
+// after the second Ensure call, not just an internal state flag.
+func TestForwardedPortsOnlyChangeStillReconcilesPortForwards(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	_, peerPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate peer keypair: %v", err)
+	}
+
+	const forwardedPort = 58930
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            6,
+		InterfaceName: "awgtest6",
+		ListenPort:    58716,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.205.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+		Peers: []amneziawg.Peer{
+			{Email: "peer@test", PublicKey: peerPub, AllowedIPs: []string{"10.205.0.2/32"}},
+		},
+	}
+	defer m.StopAll()
+
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure (create, no ForwardedPorts yet): %v", err)
+	}
+	if _, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", forwardedPort), 200*time.Millisecond); err == nil {
+		t.Fatal("forwarded port already accepting connections before ForwardedPorts was ever set")
+	}
+
+	// Only ForwardedPorts changes -- same keys, same AllowedIPs, same
+	// address/MTU, so this must take ensureLocked's true no-op UAPI branch.
+	changed := inst
+	changed.Peers = []amneziawg.Peer{
+		{Email: "peer@test", PublicKey: peerPub, AllowedIPs: []string{"10.205.0.2/32"}, ForwardedPorts: fmt.Sprintf("%d", forwardedPort)},
+	}
+	if err := m.Ensure(Desired{Instance: changed}); err != nil {
+		t.Fatalf("Ensure (ForwardedPorts-only change): %v", err)
+	}
+
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", forwardedPort), 2*time.Second)
+	if err != nil {
+		t.Fatalf("forwarded port not accepting connections after a ForwardedPorts-only Ensure: %v", err)
+	}
+	conn.Close()
 }

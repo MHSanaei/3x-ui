@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -251,7 +252,7 @@ type portConflictContext struct {
 // loadPortConflictContext loads the panel's own port and every enabled
 // inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
 // different node listens on that node's own host, never this one, so it can
-// never collide with a DNAT rule this process installs.
+// never collide with a port-forward listener this process opens.
 func (s *InboundService) loadPortConflictContext() (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
@@ -264,28 +265,43 @@ func (s *InboundService) loadPortConflictContext() (portConflictContext, error) 
 }
 
 // checkForwardedPortsConflict reports whether a client's ForwardedPorts spec
-// covers the panel's own web port or any of this host's own enabled inbound
-// listen ports. portForwardLines has no destination restriction and nothing
-// else checks this, so a collision here would silently DNAT traffic meant
-// for the panel or another protocol straight to the tunnel client instead.
+// exceeds the cap, covers the panel's own web port, one of this host's own
+// enabled inbound listen ports, or an AmneziaWG inbound's own phantom SOCKS5
+// relay port (SOCKSPortForInbound -- never a real inbounds row, so the loop
+// below can't see it any other way). A collision on the SOCKS5 port would
+// let a port-forward listener race Xray's own relay for the bind and, if it
+// wins, take down that inbound's entire relay rather than just one forward.
 // Returns a human-readable description of the first collision found, or ""
 // when there is none.
 func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, forwardedPorts string) string {
 	if forwardedPorts == "" {
 		return ""
 	}
+	if len(amneziawg.ExpandForwardedPorts(forwardedPorts)) >= amneziawg.MaxForwardedPorts {
+		return fmt.Sprintf("more than %d forwarded ports", amneziawg.MaxForwardedPorts)
+	}
 	if ctx.webPort > 0 && amneziawg.ForwardedPortsInclude(forwardedPorts, ctx.webPort) {
 		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
 	for _, ib := range ctx.inbounds {
-		if !amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+		if amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+			name := ib.Remark
+			if name == "" {
+				name = ib.Tag
+			}
+			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
+		}
+		if ib.Protocol != model.AmneziaWG {
 			continue
 		}
-		name := ib.Remark
-		if name == "" {
-			name = ib.Tag
+		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
+		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
+			name := ib.Remark
+			if name == "" {
+				name = ib.Tag
+			}
+			return fmt.Sprintf("inbound '%s' (#%d)'s own SOCKS5 relay port (%d)", name, ib.Id, socksPort)
 		}
-		return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 	}
 	return ""
 }

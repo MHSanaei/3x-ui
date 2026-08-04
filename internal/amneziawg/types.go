@@ -36,7 +36,8 @@ type Peer struct {
 	AllowedIPs   []string
 
 	// ForwardedPorts is a raw, user-supplied port list ("80, 443, 8000-8100")
-	// DNAT'd to this peer's tunnel address. Empty means no port-forwarding.
+	// forwarded to this peer's tunnel address by internal/amneziawgnet's
+	// PortForwardSet listener supervisor. Empty means no port-forwarding.
 	ForwardedPorts string
 }
 

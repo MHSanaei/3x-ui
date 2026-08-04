@@ -1,9 +1,12 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -82,7 +85,7 @@ func TestCheckForwardedPortsConflict_NoCollisionWhenPortsDontOverlap(t *testing.
 }
 
 // A port-forward spec matching a port used only by an inbound hosted on a
-// DIFFERENT node must not conflict: that inbound's DNAT/listen socket lives
+// DIFFERENT node must not conflict: that inbound's own listen socket lives
 // on the node's own host, never on this panel's, so there is nothing here
 // for the forwarded port to actually collide with. Mirrors
 // TestCheckPortConflict_NodeScope's own reasoning for the general port-
@@ -98,6 +101,46 @@ func TestCheckForwardedPortsConflict_IgnoresPortOnDifferentNode(t *testing.T) {
 	}
 	if hit := svc.checkForwardedPortsConflict(ctx, "8080"); hit != "" {
 		t.Fatalf("a port used only on a different node must not conflict; got hit=%q", hit)
+	}
+}
+
+func TestCheckForwardedPortsConflict_RejectsSpecOverCap(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	spec := fmt.Sprintf("20000-%d", 20000+amneziawg.MaxForwardedPorts)
+	hit := svc.checkForwardedPortsConflict(ctx, spec)
+	if !strings.Contains(hit, fmt.Sprintf("%d", amneziawg.MaxForwardedPorts)) {
+		t.Fatalf("expected a collision naming the %d-port cap, got %q", amneziawg.MaxForwardedPorts, hit)
+	}
+}
+
+// The SOCKS5 relay port an enabled AmneziaWG inbound gets (SOCKSPortForInbound)
+// is a phantom, non-DB-row port -- ctx.inbounds alone can't see it, so
+// checkForwardedPortsConflict must check it explicitly. Mirrors
+// TestCheckPortConflict_AmneziawgnetSocksRelayBlockedLocal's reasoning for the
+// opposite direction (a real inbound's own port colliding with the relay).
+func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	hit := svc.checkForwardedPortsConflict(ctx, fmt.Sprintf("%d", relayPort))
+	if !strings.Contains(hit, "SOCKS5") {
+		t.Fatalf("expected a collision naming the AmneziaWG inbound's SOCKS5 relay port, got %q", hit)
 	}
 }
 

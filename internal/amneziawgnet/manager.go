@@ -41,16 +41,18 @@ type Desired struct {
 }
 
 // managed is one running embedded interface: the live Device, its UDP relay
-// sessions, the peer lookup index built from its current peer list, and
-// enough of its own configuration to decide whether a later Ensure call can
-// reconfigure it in place or needs to rebuild it from scratch.
+// sessions, its open per-client port-forward listeners, the peer lookup
+// index built from its current peer list, and enough of its own
+// configuration to decide whether a later Ensure call can reconfigure it in
+// place or needs to rebuild it from scratch.
 type managed struct {
-	dev        *Device
-	udpRelay   *UDPRelay
-	peers      *PeerIndex
-	inst       amneziawg.Instance
-	structFP   string
-	uapiConfig string
+	dev          *Device
+	udpRelay     *UDPRelay
+	portForwards *PortForwardSet
+	peers        *PeerIndex
+	inst         amneziawg.Instance
+	structFP     string
+	uapiConfig   string
 }
 
 // Manager owns the set of running embedded AmneziaWG interfaces, keyed by
@@ -141,6 +143,14 @@ func (m *Manager) ensureLocked(d Desired) error {
 			cur.peers = NewPeerIndex(inst.Peers)
 			cur.inst = inst
 			applyV6Aliases(diffV6Aliases(oldInst, inst))
+			// buildUAPIConfig never reads ForwardedPorts (it's a panel-level
+			// concept, not a WireGuard UAPI field), so a ForwardedPorts-only
+			// edit renders byte-identical here and takes this exact no-op
+			// branch -- without this call, that edit would silently never
+			// open/close a listener until some unrelated change also
+			// happened to touch this inbound. See
+			// TestForwardedPortsOnlyChangeStillReconcilesPortForwards.
+			cur.portForwards.Reconcile(inst)
 			return nil
 		}
 		if err := cur.dev.IpcSet(conf); err != nil {
@@ -150,11 +160,13 @@ func (m *Manager) ensureLocked(d Desired) error {
 		cur.inst = inst
 		cur.uapiConfig = conf
 		applyV6Aliases(diffV6Aliases(oldInst, inst))
+		cur.portForwards.Reconcile(inst)
 		return nil
 	}
 
 	if exists {
 		cur.udpRelay.Close()
+		cur.portForwards.Close()
 		cur.dev.Close()
 		delete(m.ifaces, inst.Id)
 	}
@@ -172,6 +184,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 
 	relay := socksRelayForInstance(inst)
 	udpRelay := NewUDPRelay(relay, dev.Stack)
+	portForwards := NewPortForwardSet(dev.Stack, inst.Id)
 	inboundID := inst.Id // captured for the closures below, which outlive this call
 	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
 		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
@@ -208,14 +221,16 @@ func (m *Manager) ensureLocked(d Desired) error {
 	})
 
 	m.ifaces[inst.Id] = &managed{
-		dev:        dev,
-		udpRelay:   udpRelay,
-		peers:      NewPeerIndex(inst.Peers),
-		inst:       inst,
-		structFP:   structFP,
-		uapiConfig: conf,
+		dev:          dev,
+		udpRelay:     udpRelay,
+		portForwards: portForwards,
+		peers:        NewPeerIndex(inst.Peers),
+		inst:         inst,
+		structFP:     structFP,
+		uapiConfig:   conf,
 	}
 	applyV6Aliases(diffV6Aliases(oldInst, inst))
+	portForwards.Reconcile(inst)
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
 	return nil
 }
@@ -256,6 +271,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 		}
 		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.udpRelay.Close()
+		cur.portForwards.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
 		logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -280,6 +296,7 @@ func (m *Manager) Remove(id int) {
 	}
 	applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 	cur.udpRelay.Close()
+	cur.portForwards.Close()
 	cur.dev.Close()
 	delete(m.ifaces, id)
 	logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -292,6 +309,7 @@ func (m *Manager) StopAll() {
 	for id, cur := range m.ifaces {
 		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.udpRelay.Close()
+		cur.portForwards.Close()
 		cur.dev.Close()
 		delete(m.ifaces, id)
 	}
