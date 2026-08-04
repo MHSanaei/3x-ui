@@ -947,6 +947,10 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   txt += `${amneziaWGHLine('H3', server.h3, '3')}\n`;
   txt += `${amneziaWGHLine('H4', server.h4, '4')}\n`;
   if (server.i1) txt += `I1 = ${server.i1}\n`;
+  // AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
+  // server's value exactly, or every handshake fails outright.
+  if (server.headerProtectionKey) txt += `HeaderProtectionKey = ${server.headerProtectionKey}\n`;
+  if (server.contentPaddingAddition) txt += `ContentPaddingAddition = ${server.contentPaddingAddition}\n`;
   txt += `\n# ${remark}\n`;
   txt += `[Peer]\n`;
   txt += `PublicKey = ${server.publicKey ?? ''}\n`;

@@ -23,6 +23,20 @@ const hMinWidth = 1000
 // parameter: uint32 max, the kernel's own limit.
 const hMaxValid int64 = 4294967295
 
+// headerProtectionMinPadding is amneziawg-go's own HeaderCipherNonceSize:
+// every one of S1-S4 must be at least this large for AmneziaWG 3.0 header
+// protection to work at all -- confirmed directly against amneziawg-go
+// v3.0.3's device/uapi.go, which rejects the whole config otherwise (with a
+// confusingly 0-indexed "S0 must be more then 12" error). ValidateHeaderProtection
+// exists so this is caught here, at save time with a clear 1-indexed
+// message, not as that raw IpcSet error at the next apply.
+const headerProtectionMinPadding = 12
+
+// cpaMaxValid is the largest value ValidateContentPaddingAddition accepts:
+// uint16 max, matching amneziawg-go's own content_padding_addition width
+// (unlike H1-H4's uint32 width above).
+const cpaMaxValid int64 = 65535
+
 // randInt returns a uniform random int in [min, max] using crypto/rand. Falls
 // back to min on the (practically impossible) RNG error.
 func randInt(min, max int) int {
@@ -209,9 +223,12 @@ func ValidateConfigValue(field, v string) error {
 	return nil
 }
 
-// validateHValue checks one H parameter: empty, a single uint32, or
-// "low-high" with 0 <= low <= high <= uint32 max.
-func validateHValue(v string) error {
+// validateRangeValue checks one "low-high"/bare-integer parameter: empty, a
+// single non-negative integer <= max, or "low-high" with
+// 0 <= low <= high <= max. Shared by H1-H4 (max=hMaxValid, via
+// validateHValue) and ContentPaddingAddition (max=cpaMaxValid, via
+// ValidateContentPaddingAddition) -- same grammar, different width.
+func validateRangeValue(v string, max int64) error {
 	v = strings.TrimSpace(v)
 	if v == "" {
 		return nil
@@ -222,14 +239,53 @@ func validateHValue(v string) error {
 		if err1 != nil || err2 != nil {
 			return fmt.Errorf("range %q must be two integers", v)
 		}
-		if l < 0 || h > hMaxValid || l > h {
-			return fmt.Errorf("range %q must satisfy 0 <= low <= high <= %d", v, hMaxValid)
+		if l < 0 || h > max || l > h {
+			return fmt.Errorf("range %q must satisfy 0 <= low <= high <= %d", v, max)
 		}
 		return nil
 	}
 	n, err := strconv.ParseInt(v, 10, 64)
-	if err != nil || n < 0 || n > hMaxValid {
-		return fmt.Errorf("value %q must be an integer in 0..%d or a low-high range", v, hMaxValid)
+	if err != nil || n < 0 || n > max {
+		return fmt.Errorf("value %q must be an integer in 0..%d or a low-high range", v, max)
+	}
+	return nil
+}
+
+// validateHValue checks one H parameter: empty, a single uint32, or
+// "low-high" with 0 <= low <= high <= uint32 max.
+func validateHValue(v string) error {
+	return validateRangeValue(v, hMaxValid)
+}
+
+// ValidateContentPaddingAddition rejects a malformed AmneziaWG 3.0
+// ContentPaddingAddition value before it's saved: same "low-high"/
+// bare-integer grammar as an H parameter, just capped at uint16 max.
+func ValidateContentPaddingAddition(v string) error {
+	if err := validateRangeValue(v, cpaMaxValid); err != nil {
+		return fmt.Errorf("invalid contentPaddingAddition: %w", err)
+	}
+	return nil
+}
+
+// ValidateHeaderProtection rejects enabling AmneziaWG 3.0 header protection
+// against an obfuscation set whose S1-S4 aren't all wide enough for it.
+// headerProtectionKey empty (disabled, the default) is always valid --
+// header protection is strictly opt-in and never auto-enabled (see
+// GenerateObfuscation20's own doc comment: S3's/S4's generated ranges can
+// land below headerProtectionMinPadding, since nothing before this feature
+// ever required otherwise). A non-empty key requires every one of S1-S4 to
+// be >= headerProtectionMinPadding, checked in a fixed S1->S4 order so the
+// error always names the first offending field, not whichever one a map
+// iteration happened to visit first.
+func ValidateHeaderProtection(headerProtectionKey string, o Obfuscation20) error {
+	if headerProtectionKey == "" {
+		return nil
+	}
+	values := [4]int{o.S1, o.S2, o.S3, o.S4}
+	for i, v := range values {
+		if v < headerProtectionMinPadding {
+			return fmt.Errorf("S%d = %d is too low: AmneziaWG 3.0 header protection requires S1-S4 to all be >= %d -- raise it first, or leave headerProtectionKey empty", i+1, v, headerProtectionMinPadding)
+		}
 	}
 	return nil
 }

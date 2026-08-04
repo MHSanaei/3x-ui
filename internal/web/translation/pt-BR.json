@@ -1671,7 +1671,11 @@
         "h4": "H4 (cabeçalho mágico)",
         "hHint": "Um número inteiro ou um intervalo. Deixe vazio para os valores clássicos 1/2/3/4.",
         "i1": "I1 (pacote de assinatura, 2.0)",
-        "i1Hint": "Somente para AmneziaWG 2.0. Deixe vazio para compatibilidade com 1.x."
+        "i1Hint": "Somente para AmneziaWG 2.0. Deixe vazio para compatibilidade com 1.x.",
+        "headerProtectionKey": "Chave de Proteção de Cabeçalho (3.0)",
+        "headerProtectionKeyHint": "Somente para AmneziaWG 3.0, opcional e desativado por padrão. Uma chave de 32 bytes compartilhada com todos os peers -- ativá-la ou alterá-la é uma mudança que quebra a compatibilidade com todos os peers existentes nesta interface (como uma mudança de versão de protocolo): uma chave incompatível ou definida em apenas um lado faz com que todo handshake falhe, não apenas uma ofuscação mais fraca. Requer que S1-S4 acima estejam todos com pelo menos 12. Deixe vazio para manter o comportamento clássico (não 3.0).",
+        "contentPaddingAddition": "Preenchimento Adicional de Conteúdo (3.0)",
+        "contentPaddingAdditionHint": "Somente para AmneziaWG 3.0. Um único número inteiro ou um intervalo low-high de bytes de preenchimento aleatório adicionados a cada pacote de transporte. Deixe vazio para desativar."
       },
       "tun": {
         "userLevel": "Nível do Usuário"

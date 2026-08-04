@@ -664,11 +664,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "x25519": true
   },
   "ServerSettings": {
+    "contentPaddingAddition": "",
     "externalInterface": "",
     "h1": "",
     "h2": "",
     "h3": "",
     "h4": "",
+    "headerProtectionKey": "",
     "i1": "",
     "ipv6Enabled": false,
     "ipv6ExternalInterface": "",

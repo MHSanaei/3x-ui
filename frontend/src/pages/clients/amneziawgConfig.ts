@@ -62,6 +62,11 @@ export function buildAmneziaWGClientConfig(
   lines.push(hLine('H3', server?.h3, '3'));
   lines.push(hLine('H4', server?.h4, '4'));
   if (server?.i1) lines.push(`I1 = ${server.i1}`);
+  // AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
+  // server's value exactly, or every handshake fails outright (not just
+  // weaker obfuscation).
+  if (server?.headerProtectionKey) lines.push(`HeaderProtectionKey = ${server.headerProtectionKey}`);
+  if (server?.contentPaddingAddition) lines.push(`ContentPaddingAddition = ${server.contentPaddingAddition}`);
 
   lines.push('');
   if (remark) lines.push(`# ${remark}`);

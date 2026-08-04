@@ -1671,7 +1671,11 @@
         "h4": "H4 (sihirli başlık)",
         "hHint": "Tek bir tam sayı veya bir aralık. Klasik 1/2/3/4 varsayılanları için boş bırakın.",
         "i1": "I1 (imza paketi, 2.0)",
-        "i1Hint": "Yalnızca AmneziaWG 2.0 için. 1.x uyumluluğu için boş bırakın."
+        "i1Hint": "Yalnızca AmneziaWG 2.0 için. 1.x uyumluluğu için boş bırakın.",
+        "headerProtectionKey": "Başlık Koruma Anahtarı (3.0)",
+        "headerProtectionKeyHint": "Yalnızca AmneziaWG 3.0 için, isteğe bağlı ve varsayılan olarak kapalı. Her peer ile paylaşılan 32 baytlık bir anahtar -- bunu etkinleştirmek veya değiştirmek bu arayüzdeki tüm mevcut peer'lerle uyumluluğu bozan bir değişikliktir (protokol sürümü yükseltmesi gibi): eşleşmeyen veya tek taraflı bir anahtar, sadece daha zayıf gizleme değil, her el sıkışmanın başarısız olmasına neden olur. Yukarıdaki S1-S4 değerlerinin tümünün en az 12 olmasını gerektirir. Klasik (3.0 olmayan) davranışı korumak için boş bırakın.",
+        "contentPaddingAddition": "İçerik Dolgu Eklentisi (3.0)",
+        "contentPaddingAdditionHint": "Yalnızca AmneziaWG 3.0 için. Her transport paketine eklenen rastgele dolgu baytı sayısı için tek bir tam sayı veya low-high aralığı. Devre dışı bırakmak için boş bırakın."
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

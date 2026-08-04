@@ -382,6 +382,8 @@ describe('genAmneziaWGLink vpn:// scheme', () => {
       h3: '',
       h4: '',
       i1: '',
+      headerProtectionKey: 'some-header-protection-key==',
+      contentPaddingAddition: '20-40',
     },
     clients: [
       {
@@ -405,6 +407,8 @@ describe('genAmneziaWGLink vpn:// scheme', () => {
     expect(decoded).toContain('PublicKey = serverPubKey==\n');
     expect(decoded).toContain('Endpoint = awg.example.test:51820');
     expect(decoded).toContain('PersistentKeepalive = 25\n');
+    expect(decoded).toContain('HeaderProtectionKey = some-header-protection-key==\n');
+    expect(decoded).toContain('ContentPaddingAddition = 20-40\n');
   });
 
   it('returns an empty string when the peer index has no client', () => {

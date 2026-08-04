@@ -682,11 +682,13 @@ export const RealityScanResultSchema = z.object({
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const ServerSettingsSchema = z.object({
+  contentPaddingAddition: z.string().optional(),
   externalInterface: z.string().optional(),
   h1: z.string(),
   h2: z.string(),
   h3: z.string(),
   h4: z.string(),
+  headerProtectionKey: z.string().optional(),
   i1: z.string().optional(),
   ipv6Enabled: z.boolean().optional(),
   ipv6ExternalInterface: z.string().optional(),

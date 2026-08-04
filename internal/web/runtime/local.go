@@ -60,7 +60,13 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
+		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
+			Instance: inst,
+			Options: amneziawgnet.DeviceOptions{
+				HeaderProtectionKey:    inst.HeaderProtectionKey,
+				ContentPaddingAddition: inst.ContentPaddingAddition,
+			},
+		})
 		// A brand new inbound can be the first one to qualify for
 		// injectAmneziawgnetSocks's Xray-side relay inbound (e.g. its first
 		// valid peer). Ensure only updates the embedded Device -- flag Xray
@@ -180,7 +186,13 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 		amneziawgnet.GetManager().Remove(newIb.Id)
 		return nil
 	}
-	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{Instance: inst})
+	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
+		Instance: inst,
+		Options: amneziawgnet.DeviceOptions{
+			HeaderProtectionKey:    inst.HeaderProtectionKey,
+			ContentPaddingAddition: inst.ContentPaddingAddition,
+		},
+	})
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {

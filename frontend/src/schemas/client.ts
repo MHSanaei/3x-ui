@@ -68,6 +68,8 @@ export const AwgServerOptionSchema = z.object({
   h3: z.string().optional(),
   h4: z.string().optional(),
   i1: z.string().optional(),
+  headerProtectionKey: z.string().optional(),
+  contentPaddingAddition: z.string().optional(),
 }).loose();
 
 export const InboundOptionSchema = z.object({

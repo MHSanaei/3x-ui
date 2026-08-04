@@ -210,6 +210,15 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateConfigValue("i1", parsed.Server.I1); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	if err := amneziawg.ValidateConfigValue("headerProtectionKey", parsed.Server.HeaderProtectionKey); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateHeaderProtection(parsed.Server.HeaderProtectionKey, parsed.Server.Obfuscation()); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateContentPaddingAddition(parsed.Server.ContentPaddingAddition); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
 
 	portCtx, err := s.loadPortConflictContext()
 	if err != nil {

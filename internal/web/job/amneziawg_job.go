@@ -36,7 +36,13 @@ func (j *AmneziaWGJob) Run() {
 
 	wanted := make([]amneziawgnet.Desired, 0, len(desired))
 	for _, inst := range desired {
-		wanted = append(wanted, amneziawgnet.Desired{Instance: inst})
+		wanted = append(wanted, amneziawgnet.Desired{
+			Instance: inst,
+			Options: amneziawgnet.DeviceOptions{
+				HeaderProtectionKey:    inst.HeaderProtectionKey,
+				ContentPaddingAddition: inst.ContentPaddingAddition,
+			},
+		})
 	}
 	amneziawgnet.GetManager().Reconcile(wanted)
 }

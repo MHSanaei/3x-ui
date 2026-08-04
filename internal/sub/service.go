@@ -723,6 +723,14 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	if server.I1 != "" {
 		fmt.Fprintf(&b, "I1 = %s\n", server.I1)
 	}
+	// AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
+	// server's value exactly, or every handshake fails outright.
+	if server.HeaderProtectionKey != "" {
+		fmt.Fprintf(&b, "HeaderProtectionKey = %s\n", server.HeaderProtectionKey)
+	}
+	if server.ContentPaddingAddition != "" {
+		fmt.Fprintf(&b, "ContentPaddingAddition = %s\n", server.ContentPaddingAddition)
+	}
 
 	fmt.Fprintf(&b, "\n# %s\n", remark)
 	b.WriteString("[Peer]\n")

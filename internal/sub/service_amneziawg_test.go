@@ -28,7 +28,8 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 		Port:     51820,
 		Protocol: model.AmneziaWG,
 		Remark:   "awg-sub",
-		Settings: `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `","mtu":1420,"primaryDns":"8.8.8.8"},` +
+		Settings: `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `","mtu":1420,"primaryDns":"8.8.8.8",` +
+			`"headerProtectionKey":"some-header-protection-key","contentPaddingAddition":"20-40"},` +
 			`"clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.8.1.2/32"],"keepAlive":25}]}`,
 	}
 
@@ -50,6 +51,8 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 		"Address = 10.8.1.2/32",
 		"MTU = 1420",
 		"DNS = 8.8.8.8",
+		"HeaderProtectionKey = some-header-protection-key",
+		"ContentPaddingAddition = 20-40",
 		"[Peer]",
 		"PublicKey = " + serverPub,
 		"Endpoint = 203.0.113.7:51820",

@@ -154,6 +154,65 @@ func TestValidateObfuscationRejectsBadH(t *testing.T) {
 	}
 }
 
+func TestValidateHeaderProtectionAllowsEmptyKeyRegardlessOfS1S4(t *testing.T) {
+	o := Obfuscation20{S1: 0, S2: 0, S3: 0, S4: 0}
+	if err := ValidateHeaderProtection("", o); err != nil {
+		t.Fatalf("an empty key must never be rejected, even with S1-S4 all 0: %v", err)
+	}
+}
+
+func TestValidateHeaderProtectionRequiresS1ThroughS4AtLeast12(t *testing.T) {
+	base := Obfuscation20{S1: 20, S2: 20, S3: 20, S4: 20}
+	cases := []struct {
+		name    string
+		mutate  func(*Obfuscation20)
+		wantNum int
+	}{
+		{"S1 too low", func(o *Obfuscation20) { o.S1 = 11 }, 1},
+		{"S2 too low", func(o *Obfuscation20) { o.S2 = 11 }, 2},
+		{"S3 too low", func(o *Obfuscation20) { o.S3 = 11 }, 3},
+		{"S4 too low", func(o *Obfuscation20) { o.S4 = 0 }, 4},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			o := base
+			c.mutate(&o)
+			err := ValidateHeaderProtection("some-key", o)
+			if err == nil {
+				t.Fatalf("expected an error for %s", c.name)
+			}
+			want := "S" + strconv.Itoa(c.wantNum)
+			if !strings.Contains(err.Error(), want) {
+				t.Fatalf("error %q does not name the offending field %q", err.Error(), want)
+			}
+		})
+	}
+}
+
+func TestValidateHeaderProtectionAcceptsExactly12(t *testing.T) {
+	o := Obfuscation20{S1: 12, S2: 12, S3: 12, S4: 12}
+	if err := ValidateHeaderProtection("some-key", o); err != nil {
+		t.Fatalf("S1-S4 all exactly 12 must be accepted: %v", err)
+	}
+}
+
+func TestValidateContentPaddingAdditionAcceptsSameGrammarAsH(t *testing.T) {
+	for _, v := range []string{"", "0", "65535", "50-100", "0-65535"} {
+		if err := ValidateContentPaddingAddition(v); err != nil {
+			t.Errorf("ValidateContentPaddingAddition(%q) rejected a valid value: %v", v, err)
+		}
+	}
+}
+
+func TestValidateContentPaddingAdditionRejectsBadValues(t *testing.T) {
+	cases := []string{"not-a-number", "10-", "-10", "100-50", "65536", "0-65536", "-1"}
+	for _, v := range cases {
+		if err := ValidateContentPaddingAddition(v); err == nil {
+			t.Errorf("ValidateContentPaddingAddition(%q) must be rejected", v)
+		}
+	}
+}
+
 func TestValidateInterfaceNameAcceptsBlankAndPlausibleNames(t *testing.T) {
 	for _, name := range []string{"", "eth0", "wg0", "br-lan", "eno1.100", "veth1a2b3c", "eth0:0"} {
 		if err := ValidateInterfaceName(name); err != nil {

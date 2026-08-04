@@ -642,11 +642,13 @@ export interface RealityScanResult {
 }
 
 export interface ServerSettings {
+  contentPaddingAddition?: string;
   externalInterface?: string;
   h1: string;
   h2: string;
   h3: string;
   h4: string;
+  headerProtectionKey?: string;
   i1?: string;
   ipv6Enabled?: boolean;
   ipv6ExternalInterface?: string;

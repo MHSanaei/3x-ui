@@ -1671,7 +1671,11 @@
         "h4": "H4 (tiêu đề ma thuật)",
         "hHint": "Một số nguyên hoặc một khoảng. Để trống để dùng giá trị mặc định cổ điển 1/2/3/4.",
         "i1": "I1 (gói chữ ký, 2.0)",
-        "i1Hint": "Chỉ dành cho AmneziaWG 2.0. Để trống để tương thích với 1.x."
+        "i1Hint": "Chỉ dành cho AmneziaWG 2.0. Để trống để tương thích với 1.x.",
+        "headerProtectionKey": "Khóa bảo vệ tiêu đề (3.0)",
+        "headerProtectionKeyHint": "Chỉ dành cho AmneziaWG 3.0, tùy chọn và tắt theo mặc định. Một khóa 32 byte dùng chung với mọi peer -- bật hoặc thay đổi nó là một thay đổi phá vỡ khả năng tương thích với mọi peer hiện có trên giao diện này (giống như nâng cấp phiên bản giao thức): khóa không khớp hoặc chỉ đặt một phía sẽ khiến mọi bắt tay thất bại, không chỉ là làm giảm khả năng ngụy trang. Yêu cầu S1-S4 ở trên đều phải tối thiểu là 12. Để trống để giữ hành vi cổ điển (không phải 3.0).",
+        "contentPaddingAddition": "Đệm nội dung bổ sung (3.0)",
+        "contentPaddingAdditionHint": "Chỉ dành cho AmneziaWG 3.0. Một số nguyên đơn hoặc một khoảng low-high số byte đệm ngẫu nhiên bổ sung vào mỗi gói transport. Để trống để tắt."
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

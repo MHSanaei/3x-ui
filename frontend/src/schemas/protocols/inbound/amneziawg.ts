@@ -72,6 +72,10 @@ export const AmneziawgServerSchema = z.object({
   h3: z.string().default(''),
   h4: z.string().default(''),
   i1: z.string().default(''),
+  // AmneziaWG 3.0 fields, strictly opt-in -- see amneziawg.tsx's own hint
+  // copy. headerProtectionKey requires s1-s4 above to all be >= 12.
+  headerProtectionKey: z.string().default(''),
+  contentPaddingAddition: z.string().default(''),
 });
 export type AmneziawgServer = z.infer<typeof AmneziawgServerSchema>;
 

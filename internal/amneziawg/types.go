@@ -57,7 +57,22 @@ type Instance struct {
 	MTU     int
 
 	Obfuscation Obfuscation20
-	Peers       []Peer
+
+	// HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0's
+	// device-wide obfuscation fields. Deliberately not part of
+	// Obfuscation20 (2.0-only, see its own doc comment) --
+	// InstanceFromInbound copies them from ServerSettings' identically
+	// named flat fields below, and amneziawgnet.DeviceOptions is what
+	// actually consumes them (see that type's own doc comment for why
+	// they live outside this shared schema). HeaderProtectionKey empty
+	// (the default) disables AWG 3.0 header protection entirely; unlike
+	// every other obfuscation field here, it is never auto-generated --
+	// turning it on is a compatibility-breaking, opt-in decision an admin
+	// must make explicitly (see GenerateObfuscation20's own doc comment).
+	HeaderProtectionKey    string
+	ContentPaddingAddition string
+
+	Peers []Peer
 
 	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
 	// attached to under the retired kernel-module architecture. Also the
@@ -143,6 +158,19 @@ type ServerSettings struct {
 	H3   string `json:"h3"`
 	H4   string `json:"h4"`
 	I1   string `json:"i1,omitempty"`
+
+	// HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0
+	// fields, flat and top-level for the same tools/openapigen reason as
+	// the block above -- deliberately NOT part of Obfuscation20/
+	// Obfuscation() below, matching Instance's own separation.
+	// HeaderProtectionKey is a base64 32-byte key; empty (the default)
+	// disables AWG 3.0 header protection. A non-empty value requires
+	// every one of S1-S4 above to be >= 12 -- ValidateHeaderProtection
+	// enforces this at save time, not just at IpcSet time.
+	// ContentPaddingAddition is a "low-high" range or bare integer, the
+	// same grammar as H1-H4 but capped at uint16 max.
+	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
+	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
 }
 
 // Obfuscation extracts the Obfuscation20 parameter set from a ServerSettings

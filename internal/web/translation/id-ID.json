@@ -1671,7 +1671,11 @@
         "h4": "H4 (header ajaib)",
         "hHint": "Satu bilangan bulat atau rentang. Biarkan kosong untuk nilai klasik 1/2/3/4.",
         "i1": "I1 (paket tanda tangan, 2.0)",
-        "i1Hint": "Hanya untuk AmneziaWG 2.0. Biarkan kosong untuk kompatibilitas dengan 1.x."
+        "i1Hint": "Hanya untuk AmneziaWG 2.0. Biarkan kosong untuk kompatibilitas dengan 1.x.",
+        "headerProtectionKey": "Kunci Perlindungan Header (3.0)",
+        "headerProtectionKeyHint": "Hanya untuk AmneziaWG 3.0, opsional dan nonaktif secara default. Kunci 32-byte yang dibagikan dengan setiap peer -- mengaktifkan atau mengubahnya adalah perubahan yang merusak kompatibilitas dengan semua peer yang ada di antarmuka ini (seperti pergantian versi protokol): kunci yang tidak cocok atau hanya diatur di satu sisi akan membuat semua handshake gagal, bukan hanya penyamaran yang lebih lemah. Memerlukan S1-S4 di atas semuanya minimal 12. Biarkan kosong untuk mempertahankan perilaku klasik (non-3.0).",
+        "contentPaddingAddition": "Tambahan Padding Konten (3.0)",
+        "contentPaddingAdditionHint": "Hanya untuk AmneziaWG 3.0. Bilangan bulat tunggal atau rentang low-high byte padding acak tambahan yang ditambahkan ke setiap paket transport. Biarkan kosong untuk menonaktifkan."
       },
       "tun": {
         "userLevel": "Level Pengguna"

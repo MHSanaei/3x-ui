@@ -320,6 +320,8 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       h3: '',
       h4: '',
       i1: '',
+      headerProtectionKey: '',
+      contentPaddingAddition: '',
     },
     clients: [],
   };

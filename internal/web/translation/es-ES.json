@@ -1671,7 +1671,11 @@
         "h4": "H4 (cabecera mágica)",
         "hHint": "Un número entero o un rango. Déjalo vacío para los valores clásicos 1/2/3/4.",
         "i1": "I1 (paquete de firma, 2.0)",
-        "i1Hint": "Solo para AmneziaWG 2.0. Déjalo vacío para compatibilidad con 1.x."
+        "i1Hint": "Solo para AmneziaWG 2.0. Déjalo vacío para compatibilidad con 1.x.",
+        "headerProtectionKey": "Clave de Protección de Cabecera (3.0)",
+        "headerProtectionKeyHint": "Solo para AmneziaWG 3.0, opcional y desactivado por defecto. Una clave de 32 bytes compartida con cada par -- activarla o cambiarla es un cambio que rompe la compatibilidad con todos los pares existentes en esta interfaz (como un cambio de versión de protocolo): una clave no coincidente o configurada solo en un lado hace que todo handshake falle, no solo que la ofuscación sea más débil. Requiere que S1-S4 arriba sean todos al menos 12. Déjalo vacío para mantener el comportamiento clásico (no 3.0).",
+        "contentPaddingAddition": "Relleno de Contenido Adicional (3.0)",
+        "contentPaddingAdditionHint": "Solo para AmneziaWG 3.0. Un único entero o un rango low-high de bytes de relleno aleatorio añadidos a cada paquete de transporte. Déjalo vacío para desactivarlo."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

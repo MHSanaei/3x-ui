@@ -334,6 +334,18 @@ export default function InboundFormModal({
     setV('settings.server.publicKey', kp.publicKey);
   };
 
+  // AmneziaWG 3.0's HeaderProtectionKey is a symmetric ChaCha20 key, not a
+  // Curve25519 keypair member -- generatePresharedKey (32 unclamped random
+  // bytes) is the correct primitive, matching how a WireGuard PSK is
+  // generated, not generateKeypair/generatePrivateKey's X25519 clamping.
+  // Deliberately its own action, separate from regenInboundAwgObfuscation:
+  // turning on header protection is a compatibility-breaking decision an
+  // admin should make explicitly, not something a bulk obfuscation reroll
+  // silently does.
+  const regenInboundAwgHeaderProtectionKey = () => {
+    setV('settings.server.headerProtectionKey', Wireguard.keyToBase64(Wireguard.generatePresharedKey()));
+  };
+
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
   // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
   // "default" preset (internal/amneziawg/params.go) closely enough for a form
@@ -745,6 +757,7 @@ export default function InboundFormModal({
           awgPubKey={awgPubKey}
           regenInboundAwg={regenInboundAwg}
           regenInboundAwgObfuscation={regenInboundAwgObfuscation}
+          regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}
         />
       )}
 

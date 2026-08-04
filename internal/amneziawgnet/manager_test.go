@@ -237,3 +237,107 @@ func TestForwardedPortsOnlyChangeStillReconcilesPortForwards(t *testing.T) {
 	}
 	conn.Close()
 }
+
+// TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace is a regression
+// test for the Phase 3.7 AWG 3.0 wiring: proves that populating
+// Desired.Options with a real HeaderProtectionKey/ContentPaddingAddition
+// takes ensureLocked's existing reconfigure-in-place branch (same *Device
+// survives, no rebuild) rather than silently doing nothing or forcing an
+// unnecessary rebuild -- buildUAPIConfig already rendered these fields
+// before this phase, so no manager.go changes were needed, but this proves
+// the whole chain (Desired -> DeviceOptions -> buildUAPIConfig -> IpcSet)
+// actually works together, not just in isolation.
+func TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	headerProtectionKey, err := wireguard.GenerateWireguardPSK()
+	if err != nil {
+		t.Fatalf("generate header protection key: %v", err)
+	}
+
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            7,
+		InterfaceName: "awgtest7",
+		ListenPort:    58717,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.207.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+	}
+	defer m.StopAll()
+
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure (create, no header protection yet): %v", err)
+	}
+	dev1, _, ok := m.Lookup(inst.Id)
+	if !ok {
+		t.Fatal("Lookup after Ensure: not found")
+	}
+
+	err = m.Ensure(Desired{
+		Instance: inst,
+		Options: DeviceOptions{
+			HeaderProtectionKey:    headerProtectionKey,
+			ContentPaddingAddition: "20-40",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Ensure (HeaderProtectionKey-only change): %v", err)
+	}
+	dev2, _, ok := m.Lookup(inst.Id)
+	if !ok {
+		t.Fatal("Lookup after second Ensure: not found")
+	}
+	if dev1 != dev2 {
+		t.Error("Ensure with a HeaderProtectionKey-only change rebuilt the Device; expected an in-place IpcSet reconfigure")
+	}
+}
+
+// TestEnsureRejectsHeaderProtectionKeyWithLowS1S4 proves amneziawg-go's own
+// IpcSet backstop really exists independent of the save-time
+// ValidateHeaderProtection check in
+// internal/web/service/inbound_amneziawg.go -- that web-layer check can be
+// bypassed (a node-owned inbound, a direct DB edit), so this confirms a
+// malformed config still fails loudly here rather than silently applying a
+// broken interface.
+func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	headerProtectionKey, err := wireguard.GenerateWireguardPSK()
+	if err != nil {
+		t.Fatalf("generate header protection key: %v", err)
+	}
+
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            8,
+		InterfaceName: "awgtest8",
+		ListenPort:    58718,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.208.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 5, S2: 5, S3: 5, S4: 5, // all below amneziawg-go's own 12-byte minimum
+		},
+	}
+	defer m.StopAll()
+
+	err = m.Ensure(Desired{
+		Instance: inst,
+		Options:  DeviceOptions{HeaderProtectionKey: headerProtectionKey},
+	})
+	if err == nil {
+		t.Fatal("Ensure must fail: amneziawg-go's own IpcSet rejects header protection with S1-S4 below its minimum")
+	}
+}

@@ -8,9 +8,15 @@ interface AmneziawgFieldsProps {
   awgPubKey: string;
   regenInboundAwg: () => void;
   regenInboundAwgObfuscation: () => void;
+  regenInboundAwgHeaderProtectionKey: () => void;
 }
 
-export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInboundAwgObfuscation }: AmneziawgFieldsProps) {
+export default function AmneziawgFields({
+  awgPubKey,
+  regenInboundAwg,
+  regenInboundAwgObfuscation,
+  regenInboundAwgHeaderProtectionKey,
+}: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -116,6 +122,24 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
         extra={t('pages.xray.amneziawg.i1Hint')}
       >
         <Input placeholder="<r 64>" />
+      </FormField>
+      <Form.Item
+        label={t('pages.xray.amneziawg.headerProtectionKey')}
+        extra={t('pages.xray.amneziawg.headerProtectionKeyHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'headerProtectionKey']} noStyle>
+            <Input style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgHeaderProtectionKey} />
+        </Space.Compact>
+      </Form.Item>
+      <FormField
+        name={['settings', 'server', 'contentPaddingAddition']}
+        label={t('pages.xray.amneziawg.contentPaddingAddition')}
+        extra={t('pages.xray.amneziawg.contentPaddingAdditionHint')}
+      >
+        <Input placeholder="0 or 50-100" />
       </FormField>
     </>
   );

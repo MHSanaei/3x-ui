@@ -56,6 +56,28 @@ func TestInstanceFromInboundParsesEnabledPeers(t *testing.T) {
 	}
 }
 
+func TestInstanceFromInboundCopiesAWG30Fields(t *testing.T) {
+	server := validServer()
+	server.S1, server.S2, server.S3, server.S4 = 20, 20, 20, 20
+	server.HeaderProtectionKey = "some-header-protection-key"
+	server.ContentPaddingAddition = "50-100"
+	settings := mkInboundSettings(t, server, []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},
+	})
+	ib := &model.Inbound{Id: 7, Protocol: model.AmneziaWG, Port: 51820, Settings: settings}
+
+	inst, ok := InstanceFromInbound(ib)
+	if !ok {
+		t.Fatal("expected a usable instance")
+	}
+	if inst.HeaderProtectionKey != "some-header-protection-key" {
+		t.Fatalf("HeaderProtectionKey = %q, want it copied from ServerSettings", inst.HeaderProtectionKey)
+	}
+	if inst.ContentPaddingAddition != "50-100" {
+		t.Fatalf("ContentPaddingAddition = %q, want it copied from ServerSettings", inst.ContentPaddingAddition)
+	}
+}
+
 func TestInstanceFromInboundRejectsWrongProtocol(t *testing.T) {
 	settings := mkInboundSettings(t, validServer(), []model.Client{
 		{Email: "a@x", Enable: true, PublicKey: "pubA", AllowedIPs: []string{"10.8.1.2/32"}},

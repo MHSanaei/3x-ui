@@ -59,20 +59,22 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	}
 
 	return Instance{
-		Id:                    ib.Id,
-		Tag:                   ib.Tag,
-		InterfaceName:         interfaceNameForID(ib.Id),
-		ListenPort:            ib.Port,
-		PrivateKey:            server.PrivateKey,
-		PublicKey:             server.PublicKey,
-		Address:               addresses,
-		MTU:                   server.MTU,
-		Obfuscation:           server.Obfuscation(),
-		Peers:                 peers,
-		ExternalInterface:     server.ExternalInterface,
-		IPv6Enabled:           server.IPv6Enabled,
-		IPv6ExternalInterface: server.IPv6ExternalInterface,
-		RouteThroughXray:      server.RouteThroughXray,
+		Id:                     ib.Id,
+		Tag:                    ib.Tag,
+		InterfaceName:          interfaceNameForID(ib.Id),
+		ListenPort:             ib.Port,
+		PrivateKey:             server.PrivateKey,
+		PublicKey:              server.PublicKey,
+		Address:                addresses,
+		MTU:                    server.MTU,
+		Obfuscation:            server.Obfuscation(),
+		HeaderProtectionKey:    server.HeaderProtectionKey,
+		ContentPaddingAddition: server.ContentPaddingAddition,
+		Peers:                  peers,
+		ExternalInterface:      server.ExternalInterface,
+		IPv6Enabled:            server.IPv6Enabled,
+		IPv6ExternalInterface:  server.IPv6ExternalInterface,
+		RouteThroughXray:       server.RouteThroughXray,
 	}, true
 }
 
