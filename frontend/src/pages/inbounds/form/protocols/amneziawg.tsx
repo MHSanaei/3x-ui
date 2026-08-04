@@ -9,6 +9,7 @@ interface AmneziawgFieldsProps {
   regenInboundAwg: () => void;
   regenInboundAwgObfuscation: () => void;
   regenInboundAwgHeaderProtectionKey: () => void;
+  regenInboundAwgContentPaddingAddition: () => void;
 }
 
 export default function AmneziawgFields({
@@ -16,6 +17,7 @@ export default function AmneziawgFields({
   regenInboundAwg,
   regenInboundAwgObfuscation,
   regenInboundAwgHeaderProtectionKey,
+  regenInboundAwgContentPaddingAddition,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   return (
@@ -134,13 +136,17 @@ export default function AmneziawgFields({
           <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgHeaderProtectionKey} />
         </Space.Compact>
       </Form.Item>
-      <FormField
-        name={['settings', 'server', 'contentPaddingAddition']}
+      <Form.Item
         label={t('pages.xray.amneziawg.contentPaddingAddition')}
         extra={t('pages.xray.amneziawg.contentPaddingAdditionHint')}
       >
-        <Input placeholder="0 or 50-100" />
-      </FormField>
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'contentPaddingAddition']} noStyle>
+            <Input placeholder="0 or 50-100" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgContentPaddingAddition} />
+        </Space.Compact>
+      </Form.Item>
     </>
   );
 }

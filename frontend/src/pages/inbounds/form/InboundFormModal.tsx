@@ -357,6 +357,19 @@ export default function InboundFormModal({
     }
   };
 
+  // Suggests a modest "low-high" ContentPaddingAddition range -- there's no
+  // backend generator to mirror (unlike H1-H4's generateHRanges), so this is
+  // a standalone, deliberately conservative choice: a few tens of bytes of
+  // extra per-packet padding is enough to blur packet-size fingerprinting
+  // without adding much real bandwidth overhead, which a much larger range
+  // (this field's grammar allows up to uint16 max) would.
+  const regenInboundAwgContentPaddingAddition = () => {
+    const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
+    const lo = randInt(0, 30);
+    const hi = lo + randInt(20, 100);
+    setV('settings.server.contentPaddingAddition', `${lo}-${hi}`);
+  };
+
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
   // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
   // "default" preset (internal/amneziawg/params.go) closely enough for a form
@@ -769,6 +782,7 @@ export default function InboundFormModal({
           regenInboundAwg={regenInboundAwg}
           regenInboundAwgObfuscation={regenInboundAwgObfuscation}
           regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}
+          regenInboundAwgContentPaddingAddition={regenInboundAwgContentPaddingAddition}
         />
       )}
 
