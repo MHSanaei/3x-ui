@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "シークレットキー",
         "publicKey": "公開鍵",
+        "subnetIp": "サブネット",
+        "subnetCidr": "サブネットCIDR",
         "allowedIPs": "許可されたIP",
         "endpoint": "エンドポイント",
         "domainStrategy": "ドメイン戦略"

@@ -1752,6 +1752,8 @@
       "wireguard": {
         "secretKey": "Secret Key",
         "publicKey": "Public Key",
+        "subnetIp": "Subnet",
+        "subnetCidr": "Subnet CIDR",
         "allowedIPs": "Allowed IPs",
         "endpoint": "Endpoint",
         "domainStrategy": "Domain Strategy"

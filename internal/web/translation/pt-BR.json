@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "Chave Secreta",
         "publicKey": "Chave Pública",
+        "subnetIp": "Sub-rede",
+        "subnetCidr": "CIDR da Sub-rede",
         "allowedIPs": "IPs Permitidos",
         "endpoint": "Ponto Final",
         "domainStrategy": "Estratégia de Domínio"

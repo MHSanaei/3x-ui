@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "کلید شخصی",
         "publicKey": "کلید عمومی",
+        "subnetIp": "زیرشبکه",
+        "subnetCidr": "پیشوند زیرشبکه (CIDR)",
         "allowedIPs": "آی‌پی‌های مجاز",
         "endpoint": "نقطه پایانی",
         "domainStrategy": "استراتژی حل دامنه"

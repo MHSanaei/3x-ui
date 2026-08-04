@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "Kunci Rahasia",
         "publicKey": "Kunci Publik",
+        "subnetIp": "Subnet",
+        "subnetCidr": "CIDR Subnet",
         "allowedIPs": "IP yang Diizinkan",
         "endpoint": "Titik Akhir",
         "domainStrategy": "Strategi Domain"

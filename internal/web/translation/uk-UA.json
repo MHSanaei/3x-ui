@@ -1635,6 +1635,8 @@
       "wireguard": {
         "secretKey": "Приватний ключ",
         "publicKey": "Публічний ключ",
+        "subnetIp": "Підмережа",
+        "subnetCidr": "CIDR підмережі",
         "allowedIPs": "Дозволені IP-адреси",
         "endpoint": "Кінцева точка",
         "domainStrategy": "Стратегія домену"

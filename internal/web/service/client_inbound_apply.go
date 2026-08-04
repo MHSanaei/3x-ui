@@ -422,7 +422,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			return false, cErr
 		}
 		if oldInbound.Protocol == model.WireGuard {
-			if dErr := defaultWireguardClients(existingClients, clients, interfaceClients, crossUsed); dErr != nil {
+			if dErr := defaultWireguardClients(oldInbound.Settings, existingClients, clients, interfaceClients, crossUsed); dErr != nil {
 				return false, dErr
 			}
 		}

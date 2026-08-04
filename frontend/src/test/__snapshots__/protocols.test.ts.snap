@@ -248,6 +248,7 @@ exports[`InboundSettingsSchema fixtures > parses wireguard-basic byte-stably 1`]
       },
     ],
     "secretKey": "QGVlb2dXc1ZTWGw0ZXBzZndsWmtMaUM5MUlNYjBHWFdYbz0=",
+    "subnetIp": "",
   },
 }
 `;

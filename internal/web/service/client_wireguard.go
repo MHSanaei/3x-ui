@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/netip"
 	"strconv"
 	"strings"
@@ -11,6 +13,41 @@ import (
 )
 
 const defaultWireguardBase = "10.0.0.0/24"
+
+// wireguardSubnetSettings is the subset of a WireGuard inbound's top-level
+// settings JSON this package cares about for subnet resolution. Unlike
+// AmneziaWG (whose whole settings shape is a typed struct in
+// internal/amneziawg), plain WireGuard has no dedicated Go struct on this
+// fork's side at all -- everything else is handled as untyped
+// map[string]any -- so this stays a narrow, local decode rather than
+// introducing a full struct just for two fields.
+type wireguardSubnetSettings struct {
+	SubnetIP   string `json:"subnetIp"`
+	SubnetCIDR int    `json:"subnetCidr"`
+}
+
+// explicitWireguardSubnetBase resolves an admin-configured subnet base out
+// of settingsJSON's own subnetIp/subnetCidr fields, mirroring AmneziaWG's
+// defaultAmneziaWGSubnetBases. Returns "" when either field is unset/empty
+// or doesn't parse as a valid prefix -- callers fall back to
+// wireguardAllocationBase's existing infer-from-clients behavior in that
+// case, so an inbound saved before this field existed (or one that simply
+// never set it) keeps behaving exactly as it always has.
+func explicitWireguardSubnetBase(settingsJSON string) string {
+	var parsed wireguardSubnetSettings
+	if err := json.Unmarshal([]byte(settingsJSON), &parsed); err != nil {
+		return ""
+	}
+	ip := strings.TrimSpace(parsed.SubnetIP)
+	if ip == "" || parsed.SubnetCIDR <= 0 {
+		return ""
+	}
+	base := fmt.Sprintf("%s/%d", ip, parsed.SubnetCIDR)
+	if _, err := netip.ParsePrefix(base); err != nil {
+		return ""
+	}
+	return base
+}
 
 func keepAliveStr(seconds int) string {
 	if seconds <= 0 {
@@ -148,16 +185,25 @@ func wireguardAllowedIPsCollision(entries, used []string) string {
 // crossInboundUsed maps AllowedIPs already claimed by clients on every OTHER
 // WireGuard/AmneziaWG inbound on this panel to a human-readable description
 // of which inbound holds it (see otherTunnelAllowedIPs). It is folded into
-// used only AFTER wireguardAllocationBase runs, so an unrelated inbound's
-// subnet can never skew this inbound's own base-subnet inference — it only
+// used only AFTER the base subnet is resolved, so an unrelated inbound's
+// subnet can never skew this inbound's own base-subnet resolution — it only
 // ever narrows which addresses are free to hand out or accept, and lets a
 // manual-entry collision name the other inbound instead of just the address.
-func defaultWireguardClients(existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
+//
+// settingsJSON is checked first for an admin-configured subnetIp/subnetCidr
+// (see explicitWireguardSubnetBase) — set explicitly, that always wins.
+// Only when it's unset does base fall back to inferring from existing
+// clients' own addresses, and finally to defaultWireguardBase, exactly as
+// before this field existed.
+func defaultWireguardClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	used := make([]string, 0)
 	for i := range existing {
 		used = append(used, existing[i].AllowedIPs...)
 	}
-	base := wireguardAllocationBase(used, defaultWireguardBase)
+	base := explicitWireguardSubnetBase(settingsJSON)
+	if base == "" {
+		base = wireguardAllocationBase(used, defaultWireguardBase)
+	}
 	for addr := range crossInboundUsed {
 		used = append(used, addr)
 	}
