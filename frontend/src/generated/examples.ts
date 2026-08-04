@@ -236,6 +236,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "allowedIPs": [
       ""
     ],
+    "allowedIPsByInbound": {},
     "auth": "",
     "comment": "",
     "created_at": 0,

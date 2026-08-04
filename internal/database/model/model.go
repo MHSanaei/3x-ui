@@ -858,32 +858,40 @@ type ClientReverse struct {
 
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID             string         `json:"id,omitempty"`       // Unique client identifier
-	Security       string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
-	Password       string         `json:"password,omitempty"` // Client password
-	Flow           string         `json:"flow,omitempty"`     // Flow control (XTLS)
-	Reverse        *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
-	Auth           string         `json:"auth,omitempty"`     // Auth password (Hysteria)
-	PrivateKey     string         `json:"privateKey,omitempty"`
-	PublicKey      string         `json:"publicKey,omitempty"`
-	AllowedIPs     []string       `json:"allowedIPs,omitempty"`
-	PreSharedKey   string         `json:"preSharedKey,omitempty"`
-	KeepAlive      int            `json:"keepAlive,omitempty"`
-	ForwardedPorts string         `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
-	Secret         string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
-	AdTag          string         `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
-	Email          string         `json:"email"`                        // Client email identifier
-	LimitIP        int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB        int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime     int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable         bool           `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID           int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID          string         `json:"subId" form:"subId"`           // Subscription identifier
-	Group          string         `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment        string         `json:"comment" form:"comment"`       // Client comment
-	Reset          int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt      int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt      int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	ID         string         `json:"id,omitempty"`       // Unique client identifier
+	Security   string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
+	Password   string         `json:"password,omitempty"` // Client password
+	Flow       string         `json:"flow,omitempty"`     // Flow control (XTLS)
+	Reverse    *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
+	Auth       string         `json:"auth,omitempty"`     // Auth password (Hysteria)
+	PrivateKey string         `json:"privateKey,omitempty"`
+	PublicKey  string         `json:"publicKey,omitempty"`
+	AllowedIPs []string       `json:"allowedIPs,omitempty"`
+	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
+	// basis, keyed by inbound id. Lets one identity attached to both
+	// WireGuard and AmneziaWG carry two genuinely different addresses in a
+	// single Create/Update call instead of the shared AllowedIPs field
+	// being broadcast to every attached tunnel inbound. Absent/unset for a
+	// given inbound id falls back to the shared AllowedIPs exactly as
+	// before -- fully backward compatible for callers that never set this.
+	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
+	PreSharedKey        string           `json:"preSharedKey,omitempty"`
+	KeepAlive           int              `json:"keepAlive,omitempty"`
+	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
+	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
+	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
+	Email               string           `json:"email"`                        // Client email identifier
+	LimitIP             int              `json:"limitIp"`                      // IP limit for this client
+	TotalGB             int64            `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime          int64            `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable              bool             `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID                int64            `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID               string           `json:"subId" form:"subId"`           // Subscription identifier
+	Group               string           `json:"group,omitempty" form:"group"` // Logical grouping label
+	Comment             string           `json:"comment" form:"comment"`       // Client comment
+	Reset               int              `json:"reset" form:"reset"`           // Reset period in days
+	CreatedAt           int64            `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt           int64            `json:"updated_at,omitempty"`         // Last update timestamp
 }
 
 type ClientRecord struct {
