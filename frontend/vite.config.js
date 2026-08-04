@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-const outDir = path.resolve(__dirname, '../internal/web/dist');
+const outDir = path.resolve(import.meta.dirname, '../internal/web/dist');
 const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
@@ -12,12 +12,12 @@ function resolveDBPath() {
   if (envFolder) {
     const abs = path.isAbsolute(envFolder)
       ? envFolder
-      : path.resolve(__dirname, '..', envFolder);
+      : path.resolve(import.meta.dirname, '..', envFolder);
     return path.join(abs, 'x-ui.db');
   }
-  const repoSubDB = path.resolve(__dirname, '..', 'x-ui', 'x-ui.db');
+  const repoSubDB = path.resolve(import.meta.dirname, '..', 'x-ui', 'x-ui.db');
   if (fs.existsSync(repoSubDB)) return repoSubDB;
-  const repoDB = path.resolve(__dirname, '..', 'x-ui.db');
+  const repoDB = path.resolve(import.meta.dirname, '..', 'x-ui.db');
   if (fs.existsSync(repoDB)) return repoDB;
   return '/etc/x-ui/x-ui.db';
 }
@@ -54,7 +54,7 @@ function refreshBasePath() {
 
 function readPanelVersion() {
   try {
-    const versionFile = path.resolve(__dirname, '..', 'config', 'version');
+    const versionFile = path.resolve(import.meta.dirname, '..', 'config', 'version');
     return fs.readFileSync(versionFile, 'utf8').trim();
   } catch (_e) {
     return '';
@@ -155,7 +155,7 @@ export default defineConfig({
   plugins: [react(), injectBasePathPlugin(), rocketLoaderOptOutPlugin()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(import.meta.dirname, 'src'),
     },
   },
   experimental: {
@@ -182,9 +182,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       input: {
-        index: path.resolve(__dirname, 'index.html'),
-        login: path.resolve(__dirname, 'login.html'),
-        subpage: path.resolve(__dirname, 'subpage.html'),
+        index: path.resolve(import.meta.dirname, 'index.html'),
+        login: path.resolve(import.meta.dirname, 'login.html'),
+        subpage: path.resolve(import.meta.dirname, 'subpage.html'),
       },
       output: {
         manualChunks(id) {
