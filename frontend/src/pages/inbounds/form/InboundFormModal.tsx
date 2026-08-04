@@ -344,6 +344,17 @@ export default function InboundFormModal({
   // silently does.
   const regenInboundAwgHeaderProtectionKey = () => {
     setV('settings.server.headerProtectionKey', Wireguard.keyToBase64(Wireguard.generatePresharedKey()));
+    // The backend rejects a save otherwise (amneziawg.ValidateHeaderProtection,
+    // mirroring amneziawg-go's own IpcSet requirement) -- raising S1-S4 here
+    // means clicking this one button is enough to turn header protection on,
+    // instead of also sending the admin hunting for which S value is too low.
+    // Only raises fields that are actually below the minimum; never lowers one.
+    for (const field of ['s1', 's2', 's3', 's4']) {
+      const current = getV(`settings.server.${field}`);
+      if (typeof current === 'number' && current < 12) {
+        setV(`settings.server.${field}`, 12);
+      }
+    }
   };
 
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
