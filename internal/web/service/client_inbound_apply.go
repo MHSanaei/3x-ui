@@ -441,6 +441,10 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if client.PublicKey == "" {
 				return false, common.NewError("wireguard client requires a key")
 			}
+		case "amneziawg":
+			if client.PublicKey == "" {
+				return false, common.NewError("amneziawg client requires a key")
+			}
 		case "mtproto":
 			if client.Secret == "" {
 				return false, common.NewError("mtproto client requires a secret")
@@ -621,6 +625,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	case "hysteria":
 		newClientId = clients[0].Auth
 	case "wireguard":
+		newClientId = clients[0].Email
+	case "amneziawg":
 		newClientId = clients[0].Email
 	case "mtproto":
 		newClientId = clients[0].Email
