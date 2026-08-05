@@ -86,6 +86,19 @@ func (s *ApiTokenService) Create(name string) (*ApiTokenView, error) {
 	return view, nil
 }
 
+// RecreateByName replaces any token with this name, keeping exactly one so a
+// repeatedly-run caller cannot accumulate credentials it can never revoke.
+func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, common.NewError("token name is required")
+	}
+	if err := database.GetDB().Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
+		return nil, err
+	}
+	return s.Create(name)
+}
+
 func (s *ApiTokenService) Delete(id int) error {
 	if id <= 0 {
 		return common.NewError("invalid token id")
