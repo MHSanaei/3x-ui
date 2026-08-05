@@ -185,6 +185,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/:id/subSortIndex',
+        summary: 'Set only the subscription sort order. Reads the stored inbound, so a reorder cannot carry a stale client list over a concurrent edit.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
+        ],
+        body: '{\n  "subSortIndex": 2\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/:id/resetTraffic',
         summary: 'Zero out upload + download counters for a single inbound. Does not touch per-client counters.',
         params: [
