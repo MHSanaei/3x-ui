@@ -1794,9 +1794,11 @@
         "i1ProfileOptions": {
           "random": "Random",
           "dns": "DNS",
+          "quic": "QUIC",
           "sip": "SIP",
           "stun": "STUN"
         },
+        "i1QuicUnsupported": "Generating a QUIC signature requires HTTPS (or localhost) -- this connection doesn't expose the Web Crypto API needed for it.",
         "headerProtectionKey": "Header Protection Key (3.0)",
         "headerProtectionKeyHint": "AmneziaWG 3.0 only, optional and off by default. A 32-byte key shared with every peer -- enabling or changing it is a compatibility-breaking change for every existing peer on this interface (like a protocol-version bump): a mismatched or one-sided key means every handshake fails, not just weaker obfuscation. Requires S1-S4 above to all be at least 12. Leave empty to keep classic (non-3.0) behavior.",
         "contentPaddingAddition": "Content Padding Addition (3.0)",

@@ -43,7 +43,7 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
-import { genI1, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import { genI1, isQuicI1Supported, type I1ProfileChoice } from '@/lib/xray/i1Generators';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
@@ -376,8 +376,17 @@ export default function InboundFormModal({
   // not which profile produced it, exactly like the reference
   // implementation this was ported from).
   const [i1Profile, setI1Profile] = useState<I1ProfileChoice>('random');
-  const regenInboundAwgI1 = () => {
-    const result = genI1(i1Profile);
+  const regenInboundAwgI1 = async () => {
+    // 'quic' builds a real AES-GCM/HKDF-sealed packet via crypto.subtle,
+    // which needs a secure context (HTTPS or localhost). A 'random' pick
+    // that lands on quic degrades silently (genI1 excludes quic from its
+    // own pool when unsupported) -- but an admin who explicitly chose
+    // quic should get a clear reason, not a button that quietly no-ops.
+    if (i1Profile === 'quic' && !isQuicI1Supported()) {
+      messageApi.error(t('pages.xray.amneziawg.i1QuicUnsupported'));
+      return;
+    }
+    const result = await genI1(i1Profile);
     if (result) setV('settings.server.i1', result.chain);
   };
 

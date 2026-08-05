@@ -134,7 +134,7 @@ export default function AmneziawgFields({
             aria-label={t('pages.xray.amneziawg.i1Profile')}
             value={i1Profile}
             onChange={onI1ProfileChange}
-            style={{ width: 110 }}
+            style={{ width: 120 }}
             options={I1_PROFILE_CHOICES.map((profile) => ({
               value: profile,
               label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),

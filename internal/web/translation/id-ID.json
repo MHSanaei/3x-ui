@@ -1677,9 +1677,11 @@
         "i1ProfileOptions": {
           "random": "Acak",
           "dns": "DNS",
+          "quic": "QUIC",
           "sip": "SIP",
           "stun": "STUN"
         },
+        "i1QuicUnsupported": "Membuat tanda tangan QUIC memerlukan HTTPS (atau localhost) -- koneksi ini tidak menyediakan Web Crypto API yang diperlukan.",
         "headerProtectionKey": "Kunci Perlindungan Header (3.0)",
         "headerProtectionKeyHint": "Hanya untuk AmneziaWG 3.0, opsional dan nonaktif secara default. Kunci 32-byte yang dibagikan dengan setiap peer -- mengaktifkan atau mengubahnya adalah perubahan yang merusak kompatibilitas dengan semua peer yang ada di antarmuka ini (seperti pergantian versi protokol): kunci yang tidak cocok atau hanya diatur di satu sisi akan membuat semua handshake gagal, bukan hanya penyamaran yang lebih lemah. Memerlukan S1-S4 di atas semuanya minimal 12. Biarkan kosong untuk mempertahankan perilaku klasik (non-3.0).",
         "contentPaddingAddition": "Tambahan Padding Konten (3.0)",
