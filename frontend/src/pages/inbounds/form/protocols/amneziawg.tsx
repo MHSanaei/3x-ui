@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Space, Switch } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
+import { I1_PROFILE_CHOICES, type I1ProfileChoice } from '@/lib/xray/i1Generators';
 
 interface AmneziawgFieldsProps {
   awgPubKey: string;
@@ -10,6 +11,9 @@ interface AmneziawgFieldsProps {
   regenInboundAwgObfuscation: () => void;
   regenInboundAwgHeaderProtectionKey: () => void;
   regenInboundAwgContentPaddingAddition: () => void;
+  i1Profile: I1ProfileChoice;
+  onI1ProfileChange: (profile: I1ProfileChoice) => void;
+  regenInboundAwgI1: () => void;
 }
 
 export default function AmneziawgFields({
@@ -18,6 +22,9 @@ export default function AmneziawgFields({
   regenInboundAwgObfuscation,
   regenInboundAwgHeaderProtectionKey,
   regenInboundAwgContentPaddingAddition,
+  i1Profile,
+  onI1ProfileChange,
+  regenInboundAwgI1,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   return (
@@ -76,7 +83,7 @@ export default function AmneziawgFields({
       >
         <Input placeholder="eth0" />
       </FormField>
-      <Form.Item label={t('pages.xray.amneziawg.obfuscation')}>
+      <Form.Item label={t('pages.xray.amneziawg.obfuscation')} extra={t('pages.xray.amneziawg.obfuscationHint')}>
         <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}
         </Button>
@@ -118,13 +125,27 @@ export default function AmneziawgFields({
       <FormField name={['settings', 'server', 'h4']} label={t('pages.xray.amneziawg.h4')}>
         <Input placeholder="4 or 100-800" />
       </FormField>
-      <FormField
-        name={['settings', 'server', 'i1']}
+      <Form.Item
         label={t('pages.xray.amneziawg.i1')}
         extra={t('pages.xray.amneziawg.i1Hint')}
       >
-        <Input placeholder="<r 64>" />
-      </FormField>
+        <Space.Compact block style={{ display: 'flex' }}>
+          <Select
+            aria-label={t('pages.xray.amneziawg.i1Profile')}
+            value={i1Profile}
+            onChange={onI1ProfileChange}
+            style={{ width: 110 }}
+            options={I1_PROFILE_CHOICES.map((profile) => ({
+              value: profile,
+              label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),
+            }))}
+          />
+          <FormField name={['settings', 'server', 'i1']} noStyle>
+            <Input placeholder="<r 64>" style={{ flex: 1 }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgI1} />
+        </Space.Compact>
+      </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.headerProtectionKey')}
         extra={t('pages.xray.amneziawg.headerProtectionKeyHint')}

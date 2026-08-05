@@ -1657,6 +1657,7 @@
         "ipv6ExternalInterface": "IPv6 Harici Arayüzü",
         "ipv6ExternalInterfaceHint": "Her istemcinin IPv6 adresinin takma ad (alias) olarak atandığı sunucu ağ arayüzü. Harici Arayüzü kullanmak için boş bırakın.",
         "obfuscation": "Gizleme parametreleri",
+        "obfuscationHint": "Jc/Jmin/Jmax, S1-S4, H1-H4 ve I1 için çalışan değerler sunucuya değil, istemcinin kendi ağına ve DPI'sine bağlıdır. Evrensel olarak doğru bir değer yoktur -- bir istemcinin ISS'sinden geçen bir set, bir başkasınınkinde engellenebilir.",
         "regenerateObfuscation": "Yeniden oluştur",
         "jc": "Jc (gereksiz paket sayısı)",
         "jmin": "Jmin (min gereksiz paket boyutu)",
@@ -1672,6 +1673,13 @@
         "hHint": "Tek bir tam sayı veya bir aralık. Klasik 1/2/3/4 varsayılanları için boş bırakın.",
         "i1": "I1 (imza paketi, 2.0)",
         "i1Hint": "Yalnızca AmneziaWG 2.0 için. 1.x uyumluluğu için boş bırakın.",
+        "i1Profile": "Taklit profili",
+        "i1ProfileOptions": {
+          "random": "Rastgele",
+          "dns": "DNS",
+          "sip": "SIP",
+          "stun": "STUN"
+        },
         "headerProtectionKey": "Başlık Koruma Anahtarı (3.0)",
         "headerProtectionKeyHint": "Yalnızca AmneziaWG 3.0 için, isteğe bağlı ve varsayılan olarak kapalı. Her peer ile paylaşılan 32 baytlık bir anahtar -- bunu etkinleştirmek veya değiştirmek bu arayüzdeki tüm mevcut peer'lerle uyumluluğu bozan bir değişikliktir (protokol sürümü yükseltmesi gibi): eşleşmeyen veya tek taraflı bir anahtar, sadece daha zayıf gizleme değil, her el sıkışmanın başarısız olmasına neden olur. Yukarıdaki S1-S4 değerlerinin tümünün en az 12 olmasını gerektirir. Klasik (3.0 olmayan) davranışı korumak için boş bırakın.",
         "contentPaddingAddition": "İçerik Dolgu Eklentisi (3.0)",

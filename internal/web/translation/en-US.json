@@ -1774,6 +1774,7 @@
         "ipv6ExternalInterface": "IPv6 External Interface",
         "ipv6ExternalInterfaceHint": "Host NIC each peer's IPv6 address is aliased onto. Leave empty to reuse External Interface.",
         "obfuscation": "Obfuscation parameters",
+        "obfuscationHint": "Working values for Jc/Jmin/Jmax, S1-S4, H1-H4, and I1 depend on the client's own network and DPI, not the server. There is no universally correct value -- a set that passes through one client's ISP may be blocked by another's, and vice versa.",
         "regenerateObfuscation": "Regenerate",
         "jc": "Jc (junk packet count)",
         "jmin": "Jmin (junk packet min size)",
@@ -1789,6 +1790,13 @@
         "hHint": "A single integer or a low-high range. Leave empty for the classic 1/2/3/4 default.",
         "i1": "I1 (signature packet, 2.0)",
         "i1Hint": "AmneziaWG 2.0 only. Leave empty for a 1.x-compatible config.",
+        "i1Profile": "Mimicry profile",
+        "i1ProfileOptions": {
+          "random": "Random",
+          "dns": "DNS",
+          "sip": "SIP",
+          "stun": "STUN"
+        },
         "headerProtectionKey": "Header Protection Key (3.0)",
         "headerProtectionKeyHint": "AmneziaWG 3.0 only, optional and off by default. A 32-byte key shared with every peer -- enabling or changing it is a compatibility-breaking change for every existing peer on this interface (like a protocol-version bump): a mismatched or one-sided key means every handshake fails, not just weaker obfuscation. Requires S1-S4 above to all be at least 12. Leave empty to keep classic (non-3.0) behavior.",
         "contentPaddingAddition": "Content Padding Addition (3.0)",

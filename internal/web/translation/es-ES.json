@@ -1657,6 +1657,7 @@
         "ipv6ExternalInterface": "Interfaz externa IPv6",
         "ipv6ExternalInterfaceHint": "Interfaz de red del host en la que se alía la dirección IPv6 de cada cliente. Déjalo vacío para reutilizar la Interfaz Externa.",
         "obfuscation": "Parámetros de ofuscación",
+        "obfuscationHint": "Los valores que funcionan para Jc/Jmin/Jmax, S1-S4, H1-H4 e I1 dependen de la red y el DPI del propio cliente, no del servidor. No existe un valor universalmente correcto -- un conjunto que pasa por el ISP de un cliente puede estar bloqueado en el de otro.",
         "regenerateObfuscation": "Regenerar",
         "jc": "Jc (cantidad de paquetes basura)",
         "jmin": "Jmin (tamaño mínimo de paquete basura)",
@@ -1672,6 +1673,13 @@
         "hHint": "Un número entero o un rango. Déjalo vacío para los valores clásicos 1/2/3/4.",
         "i1": "I1 (paquete de firma, 2.0)",
         "i1Hint": "Solo para AmneziaWG 2.0. Déjalo vacío para compatibilidad con 1.x.",
+        "i1Profile": "Perfil de imitación",
+        "i1ProfileOptions": {
+          "random": "Aleatorio",
+          "dns": "DNS",
+          "sip": "SIP",
+          "stun": "STUN"
+        },
         "headerProtectionKey": "Clave de Protección de Cabecera (3.0)",
         "headerProtectionKeyHint": "Solo para AmneziaWG 3.0, opcional y desactivado por defecto. Una clave de 32 bytes compartida con cada par -- activarla o cambiarla es un cambio que rompe la compatibilidad con todos los pares existentes en esta interfaz (como un cambio de versión de protocolo): una clave no coincidente o configurada solo en un lado hace que todo handshake falle, no solo que la ofuscación sea más débil. Requiere que S1-S4 arriba sean todos al menos 12. Déjalo vacío para mantener el comportamiento clásico (no 3.0).",
         "contentPaddingAddition": "Relleno de Contenido Adicional (3.0)",

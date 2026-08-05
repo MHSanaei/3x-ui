@@ -1657,6 +1657,7 @@
         "ipv6ExternalInterface": "NIC Eksternal IPv6",
         "ipv6ExternalInterfaceHint": "NIC host tempat alamat IPv6 setiap klien dialiaskan. Biarkan kosong untuk menggunakan NIC Eksternal.",
         "obfuscation": "Parameter obfuskasi",
+        "obfuscationHint": "Nilai yang berfungsi untuk Jc/Jmin/Jmax, S1-S4, H1-H4, dan I1 bergantung pada jaringan dan DPI milik klien itu sendiri, bukan server. Tidak ada nilai yang benar secara universal -- kombinasi yang lolos di ISP satu klien bisa saja diblokir di ISP klien lain.",
         "regenerateObfuscation": "Buat ulang",
         "jc": "Jc (jumlah paket sampah)",
         "jmin": "Jmin (ukuran min paket sampah)",
@@ -1672,6 +1673,13 @@
         "hHint": "Satu bilangan bulat atau rentang. Biarkan kosong untuk nilai klasik 1/2/3/4.",
         "i1": "I1 (paket tanda tangan, 2.0)",
         "i1Hint": "Hanya untuk AmneziaWG 2.0. Biarkan kosong untuk kompatibilitas dengan 1.x.",
+        "i1Profile": "Profil penyamaran",
+        "i1ProfileOptions": {
+          "random": "Acak",
+          "dns": "DNS",
+          "sip": "SIP",
+          "stun": "STUN"
+        },
         "headerProtectionKey": "Kunci Perlindungan Header (3.0)",
         "headerProtectionKeyHint": "Hanya untuk AmneziaWG 3.0, opsional dan nonaktif secara default. Kunci 32-byte yang dibagikan dengan setiap peer -- mengaktifkan atau mengubahnya adalah perubahan yang merusak kompatibilitas dengan semua peer yang ada di antarmuka ini (seperti pergantian versi protokol): kunci yang tidak cocok atau hanya diatur di satu sisi akan membuat semua handshake gagal, bukan hanya penyamaran yang lebih lemah. Memerlukan S1-S4 di atas semuanya minimal 12. Biarkan kosong untuk mempertahankan perilaku klasik (non-3.0).",
         "contentPaddingAddition": "Tambahan Padding Konten (3.0)",

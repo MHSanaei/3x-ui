@@ -1657,6 +1657,7 @@
         "ipv6ExternalInterface": "Card mạng ngoài IPv6",
         "ipv6ExternalInterfaceHint": "Card mạng của host mà địa chỉ IPv6 của mỗi client được gán (alias) vào. Để trống để dùng lại Card mạng ngoài.",
         "obfuscation": "Tham số làm rối (obfuscation)",
+        "obfuscationHint": "Các giá trị hoạt động cho Jc/Jmin/Jmax, S1-S4, H1-H4 và I1 phụ thuộc vào mạng và DPI của chính client, không phải của server. Không có giá trị nào đúng phổ quát -- một bộ giá trị vượt qua được ISP của client này có thể bị chặn ở ISP của client khác.",
         "regenerateObfuscation": "Tạo lại",
         "jc": "Jc (số lượng gói rác)",
         "jmin": "Jmin (kích thước tối thiểu gói rác)",
@@ -1672,6 +1673,13 @@
         "hHint": "Một số nguyên hoặc một khoảng. Để trống để dùng giá trị mặc định cổ điển 1/2/3/4.",
         "i1": "I1 (gói chữ ký, 2.0)",
         "i1Hint": "Chỉ dành cho AmneziaWG 2.0. Để trống để tương thích với 1.x.",
+        "i1Profile": "Hồ sơ ngụy trang",
+        "i1ProfileOptions": {
+          "random": "Ngẫu nhiên",
+          "dns": "DNS",
+          "sip": "SIP",
+          "stun": "STUN"
+        },
         "headerProtectionKey": "Khóa bảo vệ tiêu đề (3.0)",
         "headerProtectionKeyHint": "Chỉ dành cho AmneziaWG 3.0, tùy chọn và tắt theo mặc định. Một khóa 32 byte dùng chung với mọi peer -- bật hoặc thay đổi nó là một thay đổi phá vỡ khả năng tương thích với mọi peer hiện có trên giao diện này (giống như nâng cấp phiên bản giao thức): khóa không khớp hoặc chỉ đặt một phía sẽ khiến mọi bắt tay thất bại, không chỉ là làm giảm khả năng ngụy trang. Yêu cầu S1-S4 ở trên đều phải tối thiểu là 12. Để trống để giữ hành vi cổ điển (không phải 3.0).",
         "contentPaddingAddition": "Đệm nội dung bổ sung (3.0)",

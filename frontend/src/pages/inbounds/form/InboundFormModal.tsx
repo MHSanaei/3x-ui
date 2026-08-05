@@ -43,6 +43,7 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import { genI1, type I1ProfileChoice } from '@/lib/xray/i1Generators';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
@@ -368,6 +369,16 @@ export default function InboundFormModal({
     const lo = randInt(0, 30);
     const hi = lo + randInt(20, 100);
     setV('settings.server.contentPaddingAddition', `${lo}-${hi}`);
+  };
+
+  // Which mimicry profile the next I1 generate click uses -- UI-only state,
+  // never persisted (the backend only ever sees the resulting CPS chain,
+  // not which profile produced it, exactly like the reference
+  // implementation this was ported from).
+  const [i1Profile, setI1Profile] = useState<I1ProfileChoice>('random');
+  const regenInboundAwgI1 = () => {
+    const result = genI1(i1Profile);
+    if (result) setV('settings.server.i1', result.chain);
   };
 
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
@@ -783,6 +794,9 @@ export default function InboundFormModal({
           regenInboundAwgObfuscation={regenInboundAwgObfuscation}
           regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}
           regenInboundAwgContentPaddingAddition={regenInboundAwgContentPaddingAddition}
+          i1Profile={i1Profile}
+          onI1ProfileChange={setI1Profile}
+          regenInboundAwgI1={regenInboundAwgI1}
         />
       )}
 
