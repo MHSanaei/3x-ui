@@ -682,7 +682,27 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 		if json.Unmarshal([]byte(fm), &parsed) == nil {
 			sanitizeFinalMaskQuicParams(parsed)
 			stream["finalmask"] = parsed
+			return
 		}
+	}
+	applySalamanderObfs(stream, p)
+}
+
+// applySalamanderObfs restores the obfuscation our own subscriptions emit as the
+// standard obfs fields, which carry no fm= blob to parse.
+func applySalamanderObfs(stream map[string]any, p url.Values) {
+	if p.Get("obfs") != "salamander" {
+		return
+	}
+	pw := p.Get("obfs-password")
+	if pw == "" {
+		return
+	}
+	stream["finalmask"] = map[string]any{
+		"udp": []any{map[string]any{
+			"type":     "salamander",
+			"settings": map[string]any{"password": pw},
+		}},
 	}
 }
 
