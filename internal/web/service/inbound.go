@@ -1265,6 +1265,49 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
+// SetInboundSubSortIndex changes only the subscription sort order. It reads the
+// stored inbound instead of accepting one, so a reorder cannot carry a stale
+// settings/client payload over a concurrent edit.
+func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
+	index = normalizeSubSortIndex(index)
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return err
+	}
+	if inbound.SubSortIndex == index {
+		return nil
+	}
+
+	db := database.GetDB()
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
+			Update("sub_sort_index", index).Error; err != nil {
+			return err
+		}
+		if inbound.NodeID != nil {
+			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	inbound.SubSortIndex = index
+
+	if inbound.NodeID == nil {
+		return nil
+	}
+	rt, push, _, perr := s.nodePushPlan(inbound)
+	if perr != nil {
+		return perr
+	}
+	if push {
+		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
+			logger.Warning("SetInboundSubSortIndex: remote UpdateInbound on", rt.Name(), "failed:", err)
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	inbound, err := s.GetInbound(id)
 	if err != nil {
