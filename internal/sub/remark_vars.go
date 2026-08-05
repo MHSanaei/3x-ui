@@ -350,8 +350,8 @@ func statusEmoji(st xray.ClientTraffic) string {
 	}
 }
 
-// usagePercentage computes the traffic usage as a percentage string (e.g. "52.3%").
-// Returns "" when the client has no traffic limit.
+// usagePercentage computes the traffic usage as a percentage string (e.g. "52.3％").
+// Uses U+FF05: an ASCII percent encodes to %25, which Happ rejects, dropping the remark.
 func usagePercentage(st xray.ClientTraffic) string {
 	if st.Total <= 0 {
 		return ""
@@ -361,7 +361,7 @@ func usagePercentage(st xray.ClientTraffic) string {
 	if pct > 100 {
 		pct = 100 // clamp over-quota usage, consistent with TRAFFIC_LEFT
 	}
-	return fmt.Sprintf("%.1f%%", pct)
+	return fmt.Sprintf("%.1f％", pct)
 }
 
 // timeLeftLabel renders remaining time as "Xd Xh Xm" (or shorter when days/hours

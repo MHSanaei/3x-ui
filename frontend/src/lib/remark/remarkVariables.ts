@@ -39,7 +39,7 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'STATUS_EMOJI', group: 'time', sample: '✅' },
   { token: 'DAYS_LEFT', group: 'time', sample: '12' },
   { token: 'TIME_LEFT', group: 'time', sample: '12d 4h 30m' },
-  { token: 'USAGE_PERCENTAGE', group: 'time', sample: '52.3%' },
+  { token: 'USAGE_PERCENTAGE', group: 'time', sample: '52.3％' },
   { token: 'EXPIRE_DATE', group: 'time', sample: '2026-09-01' },
   { token: 'JALALI_EXPIRE_DATE', group: 'time', sample: '1405/06/10' },
   { token: 'EXPIRE_UNIX', group: 'time', sample: '1788300000' },
