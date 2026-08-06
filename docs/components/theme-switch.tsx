@@ -1,7 +1,7 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -9,6 +9,12 @@ type ThemeMode = 'light-dark' | 'light-dark-system';
 type ThemePref = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'docs-theme';
+
+// `useSyncExternalStore` supplies the same value for SSR and hydration, then
+// switches to the browser value after React has attached to the markup.
+const subscribeToHydration = () => () => {};
+const getHydrationClientSnapshot = () => true;
+const getHydrationServerSnapshot = () => false;
 
 function getStoredTheme(): ThemePref {
   if (typeof window === 'undefined') return 'system';
@@ -38,22 +44,37 @@ export function DocsThemeSwitch({
   className?: string;
   mode?: ThemeMode;
 } & Omit<ComponentProps<'div'>, 'children'>) {
-  const [theme, setTheme] = useState<ThemePref>(getStoredTheme);
+  // Keep the server and first client render identical. Reading localStorage or
+  // matchMedia here would make a persisted/system preference change the client
+  // markup before React has finished hydrating it.
+  const [selectedTheme, setSelectedTheme] = useState<ThemePref>('system');
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getHydrationClientSnapshot,
+    getHydrationServerSnapshot,
+  );
+  const theme = hydrated ? getStoredTheme() : selectedTheme;
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, theme);
-    applyTheme(theme);
-  }, [theme]);
+    if (hydrated) applyTheme(theme);
+  }, [hydrated, theme]);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (theme !== 'system') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const update = () => applyTheme('system');
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
-  }, [theme]);
+  }, [hydrated, theme]);
 
-  const resolved = useMemo(() => getResolvedTheme(theme), [theme]);
+  const resolved = hydrated ? getResolvedTheme(theme) : 'light';
+
+  const setTheme = (nextTheme: ThemePref) => {
+    window.localStorage.setItem(STORAGE_KEY, nextTheme);
+    applyTheme(nextTheme);
+    setSelectedTheme(nextTheme);
+  };
 
   const nextTheme = () => {
     if (mode === 'light-dark') return resolved === 'dark' ? 'light' : 'dark';
