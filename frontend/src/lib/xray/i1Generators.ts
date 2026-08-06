@@ -12,7 +12,14 @@ const DNS_PAD_MAX = 180;
 const STUN_SOFTWARE_MIN = 16;
 const STUN_SOFTWARE_MAX = 32;
 
-const I1_HOSTS = ['www.apple.com', 'www.google.com', 'www.microsoft.com', 'cdn.jsdelivr.net'];
+// A mix of globally-reachable front domains and popular Russian services --
+// ported from lucx-ui's RU domain pool (cps/domains.go), which the traffic
+// this fork's admins actually see skews toward more than a purely global
+// list would.
+const I1_HOSTS = [
+  'www.apple.com', 'www.google.com', 'www.microsoft.com', 'cdn.jsdelivr.net',
+  'yandex.ru', 'vk.com', 'mail.ru', 'ozon.ru', 'wildberries.ru', 'rutube.ru', 'gosuslugi.ru', 'sberbank.ru', 'tbank.ru',
+];
 
 export type I1Profile = 'dns' | 'quic' | 'sip' | 'stun';
 export type I1ProfileChoice = I1Profile | 'random';
