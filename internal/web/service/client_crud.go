@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/netip"
 	"strings"
 	"time"
 	"unicode"
@@ -125,7 +126,19 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(client, inbound)}})
+		clientForInbound := client
+		if ips, ok := client.AllowedIPsByInbound[ibId]; ok {
+			clientForInbound.AllowedIPs = ips
+		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
+			// The shared AllowedIPs value (e.g. from a single-field legacy
+			// caller) came from a different subnet than this inbound's own --
+			// clear it so defaultAmneziaWGClients allocates a fresh, correct
+			// address for THIS inbound instead of persisting an unroutable
+			// peer. Same reasoning as addressesFitAmneziaWGInbound's own doc
+			// comment on the Attach path.
+			clientForInbound.AllowedIPs = nil
+		}
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -413,7 +426,22 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
 			return needRestart, err
 		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(updated, inbound)}})
+		clientForInbound := updated
+		if ips, ok := updated.AllowedIPsByInbound[ibId]; ok {
+			clientForInbound.AllowedIPs = ips
+		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
+			// A single shared AllowedIPs field (the common case for a caller
+			// that never sends AllowedIPsByInbound) must never overwrite an
+			// inbound it doesn't belong to -- e.g. a client attached to both
+			// wg and awg saving its wg-labeled address would otherwise get
+			// that same address silently written into the awg peer config
+			// too. Clearing it here makes UpdateInboundClient's own
+			// empty-AllowedIPs carry-forward (see its WireGuard/AmneziaWG
+			// branch) preserve THIS inbound's existing, correct value
+			// instead.
+			clientForInbound.AllowedIPs = nil
+		}
+		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})
 		if mErr != nil {
 			return needRestart, mErr
 		}
@@ -603,6 +631,76 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 	return needRestart, nil
 }
 
+// hasTunnelAttachment reports whether any of inboundIds is a currently
+// existing WireGuard or AmneziaWG inbound. Inbounds that fail to load are
+// skipped rather than treated as an error -- Attach's own loop already
+// surfaces a real error for any inbound it can't load when it gets there.
+func (s *ClientService) hasTunnelAttachment(inboundSvc *InboundService, inboundIds []int) bool {
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			continue
+		}
+		if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+			return true
+		}
+	}
+	return false
+}
+
+// addressesFitAmneziaWGInbound reports whether every entry in addrs parses
+// as a host address inside ib's own configured subnet(s). Only AmneziaWG is
+// checked -- unlike WireGuard (allocateWireguardAddress can widen out to a
+// /16 fallback pool for it), an AmneziaWG peer's address must fall inside
+// the kernel interface's own configured Address subnet to be routable at
+// all (see allocateWireguardAddress's allowWidening doc comment), so
+// inheriting an address from an unrelated subnet isn't just cosmetically
+// wrong for AmneziaWG, it produces a peer that can never actually connect.
+// Real case this guards against: an identity's stored address came from
+// WireGuard's own fallback subnet (10.0.0.0/24, used when that inbound has
+// no other clients to infer a base from) and gets attached to a second,
+// AmneziaWG inbound whose configured subnet is something else entirely
+// (e.g. 10.8.1.0/24) -- addressesFitAmneziaWGInbound catches that mismatch
+// so Attach can allocate fresh for this inbound instead of silently
+// persisting an unroutable peer.
+func addressesFitAmneziaWGInbound(addrs []string, ib *model.Inbound) bool {
+	if ib.Protocol != model.AmneziaWG || len(addrs) == 0 {
+		return true
+	}
+	v4Base, v6Base, err := defaultAmneziaWGSubnetBases(ib.Settings)
+	if err != nil {
+		return false
+	}
+	bases := make([]netip.Prefix, 0, 2)
+	for _, base := range []string{v4Base, v6Base} {
+		if base == "" {
+			continue
+		}
+		prefix, pErr := netip.ParsePrefix(base)
+		if pErr != nil {
+			return false
+		}
+		bases = append(bases, prefix)
+	}
+	for _, a := range addrs {
+		host := wireguardHostAddr(a)
+		if !host.IsValid() {
+			return false
+		}
+		fits := false
+		for _, prefix := range bases {
+			if prefix.Contains(host) {
+				fits = true
+				break
+			}
+		}
+		if !fits {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
@@ -625,6 +723,18 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
 
+	// If this identity has no CURRENT WireGuard/AmneziaWG attachment,
+	// clientWire.AllowedIPs (from the ClientRecord) is a leftover from
+	// whenever it last had one -- nothing reserves it anymore. Clear it so
+	// attaching to a tunnel inbound now allocates a fresh address instead
+	// of resurrecting the old one, which may no longer even be the lowest
+	// free slot. Left untouched when the identity already has an active
+	// tunnel elsewhere, so extending it to a second protocol still keeps
+	// the same address on both.
+	if !s.hasTunnelAttachment(inboundSvc, currentIds) {
+		clientWire.AllowedIPs = nil
+	}
+
 	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
 	if sidErr != nil {
 		return false, sidErr
@@ -640,6 +750,9 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 			return needRestart, getErr
 		}
 		copyClient := *clientWire
+		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
+			copyClient.AllowedIPs = nil
+		}
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return needRestart, err
 		}

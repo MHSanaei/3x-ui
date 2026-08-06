@@ -236,6 +236,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "allowedIPs": [
       ""
     ],
+    "allowedIPsByInbound": {},
     "auth": "",
     "comment": "",
     "created_at": 0,
@@ -243,6 +244,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
+    "forwardedPorts": "",
     "group": "",
     "id": "",
     "keepAlive": 0,
@@ -276,6 +278,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
+    "forwardedPorts": "",
     "group": "",
     "id": 0,
     "keepAlive": 0,
@@ -470,6 +473,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "xver": 0
   },
   "InboundOption": {
+    "awgServer": null,
     "enable": true,
     "id": 1,
     "listen": "",
@@ -648,6 +652,32 @@ export const EXAMPLES: Record<string, unknown> = {
     "tls13": true,
     "tlsVersion": "1.3",
     "x25519": true
+  },
+  "ServerSettings": {
+    "externalInterface": "",
+    "h1": "",
+    "h2": "",
+    "h3": "",
+    "h4": "",
+    "i1": "",
+    "ipv6Enabled": false,
+    "ipv6ExternalInterface": "",
+    "ipv6Subnet": "",
+    "jc": 0,
+    "jmax": 0,
+    "jmin": 0,
+    "mtu": 0,
+    "primaryDns": "",
+    "privateKey": "",
+    "publicKey": "",
+    "routeThroughXray": false,
+    "s1": 0,
+    "s2": 0,
+    "s3": 0,
+    "s4": 0,
+    "secondaryDns": "",
+    "subnetCidr": 0,
+    "subnetIp": ""
   },
   "Setting": {
     "id": 0,

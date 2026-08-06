@@ -3,6 +3,7 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
+export type ensureAction = number;
 export type staticEgressResolver = string;
 export type transportBits = number;
 
@@ -244,6 +245,7 @@ export interface ApiTokenView {
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
+  allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
   comment: string;
   created_at?: number;
@@ -251,6 +253,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
+  forwardedPorts?: string;
   group?: string;
   id?: string;
   keepAlive?: number;
@@ -286,6 +289,7 @@ export interface ClientRecord {
   enable: boolean;
   expiryTime: number;
   flow: string;
+  forwardedPorts: string;
   group: string;
   id: number;
   keepAlive: number;
@@ -451,6 +455,7 @@ export interface InboundFallback {
 }
 
 export interface InboundOption {
+  awgServer?: ServerSettings | null;
   enable: boolean;
   id: number;
   listen?: string;
@@ -629,6 +634,33 @@ export interface RealityScanResult {
   tls13: boolean;
   tlsVersion: string;
   x25519: boolean;
+}
+
+export interface ServerSettings {
+  externalInterface?: string;
+  h1: string;
+  h2: string;
+  h3: string;
+  h4: string;
+  i1?: string;
+  ipv6Enabled?: boolean;
+  ipv6ExternalInterface?: string;
+  ipv6Subnet?: string;
+  jc: number;
+  jmax: number;
+  jmin: number;
+  mtu?: number;
+  primaryDns?: string;
+  privateKey: string;
+  publicKey: string;
+  routeThroughXray?: boolean;
+  s1: number;
+  s2: number;
+  s3: number;
+  s4: number;
+  secondaryDns?: string;
+  subnetCidr: number;
+  subnetIp: string;
 }
 
 export interface Setting {

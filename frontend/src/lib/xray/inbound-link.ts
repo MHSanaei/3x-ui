@@ -1,6 +1,7 @@
 import { Base64, Wireguard } from '@/utils';
 
 import type { Inbound } from '@/schemas/api/inbound';
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { VlessClient } from '@/schemas/protocols/inbound/vless';
 import type { VmessSecurity } from '@/schemas/protocols/shared/vmess';
 import type {
@@ -877,6 +878,132 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
   return txt;
 }
 
+// Shared input shape for both the per-client vpn:// link and .conf
+// builders below — settings.clients (not a peers array; unlike WireGuard,
+// AmneziaWG was multi-client from day one, so there's no legacy format).
+export interface GenAmneziaWGLinkInput {
+  settings: AmneziawgInboundSettings;
+  address: string;
+  port: number;
+  remark?: string;
+  peerIndex: number;
+}
+
+function amneziaWGHLine(key: string, value: string | undefined, fallback: string): string {
+  return `${key} = ${value && value.trim() !== '' ? value : fallback}`;
+}
+
+// Base64url (RFC 4648 §5), no padding — matches the real AmneziaVPN app's
+// own Qt::Base64UrlEncoding | Qt::OmitTrailingEquals framing for vpn:// links.
+function toBase64Url(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// AmneziaWG share link: vpn://<base64url .conf text>, matching the real
+// AmneziaVPN app's own share-link scheme. The app's import path base64url-
+// decodes, best-effort qUncompresses (falls back to the raw bytes when the
+// input isn't qCompress-framed, which plain text never is), then parses the
+// result as a flat bag of "Key = Value" lines regardless of which
+// [Interface]/[Peer] section they came from — so wrapping the same .conf
+// text genAmneziaWGConfig already produces is sufficient; no JSON schema or
+// compression needs replicating. Confirmed against the app's own source
+// (importController.cpp's checkConfigFormat/extractWireGuardConfig).
+export function genAmneziaWGLink(input: GenAmneziaWGLinkInput): string {
+  const cfgText = genAmneziaWGConfig(input);
+  if (!cfgText) return '';
+  return `vpn://${toBase64Url(cfgText)}`;
+}
+
+// Plain-text AmneziaWG client config (.conf format). Mirrors
+// genWireguardConfig, plus the obfuscation lines every AmneziaWG client must
+// share with the server (see internal/amneziawg.writeObfuscation on the Go
+// side).
+export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
+  const { settings, address, port, remark = '', peerIndex } = input;
+  const client = settings.clients[peerIndex];
+  if (!client) return '';
+  const server = settings.server;
+
+  let txt = `[Interface]\n`;
+  txt += `PrivateKey = ${client.privateKey ?? ''}\n`;
+  txt += `Address = ${(client.allowedIPs ?? []).join(', ')}\n`;
+  const dns = [server.primaryDns, server.secondaryDns].filter((v) => !!v && v.trim() !== '');
+  if (dns.length > 0) txt += `DNS = ${dns.join(', ')}\n`;
+  if (typeof server.mtu === 'number' && server.mtu > 0) {
+    txt += `MTU = ${server.mtu}\n`;
+  }
+  txt += `Jc = ${server.jc}\n`;
+  txt += `Jmin = ${server.jmin}\n`;
+  txt += `Jmax = ${server.jmax}\n`;
+  txt += `S1 = ${server.s1}\n`;
+  txt += `S2 = ${server.s2}\n`;
+  if (server.s3) txt += `S3 = ${server.s3}\n`;
+  if (server.s4) txt += `S4 = ${server.s4}\n`;
+  txt += `${amneziaWGHLine('H1', server.h1, '1')}\n`;
+  txt += `${amneziaWGHLine('H2', server.h2, '2')}\n`;
+  txt += `${amneziaWGHLine('H3', server.h3, '3')}\n`;
+  txt += `${amneziaWGHLine('H4', server.h4, '4')}\n`;
+  if (server.i1) txt += `I1 = ${server.i1}\n`;
+  txt += `\n# ${remark}\n`;
+  txt += `[Peer]\n`;
+  txt += `PublicKey = ${server.publicKey ?? ''}\n`;
+  txt += `AllowedIPs = 0.0.0.0/0, ::/0\n`;
+  txt += `Endpoint = ${address}:${port}`;
+  if (client.preSharedKey && client.preSharedKey.length > 0) {
+    txt += `\nPresharedKey = ${client.preSharedKey}`;
+  }
+  if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
+    txt += `\nPersistentKeepalive = ${client.keepAlive}\n`;
+  }
+  return txt;
+}
+
+export interface GenAmneziaWGFanoutInput {
+  inbound: Inbound;
+  remark?: string;
+  hostOverride?: string;
+  fallbackHostname: string;
+}
+
+export function genAmneziaWGLinks(input: GenAmneziaWGFanoutInput): string {
+  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  if (inbound.protocol !== 'amneziawg') return '';
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const sep = '-';
+  const settings = inbound.settings as AmneziawgInboundSettings;
+  const clients = settings.clients ?? [];
+  return clients
+    .map((c, i) => genAmneziaWGLink({
+      settings,
+      address: addr,
+      port: inbound.port,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(c)}`,
+      peerIndex: i,
+    }))
+    .join('\r\n');
+}
+
+export function genAmneziaWGConfigs(input: GenAmneziaWGFanoutInput): string {
+  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  if (inbound.protocol !== 'amneziawg') return '';
+  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const sep = '-';
+  const settings = inbound.settings as AmneziawgInboundSettings;
+  const clients = settings.clients ?? [];
+  return clients
+    .map((c, i) => genAmneziaWGConfig({
+      settings,
+      address: addr,
+      port: inbound.port,
+      remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(c)}`,
+      peerIndex: i,
+    }))
+    .join('\r\n');
+}
+
 export function wireguardConfigFromLink(link: string, fallbackRemark = ''): string {
   let url: URL;
   try {
@@ -935,6 +1062,34 @@ export function wireguardConfigFromLink(link: string, fallbackRemark = ''): stri
   lines.push(`AllowedIPs = ${allowedIPs}`, `Endpoint = ${endpoint}`);
   if (keepAlive && Number(keepAlive) > 0) lines.push(`PersistentKeepalive = ${keepAlive}`);
   return lines.join('\n');
+}
+
+// Reverse of toBase64Url above -- recovers a vpn:// link's plain .conf
+// payload for display/copy/download/QR, the AmneziaWG counterpart of
+// wireguardConfigFromLink. Simpler than that function: a vpn:// link's
+// payload already *is* the .conf text (see genAmneziaWGLink's own doc
+// comment), so there's nothing to reconstruct from query params -- just
+// decode. Mirrors link-label.tsx's own private fromBase64Url (used there
+// only to pull the remark/port back out for the tag label); duplicated
+// rather than imported since both are tiny, self-contained, and each
+// file already owns the matching encode or decode half of this pair.
+function fromBase64Url(value: string): string {
+  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+export function amneziawgConfigFromLink(link: string): string {
+  const trimmed = link.trim();
+  if (!trimmed.startsWith('vpn://')) return '';
+  try {
+    return fromBase64Url(trimmed.slice('vpn://'.length));
+  } catch {
+    return '';
+  }
 }
 
 export type { WireguardInboundPeer };
@@ -1209,7 +1364,7 @@ export interface GenInboundLinksInput {
 // Top-level entrypoint that produces the full \r\n-joined block a user
 // pastes into a client. Iterates per-client for protocols with clients,
 // falls back to a single SS link for single-user 2022-blake3-chacha20,
-// and emits per-peer .conf blocks for wireguard. Returns '' for the
+// and emits per-peer .conf blocks for wireguard and amneziawg. Returns '' for the
 // other clientless protocols (http, mixed, tunnel).
 export function genInboundLinks(input: GenInboundLinksInput): string {
   const {
@@ -1233,6 +1388,9 @@ export function genInboundLinks(input: GenInboundLinksInput): string {
   }
   if (inbound.protocol === 'wireguard') {
     return genWireguardConfigs({ inbound, remark, hostOverride, fallbackHostname });
+  }
+  if (inbound.protocol === 'amneziawg') {
+    return genAmneziaWGConfigs({ inbound, remark, hostOverride, fallbackHostname });
   }
   return '';
 }

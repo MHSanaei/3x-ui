@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -314,6 +315,10 @@ type InboundOption struct {
 	WgMtu          int    `json:"wgMtu,omitempty"`
 	WgDns          string `json:"wgDns,omitempty"`
 	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
+	// AwgServer carries the full AmneziaWG server block (keys, subnet,
+	// obfuscation params) so the clients page can render a downloadable
+	// per-client .conf without a second round trip.
+	AwgServer *amneziawg.ServerSettings `json:"awgServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -375,6 +380,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
 			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
+			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -409,6 +415,26 @@ func inboundWireguardHints(protocol string, settings string) (string, int, strin
 		}
 	}
 	return publicKey, parsed.MTU, parsed.DNS
+}
+
+// inboundAmneziaWGServer returns the AmneziaWG server block for the clients
+// page's config-download builder, or nil when the inbound isn't AmneziaWG or
+// its settings don't parse. PrivateKey is redacted: GetInboundOptions is a
+// shared, admin-wide list used to fill dropdowns, not a place a live tunnel
+// secret needs to travel — the frontend's own AwgServerOptionSchema never
+// reads it, so nothing is lost by not sending it, and it shouldn't widen the
+// blast radius of a log capture, proxy cache, or browser devtools screenshot.
+func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerSettings {
+	if protocol != string(model.AmneziaWG) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
+		return nil
+	}
+	redacted := *parsed.Server
+	redacted.PrivateKey = ""
+	return &redacted
 }
 
 // inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
@@ -925,6 +951,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
+	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
+		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -1349,6 +1381,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
+	if err := s.normalizeAmneziaWGSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
 	oldInbound, err := s.GetInbound(inbound.Id)
@@ -1358,6 +1393,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Restore the stored NodeID before the port-conflict check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
+		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	}
 
 	conflict, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {

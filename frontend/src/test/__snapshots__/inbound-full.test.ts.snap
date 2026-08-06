@@ -622,6 +622,7 @@ exports[`InboundSchema (full) fixtures > parses wireguard-server byte-stably 1`]
       },
     ],
     "secretKey": "iJ2cBkrSGqRwIfYIDIxk7hr5RXfdR93MfJUL7yqkkH8=",
+    "subnetIp": "",
   },
   "shareAddr": "",
   "shareAddrStrategy": "node",

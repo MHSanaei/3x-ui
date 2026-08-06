@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -470,7 +471,7 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
 		JOIN clients ON clients.id = client_inbounds.client_id
 		WHERE
-			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','mtproto')
+			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','amneziawg','mtproto')
 			AND clients.sub_id = ? AND inbounds.enable = ?
 	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
 	if err != nil {
@@ -621,6 +622,8 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 		return s.genMtprotoLink(inbound, email)
 	case "wireguard":
 		return s.genWireguardLink(inbound, email)
+	case "amneziawg":
+		return s.genAmneziaWGLink(inbound, email)
 	}
 	return ""
 }
@@ -665,6 +668,99 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 		params["keepalive"] = strconv.Itoa(client.KeepAlive)
 	}
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
+}
+
+// amneziaWGHeaderOrDefault mirrors the frontend's amneziaWGHLine: AmneziaWG's
+// H1-H4 magic-header fields always render into the config text, falling back
+// to their protocol-default values (1/2/3/4) when unset rather than being
+// omitted, since a native AmneziaWG client needs all four to be present.
+func amneziaWGHeaderOrDefault(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
+
+// amneziaWGConfigText builds the same plain AmneziaWG client .conf text the
+// frontend's genAmneziaWGConfig produces (same field order, same optional-field
+// conditionals) -- this is the payload wrapped into vpn:// links below.
+func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client, host string, port int, remark string) string {
+	var b strings.Builder
+
+	b.WriteString("[Interface]\n")
+	fmt.Fprintf(&b, "PrivateKey = %s\n", client.PrivateKey)
+	fmt.Fprintf(&b, "Address = %s\n", strings.Join(client.AllowedIPs, ", "))
+
+	var dns []string
+	if server.PrimaryDNS != "" {
+		dns = append(dns, server.PrimaryDNS)
+	}
+	if server.SecondaryDNS != "" {
+		dns = append(dns, server.SecondaryDNS)
+	}
+	if len(dns) > 0 {
+		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
+	}
+	if server.MTU > 0 {
+		fmt.Fprintf(&b, "MTU = %d\n", server.MTU)
+	}
+
+	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
+	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)
+	fmt.Fprintf(&b, "Jmax = %d\n", server.Jmax)
+	fmt.Fprintf(&b, "S1 = %d\n", server.S1)
+	fmt.Fprintf(&b, "S2 = %d\n", server.S2)
+	if server.S3 > 0 {
+		fmt.Fprintf(&b, "S3 = %d\n", server.S3)
+	}
+	if server.S4 > 0 {
+		fmt.Fprintf(&b, "S4 = %d\n", server.S4)
+	}
+	fmt.Fprintf(&b, "H1 = %s\n", amneziaWGHeaderOrDefault(server.H1, "1"))
+	fmt.Fprintf(&b, "H2 = %s\n", amneziaWGHeaderOrDefault(server.H2, "2"))
+	fmt.Fprintf(&b, "H3 = %s\n", amneziaWGHeaderOrDefault(server.H3, "3"))
+	fmt.Fprintf(&b, "H4 = %s\n", amneziaWGHeaderOrDefault(server.H4, "4"))
+	if server.I1 != "" {
+		fmt.Fprintf(&b, "I1 = %s\n", server.I1)
+	}
+
+	fmt.Fprintf(&b, "\n# %s\n", remark)
+	b.WriteString("[Peer]\n")
+	fmt.Fprintf(&b, "PublicKey = %s\n", server.PublicKey)
+	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
+	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
+	if client.PreSharedKey != "" {
+		fmt.Fprintf(&b, "\nPresharedKey = %s", client.PreSharedKey)
+	}
+	if client.KeepAlive > 0 {
+		fmt.Fprintf(&b, "\nPersistentKeepalive = %d\n", client.KeepAlive)
+	}
+
+	return b.String()
+}
+
+// genAmneziaWGLink builds a per-client vpn://<base64url .conf text> share
+// link matching the real AmneziaVPN app's own share-link scheme (see the
+// frontend's genAmneziaWGLink for the confirmed import-path reasoning).
+// Returns "" when the client or server has no key.
+func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) string {
+	if inbound.Protocol != model.AmneziaWG {
+		return ""
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+		return ""
+	}
+	server := parsed.Server
+
+	resolved, ok := s.clientForLink(inbound, email)
+	if !ok || resolved.PrivateKey == "" {
+		return ""
+	}
+	client := &resolved
+
+	text := amneziaWGConfigText(server, client, s.resolveInboundAddress(inbound), inbound.Port, s.genRemark(inbound, email, "", ""))
+	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
 }
 
 // genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto

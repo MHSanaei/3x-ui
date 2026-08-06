@@ -32,6 +32,7 @@ const (
 	WireGuard   Protocol = "wireguard"
 	Hysteria    Protocol = "hysteria"
 	MTProto     Protocol = "mtproto"
+	AmneziaWG   Protocol = "amneziawg"
 )
 
 // User represents a user account in the 3x-ui panel.
@@ -61,7 +62,7 @@ type Inbound struct {
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
-	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto" example:"vless"`
+	Protocol          Protocol `json:"protocol" form:"protocol" validate:"required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg" example:"vless"`
 	Settings          string   `json:"settings" form:"settings"`
 	StreamSettings    string   `json:"streamSettings" form:"streamSettings"`
 	Tag               string   `json:"tag" form:"tag" gorm:"unique" example:"in-443-tcp"`
@@ -857,60 +858,70 @@ type ClientReverse struct {
 
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID           string         `json:"id,omitempty"`       // Unique client identifier
-	Security     string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
-	Password     string         `json:"password,omitempty"` // Client password
-	Flow         string         `json:"flow,omitempty"`     // Flow control (XTLS)
-	Reverse      *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
-	Auth         string         `json:"auth,omitempty"`     // Auth password (Hysteria)
-	PrivateKey   string         `json:"privateKey,omitempty"`
-	PublicKey    string         `json:"publicKey,omitempty"`
-	AllowedIPs   []string       `json:"allowedIPs,omitempty"`
-	PreSharedKey string         `json:"preSharedKey,omitempty"`
-	KeepAlive    int            `json:"keepAlive,omitempty"`
-	Secret       string         `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
-	AdTag        string         `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
-	Email        string         `json:"email"`                        // Client email identifier
-	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime   int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable       bool           `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID         int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID        string         `json:"subId" form:"subId"`           // Subscription identifier
-	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment      string         `json:"comment" form:"comment"`       // Client comment
-	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	ID         string         `json:"id,omitempty"`       // Unique client identifier
+	Security   string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
+	Password   string         `json:"password,omitempty"` // Client password
+	Flow       string         `json:"flow,omitempty"`     // Flow control (XTLS)
+	Reverse    *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
+	Auth       string         `json:"auth,omitempty"`     // Auth password (Hysteria)
+	PrivateKey string         `json:"privateKey,omitempty"`
+	PublicKey  string         `json:"publicKey,omitempty"`
+	AllowedIPs []string       `json:"allowedIPs,omitempty"`
+	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
+	// basis, keyed by inbound id. Lets one identity attached to both
+	// WireGuard and AmneziaWG carry two genuinely different addresses in a
+	// single Create/Update call instead of the shared AllowedIPs field
+	// being broadcast to every attached tunnel inbound. Absent/unset for a
+	// given inbound id falls back to the shared AllowedIPs exactly as
+	// before -- fully backward compatible for callers that never set this.
+	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
+	PreSharedKey        string           `json:"preSharedKey,omitempty"`
+	KeepAlive           int              `json:"keepAlive,omitempty"`
+	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
+	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
+	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
+	Email               string           `json:"email"`                        // Client email identifier
+	LimitIP             int              `json:"limitIp"`                      // IP limit for this client
+	TotalGB             int64            `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime          int64            `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable              bool             `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID                int64            `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID               string           `json:"subId" form:"subId"`           // Subscription identifier
+	Group               string           `json:"group,omitempty" form:"group"` // Logical grouping label
+	Comment             string           `json:"comment" form:"comment"`       // Client comment
+	Reset               int              `json:"reset" form:"reset"`           // Reset period in days
+	CreatedAt           int64            `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt           int64            `json:"updated_at,omitempty"`         // Last update timestamp
 }
 
 type ClientRecord struct {
-	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID        string `json:"subId" gorm:"index;column:sub_id"`
-	UUID         string `json:"uuid" gorm:"column:uuid"`
-	Password     string `json:"password"`
-	Auth         string `json:"auth"`
-	Flow         string `json:"flow"`
-	Security     string `json:"security"`
-	Reverse      string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey   string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey    string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs   string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	Secret       string `json:"secret" gorm:"column:secret"`
-	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
-	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable       bool   `json:"enable" gorm:"default:true"`
-	TgID         int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
-	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment      string `json:"comment"`
-	Reset        int    `json:"reset" gorm:"default:0"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id             int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email          string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID          string `json:"subId" gorm:"index;column:sub_id"`
+	UUID           string `json:"uuid" gorm:"column:uuid"`
+	Password       string `json:"password"`
+	Auth           string `json:"auth"`
+	Flow           string `json:"flow"`
+	Security       string `json:"security"`
+	Reverse        string `json:"reverse" gorm:"column:reverse"`
+	PrivateKey     string `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey      string `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs     string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey   string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive      int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	ForwardedPorts string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
+	Secret         string `json:"secret" gorm:"column:secret"`
+	AdTag          string `json:"adTag" gorm:"column:ad_tag;default:''"`
+	LimitIP        int    `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB        int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable         bool   `json:"enable" gorm:"default:true"`
+	TgID           int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
+	Group          string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment        string `json:"comment"`
+	Reset          int    `json:"reset" gorm:"default:0"`
+	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt      int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
@@ -1079,13 +1090,14 @@ func (c *Client) ToRecord() *ClientRecord {
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 
-		PrivateKey:   c.PrivateKey,
-		PublicKey:    c.PublicKey,
-		AllowedIPs:   strings.Join(c.AllowedIPs, ","),
-		PreSharedKey: c.PreSharedKey,
-		KeepAlive:    c.KeepAlive,
-		Secret:       c.Secret,
-		AdTag:        c.AdTag,
+		PrivateKey:     c.PrivateKey,
+		PublicKey:      c.PublicKey,
+		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
+		PreSharedKey:   c.PreSharedKey,
+		KeepAlive:      c.KeepAlive,
+		ForwardedPorts: c.ForwardedPorts,
+		Secret:         c.Secret,
+		AdTag:          c.AdTag,
 	}
 	if c.Reverse != nil {
 		if b, err := json.Marshal(c.Reverse); err == nil {
@@ -1132,13 +1144,14 @@ func (r *ClientRecord) ToClient() *Client {
 		CreatedAt:  r.CreatedAt,
 		UpdatedAt:  r.UpdatedAt,
 
-		PrivateKey:   r.PrivateKey,
-		PublicKey:    r.PublicKey,
-		AllowedIPs:   splitWireguardAllowedIPs(r.AllowedIPs),
-		PreSharedKey: r.PreSharedKey,
-		KeepAlive:    r.KeepAlive,
-		Secret:       r.Secret,
-		AdTag:        r.AdTag,
+		PrivateKey:     r.PrivateKey,
+		PublicKey:      r.PublicKey,
+		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
+		PreSharedKey:   r.PreSharedKey,
+		KeepAlive:      r.KeepAlive,
+		ForwardedPorts: r.ForwardedPorts,
+		Secret:         r.Secret,
+		AdTag:          r.AdTag,
 	}
 	if r.Reverse != "" {
 		var rev ClientReverse
@@ -1307,6 +1320,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.KeepAlive == 0 {
 			keep("keepAlive", existing.KeepAlive, incoming.KeepAlive, incoming.KeepAlive)
 			existing.KeepAlive = incoming.KeepAlive
+		}
+	}
+	if existing.ForwardedPorts != incoming.ForwardedPorts && incoming.ForwardedPorts != "" {
+		if incomingNewer || existing.ForwardedPorts == "" {
+			keep("forwardedPorts", existing.ForwardedPorts, incoming.ForwardedPorts, incoming.ForwardedPorts)
+			existing.ForwardedPorts = incoming.ForwardedPorts
 		}
 	}
 	if existing.Comment != incoming.Comment && incoming.Comment != "" {

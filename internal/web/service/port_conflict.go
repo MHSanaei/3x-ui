@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -20,7 +21,7 @@ const (
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
 	// protocols that ignore streamSettings entirely.
 	switch protocol {
-	case model.Hysteria, model.WireGuard:
+	case model.Hysteria, model.WireGuard, model.AmneziaWG:
 		return transportUDP
 	case model.MTProto:
 		return transportTCP
@@ -175,6 +176,24 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 		}, nil
 	}
 
+	// Every enabled local AmneziaWG inbound gets its own automatic Xray
+	// bridge (see injectAmneziawgEgress) on 127.0.0.1 at a port derived
+	// purely from its id (amneziawg.EgressPortForInbound) -- like the
+	// internal Xray API inbound above, that bridge is not itself a database
+	// row, so the ordinary DB-backed query below can never see it. Without
+	// this check, an unrelated inbound saved onto that exact port silently
+	// fails at the next Xray start, taking every other protocol down with
+	// it, not just AmneziaWG.
+	if inbound.NodeID == nil && listenOverlaps("127.0.0.1", inbound.Listen) {
+		conflict, err := s.checkAmneziawgEgressConflict(inbound, ignoreId, newBits)
+		if err != nil {
+			return nil, err
+		}
+		if conflict != nil {
+			return conflict, nil
+		}
+	}
+
 	db := database.GetDB()
 
 	var candidates []*model.Inbound
@@ -205,6 +224,44 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 			Listen:     c.Listen,
 			Port:       c.Port,
 			Transports: shared,
+		}, nil
+	}
+	return nil, nil
+}
+
+// checkAmneziawgEgressConflict reports whether inbound's own port collides
+// with an existing, enabled local AmneziaWG inbound's automatic Xray bridge
+// port. Only inbounds that actually have RouteThroughXray on ever get a
+// bridge (see injectAmneziawgEgress); the others' "reserved" port isn't
+// really reserved, so they must not be flagged. ignoreId excludes one
+// inbound id from the AmneziaWG candidates, the same way the general
+// DB-backed conflict query above excludes the inbound being edited from
+// matching itself.
+func (s *InboundService) checkAmneziawgEgressConflict(inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
+	db := database.GetDB()
+	var candidates []*model.Inbound
+	q := db.Model(model.Inbound{}).Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true)
+	if ignoreId > 0 {
+		q = q.Where("id != ?", ignoreId)
+	}
+	if err := q.Find(&candidates).Error; err != nil {
+		return nil, err
+	}
+	for _, c := range candidates {
+		inst, ok := amneziawg.InstanceFromInbound(c)
+		if !ok || !inst.RouteThroughXray {
+			continue
+		}
+		if amneziawg.EgressPortForInbound(c.Id) != inbound.Port {
+			continue
+		}
+		return &portConflictDetail{
+			InboundID:  c.Id,
+			Remark:     c.Remark,
+			Tag:        c.Tag,
+			Listen:     "127.0.0.1",
+			Port:       inbound.Port,
+			Transports: newBits,
 		}, nil
 	}
 	return nil, nil

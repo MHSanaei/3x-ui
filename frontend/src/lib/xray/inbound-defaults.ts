@@ -1,5 +1,6 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
@@ -256,12 +257,20 @@ export interface WireguardInboundSeed {
   mtu?: number;
   secretKey?: string;
   noKernelTun?: boolean;
+  subnetIp?: string;
+  subnetCidr?: number;
 }
 
 // WireGuard is multi-client now: a new inbound holds only the server identity
 // (secretKey/mtu) and starts with no clients. Clients (peers) are added later
 // through the client modal, which generates each one's keypair and a unique
 // tunnel address. peers stays empty for backward-compatible parsing.
+//
+// subnetIp/subnetCidr default to 10.0.0.0/24 here — the same value the Go
+// backend has always fallen back to for an inbound with no clients yet — so
+// a freshly created inbound shows an explicit, editable value from the
+// start (matching AmneziaWG's own subnet field), rather than an empty one
+// that silently relies on server-side inference until an admin fills it in.
 export function createDefaultWireguardInboundSettings(
   seed: WireguardInboundSeed = {},
 ): WireguardInboundSettings {
@@ -271,6 +280,49 @@ export function createDefaultWireguardInboundSettings(
     peers: [],
     clients: [],
     noKernelTun: seed.noKernelTun ?? false,
+    subnetIp: seed.subnetIp ?? '10.0.0.0',
+    subnetCidr: seed.subnetCidr ?? 24,
+  };
+}
+
+// AmneziaWG is multi-client, like WireGuard, and uses the same Curve25519
+// keypair format — Wireguard.generateKeypair() works unchanged. Unlike
+// WireGuard's Xray-native inbound, the server's publicKey is a real
+// persisted field here (the Go backend reads it directly rather than
+// re-deriving it), so it's seeded alongside privateKey. The obfuscation
+// parameters (jc/jmin/.../i1) use the same starting values the Go backend's
+// own generator range-checks against; the user (or the backend's own
+// defaulting on save) can randomize/edit them further — see
+// internal/amneziawg.GenerateObfuscation20 on the Go side.
+export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSettings {
+  const kp = Wireguard.generateKeypair();
+  return {
+    server: {
+      privateKey: kp.privateKey,
+      publicKey: kp.publicKey,
+      subnetIp: '10.8.1.0',
+      subnetCidr: 24,
+      primaryDns: '8.8.8.8',
+      secondaryDns: '8.8.4.4',
+      externalInterface: '',
+      ipv6Enabled: false,
+      ipv6Subnet: '',
+      ipv6ExternalInterface: '',
+      routeThroughXray: false,
+      jc: 5,
+      jmin: 10,
+      jmax: 50,
+      s1: 30,
+      s2: 45,
+      s3: 10,
+      s4: 5,
+      h1: '',
+      h2: '',
+      h3: '',
+      h4: '',
+      i1: '',
+    },
+    clients: [],
   };
 }
 
@@ -290,7 +342,8 @@ export type AnyInboundSettings =
   | TunInboundSettings
   | TunnelInboundSettings
   | WireguardInboundSettings
-  | MtprotoInboundSettings;
+  | MtprotoInboundSettings
+  | AmneziawgInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -305,6 +358,7 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
     case 'tun':         return createDefaultTunInboundSettings();
     case 'wireguard':   return createDefaultWireguardInboundSettings();
     case 'mtproto':     return createDefaultMtprotoInboundSettings();
+    case 'amneziawg':   return createDefaultAmneziawgInboundSettings();
     default:            return null;
   }
 }

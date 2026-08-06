@@ -13,6 +13,7 @@ import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
+import { buildAmneziaWGClientConfig, findAmneziaWGInbound, isAmneziaWGClient } from './amneziawgConfig';
 import './ClientInfoModal.css';
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -23,6 +24,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   hysteria: 'cyan',
   hysteria2: 'green',
   wireguard: 'gold',
+  amneziawg: 'yellow',
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
@@ -148,6 +150,12 @@ export default function ClientInfoModal({
     if (!client || !wgInbound || !isWireguardClient(client)) return '';
     return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
   }, [client, wgInbound, subSettings?.publicHost]);
+
+  const awgInbound = useMemo(() => findAmneziaWGInbound(client, inboundsById), [client, inboundsById]);
+  const awgConfigText = useMemo(() => {
+    if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
+    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+  }, [client, awgInbound, subSettings?.publicHost]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -533,6 +541,18 @@ export default function ClientInfoModal({
                 <ConfigBlock
                   label={t('pages.clients.config')}
                   text={wgConfigText}
+                  fileName={`${client.email}.conf`}
+                  qrRemark={client.email || 'peer'}
+                />
+              </>
+            )}
+
+            {awgConfigText && client && (
+              <>
+                <Divider>{t('pages.clients.amneziaWgConfig')}</Divider>
+                <ConfigBlock
+                  label={t('pages.clients.config')}
+                  text={awgConfigText}
                   fileName={`${client.email}.conf`}
                   qrRemark={client.email || 'peer'}
                 />

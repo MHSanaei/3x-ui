@@ -58,6 +58,7 @@ import './InboundFormModal.css';
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
 import { formatInboundIssue, formatInboundValidation } from './formatValidationError';
 import {
+  AmneziawgFields,
   HttpFields,
   HysteriaFields,
   MixedFields,
@@ -306,6 +307,83 @@ export default function InboundFormModal({
   const regenInboundWg = () => {
     const kp = Wireguard.generateKeypair();
     setV('settings.secretKey', kp.privateKey);
+  };
+
+  // AmneziaWG uses the same Curve25519 keys as WireGuard, just nested under
+  // settings.server instead of flat on settings — see amneziawg.ts. Unlike
+  // WireGuard's Xray-native inbound (which re-derives its public key at
+  // runtime and never stores one), AmneziaWG's server.publicKey is a real,
+  // persisted field the Go backend reads directly, so it must be kept in
+  // sync even when the user free-types a new private key instead of using
+  // the regenerate button.
+  const awgPrivateKey = useWatch({ control, name: 'settings.server.privateKey' });
+  const awgPubKey = typeof awgPrivateKey === 'string' && awgPrivateKey.length > 0
+    ? Wireguard.generateKeypair(awgPrivateKey).publicKey
+    : '';
+
+  useEffect(() => {
+    if (protocol === Protocols.AMNEZIAWG) {
+      setV('settings.server.publicKey', awgPubKey);
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [awgPubKey, protocol]);
+
+  const regenInboundAwg = () => {
+    const kp = Wireguard.generateKeypair();
+    setV('settings.server.privateKey', kp.privateKey);
+    setV('settings.server.publicKey', kp.publicKey);
+  };
+
+  // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
+  // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
+  // "default" preset (internal/amneziawg/params.go) closely enough for a form
+  // suggestion — exact parity isn't required since the user can still edit
+  // any field afterward, and a fresh, non-crypto-grade random value here is
+  // no weaker than what the backend would have generated on first save.
+  const regenInboundAwgObfuscation = () => {
+    const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
+
+    const jc = randInt(3, 6);
+    const jmin = randInt(40, 89);
+    const jmax = jmin + randInt(50, 250);
+
+    const s1 = randInt(15, 150);
+    let s2 = randInt(15, 150);
+    while (s1 + 56 === s2) {
+      s2 = randInt(15, 150);
+    }
+    const s3 = randInt(8, 55);
+    const s4 = randInt(4, 27);
+
+    // Four non-overlapping "low-high" ranges for H1-H4: split the space into
+    // four bands and take a random sub-range from each (>= 1000 wide, low
+    // bound >= 5 since 1-4 are reserved for vanilla WireGuard message types).
+    const hMax = 2147483647;
+    const hMinWidth = 1000;
+    const lo = 5;
+    const bandSize = Math.floor((hMax - lo + 1) / 4);
+    const hRanges = Array.from({ length: 4 }, (_, i) => {
+      const bandLo = lo + i * bandSize;
+      const bandHi = bandLo + bandSize - 1;
+      const start = randInt(bandLo, bandHi - hMinWidth - 1);
+      const end = randInt(start + hMinWidth, bandHi - 1);
+      return `${start}-${end}`;
+    });
+
+    const i1 = `<r ${randInt(32, 256)}>`;
+
+    setV('settings.server.jc', jc);
+    setV('settings.server.jmin', jmin);
+    setV('settings.server.jmax', jmax);
+    setV('settings.server.s1', s1);
+    setV('settings.server.s2', s2);
+    setV('settings.server.s3', s3);
+    setV('settings.server.s4', s4);
+    setV('settings.server.h1', hRanges[0]);
+    setV('settings.server.h2', hRanges[1]);
+    setV('settings.server.h3', hRanges[2]);
+    setV('settings.server.h4', hRanges[3]);
+    setV('settings.server.i1', i1);
   };
 
   const matchesVlessAuth = (
@@ -662,6 +740,14 @@ export default function InboundFormModal({
     <>
       {protocol === Protocols.WIREGUARD && <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} />}
 
+      {protocol === Protocols.AMNEZIAWG && (
+        <AmneziawgFields
+          awgPubKey={awgPubKey}
+          regenInboundAwg={regenInboundAwg}
+          regenInboundAwgObfuscation={regenInboundAwgObfuscation}
+        />
+      )}
+
       {protocol === Protocols.TUN && <TunFields />}
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
@@ -964,6 +1050,7 @@ export default function InboundFormModal({
                 Protocols.TUN,
                 Protocols.WIREGUARD,
                 Protocols.MTPROTO,
+                Protocols.AMNEZIAWG,
               ] as string[]).includes(protocol) || isFallbackHost
                 ? [{ key: 'protocol', label: t('pages.inbounds.protocol'), children: protocolTab, forceRender: true }]
                 : []),

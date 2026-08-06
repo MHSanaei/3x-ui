@@ -10,6 +10,8 @@ import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import {
   genAllLinks,
+  genAmneziaWGConfigs,
+  genAmneziaWGLinks,
   genWireguardConfigs,
   genWireguardLinks,
   preferPublicHost,
@@ -49,6 +51,8 @@ export default function InboundInfoModal({
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
   const [wireguardConfigs, setWireguardConfigs] = useState<string[]>([]);
   const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
+  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[]>([]);
+  const [amneziawgLinks, setAmneziawgLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -132,6 +136,28 @@ export default function InboundInfoModal({
           fallbackHostname,
         }).split('\r\n'),
       );
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
+      setLinks([]);
+    } else if (info.protocol === Protocols.AMNEZIAWG) {
+      setAmneziawgConfigs(
+        genAmneziaWGConfigs({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setAmneziawgLinks(
+        genAmneziaWGLinks({
+          inbound: inboundForLinks,
+          remark: dbInbound.remark,
+          hostOverride: nodeAddress,
+          fallbackHostname,
+        }).split('\r\n'),
+      );
+      setWireguardConfigs([]);
+      setWireguardLinks([]);
       setLinks([]);
     } else {
       setLinks(
@@ -145,6 +171,8 @@ export default function InboundInfoModal({
       );
       setWireguardConfigs([]);
       setWireguardLinks([]);
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
     }
 
     if (clientSet?.subId) {
@@ -844,6 +872,41 @@ export default function InboundInfoModal({
                     </Tooltip>
                   </div>
                   <code className="link-panel-text">{wireguardLinks[idx]}</code>
+                </div>
+              )}
+            </Fragment>
+          ))}
+        </>
+      )}
+
+      {inbound?.protocol === Protocols.AMNEZIAWG && amneziawgConfigs.length > 0 && (
+        <>
+          <Divider>{t('pages.inbounds.copyLink')}</Divider>
+          {amneziawgConfigs.map((cfg, idx) => (
+            <Fragment key={idx}>
+              {cfg && (
+                <div className="link-panel">
+                  <div className="link-panel-header">
+                    <Tag color="green">{t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}</Tag>
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(cfg, t)} />
+                    </Tooltip>
+                    <Tooltip title={t('download')}>
+                      <Button size="small" icon={<DownloadOutlined />} aria-label={t('download')} onClick={() => downloadText(cfg, `peer-${idx + 1}.conf`)} />
+                    </Tooltip>
+                  </div>
+                  <code className="link-panel-text">{cfg}</code>
+                </div>
+              )}
+              {amneziawgLinks[idx] && (
+                <div className="link-panel">
+                  <div className="link-panel-header">
+                    <Tag color="green">Peer {idx + 1} link</Tag>
+                    <Tooltip title={t('copy')}>
+                      <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={() => copyText(amneziawgLinks[idx], t)} />
+                    </Tooltip>
+                  </div>
+                  <code className="link-panel-text">{amneziawgLinks[idx]}</code>
                 </div>
               )}
             </Fragment>
