@@ -4148,6 +4148,63 @@
         }
       }
     },
+    "/panel/api/inbounds/{id}/awgDiagnostics": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Live, read-only snapshot of a running AmneziaWG inbound: interface up/down, listen port, and each configured client's handshake/traffic state. Gathering it can never itself change anything; an inbound that simply isn't running right now (disabled, no enabled clients, or the reconcile loop hasn't caught up yet) comes back with running=false rather than an error.",
+        "operationId": "get_panel_api_inbounds_id_awgDiagnostics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "AmneziaWG inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "running": true,
+                    "listenPort": 51820,
+                    "clients": [
+                      {
+                        "email": "alice",
+                        "connected": true,
+                        "lastHandshake": "2026-08-06T07:00:00Z",
+                        "rxBytes": 10485760,
+                        "txBytes": 2097152
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/openapi.json": {
       "get": {
         "tags": [
