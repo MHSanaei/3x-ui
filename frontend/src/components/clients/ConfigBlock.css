@@ -16,10 +16,6 @@ body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
   color: #874d00;
 }
 
-body.light .config-block-text {
-  color: #595959;
-}
-
 .config-block .ant-collapse-extra {
   display: flex;
   align-items: center;
@@ -42,8 +38,13 @@ body.light .config-block-text {
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
-  color: var(--ant-color-text, #595959);
-  background: var(--ant-color-fill-tertiary);
+  /* Deliberately theme-independent (not var(--ant-color-text)/
+     var(--ant-color-fill-tertiary)): a config/share-link string reads as a
+     code block regardless of the surrounding page theme, and unlike most
+     text this one MUST stay WCAG AA-compliant (>= 4.5:1) on its own fixed
+     background rather than tracking whatever the ambient theme resolves to. */
+  color: #595959;
+  background: #f5f5f5;
   border-radius: 4px;
   user-select: all;
 }
