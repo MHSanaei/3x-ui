@@ -213,6 +213,90 @@ func TestValidateContentPaddingAdditionRejectsBadValues(t *testing.T) {
 	}
 }
 
+func TestEffectiveAwgVersionPromotesLegacyRecordsWithAnAwg3FieldSet(t *testing.T) {
+	cases := []struct {
+		name                   string
+		headerProtectionKey    string
+		contentPaddingAddition string
+	}{
+		{"headerProtectionKey only", "some-key", ""},
+		{"contentPaddingAddition only", "", "50-100"},
+		{"both set", "some-key", "50-100"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := EffectiveAwgVersion("", c.headerProtectionKey, c.contentPaddingAddition)
+			if got != AwgVersion3 {
+				t.Fatalf("EffectiveAwgVersion(%q, %q, %q) = %q, want %q", "", c.headerProtectionKey, c.contentPaddingAddition, got, AwgVersion3)
+			}
+		})
+	}
+}
+
+func TestEffectiveAwgVersionLeavesABlankRecordWithNoAwg3FieldsAlone(t *testing.T) {
+	got := EffectiveAwgVersion("", "", "")
+	if got != "" {
+		t.Fatalf("EffectiveAwgVersion(\"\", \"\", \"\") = %q, want empty (a brand new record needs no promotion)", got)
+	}
+}
+
+func TestEffectiveAwgVersionNeverOverridesAnExplicitValue(t *testing.T) {
+	cases := []struct {
+		awgVersion             string
+		headerProtectionKey    string
+		contentPaddingAddition string
+	}{
+		{AwgVersion2, "some-key", ""},
+		{AwgVersion2, "", "50-100"},
+		{AwgVersion3, "", ""},
+	}
+	for _, c := range cases {
+		got := EffectiveAwgVersion(c.awgVersion, c.headerProtectionKey, c.contentPaddingAddition)
+		if got != c.awgVersion {
+			t.Errorf("EffectiveAwgVersion(%q, %q, %q) = %q, want unchanged %q", c.awgVersion, c.headerProtectionKey, c.contentPaddingAddition, got, c.awgVersion)
+		}
+	}
+}
+
+func TestValidateAwgVersionAcceptsVersion3RegardlessOfFields(t *testing.T) {
+	if err := ValidateAwgVersion(AwgVersion3, "some-key", "50-100"); err != nil {
+		t.Fatalf("awgVersion 3 with both AWG3 fields set must be accepted: %v", err)
+	}
+	if err := ValidateAwgVersion(AwgVersion3, "", ""); err != nil {
+		t.Fatalf("awgVersion 3 with neither field set must be accepted: %v", err)
+	}
+}
+
+func TestValidateAwgVersionAcceptsVersion2WithNoAwg3Fields(t *testing.T) {
+	if err := ValidateAwgVersion(AwgVersion2, "", ""); err != nil {
+		t.Fatalf("awgVersion 2 with no AWG3 fields set must be accepted: %v", err)
+	}
+	if err := ValidateAwgVersion("", "", ""); err != nil {
+		t.Fatalf("a blank awgVersion with no AWG3 fields set must be accepted: %v", err)
+	}
+}
+
+func TestValidateAwgVersionRejectsAwg3FieldsBelowVersion3(t *testing.T) {
+	cases := []struct {
+		name                   string
+		awgVersion             string
+		headerProtectionKey    string
+		contentPaddingAddition string
+	}{
+		{"version 2 with headerProtectionKey", AwgVersion2, "some-key", ""},
+		{"version 2 with contentPaddingAddition", AwgVersion2, "", "50-100"},
+		{"blank version with headerProtectionKey", "", "some-key", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := ValidateAwgVersion(c.awgVersion, c.headerProtectionKey, c.contentPaddingAddition)
+			if err == nil {
+				t.Fatalf("expected an error for %s", c.name)
+			}
+		})
+	}
+}
+
 func TestValidateInterfaceNameAcceptsBlankAndPlausibleNames(t *testing.T) {
 	for _, name := range []string{"", "eth0", "wg0", "br-lan", "eno1.100", "veth1a2b3c", "eth0:0"} {
 		if err := ValidateInterfaceName(name); err != nil {

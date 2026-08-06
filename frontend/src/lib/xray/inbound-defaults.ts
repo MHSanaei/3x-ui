@@ -1,6 +1,6 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
-import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
+import { AWG_VERSION_2, type AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
@@ -320,6 +320,7 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       h3: '',
       h4: '',
       i1: '',
+      awgVersion: AWG_VERSION_2,
       headerProtectionKey: '',
       contentPaddingAddition: '',
     },

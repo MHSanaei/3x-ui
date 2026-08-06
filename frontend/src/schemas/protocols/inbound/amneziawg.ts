@@ -48,6 +48,33 @@ export type AmneziawgClient = z.infer<typeof AmneziawgClientSchema>;
 // default unknown-key stripping quietly drops it from an existing stored
 // settings blob on the next save, rather than the form round-tripping a
 // value nothing reads anymore.
+// AWG_VERSION_2/AWG_VERSION_3 mirror internal/amneziawg.AwgVersion2/AwgVersion3
+// on the Go side exactly (same string values).
+export const AWG_VERSION_2 = '2';
+export const AWG_VERSION_3 = '3';
+
+// effectiveAwgVersion mirrors internal/amneziawg.EffectiveAwgVersion exactly:
+// an inbound saved before the awgVersion field existed can already have
+// headerProtectionKey/contentPaddingAddition set with no awgVersion at all
+// (rawInboundToFormValues casts the stored settings JSON verbatim, with no
+// schema-default pass on read). Treating a blank awgVersion alongside either
+// AWG3 field as already-opted-into-3 means the edit form's version Select
+// shows what's actually in effect, instead of defaulting to "2" and the very
+// next unrelated save getting rejected by the backend's own
+// ValidateAwgVersion consistency check. Only an explicitly blank awgVersion
+// is promoted this way -- an explicit, non-"3" value is returned as-is so
+// the backend's own error can surface the real inconsistency.
+export function effectiveAwgVersion(
+  awgVersion: string | undefined,
+  headerProtectionKey: string | undefined,
+  contentPaddingAddition: string | undefined,
+): string {
+  if (!awgVersion && (headerProtectionKey || contentPaddingAddition)) {
+    return AWG_VERSION_3;
+  }
+  return awgVersion || AWG_VERSION_2;
+}
+
 export const AmneziawgServerSchema = z.object({
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),
@@ -72,6 +99,12 @@ export const AmneziawgServerSchema = z.object({
   h3: z.string().default(''),
   h4: z.string().default(''),
   i1: z.string().default(''),
+  // awgVersion is the admin-declared protocol-version ceiling: AWG_VERSION_2
+  // (default) or AWG_VERSION_3. headerProtectionKey/contentPaddingAddition
+  // below require this to be AWG_VERSION_3 -- see effectiveAwgVersion above
+  // for the back-compat rule and ValidateAwgVersion on the Go side for the
+  // save-time consistency check.
+  awgVersion: z.string().default(AWG_VERSION_2),
   // AmneziaWG 3.0 fields, strictly opt-in -- see amneziawg.tsx's own hint
   // copy. headerProtectionKey requires s1-s4 above to all be >= 12.
   headerProtectionKey: z.string().default(''),

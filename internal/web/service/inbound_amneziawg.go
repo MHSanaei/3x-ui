@@ -128,6 +128,7 @@ func defaultAmneziaWGServer() (*amneziawg.ServerSettings, error) {
 		H3:           obf.H3,
 		H4:           obf.H4,
 		I1:           obf.I1,
+		AwgVersion:   amneziawg.AwgVersion2,
 	}
 	if err := fillAmneziaWGServerKeys(server); err != nil {
 		return nil, err
@@ -217,6 +218,16 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 	if err := amneziawg.ValidateContentPaddingAddition(parsed.Server.ContentPaddingAddition); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	// EffectiveAwgVersion first, so a record saved before AwgVersion existed
+	// (already has a working HeaderProtectionKey/ContentPaddingAddition with
+	// an empty AwgVersion) is treated as already-opted-into-3 and persisted
+	// that way from here on, instead of ValidateAwgVersion rejecting an
+	// existing, working configuration the next time it's saved unrelated to
+	// this field.
+	parsed.Server.AwgVersion = amneziawg.EffectiveAwgVersion(parsed.Server.AwgVersion, parsed.Server.HeaderProtectionKey, parsed.Server.ContentPaddingAddition)
+	if err := amneziawg.ValidateAwgVersion(parsed.Server.AwgVersion, parsed.Server.HeaderProtectionKey, parsed.Server.ContentPaddingAddition); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 

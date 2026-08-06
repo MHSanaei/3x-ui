@@ -40,6 +40,7 @@ import {
 } from '@/schemas/forms/inbound-form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { Protocols } from '@/schemas/primitives';
+import { AWG_VERSION_3, effectiveAwgVersion } from '@/schemas/protocols/inbound/amneziawg';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
@@ -345,6 +346,11 @@ export default function InboundFormModal({
   // silently does.
   const regenInboundAwgHeaderProtectionKey = () => {
     setV('settings.server.headerProtectionKey', Wireguard.keyToBase64(Wireguard.generatePresharedKey()));
+    // The backend rejects a save otherwise (amneziawg.ValidateAwgVersion) --
+    // raising the version ceiling here means clicking this one button is
+    // enough to turn header protection on, instead of also sending the admin
+    // hunting for a separate version dropdown.
+    setV('settings.server.awgVersion', AWG_VERSION_3);
     // The backend rejects a save otherwise (amneziawg.ValidateHeaderProtection,
     // mirroring amneziawg-go's own IpcSet requirement) -- raising S1-S4 here
     // means clicking this one button is enough to turn header protection on,
@@ -369,6 +375,10 @@ export default function InboundFormModal({
     const lo = randInt(0, 30);
     const hi = lo + randInt(20, 100);
     setV('settings.server.contentPaddingAddition', `${lo}-${hi}`);
+    // Same reasoning as regenInboundAwgHeaderProtectionKey: contentPaddingAddition
+    // is also AWG3-only (amneziawg.ValidateAwgVersion), so this button alone
+    // should be enough to make the save succeed.
+    setV('settings.server.awgVersion', AWG_VERSION_3);
   };
 
   // Which mimicry profile the next I1 generate click uses -- UI-only state,
@@ -495,6 +505,25 @@ export default function InboundFormModal({
     const initial = mode === 'edit' && dbInbound
       ? rawInboundToFormValues(dbInbound)
       : buildAddModeValues();
+    if (initial.protocol === Protocols.AMNEZIAWG) {
+      // A record saved before awgVersion existed can already have
+      // headerProtectionKey/contentPaddingAddition set with no awgVersion at
+      // all in its stored JSON (rawInboundToFormValues casts the settings
+      // blob verbatim, no schema-default pass on read) -- resolve the
+      // effective version here so the Select shows what's actually in
+      // effect, instead of defaulting to "2" and having the very next
+      // unrelated save rejected by the backend's own consistency check.
+      const server = (initial.settings as Record<string, unknown> | undefined)?.server as
+        | Record<string, unknown>
+        | undefined;
+      if (server) {
+        server.awgVersion = effectiveAwgVersion(
+          server.awgVersion as string | undefined,
+          server.headerProtectionKey as string | undefined,
+          server.contentPaddingAddition as string | undefined,
+        );
+      }
+    }
     methods.reset(initial);
     setScanResult(null);
     const initialTag = (initial.tag ?? '') as string;

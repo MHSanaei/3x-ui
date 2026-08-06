@@ -1811,10 +1811,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Generating a QUIC signature requires HTTPS (or localhost) -- this connection doesn't expose the Web Crypto API needed for it.",
+        "awgVersion": "AmneziaWG protocol version",
+        "awgVersionHint": "The version ceiling this inbound declares. Raise to 3.0 to enable Header Protection Key / Content Padding Addition below -- both require this to be set to 3.0 first.",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "Header Protection Key (3.0)",
-        "headerProtectionKeyHint": "AmneziaWG 3.0 only, optional and off by default. A 32-byte key shared with every peer -- enabling or changing it is a compatibility-breaking change for every existing peer on this interface (like a protocol-version bump): a mismatched or one-sided key means every handshake fails, not just weaker obfuscation. Requires S1-S4 above to all be at least 12. Leave empty to keep classic (non-3.0) behavior.",
+        "headerProtectionKeyHint": "Requires the version above to be set to 3.0. Optional and off by default. A 32-byte key shared with every peer -- enabling or changing it is a compatibility-breaking change for every existing peer on this interface (like a protocol-version bump): a mismatched or one-sided key means every handshake fails, not just weaker obfuscation. Requires S1-S4 above to all be at least 12. Leave empty to keep classic (non-3.0) behavior.",
         "contentPaddingAddition": "Content Padding Addition (3.0)",
-        "contentPaddingAdditionHint": "AmneziaWG 3.0 only. A single integer or a low-high range of extra random padding bytes added to each transport packet. Leave empty to disable."
+        "contentPaddingAdditionHint": "Requires the version above to be set to 3.0. A single integer or a low-high range of extra random padding bytes added to each transport packet. Leave empty to disable."
       },
       "tun": {
         "userLevel": "User Level"

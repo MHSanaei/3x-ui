@@ -37,6 +37,16 @@ const headerProtectionMinPadding = 12
 // (unlike H1-H4's uint32 width above).
 const cpaMaxValid int64 = 65535
 
+// AwgVersion2/AwgVersion3 are the two meaningful values of ServerSettings'
+// AwgVersion field. AwgVersion2 is the default/zero-value ceiling covering
+// every obfuscation field this fork supported before HeaderProtectionKey/
+// ContentPaddingAddition existed; AwgVersion3 is required to enable either
+// of those two AWG 3.0-only fields.
+const (
+	AwgVersion2 = "2"
+	AwgVersion3 = "3"
+)
+
 // randInt returns a uniform random int in [min, max] using crypto/rand. Falls
 // back to min on the (practically impossible) RNG error.
 func randInt(min, max int) int {
@@ -286,6 +296,45 @@ func ValidateHeaderProtection(headerProtectionKey string, o Obfuscation20) error
 		if v < headerProtectionMinPadding {
 			return fmt.Errorf("S%d = %d is too low: AmneziaWG 3.0 header protection requires S1-S4 to all be >= %d -- raise it first, or leave headerProtectionKey empty", i+1, v, headerProtectionMinPadding)
 		}
+	}
+	return nil
+}
+
+// EffectiveAwgVersion returns the AwgVersion that should actually be
+// validated, persisted, and shown to the admin. An inbound saved before
+// this field existed can already have HeaderProtectionKey/
+// ContentPaddingAddition set with an empty AwgVersion; treating that as
+// already-opted-into-3 (rather than an inconsistency to reject) means a
+// pre-existing, working configuration keeps working the next time it's
+// read or saved, instead of suddenly needing the admin to notice and fix a
+// field they've never seen before. Only an explicitly empty AwgVersion is
+// promoted this way -- an explicit, non-"3" value (e.g. an admin
+// deliberately dialing back to "2") is returned unchanged so
+// ValidateAwgVersion can catch the real inconsistency of a lowered ceiling
+// with an AWG 3.0 field still set.
+func EffectiveAwgVersion(awgVersion, headerProtectionKey, contentPaddingAddition string) string {
+	if awgVersion == "" && (headerProtectionKey != "" || contentPaddingAddition != "") {
+		return AwgVersion3
+	}
+	return awgVersion
+}
+
+// ValidateAwgVersion rejects an AmneziaWG 3.0-only field
+// (HeaderProtectionKey or ContentPaddingAddition) being set while the
+// inbound's own declared protocol-version ceiling isn't AwgVersion3 --
+// amneziawgnet's UAPI config builder only ever looks at those two fields
+// directly, never at AwgVersion itself, so a mismatch here (e.g. an admin
+// dials the ceiling back to "2" without clearing an already-generated
+// HeaderProtectionKey) would otherwise stay silently invisible until a
+// client's handshake starts failing. Callers should run
+// EffectiveAwgVersion first so a legacy record with no AwgVersion at all
+// doesn't spuriously trip this.
+func ValidateAwgVersion(awgVersion, headerProtectionKey, contentPaddingAddition string) error {
+	if awgVersion == AwgVersion3 {
+		return nil
+	}
+	if headerProtectionKey != "" || contentPaddingAddition != "" {
+		return fmt.Errorf("headerProtectionKey/contentPaddingAddition require awgVersion to be %q (currently %q) -- raise the AmneziaWG version, or clear those fields first", AwgVersion3, awgVersion)
 	}
 	return nil
 }

@@ -2840,6 +2840,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "ServerSettings": {
     "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {
+      "awgVersion": {
+        "description": "AwgVersion is the admin-declared AmneziaWG protocol-version ceiling\nfor this inbound: AwgVersion2 (default) or AwgVersion3. Purely a\nsave-time/UI gate -- amneziawgnet's actual UAPI config never reads\nit, only HeaderProtectionKey/ContentPaddingAddition directly -- it\nexists so enabling either of those two fields is a deliberate,\nvisible choice instead of something that silently starts working\n(or silently keeps working after being turned back off) with no\nadmin-facing signal at all. See EffectiveAwgVersion/ValidateAwgVersion\nin params.go for the back-compat and consistency rules this field\nfollows.",
+        "type": "string"
+      },
       "contentPaddingAddition": {
         "type": "string"
       },

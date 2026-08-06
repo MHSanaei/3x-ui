@@ -1694,10 +1694,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Generar una firma QUIC requiere HTTPS (o localhost) -- esta conexión no expone la API Web Crypto necesaria para ello.",
+        "awgVersion": "Versión del protocolo AmneziaWG",
+        "awgVersionHint": "El límite de versión que declara este inbound. Súbelo a 3.0 para habilitar la Clave de Protección de Cabecera / Relleno de Contenido Adicional de abajo -- ambos requieren primero que esto esté en 3.0.",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "Clave de Protección de Cabecera (3.0)",
-        "headerProtectionKeyHint": "Solo para AmneziaWG 3.0, opcional y desactivado por defecto. Una clave de 32 bytes compartida con cada par -- activarla o cambiarla es un cambio que rompe la compatibilidad con todos los pares existentes en esta interfaz (como un cambio de versión de protocolo): una clave no coincidente o configurada solo en un lado hace que todo handshake falle, no solo que la ofuscación sea más débil. Requiere que S1-S4 arriba sean todos al menos 12. Déjalo vacío para mantener el comportamiento clásico (no 3.0).",
+        "headerProtectionKeyHint": "Requiere que la versión de arriba esté establecida en 3.0. Opcional y desactivado por defecto. Una clave de 32 bytes compartida con cada par -- activarla o cambiarla es un cambio que rompe la compatibilidad con todos los pares existentes en esta interfaz (como un cambio de versión de protocolo): una clave no coincidente o configurada solo en un lado hace que todo handshake falle, no solo que la ofuscación sea más débil. Requiere que S1-S4 arriba sean todos al menos 12. Déjalo vacío para mantener el comportamiento clásico (no 3.0).",
         "contentPaddingAddition": "Relleno de Contenido Adicional (3.0)",
-        "contentPaddingAdditionHint": "Solo para AmneziaWG 3.0. Un único entero o un rango low-high de bytes de relleno aleatorio añadidos a cada paquete de transporte. Déjalo vacío para desactivarlo."
+        "contentPaddingAdditionHint": "Requiere que la versión de arriba esté establecida en 3.0. Un único entero o un rango low-high de bytes de relleno aleatorio añadidos a cada paquete de transporte. Déjalo vacío para desactivarlo."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

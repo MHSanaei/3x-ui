@@ -5,6 +5,7 @@ import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
 import { I1_PROFILE_CHOICES, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import { AWG_VERSION_2, AWG_VERSION_3 } from '@/schemas/protocols/inbound/amneziawg';
 import AwgDiagnosticsModal from '@/pages/inbounds/form/AwgDiagnosticsModal';
 
 interface AmneziawgFieldsProps {
@@ -163,6 +164,18 @@ export default function AmneziawgFields({
           <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgI1} />
         </Space.Compact>
       </Form.Item>
+      <FormField
+        name={['settings', 'server', 'awgVersion']}
+        label={t('pages.xray.amneziawg.awgVersion')}
+        extra={t('pages.xray.amneziawg.awgVersionHint')}
+      >
+        <Select
+          options={[
+            { value: AWG_VERSION_2, label: t('pages.xray.amneziawg.awgVersionOptions.2') },
+            { value: AWG_VERSION_3, label: t('pages.xray.amneziawg.awgVersionOptions.3') },
+          ]}
+        />
+      </FormField>
       <Form.Item
         label={t('pages.xray.amneziawg.headerProtectionKey')}
         extra={t('pages.xray.amneziawg.headerProtectionKeyHint')}

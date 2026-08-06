@@ -1694,10 +1694,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Membuat tanda tangan QUIC memerlukan HTTPS (atau localhost) -- koneksi ini tidak menyediakan Web Crypto API yang diperlukan.",
+        "awgVersion": "Versi protokol AmneziaWG",
+        "awgVersionHint": "Batas versi yang dideklarasikan inbound ini. Naikkan ke 3.0 untuk mengaktifkan Kunci Perlindungan Header / Tambahan Padding Konten di bawah -- keduanya memerlukan nilai ini diatur ke 3.0 terlebih dahulu.",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "Kunci Perlindungan Header (3.0)",
-        "headerProtectionKeyHint": "Hanya untuk AmneziaWG 3.0, opsional dan nonaktif secara default. Kunci 32-byte yang dibagikan dengan setiap peer -- mengaktifkan atau mengubahnya adalah perubahan yang merusak kompatibilitas dengan semua peer yang ada di antarmuka ini (seperti pergantian versi protokol): kunci yang tidak cocok atau hanya diatur di satu sisi akan membuat semua handshake gagal, bukan hanya penyamaran yang lebih lemah. Memerlukan S1-S4 di atas semuanya minimal 12. Biarkan kosong untuk mempertahankan perilaku klasik (non-3.0).",
+        "headerProtectionKeyHint": "Memerlukan versi di atas diatur ke 3.0. Opsional dan nonaktif secara default. Kunci 32-byte yang dibagikan dengan setiap peer -- mengaktifkan atau mengubahnya adalah perubahan yang merusak kompatibilitas dengan semua peer yang ada di antarmuka ini (seperti pergantian versi protokol): kunci yang tidak cocok atau hanya diatur di satu sisi akan membuat semua handshake gagal, bukan hanya penyamaran yang lebih lemah. Memerlukan S1-S4 di atas semuanya minimal 12. Biarkan kosong untuk mempertahankan perilaku klasik (non-3.0).",
         "contentPaddingAddition": "Tambahan Padding Konten (3.0)",
-        "contentPaddingAdditionHint": "Hanya untuk AmneziaWG 3.0. Bilangan bulat tunggal atau rentang low-high byte padding acak tambahan yang ditambahkan ke setiap paket transport. Biarkan kosong untuk menonaktifkan."
+        "contentPaddingAdditionHint": "Memerlukan versi di atas diatur ke 3.0. Bilangan bulat tunggal atau rentang low-high byte padding acak tambahan yang ditambahkan ke setiap paket transport. Biarkan kosong untuk menonaktifkan."
       },
       "tun": {
         "userLevel": "Level Pengguna"

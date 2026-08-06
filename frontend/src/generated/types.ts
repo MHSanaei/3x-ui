@@ -642,6 +642,7 @@ export interface RealityScanResult {
 }
 
 export interface ServerSettings {
+  awgVersion?: string;
   contentPaddingAddition?: string;
   externalInterface?: string;
   h1: string;

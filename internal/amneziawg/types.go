@@ -171,6 +171,18 @@ type ServerSettings struct {
 	// same grammar as H1-H4 but capped at uint16 max.
 	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
 	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
+
+	// AwgVersion is the admin-declared AmneziaWG protocol-version ceiling
+	// for this inbound: AwgVersion2 (default) or AwgVersion3. Purely a
+	// save-time/UI gate -- amneziawgnet's actual UAPI config never reads
+	// it, only HeaderProtectionKey/ContentPaddingAddition directly -- it
+	// exists so enabling either of those two fields is a deliberate,
+	// visible choice instead of something that silently starts working
+	// (or silently keeps working after being turned back off) with no
+	// admin-facing signal at all. See EffectiveAwgVersion/ValidateAwgVersion
+	// in params.go for the back-compat and consistency rules this field
+	// follows.
+	AwgVersion string `json:"awgVersion,omitempty"`
 }
 
 // Obfuscation extracts the Obfuscation20 parameter set from a ServerSettings

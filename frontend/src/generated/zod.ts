@@ -682,6 +682,7 @@ export const RealityScanResultSchema = z.object({
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const ServerSettingsSchema = z.object({
+  awgVersion: z.string().optional(),
   contentPaddingAddition: z.string().optional(),
   externalInterface: z.string().optional(),
   h1: z.string(),

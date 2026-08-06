@@ -1694,10 +1694,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "QUIC imzası oluşturmak için HTTPS (veya localhost) gerekir -- bu bağlantı bunun için gereken Web Crypto API'sini sunmuyor.",
+        "awgVersion": "AmneziaWG protokol sürümü",
+        "awgVersionHint": "Bu inbound'un bildirdiği sürüm tavanı. Aşağıdaki Başlık Koruma Anahtarı / İçerik Dolgu Eklentisi'ni etkinleştirmek için 3.0'a yükseltin -- ikisi de önce bunun 3.0 olmasını gerektirir.",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "Başlık Koruma Anahtarı (3.0)",
-        "headerProtectionKeyHint": "Yalnızca AmneziaWG 3.0 için, isteğe bağlı ve varsayılan olarak kapalı. Her peer ile paylaşılan 32 baytlık bir anahtar -- bunu etkinleştirmek veya değiştirmek bu arayüzdeki tüm mevcut peer'lerle uyumluluğu bozan bir değişikliktir (protokol sürümü yükseltmesi gibi): eşleşmeyen veya tek taraflı bir anahtar, sadece daha zayıf gizleme değil, her el sıkışmanın başarısız olmasına neden olur. Yukarıdaki S1-S4 değerlerinin tümünün en az 12 olmasını gerektirir. Klasik (3.0 olmayan) davranışı korumak için boş bırakın.",
+        "headerProtectionKeyHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. İsteğe bağlı ve varsayılan olarak kapalı. Her peer ile paylaşılan 32 baytlık bir anahtar -- bunu etkinleştirmek veya değiştirmek bu arayüzdeki tüm mevcut peer'lerle uyumluluğu bozan bir değişikliktir (protokol sürümü yükseltmesi gibi): eşleşmeyen veya tek taraflı bir anahtar, sadece daha zayıf gizleme değil, her el sıkışmanın başarısız olmasına neden olur. Yukarıdaki S1-S4 değerlerinin tümünün en az 12 olmasını gerektirir. Klasik (3.0 olmayan) davranışı korumak için boş bırakın.",
         "contentPaddingAddition": "İçerik Dolgu Eklentisi (3.0)",
-        "contentPaddingAdditionHint": "Yalnızca AmneziaWG 3.0 için. Her transport paketine eklenen rastgele dolgu baytı sayısı için tek bir tam sayı veya low-high aralığı. Devre dışı bırakmak için boş bırakın."
+        "contentPaddingAdditionHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Her transport paketine eklenen rastgele dolgu baytı sayısı için tek bir tam sayı veya low-high aralığı. Devre dışı bırakmak için boş bırakın."
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

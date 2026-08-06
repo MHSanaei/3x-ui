@@ -1694,10 +1694,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Tạo chữ ký QUIC cần HTTPS (hoặc localhost) -- kết nối này không cung cấp Web Crypto API cần thiết.",
+        "awgVersion": "Phiên bản giao thức AmneziaWG",
+        "awgVersionHint": "Giới hạn phiên bản mà inbound này khai báo. Nâng lên 3.0 để bật Khóa bảo vệ tiêu đề / Đệm nội dung bổ sung bên dưới -- cả hai đều yêu cầu giá trị này là 3.0 trước.",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "Khóa bảo vệ tiêu đề (3.0)",
-        "headerProtectionKeyHint": "Chỉ dành cho AmneziaWG 3.0, tùy chọn và tắt theo mặc định. Một khóa 32 byte dùng chung với mọi peer -- bật hoặc thay đổi nó là một thay đổi phá vỡ khả năng tương thích với mọi peer hiện có trên giao diện này (giống như nâng cấp phiên bản giao thức): khóa không khớp hoặc chỉ đặt một phía sẽ khiến mọi bắt tay thất bại, không chỉ là làm giảm khả năng ngụy trang. Yêu cầu S1-S4 ở trên đều phải tối thiểu là 12. Để trống để giữ hành vi cổ điển (không phải 3.0).",
+        "headerProtectionKeyHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Tùy chọn và tắt theo mặc định. Một khóa 32 byte dùng chung với mọi peer -- bật hoặc thay đổi nó là một thay đổi phá vỡ khả năng tương thích với mọi peer hiện có trên giao diện này (giống như nâng cấp phiên bản giao thức): khóa không khớp hoặc chỉ đặt một phía sẽ khiến mọi bắt tay thất bại, không chỉ là làm giảm khả năng ngụy trang. Yêu cầu S1-S4 ở trên đều phải tối thiểu là 12. Để trống để giữ hành vi cổ điển (không phải 3.0).",
         "contentPaddingAddition": "Đệm nội dung bổ sung (3.0)",
-        "contentPaddingAdditionHint": "Chỉ dành cho AmneziaWG 3.0. Một số nguyên đơn hoặc một khoảng low-high số byte đệm ngẫu nhiên bổ sung vào mỗi gói transport. Để trống để tắt."
+        "contentPaddingAdditionHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Một số nguyên đơn hoặc một khoảng low-high số byte đệm ngẫu nhiên bổ sung vào mỗi gói transport. Để trống để tắt."
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

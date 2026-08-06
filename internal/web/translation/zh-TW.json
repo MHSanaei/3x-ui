@@ -1694,10 +1694,16 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "產生 QUIC 簽章需要 HTTPS(或 localhost)——此連線未提供所需的 Web Crypto API。",
+        "awgVersion": "AmneziaWG 通訊協定版本",
+        "awgVersionHint": "此傳入連線宣告的版本上限。將其提升至 3.0 以啟用下方的「標頭保護金鑰」／「內容填充附加值」——兩者都要求先將此值設為 3.0。",
+        "awgVersionOptions": {
+          "2": "2.0",
+          "3": "3.0"
+        },
         "headerProtectionKey": "標頭保護金鑰（3.0）",
-        "headerProtectionKeyHint": "僅適用於 AmneziaWG 3.0，可選且預設關閉。與每個節點共用的 32 位元組金鑰——啟用或變更它會破壞與此介面上所有現有節點的相容性（如同協定版本升級）：金鑰不符或單邊設定會導致所有交握失敗，而不僅僅是混淆效果變弱。需要上方的 S1-S4 皆至少為 12。留空以保持傳統（非 3.0）行為。",
+        "headerProtectionKeyHint": "需要將上方的版本設為 3.0。可選且預設關閉。與每個節點共用的 32 位元組金鑰——啟用或變更它會破壞與此介面上所有現有節點的相容性（如同協定版本升級）：金鑰不符或單邊設定會導致所有交握失敗，而不僅僅是混淆效果變弱。需要上方的 S1-S4 皆至少為 12。留空以保持傳統（非 3.0）行為。",
         "contentPaddingAddition": "內容填充附加值（3.0）",
-        "contentPaddingAdditionHint": "僅適用於 AmneziaWG 3.0。為每個傳輸封包新增的隨機填充位元組數，可為單一整數或 low-high 範圍。留空則停用。"
+        "contentPaddingAdditionHint": "需要將上方的版本設為 3.0。為每個傳輸封包新增的隨機填充位元組數，可為單一整數或 low-high 範圍。留空則停用。"
       },
       "tun": {
         "userLevel": "用戶級別"

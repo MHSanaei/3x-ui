@@ -664,6 +664,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "x25519": true
   },
   "ServerSettings": {
+    "awgVersion": "",
     "contentPaddingAddition": "",
     "externalInterface": "",
     "h1": "",
