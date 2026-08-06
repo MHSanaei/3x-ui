@@ -1,6 +1,7 @@
 package amneziawgnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/netip"
@@ -45,7 +46,7 @@ type udpForwardListener struct {
 // toward target(key.email). Bind-failure contract matches
 // listenPortForwardTCP exactly: log, return nil, Reconcile retries later.
 func listenPortForwardUDP(gstack *stack.Stack, inboundID int, key portForwardKey, target portForwardTargetFunc) *udpForwardListener {
-	pc, err := net.ListenPacket("udp", fmt.Sprintf(":%d", key.port))
+	pc, err := (&net.ListenConfig{}).ListenPacket(context.Background(), "udp", fmt.Sprintf(":%d", key.port))
 	if err != nil {
 		logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: listen udp :%d: %v", inboundID, key.email, key.port, err)
 		return nil

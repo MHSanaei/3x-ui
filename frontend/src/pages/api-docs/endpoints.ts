@@ -235,6 +235,15 @@ export const sections: readonly Section[] = [
           '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "dest": "",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
       },
       {
+        method: 'GET',
+        path: '/panel/api/inbounds/:id/awgDiagnostics',
+        summary: 'Live, read-only snapshot of a running AmneziaWG inbound: interface up/down, listen port, and each configured client\'s handshake/traffic state. Gathering it can never itself change anything; an inbound that simply isn\'t running right now (disabled, no enabled clients, or the reconcile loop hasn\'t caught up yet) comes back with running=false rather than an error.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'AmneziaWG inbound ID.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": {\n    "running": true,\n    "listenPort": 51820,\n    "clients": [\n      {\n        "email": "alice",\n        "connected": true,\n        "lastHandshake": "2026-08-06T07:00:00Z",\n        "rxBytes": 10485760,\n        "txBytes": 2097152\n      }\n    ]\n  }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/inbounds/:id/fallbacks',
         summary: 'Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.',

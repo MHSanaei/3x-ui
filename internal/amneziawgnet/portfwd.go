@@ -285,7 +285,7 @@ type tcpForwardListener struct {
 // result as "not open this round" and retries on every future Reconcile
 // call for as long as the key stays desired.
 func listenPortForwardTCP(gstack *stack.Stack, inboundID int, key portForwardKey, target portForwardTargetFunc) *tcpForwardListener {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", key.port))
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", fmt.Sprintf(":%d", key.port))
 	if err != nil {
 		logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: listen tcp :%d: %v", inboundID, key.email, key.port, err)
 		return nil
