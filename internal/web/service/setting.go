@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"regexp"
@@ -1310,6 +1311,33 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
 	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
 	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
+	for name, value := range map[string]*string{
+		"Happ routing source":         &allSetting.SubRoutingRules,
+		"Clash/Mihomo routing source": &allSetting.SubClashRules,
+		"Incy routing source":         &allSetting.SubIncyRoutingRules,
+	} {
+		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateRemoteRoutingURLSetting(name string, value *string) error {
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" || strings.ContainsAny(trimmed, "\r\n") || !strings.HasPrefix(strings.ToLower(trimmed), "https://") {
+		return nil
+	}
+	u, err := url.Parse(trimmed)
+	if err != nil || u.Host == "" || u.Hostname() == "" {
+		return common.NewError(name, "must be an absolute HTTPS URL")
+	}
+	if u.User != nil {
+		return common.NewError(name, "must not contain URL credentials")
+	}
+	u.Scheme = "https"
+	u.Fragment = ""
+	*value = u.String()
 	return nil
 }
 

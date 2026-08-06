@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"strings"
@@ -98,8 +99,15 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 
 	if s.enableRouting {
-		if err := mergeClashRulesYAML(config, s.clashRules); err != nil {
-			return "", "", err
+		resolved, remoteDocument, remote, resolveErr := resolveClashRoutingSource(s.clashRules)
+		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
+			if remote {
+				if err := mergeRemoteClashRules(config, remoteDocument); err != nil {
+					return "", "", err
+				}
+			} else if err := mergeClashRulesYAML(config, resolved); err != nil {
+				return "", "", err
+			}
 		}
 	}
 
@@ -812,6 +820,258 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	}
 
 	return nil
+}
+
+// Remote Clash sources are intentionally stricter than the legacy inline
+// editor. They may update only the route graph and must never replace the
+// subscription's panel-generated proxy nodes or client-local DNS/listener/TUN
+// settings. Some standalone templates also contain manual proxy providers;
+// those are deliberately ignored in generated subscriptions.
+func mergeRemoteClashRulesYAML(base map[string]any, raw string) error {
+	var remote map[string]any
+	if err := yaml.Unmarshal([]byte(strings.TrimSpace(raw)), &remote); err != nil {
+		return err
+	}
+	return mergeRemoteClashRules(base, remote)
+}
+
+// mergeRemoteClashRules treats remote as immutable. Cached documents can
+// therefore be reused concurrently without reparsing YAML on every request.
+func mergeRemoteClashRules(base map[string]any, remote map[string]any) error {
+	if len(remote) == 0 {
+		return fmt.Errorf("remote Clash routing source must be a YAML map")
+	}
+
+	for key, value := range remote {
+		if !remoteClashAllowedKey(key) {
+			continue
+		}
+		if err := validateRemoteClashValue(key, value); err != nil {
+			return err
+		}
+		switch key {
+		case "rules":
+			rules, _ := asAnySlice(value)
+			mergeClashRules(base, rules)
+		case "proxy-groups":
+			groups, _ := asAnySlice(value)
+			base["proxy-groups"] = mergeClashProxyGroups(base["proxy-groups"], groups)
+		default:
+			base[key] = value
+		}
+	}
+	return validateClashRouteGraph(base)
+}
+
+func validateRemoteClashValue(key string, value any) error {
+	switch key {
+	case "rules":
+		rules, ok := asAnySlice(value)
+		if !ok {
+			return fmt.Errorf("remote Clash rules must be a list")
+		}
+		for _, rule := range rules {
+			text, ok := rule.(string)
+			if !ok || strings.TrimSpace(text) == "" {
+				return fmt.Errorf("remote Clash rules must contain non-empty strings")
+			}
+		}
+	case "proxy-groups":
+		groups, ok := asAnySlice(value)
+		if !ok {
+			return fmt.Errorf("remote Clash proxy-groups must be a list")
+		}
+		seen := make(map[string]struct{}, len(groups))
+		for _, groupValue := range groups {
+			group, ok := groupValue.(map[string]any)
+			if !ok {
+				return fmt.Errorf("remote Clash proxy-groups must contain named group maps with a type")
+			}
+			name, nameOK := group["name"].(string)
+			groupType, typeOK := group["type"].(string)
+			if !nameOK || !typeOK || strings.TrimSpace(name) == "" || strings.TrimSpace(groupType) == "" {
+				return fmt.Errorf("remote Clash proxy-groups must contain named group maps with a type")
+			}
+			name = strings.TrimSpace(name)
+			if _, duplicate := seen[name]; duplicate {
+				return fmt.Errorf("remote Clash proxy-group name %q is duplicated", name)
+			}
+			seen[name] = struct{}{}
+			if useValue, exists := group["use"]; exists {
+				use, ok := asAnySlice(useValue)
+				if !ok || len(use) > 0 {
+					return fmt.Errorf("remote Clash proxy-group %q cannot use proxy-providers", name)
+				}
+			}
+		}
+	case "rule-providers":
+		providers, ok := value.(map[string]any)
+		if !ok {
+			return fmt.Errorf("remote Clash rule-providers must be a map")
+		}
+		for name, provider := range providers {
+			if strings.TrimSpace(name) == "" {
+				return fmt.Errorf("remote Clash rule-provider name must not be empty")
+			}
+			if _, ok := provider.(map[string]any); !ok {
+				return fmt.Errorf("remote Clash rule-provider %q must be a map", name)
+			}
+		}
+	}
+	return nil
+}
+
+func remoteClashAllowedKey(key string) bool {
+	switch key {
+	case "proxy-groups", "rule-providers", "rules":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateClashRouteGraph(config map[string]any) error {
+	known := map[string]struct{}{
+		"DIRECT": {}, "REJECT": {}, "REJECT-DROP": {}, "REJECT-TINYGIF": {}, "PASS": {}, "GLOBAL": {},
+	}
+	if proxies, ok := asAnySlice(config["proxies"]); ok {
+		for _, value := range proxies {
+			proxy, ok := value.(map[string]any)
+			if !ok {
+				continue
+			}
+			if name, ok := proxy["name"].(string); ok && strings.TrimSpace(name) != "" {
+				known[strings.TrimSpace(name)] = struct{}{}
+			}
+		}
+	}
+
+	groups, _ := asAnySlice(config["proxy-groups"])
+	for _, value := range groups {
+		if name := clashProxyGroupName(value); name != "" {
+			known[name] = struct{}{}
+		}
+	}
+	for _, value := range groups {
+		group, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		name := clashProxyGroupName(group)
+		refs, exists := group["proxies"]
+		if !exists {
+			continue
+		}
+		proxies, ok := asAnySlice(refs)
+		if !ok {
+			return fmt.Errorf("Clash proxy-group %q proxies must be a list", name)
+		}
+		for _, refValue := range proxies {
+			ref, ok := refValue.(string)
+			if !ok || strings.TrimSpace(ref) == "" {
+				return fmt.Errorf("Clash proxy-group %q contains an invalid proxy reference", name)
+			}
+			ref = strings.TrimSpace(ref)
+			if _, exists := known[ref]; !exists {
+				return fmt.Errorf("Clash proxy-group %q references unknown proxy or group %q", name, ref)
+			}
+		}
+	}
+
+	providers, _ := config["rule-providers"].(map[string]any)
+	for providerName, value := range providers {
+		provider, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		via, ok := provider["proxy"].(string)
+		if !ok || strings.TrimSpace(via) == "" {
+			continue
+		}
+		via = strings.TrimSpace(via)
+		if _, exists := known[via]; !exists {
+			return fmt.Errorf("Clash rule-provider %q references unknown proxy or group %q", providerName, via)
+		}
+	}
+
+	rules, _ := asAnySlice(config["rules"])
+	for _, value := range rules {
+		rule, ok := value.(string)
+		if !ok || strings.TrimSpace(rule) == "" {
+			return errors.New("Clash rules must contain non-empty strings")
+		}
+		parts := strings.Split(rule, ",")
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+		}
+		if len(parts) < 2 {
+			return fmt.Errorf("invalid Clash rule %q", rule)
+		}
+		if strings.EqualFold(parts[0], "RULE-SET") {
+			if len(parts) < 3 {
+				return fmt.Errorf("invalid Clash RULE-SET rule %q", rule)
+			}
+			if _, exists := providers[parts[1]]; !exists {
+				return fmt.Errorf("Clash rule references unknown rule-provider %q", parts[1])
+			}
+		}
+		targetIndex := len(parts) - 1
+		if strings.EqualFold(parts[targetIndex], "no-resolve") {
+			targetIndex--
+		}
+		if targetIndex < 1 {
+			return fmt.Errorf("invalid Clash rule target in %q", rule)
+		}
+		target := parts[targetIndex]
+		if _, exists := known[target]; !exists {
+			return fmt.Errorf("Clash rule references unknown proxy or group %q", target)
+		}
+	}
+	return nil
+}
+
+func mergeClashProxyGroups(baseValue any, remoteGroups []any) []any {
+	baseGroups, _ := asAnySlice(baseValue)
+	baseByName := make(map[string]any, len(baseGroups))
+	baseOrder := make([]string, 0, len(baseGroups))
+	for _, group := range baseGroups {
+		name := clashProxyGroupName(group)
+		if name == "" {
+			continue
+		}
+		baseByName[name] = group
+		baseOrder = append(baseOrder, name)
+	}
+
+	merged := make([]any, 0, len(remoteGroups)+len(baseGroups))
+	seen := make(map[string]struct{}, len(remoteGroups)+len(baseGroups))
+	for _, group := range remoteGroups {
+		name := clashProxyGroupName(group)
+		if name == "" {
+			continue
+		}
+		if _, duplicate := seen[name]; duplicate {
+			continue
+		}
+		seen[name] = struct{}{}
+		merged = append(merged, group)
+	}
+	for _, name := range baseOrder {
+		if _, replaced := seen[name]; replaced {
+			continue
+		}
+		merged = append(merged, baseByName[name])
+	}
+	return merged
+}
+
+func clashProxyGroupName(value any) string {
+	group, ok := value.(map[string]any)
+	if !ok {
+		return ""
+	}
+	name, _ := group["name"].(string)
+	return strings.TrimSpace(name)
 }
 
 func mergeClashRules(base map[string]any, customRules []any) {

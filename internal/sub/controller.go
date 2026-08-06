@@ -416,8 +416,11 @@ func (a *SUBController) subs(c *gin.Context) {
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
-			result.WriteString(a.subIncyRoutingRules)
-			result.WriteString("\n")
+			incyRules, _, err := resolveIncyRoutingSource(a.subIncyRoutingRules)
+			if err == nil && strings.TrimSpace(incyRules) != "" {
+				result.WriteString(incyRules)
+				result.WriteString("\n")
+			}
 		}
 
 		if a.subEncrypt {
@@ -759,12 +762,15 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ)
+	// Advanced (Happ). Keep the stock headers independent: a saved routing value
+	// is still emitted when the global enable flag is off. Remote values are read
+	// only from the validated cache and never delay this response.
+	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
 	}
-	if profileRoutingRules != "" {
-		c.Writer.Header().Set("Routing", profileRoutingRules)
+	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
+		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
