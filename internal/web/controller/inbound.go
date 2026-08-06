@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
@@ -67,6 +68,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/allLinks", a.getAllInboundLinks)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbacks", a.getFallbacks)
+	g.GET("/:id/awgDiagnostics", a.getAwgDiagnostics)
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
@@ -452,6 +454,62 @@ func (a *InboundController) getFallbacks(c *gin.Context) {
 		return
 	}
 	jsonObj(c, rows, nil)
+}
+
+// awgDiagnosticsClientResponse is the wire shape for one client's live
+// state -- Connected is computed server-side (rather than left for the
+// frontend to infer from a possibly-zero timestamp) and LastHandshake is a
+// pointer so "never connected" serializes as JSON null instead of Go's
+// zero-time string.
+type awgDiagnosticsClientResponse struct {
+	Email         string     `json:"email"`
+	Connected     bool       `json:"connected"`
+	LastHandshake *time.Time `json:"lastHandshake,omitempty"`
+	RxBytes       uint64     `json:"rxBytes"`
+	TxBytes       uint64     `json:"txBytes"`
+}
+
+type awgDiagnosticsResponse struct {
+	Running    bool                           `json:"running"`
+	ListenPort int                            `json:"listenPort,omitempty"`
+	Clients    []awgDiagnosticsClientResponse `json:"clients"`
+}
+
+// getAwgDiagnostics returns a live, read-only snapshot of one AmneziaWG
+// inbound's running state -- interface up/down, listen port, and each
+// configured client's handshake/traffic status -- for the admin-facing
+// diagnostics modal. Gathering it can never itself change anything.
+func (a *InboundController) getAwgDiagnostics(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	diag, err := a.inboundService.GetAmneziaWGDiagnostics(id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+
+	resp := awgDiagnosticsResponse{
+		Running:    diag.Running,
+		ListenPort: diag.ListenPort,
+		Clients:    make([]awgDiagnosticsClientResponse, 0, len(diag.Clients)),
+	}
+	for _, cl := range diag.Clients {
+		item := awgDiagnosticsClientResponse{
+			Email:     cl.Email,
+			Connected: cl.Connected(),
+			RxBytes:   cl.RxBytes,
+			TxBytes:   cl.TxBytes,
+		}
+		if cl.Connected() {
+			t := cl.LastHandshake
+			item.LastHandshake = &t
+		}
+		resp.Clients = append(resp.Clients, item)
+	}
+	jsonObj(c, resp, nil)
 }
 
 // setFallbacks atomically replaces the master inbound's fallback list

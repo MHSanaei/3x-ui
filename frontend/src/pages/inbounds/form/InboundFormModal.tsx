@@ -799,6 +799,7 @@ export default function InboundFormModal({
       {protocol === Protocols.AMNEZIAWG && (
         <AmneziawgFields
           awgPubKey={awgPubKey}
+          inboundId={mode === 'edit' && dbInbound ? dbInbound.id : null}
           regenInboundAwg={regenInboundAwg}
           regenInboundAwgObfuscation={regenInboundAwgObfuscation}
           regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}

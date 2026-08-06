@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
 import { I1_PROFILE_CHOICES, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import AwgDiagnosticsModal from '@/pages/inbounds/form/AwgDiagnosticsModal';
 
 interface AmneziawgFieldsProps {
   awgPubKey: string;
+  inboundId: number | null;
   regenInboundAwg: () => void;
   regenInboundAwgObfuscation: () => void;
   regenInboundAwgHeaderProtectionKey: () => void;
@@ -18,6 +21,7 @@ interface AmneziawgFieldsProps {
 
 export default function AmneziawgFields({
   awgPubKey,
+  inboundId,
   regenInboundAwg,
   regenInboundAwgObfuscation,
   regenInboundAwgHeaderProtectionKey,
@@ -27,6 +31,7 @@ export default function AmneziawgFields({
   regenInboundAwgI1,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   return (
     <>
       <Form.Item label={t('pages.xray.amneziawg.privateKey')}>
@@ -40,6 +45,18 @@ export default function AmneziawgFields({
       <Form.Item label={t('pages.xray.amneziawg.publicKey')}>
         <Input value={awgPubKey} disabled />
       </Form.Item>
+      <Form.Item label={t('pages.xray.amneziawg.diagnostics')} extra={t('pages.xray.amneziawg.diagnosticsHint')}>
+        <Button icon={<ToolOutlined />} disabled={!inboundId} onClick={() => setDiagnosticsOpen(true)}>
+          {t('pages.xray.amneziawg.diagnosticsOpen')}
+        </Button>
+      </Form.Item>
+      {inboundId && (
+        <AwgDiagnosticsModal
+          open={diagnosticsOpen}
+          onClose={() => setDiagnosticsOpen(false)}
+          inboundId={inboundId}
+        />
+      )}
       <FormField name={['settings', 'server', 'subnetIp']} label={t('pages.xray.amneziawg.subnetIp')}>
         <Input placeholder="10.8.1.0" />
       </FormField>

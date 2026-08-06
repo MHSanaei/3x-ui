@@ -314,3 +314,27 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 	}
 	return ""
 }
+
+// GetAmneziaWGDiagnostics returns a live diagnostics snapshot for inbound
+// id: interface up/down, listen port, and per-client handshake/traffic
+// state, read entirely from data amneziawgnet.Manager already tracks --
+// gathering it can never itself change anything. Returns an error only
+// when id doesn't name an AmneziaWG inbound at all; an inbound that simply
+// isn't running right now (disabled, no enabled clients, or reconcile
+// hasn't caught up yet) comes back as amneziawgnet.Diagnostics{}
+// (Running=false), not an error, since that's a normal state an admin
+// might specifically be checking for.
+func (s *InboundService) GetAmneziaWGDiagnostics(id int) (amneziawgnet.Diagnostics, error) {
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return amneziawgnet.Diagnostics{}, err
+	}
+	if inbound.Protocol != model.AmneziaWG {
+		return amneziawgnet.Diagnostics{}, fmt.Errorf("inbound %d is not an AmneziaWG inbound", id)
+	}
+	inst, ok := amneziawg.InstanceFromInbound(inbound)
+	if !ok {
+		return amneziawgnet.Diagnostics{}, nil
+	}
+	return amneziawgnet.Diagnose(inst.Id, inst.Peers), nil
+}
