@@ -364,6 +364,20 @@ export default function InboundFormModal({
     }
   };
 
+  // Mirrors the two regen handlers above in the other direction: dialing the
+  // version ceiling back below 3 while headerProtectionKey/contentPaddingAddition
+  // are still set would otherwise surface amneziawg.ValidateAwgVersion's error
+  // at save time with no obvious way to fix it from the form -- clearing both
+  // AWG3-only fields the moment the admin picks a lower version keeps the two
+  // in sync automatically, the same "turning off this tier removes its
+  // settings" direction the regen handlers already apply when turning it on.
+  const onAwgVersionChange = (version: string) => {
+    if (version !== AWG_VERSION_3) {
+      setV('settings.server.headerProtectionKey', '');
+      setV('settings.server.contentPaddingAddition', '');
+    }
+  };
+
   // Suggests a modest "low-high" ContentPaddingAddition range -- there's no
   // backend generator to mirror (unlike H1-H4's generateHRanges), so this is
   // a standalone, deliberately conservative choice: a few tens of bytes of
@@ -833,6 +847,7 @@ export default function InboundFormModal({
           regenInboundAwgObfuscation={regenInboundAwgObfuscation}
           regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}
           regenInboundAwgContentPaddingAddition={regenInboundAwgContentPaddingAddition}
+          onAwgVersionChange={onAwgVersionChange}
           i1Profile={i1Profile}
           onI1ProfileChange={setI1Profile}
           regenInboundAwgI1={regenInboundAwgI1}

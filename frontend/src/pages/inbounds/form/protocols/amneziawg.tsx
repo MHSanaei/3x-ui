@@ -15,6 +15,7 @@ interface AmneziawgFieldsProps {
   regenInboundAwgObfuscation: () => void;
   regenInboundAwgHeaderProtectionKey: () => void;
   regenInboundAwgContentPaddingAddition: () => void;
+  onAwgVersionChange: (version: string) => void;
   i1Profile: I1ProfileChoice;
   onI1ProfileChange: (profile: I1ProfileChoice) => void;
   regenInboundAwgI1: () => void;
@@ -27,6 +28,7 @@ export default function AmneziawgFields({
   regenInboundAwgObfuscation,
   regenInboundAwgHeaderProtectionKey,
   regenInboundAwgContentPaddingAddition,
+  onAwgVersionChange,
   i1Profile,
   onI1ProfileChange,
   regenInboundAwgI1,
@@ -168,6 +170,7 @@ export default function AmneziawgFields({
         name={['settings', 'server', 'awgVersion']}
         label={t('pages.xray.amneziawg.awgVersion')}
         extra={t('pages.xray.amneziawg.awgVersionHint')}
+        onAfterChange={(value) => onAwgVersionChange(value as string)}
       >
         <Select
           options={[
