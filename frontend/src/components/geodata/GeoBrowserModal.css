@@ -1,0 +1,221 @@
+.geo-browser-modal .geo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.geo-browser-modal .geo-toolbar .ant-input-search {
+  flex: 1;
+  min-width: 180px;
+}
+
+.geo-browser-modal .geo-meta {
+  margin-inline-start: auto;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.geo-browser-modal .geo-columns {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  gap: 12px;
+  height: 440px;
+}
+
+/* Both panes are the same fixed height, and the pager sits on the pane's floor
+   rather than under the last row, so neither the dialog nor its controls move
+   as the user steps between categories with wildly different rule counts. */
+.geo-browser-modal .geo-panel {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+}
+
+.geo-browser-modal .geo-panel .ant-table-wrapper,
+.geo-browser-modal .geo-panel .ant-spin-nested-loading,
+.geo-browser-modal .geo-panel .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.geo-browser-modal .geo-panel .ant-table {
+  flex: 1;
+  min-height: 0;
+}
+
+/* The rules table fills whatever is left between the header and the pager
+   instead of carrying a hardcoded scroll height, so there is no dead strip
+   above the pager and short categories do not scroll needlessly. */
+.geo-browser-modal .geo-preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.geo-browser-modal .geo-pager {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.geo-browser-modal .geo-pager .ant-pagination-total-text {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.geo-browser-modal .geo-categories .ant-table-row {
+  cursor: pointer;
+}
+
+.geo-browser-modal .geo-row-active > td {
+  background: var(--ant-color-primary-bg);
+}
+
+.geo-browser-modal .geo-category {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.geo-browser-modal .geo-code,
+.geo-browser-modal .geo-entry-value,
+.geo-browser-modal .geo-preview-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geo-browser-modal .geo-attrs .ant-tag {
+  font-size: 10px;
+  line-height: 16px;
+  margin-inline-end: 4px;
+  padding-inline: 4px;
+}
+
+.geo-browser-modal .geo-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.geo-browser-modal .geo-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+/* The title is the part that gives way: without min-width it refuses to
+   shrink, and the filter is pushed onto a second line instead of the long
+   category name being clipped. */
+.geo-browser-modal .geo-preview-title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.geo-browser-modal .geo-preview-head .ant-typography {
+  flex: none;
+  white-space: nowrap;
+}
+
+.geo-browser-modal .geo-entry-filter {
+  flex: none;
+  width: 200px;
+  margin-inline-start: auto;
+}
+
+@media (max-width: 520px) {
+  .geo-browser-modal .geo-preview-head {
+    flex-wrap: wrap;
+  }
+
+  .geo-browser-modal .geo-entry-filter {
+    width: 100%;
+  }
+}
+
+.geo-browser-modal .geo-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.geo-browser-modal .geo-kind-full {
+  color: var(--ant-color-success);
+}
+
+.geo-browser-modal .geo-kind-keyword {
+  color: var(--ant-color-warning);
+}
+
+.geo-browser-modal .geo-kind-regexp {
+  color: var(--ant-color-primary);
+}
+
+.geo-browser-modal .geo-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.geo-browser-modal .geo-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.geo-browser-modal .geo-chips {
+  flex: 1;
+  max-height: 76px;
+  overflow-y: auto;
+}
+
+.geo-browser-modal .geo-selected-count {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .geo-browser-modal .geo-columns {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .geo-browser-modal .geo-panel {
+    height: 320px;
+  }
+}
+
+.geo-unknown-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
