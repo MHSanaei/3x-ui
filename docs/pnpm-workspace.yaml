@@ -10,3 +10,7 @@ overrides:
 minimumReleaseAgeExclude:
   - '@mermaid-js/parser@1.2.0'
   - mermaid@11.16.0
+  - fumadocs-core@16.14.1
+  - fumadocs-ui@16.14.1
+  - lucide-react@1.29.0
+  - postcss@8.5.26

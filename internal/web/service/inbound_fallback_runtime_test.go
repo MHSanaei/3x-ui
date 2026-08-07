@@ -31,9 +31,9 @@ func TestBuildRuntimeInboundForAPI_InjectsFallbacks(t *testing.T) {
 		t.Fatalf("seed fallback: %v", err)
 	}
 
-	runtimeIb, err := svc.buildRuntimeInboundForAPI(db, master)
+	runtimeIb, err := svc.buildInboundForLocalRuntime(db, master)
 	if err != nil {
-		t.Fatalf("buildRuntimeInboundForAPI: %v", err)
+		t.Fatalf("buildInboundForLocalRuntime: %v", err)
 	}
 
 	var settings map[string]any
@@ -68,9 +68,9 @@ func TestBuildRuntimeInboundForAPI_NoFallbacksOnWsInbound(t *testing.T) {
 		t.Fatalf("seed fallback: %v", err)
 	}
 
-	runtimeIb, err := svc.buildRuntimeInboundForAPI(db, ib)
+	runtimeIb, err := svc.buildInboundForLocalRuntime(db, ib)
 	if err != nil {
-		t.Fatalf("buildRuntimeInboundForAPI: %v", err)
+		t.Fatalf("buildInboundForLocalRuntime: %v", err)
 	}
 	if strings.Contains(runtimeIb.Settings, "fallbacks") {
 		t.Fatalf("ws inbound must not receive fallbacks: %s", runtimeIb.Settings)
