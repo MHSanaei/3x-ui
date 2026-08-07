@@ -3,6 +3,7 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
+export type geodataFileKind = number;
 export type staticEgressResolver = string;
 export type transportBits = number;
 
@@ -327,6 +328,11 @@ export interface ClientTraffic {
 export interface FallbackParentInfo {
   masterId: number;
   path?: string;
+}
+
+export interface GeodataCategories {
+  domain: string[];
+  ip: string[];
 }
 
 export interface HistoryOfSeeders {

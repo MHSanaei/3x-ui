@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, Modal, Select, Space, Switch, Tooltip } from 'antd';
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
@@ -6,6 +6,7 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { InputAddon } from '@/components/ui';
 import { FormField } from '@/components/form/rhf';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
+import { useGeodataCategories } from '@/api/queries/useGeodataCategories';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 import { buildRemarkByTag, formatInboundTag, isApiRule } from './helpers';
 
@@ -63,6 +64,69 @@ function csv(value: string): string[] {
   return value.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+// Domain/IP are stored as a comma-joined string (RuleFormSchema.domain/ip),
+// same as every other csv-backed field on this form, but rendered as a
+// Select "tags" input so geosite/geoip suggestions can be picked alongside
+// free-typed values. These adapt between the two shapes at the FormField
+// transform boundary only -- the stored form value never becomes an array.
+function toTagsArray(value: unknown): string[] {
+  return csv(typeof value === 'string' ? value : '');
+}
+function fromTagsArray(value: unknown): string {
+  return Array.isArray(value) ? value.join(',') : '';
+}
+// Explicit substring match: typing "you" must match the suggestion
+// "geosite:youtube", which isn't a prefix match since it starts with
+// "geosite:". AntD's default filterOption behavior isn't relied on.
+function filterBySubstring(input: string, option?: { value?: string }): boolean {
+  return typeof option?.value === 'string' && option.value.toLowerCase().includes(input.toLowerCase());
+}
+
+interface TagsAutocompleteProps {
+  id?: string;
+  value?: string[];
+  onChange?: (value: string[]) => void;
+  onBlur?: () => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+// A plain Select mode="tags" only commits the text being typed into a tag on
+// Enter or a tokenSeparator character -- clicking Save directly (a blur, not
+// an Enter) silently drops it, with no `domain`/`ip` key at all ending up in
+// the saved rule. This wraps it with a controlled searchValue that also gets
+// committed as a tag on blur, so free-text entry behaves like the old Input
+// it replaced.
+function TagsAutocomplete({ id, value, onChange, onBlur, options, placeholder }: TagsAutocompleteProps) {
+  const [searchValue, setSearchValue] = useState('');
+
+  function commitSearchValue(next: string[]) {
+    const trimmed = searchValue.trim();
+    setSearchValue('');
+    if (!trimmed || next.includes(trimmed)) return next;
+    return [...next, trimmed];
+  }
+
+  return (
+    <Select
+      id={id}
+      mode="tags"
+      value={value}
+      searchValue={searchValue}
+      onSearch={setSearchValue}
+      onChange={(next) => onChange?.(next as string[])}
+      onBlur={() => {
+        onChange?.(commitSearchValue(value ?? []));
+        onBlur?.();
+      }}
+      options={options}
+      tokenSeparators={[',']}
+      filterOption={filterBySubstring}
+      placeholder={placeholder}
+    />
+  );
+}
+
 export default function RuleFormModal({
   open,
   rule,
@@ -78,6 +142,16 @@ export default function RuleFormModal({
 
   const { data: inboundOptions } = useInboundOptions();
   const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
+
+  const { data: geodataCategories } = useGeodataCategories(open);
+  const domainOptions = useMemo(
+    () => (geodataCategories?.domain ?? []).map((value) => ({ value, label: value })),
+    [geodataCategories],
+  );
+  const ipOptions = useMemo(
+    () => (geodataCategories?.ip ?? []).map((value) => ({ value, label: value })),
+    [geodataCategories],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -172,8 +246,9 @@ export default function RuleFormModal({
                 {t('pages.xray.ruleForm.sourceIps')} <QuestionCircleOutlined aria-hidden="true" />
               </Tooltip>
             }
+            transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Input placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <TagsAutocomplete id="sourceIP" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -252,8 +327,9 @@ export default function RuleFormModal({
                 IP <QuestionCircleOutlined aria-hidden="true" />
               </Tooltip>
             }
+            transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Input placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <TagsAutocomplete id="ip" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -263,8 +339,9 @@ export default function RuleFormModal({
                 {t('domainName')} <QuestionCircleOutlined aria-hidden="true" />
               </Tooltip>
             }
+            transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <Input placeholder="google.com, geosite:cn" />
+            <TagsAutocomplete id="domain" options={domainOptions} placeholder="google.com, geosite:cn" />
           </FormField>
 
           <FormField

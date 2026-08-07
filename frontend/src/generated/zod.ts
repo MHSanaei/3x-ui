@@ -12,6 +12,9 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
+export const geodataFileKindSchema = z.number().int();
+export type geodataFileKind = z.infer<typeof geodataFileKindSchema>;
+
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
@@ -350,6 +353,12 @@ export const FallbackParentInfoSchema = z.object({
   path: z.string().optional(),
 });
 export type FallbackParentInfo = z.infer<typeof FallbackParentInfoSchema>;
+
+export const GeodataCategoriesSchema = z.object({
+  domain: z.array(z.string()),
+  ip: z.array(z.string()),
+});
+export type GeodataCategories = z.infer<typeof GeodataCategoriesSchema>;
 
 export const HistoryOfSeedersSchema = z.object({
   id: z.number().int(),
