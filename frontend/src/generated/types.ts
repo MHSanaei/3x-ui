@@ -407,6 +407,7 @@ export interface HostGroup {
 
 export interface Inbound {
   clientStats: ClientTraffic[];
+  disableFlow: boolean;
   down: number;
   enable: boolean;
   expiryTime: number;
