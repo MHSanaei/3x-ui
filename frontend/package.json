@@ -85,14 +85,14 @@
     "minimatch@^10": {
       "brace-expansion": "^5.0.8"
     },
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",
     "react-debounce-input": {
       "react": "^19.0.0"
     },
     "swagger-ui-react": {
-      "js-yaml": "^4.2.0"
+      "js-yaml": "^4.3.1"
     },
     "@typeschema/valibot": {
       "valibot": "^1.1.0"
