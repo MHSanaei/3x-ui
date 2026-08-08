@@ -9,9 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"gorm.io/gorm"
 )
 
 const portReservationsGateEnv = "XUI_ENFORCE_PORT_RESERVATIONS"
