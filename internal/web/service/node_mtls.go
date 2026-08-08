@@ -2,8 +2,6 @@ package service
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -49,12 +47,8 @@ func (s *NodeService) ReloadMasterMtlsClient() error {
 func (s *NodeService) SetNodeMtlsTrustCA(caPem string) error {
 	caPem = strings.TrimSpace(caPem)
 	if caPem != "" {
-		block, _ := pem.Decode([]byte(caPem))
-		if block == nil || block.Type != "CERTIFICATE" {
-			return common.NewError("trust CA must be a PEM-encoded certificate")
-		}
-		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
-			return common.NewError("invalid trust CA certificate: " + err.Error())
+		if _, err := parseCertificateBundlePEM([]byte(caPem)); err != nil {
+			return common.NewError("invalid trust CA certificate bundle: ", err)
 		}
 	}
 	return (&SettingService{}).setString(settingNodeMtlsClientCA, caPem)
