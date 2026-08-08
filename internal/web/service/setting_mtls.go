@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"crypto/x509"
+	"encoding/pem"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
@@ -98,9 +100,42 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	if caPem == "" {
 		return nil, nil
 	}
+	certs, err := parseCertificateBundlePEM([]byte(caPem))
+	if err != nil {
+		return nil, common.NewError("nodeMtlsClientCAPem is not a valid certificate bundle: ", err)
+	}
 	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM([]byte(caPem)) {
-		return nil, common.NewError("nodeMtlsClientCAPem is not a valid certificate")
+	for _, cert := range certs {
+		pool.AddCert(cert)
 	}
 	return pool, nil
+}
+
+// parseCertificateBundlePEM validates every non-whitespace byte of a PEM
+// certificate bundle and returns the certificates it contains.
+// x509.CertPool.AppendCertsFromPEM reports success once it has parsed a single
+// certificate, so a bundle whose later entries are damaged or truncated is
+// accepted with those entries silently missing from the pool.
+func parseCertificateBundlePEM(bundle []byte) ([]*x509.Certificate, error) {
+	rest := bytes.TrimSpace(bundle)
+	if len(rest) == 0 {
+		return nil, common.NewError("certificate bundle is empty")
+	}
+	certs := make([]*x509.Certificate, 0, 1)
+	for len(rest) > 0 {
+		block, next := pem.Decode(rest)
+		if block == nil {
+			return nil, common.NewError("certificate bundle contains malformed or non-PEM data")
+		}
+		if block.Type != "CERTIFICATE" {
+			return nil, common.NewError("certificate bundle contains a non-certificate PEM block")
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, cert)
+		rest = bytes.TrimSpace(next)
+	}
+	return certs, nil
 }
