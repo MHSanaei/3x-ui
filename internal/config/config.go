@@ -193,6 +193,31 @@ func GetDBDSN() string {
 	return strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
 }
 
+// GetNodeTokenEncryptionMode returns the outbound node-token encryption policy
+// from NODE_TOKEN_ENCRYPTION: "off" (default, legacy plaintext), "migration"
+// (read plaintext+ciphertext, always write ciphertext) or "required" (key must
+// load or startup fails). Policy is explicit so a lost key cannot silently
+// downgrade a previously-encrypted deployment to plaintext.
+func GetNodeTokenEncryptionMode() string {
+	return strings.TrimSpace(os.Getenv("NODE_TOKEN_ENCRYPTION"))
+}
+
+// GetNodeTokenKeyFile returns the path to the JSON keyring file used to encrypt
+// node tokens at rest. Defaults to /etc/x-ui/node_token_key.json; override with
+// XUI_NODE_TOKEN_KEY_FILE. The file must be mode 0600.
+func GetNodeTokenKeyFile() string {
+	if p := strings.TrimSpace(os.Getenv("XUI_NODE_TOKEN_KEY_FILE")); p != "" {
+		return p
+	}
+	return "/etc/x-ui/node_token_key.json"
+}
+
+// GetNodeTokenKeyEnv returns the name of the env var holding a single base64
+// 32-byte node-token key (secondary to the key file). Empty value => unused.
+func GetNodeTokenKeyEnv() string {
+	return "XUI_NODE_TOKEN_KEY"
+}
+
 // GetEnvFilePaths returns the candidate service environment file paths (the file
 // systemd loads via EnvironmentFile) across the supported distro families.
 func GetEnvFilePaths() []string {
