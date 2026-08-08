@@ -231,7 +231,8 @@ export default function HostList(props: HostListProps) {
         columns={columns}
         dataSource={sorted}
         pagination={false}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
+        virtual
         rowSelection={{
           selectedRowKeys: selectedGroupIds,
           onChange: (keys) => onSelectionChange(keys as string[]),
