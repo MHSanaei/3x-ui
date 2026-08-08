@@ -42,9 +42,14 @@ body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
      var(--ant-color-fill-tertiary)): a config/share-link string reads as a
      code block regardless of the surrounding page theme, and unlike most
      text this one MUST stay WCAG AA-compliant (>= 4.5:1) on its own fixed
-     background rather than tracking whatever the ambient theme resolves to. */
-  color: #595959;
-  background: #f5f5f5;
+     background rather than tracking whatever the ambient theme resolves to.
+     !important: CI caught this literal pair getting silently overridden
+     (foreground landing at #858585 on a #f6f6f6 background, well under the
+     4.5:1 AA threshold) under full-suite Storybook browser-mode runs --
+     reproduced twice in a row, so something in that shared browser
+     context outranks a plain, unqualified declaration here. */
+  color: #595959 !important;
+  background: #f5f5f5 !important;
   border-radius: 4px;
   user-select: all;
 }
