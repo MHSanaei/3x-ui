@@ -33,13 +33,15 @@ func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	}
 }
 
-func (s *InboundService) MigrationRequirements() {
+func (s *InboundService) MigrationRequirements() (err error) {
 	db := database.GetDB()
 	tx := db.Begin()
-	var err error
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			if commitErr := tx.Commit().Error; commitErr != nil {
+				err = commitErr
+				return
+			}
 			if !database.IsPostgres() {
 				if dbErr := db.Exec(`VACUUM "main"`).Error; dbErr != nil {
 					logger.Warningf("VACUUM failed: %v", dbErr)
@@ -160,7 +162,8 @@ func (s *InboundService) MigrationRequirements() {
 				delete(settings, "testseed")
 			}
 
-			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+			var modifiedSettings []byte
+			modifiedSettings, err = json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return
 			}
@@ -169,7 +172,8 @@ func (s *InboundService) MigrationRequirements() {
 		}
 
 		// Add client traffic row for all clients which has email
-		modelClients, err := s.GetClients(inbounds[inbound_index])
+		var modelClients []model.Client
+		modelClients, err = s.GetClients(inbounds[inbound_index])
 		if err != nil {
 			return
 		}
@@ -256,10 +260,13 @@ func (s *InboundService) MigrationRequirements() {
 	if err != nil {
 		return
 	}
+	return err
 }
 
 func (s *InboundService) MigrateDB() {
-	s.MigrationRequirements()
+	if err := s.MigrationRequirements(); err != nil {
+		logger.Errorf("MigrationRequirements failed: %v", err)
+	}
 	s.MigrationRemoveOrphanedTraffics()
 	s.MigrationRestoreVisionFlow()
 }
