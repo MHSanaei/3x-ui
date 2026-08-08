@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1042,6 +1043,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 				}
 				settings, _ := mask["settings"].(map[string]any)
 				if pw, ok := settings["password"].(string); ok && pw != "" {
+					if extra := extraSalamanderKeys(settings); len(extra) > 0 {
+						logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
+					}
 					params["obfs"] = "salamander"
 					params["obfs-password"] = pw
 					break
@@ -2685,4 +2689,17 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
+}
+
+// extraSalamanderKeys lists salamander settings the hysteria2 URI cannot carry.
+// A server using them rejects every client built from the emitted link.
+func extraSalamanderKeys(settings map[string]any) []string {
+	var extra []string
+	for k := range settings {
+		if k != "password" {
+			extra = append(extra, k)
+		}
+	}
+	sort.Strings(extra)
+	return extra
 }
