@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"gorm.io/gorm"
 )
 
 // setupPortReservationDB makes every H-04 test hermetic on the shared scratch
