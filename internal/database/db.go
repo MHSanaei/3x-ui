@@ -1628,6 +1628,14 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	return true
 }
 
+func isUnrestrictedFreedomFinalRules(v any, present bool) bool {
+	if !present || v == nil {
+		return true
+	}
+	rules, ok := v.([]any)
+	return ok && len(rules) == 0
+}
+
 func hardenFreedomFinalRules() error {
 	var setting model.Setting
 	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
@@ -1680,7 +1688,10 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if !isAllowOnlyFinalRules(settings["finalRules"]) && !isLegacyPrivateOnlyFinalRules(settings["finalRules"]) {
+		finalRules, present := settings["finalRules"]
+		if !isUnrestrictedFreedomFinalRules(finalRules, present) &&
+			!isAllowOnlyFinalRules(finalRules) &&
+			!isLegacyPrivateOnlyFinalRules(finalRules) {
 			continue
 		}
 		settings["finalRules"] = []any{
