@@ -169,3 +169,29 @@ func TestVerifyTwoFactorCode(t *testing.T) {
 		t.Fatal("invalid code accepted")
 	}
 }
+
+func TestGetSecret_FallbacksOnEmptyDatabaseSetting(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	if err := s.saveSetting("secret", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	secretBytes, err := s.GetSecret()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	secret := string(secretBytes)
+	if len(secret) != 32 {
+		t.Fatalf("secret length = %d, want 32-byte non-empty string", len(secret))
+	}
+
+	persisted, err := s.getString("secret")
+	if err != nil {
+		t.Fatalf("failed to retrieve persisted secret: %v", err)
+	}
+	if persisted != secret {
+		t.Fatalf("persisted secret = %q, want %q", persisted, secret)
+	}
+}
+
