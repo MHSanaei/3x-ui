@@ -300,11 +300,16 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 // share links in page data, so it must never be used for browser navigation to
 // a live subscription URL.
 func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
-	if !isBrowserSubscriptionRequest(c) {
+	explicit := explicitSubPageRequest(c)
+	if !explicit && !isBrowserSubscriptionRequest(c) {
 		return false
 	}
-	_, ok := a.buildSubPageData(c)
+	page, ok := a.buildSubPageData(c)
 	if !ok {
+		return true
+	}
+	if explicit {
+		a.serveSubPage(c, page.BasePath, page)
 		return true
 	}
 	a.serveSubscriptionCopyPage(c)
@@ -476,11 +481,14 @@ func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp 
 	return regexp.MustCompile(defaultPattern)
 }
 
-func isBrowserSubscriptionRequest(c *gin.Context) bool {
-	if c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
-		return true
-	}
+// explicitSubPageRequest reports whether the caller asked for the full HTML page
+// by hand. That is an operator action on a URL they already hold, so it keeps
+// rendering the themed page; only implicit browser navigation is downgraded.
+func explicitSubPageRequest(c *gin.Context) bool {
+	return c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+}
 
+func isBrowserSubscriptionRequest(c *gin.Context) bool {
 	accept := strings.ToLower(c.GetHeader("Accept"))
 	if strings.Contains(accept, "text/html") {
 		return true
