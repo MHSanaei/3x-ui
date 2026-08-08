@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
@@ -480,18 +481,33 @@ func TestStatusEmoji(t *testing.T) {
 }
 
 func TestUsagePercentage(t *testing.T) {
-	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb}); got != "50.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb}); got != "50.0％" {
 		t.Errorf("usagePercentage 50%% = %q", got)
 	}
 	if got := usagePercentage(xray.ClientTraffic{Total: 0}); got != "" {
 		t.Errorf("usagePercentage unlimited = %q, want empty", got)
 	}
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0％" {
 		t.Errorf("usagePercentage 100%% = %q", got)
 	}
 	// Over-quota usage clamps to 100%, consistent with TRAFFIC_LEFT.
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0%" {
-		t.Errorf("usagePercentage over-quota = %q, want 100.0%%", got)
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0％" {
+		t.Errorf("usagePercentage over-quota = %q, want 100.0％", got)
+	}
+}
+
+func TestUsagePercentageSurvivesFragmentEncoding(t *testing.T) {
+	remark := "node " + usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 50 * gb})
+	link := "vless://id@example.test:443#" + url.PathEscape(remark)
+	if strings.Contains(link, "%25") {
+		t.Fatalf("encoded remark contains %%25, Happ drops such remarks: %s", link)
+	}
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if u.Fragment != remark {
+		t.Fatalf("fragment = %q, want %q", u.Fragment, remark)
 	}
 }
 
@@ -546,7 +562,7 @@ func TestExpandNewTokensInTemplate(t *testing.T) {
 
 	cases := []struct{ tmpl, want string }{
 		{"{{STATUS_EMOJI}}", "✅"},
-		{"{{USAGE_PERCENTAGE}}", "50.0%"},
+		{"{{USAGE_PERCENTAGE}}", "50.0％"},
 		{"{{PROTOCOL}}", "VLESS"},
 		{"{{TRANSPORT}}", "ws"},
 		{"{{SECURITY}}", "REALITY"},
@@ -619,7 +635,7 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 		{"{DATA_USAGE}", "50.00GB"},
 		{"{DATA_LIMIT}", "100.00GB"},
 		{"{STATUS_EMOJI}", "✅"},
-		{"{USAGE_PERCENTAGE}", "50.0%"},
+		{"{USAGE_PERCENTAGE}", "50.0％"},
 		{"{PROTOCOL}", "VLESS"},
 		{"{TRANSPORT}", "ws"},
 		{"{SECURITY}", "TLS"},
