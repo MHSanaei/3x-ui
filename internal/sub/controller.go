@@ -295,23 +295,24 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	}
 }
 
-// maybeServeSubPage renders the HTML info page when the request comes from a
-// browser (Accept: text/html) or explicitly asks for it (?html=1 or ?view=html).
-// It reports whether the request was handled. The remark template's per-client
-// info is for the content a client app imports — the raw subscription body. A
-// browser viewing the HTML info page gets clean, name-only remarks (usage is
-// shown in the page summary).
+// maybeServeSubPage validates the subscription and renders a copy-only page
+// when the request comes from a browser. The normal subscription page embeds
+// share links in page data, so it must never be used for browser navigation to
+// a live subscription URL.
 func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
-	accept := c.GetHeader("Accept")
-	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
-	if !wantsHTML {
+	explicit := explicitSubPageRequest(c)
+	if !explicit && !isBrowserSubscriptionRequest(c) {
 		return false
 	}
 	page, ok := a.buildSubPageData(c)
 	if !ok {
 		return true
 	}
-	a.serveSubPage(c, page.BasePath, page)
+	if explicit {
+		a.serveSubPage(c, page.BasePath, page)
+		return true
+	}
+	a.serveSubscriptionCopyPage(c)
 	return true
 }
 
@@ -478,6 +479,70 @@ func compileUserAgentRegex(name, pattern, defaultPattern string) *regexp.Regexp 
 		return nil
 	}
 	return regexp.MustCompile(defaultPattern)
+}
+
+// explicitSubPageRequest reports whether the caller asked for the full HTML page
+// by hand. That is an operator action on a URL they already hold, so it keeps
+// rendering the themed page; only implicit browser navigation is downgraded.
+func explicitSubPageRequest(c *gin.Context) bool {
+	return c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
+}
+
+func isBrowserSubscriptionRequest(c *gin.Context) bool {
+	accept := strings.ToLower(c.GetHeader("Accept"))
+	if strings.Contains(accept, "text/html") {
+		return true
+	}
+
+	fetchDest := strings.ToLower(c.GetHeader("Sec-Fetch-Dest"))
+	fetchMode := strings.ToLower(c.GetHeader("Sec-Fetch-Mode"))
+	if fetchDest == "document" || fetchMode == "navigate" {
+		return true
+	}
+
+	ua := strings.ToLower(c.GetHeader("User-Agent"))
+	if ua == "" {
+		return false
+	}
+	if strings.Contains(ua, "mozilla/") {
+		vpnClients := []string{
+			"clash", "mihomo", "sing-box", "v2ray", "xray", "hiddify",
+			"nekobox", "shadowrocket", "streisand", "v2box", "incy", "happ",
+		}
+		for _, client := range vpnClients {
+			if strings.Contains(ua, client) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (a *SUBController) serveSubscriptionCopyPage(c *gin.Context) {
+	setNoCacheHeaders(c)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Ссылка подписки</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #050505; color: #f2f2f2; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+    main { max-width: 520px; padding: 32px; }
+    h1 { margin: 0 0 14px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+    p { margin: 0; color: #b8b8b8; font-size: 16px; line-height: 1.55; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Это ссылка подписки</h1>
+    <p>Открывать её в браузере не нужно. Скопируйте адрес этой страницы и вставьте его в приложение.</p>
+  </main>
+</body>
+</html>`))
 }
 
 // serveSubPage renders internal/web/dist/subpage.html for the current subscription
