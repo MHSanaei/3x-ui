@@ -97,9 +97,9 @@ func TestSocksRelayAgainstRealXray(t *testing.T) {
 			AllowedIPs: []string{"10.204.0.2/32"},
 		}},
 	}
-	dev, err := NewDevice(inst, DeviceOptions{})
+	dev, err := newUnconfiguredDevice(inst, DeviceOptions{})
 	if err != nil {
-		t.Fatalf("NewDevice: %v", err)
+		t.Fatalf("newUnconfiguredDevice: %v", err)
 	}
 	defer dev.Close()
 	idx := NewPeerIndex(inst.Peers)
@@ -182,6 +182,12 @@ func TestSocksRelayAgainstRealXray(t *testing.T) {
 		}
 		udpRelay.Handle(src, dst, peer.Email, payload)
 	})
+
+	// Configure (IpcSet) must come after both attaches -- see
+	// newUnconfiguredDevice's doc comment.
+	if err := dev.Configure(inst, DeviceOptions{}); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
 
 	// --- real client, real handshake, real traffic through the whole chain ---
 	clientTun, clientNet, err := netstack.CreateNetTUN(

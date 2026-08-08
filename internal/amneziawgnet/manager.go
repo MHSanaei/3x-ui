@@ -170,17 +170,10 @@ func (m *Manager) ensureLocked(d Desired) error {
 		cur.dev.Close()
 		delete(m.ifaces, inst.Id)
 	}
-	dev, err := NewDevice(inst, opts)
+	dev, err := newUnconfiguredDevice(inst, opts)
 	if err != nil {
 		return err
 	}
-	// NewDevice already rendered and applied this exact config internally;
-	// recomputing it here (cheap, pure, guaranteed to succeed since
-	// NewDevice just proved these inputs are valid) is simpler than
-	// threading the string back out of NewDevice's own signature, and gives
-	// the no-op check above a correct baseline to compare the next tick
-	// against instead of an empty string.
-	conf, _ := buildUAPIConfig(inst, opts)
 
 	relay := socksRelayForInstance(inst)
 	udpRelay := NewUDPRelay(relay, dev.Stack)
@@ -219,6 +212,23 @@ func (m *Manager) ensureLocked(d Desired) error {
 		}
 		udpRelay.Handle(src, dst, peer.Email, payload)
 	})
+
+	// Handlers are registered on dev.Stack above, BEFORE Configure's IpcSet
+	// can start any peer's receive goroutine -- see newUnconfiguredDevice's
+	// doc comment for why this order (not convenience) is what makes this
+	// race-free.
+	if err := dev.Configure(inst, opts); err != nil {
+		udpRelay.Close()
+		portForwards.Close()
+		return err
+	}
+	// dev.Configure already rendered and applied this exact config
+	// internally; recomputing it here (cheap, pure, guaranteed to succeed
+	// since Configure just proved these inputs are valid) is simpler than
+	// threading the string back out of Configure's own signature, and gives
+	// the no-op check above a correct baseline to compare the next tick
+	// against instead of an empty string.
+	conf, _ := buildUAPIConfig(inst, opts)
 
 	m.ifaces[inst.Id] = &managed{
 		dev:          dev,

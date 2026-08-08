@@ -68,11 +68,24 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 		},
 	}
 
-	dev, err := NewDevice(inst, DeviceOptions{})
+	dev, err := newUnconfiguredDevice(inst, DeviceOptions{})
 	if err != nil {
-		t.Fatalf("NewDevice: %v", err)
+		t.Fatalf("newUnconfiguredDevice: %v", err)
 	}
 	defer dev.Close()
+
+	// Attach before Configure -- see newUnconfiguredDevice's doc comment.
+	// Registering the forwarder doesn't require any peer to be configured
+	// yet, so this ordering is free; it's Configure's IpcSet that must
+	// never run before the forwarder is registered.
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _ netip.AddrPort) {
+		defer conn.Close()
+		io.Copy(io.Discard, conn)
+	})
+
+	if err := dev.Configure(inst, DeviceOptions{}); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
 
 	// diagnoseDevice must work before any client ever connects too: both
 	// peers configured, neither ever handshaked.
@@ -91,11 +104,6 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 			t.Errorf("client %q reports Connected() before any real handshake", c.Email)
 		}
 	}
-
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _ netip.AddrPort) {
-		defer conn.Close()
-		io.Copy(io.Discard, conn)
-	})
 
 	clientTun, clientNet, err := netstack.CreateNetTUN(
 		[]netip.Addr{netip.MustParseAddr("10.202.0.2")},

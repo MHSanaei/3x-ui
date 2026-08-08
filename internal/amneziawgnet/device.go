@@ -59,15 +59,47 @@ type Device struct {
 	Stack *stack.Stack
 }
 
-// NewDevice constructs and brings up an embedded AmneziaWG interface for
-// inst: a gVisor-backed tun.Device sized to inst.MTU (or defaultMTU),
-// addressed with inst.Address, configured via UAPI with inst.Obfuscation,
-// inst.PrivateKey, opts' AWG 3.0 fields, and one UAPI peer per inst.Peers
-// entry. It does not attach a forwarder or start relaying traffic --
-// that's the caller's job (see AttachTCPForwarder / AttachUDPHandler),
-// keeping this constructor usable both for a real relay and for a plain
-// mechanical test.
+// NewDevice constructs, configures, and brings up an embedded AmneziaWG
+// interface for inst in one call: a gVisor-backed tun.Device sized to
+// inst.MTU (or defaultMTU), addressed with inst.Address, configured via
+// UAPI with inst.Obfuscation, inst.PrivateKey, opts' AWG 3.0 fields, and one
+// UAPI peer per inst.Peers entry. It does not attach a forwarder or start
+// relaying traffic -- that's the caller's job (see AttachTCPForwarder /
+// AttachUDPHandler) -- which is exactly why a caller that will relay real
+// traffic must NOT use this function: see newUnconfiguredDevice's doc
+// comment for why, and use newUnconfiguredDevice + Configure instead.
 func NewDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device, error) {
+	dev, err := newUnconfiguredDevice(inst, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := dev.Configure(inst, opts); err != nil {
+		return nil, err
+	}
+	return dev, nil
+}
+
+// newUnconfiguredDevice builds the tun/netstack/device trio but does not
+// configure any peers or bring the interface up -- a caller that will relay
+// real traffic MUST attach its TCP/UDP handlers (AttachTCPForwarder /
+// AttachUDPHandler) against the returned Device.Stack BEFORE calling
+// Configure, not after.
+//
+// This ordering is not a style preference: Configure's IpcSet is what
+// starts each configured peer's receive goroutine (amneziawg-go's
+// Peer.Start, called from handlePostConfig), and a peer whose handshake
+// completes fast enough (e.g. an already-connected client reconnecting
+// right as an MTU/address change forces this package's own Manager to
+// rebuild the Device) can begin delivering packets into the stack
+// immediately -- concurrently with a caller that only calls
+// gstack.SetTransportProtocolHandler (AttachTCPForwarder/AttachUDPHandler)
+// after Configure returns. A -race CI run caught exactly this as a real
+// WARNING: DATA RACE between stack.(*nic).DeliverTransportPacket (the
+// peer's receive goroutine, reading the handler table) and
+// stack.(*Stack).SetTransportProtocolHandler (the attaching goroutine,
+// writing it). See manager.go's ensureLocked rebuild branch for the real
+// call order this function exists to support.
+func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device, error) {
 	addrs, err := hostAddresses(inst.Address)
 	if err != nil {
 		return nil, fmt.Errorf("amneziawgnet: %w", err)
@@ -89,21 +121,31 @@ func NewDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device, error) {
 	}
 	dev := device.NewDevice(tun, awgconn.NewDefaultBind(), logger)
 
+	return &Device{Device: dev, Stack: gstack}, nil
+}
+
+// Configure applies inst/opts to d via UAPI and brings the interface up.
+// Call at most once per Device, and -- for any caller relaying real
+// traffic -- only after any AttachTCPForwarder/AttachUDPHandler
+// registration against d.Stack (see newUnconfiguredDevice's doc comment
+// for why the order matters). Closes d and returns an error if either step
+// fails; the caller owns closing anything else it already built against
+// d.Stack in that case (e.g. a UDP relay or port-forward set).
+func (d *Device) Configure(inst amneziawg.Instance, opts DeviceOptions) error {
 	conf, err := buildUAPIConfig(inst, opts)
 	if err != nil {
-		dev.Close()
-		return nil, fmt.Errorf("amneziawgnet: %w", err)
+		d.Close()
+		return fmt.Errorf("amneziawgnet: %w", err)
 	}
-	if err := dev.IpcSet(conf); err != nil {
-		dev.Close()
-		return nil, fmt.Errorf("amneziawgnet: IpcSet for inbound %d: %w", inst.Id, err)
+	if err := d.IpcSet(conf); err != nil {
+		d.Close()
+		return fmt.Errorf("amneziawgnet: IpcSet for inbound %d: %w", inst.Id, err)
 	}
-	if err := dev.Up(); err != nil {
-		dev.Close()
-		return nil, fmt.Errorf("amneziawgnet: bring up inbound %d: %w", inst.Id, err)
+	if err := d.Up(); err != nil {
+		d.Close()
+		return fmt.Errorf("amneziawgnet: bring up inbound %d: %w", inst.Id, err)
 	}
-
-	return &Device{Device: dev, Stack: gstack}, nil
+	return nil
 }
 
 // hostAddresses parses each of inst.Address's CIDR strings (e.g.

@@ -56,9 +56,9 @@ func TestNewDeviceUDPHandlerAndReply(t *testing.T) {
 		}},
 	}
 
-	dev, err := NewDevice(inst, DeviceOptions{})
+	dev, err := newUnconfiguredDevice(inst, DeviceOptions{})
 	if err != nil {
-		t.Fatalf("NewDevice: %v", err)
+		t.Fatalf("newUnconfiguredDevice: %v", err)
 	}
 	defer dev.Close()
 
@@ -83,6 +83,12 @@ func TestNewDeviceUDPHandlerAndReply(t *testing.T) {
 			identityErrCh <- fmt.Errorf("WriteUDPReply: %w", err)
 		}
 	})
+
+	// Configure (IpcSet) must come after AttachUDPHandler -- see
+	// newUnconfiguredDevice's doc comment.
+	if err := dev.Configure(inst, DeviceOptions{}); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
 
 	clientTun, clientNet, err := netstack.CreateNetTUN(
 		[]netip.Addr{netip.MustParseAddr("10.202.0.2")},

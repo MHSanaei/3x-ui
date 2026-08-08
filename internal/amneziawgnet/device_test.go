@@ -62,9 +62,9 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 		}},
 	}
 
-	dev, err := NewDevice(inst, DeviceOptions{})
+	dev, err := newUnconfiguredDevice(inst, DeviceOptions{})
 	if err != nil {
-		t.Fatalf("NewDevice: %v", err)
+		t.Fatalf("newUnconfiguredDevice: %v", err)
 	}
 	defer dev.Close()
 
@@ -92,6 +92,14 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 		got <- recovered{email: peer.Email, ok: ok, dest: dest}
 		io.Copy(io.Discard, conn)
 	})
+
+	// Configure (IpcSet) must come after AttachTCPForwarder -- see
+	// newUnconfiguredDevice's doc comment: IpcSet is what starts the peer's
+	// receive goroutine, which must never be able to run before the
+	// forwarder is registered on the stack.
+	if err := dev.Configure(inst, DeviceOptions{}); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
 
 	clientTun, clientNet, err := netstack.CreateNetTUN(
 		[]netip.Addr{netip.MustParseAddr("10.201.0.2")},
@@ -258,12 +266,13 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 		}},
 	}
 
-	dev, err := NewDevice(inst, DeviceOptions{
+	opts := DeviceOptions{
 		HeaderProtectionKey:    headerProtectionKey,
 		ContentPaddingAddition: contentPaddingAddition,
-	})
+	}
+	dev, err := newUnconfiguredDevice(inst, opts)
 	if err != nil {
-		t.Fatalf("NewDevice: %v", err)
+		t.Fatalf("newUnconfiguredDevice: %v", err)
 	}
 	defer dev.Close()
 
@@ -287,6 +296,12 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 		}
 		serverDone <- nil
 	})
+
+	// Configure (IpcSet) must come after AttachTCPForwarder -- see
+	// newUnconfiguredDevice's doc comment.
+	if err := dev.Configure(inst, opts); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
 
 	clientTun, clientNet, err := netstack.CreateNetTUN(
 		[]netip.Addr{netip.MustParseAddr("10.202.0.2")},
