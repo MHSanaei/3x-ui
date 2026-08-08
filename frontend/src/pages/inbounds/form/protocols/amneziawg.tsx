@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
@@ -16,6 +16,11 @@ interface AmneziawgFieldsProps {
   regenInboundAwgHeaderProtectionKey: () => void;
   regenInboundAwgContentPaddingAddition: () => void;
   onAwgVersionChange: (version: string) => void;
+  regenInboundAwgRekeyAfterTime: () => void;
+  regenInboundAwgRekeyTimeout: () => void;
+  regenInboundAwgRejectAfterTime: () => void;
+  regenInboundAwgKeepaliveTimeout: () => void;
+  regenInboundAwgMaxHandshakeAttempts: () => void;
   i1Profile: I1ProfileChoice;
   onI1ProfileChange: (profile: I1ProfileChoice) => void;
   regenInboundAwgI1: () => void;
@@ -29,6 +34,11 @@ export default function AmneziawgFields({
   regenInboundAwgHeaderProtectionKey,
   regenInboundAwgContentPaddingAddition,
   onAwgVersionChange,
+  regenInboundAwgRekeyAfterTime,
+  regenInboundAwgRekeyTimeout,
+  regenInboundAwgRejectAfterTime,
+  regenInboundAwgKeepaliveTimeout,
+  regenInboundAwgMaxHandshakeAttempts,
   i1Profile,
   onI1ProfileChange,
   regenInboundAwgI1,
@@ -166,6 +176,7 @@ export default function AmneziawgFields({
           <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgI1} />
         </Space.Compact>
       </Form.Item>
+      <Divider style={{ margin: '0 0 14px 0' }}>{t('pages.xray.amneziawg.awg3Advanced')}</Divider>
       <FormField
         name={['settings', 'server', 'awgVersion']}
         label={t('pages.xray.amneziawg.awgVersion')}
@@ -199,6 +210,61 @@ export default function AmneziawgFields({
             <Input placeholder="0 or 50-100" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
           <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgContentPaddingAddition} />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item
+        label={t('pages.xray.amneziawg.rekeyAfterTime')}
+        extra={t('pages.xray.amneziawg.rekeyAfterTimeHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'rekeyAfterTime']} noStyle>
+            <Input placeholder="120 or 118-135" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRekeyAfterTime} />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item
+        label={t('pages.xray.amneziawg.rekeyTimeout')}
+        extra={t('pages.xray.amneziawg.rekeyTimeoutHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'rekeyTimeout']} noStyle>
+            <Input placeholder="5 or 4-8" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRekeyTimeout} />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item
+        label={t('pages.xray.amneziawg.rejectAfterTime')}
+        extra={t('pages.xray.amneziawg.rejectAfterTimeHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'rejectAfterTime']} noStyle>
+            <Input placeholder="180 or 175-190" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRejectAfterTime} />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item
+        label={t('pages.xray.amneziawg.keepaliveTimeout')}
+        extra={t('pages.xray.amneziawg.keepaliveTimeoutHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'keepaliveTimeout']} noStyle>
+            <Input placeholder="10 or 9-17" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgKeepaliveTimeout} />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item
+        label={t('pages.xray.amneziawg.maxHandshakeAttempts')}
+        extra={t('pages.xray.amneziawg.maxHandshakeAttemptsHint')}
+      >
+        <Space.Compact block>
+          <FormField name={['settings', 'server', 'maxHandshakeAttempts']} noStyle>
+            <Input placeholder="18 or 15-22" style={{ width: 'calc(100% - 32px)' }} />
+          </FormField>
+          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgMaxHandshakeAttempts} />
         </Space.Compact>
       </Form.Item>
     </>

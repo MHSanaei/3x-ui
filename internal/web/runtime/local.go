@@ -65,6 +65,11 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 			Options: amneziawgnet.DeviceOptions{
 				HeaderProtectionKey:    inst.HeaderProtectionKey,
 				ContentPaddingAddition: inst.ContentPaddingAddition,
+				RekeyAfterTime:         inst.RekeyAfterTime,
+				RekeyTimeout:           inst.RekeyTimeout,
+				RejectAfterTime:        inst.RejectAfterTime,
+				KeepaliveTimeout:       inst.KeepaliveTimeout,
+				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
 			},
 		})
 		// A brand new inbound can be the first one to qualify for
@@ -191,6 +196,11 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 		Options: amneziawgnet.DeviceOptions{
 			HeaderProtectionKey:    inst.HeaderProtectionKey,
 			ContentPaddingAddition: inst.ContentPaddingAddition,
+			RekeyAfterTime:         inst.RekeyAfterTime,
+			RekeyTimeout:           inst.RekeyTimeout,
+			RejectAfterTime:        inst.RejectAfterTime,
+			KeepaliveTimeout:       inst.KeepaliveTimeout,
+			MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
 		},
 	})
 }

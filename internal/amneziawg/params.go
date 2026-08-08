@@ -277,6 +277,20 @@ func ValidateContentPaddingAddition(v string) error {
 	return nil
 }
 
+// ValidateAwgTimerValue rejects a malformed AmneziaWG 3.0 device-timer
+// value before it's saved: field names one of RekeyAfterTime/RekeyTimeout/
+// RejectAfterTime/KeepaliveTimeout/MaxHandshakeAttempts (used only for the
+// returned error message) -- all five share H1-H4's exact "low-high"/
+// bare-integer grammar and uint32 width, confirmed directly against
+// amneziawg-go v3.0.3's device/uapi.go: every one of them is parsed via
+// the identical UintRange.FromString used for h1-h4.
+func ValidateAwgTimerValue(field, v string) error {
+	if err := validateRangeValue(v, hMaxValid); err != nil {
+		return fmt.Errorf("invalid %s: %w", field, err)
+	}
+	return nil
+}
+
 // ValidateHeaderProtection rejects enabling AmneziaWG 3.0 header protection
 // against an obfuscation set whose S1-S4 aren't all wide enough for it.
 // headerProtectionKey empty (disabled, the default) is always valid --
@@ -301,40 +315,48 @@ func ValidateHeaderProtection(headerProtectionKey string, o Obfuscation20) error
 }
 
 // EffectiveAwgVersion returns the AwgVersion that should actually be
-// validated, persisted, and shown to the admin. An inbound saved before
-// this field existed can already have HeaderProtectionKey/
-// ContentPaddingAddition set with an empty AwgVersion; treating that as
-// already-opted-into-3 (rather than an inconsistency to reject) means a
-// pre-existing, working configuration keeps working the next time it's
-// read or saved, instead of suddenly needing the admin to notice and fix a
-// field they've never seen before. Only an explicitly empty AwgVersion is
-// promoted this way -- an explicit, non-"3" value (e.g. an admin
-// deliberately dialing back to "2") is returned unchanged so
-// ValidateAwgVersion can catch the real inconsistency of a lowered ceiling
-// with an AWG 3.0 field still set.
-func EffectiveAwgVersion(awgVersion, headerProtectionKey, contentPaddingAddition string) string {
-	if awgVersion == "" && (headerProtectionKey != "" || contentPaddingAddition != "") {
-		return AwgVersion3
+// validated, persisted, and shown to the admin. awg3Fields is every
+// AmneziaWG 3.0-only device field's current value (HeaderProtectionKey,
+// ContentPaddingAddition, RekeyAfterTime, RekeyTimeout, RejectAfterTime,
+// KeepaliveTimeout, MaxHandshakeAttempts) -- an inbound saved before
+// AwgVersion existed can already have one of these set with an empty
+// AwgVersion; treating that as already-opted-into-3 (rather than an
+// inconsistency to reject) means a pre-existing, working configuration
+// keeps working the next time it's read or saved, instead of suddenly
+// needing the admin to notice and fix a field they've never seen before.
+// Only an explicitly empty AwgVersion is promoted this way -- an explicit,
+// non-"3" value (e.g. an admin deliberately dialing back to "2") is
+// returned unchanged so ValidateAwgVersion can catch the real
+// inconsistency of a lowered ceiling with an AWG 3.0 field still set.
+func EffectiveAwgVersion(awgVersion string, awg3Fields ...string) string {
+	if awgVersion == "" {
+		for _, f := range awg3Fields {
+			if f != "" {
+				return AwgVersion3
+			}
+		}
 	}
 	return awgVersion
 }
 
-// ValidateAwgVersion rejects an AmneziaWG 3.0-only field
-// (HeaderProtectionKey or ContentPaddingAddition) being set while the
-// inbound's own declared protocol-version ceiling isn't AwgVersion3 --
-// amneziawgnet's UAPI config builder only ever looks at those two fields
-// directly, never at AwgVersion itself, so a mismatch here (e.g. an admin
-// dials the ceiling back to "2" without clearing an already-generated
-// HeaderProtectionKey) would otherwise stay silently invisible until a
-// client's handshake starts failing. Callers should run
-// EffectiveAwgVersion first so a legacy record with no AwgVersion at all
-// doesn't spuriously trip this.
-func ValidateAwgVersion(awgVersion, headerProtectionKey, contentPaddingAddition string) error {
+// ValidateAwgVersion rejects any AmneziaWG 3.0-only device field (see
+// EffectiveAwgVersion's own doc comment for the full list, passed the same
+// way via awg3Fields) being set while the inbound's own declared protocol-
+// version ceiling isn't AwgVersion3 -- amneziawgnet's UAPI config builder
+// only ever looks at those fields directly, never at AwgVersion itself, so
+// a mismatch here (e.g. an admin dials the ceiling back to "2" without
+// clearing an already-generated HeaderProtectionKey) would otherwise stay
+// silently invisible until a client's handshake starts failing. Callers
+// should run EffectiveAwgVersion first so a legacy record with no
+// AwgVersion at all doesn't spuriously trip this.
+func ValidateAwgVersion(awgVersion string, awg3Fields ...string) error {
 	if awgVersion == AwgVersion3 {
 		return nil
 	}
-	if headerProtectionKey != "" || contentPaddingAddition != "" {
-		return fmt.Errorf("headerProtectionKey/contentPaddingAddition require awgVersion to be %q (currently %q) -- raise the AmneziaWG version, or clear those fields first", AwgVersion3, awgVersion)
+	for _, f := range awg3Fields {
+		if f != "" {
+			return fmt.Errorf("headerProtectionKey/contentPaddingAddition/rekeyAfterTime/rekeyTimeout/rejectAfterTime/keepaliveTimeout/maxHandshakeAttempts require awgVersion to be %q (currently %q) -- raise the AmneziaWG version, or clear those fields first", AwgVersion3, awgVersion)
+		}
 	}
 	return nil
 }

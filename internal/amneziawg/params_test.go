@@ -297,6 +297,60 @@ func TestValidateAwgVersionRejectsAwg3FieldsBelowVersion3(t *testing.T) {
 	}
 }
 
+func TestValidateAwgTimerValueAcceptsSameGrammarAsH(t *testing.T) {
+	for _, v := range []string{"", "0", "4294967295", "118-135", "0-4294967295"} {
+		if err := ValidateAwgTimerValue("rekeyAfterTime", v); err != nil {
+			t.Errorf("ValidateAwgTimerValue(%q) rejected a valid value: %v", v, err)
+		}
+	}
+}
+
+func TestValidateAwgTimerValueRejectsBadValues(t *testing.T) {
+	cases := []string{"not-a-number", "10-", "-10", "100-50", "4294967296", "0-4294967296", "-1"}
+	for _, v := range cases {
+		if err := ValidateAwgTimerValue("rekeyAfterTime", v); err == nil {
+			t.Errorf("ValidateAwgTimerValue(%q) must be rejected", v)
+		}
+	}
+}
+
+func TestValidateAwgTimerValueNamesTheFieldInTheError(t *testing.T) {
+	err := ValidateAwgTimerValue("maxHandshakeAttempts", "not-a-number")
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !strings.Contains(err.Error(), "maxHandshakeAttempts") {
+		t.Fatalf("error %q does not name the field", err.Error())
+	}
+}
+
+// The 5 AWG3 timer fields go through the same awgVersion gate as
+// HeaderProtectionKey/ContentPaddingAddition -- amneziawgnet's UAPI
+// builder emits all of them unconditionally whenever they're non-empty,
+// regardless of what the admin declared as the version ceiling, so a
+// mismatch here would be just as silently invisible as it would be for
+// HeaderProtectionKey.
+func TestEffectiveAwgVersionPromotesLegacyRecordsWithATimerFieldSet(t *testing.T) {
+	got := EffectiveAwgVersion("", "", "", "118-135", "", "", "", "")
+	if got != AwgVersion3 {
+		t.Fatalf("EffectiveAwgVersion with only rekeyAfterTime set = %q, want %q", got, AwgVersion3)
+	}
+}
+
+func TestValidateAwgVersionRejectsATimerFieldBelowVersion3(t *testing.T) {
+	err := ValidateAwgVersion(AwgVersion2, "", "", "", "", "175-190", "", "")
+	if err == nil {
+		t.Fatal("expected an error for a timer field set alongside awgVersion 2")
+	}
+}
+
+func TestValidateAwgVersionAcceptsVersion3WithTimerFieldsSet(t *testing.T) {
+	err := ValidateAwgVersion(AwgVersion3, "", "", "118-135", "4-8", "175-190", "9-17", "15-22")
+	if err != nil {
+		t.Fatalf("awgVersion 3 with timer fields set must be accepted: %v", err)
+	}
+}
+
 func TestValidateInterfaceNameAcceptsBlankAndPlausibleNames(t *testing.T) {
 	for _, name := range []string{"", "eth0", "wg0", "br-lan", "eno1.100", "veth1a2b3c", "eth0:0"} {
 		if err := ValidateInterfaceName(name); err != nil {

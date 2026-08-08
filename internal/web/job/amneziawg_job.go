@@ -41,6 +41,11 @@ func (j *AmneziaWGJob) Run() {
 			Options: amneziawgnet.DeviceOptions{
 				HeaderProtectionKey:    inst.HeaderProtectionKey,
 				ContentPaddingAddition: inst.ContentPaddingAddition,
+				RekeyAfterTime:         inst.RekeyAfterTime,
+				RekeyTimeout:           inst.RekeyTimeout,
+				RejectAfterTime:        inst.RejectAfterTime,
+				KeepaliveTimeout:       inst.KeepaliveTimeout,
+				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
 			},
 		})
 	}

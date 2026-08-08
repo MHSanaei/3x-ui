@@ -1694,8 +1694,9 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Tạo chữ ký QUIC cần HTTPS (hoặc localhost) -- kết nối này không cung cấp Web Crypto API cần thiết.",
+        "awg3Advanced": "AmneziaWG 3.0 Nâng cao",
         "awgVersion": "Phiên bản giao thức AmneziaWG",
-        "awgVersionHint": "Giới hạn phiên bản mà inbound này khai báo. Nâng lên 3.0 để bật Khóa bảo vệ tiêu đề / Đệm nội dung bổ sung bên dưới -- cả hai đều yêu cầu giá trị này là 3.0 trước.",
+        "awgVersionHint": "Giới hạn phiên bản mà inbound này khai báo. Nâng lên 3.0 để bật các trường bên dưới (Khóa bảo vệ tiêu đề, Đệm nội dung bổ sung, và các trường bộ đếm thời gian thiết bị) -- tất cả đều yêu cầu giá trị này là 3.0 trước.",
         "awgVersionOptions": {
           "2": "2.0",
           "3": "3.0"
@@ -1703,7 +1704,17 @@
         "headerProtectionKey": "Khóa bảo vệ tiêu đề (3.0)",
         "headerProtectionKeyHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Tùy chọn và tắt theo mặc định. Một khóa 32 byte dùng chung với mọi peer -- bật hoặc thay đổi nó là một thay đổi phá vỡ khả năng tương thích với mọi peer hiện có trên giao diện này (giống như nâng cấp phiên bản giao thức): khóa không khớp hoặc chỉ đặt một phía sẽ khiến mọi bắt tay thất bại, không chỉ là làm giảm khả năng ngụy trang. Yêu cầu S1-S4 ở trên đều phải tối thiểu là 12. Để trống để giữ hành vi cổ điển (không phải 3.0).",
         "contentPaddingAddition": "Đệm nội dung bổ sung (3.0)",
-        "contentPaddingAdditionHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Một số nguyên đơn hoặc một khoảng low-high số byte đệm ngẫu nhiên bổ sung vào mỗi gói transport. Để trống để tắt."
+        "contentPaddingAdditionHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Một số nguyên đơn hoặc một khoảng low-high số byte đệm ngẫu nhiên bổ sung vào mỗi gói transport. Để trống để tắt.",
+        "rekeyAfterTime": "Thời gian đổi khóa (3.0)",
+        "rekeyAfterTimeHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Khoảng thời gian đổi khóa phiên tính bằng giây -- một số nguyên đơn hoặc một khoảng low-high. Giá trị mặc định thực tế của amneziawg-go là 120s. Để trống để giữ mặc định.",
+        "rekeyTimeout": "Thời gian chờ đổi khóa (3.0)",
+        "rekeyTimeoutHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Khoảng thời gian thử lại bắt tay tính bằng giây -- một số nguyên đơn hoặc một khoảng low-high. Giá trị mặc định thực tế là 5s. Để trống để giữ mặc định.",
+        "rejectAfterTime": "Thời gian hết hạn phiên (3.0)",
+        "rejectAfterTimeHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Thời gian hết hạn phiên tính bằng giây -- một số nguyên đơn hoặc một khoảng low-high. Giá trị mặc định thực tế là 180s. Để trống để giữ mặc định.",
+        "keepaliveTimeout": "Thời gian chờ Keepalive (3.0)",
+        "keepaliveTimeoutHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Khoảng thời gian keepalive liên tục tính bằng giây -- một số nguyên đơn hoặc một khoảng low-high. Giá trị mặc định thực tế là 10s. Để trống để giữ mặc định.",
+        "maxHandshakeAttempts": "Số lần thử bắt tay tối đa (3.0)",
+        "maxHandshakeAttemptsHint": "Yêu cầu phiên bản ở trên được đặt là 3.0. Số lần thử lại bắt tay tối đa trước khi từ bỏ -- một số nguyên đơn hoặc một khoảng low-high. Giá trị mặc định thực tế là 18. Để trống để giữ mặc định."
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

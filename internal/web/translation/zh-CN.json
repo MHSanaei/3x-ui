@@ -1694,8 +1694,9 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "生成 QUIC 签名需要 HTTPS(或 localhost)——此连接未提供所需的 Web Crypto API。",
+        "awg3Advanced": "AmneziaWG 3.0 高级设置",
         "awgVersion": "AmneziaWG 协议版本",
-        "awgVersionHint": "此入站声明的版本上限。将其提升到 3.0 以启用下方的“标头保护密钥”／“内容填充附加值”——两者都要求先将此值设为 3.0。",
+        "awgVersionHint": "此入站声明的版本上限。将其提升到 3.0 以启用下方字段(标头保护密钥、内容填充附加值以及设备计时器字段)——全部都要求先将此值设为 3.0。",
         "awgVersionOptions": {
           "2": "2.0",
           "3": "3.0"
@@ -1703,7 +1704,17 @@
         "headerProtectionKey": "标头保护密钥（3.0）",
         "headerProtectionKeyHint": "需要将上方的版本设为 3.0。可选且默认关闭。与每个节点共享的 32 字节密钥——启用或更改它会破坏与该接口上所有现有节点的兼容性（如同协议版本升级）：密钥不匹配或单边设置会导致所有握手失败，而不仅仅是混淆效果减弱。需要上方的 S1-S4 均至少为 12。留空以保持经典（非 3.0）行为。",
         "contentPaddingAddition": "内容填充附加值（3.0）",
-        "contentPaddingAdditionHint": "需要将上方的版本设为 3.0。为每个传输数据包添加的随机填充字节数，可以是单个整数或 low-high 范围。留空则禁用。"
+        "contentPaddingAdditionHint": "需要将上方的版本设为 3.0。为每个传输数据包添加的随机填充字节数，可以是单个整数或 low-high 范围。留空则禁用。",
+        "rekeyAfterTime": "重新协商密钥间隔（3.0）",
+        "rekeyAfterTimeHint": "需要将上方的版本设为 3.0。会话密钥重新协商间隔（秒），可以是单个整数或 low-high 范围。amneziawg-go 自身的实际默认值为 120 秒。留空以保留默认值。",
+        "rekeyTimeout": "重新协商密钥超时（3.0）",
+        "rekeyTimeoutHint": "需要将上方的版本设为 3.0。握手重试间隔（秒），可以是单个整数或 low-high 范围。实际默认值为 5 秒。留空以保留默认值。",
+        "rejectAfterTime": "会话失效时间（3.0）",
+        "rejectAfterTimeHint": "需要将上方的版本设为 3.0。会话失效时间（秒），可以是单个整数或 low-high 范围。实际默认值为 180 秒。留空以保留默认值。",
+        "keepaliveTimeout": "Keepalive 超时（3.0）",
+        "keepaliveTimeoutHint": "需要将上方的版本设为 3.0。持续 keepalive 间隔（秒），可以是单个整数或 low-high 范围。实际默认值为 10 秒。留空以保留默认值。",
+        "maxHandshakeAttempts": "最大握手尝试次数（3.0）",
+        "maxHandshakeAttemptsHint": "需要将上方的版本设为 3.0。放弃前的最大握手重试次数，可以是单个整数或 low-high 范围。实际默认值为 18。留空以保留默认值。"
       },
       "tun": {
         "userLevel": "用户级别"

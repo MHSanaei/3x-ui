@@ -1694,8 +1694,9 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "QUIC imzası oluşturmak için HTTPS (veya localhost) gerekir -- bu bağlantı bunun için gereken Web Crypto API'sini sunmuyor.",
+        "awg3Advanced": "AmneziaWG 3.0 Gelişmiş",
         "awgVersion": "AmneziaWG protokol sürümü",
-        "awgVersionHint": "Bu inbound'un bildirdiği sürüm tavanı. Aşağıdaki Başlık Koruma Anahtarı / İçerik Dolgu Eklentisi'ni etkinleştirmek için 3.0'a yükseltin -- ikisi de önce bunun 3.0 olmasını gerektirir.",
+        "awgVersionHint": "Bu inbound'un bildirdiği sürüm tavanı. Aşağıdaki alanları (Başlık Koruma Anahtarı, İçerik Dolgu Eklentisi ve cihaz zamanlayıcı alanları) etkinleştirmek için 3.0'a yükseltin -- hepsi önce bunun 3.0 olmasını gerektirir.",
         "awgVersionOptions": {
           "2": "2.0",
           "3": "3.0"
@@ -1703,7 +1704,17 @@
         "headerProtectionKey": "Başlık Koruma Anahtarı (3.0)",
         "headerProtectionKeyHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. İsteğe bağlı ve varsayılan olarak kapalı. Her peer ile paylaşılan 32 baytlık bir anahtar -- bunu etkinleştirmek veya değiştirmek bu arayüzdeki tüm mevcut peer'lerle uyumluluğu bozan bir değişikliktir (protokol sürümü yükseltmesi gibi): eşleşmeyen veya tek taraflı bir anahtar, sadece daha zayıf gizleme değil, her el sıkışmanın başarısız olmasına neden olur. Yukarıdaki S1-S4 değerlerinin tümünün en az 12 olmasını gerektirir. Klasik (3.0 olmayan) davranışı korumak için boş bırakın.",
         "contentPaddingAddition": "İçerik Dolgu Eklentisi (3.0)",
-        "contentPaddingAdditionHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Her transport paketine eklenen rastgele dolgu baytı sayısı için tek bir tam sayı veya low-high aralığı. Devre dışı bırakmak için boş bırakın."
+        "contentPaddingAdditionHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Her transport paketine eklenen rastgele dolgu baytı sayısı için tek bir tam sayı veya low-high aralığı. Devre dışı bırakmak için boş bırakın.",
+        "rekeyAfterTime": "Yeniden Anahtarlama Süresi (3.0)",
+        "rekeyAfterTimeHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Saniye cinsinden oturum yeniden anahtarlama aralığı -- tek bir tam sayı veya low-high aralığı. amneziawg-go'nun gerçek varsayılanı 120 saniyedir. Varsayılanı korumak için boş bırakın.",
+        "rekeyTimeout": "Yeniden Anahtarlama Zaman Aşımı (3.0)",
+        "rekeyTimeoutHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Saniye cinsinden el sıkışma yeniden deneme aralığı -- tek bir tam sayı veya low-high aralığı. Gerçek varsayılan 5 saniyedir. Varsayılanı korumak için boş bırakın.",
+        "rejectAfterTime": "Oturum Sona Erme Süresi (3.0)",
+        "rejectAfterTimeHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Saniye cinsinden oturum sona erme süresi -- tek bir tam sayı veya low-high aralığı. Gerçek varsayılan 180 saniyedir. Varsayılanı korumak için boş bırakın.",
+        "keepaliveTimeout": "Keepalive Zaman Aşımı (3.0)",
+        "keepaliveTimeoutHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Saniye cinsinden kalıcı keepalive aralığı -- tek bir tam sayı veya low-high aralığı. Gerçek varsayılan 10 saniyedir. Varsayılanı korumak için boş bırakın.",
+        "maxHandshakeAttempts": "Maks. El Sıkışma Denemesi (3.0)",
+        "maxHandshakeAttemptsHint": "Yukarıdaki sürümün 3.0 olarak ayarlanmasını gerektirir. Vazgeçmeden önceki maksimum el sıkışma yeniden deneme sayısı -- tek bir tam sayı veya low-high aralığı. Gerçek varsayılan 18'dir. Varsayılanı korumak için boş bırakın."
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

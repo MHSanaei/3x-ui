@@ -18,23 +18,33 @@ import (
 // encapsulation overhead on a standard 1500-byte-MTU host link.
 const defaultMTU = 1420
 
-// DeviceOptions carries the AmneziaWG 3.0 header-protection fields, kept out
-// of amneziawg.Instance/Obfuscation20 deliberately: those are the shared,
-// DB-backed types the still-live kernel-module path also reads and writes,
-// and 3.0 header protection is a device-wide, strictly opt-in setting (see
-// the migration plan's "Reference material" section) that isn't wired into
-// that shared schema yet. Zero-value DeviceOptions means classic
-// (non-3.0) obfuscation only, matching the kernel-module path's own
-// defaults today.
+// DeviceOptions carries AmneziaWG 3.0's device-wide fields (header
+// protection, content padding, and the five session-timing knobs) --
+// mirrored from amneziawg.Instance's identically named fields by every
+// caller (see the 3 Desired{} call sites), not read from Instance
+// directly, since amneziawgnet has no dependency on internal/amneziawg
+// beyond the plain data types it already imports. Zero-value DeviceOptions
+// means amneziawg-go's own real-protocol defaults throughout: classic
+// (non-3.0) obfuscation, and its built-in session timings (120s/5s/180s/
+// 10s/18 attempts -- device/constants.go).
 type DeviceOptions struct {
 	// HeaderProtectionKey is a base64 32-byte key. Empty disables AWG 3.0
 	// header protection entirely. Non-empty requires every one of
 	// Obfuscation20.S1-S4 to be >= 12 (amneziawg-go's own HeaderCipherNonceSize
 	// requirement) -- IpcSet will reject the config otherwise.
 	HeaderProtectionKey string
-	// ContentPaddingAddition is a "low-high" range (or a bare integer) per
-	// amneziawg-tools' own u16_range_from_string grammar. Empty disables it.
+	// ContentPaddingAddition, RekeyAfterTime, RekeyTimeout, RejectAfterTime,
+	// KeepaliveTimeout, and MaxHandshakeAttempts are each a "low-high" range
+	// (or a bare integer), amneziawg-go's own UintRange.FromString grammar
+	// (confirmed directly against v3.0.3's device/uapi.go -- all six share
+	// the identical parser). Empty leaves that one field at amneziawg-go's
+	// own default.
 	ContentPaddingAddition string
+	RekeyAfterTime         string
+	RekeyTimeout           string
+	RejectAfterTime        string
+	KeepaliveTimeout       string
+	MaxHandshakeAttempts   string
 	// Logger is passed to device.NewDevice as-is; nil uses a silent logger
 	// (device.NewLogger(device.LogLevelSilent, "")).
 	Logger *device.Logger
@@ -151,6 +161,21 @@ func buildUAPIConfig(inst amneziawg.Instance, opts DeviceOptions) (string, error
 	}
 	if opts.ContentPaddingAddition != "" {
 		fmt.Fprintf(&b, "content_padding_addition=%s\n", opts.ContentPaddingAddition)
+	}
+	if opts.RekeyAfterTime != "" {
+		fmt.Fprintf(&b, "rekey_after_time=%s\n", opts.RekeyAfterTime)
+	}
+	if opts.RekeyTimeout != "" {
+		fmt.Fprintf(&b, "rekey_timeout=%s\n", opts.RekeyTimeout)
+	}
+	if opts.RejectAfterTime != "" {
+		fmt.Fprintf(&b, "reject_after_time=%s\n", opts.RejectAfterTime)
+	}
+	if opts.KeepaliveTimeout != "" {
+		fmt.Fprintf(&b, "keepalive_timeout=%s\n", opts.KeepaliveTimeout)
+	}
+	if opts.MaxHandshakeAttempts != "" {
+		fmt.Fprintf(&b, "max_handshake_attempts=%s\n", opts.MaxHandshakeAttempts)
 	}
 
 	for _, p := range inst.Peers {

@@ -72,6 +72,22 @@ type Instance struct {
 	HeaderProtectionKey    string
 	ContentPaddingAddition string
 
+	// RekeyAfterTime, RekeyTimeout, RejectAfterTime, KeepaliveTimeout, and
+	// MaxHandshakeAttempts are AmneziaWG 3.0's five device-wide session-
+	// timing fields -- each a "low-high" range or bare integer (identical
+	// grammar/width to H1-H4 and ContentPaddingAddition above; confirmed
+	// against amneziawg-go v3.0.3's device/uapi.go, which parses all of
+	// these through the same UintRange.FromString), left empty (the
+	// default) to keep amneziawg-go's own real-protocol defaults: 120s,
+	// 5s, 180s, 10s, and 18 attempts respectively (device/constants.go).
+	// Like HeaderProtectionKey, these are opt-in tuning knobs, never
+	// auto-generated as part of the classic obfuscation set.
+	RekeyAfterTime       string
+	RekeyTimeout         string
+	RejectAfterTime      string
+	KeepaliveTimeout     string
+	MaxHandshakeAttempts string
+
 	Peers []Peer
 
 	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
@@ -171,6 +187,17 @@ type ServerSettings struct {
 	// same grammar as H1-H4 but capped at uint16 max.
 	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
 	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
+
+	// RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/
+	// MaxHandshakeAttempts mirror Instance's identically named fields --
+	// see that type's own doc comment for the grammar/width/real-default
+	// details. Flat and top-level for the same tools/openapigen reason as
+	// the rest of this struct.
+	RekeyAfterTime       string `json:"rekeyAfterTime,omitempty"`
+	RekeyTimeout         string `json:"rekeyTimeout,omitempty"`
+	RejectAfterTime      string `json:"rejectAfterTime,omitempty"`
+	KeepaliveTimeout     string `json:"keepaliveTimeout,omitempty"`
+	MaxHandshakeAttempts string `json:"maxHandshakeAttempts,omitempty"`
 
 	// AwgVersion is the admin-declared AmneziaWG protocol-version ceiling
 	// for this inbound: AwgVersion2 (default) or AwgVersion3. Purely a

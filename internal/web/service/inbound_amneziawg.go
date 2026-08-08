@@ -220,14 +220,36 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateContentPaddingAddition(parsed.Server.ContentPaddingAddition); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	for _, tf := range [...]struct {
+		field string
+		value string
+	}{
+		{"rekeyAfterTime", parsed.Server.RekeyAfterTime},
+		{"rekeyTimeout", parsed.Server.RekeyTimeout},
+		{"rejectAfterTime", parsed.Server.RejectAfterTime},
+		{"keepaliveTimeout", parsed.Server.KeepaliveTimeout},
+		{"maxHandshakeAttempts", parsed.Server.MaxHandshakeAttempts},
+	} {
+		if err := amneziawg.ValidateConfigValue(tf.field, tf.value); err != nil {
+			return fmt.Errorf("amneziawg: %w", err)
+		}
+		if err := amneziawg.ValidateAwgTimerValue(tf.field, tf.value); err != nil {
+			return fmt.Errorf("amneziawg: %w", err)
+		}
+	}
 	// EffectiveAwgVersion first, so a record saved before AwgVersion existed
-	// (already has a working HeaderProtectionKey/ContentPaddingAddition with
-	// an empty AwgVersion) is treated as already-opted-into-3 and persisted
-	// that way from here on, instead of ValidateAwgVersion rejecting an
-	// existing, working configuration the next time it's saved unrelated to
-	// this field.
-	parsed.Server.AwgVersion = amneziawg.EffectiveAwgVersion(parsed.Server.AwgVersion, parsed.Server.HeaderProtectionKey, parsed.Server.ContentPaddingAddition)
-	if err := amneziawg.ValidateAwgVersion(parsed.Server.AwgVersion, parsed.Server.HeaderProtectionKey, parsed.Server.ContentPaddingAddition); err != nil {
+	// (already has a working AWG3-only field with an empty AwgVersion) is
+	// treated as already-opted-into-3 and persisted that way from here on,
+	// instead of ValidateAwgVersion rejecting an existing, working
+	// configuration the next time it's saved unrelated to this field.
+	awg3Fields := []string{
+		parsed.Server.HeaderProtectionKey, parsed.Server.ContentPaddingAddition,
+		parsed.Server.RekeyAfterTime, parsed.Server.RekeyTimeout,
+		parsed.Server.RejectAfterTime, parsed.Server.KeepaliveTimeout,
+		parsed.Server.MaxHandshakeAttempts,
+	}
+	parsed.Server.AwgVersion = amneziawg.EffectiveAwgVersion(parsed.Server.AwgVersion, awg3Fields...)
+	if err := amneziawg.ValidateAwgVersion(parsed.Server.AwgVersion, awg3Fields...); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 

@@ -54,22 +54,24 @@ export const AWG_VERSION_2 = '2';
 export const AWG_VERSION_3 = '3';
 
 // effectiveAwgVersion mirrors internal/amneziawg.EffectiveAwgVersion exactly:
-// an inbound saved before the awgVersion field existed can already have
-// headerProtectionKey/contentPaddingAddition set with no awgVersion at all
+// an inbound saved before the awgVersion field existed can already have one
+// of the AWG3-only fields (headerProtectionKey, contentPaddingAddition, or
+// any of the 5 device-timer fields) set with no awgVersion at all
 // (rawInboundToFormValues casts the stored settings JSON verbatim, with no
-// schema-default pass on read). Treating a blank awgVersion alongside either
-// AWG3 field as already-opted-into-3 means the edit form's version Select
-// shows what's actually in effect, instead of defaulting to "2" and the very
-// next unrelated save getting rejected by the backend's own
-// ValidateAwgVersion consistency check. Only an explicitly blank awgVersion
-// is promoted this way -- an explicit, non-"3" value is returned as-is so
-// the backend's own error can surface the real inconsistency.
+// schema-default pass on read). Treating a blank awgVersion alongside any of
+// those as already-opted-into-3 means the edit form's version Select shows
+// what's actually in effect, instead of defaulting to "2" and the very next
+// unrelated save getting rejected by the backend's own ValidateAwgVersion
+// consistency check. Only an explicitly blank awgVersion is promoted this
+// way -- an explicit, non-"3" value is returned as-is so the backend's own
+// error can surface the real inconsistency. awg3Fields takes every AWG3-only
+// field's current value, in any order (only "is at least one non-empty"
+// matters) -- mirrors the Go side's own variadic signature.
 export function effectiveAwgVersion(
   awgVersion: string | undefined,
-  headerProtectionKey: string | undefined,
-  contentPaddingAddition: string | undefined,
+  ...awg3Fields: (string | undefined)[]
 ): string {
-  if (!awgVersion && (headerProtectionKey || contentPaddingAddition)) {
+  if (!awgVersion && awg3Fields.some((f) => !!f)) {
     return AWG_VERSION_3;
   }
   return awgVersion || AWG_VERSION_2;
@@ -109,6 +111,16 @@ export const AmneziawgServerSchema = z.object({
   // copy. headerProtectionKey requires s1-s4 above to all be >= 12.
   headerProtectionKey: z.string().default(''),
   contentPaddingAddition: z.string().default(''),
+  // The 5 AWG3 device-timer fields: same "low-high"/bare-integer grammar as
+  // h1-h4/contentPaddingAddition. Empty leaves that one field at
+  // amneziawg-go's own real-protocol default (rekeyAfterTime 120s,
+  // rekeyTimeout 5s, rejectAfterTime 180s, keepaliveTimeout 10s,
+  // maxHandshakeAttempts 18).
+  rekeyAfterTime: z.string().default(''),
+  rekeyTimeout: z.string().default(''),
+  rejectAfterTime: z.string().default(''),
+  keepaliveTimeout: z.string().default(''),
+  maxHandshakeAttempts: z.string().default(''),
 });
 export type AmneziawgServer = z.infer<typeof AmneziawgServerSchema>;
 

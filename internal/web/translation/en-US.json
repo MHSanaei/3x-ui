@@ -1811,8 +1811,9 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Generating a QUIC signature requires HTTPS (or localhost) -- this connection doesn't expose the Web Crypto API needed for it.",
+        "awg3Advanced": "AmneziaWG 3.0 Advanced",
         "awgVersion": "AmneziaWG protocol version",
-        "awgVersionHint": "The version ceiling this inbound declares. Raise to 3.0 to enable Header Protection Key / Content Padding Addition below -- both require this to be set to 3.0 first.",
+        "awgVersionHint": "The version ceiling this inbound declares. Raise to 3.0 to enable the fields below (Header Protection Key, Content Padding Addition, and the device-timer fields) -- all of them require this to be set to 3.0 first.",
         "awgVersionOptions": {
           "2": "2.0",
           "3": "3.0"
@@ -1820,7 +1821,17 @@
         "headerProtectionKey": "Header Protection Key (3.0)",
         "headerProtectionKeyHint": "Requires the version above to be set to 3.0. Optional and off by default. A 32-byte key shared with every peer -- enabling or changing it is a compatibility-breaking change for every existing peer on this interface (like a protocol-version bump): a mismatched or one-sided key means every handshake fails, not just weaker obfuscation. Requires S1-S4 above to all be at least 12. Leave empty to keep classic (non-3.0) behavior.",
         "contentPaddingAddition": "Content Padding Addition (3.0)",
-        "contentPaddingAdditionHint": "Requires the version above to be set to 3.0. A single integer or a low-high range of extra random padding bytes added to each transport packet. Leave empty to disable."
+        "contentPaddingAdditionHint": "Requires the version above to be set to 3.0. A single integer or a low-high range of extra random padding bytes added to each transport packet. Leave empty to disable.",
+        "rekeyAfterTime": "Rekey After Time (3.0)",
+        "rekeyAfterTimeHint": "Requires the version above to be set to 3.0. Session rekey interval in seconds -- a single integer or a low-high range. amneziawg-go's own real default is 120s. Leave empty to keep it.",
+        "rekeyTimeout": "Rekey Timeout (3.0)",
+        "rekeyTimeoutHint": "Requires the version above to be set to 3.0. Handshake retry interval in seconds -- a single integer or a low-high range. Real default is 5s. Leave empty to keep it.",
+        "rejectAfterTime": "Reject After Time (3.0)",
+        "rejectAfterTimeHint": "Requires the version above to be set to 3.0. Session expiry in seconds -- a single integer or a low-high range. Real default is 180s. Leave empty to keep it.",
+        "keepaliveTimeout": "Keepalive Timeout (3.0)",
+        "keepaliveTimeoutHint": "Requires the version above to be set to 3.0. Persistent-keepalive interval in seconds -- a single integer or a low-high range. Real default is 10s. Leave empty to keep it.",
+        "maxHandshakeAttempts": "Max Handshake Attempts (3.0)",
+        "maxHandshakeAttemptsHint": "Requires the version above to be set to 3.0. Maximum handshake retries before giving up -- a single integer or a low-high range. Real default is 18. Leave empty to keep it."
       },
       "tun": {
         "userLevel": "User Level"

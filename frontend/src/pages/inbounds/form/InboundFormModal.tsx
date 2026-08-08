@@ -101,6 +101,11 @@ const labelWithHint = (label: string, hint: string) => (
 );
 
 const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label: p }));
+// The 5 AWG3 device-timer field names, gated by amgVersion the same way as
+// headerProtectionKey/contentPaddingAddition (see onAwgVersionChange).
+const AWG_TIMER_FIELDS = [
+  'rekeyAfterTime', 'rekeyTimeout', 'rejectAfterTime', 'keepaliveTimeout', 'maxHandshakeAttempts',
+] as const;
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
 const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const SHARE_ADDR_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
@@ -375,6 +380,9 @@ export default function InboundFormModal({
     if (version !== AWG_VERSION_3) {
       setV('settings.server.headerProtectionKey', '');
       setV('settings.server.contentPaddingAddition', '');
+      for (const field of AWG_TIMER_FIELDS) {
+        setV(`settings.server.${field}`, '');
+      }
     }
   };
 
@@ -394,6 +402,25 @@ export default function InboundFormModal({
     // should be enough to make the save succeed.
     setV('settings.server.awgVersion', AWG_VERSION_3);
   };
+
+  // Fills one AWG3 device-timer field with a random "low-high" window
+  // jittered around amneziawg-go's own real protocol default (see
+  // amneziawg.tsx's own hint copy for each field's exact default), and
+  // raises awgVersion to "3" -- same "one click is enough" reasoning as
+  // regenInboundAwgHeaderProtectionKey above, since all 5 of these are
+  // gated by the identical amneziawg.ValidateAwgVersion check.
+  const regenAwgTimerField = (field: string, center: number, spread: number) => {
+    const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
+    const lo = Math.max(1, center - randInt(1, spread));
+    const hi = lo + randInt(Math.max(1, Math.floor(spread / 2)), spread * 2);
+    setV(`settings.server.${field}`, `${lo}-${hi}`);
+    setV('settings.server.awgVersion', AWG_VERSION_3);
+  };
+  const regenInboundAwgRekeyAfterTime = () => regenAwgTimerField('rekeyAfterTime', 120, 20);
+  const regenInboundAwgRekeyTimeout = () => regenAwgTimerField('rekeyTimeout', 5, 3);
+  const regenInboundAwgRejectAfterTime = () => regenAwgTimerField('rejectAfterTime', 180, 20);
+  const regenInboundAwgKeepaliveTimeout = () => regenAwgTimerField('keepaliveTimeout', 10, 6);
+  const regenInboundAwgMaxHandshakeAttempts = () => regenAwgTimerField('maxHandshakeAttempts', 18, 6);
 
   // Which mimicry profile the next I1 generate click uses -- UI-only state,
   // never persisted (the backend only ever sees the resulting CPS chain,
@@ -535,6 +562,7 @@ export default function InboundFormModal({
           server.awgVersion as string | undefined,
           server.headerProtectionKey as string | undefined,
           server.contentPaddingAddition as string | undefined,
+          ...AWG_TIMER_FIELDS.map((f) => server[f] as string | undefined),
         );
       }
     }
@@ -848,6 +876,11 @@ export default function InboundFormModal({
           regenInboundAwgHeaderProtectionKey={regenInboundAwgHeaderProtectionKey}
           regenInboundAwgContentPaddingAddition={regenInboundAwgContentPaddingAddition}
           onAwgVersionChange={onAwgVersionChange}
+          regenInboundAwgRekeyAfterTime={regenInboundAwgRekeyAfterTime}
+          regenInboundAwgRekeyTimeout={regenInboundAwgRekeyTimeout}
+          regenInboundAwgRejectAfterTime={regenInboundAwgRejectAfterTime}
+          regenInboundAwgKeepaliveTimeout={regenInboundAwgKeepaliveTimeout}
+          regenInboundAwgMaxHandshakeAttempts={regenInboundAwgMaxHandshakeAttempts}
           i1Profile={i1Profile}
           onI1ProfileChange={setI1Profile}
           regenInboundAwgI1={regenInboundAwgI1}

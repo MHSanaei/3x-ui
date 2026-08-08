@@ -657,10 +657,15 @@ export interface ServerSettings {
   jc: number;
   jmax: number;
   jmin: number;
+  keepaliveTimeout?: string;
+  maxHandshakeAttempts?: string;
   mtu?: number;
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
+  rejectAfterTime?: string;
+  rekeyAfterTime?: string;
+  rekeyTimeout?: string;
   routeThroughXray?: boolean;
   s1: number;
   s2: number;

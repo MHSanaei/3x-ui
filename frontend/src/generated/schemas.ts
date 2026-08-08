@@ -2889,6 +2889,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "jmin": {
         "type": "integer"
       },
+      "keepaliveTimeout": {
+        "type": "string"
+      },
+      "maxHandshakeAttempts": {
+        "type": "string"
+      },
       "mtu": {
         "type": "integer"
       },
@@ -2900,6 +2906,16 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "publicKey": {
+        "type": "string"
+      },
+      "rejectAfterTime": {
+        "type": "string"
+      },
+      "rekeyAfterTime": {
+        "description": "RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/\nMaxHandshakeAttempts mirror Instance's identically named fields --\nsee that type's own doc comment for the grammar/width/real-default\ndetails. Flat and top-level for the same tools/openapigen reason as\nthe rest of this struct.",
+        "type": "string"
+      },
+      "rekeyTimeout": {
         "type": "string"
       },
       "routeThroughXray": {

@@ -1694,8 +1694,9 @@
           "stun": "STUN"
         },
         "i1QuicUnsupported": "Gerar uma assinatura QUIC requer HTTPS (ou localhost) -- esta conexão não expõe a API Web Crypto necessária para isso.",
+        "awg3Advanced": "AmneziaWG 3.0 Avançado",
         "awgVersion": "Versão do protocolo AmneziaWG",
-        "awgVersionHint": "O limite de versão que este inbound declara. Aumente para 3.0 para habilitar a Chave de Proteção de Cabeçalho / Preenchimento Adicional de Conteúdo abaixo -- ambos exigem que isto esteja em 3.0 primeiro.",
+        "awgVersionHint": "O limite de versão que este inbound declara. Aumente para 3.0 para habilitar os campos abaixo (Chave de Proteção de Cabeçalho, Preenchimento Adicional de Conteúdo e os campos de temporizador do dispositivo) -- todos exigem que isto esteja em 3.0 primeiro.",
         "awgVersionOptions": {
           "2": "2.0",
           "3": "3.0"
@@ -1703,7 +1704,17 @@
         "headerProtectionKey": "Chave de Proteção de Cabeçalho (3.0)",
         "headerProtectionKeyHint": "Requer que a versão acima esteja definida como 3.0. Opcional e desativado por padrão. Uma chave de 32 bytes compartilhada com todos os peers -- ativá-la ou alterá-la é uma mudança que quebra a compatibilidade com todos os peers existentes nesta interface (como uma mudança de versão de protocolo): uma chave incompatível ou definida em apenas um lado faz com que todo handshake falhe, não apenas uma ofuscação mais fraca. Requer que S1-S4 acima estejam todos com pelo menos 12. Deixe vazio para manter o comportamento clássico (não 3.0).",
         "contentPaddingAddition": "Preenchimento Adicional de Conteúdo (3.0)",
-        "contentPaddingAdditionHint": "Requer que a versão acima esteja definida como 3.0. Um único número inteiro ou um intervalo low-high de bytes de preenchimento aleatório adicionados a cada pacote de transporte. Deixe vazio para desativar."
+        "contentPaddingAdditionHint": "Requer que a versão acima esteja definida como 3.0. Um único número inteiro ou um intervalo low-high de bytes de preenchimento aleatório adicionados a cada pacote de transporte. Deixe vazio para desativar.",
+        "rekeyAfterTime": "Tempo de Renovação de Chave (3.0)",
+        "rekeyAfterTimeHint": "Requer que a versão acima esteja definida como 3.0. Intervalo de renovação da chave de sessão em segundos -- um único número inteiro ou um intervalo low-high. O padrão real do amneziawg-go é 120s. Deixe vazio para mantê-lo.",
+        "rekeyTimeout": "Tempo Limite de Renovação de Chave (3.0)",
+        "rekeyTimeoutHint": "Requer que a versão acima esteja definida como 3.0. Intervalo de nova tentativa de handshake em segundos -- um único número inteiro ou um intervalo low-high. O padrão real é 5s. Deixe vazio para mantê-lo.",
+        "rejectAfterTime": "Tempo de Expiração da Sessão (3.0)",
+        "rejectAfterTimeHint": "Requer que a versão acima esteja definida como 3.0. Tempo de expiração da sessão em segundos -- um único número inteiro ou um intervalo low-high. O padrão real é 180s. Deixe vazio para mantê-lo.",
+        "keepaliveTimeout": "Tempo Limite de Keepalive (3.0)",
+        "keepaliveTimeoutHint": "Requer que a versão acima esteja definida como 3.0. Intervalo de keepalive persistente em segundos -- um único número inteiro ou um intervalo low-high. O padrão real é 10s. Deixe vazio para mantê-lo.",
+        "maxHandshakeAttempts": "Máx. Tentativas de Handshake (3.0)",
+        "maxHandshakeAttemptsHint": "Requer que a versão acima esteja definida como 3.0. Número máximo de novas tentativas de handshake antes de desistir -- um único número inteiro ou um intervalo low-high. O padrão real é 18. Deixe vazio para mantê-lo."
       },
       "tun": {
         "userLevel": "Nível do Usuário"

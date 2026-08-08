@@ -323,6 +323,11 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       awgVersion: AWG_VERSION_2,
       headerProtectionKey: '',
       contentPaddingAddition: '',
+      rekeyAfterTime: '',
+      rekeyTimeout: '',
+      rejectAfterTime: '',
+      keepaliveTimeout: '',
+      maxHandshakeAttempts: '',
     },
     clients: [],
   };
