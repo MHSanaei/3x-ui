@@ -41,6 +41,20 @@ export const Collapsed: Story = {
     await userEvent.click(canvas.getByText('vless'));
     const configText = await canvas.findByText(/vless:\/\/11112222/);
     await waitFor(() => expect(configText).toBeVisible());
+    // Ant Design's Collapse fades its panel in via rc-motion
+    // (ant-motion-collapse-enter -> -enter-active), animating that
+    // ancestor's opacity from 0 to 1; toBeVisible() above doesn't require
+    // the animation to have finished, only that it isn't hidden outright.
+    // addon-a11y's own afterEach color-contrast scan runs right after this
+    // play function returns, and factors in ancestor opacity when computing
+    // the effective foreground/background it reports -- scanning mid-fade
+    // reads as a real but spurious contrast violation (reproduced 3x in CI
+    // with an identical foreground/background reading, confirmed via a live
+    // getComputedStyle inspection: the ant-collapse-panel ancestor's opacity
+    // was still 0 right as the enter transition started). Wait for that
+    // ancestor to actually finish fading in before returning.
+    const panel = configText.closest('.ant-collapse-panel');
+    await waitFor(() => expect(panel && getComputedStyle(panel).opacity).toBe('1'));
     await expect(canvas.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Download' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'QR Code' })).toBeVisible();
