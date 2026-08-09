@@ -165,7 +165,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ### SSO / OIDC login (optional)
 
-Set `XUI_OAUTH_ISSUER` **and** `XUI_OAUTH_CLIENT_ID` to enable single sign-on through any OpenID Connect provider (Keycloak, Authentik, Authelia, Google, Azure AD, Okta, …). A group claim in the ID token maps the caller to a tier: members of the admin group get the full panel, while members of a user group are auto-provisioned a client and get a self-service cabinet showing only their own connection (links, QR, traffic).
+Set `XUI_OAUTH_ISSUER` **and** `XUI_OAUTH_CLIENT_ID` to enable single sign-on through any OpenID Connect provider (Keycloak, Authentik, Authelia, Google, Azure AD, Okta, …). A group claim in the ID token maps the caller to a tier: members of the admin group get the full panel, while members of a user group are auto-provisioned a client and get a self-service cabinet showing only their own connection (links, QR, traffic). A background job (~every 5 min) also attaches existing users to inbounds added after they logged in, so a new matching inbound reaches them without a re-login.
 
 | Variable | Description | Default |
 | --- | --- | --- |

@@ -109,6 +109,82 @@ func TestEnsureUserClient_AttachesToEveryMatchingRemark(t *testing.T) {
 	}
 }
 
+func TestEnsureUserClient_AttachesToInboundAddedLater(t *testing.T) {
+	setupBulkDB(t)
+	ib1 := seedInbound(t, "vpn", 24301)
+	prov := &OAuthProvisionService{}
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	cfg := config.OAuthConfig{UserInboundRemarks: []string{"vpn"}}
+
+	sub1, _, err := prov.EnsureUserClient(inboundSvc, clientSvc, cfg, "carol@corp")
+	if err != nil {
+		t.Fatalf("first login: %v", err)
+	}
+	if c := reloadClients(t, ib1.Id); len(c) != 1 {
+		t.Fatalf("inbound1 clients after first login = %d, want 1", len(c))
+	}
+
+	ib2 := seedInbound(t, "vpn", 24302)
+	sub2, _, err := prov.EnsureUserClient(inboundSvc, clientSvc, cfg, "carol@corp")
+	if err != nil {
+		t.Fatalf("second login: %v", err)
+	}
+	if sub2 != sub1 {
+		t.Fatalf("subId changed on re-login: %q -> %q", sub1, sub2)
+	}
+	c1 := reloadClients(t, ib1.Id)
+	c2 := reloadClients(t, ib2.Id)
+	if len(c1) != 1 {
+		t.Fatalf("inbound1 clients = %d, want 1 (no duplicate)", len(c1))
+	}
+	if len(c2) != 1 || c2[0].Email != "carol@corp" || c2[0].SubID != sub1 {
+		t.Fatalf("newly added inbound2 should carry the same client: %+v", c2)
+	}
+}
+
+func TestReconcileAll_AttachesToMissingInboundsIdempotently(t *testing.T) {
+	setupBulkDB(t)
+	ib1 := seedInbound(t, "vpn", 24401)
+	ibOther := seedInbound(t, "other", 24402)
+	prov := &OAuthProvisionService{}
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	cfg := config.OAuthConfig{UserInboundRemarks: []string{"vpn"}}
+
+	sub, _, err := prov.EnsureUserClient(inboundSvc, clientSvc, cfg, "dave@corp")
+	if err != nil {
+		t.Fatalf("provision: %v", err)
+	}
+
+	ib2 := seedInbound(t, "vpn", 24403)
+
+	attached, _, err := prov.ReconcileAll(inboundSvc, clientSvc, cfg)
+	if err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	if attached != 1 {
+		t.Fatalf("attached = %d, want 1", attached)
+	}
+	if c := reloadClients(t, ib2.Id); len(c) != 1 || c[0].Email != "dave@corp" || c[0].SubID != sub {
+		t.Fatalf("new inbound should carry the client: %+v", c)
+	}
+	if c := reloadClients(t, ib1.Id); len(c) != 1 {
+		t.Fatalf("original inbound clients = %d, want 1 (no duplicate)", len(c))
+	}
+	if c := reloadClients(t, ibOther.Id); len(c) != 0 {
+		t.Fatalf("non-target inbound must stay untouched, got %+v", c)
+	}
+
+	attached2, _, err := prov.ReconcileAll(inboundSvc, clientSvc, cfg)
+	if err != nil {
+		t.Fatalf("second reconcile: %v", err)
+	}
+	if attached2 != 0 {
+		t.Fatalf("steady-state reconcile attached = %d, want 0", attached2)
+	}
+}
+
 func TestEnsureUserClient_Errors(t *testing.T) {
 	setupBulkDB(t)
 	seedInbound(t, "oauth-users", 24101)

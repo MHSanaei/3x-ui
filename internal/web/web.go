@@ -298,6 +298,7 @@ const (
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm    = "@every 1m"
 	cadenceMemoryAlarm = "@every 1m"
+	cadenceOAuthSync   = "@every 5m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -363,6 +364,11 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		j := job.NewLdapSyncJob()
 		// job has zero-value services with method receivers that read settings on demand
 		_, _ = s.cron.AddJob(runtime, j)
+	}
+
+	// OIDC sync: attach user-tier clients to inbounds added after they logged in.
+	if config.OAuthEnabled() {
+		_, _ = s.cron.AddJob(cadenceOAuthSync, job.NewOAuthSyncJob())
 	}
 
 	// Telegram-bot–dependent jobs: periodic stats report + callback-hash cleanup.
