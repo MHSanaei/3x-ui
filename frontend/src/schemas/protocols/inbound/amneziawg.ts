@@ -100,7 +100,13 @@ export const AmneziawgServerSchema = z.object({
   h2: z.string().default(''),
   h3: z.string().default(''),
   h4: z.string().default(''),
+  // i1-i5 are the real protocol's five CPS signature-packet slots (i1
+  // shipped first; i2-i5 are the same grammar, the remaining four slots).
   i1: z.string().default(''),
+  i2: z.string().default(''),
+  i3: z.string().default(''),
+  i4: z.string().default(''),
+  i5: z.string().default(''),
   // awgVersion is the admin-declared protocol-version ceiling: AWG_VERSION_2
   // (default) or AWG_VERSION_3. headerProtectionKey/contentPaddingAddition
   // below require this to be AWG_VERSION_3 -- see effectiveAwgVersion above

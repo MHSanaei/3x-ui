@@ -44,7 +44,7 @@ import { AWG_VERSION_3, effectiveAwgVersion } from '@/schemas/protocols/inbound/
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
-import { genI1, isQuicI1Supported, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import { CPS_SLOTS, type CpsSlot, genI1, isQuicI1Supported, type I1ProfileChoice } from '@/lib/xray/i1Generators';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
@@ -422,23 +422,29 @@ export default function InboundFormModal({
   const regenInboundAwgKeepaliveTimeout = () => regenAwgTimerField('keepaliveTimeout', 10, 6);
   const regenInboundAwgMaxHandshakeAttempts = () => regenAwgTimerField('maxHandshakeAttempts', 18, 6);
 
-  // Which mimicry profile the next I1 generate click uses -- UI-only state,
-  // never persisted (the backend only ever sees the resulting CPS chain,
-  // not which profile produced it, exactly like the reference
-  // implementation this was ported from).
-  const [i1Profile, setI1Profile] = useState<I1ProfileChoice>('random');
-  const regenInboundAwgI1 = async () => {
+  // Which mimicry profile the next generate click uses, one choice per CPS
+  // slot (i1-i5) -- UI-only state, never persisted (the backend only ever
+  // sees the resulting CPS chain, not which profile produced it, exactly
+  // like the reference implementation this was ported from).
+  const [cpsProfiles, setCpsProfiles] = useState<Record<CpsSlot, I1ProfileChoice>>({
+    i1: 'random', i2: 'random', i3: 'random', i4: 'random', i5: 'random',
+  });
+  const onCpsProfileChange = (slot: CpsSlot, profile: I1ProfileChoice) => {
+    setCpsProfiles((prev) => ({ ...prev, [slot]: profile }));
+  };
+  const onRegenCps = async (slot: CpsSlot) => {
+    const profile = cpsProfiles[slot];
     // 'quic' builds a real AES-GCM/HKDF-sealed packet via crypto.subtle,
     // which needs a secure context (HTTPS or localhost). A 'random' pick
     // that lands on quic degrades silently (genI1 excludes quic from its
     // own pool when unsupported) -- but an admin who explicitly chose
     // quic should get a clear reason, not a button that quietly no-ops.
-    if (i1Profile === 'quic' && !isQuicI1Supported()) {
+    if (profile === 'quic' && !isQuicI1Supported()) {
       messageApi.error(t('pages.xray.amneziawg.i1QuicUnsupported'));
       return;
     }
-    const result = await genI1(i1Profile);
-    if (result) setV('settings.server.i1', result.chain);
+    const result = await genI1(profile);
+    if (result) setV(`settings.server.${slot}`, result.chain);
   };
 
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
@@ -477,8 +483,6 @@ export default function InboundFormModal({
       return `${start}-${end}`;
     });
 
-    const i1 = `<r ${randInt(32, 256)}>`;
-
     setV('settings.server.jc', jc);
     setV('settings.server.jmin', jmin);
     setV('settings.server.jmax', jmax);
@@ -490,7 +494,9 @@ export default function InboundFormModal({
     setV('settings.server.h2', hRanges[1]);
     setV('settings.server.h3', hRanges[2]);
     setV('settings.server.h4', hRanges[3]);
-    setV('settings.server.i1', i1);
+    for (const slot of CPS_SLOTS) {
+      setV(`settings.server.${slot}`, `<r ${randInt(32, 256)}>`);
+    }
   };
 
   const matchesVlessAuth = (
@@ -881,9 +887,9 @@ export default function InboundFormModal({
           regenInboundAwgRejectAfterTime={regenInboundAwgRejectAfterTime}
           regenInboundAwgKeepaliveTimeout={regenInboundAwgKeepaliveTimeout}
           regenInboundAwgMaxHandshakeAttempts={regenInboundAwgMaxHandshakeAttempts}
-          i1Profile={i1Profile}
-          onI1ProfileChange={setI1Profile}
-          regenInboundAwgI1={regenInboundAwgI1}
+          cpsProfiles={cpsProfiles}
+          onCpsProfileChange={onCpsProfileChange}
+          onRegenCps={onRegenCps}
         />
       )}
 

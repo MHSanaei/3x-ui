@@ -211,6 +211,18 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateConfigValue("i1", parsed.Server.I1); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	if err := amneziawg.ValidateConfigValue("i2", parsed.Server.I2); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateConfigValue("i3", parsed.Server.I3); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateConfigValue("i4", parsed.Server.I4); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
+	if err := amneziawg.ValidateConfigValue("i5", parsed.Server.I5); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
 	if err := amneziawg.ValidateConfigValue("headerProtectionKey", parsed.Server.HeaderProtectionKey); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}

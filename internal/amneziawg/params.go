@@ -93,8 +93,14 @@ func GenerateObfuscation20(preset string) Obfuscation20 {
 	h := generateHRanges()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
-	// CPS signature packet: N random bytes prepended before each handshake.
+	// CPS signature packets: N random bytes prepended before each handshake
+	// message. Each of the 5 slots is randomized independently, same as
+	// H1-H4 above.
 	o.I1 = fmt.Sprintf("<r %d>", randInt(32, 256))
+	o.I2 = fmt.Sprintf("<r %d>", randInt(32, 256))
+	o.I3 = fmt.Sprintf("<r %d>", randInt(32, 256))
+	o.I4 = fmt.Sprintf("<r %d>", randInt(32, 256))
+	o.I5 = fmt.Sprintf("<r %d>", randInt(32, 256))
 
 	return o
 }

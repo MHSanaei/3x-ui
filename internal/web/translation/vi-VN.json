@@ -1684,6 +1684,10 @@
         "h4": "H4 (tiêu đề ma thuật)",
         "hHint": "Một số nguyên hoặc một khoảng. Để trống để dùng giá trị mặc định cổ điển 1/2/3/4.",
         "i1": "I1 (gói chữ ký, 2.0)",
+        "i2": "I2 (gói chữ ký, 2.0)",
+        "i3": "I3 (gói chữ ký, 2.0)",
+        "i4": "I4 (gói chữ ký, 2.0)",
+        "i5": "I5 (gói chữ ký, 2.0)",
         "i1Hint": "Chỉ dành cho AmneziaWG 2.0. Để trống để tương thích với 1.x.",
         "i1Profile": "Hồ sơ ngụy trang",
         "i1ProfileOptions": {

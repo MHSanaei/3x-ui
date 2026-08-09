@@ -41,12 +41,14 @@ func TestGenerateObfuscation20DefaultRanges(t *testing.T) {
 				t.Fatalf("%s is empty, want a generated range", name)
 			}
 		}
-		if !strings.HasPrefix(o.I1, "<r ") || !strings.HasSuffix(o.I1, ">") {
-			t.Fatalf("I1 = %q, want \"<r N>\" form", o.I1)
-		}
-		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(o.I1, "<r "), ">"))
-		if err != nil || n < 32 || n > 256 {
-			t.Fatalf("I1 = %q, embedded N must be an integer in [32,256]", o.I1)
+		for name, i := range map[string]string{"I1": o.I1, "I2": o.I2, "I3": o.I3, "I4": o.I4, "I5": o.I5} {
+			if !strings.HasPrefix(i, "<r ") || !strings.HasSuffix(i, ">") {
+				t.Fatalf("%s = %q, want \"<r N>\" form", name, i)
+			}
+			n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(i, "<r "), ">"))
+			if err != nil || n < 32 || n > 256 {
+				t.Fatalf("%s = %q, embedded N must be an integer in [32,256]", name, i)
+			}
 		}
 	}
 }

@@ -21,6 +21,15 @@ describe('AmneziawgServerSchema — awgVersion default', () => {
     expect(parsed.keepaliveTimeout).toBe('');
     expect(parsed.maxHandshakeAttempts).toBe('');
   });
+
+  it('defaults all 5 CPS signature-packet slots (i1-i5) to an empty string', () => {
+    const parsed = AmneziawgServerSchema.parse({});
+    expect(parsed.i1).toBe('');
+    expect(parsed.i2).toBe('');
+    expect(parsed.i3).toBe('');
+    expect(parsed.i4).toBe('');
+    expect(parsed.i5).toBe('');
+  });
 });
 
 describe('effectiveAwgVersion', () => {

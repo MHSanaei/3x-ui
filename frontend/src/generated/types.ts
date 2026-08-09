@@ -651,6 +651,10 @@ export interface ServerSettings {
   h4: string;
   headerProtectionKey?: string;
   i1?: string;
+  i2?: string;
+  i3?: string;
+  i4?: string;
+  i5?: string;
   ipv6Enabled?: boolean;
   ipv6ExternalInterface?: string;
   ipv6Subnet?: string;

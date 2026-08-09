@@ -2870,6 +2870,18 @@ export const SCHEMAS: Record<string, unknown> = {
       "i1": {
         "type": "string"
       },
+      "i2": {
+        "type": "string"
+      },
+      "i3": {
+        "type": "string"
+      },
+      "i4": {
+        "type": "string"
+      },
+      "i5": {
+        "type": "string"
+      },
       "ipv6Enabled": {
         "type": "boolean"
       },

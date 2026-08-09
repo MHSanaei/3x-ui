@@ -4,7 +4,7 @@ import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from
 import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
-import { I1_PROFILE_CHOICES, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import { CPS_SLOTS, I1_PROFILE_CHOICES, type CpsSlot, type I1ProfileChoice } from '@/lib/xray/i1Generators';
 import { AWG_VERSION_2, AWG_VERSION_3 } from '@/schemas/protocols/inbound/amneziawg';
 import AwgDiagnosticsModal from '@/pages/inbounds/form/AwgDiagnosticsModal';
 
@@ -21,9 +21,11 @@ interface AmneziawgFieldsProps {
   regenInboundAwgRejectAfterTime: () => void;
   regenInboundAwgKeepaliveTimeout: () => void;
   regenInboundAwgMaxHandshakeAttempts: () => void;
-  i1Profile: I1ProfileChoice;
-  onI1ProfileChange: (profile: I1ProfileChoice) => void;
-  regenInboundAwgI1: () => void;
+  // One mimicry-profile choice per CPS slot (i1-i5) -- keyed by CpsSlot so a
+  // single generate row (see the CPS_SLOTS.map below) covers all five.
+  cpsProfiles: Record<CpsSlot, I1ProfileChoice>;
+  onCpsProfileChange: (slot: CpsSlot, profile: I1ProfileChoice) => void;
+  onRegenCps: (slot: CpsSlot) => void;
 }
 
 export default function AmneziawgFields({
@@ -39,9 +41,9 @@ export default function AmneziawgFields({
   regenInboundAwgRejectAfterTime,
   regenInboundAwgKeepaliveTimeout,
   regenInboundAwgMaxHandshakeAttempts,
-  i1Profile,
-  onI1ProfileChange,
-  regenInboundAwgI1,
+  cpsProfiles,
+  onCpsProfileChange,
+  onRegenCps,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -155,27 +157,32 @@ export default function AmneziawgFields({
       <FormField name={['settings', 'server', 'h4']} label={t('pages.xray.amneziawg.h4')}>
         <Input placeholder="4 or 100-800" />
       </FormField>
-      <Form.Item
-        label={t('pages.xray.amneziawg.i1')}
-        extra={t('pages.xray.amneziawg.i1Hint')}
-      >
-        <Space.Compact block style={{ display: 'flex' }}>
-          <Select
-            aria-label={t('pages.xray.amneziawg.i1Profile')}
-            value={i1Profile}
-            onChange={onI1ProfileChange}
-            style={{ width: 120 }}
-            options={I1_PROFILE_CHOICES.map((profile) => ({
-              value: profile,
-              label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),
-            }))}
-          />
-          <FormField name={['settings', 'server', 'i1']} noStyle>
-            <Input placeholder="<r 64>" style={{ flex: 1 }} />
-          </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgI1} />
-        </Space.Compact>
-      </Form.Item>
+      {CPS_SLOTS.map((slot, index) => (
+        <Form.Item
+          key={slot}
+          label={t(`pages.xray.amneziawg.${slot}`)}
+          // Only the first slot repeats the hint -- same "explain once,
+          // number the rest" convention as H1-H4 above.
+          extra={index === 0 ? t('pages.xray.amneziawg.i1Hint') : undefined}
+        >
+          <Space.Compact block style={{ display: 'flex' }}>
+            <Select
+              aria-label={t('pages.xray.amneziawg.i1Profile')}
+              value={cpsProfiles[slot]}
+              onChange={(profile) => onCpsProfileChange(slot, profile)}
+              style={{ width: 120 }}
+              options={I1_PROFILE_CHOICES.map((profile) => ({
+                value: profile,
+                label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),
+              }))}
+            />
+            <FormField name={['settings', 'server', slot]} noStyle>
+              <Input placeholder="<r 64>" style={{ flex: 1 }} />
+            </FormField>
+            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => onRegenCps(slot)} />
+          </Space.Compact>
+        </Form.Item>
+      ))}
       <Divider style={{ margin: '0 0 14px 0' }}>{t('pages.xray.amneziawg.awg3Advanced')}</Divider>
       <FormField
         name={['settings', 'server', 'awgVersion']}

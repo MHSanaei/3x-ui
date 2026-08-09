@@ -1,10 +1,14 @@
-// AmneziaWG I1 (CPS signature packet) generators -- ported from the
-// algorithms in vernette/warpscout's i1gen.go/quic.go (MIT), not the code
-// itself. I1's whole point is DPI plausibility, not entropy: a chain that
-// looks like a real DNS/STUN/SIP/QUIC packet (randomness only where real
-// traffic of that kind would actually have it -- transaction IDs, nonces,
-// padding, TLS Random, AEAD tags) is far harder to fingerprint than a blob
-// of pure random bytes.
+// AmneziaWG CPS signature-packet generators -- ported from the algorithms in
+// vernette/warpscout's i1gen.go/quic.go (MIT), not the code itself. The real
+// protocol has five independent CPS slots (i1-i5, confirmed against
+// amneziawg-go v3.0.3's device/uapi.go: five separate UAPI setters,
+// device.ipackets[0..4]) -- genI1 (kept that name; it shipped first, before
+// i2-i5 existed) generates a chain for any of them, the caller decides which
+// UAPI field the result is stored into. A generated chain's whole point is
+// DPI plausibility, not entropy: one that looks like a real DNS/STUN/SIP/
+// QUIC packet (randomness only where real traffic of that kind would
+// actually have it -- transaction IDs, nonces, padding, TLS Random, AEAD
+// tags) is far harder to fingerprint than a blob of pure random bytes.
 
 const DNS_LABEL_MAX = 63;
 const DNS_PAD_MIN = 60;
@@ -25,6 +29,12 @@ export type I1Profile = 'dns' | 'quic' | 'sip' | 'stun';
 export type I1ProfileChoice = I1Profile | 'random';
 
 export const I1_PROFILE_CHOICES: I1ProfileChoice[] = ['random', 'dns', 'quic', 'sip', 'stun'];
+
+// The 5 real CPS UAPI slots, in order -- shared by amneziawg.tsx (renders
+// one identically-shaped generate row per slot) and InboundFormModal.tsx
+// (keys the per-slot profile-choice state and regen handler).
+export const CPS_SLOTS = ['i1', 'i2', 'i3', 'i4', 'i5'] as const;
+export type CpsSlot = (typeof CPS_SLOTS)[number];
 
 function randRange(min: number, max: number): number {
   return min + Math.floor(Math.random() * (max - min + 1));

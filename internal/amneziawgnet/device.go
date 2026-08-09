@@ -165,7 +165,7 @@ func hostAddresses(addresses []string) ([]netip.Addr, error) {
 
 // buildUAPIConfig renders inst (plus opts' AWG 3.0 fields) as a WireGuard
 // UAPI "set" configuration string -- private_key/listen_port/jc.../s1-s4/
-// h1-h4/i1 device lines, the AWG 3.0 device lines when opts asks for them,
+// h1-h4/i1-i5 device lines, the AWG 3.0 device lines when opts asks for them,
 // then one public_key/preshared_key/allowed_ip block per peer. Field names
 // and format match amneziawg-go v3.0.3's device/uapi.go exactly (confirmed
 // against its real source during Phase 0 spiking, not just its docs).
@@ -186,13 +186,15 @@ func buildUAPIConfig(inst amneziawg.Instance, opts DeviceOptions) (string, error
 	o := inst.Obfuscation
 	fmt.Fprintf(&b, "jc=%d\njmin=%d\njmax=%d\n", o.Jc, o.Jmin, o.Jmax)
 	fmt.Fprintf(&b, "s1=%d\ns2=%d\ns3=%d\ns4=%d\n", o.S1, o.S2, o.S3, o.S4)
-	writeHLine(&b, "h1", o.H1)
-	writeHLine(&b, "h2", o.H2)
-	writeHLine(&b, "h3", o.H3)
-	writeHLine(&b, "h4", o.H4)
-	if o.I1 != "" {
-		fmt.Fprintf(&b, "i1=%s\n", o.I1)
-	}
+	writeOptionalLine(&b, "h1", o.H1)
+	writeOptionalLine(&b, "h2", o.H2)
+	writeOptionalLine(&b, "h3", o.H3)
+	writeOptionalLine(&b, "h4", o.H4)
+	writeOptionalLine(&b, "i1", o.I1)
+	writeOptionalLine(&b, "i2", o.I2)
+	writeOptionalLine(&b, "i3", o.I3)
+	writeOptionalLine(&b, "i4", o.I4)
+	writeOptionalLine(&b, "i5", o.I5)
 
 	if opts.HeaderProtectionKey != "" {
 		hpHex, err := wireguard.KeyToHex(opts.HeaderProtectionKey)
@@ -241,10 +243,11 @@ func buildUAPIConfig(inst amneziawg.Instance, opts DeviceOptions) (string, error
 	return b.String(), nil
 }
 
-// writeHLine writes an hN UAPI line only when v is set -- an empty H value
-// means "let amneziawg-go fall back to its own default," mirroring how
-// internal/amneziawg's generateServerConfig treats the same optional field.
-func writeHLine(b *strings.Builder, name, v string) {
+// writeOptionalLine writes a "name=v" UAPI line only when v is set -- used for
+// h1-h4 and i1-i5, whose empty value means "let amneziawg-go fall back to its
+// own default," mirroring how internal/amneziawg's generateServerConfig
+// treats the same optional fields.
+func writeOptionalLine(b *strings.Builder, name, v string) {
 	if v == "" {
 		return
 	}

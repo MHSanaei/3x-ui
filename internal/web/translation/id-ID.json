@@ -1684,6 +1684,10 @@
         "h4": "H4 (header ajaib)",
         "hHint": "Satu bilangan bulat atau rentang. Biarkan kosong untuk nilai klasik 1/2/3/4.",
         "i1": "I1 (paket tanda tangan, 2.0)",
+        "i2": "I2 (paket tanda tangan, 2.0)",
+        "i3": "I3 (paket tanda tangan, 2.0)",
+        "i4": "I4 (paket tanda tangan, 2.0)",
+        "i5": "I5 (paket tanda tangan, 2.0)",
         "i1Hint": "Hanya untuk AmneziaWG 2.0. Biarkan kosong untuk kompatibilitas dengan 1.x.",
         "i1Profile": "Profil penyamaran",
         "i1ProfileOptions": {

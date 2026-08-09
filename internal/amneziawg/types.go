@@ -23,7 +23,17 @@ type Obfuscation20 struct {
 	H2   string `json:"h2"`
 	H3   string `json:"h3"`
 	H4   string `json:"h4"`
-	I1   string `json:"i1,omitempty"`
+	// I1-I5 are the real protocol's five CPS signature-packet slots
+	// (confirmed against amneziawg-go v3.0.3's device/uapi.go: "i1"
+	// through "i5" are five independent UAPI setters, device.ipackets[0..4],
+	// all parsed via the identical newObfChain grammar) -- I1 shipped
+	// first (Phase 3.8); I2-I5 are the same grammar, just the remaining
+	// four slots.
+	I1 string `json:"i1,omitempty"`
+	I2 string `json:"i2,omitempty"`
+	I3 string `json:"i3,omitempty"`
+	I4 string `json:"i4,omitempty"`
+	I5 string `json:"i5,omitempty"`
 }
 
 // Peer is one desired AmneziaWG peer: a client device the interface accepts.
@@ -174,6 +184,10 @@ type ServerSettings struct {
 	H3   string `json:"h3"`
 	H4   string `json:"h4"`
 	I1   string `json:"i1,omitempty"`
+	I2   string `json:"i2,omitempty"`
+	I3   string `json:"i3,omitempty"`
+	I4   string `json:"i4,omitempty"`
+	I5   string `json:"i5,omitempty"`
 
 	// HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0
 	// fields, flat and top-level for the same tools/openapigen reason as
@@ -220,7 +234,7 @@ func (s ServerSettings) Obfuscation() Obfuscation20 {
 		Jc: s.Jc, Jmin: s.Jmin, Jmax: s.Jmax,
 		S1: s.S1, S2: s.S2, S3: s.S3, S4: s.S4,
 		H1: s.H1, H2: s.H2, H3: s.H3, H4: s.H4,
-		I1: s.I1,
+		I1: s.I1, I2: s.I2, I3: s.I3, I4: s.I4, I5: s.I5,
 	}
 }
 

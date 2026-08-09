@@ -62,6 +62,10 @@ export function buildAmneziaWGClientConfig(
   lines.push(hLine('H3', server?.h3, '3'));
   lines.push(hLine('H4', server?.h4, '4'));
   if (server?.i1) lines.push(`I1 = ${server.i1}`);
+  if (server?.i2) lines.push(`I2 = ${server.i2}`);
+  if (server?.i3) lines.push(`I3 = ${server.i3}`);
+  if (server?.i4) lines.push(`I4 = ${server.i4}`);
+  if (server?.i5) lines.push(`I5 = ${server.i5}`);
   // AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
   // server's value exactly, or every handshake fails outright (not just
   // weaker obfuscation).
