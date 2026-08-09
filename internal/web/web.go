@@ -367,9 +367,8 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	}
 
 	// OIDC sync: attach user-tier clients to inbounds added after they logged in.
-	if config.OAuthEnabled() {
-		_, _ = s.cron.AddJob(cadenceOAuthSync, job.NewOAuthSyncJob())
-	}
+	// Always scheduled; the job no-ops when SSO is not enabled (env or settings).
+	_, _ = s.cron.AddJob(cadenceOAuthSync, job.NewOAuthSyncJob())
 
 	// Telegram-bot–dependent jobs: periodic stats report + callback-hash cleanup.
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()

@@ -1343,7 +1343,32 @@
         "pathLeadingSlash": "Путь должен начинаться с /"
       },
       "secretClear": "Очистить",
-      "secretClearUndo": "Отменить очистку"
+      "secretClearUndo": "Отменить очистку",
+      "oauth": {
+        "enable": "Включить вход через OIDC",
+        "issuer": "URL провайдера (Issuer)",
+        "issuerDesc": "Discovery-URL OIDC-провайдера. Задайте его и Client ID, чтобы включить SSO.",
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "secretConfigured": "Секрет сохранён. Оставьте пустым, чтобы не менять.",
+        "secretUnconfigured": "Секрет не задан.",
+        "secretPlaceholder": "без изменений",
+        "redirectUrl": "Redirect URL",
+        "redirectUrlDesc": "Callback-URL, зарегистрированный у провайдера. Пусто — выводится из запроса.",
+        "adminGroup": "Группа администраторов",
+        "adminGroupDesc": "Участники получают полный доступ к панели.",
+        "userGroup": "Пользовательская группа(ы)",
+        "userGroupDesc": "Участники получают личный кабинет. Через запятую.",
+        "userInboundRemark": "Примечание(я) инбаундов",
+        "userInboundRemarkDesc": "Примечания инбаундов, куда автосоздаётся клиент. Через запятую.",
+        "userTotalGb": "Лимит трафика (ГБ)",
+        "userExpiryDays": "Срок действия (дней)",
+        "userLimitIp": "Лимит устройств/IP",
+        "scopes": "Scopes",
+        "groupsClaim": "Claim групп",
+        "usernameClaim": "Claim имени пользователя",
+        "envManaged": "Задано переменной окружения (только чтение)."
+      }
     },
     "xray": {
       "importRules": "Импорт правил",

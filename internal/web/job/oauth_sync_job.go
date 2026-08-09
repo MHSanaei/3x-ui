@@ -1,15 +1,15 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // OAuthSyncJob periodically attaches OIDC user-tier clients to inbounds added
-// after they logged in, so a new inbound (matching XUI_OAUTH_USER_INBOUND_REMARK)
-// reaches existing users without a re-login. It only attaches, never removes.
+// after they logged in, so a new matching inbound reaches existing users without
+// a re-login. It only attaches, never removes.
 type OAuthSyncJob struct {
+	settingService service.SettingService
 	inboundService service.InboundService
 	clientService  service.ClientService
 	xrayService    service.XrayService
@@ -23,10 +23,10 @@ func NewOAuthSyncJob() *OAuthSyncJob {
 
 // Run reconciles user-tier clients across the configured inbound remarks.
 func (j *OAuthSyncJob) Run() {
-	if !config.OAuthEnabled() {
+	if !j.settingService.OAuthEnabledEffective() {
 		return
 	}
-	cfg := config.GetOAuthConfig()
+	cfg := j.settingService.GetEffectiveOAuthConfig()
 	if len(cfg.UserInboundRemarks) == 0 {
 		return
 	}

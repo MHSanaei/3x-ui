@@ -17,16 +17,16 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 )
 
-// getOAuthEnable reports whether OIDC login is configured, so the login page can
-// show the SSO button. The value comes from the environment, not the DB.
+// getOAuthEnable reports whether OIDC login is active (env or stored settings),
+// so the login page can show the SSO button.
 func (a *IndexController) getOAuthEnable(c *gin.Context) {
-	jsonObj(c, config.OAuthEnabled(), nil)
+	jsonObj(c, a.settingService.OAuthEnabledEffective(), nil)
 }
 
 // oauthLogin starts the OIDC Authorization-Code + PKCE flow: it mints per-login
 // state/nonce/verifier, stores them on the session, and redirects to the IdP.
 func (a *IndexController) oauthLogin(c *gin.Context) {
-	if !config.OAuthEnabled() {
+	if !a.settingService.OAuthEnabledEffective() {
 		c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		return
 	}
@@ -54,7 +54,7 @@ func (a *IndexController) oauthLogin(c *gin.Context) {
 // oauthCallback completes the flow: it validates state, exchanges the code,
 // verifies the ID token, maps the caller to a role, and opens a session.
 func (a *IndexController) oauthCallback(c *gin.Context) {
-	if !config.OAuthEnabled() {
+	if !a.settingService.OAuthEnabledEffective() {
 		c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		return
 	}
@@ -93,7 +93,7 @@ func (a *IndexController) oauthCallback(c *gin.Context) {
 		return
 	}
 
-	cfg := config.GetOAuthConfig()
+	cfg := a.settingService.GetEffectiveOAuthConfig()
 	role := resolveRole(identity, cfg)
 	remoteIP := getRemoteIp(c)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
@@ -249,23 +249,28 @@ func resolveRole(id *oauth.Identity, cfg config.OAuthConfig) string {
 	return ""
 }
 
-// oauthProviderFor lazily builds and caches the OIDC provider, resolving the
-// redirect URL from the environment or, if unset, from the incoming request.
+// oauthProviderFor lazily builds and caches the OIDC provider from the effective
+// config, resolving the redirect URL from settings or the incoming request. The
+// cache is rebuilt when the issuer/client/scopes/redirect change, so editing the
+// settings in the UI takes effect without a restart.
 func (a *IndexController) oauthProviderFor(c *gin.Context) (*oauth.Provider, error) {
-	a.oauthMu.Lock()
-	defer a.oauthMu.Unlock()
-	if a.oauthProvider != nil {
-		return a.oauthProvider, nil
-	}
-	cfg := config.GetOAuthConfig()
+	cfg := a.settingService.GetEffectiveOAuthConfig()
 	if cfg.RedirectURL == "" {
 		cfg.RedirectURL = deriveRedirectURL(c)
+	}
+	sig := strings.Join([]string{cfg.Issuer, cfg.ClientID, cfg.ClientSecret, cfg.RedirectURL, strings.Join(cfg.Scopes, ",")}, "\x00")
+
+	a.oauthMu.Lock()
+	defer a.oauthMu.Unlock()
+	if a.oauthProvider != nil && a.oauthSig == sig {
+		return a.oauthProvider, nil
 	}
 	provider, err := oauth.NewProvider(c.Request.Context(), cfg)
 	if err != nil {
 		return nil, err
 	}
 	a.oauthProvider = provider
+	a.oauthSig = sig
 	return provider, nil
 }
 

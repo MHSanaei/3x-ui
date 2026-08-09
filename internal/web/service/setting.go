@@ -151,6 +151,23 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultExpiryDays":  "0",
 	"ldapDefaultLimitIP":     "0",
 
+	// OIDC / OAuth2 defaults. Any matching XUI_OAUTH_* env var overrides the
+	// stored value and locks the field read-only in the UI.
+	"oauthEnable":            "false",
+	"oauthIssuer":            "",
+	"oauthClientId":          "",
+	"oauthClientSecret":      "",
+	"oauthRedirectUrl":       "",
+	"oauthScopes":            "openid,profile,email,groups",
+	"oauthGroupsClaim":       "groups",
+	"oauthUsernameClaim":     "email",
+	"oauthAdminGroup":        "",
+	"oauthUserGroup":         "",
+	"oauthUserInboundRemark": "",
+	"oauthUserTotalGB":       "0",
+	"oauthUserExpiryDays":    "0",
+	"oauthUserLimitIP":       "0",
+
 	// Event bus — per-subscriber event filtering (empty = all disabled)
 	"tgEnabledEvents":   "login.attempt,cpu.high",
 	"smtpEnabledEvents": "login.attempt,cpu.high",
@@ -276,11 +293,62 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
 	}
+	oauthEnv := config.OAuthEnvValues()
+	view.HasOauthClientSecret = secretConfigured(oauthEnv["oauthClientSecret"]) || secretConfigured(allSetting.OauthClientSecret)
+	view.OauthEnvLocked = s.OAuthEnvLocks()
+	applyOauthEnvOverrides(view, oauthEnv)
+
 	view.TgBotToken = ""
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	view.SmtpPassword = ""
+	view.OauthClientSecret = ""
 	return view, nil
+}
+
+// applyOauthEnvOverrides shows the live env value for each env-pinned OAuth field
+// so the read-only UI displays what the flow actually uses. The secret is never
+// echoed; only HasOauthClientSecret / the lock flag are surfaced.
+func applyOauthEnvOverrides(view *entity.AllSettingView, env map[string]string) {
+	if v, ok := env["oauthIssuer"]; ok {
+		view.OauthIssuer = v
+	}
+	if v, ok := env["oauthClientId"]; ok {
+		view.OauthClientId = v
+	}
+	if v, ok := env["oauthRedirectUrl"]; ok {
+		view.OauthRedirectUrl = v
+	}
+	if v, ok := env["oauthScopes"]; ok {
+		view.OauthScopes = v
+	}
+	if v, ok := env["oauthGroupsClaim"]; ok {
+		view.OauthGroupsClaim = v
+	}
+	if v, ok := env["oauthUsernameClaim"]; ok {
+		view.OauthUsernameClaim = v
+	}
+	if v, ok := env["oauthAdminGroup"]; ok {
+		view.OauthAdminGroup = v
+	}
+	if v, ok := env["oauthUserGroup"]; ok {
+		view.OauthUserGroup = v
+	}
+	if v, ok := env["oauthUserInboundRemark"]; ok {
+		view.OauthUserInboundRemark = v
+	}
+	if v, ok := env["oauthUserTotalGB"]; ok {
+		view.OauthUserTotalGB, _ = strconv.Atoi(strings.TrimSpace(v))
+	}
+	if v, ok := env["oauthUserExpiryDays"]; ok {
+		view.OauthUserExpiryDays, _ = strconv.Atoi(strings.TrimSpace(v))
+	}
+	if v, ok := env["oauthUserLimitIP"]; ok {
+		view.OauthUserLimitIP, _ = strconv.Atoi(strings.TrimSpace(v))
+	}
+	if view.OauthEnvLocked["oauthEnable"] {
+		view.OauthEnable = true
+	}
 }
 
 func secretConfigured(value string) bool {
@@ -1037,6 +1105,63 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
 }
 
+// OIDC / OAuth2 stored settings. Effective values (env override) come from
+// GetEffectiveOAuthConfig; these are the raw DB values.
+
+func (s *SettingService) GetOauthEnable() (bool, error) { return s.getBool("oauthEnable") }
+
+func (s *SettingService) GetOauthIssuer() (string, error) {
+	return s.getString("oauthIssuer")
+}
+
+func (s *SettingService) GetOauthClientId() (string, error) {
+	return s.getString("oauthClientId")
+}
+
+func (s *SettingService) GetOauthClientSecret() (string, error) {
+	return s.getString("oauthClientSecret")
+}
+
+func (s *SettingService) GetOauthRedirectUrl() (string, error) {
+	return s.getString("oauthRedirectUrl")
+}
+
+func (s *SettingService) GetOauthScopes() (string, error) {
+	return s.getString("oauthScopes")
+}
+
+func (s *SettingService) GetOauthGroupsClaim() (string, error) {
+	return s.getString("oauthGroupsClaim")
+}
+
+func (s *SettingService) GetOauthUsernameClaim() (string, error) {
+	return s.getString("oauthUsernameClaim")
+}
+
+func (s *SettingService) GetOauthAdminGroup() (string, error) {
+	return s.getString("oauthAdminGroup")
+}
+
+func (s *SettingService) GetOauthUserGroup() (string, error) {
+	return s.getString("oauthUserGroup")
+}
+
+func (s *SettingService) GetOauthUserInboundRemark() (string, error) {
+	return s.getString("oauthUserInboundRemark")
+}
+
+func (s *SettingService) GetOauthUserTotalGB() (int, error) {
+	return s.getInt("oauthUserTotalGB")
+}
+
+func (s *SettingService) GetOauthUserExpiryDays() (int, error) {
+	return s.getInt("oauthUserExpiryDays")
+}
+
+func (s *SettingService) GetOauthUserLimitIP() (int, error) {
+	return s.getInt("oauthUserLimitIP")
+}
+
 // Event bus — per-subscriber event filtering
 
 func (s *SettingService) GetTgEnabledEvents() (string, error) {
@@ -1160,15 +1285,17 @@ func (s *SettingService) SetOutboundDownThreshold(value int) error {
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
 type SecretClears struct {
-	TgBotToken   bool
-	LdapPassword bool
-	SmtpPassword bool
+	TgBotToken        bool
+	LdapPassword      bool
+	SmtpPassword      bool
+	OauthClientSecret bool
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
+	s.enforceOauthEnvLocks(allSetting)
 	if err := validateSettingsURLs(allSetting); err != nil {
 		return err
 	}
@@ -1271,6 +1398,13 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, 
 			return err
 		}
 		allSetting.LdapPassword = value
+	}
+	if !clears.OauthClientSecret && strings.TrimSpace(allSetting.OauthClientSecret) == "" {
+		value, err := s.GetOauthClientSecret()
+		if err != nil {
+			return err
+		}
+		allSetting.OauthClientSecret = value
 	}
 	if allSetting.TwoFactorEnable && strings.TrimSpace(allSetting.TwoFactorToken) == "" {
 		value, err := s.GetTwoFactorToken()

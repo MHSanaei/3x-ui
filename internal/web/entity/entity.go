@@ -128,19 +128,39 @@ type AllSetting struct {
 	LdapDefaultExpiryDays  int    `json:"ldapDefaultExpiryDays" form:"ldapDefaultExpiryDays" validate:"gte=0"`
 	LdapDefaultLimitIP     int    `json:"ldapDefaultLimitIP" form:"ldapDefaultLimitIP" validate:"gte=0"`
 
+	OauthEnable            bool   `json:"oauthEnable" form:"oauthEnable"`
+	OauthIssuer            string `json:"oauthIssuer" form:"oauthIssuer"`
+	OauthClientId          string `json:"oauthClientId" form:"oauthClientId"`
+	OauthClientSecret      string `json:"oauthClientSecret" form:"oauthClientSecret"`
+	OauthRedirectUrl       string `json:"oauthRedirectUrl" form:"oauthRedirectUrl"`
+	OauthScopes            string `json:"oauthScopes" form:"oauthScopes"`
+	OauthGroupsClaim       string `json:"oauthGroupsClaim" form:"oauthGroupsClaim"`
+	OauthUsernameClaim     string `json:"oauthUsernameClaim" form:"oauthUsernameClaim"`
+	OauthAdminGroup        string `json:"oauthAdminGroup" form:"oauthAdminGroup"`
+	OauthUserGroup         string `json:"oauthUserGroup" form:"oauthUserGroup"`
+	OauthUserInboundRemark string `json:"oauthUserInboundRemark" form:"oauthUserInboundRemark"`
+	OauthUserTotalGB       int    `json:"oauthUserTotalGB" form:"oauthUserTotalGB" validate:"gte=0"`
+	OauthUserExpiryDays    int    `json:"oauthUserExpiryDays" form:"oauthUserExpiryDays" validate:"gte=0"`
+	OauthUserLimitIP       int    `json:"oauthUserLimitIP" form:"oauthUserLimitIP" validate:"gte=0"`
+
 	WarpUpdateInterval int `json:"warpUpdateInterval" form:"warpUpdateInterval" validate:"gte=0"`
 }
 
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken     bool `json:"hasTgBotToken"`
-	HasTwoFactorToken bool `json:"hasTwoFactorToken"`
-	HasLdapPassword   bool `json:"hasLdapPassword"`
-	HasApiToken       bool `json:"hasApiToken"`
-	HasWarpSecret     bool `json:"hasWarpSecret"`
-	HasNordSecret     bool `json:"hasNordSecret"`
-	HasSmtpPassword   bool `json:"hasSmtpPassword"`
+	HasTgBotToken        bool `json:"hasTgBotToken"`
+	HasTwoFactorToken    bool `json:"hasTwoFactorToken"`
+	HasLdapPassword      bool `json:"hasLdapPassword"`
+	HasApiToken          bool `json:"hasApiToken"`
+	HasWarpSecret        bool `json:"hasWarpSecret"`
+	HasNordSecret        bool `json:"hasNordSecret"`
+	HasSmtpPassword      bool `json:"hasSmtpPassword"`
+	HasOauthClientSecret bool `json:"hasOauthClientSecret"`
+
+	// OauthEnvLocked marks OAuth settings whose value comes from a XUI_OAUTH_*
+	// env var; the UI shows them read-only. Keyed by the settings json key.
+	OauthEnvLocked map[string]bool `json:"oauthEnvLocked"`
 }
 
 func pathHasForbiddenChar(s string) bool {

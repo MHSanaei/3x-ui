@@ -99,7 +99,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/getOAuthEnable',
-        summary: 'Returns whether OIDC (SSO) login is configured via the XUI_OAUTH_* environment — the login page shows the SSO button when true.',
+        summary: 'Returns whether OIDC (SSO) login is active — configured via the XUI_OAUTH_* environment or the panel settings — so the login page can show the SSO button.',
         response: '{\n  "success": true,\n  "obj": false\n}',
       },
       {

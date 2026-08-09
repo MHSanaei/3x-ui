@@ -35,6 +35,7 @@ type IndexController struct {
 
 	oauthMu       sync.Mutex
 	oauthProvider *oauth.Provider
+	oauthSig      string
 }
 
 // NewIndexController creates a new IndexController and initializes its routes.
