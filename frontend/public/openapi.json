@@ -963,10 +963,17 @@
           "enabled": {
             "type": "boolean"
           },
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
           "id": {
             "type": "integer"
           },
           "name": {
+            "type": "string"
+          },
+          "scope": {
             "type": "string"
           },
           "token": {
@@ -977,8 +984,10 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
           "name",
+          "scope",
           "token"
         ],
         "type": "object"
@@ -994,12 +1003,21 @@
             "example": true,
             "type": "boolean"
           },
+          "expiresAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
           "id": {
             "example": 2,
             "type": "integer"
           },
           "name": {
             "example": "central-panel-a",
+            "type": "string"
+          },
+          "scope": {
+            "example": "admin",
             "type": "string"
           },
           "token": {
@@ -1010,8 +1028,10 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
-          "name"
+          "name",
+          "scope"
         ],
         "type": "object"
       },
@@ -10185,8 +10205,10 @@
                   "obj": {
                     "createdAt": 1736000000,
                     "enabled": true,
+                    "expiresAt": 0,
                     "id": 2,
                     "name": "central-panel-a",
+                    "scope": "admin",
                     "token": "new-token-string"
                   }
                 }

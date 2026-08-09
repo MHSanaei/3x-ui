@@ -216,7 +216,9 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 }
 
 type apiTokenCreateForm struct {
-	Name string `json:"name" form:"name"`
+	Name      string `json:"name" form:"name"`
+	Scope     string `json:"scope" form:"scope"`
+	ExpiresAt int64  `json:"expiresAt" form:"expiresAt"`
 }
 
 type apiTokenEnabledForm struct {
@@ -238,7 +240,7 @@ func (a *SettingController) createApiToken(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
-	row, err := a.apiTokenService.Create(form.Name)
+	row, err := a.apiTokenService.Create(form.Name, form.Scope, form.ExpiresAt)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
