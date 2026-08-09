@@ -381,9 +381,22 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "info")
 		return
 	}
+	if a.maybeServeSubPage(c) {
+		logSubscriptionRoute(userAgent, "html")
+		return
+	}
 	if !a.enforceHwid(c) {
 		return
 	}
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
+		logSubscriptionRoute(userAgent, "clash")
+		return
+	}
+	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+		logSubscriptionRoute(userAgent, "json")
+		return
+	}
+	logSubscriptionRoute(userAgent, "raw")
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)

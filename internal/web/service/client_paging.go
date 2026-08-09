@@ -459,9 +459,9 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 			continue
 		}
 		items = append(items, toClientSlim(ClientWithAttachments{
-			Client:     rec,
-			InboundIds: attachments[rec.Id],
-			Traffic:    trafficByEmail[rec.Email],
+			ClientRecord: *rec,
+			InboundIds:   attachments[rec.Id],
+			Traffic:      trafficByEmail[rec.Email],
 		}))
 	}
 	return items, nil

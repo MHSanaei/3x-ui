@@ -84,7 +84,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		if err == nil && !rec.Enable {
 			updated := rec.ToClient()
 			updated.Enable = true
-if _, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); uErr != nil {
+			if _, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); uErr != nil {
 				logger.Warning("Failed to auto-enable client during bulk traffic reset:", uErr)
 			}
 		}
