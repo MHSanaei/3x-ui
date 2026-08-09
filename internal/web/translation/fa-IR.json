@@ -1695,7 +1695,10 @@
           "dns": "DNS",
           "quic": "QUIC",
           "sip": "SIP",
-          "stun": "STUN"
+          "stun": "STUN",
+          "chrome": "Chrome",
+          "firefox": "Firefox",
+          "safari": "Safari"
         },
         "i1QuicUnsupported": "تولید امضای QUIC به HTTPS (یا localhost) نیاز دارد -- این اتصال Web Crypto API لازم برای آن را در اختیار نمی‌گذارد.",
         "awg3Advanced": "پیشرفتهٔ AmneziaWG ۳.۰",

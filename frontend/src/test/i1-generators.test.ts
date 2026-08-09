@@ -21,9 +21,76 @@ function bBlockHexLengths(chain: string): number[] {
   return [...chain.matchAll(/<b 0x([0-9a-f]+)>/g)].map((m) => m[1].length);
 }
 
+type ChainToken = { kind: 'bytes'; hex: string } | { kind: 'tag'; name: string; n: number };
+
+function tokenize(chain: string): ChainToken[] {
+  const tokens: ChainToken[] = [];
+  const re = /<b 0x([0-9a-f]+)>|<(\w+) (\d+)>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(chain)) !== null) {
+    if (m[1] !== undefined) tokens.push({ kind: 'bytes', hex: m[1] });
+    else tokens.push({ kind: 'tag', name: m[2], n: Number(m[3]) });
+  }
+  return tokens;
+}
+
+function tokenByteLen(t: ChainToken): number {
+  return t.kind === 'bytes' ? t.hex.length / 2 : t.n;
+}
+
+function sumByteLen(tokens: ChainToken[]): number {
+  return tokens.reduce((s, t) => s + tokenByteLen(t), 0);
+}
+
+function isGreaseHex(hex4: string): boolean {
+  return /^([0-9a-f]a)\1$/.test(hex4);
+}
+
+// Shared by the 3 browser-fingerprint profiles below (they all go through
+// the same buildTlsClientHello wrapper): asserts the record/handshake/
+// extensions length *fields* actually match what follows them byte-for-byte
+// -- a real self-consistency check, not just "looks plausible" -- using
+// each <tag N> token's own declared size for the bytes hidden behind it.
+// Returns the negotiated cipher count/first-cipher hex and the raw
+// extension tokens so each profile's own test can do its distinguishing
+// spot-checks (GREASE presence, extension order, exact cipher count).
+function expectValidClientHello(chain: string): { cipherCount: number; firstCipherHex: string; extTokens: ChainToken[] } {
+  const tokens = tokenize(chain);
+
+  const record = tokens[0];
+  if (record.kind !== 'bytes') throw new Error('expected record header');
+  expect(record.hex.slice(0, 6)).toBe('160301'); // handshake(22), legacy record version 3.1
+  expect(parseInt(record.hex.slice(6, 10), 16)).toBe(sumByteLen(tokens.slice(1)));
+
+  const handshake = tokens[1];
+  if (handshake.kind !== 'bytes') throw new Error('expected handshake header');
+  expect(handshake.hex.slice(0, 2)).toBe('01'); // ClientHello
+  expect(parseInt(handshake.hex.slice(2, 8), 16)).toBe(sumByteLen(tokens.slice(2)));
+
+  expect(tokens[2]).toEqual({ kind: 'bytes', hex: '0303' }); // legacy_version: TLS 1.2 on the wire
+  expect(tokens[3]).toEqual({ kind: 'tag', name: 'r', n: 32 }); // Random
+  expect(tokens[4]).toEqual({ kind: 'bytes', hex: '20' }); // session_id length = 32
+  expect(tokens[5]).toEqual({ kind: 'tag', name: 'r', n: 32 }); // session_id
+
+  const cipherBlock = tokens[6];
+  if (cipherBlock.kind !== 'bytes') throw new Error('expected cipher_suites block');
+  const cipherDeclaredLen = parseInt(cipherBlock.hex.slice(0, 4), 16);
+  expect(cipherBlock.hex.length / 2 - 2).toBe(cipherDeclaredLen);
+  expect(cipherDeclaredLen % 2).toBe(0);
+
+  expect(tokens[7]).toEqual({ kind: 'bytes', hex: '0100' }); // compression_methods: len=1, null method
+
+  const extLenPrefix = tokens[8];
+  if (extLenPrefix.kind !== 'bytes') throw new Error('expected extensions length prefix');
+  const extTokens = tokens.slice(9);
+  expect(parseInt(extLenPrefix.hex, 16)).toBe(sumByteLen(extTokens));
+
+  return { cipherCount: cipherDeclaredLen / 2, firstCipherHex: cipherBlock.hex.slice(4, 8), extTokens };
+}
+
 describe('I1_PROFILE_CHOICES', () => {
-  it('lists random plus the four implemented profiles, random first', () => {
-    expect(I1_PROFILE_CHOICES).toEqual(['random', 'dns', 'quic', 'sip', 'stun']);
+  it('lists random plus the seven implemented profiles, random first', () => {
+    expect(I1_PROFILE_CHOICES).toEqual(['random', 'dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari']);
   });
 });
 
@@ -170,13 +237,112 @@ describe('genI1 — quic profile', () => {
   });
 });
 
+// The byte layouts below (extension order/ids, cipher lists, GREASE
+// placement) were cross-checked against refraction-networking/utls's own
+// real captured-ClientHello test fixtures (ClientHello-JSON-{Chrome102,
+// Firefox105,iOS14}.json), not the code itself. These tests assert the
+// wire format is self-consistent (via expectValidClientHello) plus the
+// handful of details that actually distinguish one browser from another,
+// not a full byte-for-byte re-derivation.
+describe('genI1 — chrome profile', () => {
+  it('produces a self-consistent ClientHello: 16 cipher suites, first one GREASE', async () => {
+    const result = await genI1('chrome', 'chrome-test.example');
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('chrome(chrome-test.example)');
+    const { cipherCount, firstCipherHex } = expectValidClientHello(result!.chain);
+    expect(cipherCount).toBe(16);
+    expect(isGreaseHex(firstCipherHex)).toBe(true);
+  });
+
+  it('opens on a GREASE extension marker and closes on padding, with 3 32-byte random tags', async () => {
+    const result = await genI1('chrome', 'chrome-test.example');
+    const { extTokens } = expectValidClientHello(result!.chain);
+    const first = extTokens[0];
+    if (first.kind !== 'bytes') throw new Error('expected bytes');
+    expect(first.hex.length).toBe(8); // empty-body GREASE extension: type(2) + length=0(2)
+    expect(isGreaseHex(first.hex.slice(0, 4))).toBe(true);
+    expect(result!.chain.endsWith('<b 0x00150000>')).toBe(true); // padding: type=21, length=0
+    expect(result!.chain.match(/<r 32>/g)?.length).toBe(3); // Random, session_id, key_share x25519
+  });
+
+  it('embeds the real hostname in the server_name extension', async () => {
+    const result = await genI1('chrome', 'chrome-test.example');
+    expect(decodeChainAsText(result!.chain)).toContain('chrome-test.example');
+  });
+});
+
+describe('genI1 — firefox profile', () => {
+  it('produces a self-consistent ClientHello: 17 cipher suites, none GREASE (Firefox sends none)', async () => {
+    const result = await genI1('firefox', 'firefox-test.example');
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('firefox(firefox-test.example)');
+    const { cipherCount, firstCipherHex } = expectValidClientHello(result!.chain);
+    expect(cipherCount).toBe(17);
+    expect(firstCipherHex).toBe('1301'); // TLS_AES_128_GCM_SHA256, no GREASE prepended
+  });
+
+  it('opens on server_name (no GREASE) and closes on padding, with 4 32-byte random tags', async () => {
+    const result = await genI1('firefox', 'firefox-test.example');
+    const { extTokens } = expectValidClientHello(result!.chain);
+    const first = extTokens[0];
+    if (first.kind !== 'bytes') throw new Error('expected bytes');
+    expect(first.hex.startsWith('0000')).toBe(true); // server_name = extension type 0
+    expect(result!.chain.endsWith('<b 0x00150000>')).toBe(true); // padding: type=21, length=0
+    expect(result!.chain.match(/<r 32>/g)?.length).toBe(4); // Random, session_id, key_share x25519 + secp256r1
+  });
+
+  it('embeds the real hostname in the server_name extension', async () => {
+    const result = await genI1('firefox', 'firefox-test.example');
+    expect(decodeChainAsText(result!.chain)).toContain('firefox-test.example');
+  });
+});
+
+describe('genI1 — safari profile', () => {
+  it('produces a self-consistent ClientHello: 27 cipher suites, first one GREASE', async () => {
+    const result = await genI1('safari', 'safari-test.example');
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('safari(safari-test.example)');
+    const { cipherCount, firstCipherHex } = expectValidClientHello(result!.chain);
+    expect(cipherCount).toBe(27);
+    expect(isGreaseHex(firstCipherHex)).toBe(true);
+  });
+
+  it('opens on a GREASE extension marker and closes on padding, with 3 32-byte random tags', async () => {
+    const result = await genI1('safari', 'safari-test.example');
+    const { extTokens } = expectValidClientHello(result!.chain);
+    const first = extTokens[0];
+    if (first.kind !== 'bytes') throw new Error('expected bytes');
+    expect(isGreaseHex(first.hex.slice(0, 4))).toBe(true);
+    expect(result!.chain.endsWith('<b 0x00150000>')).toBe(true); // padding: type=21, length=0
+    expect(result!.chain.match(/<r 32>/g)?.length).toBe(3); // Random, session_id, key_share x25519
+  });
+
+  it('has no session_ticket extension (unlike Chrome/Firefox) and duplicates rsa_pss_rsae_sha384, matching the real iOS14 capture', async () => {
+    const result = await genI1('safari', 'safari-test.example');
+    const { extTokens } = expectValidClientHello(result!.chain);
+    // session_ticket = extension type 35 (0x0023); none of Safari's blocks should start with it.
+    for (const t of extTokens) {
+      if (t.kind === 'bytes') expect(t.hex.startsWith('0023')).toBe(false);
+    }
+    // signature_algorithms (type 13) carries rsa_pss_rsae_sha384 (0x0805) twice in a row.
+    const sigAlgBlock = extTokens.find((t) => t.kind === 'bytes' && t.hex.startsWith('000d')) as { hex: string } | undefined;
+    expect(sigAlgBlock).toBeDefined();
+    expect(sigAlgBlock!.hex).toContain('08050805'); // rsa_pss_rsae_sha384 (0x0805) back-to-back
+  });
+
+  it('embeds the real hostname in the server_name extension', async () => {
+    const result = await genI1('safari', 'safari-test.example');
+    expect(decodeChainAsText(result!.chain)).toContain('safari-test.example');
+  });
+});
+
 describe('genI1 — random meta-profile', () => {
-  it('always resolves to one of dns/quic/sip/stun and never throws, across many draws', async () => {
+  it('always resolves to one of the 7 implemented profiles and never throws, across many draws', async () => {
     for (let i = 0; i < 30; i++) {
       const result = await genI1('random');
       expect(result).not.toBeNull();
       const profile = result!.label.split('(')[0];
-      expect(['dns', 'quic', 'sip', 'stun']).toContain(profile);
+      expect(['dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari']).toContain(profile);
     }
   });
 
@@ -187,7 +353,7 @@ describe('genI1 — random meta-profile', () => {
         const result = await genI1('random');
         expect(result).not.toBeNull();
         const profile = result!.label.split('(')[0];
-        expect(['dns', 'sip', 'stun']).toContain(profile);
+        expect(['dns', 'sip', 'stun', 'chrome', 'firefox', 'safari']).toContain(profile);
       }
     } finally {
       vi.unstubAllGlobals();

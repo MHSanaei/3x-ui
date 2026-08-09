@@ -1695,7 +1695,10 @@
           "dns": "DNS",
           "quic": "QUIC",
           "sip": "SIP",
-          "stun": "STUN"
+          "stun": "STUN",
+          "chrome": "Chrome",
+          "firefox": "Firefox",
+          "safari": "Safari"
         },
         "i1QuicUnsupported": "QUIC imzası oluşturmak için HTTPS (veya localhost) gerekir -- bu bağlantı bunun için gereken Web Crypto API'sini sunmuyor.",
         "awg3Advanced": "AmneziaWG 3.0 Gelişmiş",

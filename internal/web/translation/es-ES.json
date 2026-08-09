@@ -1695,7 +1695,10 @@
           "dns": "DNS",
           "quic": "QUIC",
           "sip": "SIP",
-          "stun": "STUN"
+          "stun": "STUN",
+          "chrome": "Chrome",
+          "firefox": "Firefox",
+          "safari": "Safari"
         },
         "i1QuicUnsupported": "Generar una firma QUIC requiere HTTPS (o localhost) -- esta conexión no expone la API Web Crypto necesaria para ello.",
         "awg3Advanced": "AmneziaWG 3.0 Avanzado",

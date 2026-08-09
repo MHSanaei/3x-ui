@@ -1695,7 +1695,10 @@
           "dns": "DNS",
           "quic": "QUIC",
           "sip": "SIP",
-          "stun": "STUN"
+          "stun": "STUN",
+          "chrome": "Chrome",
+          "firefox": "Firefox",
+          "safari": "Safari"
         },
         "i1QuicUnsupported": "產生 QUIC 簽章需要 HTTPS(或 localhost)——此連線未提供所需的 Web Crypto API。",
         "awg3Advanced": "AmneziaWG 3.0 進階設定",

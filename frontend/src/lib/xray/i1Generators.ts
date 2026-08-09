@@ -25,10 +25,10 @@ const I1_HOSTS = [
   'yandex.ru', 'vk.com', 'mail.ru', 'ozon.ru', 'wildberries.ru', 'rutube.ru', 'gosuslugi.ru', 'sberbank.ru', 'tbank.ru',
 ];
 
-export type I1Profile = 'dns' | 'quic' | 'sip' | 'stun';
+export type I1Profile = 'dns' | 'quic' | 'sip' | 'stun' | 'chrome' | 'firefox' | 'safari';
 export type I1ProfileChoice = I1Profile | 'random';
 
-export const I1_PROFILE_CHOICES: I1ProfileChoice[] = ['random', 'dns', 'quic', 'sip', 'stun'];
+export const I1_PROFILE_CHOICES: I1ProfileChoice[] = ['random', 'dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari'];
 
 // The 5 real CPS UAPI slots, in order -- shared by amneziawg.tsx (renders
 // one identically-shaped generate row per slot) and InboundFormModal.tsx
@@ -405,6 +405,406 @@ async function genQuicI1(host: string): Promise<string> {
   return quicToCps(packet, parts);
 }
 
+// ---- Browser TLS 1.3 ClientHello fingerprint mimicry (Chrome/Firefox/Safari) ----
+//
+// A real TCP-style TLS record carrying a ClientHello, built to match one of
+// three specific real browsers byte-for-byte: extension order, cipher-suite
+// list, and GREASE placement all come from refraction-networking/utls
+// (BSD-3-Clause, a fork of Go's own crypto/tls) -- not the code itself, a
+// from-scratch port informed by reading the real Go source. Two kinds of
+// utls source were used: its own testdata/ClientHello-JSON-{Chrome102,
+// Firefox105,iOS14}.json fixtures (real captured ClientHellos, its own
+// golden test vectors, not just documentation) for the logical extension
+// order/content, and dicttls + u_tls_extensions.go + handshake_messages.go
+// for the exact wire-level numeric IDs and per-extension byte layouts. A
+// subtly wrong browser fingerprint reads as *more* suspicious to a
+// fingerprint-aware DPI than an honest non-browser packet (see this
+// section's own doc comment history for why this warranted going to the
+// primary source instead of trusting a paraphrase), so every extension
+// here matches one of those three real captures exactly, including quirks
+// that look like they could be transcription mistakes but are genuinely
+// present in the real capture (e.g. iOS14's signature_algorithms lists
+// rsa_pss_rsae_sha384 twice in a row).
+//
+// Real per-connection material (TLS Random, the legacy session_id, and a
+// real key_share's ephemeral public key) becomes <r 32> placeholders, the
+// same "randomness only where real traffic would have it" rule the other
+// profiles follow. GREASE values (RFC 8701: 0xωaωa for any nibble ω) are
+// the one exception worth calling out: real browsers pick a value fresh
+// per *connection*, but amneziawg-go's CPS grammar has no "one of these 16
+// shapes" placeholder, only <r N> (uniformly random, which would almost
+// never happen to land on a GREASE-shaped value by chance) -- so, matching
+// this file's existing precedent for other *shape* values that get fixed
+// once per "regenerate" click rather than re-randomized per packet (e.g.
+// STUN's own softwareLen), each GREASE value here is computed once in
+// TypeScript, via the same algorithm BoringSSL itself uses (confirmed
+// against utls's GetBoringGREASEValue), and baked in as a literal.
+// Confirmed via utls's own ssl_grease_* constants that a real ClientHello
+// uses UP TO 5 independently-random GREASE values in one connection, not
+// one value reused everywhere: one for the cipher-suite entry, one shared
+// between the supported_groups list and the key_share group field, one
+// each for the first/last GREASE extension markers, and one for the
+// supported_versions entry.
+
+const TLS_EXT = {
+  serverName: 0,
+  statusRequest: 5,
+  supportedGroups: 10,
+  ecPointFormats: 11,
+  signatureAlgorithms: 13,
+  alpn: 16,
+  sct: 18,
+  padding: 21,
+  extendedMasterSecret: 23,
+  compressCertificate: 27,
+  recordSizeLimit: 28,
+  delegatedCredentials: 34,
+  sessionTicket: 35,
+  supportedVersions: 43,
+  pskKeyExchangeModes: 45,
+  keyShare: 51,
+  renegotiationInfo: 0xff01,
+  applicationSettings: 0x4469, // Chrome-only (ALPS), not IANA-assigned
+} as const;
+
+// TLS 1.3/1.2 cipher suite IDs actually used by the 3 mimicked browsers'
+// real captures (confirmed against utls's dicttls/cipher_suites.go).
+const TLS_CIPHER = {
+  AES_128_GCM_SHA256: 0x1301,
+  AES_256_GCM_SHA384: 0x1302,
+  CHACHA20_POLY1305_SHA256: 0x1303,
+  ECDHE_ECDSA_AES_128_GCM_SHA256: 0xc02b,
+  ECDHE_ECDSA_AES_256_GCM_SHA384: 0xc02c,
+  ECDHE_RSA_AES_128_GCM_SHA256: 0xc02f,
+  ECDHE_RSA_AES_256_GCM_SHA384: 0xc030,
+  ECDHE_ECDSA_CHACHA20_POLY1305: 0xcca9,
+  ECDHE_RSA_CHACHA20_POLY1305: 0xcca8,
+  ECDHE_RSA_AES_128_CBC_SHA: 0xc013,
+  ECDHE_RSA_AES_256_CBC_SHA: 0xc014,
+  RSA_AES_128_GCM_SHA256: 0x009c,
+  RSA_AES_256_GCM_SHA384: 0x009d,
+  RSA_AES_128_CBC_SHA: 0x002f,
+  RSA_AES_256_CBC_SHA: 0x0035,
+  ECDHE_ECDSA_AES_256_CBC_SHA: 0xc00a,
+  ECDHE_ECDSA_AES_128_CBC_SHA: 0xc009,
+  ECDHE_ECDSA_AES_256_CBC_SHA384: 0xc024,
+  ECDHE_ECDSA_AES_128_CBC_SHA256: 0xc023,
+  ECDHE_RSA_AES_256_CBC_SHA384: 0xc028,
+  ECDHE_RSA_AES_128_CBC_SHA256: 0xc027,
+  RSA_AES_256_CBC_SHA256: 0x003d,
+  RSA_AES_128_CBC_SHA256: 0x003c,
+  ECDHE_ECDSA_3DES_EDE_CBC_SHA: 0xc008,
+  ECDHE_RSA_3DES_EDE_CBC_SHA: 0xc012,
+  RSA_3DES_EDE_CBC_SHA: 0x000a,
+} as const;
+
+const NAMED_GROUP = { x25519: 29, secp256r1: 23, secp384r1: 24, secp521r1: 25, ffdhe2048: 256, ffdhe3072: 257 } as const;
+
+const SIG_ALG = {
+  ecdsa_secp256r1_sha256: 0x0403,
+  ecdsa_secp384r1_sha384: 0x0503,
+  ecdsa_secp521r1_sha512: 0x0603,
+  ecdsa_sha1: 0x0203,
+  rsa_pkcs1_sha1: 0x0201,
+  rsa_pkcs1_sha256: 0x0401,
+  rsa_pkcs1_sha384: 0x0501,
+  rsa_pkcs1_sha512: 0x0601,
+  rsa_pss_rsae_sha256: 0x0804,
+  rsa_pss_rsae_sha384: 0x0805,
+  rsa_pss_rsae_sha512: 0x0806,
+} as const;
+
+const TLS10_VERSION = 0x0301;
+const TLS11_VERSION = 0x0302;
+const TLS12_VERSION = 0x0303;
+const TLS13_VERSION = 0x0304;
+const CERT_COMPRESSION_BROTLI = 2;
+
+// This generates a random value of the form 0xωaωa, for all 0 <= ω < 16 --
+// ported directly from utls's GetBoringGREASEValue, itself a port of
+// BoringSSL's own algorithm (see this section's own doc comment).
+function randomGreaseValue(): number {
+  const b = (Math.floor(Math.random() * 16) << 4) | 0x0a;
+  return (b << 8) | b;
+}
+
+// One TLS extension's fully-built wire bytes, plus its own exact length --
+// tracked together (not re-derived by measuring output later) so the
+// extensions-list length prefix, computed before any extension is emitted,
+// can never drift from what actually gets written.
+interface ExtPart {
+  len: number;
+  emit: (c: CpsChain) => void;
+}
+
+function litExt(type: number, body: number[]): ExtPart {
+  const bytes = new Uint8Array([...u16be(type), ...u16be(body.length), ...body]);
+  return { len: bytes.length, emit: (c) => c.bytes(bytes) };
+}
+
+function emptyExt(type: number): ExtPart {
+  return litExt(type, []);
+}
+
+function u8ListExt(type: number, values: number[]): ExtPart {
+  return litExt(type, [values.length, ...values]); // ec_point_formats
+}
+
+function pskModesExt(modes: number[]): ExtPart {
+  return litExt(TLS_EXT.pskKeyExchangeModes, [modes.length, ...modes]);
+}
+
+// supported_versions: 1-byte list-length (in bytes) + 2 bytes per version.
+function u16ListExt1(type: number, values: number[]): ExtPart {
+  const flat: number[] = [];
+  for (const v of values) flat.push(...u16be(v));
+  return litExt(type, [flat.length, ...flat]);
+}
+
+// supported_groups/signature_algorithms: 2-byte list-length (in bytes) + 2
+// bytes per value.
+function u16ListExt2(type: number, values: number[]): ExtPart {
+  const flat: number[] = [];
+  for (const v of values) flat.push(...u16be(v));
+  return litExt(type, [...u16be(flat.length), ...flat]);
+}
+
+// alpn/application_settings share the identical body shape: 2-byte
+// list-length + repeated {1-byte string-length, string}.
+function alpnLikeBody(protocols: string[]): number[] {
+  const flat: number[] = [];
+  for (const p of protocols) {
+    const b = Array.from(new TextEncoder().encode(p));
+    flat.push(b.length, ...b);
+  }
+  return [...u16be(flat.length), ...flat];
+}
+function alpnExt(protocols: string[]): ExtPart {
+  return litExt(TLS_EXT.alpn, alpnLikeBody(protocols));
+}
+function alpsExt(protocols: string[]): ExtPart {
+  return litExt(TLS_EXT.applicationSettings, alpnLikeBody(protocols));
+}
+
+function compressCertExt(algos: number[]): ExtPart {
+  const flat: number[] = [];
+  for (const a of algos) flat.push(...u16be(a));
+  return litExt(TLS_EXT.compressCertificate, [flat.length, ...flat]);
+}
+
+function recordSizeLimitExt(limit: number): ExtPart {
+  return litExt(TLS_EXT.recordSizeLimit, [...u16be(limit)]);
+}
+
+function renegotiationInfoExt(): ExtPart {
+  return litExt(TLS_EXT.renegotiationInfo, [0]); // initial handshake: zero-length
+}
+
+function statusRequestExt(): ExtPart {
+  return litExt(TLS_EXT.statusRequest, [1, 0, 0, 0, 0]); // OCSP type + two zero-length uint16s
+}
+
+function serverNameExt(host: string): ExtPart {
+  const name = Array.from(new TextEncoder().encode(host));
+  const entry = [0, ...u16be(name.length), ...name]; // name_type = host_name
+  return litExt(TLS_EXT.serverName, [...u16be(entry.length), ...entry]);
+}
+
+// key_share is the one extension that genuinely mixes literal bytes (a
+// GREASE group's near-empty placeholder) with real per-connection material
+// (a real group's ephemeral public key) -- so unlike every other extension
+// above, its length can't be read off a plain literal-body array; each
+// share contributes 4 (group id + data-length header) + its data length
+// (1 for a GREASE placeholder, 32 for a real x25519/secp256r1 key).
+function keyShareExt(shares: { group: number; greaseBody?: number[] }[]): ExtPart {
+  let listLen = 0;
+  for (const s of shares) listLen += 4 + (s.greaseBody ? s.greaseBody.length : 32);
+  return {
+    len: 4 + 2 + listLen,
+    emit: (c) => {
+      c.bytes(new Uint8Array([...u16be(TLS_EXT.keyShare), ...u16be(2 + listLen), ...u16be(listLen)]));
+      for (const s of shares) {
+        if (s.greaseBody) {
+          c.bytes(new Uint8Array([...u16be(s.group), ...u16be(s.greaseBody.length), ...s.greaseBody]));
+        } else {
+          c.bytes(new Uint8Array([...u16be(s.group), ...u16be(32)]));
+          c.tag('r', 32);
+        }
+      }
+    },
+  };
+}
+
+// Assembles a full TLS record carrying a ClientHello handshake message --
+// shared wrapper (record header, handshake header, legacy_version, Random,
+// session_id, cipher_suites, compression_methods, extensions-list length
+// prefix) for all 3 browser profiles; confirmed against utls's own
+// (unmodified-from-Go) handshake_messages.go marshal code.
+function buildTlsClientHello(cipherSuites: number[], exts: ExtPart[]): string {
+  const c = new CpsChain();
+  const extsLen = exts.reduce((sum, e) => sum + e.len, 0);
+  const cipherLen = cipherSuites.length * 2;
+  const bodyLen = 2 /* legacy_version */ + 32 /* Random */ + 1 + 32 /* session_id */
+    + 2 + cipherLen /* cipher_suites */ + 1 + 1 /* compression_methods */
+    + 2 + extsLen; /* extensions */
+
+  // content type = handshake(22); legacy record version is always 3.1, a
+  // real, well-known quirk even for a TLS 1.3 ClientHello (middlebox
+  // compatibility -- the real version only ever appears in supported_versions).
+  c.bytes(new Uint8Array([0x16, 0x03, 0x01, ...u16be(bodyLen + 4)]));
+  c.bytes(new Uint8Array([0x01, (bodyLen >> 16) & 0xff, (bodyLen >> 8) & 0xff, bodyLen & 0xff])); // ClientHello(1) + 3-byte length
+  c.bytes(new Uint8Array([0x03, 0x03])); // legacy_version: always TLS 1.2 on the wire
+  c.tag('r', 32); // Random
+  c.bytes(new Uint8Array([32]));
+  c.tag('r', 32); // legacy session_id: real browsers send 32 random bytes (RFC 8446 Appendix D.4)
+  c.bytes(new Uint8Array([...u16be(cipherLen), ...cipherSuites.flatMap((s) => u16be(s))]));
+  c.bytes(new Uint8Array([1, 0])); // compression_methods: length=1, null
+  c.bytes(new Uint8Array(u16be(extsLen)));
+  for (const e of exts) e.emit(c);
+  return c.toString();
+}
+
+function genChromeI1(host: string): string {
+  const cipherGrease = randomGreaseValue();
+  const groupGrease = randomGreaseValue();
+  const ext1Grease = randomGreaseValue();
+  const ext2Grease = randomGreaseValue();
+  const versionGrease = randomGreaseValue();
+
+  const cipherSuites = [
+    cipherGrease,
+    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.AES_256_GCM_SHA384, TLS_CIPHER.CHACHA20_POLY1305_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.RSA_AES_128_GCM_SHA256, TLS_CIPHER.RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA, TLS_CIPHER.RSA_AES_256_CBC_SHA,
+  ];
+
+  const exts: ExtPart[] = [
+    litExt(ext1Grease, []),
+    serverNameExt(host),
+    emptyExt(TLS_EXT.extendedMasterSecret),
+    renegotiationInfoExt(),
+    u16ListExt2(TLS_EXT.supportedGroups, [groupGrease, NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1]),
+    u8ListExt(TLS_EXT.ecPointFormats, [0]), // uncompressed
+    emptyExt(TLS_EXT.sessionTicket),
+    alpnExt(['h2', 'http/1.1']),
+    statusRequestExt(),
+    u16ListExt2(TLS_EXT.signatureAlgorithms, [
+      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pkcs1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pkcs1_sha384,
+      SIG_ALG.rsa_pss_rsae_sha512, SIG_ALG.rsa_pkcs1_sha512,
+    ]),
+    emptyExt(TLS_EXT.sct),
+    keyShareExt([{ group: groupGrease, greaseBody: [0] }, { group: NAMED_GROUP.x25519 }]),
+    pskModesExt([1]), // psk_dhe_ke
+    u16ListExt1(TLS_EXT.supportedVersions, [versionGrease, TLS13_VERSION, TLS12_VERSION]),
+    compressCertExt([CERT_COMPRESSION_BROTLI]),
+    alpsExt(['h2']),
+    litExt(ext2Grease, [0]),
+    emptyExt(TLS_EXT.padding),
+  ];
+
+  return buildTlsClientHello(cipherSuites, exts);
+}
+
+function genFirefoxI1(host: string): string {
+  const cipherSuites = [
+    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.CHACHA20_POLY1305_SHA256, TLS_CIPHER.AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.RSA_AES_128_GCM_SHA256, TLS_CIPHER.RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA, TLS_CIPHER.RSA_AES_256_CBC_SHA,
+  ];
+
+  const exts: ExtPart[] = [
+    serverNameExt(host),
+    emptyExt(TLS_EXT.extendedMasterSecret),
+    renegotiationInfoExt(),
+    u16ListExt2(TLS_EXT.supportedGroups, [
+      NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1, NAMED_GROUP.secp521r1,
+      NAMED_GROUP.ffdhe2048, NAMED_GROUP.ffdhe3072,
+    ]),
+    u8ListExt(TLS_EXT.ecPointFormats, [0]),
+    emptyExt(TLS_EXT.sessionTicket),
+    alpnExt(['h2', 'http/1.1']),
+    statusRequestExt(),
+    u16ListExt2(TLS_EXT.delegatedCredentials, [
+      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_secp521r1_sha512, SIG_ALG.ecdsa_sha1,
+    ]),
+    keyShareExt([{ group: NAMED_GROUP.x25519 }, { group: NAMED_GROUP.secp256r1 }]),
+    u16ListExt1(TLS_EXT.supportedVersions, [TLS13_VERSION, TLS12_VERSION]),
+    u16ListExt2(TLS_EXT.signatureAlgorithms, [
+      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_secp521r1_sha512,
+      SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pss_rsae_sha512,
+      SIG_ALG.rsa_pkcs1_sha256, SIG_ALG.rsa_pkcs1_sha384, SIG_ALG.rsa_pkcs1_sha512,
+      SIG_ALG.ecdsa_sha1, SIG_ALG.rsa_pkcs1_sha1,
+    ]),
+    pskModesExt([1]),
+    recordSizeLimitExt(16385),
+    emptyExt(TLS_EXT.padding),
+  ];
+
+  return buildTlsClientHello(cipherSuites, exts);
+}
+
+function genSafariI1(host: string): string {
+  const cipherGrease = randomGreaseValue();
+  const groupGrease = randomGreaseValue();
+  const ext1Grease = randomGreaseValue();
+  const ext2Grease = randomGreaseValue();
+  const versionGrease = randomGreaseValue();
+
+  const cipherSuites = [
+    cipherGrease,
+    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.AES_256_GCM_SHA384, TLS_CIPHER.CHACHA20_POLY1305_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA384, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA384, TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.RSA_AES_256_GCM_SHA384, TLS_CIPHER.RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA256, TLS_CIPHER.RSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA, TLS_CIPHER.RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_ECDSA_3DES_EDE_CBC_SHA, TLS_CIPHER.ECDHE_RSA_3DES_EDE_CBC_SHA,
+    TLS_CIPHER.RSA_3DES_EDE_CBC_SHA,
+  ];
+
+  const exts: ExtPart[] = [
+    litExt(ext1Grease, []),
+    serverNameExt(host),
+    emptyExt(TLS_EXT.extendedMasterSecret),
+    renegotiationInfoExt(),
+    u16ListExt2(TLS_EXT.supportedGroups, [
+      groupGrease, NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1, NAMED_GROUP.secp521r1,
+    ]),
+    u8ListExt(TLS_EXT.ecPointFormats, [0]),
+    alpnExt(['h2', 'http/1.1']),
+    statusRequestExt(),
+    // Real iOS14 capture lists rsa_pss_rsae_sha384 twice in a row -- kept
+    // exactly as captured (see this section's own doc comment on why).
+    u16ListExt2(TLS_EXT.signatureAlgorithms, [
+      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pkcs1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_sha1, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pss_rsae_sha384,
+      SIG_ALG.rsa_pkcs1_sha384, SIG_ALG.rsa_pss_rsae_sha512, SIG_ALG.rsa_pkcs1_sha512, SIG_ALG.rsa_pkcs1_sha1,
+    ]),
+    emptyExt(TLS_EXT.sct),
+    keyShareExt([{ group: groupGrease, greaseBody: [0] }, { group: NAMED_GROUP.x25519 }]),
+    pskModesExt([1]),
+    u16ListExt1(TLS_EXT.supportedVersions, [versionGrease, TLS13_VERSION, TLS12_VERSION, TLS11_VERSION, TLS10_VERSION]),
+    litExt(ext2Grease, [0]),
+    emptyExt(TLS_EXT.padding),
+  ];
+
+  return buildTlsClientHello(cipherSuites, exts);
+}
+
 export interface I1GenResult {
   chain: string;
   label: string;
@@ -422,7 +822,9 @@ export interface I1GenResult {
 // not the primary UX).
 export async function genI1(profileChoice: I1ProfileChoice, host = ''): Promise<I1GenResult | null> {
   const quicOk = isQuicI1Supported();
-  const profiles: I1Profile[] = quicOk ? ['dns', 'quic', 'sip', 'stun'] : ['dns', 'sip', 'stun'];
+  const profiles: I1Profile[] = quicOk
+    ? ['dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari']
+    : ['dns', 'sip', 'stun', 'chrome', 'firefox', 'safari'];
   const profile: I1Profile = profileChoice === 'random'
     ? profiles[randRange(0, profiles.length - 1)]
     : profileChoice;
@@ -442,6 +844,15 @@ export async function genI1(profileChoice: I1ProfileChoice, host = ''): Promise<
       break;
     case 'stun':
       chain = genStunI1();
+      break;
+    case 'chrome':
+      chain = genChromeI1(resolvedHost);
+      break;
+    case 'firefox':
+      chain = genFirefoxI1(resolvedHost);
+      break;
+    case 'safari':
+      chain = genSafariI1(resolvedHost);
       break;
   }
   if (chain == null) return null;

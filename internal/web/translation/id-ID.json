@@ -1695,7 +1695,10 @@
           "dns": "DNS",
           "quic": "QUIC",
           "sip": "SIP",
-          "stun": "STUN"
+          "stun": "STUN",
+          "chrome": "Chrome",
+          "firefox": "Firefox",
+          "safari": "Safari"
         },
         "i1QuicUnsupported": "Membuat tanda tangan QUIC memerlukan HTTPS (atau localhost) -- koneksi ini tidak menyediakan Web Crypto API yang diperlukan.",
         "awg3Advanced": "AmneziaWG 3.0 Lanjutan",
