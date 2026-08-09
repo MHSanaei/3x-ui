@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/oauth"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 )
 
@@ -220,6 +221,58 @@ func TestCabinetData_LinksUsePortStrippedHost(t *testing.T) {
 	if !strings.Contains(body, "localhost:443") {
 		t.Fatalf("cabinet link should fall back to the port-stripped host: %s", body)
 	}
+}
+
+func TestProvisionOauthClient_CreatesClientForIdentity(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+	ib := &model.Inbound{Tag: "vpn-tag", Remark: "vpn", Enable: true, Port: 24601, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+
+	a := &IndexController{}
+	cfg := config.OAuthConfig{UserInboundRemarks: []string{"vpn"}}
+
+	t.Run("uses email", func(t *testing.T) {
+		sub, _, err := a.provisionOauthClient(cfg, &oauth.Identity{Email: "admin@corp", Username: "admin"})
+		if err != nil {
+			t.Fatalf("provision: %v", err)
+		}
+		if sub == "" {
+			t.Fatal("empty subId")
+		}
+		var reloaded model.Inbound
+		if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+			t.Fatal(err)
+		}
+		clients, _ := (&service.InboundService{}).GetClients(&reloaded)
+		if len(clients) != 1 || clients[0].Email != "admin@corp" {
+			t.Fatalf("clients = %+v, want one admin@corp", clients)
+		}
+	})
+
+	t.Run("falls back to username when email empty", func(t *testing.T) {
+		if _, _, err := a.provisionOauthClient(cfg, &oauth.Identity{Username: "no-email-user"}); err != nil {
+			t.Fatalf("provision: %v", err)
+		}
+		var reloaded model.Inbound
+		if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+			t.Fatal(err)
+		}
+		clients, _ := (&service.InboundService{}).GetClients(&reloaded)
+		found := false
+		for _, cl := range clients {
+			if cl.Email == "no-email-user" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("username fallback client missing: %+v", clients)
+		}
+	})
 }
 
 func TestOAuthCallbackDenies(t *testing.T) {

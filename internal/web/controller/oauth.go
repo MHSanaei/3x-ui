@@ -100,7 +100,7 @@ func (a *IndexController) oauthCallback(c *gin.Context) {
 
 	switch role {
 	case session.RoleAdmin:
-		a.oauthLoginAdmin(c, identity, remoteIP, timeStr)
+		a.oauthLoginAdmin(c, identity, cfg, remoteIP, timeStr)
 	case session.RoleUser:
 		a.oauthLoginUser(c, identity, cfg, remoteIP, timeStr)
 	default:
@@ -117,8 +117,9 @@ func (a *IndexController) oauthCallback(c *gin.Context) {
 }
 
 // oauthLoginAdmin binds the session to the panel's admin account. Every admin
-// identity maps to the single first user — the panel has no per-admin data.
-func (a *IndexController) oauthLoginAdmin(c *gin.Context, id *oauth.Identity, remoteIP, timeStr string) {
+// identity maps to the single first user — the panel has no per-admin data — and
+// an admin is also provisioned a client so they get their own connection.
+func (a *IndexController) oauthLoginAdmin(c *gin.Context, id *oauth.Identity, cfg config.OAuthConfig, remoteIP, timeStr string) {
 	user, err := a.userService.GetFirstUser()
 	if err != nil || user == nil {
 		logger.Warning("oauth: unable to load admin user:", err)
@@ -132,6 +133,14 @@ func (a *IndexController) oauthLoginAdmin(c *gin.Context, id *oauth.Identity, re
 	}
 	if err := session.SetLoginRole(c, session.RoleAdmin); err != nil {
 		logger.Warning("oauth: unable to save role:", err)
+	}
+	// Best-effort: provision the admin's own client but never block panel access.
+	if len(cfg.UserInboundRemarks) > 0 {
+		if _, needRestart, provErr := a.provisionOauthClient(cfg, id); provErr != nil {
+			logger.Warning("oauth: admin client provisioning skipped:", provErr)
+		} else if needRestart {
+			a.xrayService.SetToNeedRestart()
+		}
 	}
 	logger.Infof("oauth admin %q logged in, IP: %s", id.Username, remoteIP)
 	a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
@@ -200,14 +209,7 @@ func (a *IndexController) buildSubURL(host, subID string) string {
 // oauthLoginUser provisions the caller's self-service client on first login and
 // binds the session to its subId, then sends them to their cabinet.
 func (a *IndexController) oauthLoginUser(c *gin.Context, id *oauth.Identity, cfg config.OAuthConfig, remoteIP, timeStr string) {
-	email := id.Email
-	if email == "" {
-		email = id.Username
-	}
-	var inboundSvc service.InboundService
-	var clientSvc service.ClientService
-	var prov service.OAuthProvisionService
-	subID, needRestart, err := prov.EnsureUserClient(&inboundSvc, &clientSvc, cfg, email)
+	subID, needRestart, err := a.provisionOauthClient(cfg, id)
 	if err != nil {
 		logger.Warning("oauth: user provisioning failed:", err)
 		a.redirectLoginError(c)
@@ -226,15 +228,28 @@ func (a *IndexController) oauthLoginUser(c *gin.Context, id *oauth.Identity, cfg
 		a.redirectLoginError(c)
 		return
 	}
-	logger.Infof("oauth user %q logged in, IP: %s", email, remoteIP)
+	logger.Infof("oauth user %q logged in, IP: %s", id.Username, remoteIP)
 	a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
-		Username: email,
+		Username: id.Username,
 		IP:       remoteIP,
 		Time:     timeStr,
 		Status:   tgbot.LoginSuccess,
 	})
 	c.Header("Cache-Control", "no-store")
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path")+"cabinet/")
+}
+
+// provisionOauthClient ensures the caller has a client on the configured
+// inbound(s), keyed by their email (falling back to username), and returns its subId.
+func (a *IndexController) provisionOauthClient(cfg config.OAuthConfig, id *oauth.Identity) (string, bool, error) {
+	email := id.Email
+	if email == "" {
+		email = id.Username
+	}
+	var inboundSvc service.InboundService
+	var clientSvc service.ClientService
+	var prov service.OAuthProvisionService
+	return prov.EnsureUserClient(&inboundSvc, &clientSvc, cfg, email)
 }
 
 // resolveRole maps a verified identity to a login tier via its group claims.
