@@ -15,6 +15,7 @@ import {
 import {
   KeyOutlined,
   LockOutlined,
+  LoginOutlined,
   MoonFilled,
   MoonOutlined,
   SunOutlined,
@@ -48,6 +49,7 @@ export default function LoginPage() {
   const [fetched, setFetched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [twoFactorEnable, setTwoFactorEnable] = useState(false);
+  const [oauthEnable, setOauthEnable] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const methods = useForm<LoginForm>({ defaultValues: { username: '', password: '', twoFactorCode: '' } });
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
@@ -67,12 +69,27 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const msg = await HttpUtil.post('/getTwoFactorEnable');
+      const [twoFactor, oauth] = await Promise.all([
+        HttpUtil.post('/getTwoFactorEnable'),
+        HttpUtil.get('/getOAuthEnable', undefined, { silent: true }),
+      ]);
       if (cancelled) return;
-      if (msg.success) setTwoFactorEnable(!!msg.obj);
+      if (twoFactor.success) setTwoFactorEnable(!!twoFactor.obj);
+      if (oauth.success) setOauthEnable(!!oauth.obj);
       setFetched(true);
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_error')) {
+      messageApi.error(t('pages.login.oauth.failed'));
+    }
+  }, [messageApi, t]);
+
+  const onOauthSignIn = useCallback(() => {
+    window.location.href = basePath + 'oauth/login';
   }, []);
 
   const onSubmit = useCallback(async (values: LoginForm) => {
@@ -241,6 +258,19 @@ export default function LoginPage() {
                         {t('login')}
                       </Button>
                     </Form.Item>
+
+                    {oauthEnable && (
+                      <Form.Item className="oauth-row">
+                        <Button
+                          icon={<LoginOutlined />}
+                          size="large"
+                          block
+                          onClick={onOauthSignIn}
+                        >
+                          {t('pages.login.oauth.signIn')}
+                        </Button>
+                      </Form.Item>
+                    )}
                   </Form>
                 </FormProvider>
               </div>

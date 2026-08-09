@@ -124,6 +124,10 @@
         "emptyPassword": "パスワードを入力してください",
         "wrongUsernameOrPassword": "ユーザー名、パスワード、または二段階認証コードが無効です。",
         "successLogin": "アカウントに正常にログインしました。"
+      },
+      "oauth": {
+        "signIn": "Sign in with SSO",
+        "failed": "SSO sign-in failed. Please try again."
       }
     },
     "index": {
@@ -1839,6 +1843,10 @@
         "badTag": "無効なタグ",
         "badVlessRoute": "0〜65535 の単一の数値を入力してください"
       }
+    },
+    "cabinet": {
+      "title": "My Connection",
+      "empty": "No connection is available yet."
     }
   },
   "tgbot": {

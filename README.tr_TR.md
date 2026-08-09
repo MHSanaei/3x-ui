@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | Yeniden başlatma tetiklenmeden önceki ardışık başarısızlık sayısı | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Ardışık yeniden başlatmalar arasındaki minimum gecikme | `5m` |
 
+### SSO / OIDC ile giriş (isteğe bağlı)
+
+Herhangi bir OpenID Connect sağlayıcısı (Keycloak, Authentik, Authelia, Google, Azure AD, Okta, …) üzerinden tek oturum açmayı etkinleştirmek için `XUI_OAUTH_ISSUER` **ve** `XUI_OAUTH_CLIENT_ID` değerlerini ayarlayın. ID token içindeki bir grup talebi (group claim) kullanıcıyı bir katmana eşler: yönetici grubunun üyeleri tam panele erişir; kullanıcı grubunun üyelerine ise otomatik olarak bir istemci oluşturulur ve yalnızca kendi bağlantısını (bağlantılar, QR, trafik) gösteren bir self-servis paneli verilir.
+
+| Değişken | Açıklama | Varsayılan |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | OIDC sağlayıcı URL'si (discovery). SSO'yu etkinleştirmek için client id ile birlikte ayarlayın | — |
+| `XUI_OAUTH_CLIENT_ID` | OAuth2 istemci kimliği | — |
+| `XUI_OAUTH_CLIENT_SECRET` | OAuth2 istemci gizli anahtarı | — |
+| `XUI_OAUTH_REDIRECT_URL` | Sağlayıcıda kayıtlı geri çağırma (callback) URL'si | istekten türetilir |
+| `XUI_OAUTH_ADMIN_GROUP` | Üyeleri tam yönetim paneline erişen grup | — |
+| `XUI_OAUTH_USER_GROUP` | Üyeleri self-servis paneli alan grup(lar) (virgülle ayrılmış) | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | Kullanıcı katmanı istemcisinin otomatik oluşturulacağı inbound notu/notları (virgülle ayrılmış) | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | Otomatik oluşturulan istemciler için trafik limiti, GB (`0` = sınırsız) | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | Otomatik oluşturulan istemciler için son kullanım, gün (`0` = süresiz) | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | Otomatik oluşturulan istemciler için cihaz/IP limiti (`0` = sınırsız) | `0` |
+| `XUI_OAUTH_SCOPES` | OAuth2 kapsamları (virgülle ayrılmış) | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | Kullanıcının gruplarını taşıyan ID token talebi | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | Kullanıcı adı olarak kullanılan ID token talebi | `email` |
+
 ## Desteklenen Diller
 
 Panel arayüzü 13 farklı dilde mevcuttur:

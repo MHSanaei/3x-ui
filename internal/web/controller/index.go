@@ -2,10 +2,12 @@ package controller
 
 import (
 	"net/http"
+	"sync"
 	"text/template"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/oauth"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
@@ -28,7 +30,11 @@ type IndexController struct {
 
 	settingService service.SettingService
 	userService    panel.UserService
+	xrayService    service.XrayService
 	tgbot          tgbot.Tgbot
+
+	oauthMu       sync.Mutex
+	oauthProvider *oauth.Provider
 }
 
 // NewIndexController creates a new IndexController and initializes its routes.
@@ -46,6 +52,17 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
 	g.POST("/logout", middleware.CSRFMiddleware(), a.logout)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
+	g.GET("/getOAuthEnable", a.getOAuthEnable)
+
+	// OIDC login is a browser redirect flow, not an AJAX/CSRF surface: the
+	// callback returns via a top-level GET and is guarded by the state param.
+	g.GET("/oauth/login", a.oauthLogin)
+	g.GET("/oauth/callback", a.oauthCallback)
+
+	// Self-service cabinet for the user tier. The page shell is public; its
+	// /cabinet/data feed is gated by the session's client subId.
+	g.GET("/cabinet/", a.cabinet)
+	g.GET("/cabinet/data", a.cabinetData)
 }
 
 // index handles the root route, redirecting logged-in users to the panel or showing the login page.

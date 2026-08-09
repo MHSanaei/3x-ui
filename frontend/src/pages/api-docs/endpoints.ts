@@ -96,6 +96,30 @@ export const sections: readonly Section[] = [
         summary: 'Returns whether 2FA is enabled on the panel — used by the login page to decide whether to show the OTP field.',
         response: '{\n  "success": true,\n  "obj": false\n}',
       },
+      {
+        method: 'GET',
+        path: '/getOAuthEnable',
+        summary: 'Returns whether OIDC (SSO) login is configured via the XUI_OAUTH_* environment — the login page shows the SSO button when true.',
+        response: '{\n  "success": true,\n  "obj": false\n}',
+      },
+      {
+        method: 'GET',
+        path: '/oauth/login',
+        summary: 'Starts the OIDC Authorization-Code + PKCE flow: stores per-login state/nonce/verifier on the session and redirects the browser to the identity provider.',
+        response: '302 Redirect to the identity provider',
+      },
+      {
+        method: 'GET',
+        path: '/oauth/callback',
+        summary: 'OIDC redirect target: validates state, exchanges the code, verifies the ID token, maps the caller to a role via group claims, and opens a session. Admins land in the panel; user-tier callers are provisioned a client and sent to their cabinet.',
+        response: '302 Redirect to the panel or the cabinet',
+      },
+      {
+        method: 'GET',
+        path: '/cabinet/data',
+        summary: 'Self-service cabinet feed: returns the user-tier caller\'s subscription URL, share links and traffic, keyed by the client subId bound to their session.',
+        response: '{\n  "success": true,\n  "obj": {\n    "subId": "…",\n    "subUrl": "https://panel.example/sub/…",\n    "links": ["vless://…"],\n    "up": 0,\n    "down": 0,\n    "total": 0,\n    "expiryTime": 0,\n    "enable": true\n  }\n}',
+      },
     ],
   },
 

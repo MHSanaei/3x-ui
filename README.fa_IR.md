@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | تعداد خطاهای متوالی پیش از آن‌که یک ری‌استارت فعال شود | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | حداقل تأخیر بین ری‌استارت‌های متوالی | `5m` |
 
+### ورود با SSO / OIDC (اختیاری)
+
+برای فعال‌سازی ورود یکپارچه (SSO) از طریق هر ارائه‌دهنده‌ی OpenID Connect (مانند Keycloak، Authentik، Authelia، Google، Azure AD، Okta و …)، مقدار `XUI_OAUTH_ISSUER` **و** `XUI_OAUTH_CLIENT_ID` را تنظیم کنید. یک claim گروه در ID token کاربر را به یک سطح دسترسی نگاشت می‌کند: اعضای گروه مدیران به پنل کامل دسترسی می‌یابند و برای اعضای گروه کاربران به‌صورت خودکار یک کلاینت ساخته می‌شود و یک پنل سلف‌سرویس می‌بینند که فقط اتصال خودشان (لینک‌ها، QR، ترافیک) را نمایش می‌دهد.
+
+| متغیر | توضیح | پیش‌فرض |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | آدرس ارائه‌دهنده OIDC (discovery). همراه با client id، SSO را فعال می‌کند | — |
+| `XUI_OAUTH_CLIENT_ID` | شناسه کلاینت OAuth2 | — |
+| `XUI_OAUTH_CLIENT_SECRET` | کلید محرمانه کلاینت OAuth2 | — |
+| `XUI_OAUTH_REDIRECT_URL` | آدرس callback ثبت‌شده نزد ارائه‌دهنده | از درخواست استنتاج می‌شود |
+| `XUI_OAUTH_ADMIN_GROUP` | گروهی که اعضای آن دسترسی کامل به پنل مدیریت دارند | — |
+| `XUI_OAUTH_USER_GROUP` | گروه(هایی) که اعضای آن پنل سلف‌سرویس دریافت می‌کنند (جداشده با کاما) | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | توضیح(های) inbound که کلاینت سطح کاربر در آن‌ها ساخته می‌شود (جداشده با کاما) | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | محدودیت ترافیک برای کلاینت‌های خودکار، گیگابایت (`0` = بدون محدودیت) | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | انقضای کلاینت‌های خودکار، روز (`0` = بدون انقضا) | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | محدودیت دستگاه/IP برای کلاینت‌های خودکار (`0` = بدون محدودیت) | `0` |
+| `XUI_OAUTH_SCOPES` | scopeهای OAuth2 (جداشده با کاما) | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | claim موجود در ID token که گروه‌های کاربر را حمل می‌کند | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | claim موجود در ID token که به‌عنوان نام کاربری استفاده می‌شود | `email` |
+
 ## زبان‌های پشتیبانی‌شده
 
 رابط کاربری پنل به ۱۳ زبان در دسترس است:

@@ -124,6 +124,10 @@
         "emptyPassword": "لطفا یک رمزعبور وارد کنید",
         "wrongUsernameOrPassword": "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است.",
         "successLogin": "شما با موفقیت به حساب کاربری خود وارد شدید."
+      },
+      "oauth": {
+        "signIn": "Sign in with SSO",
+        "failed": "SSO sign-in failed. Please try again."
       }
     },
     "index": {
@@ -1839,6 +1843,10 @@
         "badTag": "برچسب نامعتبر",
         "badVlessRoute": "یک عدد بین 0 تا 65535 وارد کنید"
       }
+    },
+    "cabinet": {
+      "title": "My Connection",
+      "empty": "No connection is available yet."
     }
   },
   "tgbot": {

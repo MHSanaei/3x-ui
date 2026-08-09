@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | 触发重启前的连续失败次数 | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | 两次连续重启之间的最小间隔 | `5m` |
 
+### SSO / OIDC 登录（可选）
+
+同时设置 `XUI_OAUTH_ISSUER` **和** `XUI_OAUTH_CLIENT_ID` 即可启用任意 OpenID Connect 提供商（Keycloak、Authentik、Authelia、Google、Azure AD、Okta 等）的单点登录。ID 令牌中的组声明（group claim）将用户映射到相应层级：管理员组成员获得完整面板访问权限；用户组成员会被自动创建客户端，并进入仅显示自己连接（链接、二维码、流量）的自助面板。
+
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | OIDC 提供商 URL（discovery）。与 client id 一起设置以启用 SSO | — |
+| `XUI_OAUTH_CLIENT_ID` | OAuth2 客户端 ID | — |
+| `XUI_OAUTH_CLIENT_SECRET` | OAuth2 客户端密钥 | — |
+| `XUI_OAUTH_REDIRECT_URL` | 在提供商处注册的回调 URL | 从请求推断 |
+| `XUI_OAUTH_ADMIN_GROUP` | 成员获得完整面板访问权限的组 | — |
+| `XUI_OAUTH_USER_GROUP` | 成员获得自助面板的组（英文逗号分隔） | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | 自动为用户层客户端创建到的入站备注（英文逗号分隔） | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | 自动创建客户端的流量上限，GB（`0` = 无限制） | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | 自动创建客户端的有效期，天（`0` = 永久） | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | 自动创建客户端的设备/IP 上限（`0` = 无限制） | `0` |
+| `XUI_OAUTH_SCOPES` | OAuth2 scope（英文逗号分隔） | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | 携带用户组的 ID 令牌声明 | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | 用作用户名的 ID 令牌声明 | `email` |
+
 ## 支持的语言
 
 面板界面提供 13 种语言：

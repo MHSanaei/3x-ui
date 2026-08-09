@@ -17,17 +17,29 @@ type BaseController struct{}
 
 // checkLogin is a middleware that verifies user authentication and handles unauthorized access.
 func (a *BaseController) checkLogin(c *gin.Context) {
-	if !session.IsLogin(c) {
+	if session.IsLogin(c) {
+		c.Next()
+		return
+	}
+	// A self-service (user-tier) session has no panel User, so it fails IsLogin;
+	// send it to its cabinet instead of the admin login page.
+	if session.GetLoginClientSubID(c) != "" {
 		if isAjax(c) {
-			pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+			pureJsonMsg(c, http.StatusForbidden, false, I18nWeb(c, "pages.login.loginAgain"))
 		} else {
 			c.Header("Cache-Control", "no-store")
-			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path")+"cabinet/")
 		}
 		c.Abort()
-	} else {
-		c.Next()
+		return
 	}
+	if isAjax(c) {
+		pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
+	} else {
+		c.Header("Cache-Control", "no-store")
+		c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+	}
+	c.Abort()
 }
 
 // I18nWeb retrieves an internationalized message for the web interface based on the current locale.

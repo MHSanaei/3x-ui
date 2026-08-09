@@ -40,6 +40,20 @@ services:
       # and uncomment the two lines below.
       # XUI_DB_TYPE: "postgres"
       # XUI_DB_DSN: "postgres://xui:xui@postgres:5432/xui?sslmode=disable"
+      # OIDC / SSO (optional). Set XUI_OAUTH_ISSUER + CLIENT_ID to enable.
+      # XUI_OAUTH_ISSUER: https://idp.example.com/application/o/3xui/
+      # XUI_OAUTH_CLIENT_ID: your-client-id
+      # XUI_OAUTH_CLIENT_SECRET: "your-client-secret"
+      # XUI_OAUTH_REDIRECT_URL: https://panel.example.com/oauth/callback
+      # XUI_OAUTH_ADMIN_GROUP: panel-admins                               # admin group
+      # XUI_OAUTH_USER_GROUP: "users, vpn-user"                           # user groups
+      # XUI_OAUTH_USER_INBOUND_REMARK: "VLESS-443, Reality"               # autoprovision inbounds
+      # XUI_OAUTH_USER_TOTAL_GB: 0                                        # 0 = no limits
+      # XUI_OAUTH_USER_EXPIRY_DAYS: 0                                     # 0 = no limits
+      # XUI_OAUTH_USER_LIMIT_IP: 3                                        # 0 = no limits
+      # XUI_OAUTH_SCOPES: "openid,profile,email"                          # (optional) default: openid,profile,email
+      # XUI_OAUTH_GROUPS_CLAIM: groups                                    # (optional) default: groups
+      # XUI_OAUTH_USERNAME_CLAIM: email                                   # (optional) default: email
     tty: true
     ports:
       # When XUI_PORT is set, publish the same container port (for example "8080:8080").

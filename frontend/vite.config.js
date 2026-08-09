@@ -108,6 +108,9 @@ function bypassMigratedRoute(req) {
     if (stripped === 'panel' || stripped === 'panel/' || stripped.startsWith('panel/')) {
       return '/index.html';
     }
+    if (stripped === 'cabinet' || stripped === 'cabinet/') {
+      return '/cabinet.html';
+    }
   }
   return undefined;
 }
@@ -185,6 +188,7 @@ export default defineConfig({
         index: path.resolve(import.meta.dirname, 'index.html'),
         login: path.resolve(import.meta.dirname, 'login.html'),
         subpage: path.resolve(import.meta.dirname, 'subpage.html'),
+        cabinet: path.resolve(import.meta.dirname, 'cabinet.html'),
       },
       output: {
         manualChunks(id) {
@@ -234,7 +238,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
+      '^/(?:[^/]+/)?(login|logout|getTwoFactorEnable|getOAuthEnable|oauth|csrf-token|panel|server)(?:/|$)': makeBackendProxy(BACKEND_TARGET),
+      '^/(?:[^/]+/)?cabinet/data(?:/|$)': makeBackendProxy(BACKEND_TARGET),
       '^/$': makeBackendProxy(BACKEND_TARGET),
       '^/[^/]+/$': makeBackendProxy(BACKEND_TARGET),
       '^/(?:[^/]+/)?ws$': {

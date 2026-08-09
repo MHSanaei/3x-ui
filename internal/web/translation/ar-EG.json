@@ -124,6 +124,10 @@
         "emptyPassword": "الباسورد مطلوب",
         "wrongUsernameOrPassword": "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح.",
         "successLogin": "لقد تم تسجيل الدخول إلى حسابك بنجاح."
+      },
+      "oauth": {
+        "signIn": "Sign in with SSO",
+        "failed": "SSO sign-in failed. Please try again."
       }
     },
     "index": {
@@ -1839,6 +1843,10 @@
         "badTag": "وسم غير صالح",
         "badVlessRoute": "أدخل رقماً واحداً بين 0 و65535"
       }
+    },
+    "cabinet": {
+      "title": "My Connection",
+      "empty": "No connection is available yet."
     }
   },
   "tgbot": {

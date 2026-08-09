@@ -3097,6 +3097,145 @@
         }
       }
     },
+    "/getOAuthEnable": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Returns whether OIDC (SSO) login is configured via the XUI_OAUTH_* environment — the login page shows the SSO button when true.",
+        "operationId": "get_getOAuthEnable",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/login": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Starts the OIDC Authorization-Code + PKCE flow: stores per-login state/nonce/verifier on the session and redirects the browser to the identity provider.",
+        "operationId": "get_oauth_login",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/callback": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "OIDC redirect target: validates state, exchanges the code, verifies the ID token, maps the caller to a role via group claims, and opens a session. Admins land in the panel; user-tier callers are provisioned a client and sent to their cabinet.",
+        "operationId": "get_oauth_callback",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/data": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Self-service cabinet feed: returns the user-tier caller's subscription URL, share links and traffic, keyed by the client subId bound to their session.",
+        "operationId": "get_cabinet_data",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "subId": "…",
+                    "subUrl": "https://panel.example/sub/…",
+                    "links": [
+                      "vless://…"
+                    ],
+                    "up": 0,
+                    "down": 0,
+                    "total": 0,
+                    "expiryTime": 0,
+                    "enable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/inbounds/list": {
       "get": {
         "tags": [

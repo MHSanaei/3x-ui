@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | عدد حالات الفشل المتتالية قبل تشغيل إعادة التشغيل | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | الحد الأدنى للتأخير بين عمليات إعادة التشغيل المتتالية | `5m` |
 
+### تسجيل الدخول عبر SSO / OIDC (اختياري)
+
+اضبط `XUI_OAUTH_ISSUER` **و** `XUI_OAUTH_CLIENT_ID` لتفعيل الدخول الموحّد (SSO) عبر أي مزوّد OpenID Connect (مثل Keycloak وAuthentik وAuthelia وGoogle وAzure AD وOkta وغيرها). يقوم claim المجموعات في الـ ID token بربط المستخدم بمستوى صلاحية: يحصل أعضاء مجموعة المشرفين على اللوحة كاملة، بينما يُنشأ لأعضاء مجموعة المستخدمين عميل تلقائيًا مع لوحة خدمة ذاتية تعرض اتصالهم الخاص فقط (الروابط، رمز QR، الاستهلاك).
+
+| المتغير | الوصف | الافتراضي |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | رابط مزوّد OIDC (discovery). اضبطه مع client id لتفعيل SSO | — |
+| `XUI_OAUTH_CLIENT_ID` | معرّف عميل OAuth2 | — |
+| `XUI_OAUTH_CLIENT_SECRET` | السر الخاص بعميل OAuth2 | — |
+| `XUI_OAUTH_REDIRECT_URL` | رابط رد النداء (callback) المُسجَّل لدى المزوّد | يُشتق من الطلب |
+| `XUI_OAUTH_ADMIN_GROUP` | المجموعة التي يحصل أعضاؤها على وصول كامل للوحة الإدارة | — |
+| `XUI_OAUTH_USER_GROUP` | المجموعة/المجموعات التي يحصل أعضاؤها على لوحة خدمة ذاتية (مفصولة بفواصل) | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | ملاحظة/ملاحظات الـ inbound التي يُنشأ فيها عميل مستوى المستخدم تلقائيًا (مفصولة بفواصل) | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | حد الاستهلاك للعملاء المُنشَئين تلقائيًا، جيجابايت (`0` = بلا حدود) | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | مدة صلاحية العملاء المُنشَئين تلقائيًا، أيام (`0` = بلا انتهاء) | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | حد الأجهزة/عناوين IP للعملاء المُنشَئين تلقائيًا (`0` = بلا حدود) | `0` |
+| `XUI_OAUTH_SCOPES` | نطاقات OAuth2 (مفصولة بفواصل) | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | claim في الـ ID token يحمل مجموعات المستخدم | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | claim في الـ ID token يُستخدم كاسم مستخدم | `email` |
+
 ## اللغات المدعومة
 
 تتوفر واجهة اللوحة بـ 13 لغة:

@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | Consecutive failures before a restart is triggered | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Minimum delay between consecutive restarts | `5m` |
 
+### SSO / OIDC login (optional)
+
+Set `XUI_OAUTH_ISSUER` **and** `XUI_OAUTH_CLIENT_ID` to enable single sign-on through any OpenID Connect provider (Keycloak, Authentik, Authelia, Google, Azure AD, Okta, …). A group claim in the ID token maps the caller to a tier: members of the admin group get the full panel, while members of a user group are auto-provisioned a client and get a self-service cabinet showing only their own connection (links, QR, traffic).
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | OIDC issuer URL (discovery). Set together with the client id to enable SSO | — |
+| `XUI_OAUTH_CLIENT_ID` | OAuth2 client id | — |
+| `XUI_OAUTH_CLIENT_SECRET` | OAuth2 client secret | — |
+| `XUI_OAUTH_REDIRECT_URL` | Callback URL registered at the provider | derived from request |
+| `XUI_OAUTH_ADMIN_GROUP` | Group whose members get full admin-panel access | — |
+| `XUI_OAUTH_USER_GROUP` | Group(s) whose members get a self-service cabinet (comma-separated) | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | Inbound remark(s) a user-tier client is auto-provisioned into (comma-separated) | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | Traffic limit for auto-provisioned clients, GB (`0` = unlimited) | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | Expiry for auto-provisioned clients, days (`0` = never) | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | Device/IP limit for auto-provisioned clients (`0` = unlimited) | `0` |
+| `XUI_OAUTH_SCOPES` | OAuth2 scopes (comma-separated) | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | ID-token claim carrying the user's groups | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | ID-token claim used as the username | `email` |
+
 ## Supported Languages
 
 The panel UI is available in 13 languages:

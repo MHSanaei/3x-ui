@@ -1,0 +1,27 @@
+.cabinet-app {
+  min-height: 100vh;
+  background: var(--ant-color-bg-layout, #f5f5f5);
+}
+
+.cabinet-content {
+  padding: 24px 16px;
+}
+
+.cabinet-wrapper {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.cabinet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cabinet-loading {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}

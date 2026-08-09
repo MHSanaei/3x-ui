@@ -124,6 +124,10 @@
         "emptyPassword": "Потрібен пароль",
         "wrongUsernameOrPassword": "Невірне ім’я користувача, пароль або код двофакторної аутентифікації.",
         "successLogin": "Ви успішно увійшли до свого облікового запису."
+      },
+      "oauth": {
+        "signIn": "Sign in with SSO",
+        "failed": "SSO sign-in failed. Please try again."
       }
     },
     "index": {
@@ -1839,6 +1843,10 @@
         "badTag": "Недійсний тег",
         "badVlessRoute": "Введіть одне число від 0 до 65535"
       }
+    },
+    "cabinet": {
+      "title": "My Connection",
+      "empty": "No connection is available yet."
     }
   },
   "tgbot": {

@@ -163,6 +163,26 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_FAILURES` | Fallos consecutivos antes de que se active un reinicio | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Retardo mínimo entre reinicios consecutivos | `5m` |
 
+### Inicio de sesión SSO / OIDC (opcional)
+
+Defina `XUI_OAUTH_ISSUER` **y** `XUI_OAUTH_CLIENT_ID` para habilitar el inicio de sesión único a través de cualquier proveedor OpenID Connect (Keycloak, Authentik, Authelia, Google, Azure AD, Okta, …). Un claim de grupo en el ID token asigna al usuario a un nivel: los miembros del grupo de administradores obtienen el panel completo, mientras que los miembros de un grupo de usuarios reciben un cliente aprovisionado automáticamente y un panel de autoservicio que muestra solo su propia conexión (enlaces, QR, tráfico).
+
+| Variable | Descripción | Predeterminado |
+| --- | --- | --- |
+| `XUI_OAUTH_ISSUER` | URL del proveedor OIDC (discovery). Defínala junto al client id para habilitar SSO | — |
+| `XUI_OAUTH_CLIENT_ID` | ID de cliente OAuth2 | — |
+| `XUI_OAUTH_CLIENT_SECRET` | Secreto de cliente OAuth2 | — |
+| `XUI_OAUTH_REDIRECT_URL` | URL de callback registrada en el proveedor | derivada de la solicitud |
+| `XUI_OAUTH_ADMIN_GROUP` | Grupo cuyos miembros obtienen acceso total al panel de administración | — |
+| `XUI_OAUTH_USER_GROUP` | Grupo(s) cuyos miembros obtienen un panel de autoservicio (separados por comas) | — |
+| `XUI_OAUTH_USER_INBOUND_REMARK` | Comentario(s) de inbound donde se aprovisiona automáticamente el cliente (separados por comas) | — |
+| `XUI_OAUTH_USER_TOTAL_GB` | Límite de tráfico para clientes aprovisionados, GB (`0` = sin límite) | `0` |
+| `XUI_OAUTH_USER_EXPIRY_DAYS` | Caducidad de los clientes aprovisionados, días (`0` = nunca) | `0` |
+| `XUI_OAUTH_USER_LIMIT_IP` | Límite de dispositivos/IP para clientes aprovisionados (`0` = sin límite) | `0` |
+| `XUI_OAUTH_SCOPES` | Scopes de OAuth2 (separados por comas) | `openid,profile,email,groups` |
+| `XUI_OAUTH_GROUPS_CLAIM` | Claim del ID token que contiene los grupos del usuario | `groups` |
+| `XUI_OAUTH_USERNAME_CLAIM` | Claim del ID token usado como nombre de usuario | `email` |
+
 ## Idiomas Compatibles
 
 La interfaz del panel está disponible en 13 idiomas:
