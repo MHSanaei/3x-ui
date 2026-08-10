@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
+import { RadarChartOutlined, ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
 import { CPS_SLOTS, I1_PROFILE_CHOICES, type CpsSlot, type I1ProfileChoice } from '@/lib/xray/i1Generators';
@@ -26,6 +26,8 @@ interface AmneziawgFieldsProps {
   cpsProfiles: Record<CpsSlot, I1ProfileChoice>;
   onCpsProfileChange: (slot: CpsSlot, profile: I1ProfileChoice) => void;
   onRegenCps: (slot: CpsSlot) => void;
+  quicCapturing: boolean;
+  onQuicCapture: (host: string, slot: CpsSlot) => void;
 }
 
 export default function AmneziawgFields({
@@ -44,9 +46,13 @@ export default function AmneziawgFields({
   cpsProfiles,
   onCpsProfileChange,
   onRegenCps,
+  quicCapturing,
+  onQuicCapture,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [quicCaptureHost, setQuicCaptureHost] = useState('');
+  const [quicCaptureSlot, setQuicCaptureSlot] = useState<CpsSlot>('i1');
   return (
     <>
       <Form.Item label={t('pages.xray.amneziawg.privateKey')}>
@@ -183,6 +189,30 @@ export default function AmneziawgFields({
           </Space.Compact>
         </Form.Item>
       ))}
+      <Form.Item label={t('pages.xray.amneziawg.quicCapture')} extra={t('pages.xray.amneziawg.quicCaptureHint')}>
+        <Space.Compact block style={{ display: 'flex' }}>
+          <Input
+            value={quicCaptureHost}
+            onChange={(e) => setQuicCaptureHost(e.target.value)}
+            placeholder="www.google.com"
+            style={{ flex: 1 }}
+          />
+          <Select
+            aria-label={t('pages.xray.amneziawg.quicCaptureSlot')}
+            value={quicCaptureSlot}
+            onChange={setQuicCaptureSlot}
+            style={{ width: 90 }}
+            options={CPS_SLOTS.map((slot) => ({ value: slot, label: slot.toUpperCase() }))}
+          />
+          <Button
+            loading={quicCapturing}
+            icon={<RadarChartOutlined />}
+            onClick={() => onQuicCapture(quicCaptureHost, quicCaptureSlot)}
+          >
+            {t('pages.xray.amneziawg.quicCaptureButton')}
+          </Button>
+        </Space.Compact>
+      </Form.Item>
       <Divider style={{ margin: '0 0 14px 0' }}>{t('pages.xray.amneziawg.awg3Advanced')}</Divider>
       <FormField
         name={['settings', 'server', 'awgVersion']}

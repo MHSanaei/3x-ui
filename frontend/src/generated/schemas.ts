@@ -2739,6 +2739,24 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "QuicCaptureResult": {
+    "description": "QuicCaptureResult is a live QUIC capture's CPS chain plus a human-readable\nlabel, ready to drop straight into an AmneziaWG inbound's I1-I5 field --\nthe same shape the frontend's own locally-generated i1Generators.ts\nprofiles return.",
+    "properties": {
+      "chain": {
+        "example": "\u003cb 0x...\u003e\u003cr 24\u003e\u003cb 0x...\u003e\u003cr 32\u003e\u003cb 0x...\u003e\u003cr 16\u003e",
+        "type": "string"
+      },
+      "label": {
+        "example": "quic-live(example.com)",
+        "type": "string"
+      }
+    },
+    "required": [
+      "chain",
+      "label"
+    ],
+    "type": "object"
+  },
   "RealityScanResult": {
     "properties": {
       "alpn": {

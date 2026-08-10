@@ -620,6 +620,11 @@ export interface ProbeResultUI {
   xrayVersion: string;
 }
 
+export interface QuicCaptureResult {
+  chain: string;
+  label: string;
+}
+
 export interface RealityScanResult {
   alpn: string;
   certIssuer: string;

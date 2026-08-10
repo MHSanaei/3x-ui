@@ -18,7 +18,7 @@ import {
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
-import type { RealityScanResult } from '@/generated/types';
+import type { QuicCaptureResult, RealityScanResult } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -445,6 +445,36 @@ export default function InboundFormModal({
     }
     const result = await genI1(profile);
     if (result) setV(`settings.server.${slot}`, result.chain);
+  };
+
+  // Sends a real QUICv1 Initial ClientHello to host:443 from the *panel
+  // server* (not the browser -- raw UDP isn't available to page JS) and
+  // turns the real server's reply into a CPS chain, applied directly to the
+  // chosen slot. Doesn't touch cpsProfiles: capture is a separate action
+  // from the per-slot mimicry-profile regenerate, not a new profile choice.
+  const [quicCapturing, setQuicCapturing] = useState(false);
+  const onQuicCapture = async (host: string, slot: CpsSlot) => {
+    const trimmed = host.trim();
+    if (!trimmed) {
+      messageApi.warning(t('pages.xray.amneziawg.quicCaptureHostRequired'));
+      return;
+    }
+    setQuicCapturing(true);
+    try {
+      const msg = await HttpUtil.post<QuicCaptureResult>(
+        '/panel/api/server/awgQuicCapture',
+        { host: trimmed },
+        { silent: true },
+      );
+      if (!msg?.success || !msg.obj) {
+        messageApi.error(msg?.msg || t('pages.xray.amneziawg.awgQuicCaptureError'));
+        return;
+      }
+      setV(`settings.server.${slot}`, msg.obj.chain);
+      messageApi.success(t('pages.xray.amneziawg.quicCaptureSuccess', { slot: slot.toUpperCase() }));
+    } finally {
+      setQuicCapturing(false);
+    }
   };
 
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
@@ -890,6 +920,8 @@ export default function InboundFormModal({
           cpsProfiles={cpsProfiles}
           onCpsProfileChange={onCpsProfileChange}
           onRegenCps={onRegenCps}
+          quicCapturing={quicCapturing}
+          onQuicCapture={onQuicCapture}
         />
       )}
 

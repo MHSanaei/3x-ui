@@ -540,6 +540,16 @@ export const sections: readonly Section[] = [
         responseSchemaArray: true,
       },
       {
+        method: 'POST',
+        path: '/panel/api/server/awgQuicCapture',
+        summary: 'Send a real QUICv1 Initial ClientHello to host:443 and turn the server\'s real Initial reply into an AmneziaWG CPS chain, ready to drop into an inbound\'s I1-I5 field. Fails if the host does not respond on UDP/443 within a few seconds.',
+        params: [
+          { name: 'host', in: 'body (form)', type: 'string', desc: 'Target host to capture a real QUIC exchange from, e.g. www.google.com. Resolved and rejected if it lands on a private/loopback/link-local address.' },
+        ],
+        body: 'host=www.google.com',
+        responseSchema: 'QuicCaptureResult',
+      },
+      {
         method: 'GET',
         path: '/panel/api/server/clientIps',
         summary: 'Fetch the fully aggregated inbound_client_ips database table. Used by nodes to sync recently active IPs across the cluster.',

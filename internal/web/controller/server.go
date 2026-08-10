@@ -80,6 +80,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
 	g.POST("/scanRealityTarget", a.scanRealityTarget)
 	g.POST("/scanRealityTargets", a.scanRealityTargets)
+	g.POST("/awgQuicCapture", a.awgQuicCapture)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -479,6 +480,18 @@ func (a *ServerController) scanRealityTargets(c *gin.Context) {
 	res, err := a.serverService.ScanRealityTargets(c.PostForm("targets"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
+		return
+	}
+	jsonObj(c, res, nil)
+}
+
+// awgQuicCapture sends a real QUICv1 Initial ClientHello to the admin-supplied
+// host on UDP/443 and turns the server's real Initial reply into a CPS chain
+// ready to drop into an AmneziaWG inbound's I1-I5 field.
+func (a *ServerController) awgQuicCapture(c *gin.Context) {
+	res, err := a.serverService.CaptureAwgQuic(c.PostForm("host"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.xray.amneziawg.awgQuicCaptureError"), err)
 		return
 	}
 	jsonObj(c, res, nil)

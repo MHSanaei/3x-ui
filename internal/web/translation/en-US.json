@@ -1818,6 +1818,13 @@
           "safari": "Safari"
         },
         "i1QuicUnsupported": "Generating a QUIC signature requires HTTPS (or localhost) -- this connection doesn't expose the Web Crypto API needed for it.",
+        "quicCapture": "Live QUIC capture",
+        "quicCaptureHint": "Sends a real QUIC ClientHello to the host on UDP/443 from the panel server itself and turns the server's real reply into a signature -- stronger realism than a locally-generated one, but fails if the host doesn't answer within a few seconds.",
+        "quicCaptureSlot": "Target slot",
+        "quicCaptureButton": "Capture",
+        "quicCaptureHostRequired": "Enter a host to capture from first.",
+        "awgQuicCaptureError": "QUIC capture failed -- the host may not speak QUIC on port 443, or it didn't reply in time.",
+        "quicCaptureSuccess": "Captured a real QUIC exchange and applied it to {slot}.",
         "awg3Advanced": "AmneziaWG 3.0 Advanced",
         "awgVersion": "AmneziaWG protocol version",
         "awgVersionHint": "The version ceiling this inbound declares. Raise to 3.0 to enable the fields below (Header Protection Key, Content Padding Addition, and the device-timer fields) -- all of them require this to be set to 3.0 first.",

@@ -82,6 +82,7 @@ func run(root, outDir string) error {
 				"NodeView",
 				"ProbeResultUI",
 				"RealityScanResult",
+				"QuicCaptureResult",
 				"GeodataCategories",
 			),
 		},

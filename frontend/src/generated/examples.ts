@@ -641,6 +641,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayState": "",
     "xrayVersion": "25.10.31"
   },
+  "QuicCaptureResult": {
+    "chain": "\u003cb 0x...\u003e\u003cr 24\u003e\u003cb 0x...\u003e\u003cr 32\u003e\u003cb 0x...\u003e\u003cr 16\u003e",
+    "label": "quic-live(example.com)"
+  },
   "RealityScanResult": {
     "alpn": "h2",
     "certIssuer": "Google Trust Services",

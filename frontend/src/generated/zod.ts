@@ -659,6 +659,12 @@ export const ProbeResultUISchema = z.object({
 });
 export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
 
+export const QuicCaptureResultSchema = z.object({
+  chain: z.string(),
+  label: z.string(),
+});
+export type QuicCaptureResult = z.infer<typeof QuicCaptureResultSchema>;
+
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),
   certIssuer: z.string(),
