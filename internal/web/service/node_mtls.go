@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 // NodeMtlsCaCert returns the PEM of this panel's node-auth CA certificate (the
@@ -22,6 +23,14 @@ func (s *NodeService) NodeMtlsCaCert() (string, error) {
 		return "", err
 	}
 	return string(ca.CertPEM), nil
+}
+
+// ReloadMasterMtlsClient validates the master credential currently stored by
+// the panel and drops cached mTLS connection pools. This makes an intentional
+// out-of-process credential rotation take effect without restarting x-ui (and
+// therefore without stopping the xray child process in the same service).
+func (s *NodeService) ReloadMasterMtlsClient() error {
+	return runtime.ReloadMasterClientConnections()
 }
 
 // SetNodeMtlsTrustCA stores the CA certificate this panel trusts for incoming

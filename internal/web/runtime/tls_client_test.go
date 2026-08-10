@@ -11,11 +11,193 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 )
+
+type generationProbeTransport struct {
+	id     string
+	closed atomic.Int32
+}
+
+func (t *generationProbeTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       http.NoBody,
+		Header:     make(http.Header),
+		Request:    &http.Request{},
+	}, nil
+}
+
+func (t *generationProbeTransport) CloseIdleConnections() {
+	t.closed.Add(1)
+}
+
+func TestCredentialRotatingTransportDropsOldPoolBeforeNextRequest(t *testing.T) {
+	var selected atomic.Pointer[generationProbeTransport]
+	oldTransport := &generationProbeTransport{id: "old"}
+	newTransport := &generationProbeTransport{id: "new"}
+	selected.Store(oldTransport)
+
+	rotating, err := newCredentialRotatingTransport(func() (idleClosingRoundTripper, error) {
+		return selected.Load(), nil
+	})
+	if err != nil {
+		t.Fatalf("newCredentialRotatingTransport: %v", err)
+	}
+	rotating.mu.Lock()
+	initial := rotating.current
+	rotating.mu.Unlock()
+	if initial != oldTransport {
+		t.Fatalf("initial transport = %p, want old %p", initial, oldTransport)
+	}
+
+	selected.Store(newTransport)
+	InvalidateMasterClientConnections()
+
+	req := httptest.NewRequest(http.MethodGet, "https://node.example.test/panel/api/server/status", nil)
+	resp, err := rotating.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip after credential rotation: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	rotating.mu.Lock()
+	current := rotating.current
+	rotating.mu.Unlock()
+	if current != newTransport {
+		t.Fatalf("transport after invalidation = %p, want new %p", current, newTransport)
+	}
+	if got := oldTransport.closed.Load(); got != 1 {
+		t.Fatalf("old transport CloseIdleConnections calls = %d, want 1", got)
+	}
+}
+
+func TestReloadMasterClientConnectionsValidatesProviderBeforeInvalidation(t *testing.T) {
+	before := masterCertEpoch.Load()
+	SetMasterClientCertProvider(func() (tls.Certificate, error) {
+		return tls.Certificate{}, context.Canceled
+	})
+	if err := ReloadMasterClientConnections(); err == nil {
+		t.Fatal("reload with an invalid provider unexpectedly succeeded")
+	}
+	if got := masterCertEpoch.Load(); got != before {
+		t.Fatalf("failed reload changed generation from %d to %d", before, got)
+	}
+
+	SetMasterClientCertProvider(func() (tls.Certificate, error) {
+		return masterCertForTest(t), nil
+	})
+	t.Cleanup(func() { SetMasterClientCertProvider(nil) })
+	if err := ReloadMasterClientConnections(); err != nil {
+		t.Fatalf("ReloadMasterClientConnections: %v", err)
+	}
+	if got := masterCertEpoch.Load(); got != before+1 {
+		t.Fatalf("successful reload generation = %d, want %d", got, before+1)
+	}
+}
+
+func TestCredentialRotatingTransportRejectsBuildAcrossInvalidation(t *testing.T) {
+	oldTransport := &generationProbeTransport{id: "old"}
+	newTransport := &generationProbeTransport{id: "new"}
+	var selected atomic.Pointer[generationProbeTransport]
+	selected.Store(oldTransport)
+
+	firstBuildCaptured := make(chan struct{})
+	releaseFirstBuild := make(chan struct{})
+	var once sync.Once
+	build := func() (idleClosingRoundTripper, error) {
+		captured := selected.Load()
+		once.Do(func() {
+			close(firstBuildCaptured)
+			<-releaseFirstBuild
+		})
+		return captured, nil
+	}
+
+	type result struct {
+		transport *credentialRotatingTransport
+		err       error
+	}
+	resultCh := make(chan result, 1)
+	go func() {
+		transport, err := newCredentialRotatingTransport(build)
+		resultCh <- result{transport: transport, err: err}
+	}()
+
+	<-firstBuildCaptured
+	selected.Store(newTransport)
+	InvalidateMasterClientConnections()
+	close(releaseFirstBuild)
+
+	got := <-resultCh
+	if got.err != nil {
+		t.Fatalf("newCredentialRotatingTransport: %v", got.err)
+	}
+	got.transport.mu.Lock()
+	current := got.transport.current
+	got.transport.mu.Unlock()
+	if current != newTransport {
+		t.Fatalf("transport built across invalidation = %p, want new %p", current, newTransport)
+	}
+	if calls := oldTransport.closed.Load(); calls != 1 {
+		t.Fatalf("stale transport CloseIdleConnections calls = %d, want 1", calls)
+	}
+}
+
+func TestHTTPClientForNodeMTLSRebuildsTLSConfigAfterCredentialInvalidation(t *testing.T) {
+	oldCert := masterCertForTest(t)
+	newCert := masterCertForTest(t)
+	selected := oldCert
+	SetMasterClientCertProvider(func() (tls.Certificate, error) { return selected, nil })
+	t.Cleanup(func() { SetMasterClientCertProvider(nil) })
+
+	client, err := HTTPClientForNode(&model.Node{
+		Scheme:        "https",
+		Address:       "node.example.test",
+		Port:          443,
+		TlsVerifyMode: "mtls",
+	}, "")
+	if err != nil {
+		t.Fatalf("HTTPClientForNode: %v", err)
+	}
+	rotating, ok := client.Transport.(*credentialRotatingTransport)
+	if !ok {
+		t.Fatalf("transport = %T, want *credentialRotatingTransport", client.Transport)
+	}
+	leaf := func() []byte {
+		rotating.mu.Lock()
+		defer rotating.mu.Unlock()
+		transport, ok := rotating.current.(*http.Transport)
+		if !ok {
+			t.Fatalf("current transport = %T, want *http.Transport", rotating.current)
+		}
+		return transport.TLSClientConfig.Certificates[0].Certificate[0]
+	}
+	if got := leaf(); string(got) != string(oldCert.Certificate[0]) {
+		t.Fatal("initial TLS config does not contain the old credential")
+	}
+
+	selected = newCert
+	InvalidateMasterClientConnections()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://node.example.test/", nil)
+	if err != nil {
+		t.Fatalf("NewRequestWithContext: %v", err)
+	}
+	if _, err := client.Do(req); err == nil {
+		t.Fatal("canceled request unexpectedly succeeded")
+	}
+	if got := leaf(); string(got) != string(newCert.Certificate[0]) {
+		t.Fatal("TLS config retained the old credential after invalidation")
+	}
+}
 
 // masterCertForTest builds a real CA-signed client certificate for mtls tests.
 func masterCertForTest(t *testing.T) tls.Certificate {

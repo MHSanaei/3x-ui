@@ -936,6 +936,11 @@ export const sections: readonly Section[] = [
         body: '{\n  "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/nodes/mtls/reloadClient',
+        summary: 'Validate the current master mTLS client credential, close idle node connections, and advance the credential generation so new requests use the rotated certificate without restarting the panel.',
+      },
+      {
         method: 'GET',
         path: '/panel/api/nodes/get/:id',
         summary: 'Fetch a single node by ID.',

@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 var masterClientCredentialMu sync.Mutex
@@ -133,6 +134,7 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	if err := saveMasterClientCredential(client, pin); err != nil {
 		return crypto.CertKeyPEM{}, err
 	}
+	runtime.InvalidateMasterClientConnections()
 	return client, nil
 }
 

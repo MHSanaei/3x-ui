@@ -8058,6 +8058,36 @@
         }
       }
     },
+    "/panel/api/nodes/mtls/reloadClient": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Validate the current master mTLS client credential, close idle node connections, and advance the credential generation so new requests use the rotated certificate without restarting the panel.",
+        "operationId": "post_panel_api_nodes_mtls_reloadClient",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/get/{id}": {
       "get": {
         "tags": [
