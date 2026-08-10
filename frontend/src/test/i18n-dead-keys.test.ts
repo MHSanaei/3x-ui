@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /*
- * Guards the 13-locale translation set two ways: every key in en-US must be
+ * Guards the en-US/ru-RU translation set two ways: every key in en-US must be
  * referenced somewhere in the frontend or Go sources (dead keys accumulate
  * silently — this test deleted over two hundred of them when it was
  * introduced), and every locale must carry exactly the en-US key set
@@ -74,7 +74,7 @@ describe('i18n keys', () => {
     const dead = enKeys.filter(
       (key) => !tokens.has(key) && !prefixes.some((p) => key.startsWith(p)),
     );
-    expect(dead, `dead i18n keys (delete from all 13 locales):\n  ${dead.join('\n  ')}`).toEqual([]);
+    expect(dead, `dead i18n keys (delete from both locales):\n  ${dead.join('\n  ')}`).toEqual([]);
   });
 
   it('every locale carries exactly the en-US key set', () => {
