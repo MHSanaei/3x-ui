@@ -99,8 +99,10 @@ type Remote struct {
 }
 
 type RemoteInboundOption struct {
+	Id       int            `json:"id"`
 	Tag      string         `json:"tag"`
 	Remark   string         `json:"remark"`
+	Listen   string         `json:"listen"`
 	Protocol model.Protocol `json:"protocol"`
 	Port     int            `json:"port"`
 }
@@ -484,6 +486,18 @@ func (r *Remote) recordPushedInbound(ib *model.Inbound) {
 // exact payload the node holds.
 func (r *Remote) RecordAdoptedInbound(ib *model.Inbound) {
 	r.recordPushedInbound(ib)
+}
+
+// AdoptInboundAlias records that the desired panel-side inbound is already
+// deployed under a different tag on this node. The association deliberately
+// lives only in the Remote cache: it avoids mutating either panel during
+// adoption and is rediscovered after every master restart.
+func (r *Remote) AdoptInboundAlias(ib *model.Inbound, remote RemoteInboundOption) {
+	r.mu.Lock()
+	r.remoteIDByTag[remote.Tag] = remote.Id
+	r.remoteIDByTag[ib.Tag] = remote.Id
+	r.pushedFP[ib.Tag] = wireFingerprint(wireInbound(ib, r.node.Id))
+	r.mu.Unlock()
 }
 
 // AdvancePushedInbound moves the reconcile-skip fingerprint from an inbound's

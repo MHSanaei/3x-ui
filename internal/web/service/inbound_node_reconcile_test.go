@@ -251,6 +251,84 @@ func TestReconcileNode_ContinuesPastFailedInbound(t *testing.T) {
 	}
 }
 
+func TestReconcileNode_AdoptsCompatibleOriginInboundWithoutRemoteMutation(t *testing.T) {
+	setupConflictDB(t)
+
+	var mu sync.Mutex
+	mutations := 0
+	writeOK := func(w http.ResponseWriter, obj any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "msg": "", "obj": obj})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panel/api/inbounds/list", func(w http.ResponseWriter, _ *http.Request) {
+		writeOK(w, []map[string]any{{"id": 41, "tag": "already-deployed", "listen": "", "port": 8443, "protocol": "vless"}})
+	})
+	mux.HandleFunc("/panel/api/inbounds/", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		mutations++
+		mu.Unlock()
+		writeOK(w, nil)
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	node := reconcileTestNode(t, ts, "adopt-node", "all", nil)
+	node.Guid = "origin-guid"
+	if err := database.GetDB().Model(node).Update("guid", node.Guid).Error; err != nil {
+		t.Fatalf("update node guid: %v", err)
+	}
+	seedInboundConflictNode(t, "desired-name", "", 8443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	svc := InboundService{}
+	rt := runtime.NewRemote(node, nil)
+	if err := svc.ReconcileNode(context.Background(), rt, node); err != nil {
+		t.Fatalf("first ReconcileNode: %v", err)
+	}
+	if err := svc.ReconcileNode(context.Background(), rt, node); err != nil {
+		t.Fatalf("second ReconcileNode: %v", err)
+	}
+	mu.Lock()
+	got := mutations
+	mu.Unlock()
+	if got != 0 {
+		t.Fatalf("remote mutations = %d, want 0 while adopting compatible deployed inbound", got)
+	}
+}
+
+func TestReconcileNode_IncompatiblePortOccupantRemainsLoud(t *testing.T) {
+	setupConflictDB(t)
+
+	writeOK := func(w http.ResponseWriter, obj any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "msg": "", "obj": obj})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panel/api/inbounds/list", func(w http.ResponseWriter, _ *http.Request) {
+		writeOK(w, []map[string]any{{"id": 42, "tag": "port-owner", "listen": "", "port": 9443, "protocol": "trojan"}})
+	})
+	mux.HandleFunc("/panel/api/inbounds/add", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "msg": "port already occupied", "obj": nil})
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	node := reconcileTestNode(t, ts, "drift-node", "all", nil)
+	node.Guid = "origin-guid"
+	seedInboundConflictNode(t, "desired-name", "", 9443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	err := (&InboundService{}).ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node)
+	if err == nil || !strings.Contains(err.Error(), "port already occupied") {
+		t.Fatalf("ReconcileNode error = %v, want loud incompatible-port error", err)
+	}
+}
+
 func TestEnsureInboundTagAllowed(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
