@@ -649,7 +649,6 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 	}
 	client := model.Client{Email: "alice@x"}
 	first := s.genTemplatedRemark(inbound, client, "", "ws")
-	s.usageShown["alice@x"] = true
 	second := s.genTemplatedRemark(inbound, client, "", "ws")
 	if !strings.Contains(first, "📊") {
 		t.Fatalf("first link should carry usage: %q", first)
@@ -675,7 +674,6 @@ func TestEmailOnFirstLinkOnly(t *testing.T) {
 	}
 	client := model.Client{Email: "alice@x"}
 	first := s.genTemplatedRemark(inbound, client, "", "ws")
-	s.usageShown["alice@x"] = true
 	second := s.genTemplatedRemark(inbound, client, "", "ws")
 	if !strings.Contains(first, "alice@x") {
 		t.Fatalf("first link should carry email: %q", first)
@@ -722,5 +720,22 @@ func TestIdentityOnAllLinks(t *testing.T) {
 				t.Fatalf("second link = %q, want %q", got, tt.wantSecond)
 			}
 		})
+	}
+}
+
+func TestSharedSubIDRemark_FullInfoOncePerSubscription(t *testing.T) {
+	const tmpl = "{{INBOUND}}-{{EMAIL}}"
+	s := &SubService{
+		remarkTemplate:   tmpl,
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	first := model.Client{Email: "first@example", SubID: "shared-sub"}
+	second := model.Client{Email: "second@example", SubID: "shared-sub"}
+	if got := s.genTemplatedRemark(&model.Inbound{Remark: "DE"}, first, "", "tcp"); got != "DE-first@example" {
+		t.Fatalf("first credential remark = %q", got)
+	}
+	if got := s.genTemplatedRemark(&model.Inbound{Remark: "FI"}, second, "", "tcp"); got != "FI" {
+		t.Fatalf("second credential with shared subId remark = %q, want identity suppressed", got)
 	}
 }
