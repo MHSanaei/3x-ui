@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -85,6 +86,68 @@ func TestEnsureMasterClientCert_VerifiesAndIdempotent(t *testing.T) {
 	}
 	if !bytes.Equal(client.CertPEM, again.CertPEM) || !bytes.Equal(client.KeyPEM, again.KeyPEM) {
 		t.Fatal("EnsureMasterClientCert must be idempotent")
+	}
+}
+
+func TestEnsureMasterClientCert_RefusesSilentRotationWhenCredentialIsLost(t *testing.T) {
+	s := setupSettingMtlsDB(t)
+
+	client, err := s.EnsureMasterClientCert()
+	if err != nil {
+		t.Fatalf("EnsureMasterClientCert: %v", err)
+	}
+	pin, err := clientCertSHA256FromPEM(client.CertPEM)
+	if err != nil {
+		t.Fatalf("clientCertSHA256FromPEM: %v", err)
+	}
+	if err := s.setString(settingNodeMtlsClientPin, pin); err != nil {
+		t.Fatalf("persist client pin: %v", err)
+	}
+	if err := s.setString(settingNodeMtlsClientCert, ""); err != nil {
+		t.Fatalf("clear client cert: %v", err)
+	}
+	if err := s.setString(settingNodeMtlsClientKey, ""); err != nil {
+		t.Fatalf("clear client key: %v", err)
+	}
+
+	_, err = s.EnsureMasterClientCert()
+	if err == nil {
+		t.Fatal("lost master credential with a persisted pin must not be silently reissued")
+	}
+	if !strings.Contains(err.Error(), settingNodeMtlsClientPin) {
+		t.Fatalf("error must explain the pin/credential conflict, got: %v", err)
+	}
+}
+
+func TestEnsureMasterClientCert_PersistsCredentialAtomically(t *testing.T) {
+	s := setupSettingMtlsDB(t)
+	db := database.GetDB()
+	trigger := `CREATE TRIGGER fail_master_pin_insert
+		BEFORE INSERT ON settings
+		WHEN NEW.key = 'nodeMtlsClientCertSha256'
+		BEGIN SELECT RAISE(ABORT, 'injected pin failure'); END`
+	if err := db.Exec(trigger).Error; err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+
+	if _, err := s.EnsureMasterClientCert(); err == nil {
+		t.Fatal("injected persistence failure unexpectedly succeeded")
+	}
+	for _, key := range []string{settingNodeMtlsClientCert, settingNodeMtlsClientKey, settingNodeMtlsClientPin} {
+		got, err := s.getString(key)
+		if err != nil {
+			t.Fatalf("get %s after rollback: %v", key, err)
+		}
+		if got != "" {
+			t.Fatalf("%s persisted despite transaction rollback", key)
+		}
+	}
+
+	if err := db.Exec("DROP TRIGGER fail_master_pin_insert").Error; err != nil {
+		t.Fatalf("drop failure trigger: %v", err)
+	}
+	if _, err := s.EnsureMasterClientCert(); err != nil {
+		t.Fatalf("retry after rollback: %v", err)
 	}
 }
 
