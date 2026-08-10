@@ -143,6 +143,9 @@ func initModels() error {
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
+	if err := createUniqueSubIDIndex(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -1882,6 +1885,166 @@ func seedClientsFromInboundJSON() error {
 	})
 }
 
+// --- DB-003: unique sub_id ----------------------------------------------------
+
+// subIDUniqueIndex is the partial unique index enforcing one client per
+// non-empty sub_id. Partial (WHERE sub_id <> ”) so the many clients that
+// legitimately carry no sub_id stay unconstrained.
+const subIDUniqueIndex = "idx_client_record_sub_id_unique"
+
+// subIDEnforceEnv gates creation of the DB-003 index. The index is a schema
+// enforcement step that older binaries may not tolerate on rollback, so a new
+// binary canary can run read-only first. Once enabled, creation fails closed on
+// existing duplicates and verifies any same-named index structurally.
+const subIDEnforceEnv = "XUI_ENFORCE_UNIQUE_SUBID"
+
+func subIDDuplicateGroups() (int64, error) {
+	var n int64
+	err := db.Raw(
+		"SELECT COUNT(*) FROM (SELECT sub_id FROM clients WHERE sub_id IS NOT NULL AND sub_id <> '' GROUP BY sub_id HAVING COUNT(*) > 1) t",
+	).Scan(&n).Error
+	return n, err
+}
+
+func auditUniqueSubIDReadiness() {
+	dups, err := subIDDuplicateGroups()
+	if err != nil {
+		log.Printf("DB-003 audit: skipped (duplicate scan failed: %v)", err)
+		return
+	}
+	if dups > 0 {
+		log.Printf("DB-003 WARNING: cannot enforce unique sub_id — %d duplicate non-empty value(s) present; resolve them, then set %s=1", dups, subIDEnforceEnv)
+		return
+	}
+	log.Printf("DB-003 WARNING: unique sub_id enforcement is not enabled (set %s=1); duplicate non-empty sub_ids = 0 (ready to enforce)", subIDEnforceEnv)
+}
+
+func createUniqueSubIDIndex() error {
+	exists := db.Migrator().HasIndex(&model.ClientRecord{}, subIDUniqueIndex)
+	optIn := strings.TrimSpace(os.Getenv(subIDEnforceEnv)) == "1"
+
+	if !exists {
+		if !optIn {
+			auditUniqueSubIDReadiness()
+			return nil
+		}
+		dups, err := subIDDuplicateGroups()
+		if err != nil {
+			return err
+		}
+		if dups > 0 {
+			return fmt.Errorf("DB-003: %d duplicate non-empty sub_id value(s) present — refusing to enforce until resolved (a non-empty sub_id must identify exactly one client)", dups)
+		}
+		if err := db.Exec(
+			"CREATE UNIQUE INDEX IF NOT EXISTS " + subIDUniqueIndex + " ON clients (sub_id) WHERE sub_id IS NOT NULL AND sub_id <> ''",
+		).Error; err != nil {
+			return err
+		}
+	}
+
+	return verifySubIDIndexDefinition()
+}
+
+func verifySubIDIndexDefinition() error {
+	if IsPostgres() {
+		return verifySubIDIndexPostgres()
+	}
+	return verifySubIDIndexSQLite()
+}
+
+func verifySubIDIndexPostgres() error {
+	var rows []struct {
+		IsUnique  bool   `gorm:"column:is_unique"`
+		IsPartial bool   `gorm:"column:is_partial"`
+		NKeys     int    `gorm:"column:nkeys"`
+		Predicate string `gorm:"column:predicate"`
+	}
+	if err := db.Raw(`
+		SELECT i.indisunique AS is_unique, (i.indpred IS NOT NULL) AS is_partial,
+		       i.indnkeyatts AS nkeys, pg_get_expr(i.indpred, i.indrelid) AS predicate
+		FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+		WHERE c.relname = ?`, subIDUniqueIndex).Scan(&rows).Error; err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		return fmt.Errorf("DB-003: index %s is missing after creation", subIDUniqueIndex)
+	}
+	r := rows[0]
+	if !r.IsUnique || !r.IsPartial || r.NKeys != 1 {
+		return fmt.Errorf("DB-003: index %s wrong shape (unique=%v partial=%v keyCols=%d; want unique partial single-key)", subIDUniqueIndex, r.IsUnique, r.IsPartial, r.NKeys)
+	}
+	var keyCol string
+	if err := db.Raw(`SELECT pg_get_indexdef(c.oid, 1, true) FROM pg_class c WHERE c.relname = ?`, subIDUniqueIndex).Scan(&keyCol).Error; err != nil {
+		return err
+	}
+	if strings.TrimSpace(keyCol) != "sub_id" {
+		return fmt.Errorf("DB-003: index %s key column is %q, want sub_id", subIDUniqueIndex, keyCol)
+	}
+	if got, want := canonicalSubIDPredicate(r.Predicate), canonicalSubIDPredicate("sub_id IS NOT NULL AND sub_id <> ''"); got != want {
+		return fmt.Errorf("DB-003: index %s predicate is %q, want non-empty sub_id only", subIDUniqueIndex, r.Predicate)
+	}
+	return nil
+}
+
+func verifySubIDIndexSQLite() error {
+	var list []struct {
+		Name    string `gorm:"column:name"`
+		Unique  int    `gorm:"column:unique"`
+		Partial int    `gorm:"column:partial"`
+	}
+	if err := db.Raw("PRAGMA index_list('clients')").Scan(&list).Error; err != nil {
+		return err
+	}
+	var found bool
+	var unique, partial int
+	for _, r := range list {
+		if r.Name == subIDUniqueIndex {
+			found, unique, partial = true, r.Unique, r.Partial
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("DB-003: index %s is missing after creation", subIDUniqueIndex)
+	}
+	if unique != 1 || partial != 1 {
+		return fmt.Errorf("DB-003: index %s wrong shape (unique=%d partial=%d; want unique partial)", subIDUniqueIndex, unique, partial)
+	}
+	var info []struct {
+		Name string `gorm:"column:name"`
+	}
+	if err := db.Raw(fmt.Sprintf("PRAGMA index_info('%s')", subIDUniqueIndex)).Scan(&info).Error; err != nil {
+		return err
+	}
+	if len(info) != 1 || info[0].Name != "sub_id" {
+		cols := make([]string, len(info))
+		for i := range info {
+			cols[i] = info[i].Name
+		}
+		return fmt.Errorf("DB-003: index %s key columns are %v, want exactly [sub_id]", subIDUniqueIndex, cols)
+	}
+	var ddl string
+	if err := db.Raw("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?", subIDUniqueIndex).Scan(&ddl).Error; err != nil {
+		return err
+	}
+	_, predicate, ok := strings.Cut(strings.ToLower(ddl), " where ")
+	if !ok || canonicalSubIDPredicate(predicate) != canonicalSubIDPredicate("sub_id IS NOT NULL AND sub_id <> ''") {
+		return fmt.Errorf("DB-003: index %s predicate is %q, want non-empty sub_id only", subIDUniqueIndex, predicate)
+	}
+	return nil
+}
+
+func canonicalSubIDPredicate(value string) string {
+	value = strings.ToLower(value)
+	for _, old := range []string{" ", "\t", "\n", "\r", "(", ")", `"`, "`", "::text"} {
+		value = strings.ReplaceAll(value, old, "")
+	}
+	return value
+}
+
+// seedApiTokens copies the legacy `apiToken` setting into the new
+// api_tokens table as a row named "default" so existing central panels
+// keep working after the upgrade. Idempotent — records itself in
+// history_of_seeders and only runs when api_tokens is empty.
 func seedApiTokens() error {
 	empty, err := isTableEmpty("api_tokens")
 	if err != nil {
