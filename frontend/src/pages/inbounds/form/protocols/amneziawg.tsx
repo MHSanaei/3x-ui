@@ -191,11 +191,11 @@ export default function AmneziawgFields({
         <Form.Item
           key={slot}
           label={t(`pages.xray.amneziawg.${slot}`)}
-          // Only the first slot repeats the hint -- same "explain once,
-          // number the rest" convention as H1-H4 above. Now that Live QUIC
-          // capture renders above this list, the hint lands right after it
-          // too, not orphaned above an unrelated field.
-          extra={index === 0 ? t('pages.xray.amneziawg.i1Hint') : undefined}
+          // Only the last slot carries the hint, so it reads as a closing
+          // note for the whole I1-I5 group right before the next Divider,
+          // rather than sitting under I1 while I2-I5 (and the AWG3 section
+          // below) still need scrolling past.
+          extra={index === CPS_SLOTS.length - 1 ? t('pages.xray.amneziawg.i1Hint') : undefined}
         >
           <Space.Compact block style={{ display: 'flex' }}>
             <Select
