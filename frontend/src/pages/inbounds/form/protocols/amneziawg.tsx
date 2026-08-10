@@ -191,11 +191,17 @@ export default function AmneziawgFields({
         <Form.Item
           key={slot}
           label={t(`pages.xray.amneziawg.${slot}`)}
-          // Only the last slot carries the hint, so it reads as a closing
-          // note for the whole I1-I5 group right before the next Divider,
-          // rather than sitting under I1 while I2-I5 (and the AWG3 section
-          // below) still need scrolling past.
-          extra={index === CPS_SLOTS.length - 1 ? t('pages.xray.amneziawg.i1Hint') : undefined}
+          // The first slot explains *which profile to pick and why* (right
+          // where the profile Select first appears), the last slot closes
+          // the group with the "AmneziaWG 2.0 only" compatibility note --
+          // I2-I4 repeat neither, same "explain once" convention as H1-H4.
+          extra={
+            index === 0
+              ? t('pages.xray.amneziawg.i1ProfileGuidance')
+              : index === CPS_SLOTS.length - 1
+                ? t('pages.xray.amneziawg.i1Hint')
+                : undefined
+          }
         >
           <Space.Compact block style={{ display: 'flex' }}>
             <Select

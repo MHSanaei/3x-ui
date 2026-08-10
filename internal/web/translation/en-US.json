@@ -1818,6 +1818,7 @@
           "safari": "Safari"
         },
         "i1QuicUnsupported": "Generating a QUIC signature requires HTTPS (or localhost) -- this connection doesn't expose the Web Crypto API needed for it.",
+        "i1ProfileGuidance": "Which to pick depends on what your DPI actually blocks, not the protocol name. Random -- no guessing needed, picks one of the others each time. DNS/STUN/SIP -- mimic a specific unencrypted protocol (DNS, VoIP signaling); good when unrecognized UDP shapes get blocked more readily than those specific protocols do. QUIC -- a real, valid QUIC Initial packet (the start of an HTTP/3 connection); best where ordinary browser HTTP/3 traffic passes through. Chrome/Firefox/Safari -- byte-for-byte that browser's real TLS ClientHello (extension order, cipher list, GREASE); useful when the DPI fingerprints TLS itself, not just the outer protocol. For the strongest realism, use Live QUIC capture above instead of a locally-generated profile -- it's an actual exchange with a real server, not an approximation.",
         "quicCapture": "Live QUIC capture",
         "quicCaptureHint": "Sends a real QUIC ClientHello to the host on UDP/443 from the panel server itself and turns the server's real reply into a signature -- stronger realism than a locally-generated one, but fails if the host doesn't answer within a few seconds.",
         "quicCaptureSlot": "Target slot",
