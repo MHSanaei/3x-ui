@@ -41,6 +41,7 @@ export interface AllSetting {
   oauthRedirectUrl: string;
   oauthScopes: string;
   oauthUserExpiryDays: number;
+  oauthUserFlow: string;
   oauthUserGroup: string;
   oauthUserInboundRemark: string;
   oauthUserLimitIP: number;
@@ -170,6 +171,7 @@ export interface AllSettingView {
   oauthRedirectUrl: string;
   oauthScopes: string;
   oauthUserExpiryDays: number;
+  oauthUserFlow: string;
   oauthUserGroup: string;
   oauthUserInboundRemark: string;
   oauthUserLimitIP: number;

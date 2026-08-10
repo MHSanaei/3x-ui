@@ -25,13 +25,22 @@ type OAuthProvisionService struct{}
 // On first login it creates the client with the env default limits; on later
 // logins it reconciles — attaching the existing client (same subId/limits) to any
 // newly added matching inbound, so a fresh inbound reaches users without a reset.
-func (s *OAuthProvisionService) EnsureUserClient(inboundSvc *InboundService, clientSvc *ClientService, cfg config.OAuthConfig, email string) (string, bool, error) {
+func (s *OAuthProvisionService) EnsureUserClient(inboundSvc *InboundService, clientSvc *ClientService, cfg config.OAuthConfig, email string) (subID string, needRestart bool, err error) {
 	if email == "" {
 		return "", false, common.NewError("oauth: cannot provision client without an email")
 	}
 	if len(cfg.UserInboundRemarks) == 0 {
 		return "", false, common.NewError("oauth: XUI_OAUTH_USER_INBOUND_REMARK is not configured")
 	}
+	// Tag the client so the reconcile job can restore it onto inbounds even after
+	// every matching inbound was deleted (its ClientRecord outlives the inbound).
+	defer func() {
+		if err == nil && subID != "" {
+			if markErr := markOauthManaged(email); markErr != nil {
+				logger.Warning("oauth: mark managed client failed:", markErr)
+			}
+		}
+	}()
 
 	inbounds, err := inboundSvc.GetAllInbounds()
 	if err != nil {
@@ -72,7 +81,7 @@ func (s *OAuthProvisionService) EnsureUserClient(inboundSvc *InboundService, cli
 	if existing != nil {
 		client = *existing
 	}
-	needRestart, err := clientSvc.Create(inboundSvc, &ClientCreatePayload{
+	needRestart, err = clientSvc.Create(inboundSvc, &ClientCreatePayload{
 		Client:     client,
 		InboundIds: toAttach,
 	})
@@ -90,12 +99,12 @@ func (s *OAuthProvisionService) EnsureUserClient(inboundSvc *InboundService, cli
 	return client.SubID, needRestart, nil
 }
 
-// ReconcileAll mirrors every user-tier client onto all inbounds matching
-// XUI_OAUTH_USER_INBOUND_REMARK, so an inbound added after users logged in reaches
-// them without a re-login. It only attaches (never deletes/disables); a client's
-// subId, limits and traffic are preserved. Returns how many clients gained an
-// inbound and whether xray needs a restart. The remark-matched inbounds are the
-// declared user pool, so any client already on one is kept consistent across all.
+// ReconcileAll re-attaches every OIDC-managed client (persisted in the clients
+// table) to all inbounds matching XUI_OAUTH_USER_INBOUND_REMARK. Because the roster
+// comes from the DB rather than the current inbound membership, an inbound deleted
+// and re-added — even the only one a user was on — gets the users back. It only
+// attaches (never deletes/disables); subId, credentials, limits and traffic are
+// preserved. Returns how many attach operations happened and whether xray needs a restart.
 func (s *OAuthProvisionService) ReconcileAll(inboundSvc *InboundService, clientSvc *ClientService, cfg config.OAuthConfig) (int, bool, error) {
 	if len(cfg.UserInboundRemarks) == 0 {
 		return 0, false, nil
@@ -108,55 +117,61 @@ func (s *OAuthProvisionService) ReconcileAll(inboundSvc *InboundService, clientS
 	for _, r := range cfg.UserInboundRemarks {
 		wanted[r] = struct{}{}
 	}
-	targetIDs := make([]int, 0)
-	byEmail := make(map[string]*reconcileEntry)
+	var targets []*model.Inbound
 	for _, ib := range inbounds {
-		if _, ok := wanted[ib.Remark]; !ok {
-			continue
+		if _, ok := wanted[ib.Remark]; ok {
+			targets = append(targets, ib)
 		}
-		targetIDs = append(targetIDs, ib.Id)
+	}
+	if len(targets) == 0 {
+		return 0, false, nil
+	}
+	targetIDs := make([]int, len(targets))
+	present := make(map[string]map[int]struct{})
+	for i, ib := range targets {
+		targetIDs[i] = ib.Id
 		clients, cErr := inboundSvc.GetClients(ib)
 		if cErr != nil {
 			continue
 		}
-		for i := range clients {
-			email := clients[i].Email
+		for j := range clients {
+			email := clients[j].Email
 			if email == "" {
 				continue
 			}
-			entry := byEmail[email]
-			if entry == nil {
-				entry = &reconcileEntry{present: make(map[int]struct{})}
-				byEmail[email] = entry
+			if present[email] == nil {
+				present[email] = make(map[int]struct{})
 			}
-			entry.present[ib.Id] = struct{}{}
-			if entry.client.SubID == "" && clients[i].SubID != "" {
-				entry.client = clients[i]
-			}
+			present[email][ib.Id] = struct{}{}
 		}
 	}
-	if len(targetIDs) == 0 {
-		return 0, false, nil
+
+	var records []model.ClientRecord
+	if err := database.GetDB().Where("oauth_managed = ?", true).Find(&records).Error; err != nil {
+		return 0, false, err
 	}
 
 	attached := 0
 	needRestart := false
-	for email, entry := range byEmail {
-		if entry.client.SubID == "" {
-			continue
-		}
+	for i := range records {
+		rec := records[i]
+		on := present[rec.Email]
 		var missing []int
 		for _, id := range targetIDs {
-			if _, ok := entry.present[id]; !ok {
+			if on == nil {
+				missing = append(missing, id)
+				continue
+			}
+			if _, ok := on[id]; !ok {
 				missing = append(missing, id)
 			}
 		}
 		if len(missing) == 0 {
 			continue
 		}
-		nr, cErr := clientSvc.Create(inboundSvc, &ClientCreatePayload{Client: entry.client, InboundIds: missing})
+		nr, cErr := clientSvc.Create(inboundSvc, &ClientCreatePayload{Client: clientFromRecord(&rec), InboundIds: missing})
 		if cErr != nil {
-			logger.Warningf("oauth sync: attach %s to %d inbound(s) failed: %v", email, len(missing), cErr)
+			logger.Warningf("oauth sync: attach %s to %d inbound(s) failed: %v", rec.Email, len(missing), cErr)
 			continue
 		}
 		attached++
@@ -167,9 +182,39 @@ func (s *OAuthProvisionService) ReconcileAll(inboundSvc *InboundService, clientS
 	return attached, needRestart, nil
 }
 
-type reconcileEntry struct {
-	client  model.Client
-	present map[int]struct{}
+// clientFromRecord rebuilds a Client from its persisted record, carrying the
+// credentials, subId and limits so a re-attach reuses the identity unchanged.
+func clientFromRecord(r *model.ClientRecord) model.Client {
+	c := model.Client{
+		ID:           r.UUID,
+		Email:        r.Email,
+		SubID:        r.SubID,
+		Password:     r.Password,
+		Auth:         r.Auth,
+		Flow:         r.Flow,
+		Security:     r.Security,
+		Secret:       r.Secret,
+		PrivateKey:   r.PrivateKey,
+		PublicKey:    r.PublicKey,
+		PreSharedKey: r.PreSharedKey,
+		KeepAlive:    r.KeepAlive,
+		Enable:       r.Enable,
+		LimitIP:      r.LimitIP,
+		TotalGB:      r.TotalGB,
+		ExpiryTime:   r.ExpiryTime,
+	}
+	if r.AllowedIPs != "" {
+		c.AllowedIPs = strings.Split(r.AllowedIPs, ",")
+	}
+	return c
+}
+
+// markOauthManaged flags a client's record so ReconcileAll treats it as part of
+// the OIDC pool regardless of its current inbound membership.
+func markOauthManaged(email string) error {
+	return database.GetDB().Model(&model.ClientRecord{}).
+		Where("email = ?", email).
+		Update("oauth_managed", true).Error
 }
 
 // findClientAcrossTargets locates the caller's client on the target inbounds,
@@ -215,6 +260,7 @@ func buildOAuthClient(email string, cfg config.OAuthConfig) model.Client {
 	c := model.Client{
 		Email:   email,
 		Enable:  true,
+		Flow:    cfg.UserFlow,
 		LimitIP: cfg.UserLimitIP,
 		TotalGB: cfg.UserTotalGB * 1024 * 1024 * 1024,
 		SubID:   uuid.NewString(),

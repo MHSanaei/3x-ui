@@ -1367,7 +1367,9 @@
         "scopes": "Scopes",
         "groupsClaim": "Groups claim",
         "usernameClaim": "Username claim",
-        "envManaged": "Set by an environment variable (read-only)."
+        "envManaged": "Set by an environment variable (read-only).",
+        "userFlow": "User flow",
+        "userFlowDesc": "Flow applied to provisioned clients (e.g. xtls-rprx-vision). Leave blank for none."
       }
     },
     "xray": {

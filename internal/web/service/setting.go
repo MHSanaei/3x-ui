@@ -164,6 +164,7 @@ var defaultValueMap = map[string]string{
 	"oauthAdminGroup":        "",
 	"oauthUserGroup":         "",
 	"oauthUserInboundRemark": "",
+	"oauthUserFlow":          "",
 	"oauthUserTotalGB":       "0",
 	"oauthUserExpiryDays":    "0",
 	"oauthUserLimitIP":       "0",
@@ -336,6 +337,9 @@ func applyOauthEnvOverrides(view *entity.AllSettingView, env map[string]string) 
 	}
 	if v, ok := env["oauthUserInboundRemark"]; ok {
 		view.OauthUserInboundRemark = v
+	}
+	if v, ok := env["oauthUserFlow"]; ok {
+		view.OauthUserFlow = v
 	}
 	if v, ok := env["oauthUserTotalGB"]; ok {
 		view.OauthUserTotalGB, _ = strconv.Atoi(strings.TrimSpace(v))
@@ -1148,6 +1152,10 @@ func (s *SettingService) GetOauthUserGroup() (string, error) {
 
 func (s *SettingService) GetOauthUserInboundRemark() (string, error) {
 	return s.getString("oauthUserInboundRemark")
+}
+
+func (s *SettingService) GetOauthUserFlow() (string, error) {
+	return s.getString("oauthUserFlow")
 }
 
 func (s *SettingService) GetOauthUserTotalGB() (int, error) {

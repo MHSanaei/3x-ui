@@ -137,6 +137,9 @@
             "minimum": 0,
             "type": "integer"
           },
+          "oauthUserFlow": {
+            "type": "string"
+          },
           "oauthUserGroup": {
             "type": "string"
           },
@@ -449,6 +452,7 @@
           "oauthRedirectUrl",
           "oauthScopes",
           "oauthUserExpiryDays",
+          "oauthUserFlow",
           "oauthUserGroup",
           "oauthUserInboundRemark",
           "oauthUserLimitIP",
@@ -676,6 +680,9 @@
           "oauthUserExpiryDays": {
             "minimum": 0,
             "type": "integer"
+          },
+          "oauthUserFlow": {
+            "type": "string"
           },
           "oauthUserGroup": {
             "type": "string"
@@ -998,6 +1005,7 @@
           "oauthRedirectUrl",
           "oauthScopes",
           "oauthUserExpiryDays",
+          "oauthUserFlow",
           "oauthUserGroup",
           "oauthUserInboundRemark",
           "oauthUserLimitIP",

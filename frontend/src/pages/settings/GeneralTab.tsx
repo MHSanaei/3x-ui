@@ -457,6 +457,10 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
               <Input value={allSetting.oauthUserInboundRemark} disabled={oauthLocked('oauthUserInboundRemark')}
                 onChange={(e) => updateSetting({ oauthUserInboundRemark: e.target.value })} />
             </SettingListItem>
+            <SettingListItem paddings="small" title={t('pages.settings.oauth.userFlow')} description={oauthLockHint('oauthUserFlow') ?? t('pages.settings.oauth.userFlowDesc')}>
+              <Input value={allSetting.oauthUserFlow} disabled={oauthLocked('oauthUserFlow')} placeholder="xtls-rprx-vision"
+                onChange={(e) => updateSetting({ oauthUserFlow: e.target.value })} />
+            </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.oauth.userTotalGb')} description={oauthLockHint('oauthUserTotalGB')}>
               <InputNumber value={allSetting.oauthUserTotalGB} min={0} style={{ width: '100%' }} disabled={oauthLocked('oauthUserTotalGB')}
                 onChange={onNumber((v) => updateSetting({ oauthUserTotalGB: v }))} />

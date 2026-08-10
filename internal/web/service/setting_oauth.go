@@ -70,6 +70,7 @@ func (s *SettingService) GetEffectiveOAuthConfig() config.OAuthConfig {
 		AdminGroup:         s.effectiveOauthString(env, "oauthAdminGroup", s.GetOauthAdminGroup),
 		UserGroups:         oauthSplitCsv(s.effectiveOauthString(env, "oauthUserGroup", s.GetOauthUserGroup)),
 		UserInboundRemarks: oauthSplitCsv(s.effectiveOauthString(env, "oauthUserInboundRemark", s.GetOauthUserInboundRemark)),
+		UserFlow:           s.effectiveOauthString(env, "oauthUserFlow", s.GetOauthUserFlow),
 		UserTotalGB:        int64(s.effectiveOauthInt(env, "oauthUserTotalGB", s.GetOauthUserTotalGB)),
 		UserExpiryDays:     s.effectiveOauthInt(env, "oauthUserExpiryDays", s.GetOauthUserExpiryDays),
 		UserLimitIP:        s.effectiveOauthInt(env, "oauthUserLimitIP", s.GetOauthUserLimitIP),
@@ -128,6 +129,9 @@ func (s *SettingService) enforceOauthEnvLocks(allSetting *entity.AllSetting) {
 	}
 	if locks["oauthUserInboundRemark"] {
 		allSetting.OauthUserInboundRemark, _ = s.GetOauthUserInboundRemark()
+	}
+	if locks["oauthUserFlow"] {
+		allSetting.OauthUserFlow, _ = s.GetOauthUserFlow()
 	}
 	if locks["oauthUserTotalGB"] {
 		allSetting.OauthUserTotalGB, _ = s.GetOauthUserTotalGB()

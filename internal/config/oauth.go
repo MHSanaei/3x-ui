@@ -21,6 +21,7 @@ type OAuthConfig struct {
 	UserGroups []string
 
 	UserInboundRemarks []string
+	UserFlow           string
 	UserTotalGB        int64
 	UserExpiryDays     int
 	UserLimitIP        int
@@ -44,6 +45,7 @@ var oauthEnvKeys = map[string]string{
 	"oauthAdminGroup":        "XUI_OAUTH_ADMIN_GROUP",
 	"oauthUserGroup":         "XUI_OAUTH_USER_GROUP",
 	"oauthUserInboundRemark": "XUI_OAUTH_USER_INBOUND_REMARK",
+	"oauthUserFlow":          "XUI_OAUTH_USER_FLOW",
 	"oauthUserTotalGB":       "XUI_OAUTH_USER_TOTAL_GB",
 	"oauthUserExpiryDays":    "XUI_OAUTH_USER_EXPIRY_DAYS",
 	"oauthUserLimitIP":       "XUI_OAUTH_USER_LIMIT_IP",
@@ -78,6 +80,7 @@ func GetOAuthConfig() OAuthConfig {
 		UserGroups: envList("XUI_OAUTH_USER_GROUP", nil),
 
 		UserInboundRemarks: envList("XUI_OAUTH_USER_INBOUND_REMARK", nil),
+		UserFlow:           envStr("XUI_OAUTH_USER_FLOW"),
 		UserTotalGB:        int64(envInt("XUI_OAUTH_USER_TOTAL_GB", 0)),
 		UserExpiryDays:     envInt("XUI_OAUTH_USER_EXPIRY_DAYS", 0),
 		UserLimitIP:        envInt("XUI_OAUTH_USER_LIMIT_IP", 0),

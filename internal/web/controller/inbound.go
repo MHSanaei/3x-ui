@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -170,8 +171,25 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileOauthClients()
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
+}
+
+// reconcileOauthClients re-attaches OIDC-managed clients to a freshly added
+// inbound, so re-adding an inbound reaches users at once instead of waiting for
+// the periodic sync. Best-effort: it never blocks the inbound operation.
+func (a *InboundController) reconcileOauthClients() {
+	var settingSvc service.SettingService
+	if !settingSvc.OAuthEnabledEffective() {
+		return
+	}
+	var prov service.OAuthProvisionService
+	if _, needRestart, err := prov.ReconcileAll(&a.inboundService, &a.clientService, settingSvc.GetEffectiveOAuthConfig()); err != nil {
+		logger.Warning("oauth: reconcile after inbound change failed:", err)
+	} else if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
 }
 
 // delInbound deletes an inbound configuration by its ID.
@@ -409,6 +427,7 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileOauthClients()
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
 }

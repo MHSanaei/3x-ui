@@ -185,6 +185,66 @@ func TestReconcileAll_AttachesToMissingInboundsIdempotently(t *testing.T) {
 	}
 }
 
+func TestReconcileAll_RestoresAfterOnlyInboundReadded(t *testing.T) {
+	setupBulkDB(t)
+	a := seedInbound(t, "vpn", 25301)
+	prov := &OAuthProvisionService{}
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	cfg := config.OAuthConfig{UserInboundRemarks: []string{"vpn"}}
+
+	sub, _, err := prov.EnsureUserClient(inboundSvc, clientSvc, cfg, "solo@corp")
+	if err != nil {
+		t.Fatalf("provision: %v", err)
+	}
+	var rec model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "solo@corp").First(&rec).Error; err != nil {
+		t.Fatalf("load record: %v", err)
+	}
+	if !rec.OauthManaged {
+		t.Fatal("provisioned client should be flagged oauth_managed")
+	}
+
+	if _, err := inboundSvc.DelInbound(a.Id); err != nil {
+		t.Fatalf("del inbound: %v", err)
+	}
+
+	a2 := seedInbound(t, "vpn", 25302)
+	attached, _, err := prov.ReconcileAll(inboundSvc, clientSvc, cfg)
+	if err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	if attached != 1 {
+		t.Fatalf("attached = %d, want 1 (roster restored from the persisted record)", attached)
+	}
+	clients := reloadClients(t, a2.Id)
+	if len(clients) != 1 || clients[0].Email != "solo@corp" || clients[0].SubID != sub {
+		t.Fatalf("re-added inbound should carry the same client: %+v", clients)
+	}
+}
+
+func TestEnsureUserClient_AppliesFlow(t *testing.T) {
+	setupBulkDB(t)
+	reality := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["r.example.com"],"shortIds":["ab"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+	ib := &model.Inbound{
+		Tag: "vpn-tag", Remark: "vpn", Enable: true, Port: 24701, Protocol: model.VLESS,
+		Settings: `{"clients":[],"decryption":"none"}`, StreamSettings: reality,
+	}
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	prov := &OAuthProvisionService{}
+	cfg := config.OAuthConfig{UserInboundRemarks: []string{"vpn"}, UserFlow: "xtls-rprx-vision"}
+
+	if _, _, err := prov.EnsureUserClient(&InboundService{}, &ClientService{}, cfg, "flow@corp"); err != nil {
+		t.Fatalf("provision: %v", err)
+	}
+	clients := reloadClients(t, ib.Id)
+	if len(clients) != 1 || clients[0].Flow != "xtls-rprx-vision" {
+		t.Fatalf("client flow = %+v, want xtls-rprx-vision", clients)
+	}
+}
+
 func TestEnsureUserClient_Errors(t *testing.T) {
 	setupBulkDB(t)
 	seedInbound(t, "oauth-users", 24101)

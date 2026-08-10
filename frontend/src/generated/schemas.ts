@@ -111,6 +111,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "oauthUserFlow": {
+        "type": "string"
+      },
       "oauthUserGroup": {
         "type": "string"
       },
@@ -423,6 +426,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "oauthRedirectUrl",
       "oauthScopes",
       "oauthUserExpiryDays",
+      "oauthUserFlow",
       "oauthUserGroup",
       "oauthUserInboundRemark",
       "oauthUserLimitIP",
@@ -650,6 +654,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "oauthUserExpiryDays": {
         "minimum": 0,
         "type": "integer"
+      },
+      "oauthUserFlow": {
+        "type": "string"
       },
       "oauthUserGroup": {
         "type": "string"
@@ -972,6 +979,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "oauthRedirectUrl",
       "oauthScopes",
       "oauthUserExpiryDays",
+      "oauthUserFlow",
       "oauthUserGroup",
       "oauthUserInboundRemark",
       "oauthUserLimitIP",

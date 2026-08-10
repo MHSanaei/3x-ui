@@ -104,6 +104,7 @@ export const AllSettingSchema = z.object({
   oauthAdminGroup: z.string().optional(),
   oauthUserGroup: z.string().optional(),
   oauthUserInboundRemark: z.string().optional(),
+  oauthUserFlow: z.string().optional(),
   oauthUserTotalGB: nonNegativeInt.optional(),
   oauthUserExpiryDays: nonNegativeInt.optional(),
   oauthUserLimitIP: nonNegativeInt.optional(),

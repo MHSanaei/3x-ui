@@ -139,6 +139,7 @@ type AllSetting struct {
 	OauthAdminGroup        string `json:"oauthAdminGroup" form:"oauthAdminGroup"`
 	OauthUserGroup         string `json:"oauthUserGroup" form:"oauthUserGroup"`
 	OauthUserInboundRemark string `json:"oauthUserInboundRemark" form:"oauthUserInboundRemark"`
+	OauthUserFlow          string `json:"oauthUserFlow" form:"oauthUserFlow"`
 	OauthUserTotalGB       int    `json:"oauthUserTotalGB" form:"oauthUserTotalGB" validate:"gte=0"`
 	OauthUserExpiryDays    int    `json:"oauthUserExpiryDays" form:"oauthUserExpiryDays" validate:"gte=0"`
 	OauthUserLimitIP       int    `json:"oauthUserLimitIP" form:"oauthUserLimitIP" validate:"gte=0"`

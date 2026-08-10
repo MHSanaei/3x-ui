@@ -103,6 +103,7 @@ export class AllSetting {
   oauthAdminGroup = '';
   oauthUserGroup = '';
   oauthUserInboundRemark = '';
+  oauthUserFlow = '';
   oauthUserTotalGB = 0;
   oauthUserExpiryDays = 0;
   oauthUserLimitIP = 0;

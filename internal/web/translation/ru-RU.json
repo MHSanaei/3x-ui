@@ -1367,7 +1367,9 @@
         "scopes": "Scopes",
         "groupsClaim": "Claim групп",
         "usernameClaim": "Claim имени пользователя",
-        "envManaged": "Задано переменной окружения (только чтение)."
+        "envManaged": "Задано переменной окружения (только чтение).",
+        "userFlow": "Flow пользователя",
+        "userFlowDesc": "Flow для создаваемых клиентов (напр. xtls-rprx-vision). Пусто — без flow."
       }
     },
     "xray": {
