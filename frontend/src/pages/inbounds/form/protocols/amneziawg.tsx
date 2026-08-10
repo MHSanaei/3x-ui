@@ -163,32 +163,6 @@ export default function AmneziawgFields({
       <FormField name={['settings', 'server', 'h4']} label={t('pages.xray.amneziawg.h4')}>
         <Input placeholder="4 or 100-800" />
       </FormField>
-      {CPS_SLOTS.map((slot, index) => (
-        <Form.Item
-          key={slot}
-          label={t(`pages.xray.amneziawg.${slot}`)}
-          // Only the first slot repeats the hint -- same "explain once,
-          // number the rest" convention as H1-H4 above.
-          extra={index === 0 ? t('pages.xray.amneziawg.i1Hint') : undefined}
-        >
-          <Space.Compact block style={{ display: 'flex' }}>
-            <Select
-              aria-label={t('pages.xray.amneziawg.i1Profile')}
-              value={cpsProfiles[slot]}
-              onChange={(profile) => onCpsProfileChange(slot, profile)}
-              style={{ width: 120 }}
-              options={I1_PROFILE_CHOICES.map((profile) => ({
-                value: profile,
-                label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),
-              }))}
-            />
-            <FormField name={['settings', 'server', slot]} noStyle>
-              <Input placeholder="<r 64>" style={{ flex: 1 }} />
-            </FormField>
-            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => onRegenCps(slot)} />
-          </Space.Compact>
-        </Form.Item>
-      ))}
       <Form.Item label={t('pages.xray.amneziawg.quicCapture')} extra={t('pages.xray.amneziawg.quicCaptureHint')}>
         <Space.Compact block style={{ display: 'flex' }}>
           <Input
@@ -213,6 +187,34 @@ export default function AmneziawgFields({
           </Button>
         </Space.Compact>
       </Form.Item>
+      {CPS_SLOTS.map((slot, index) => (
+        <Form.Item
+          key={slot}
+          label={t(`pages.xray.amneziawg.${slot}`)}
+          // Only the first slot repeats the hint -- same "explain once,
+          // number the rest" convention as H1-H4 above. Now that Live QUIC
+          // capture renders above this list, the hint lands right after it
+          // too, not orphaned above an unrelated field.
+          extra={index === 0 ? t('pages.xray.amneziawg.i1Hint') : undefined}
+        >
+          <Space.Compact block style={{ display: 'flex' }}>
+            <Select
+              aria-label={t('pages.xray.amneziawg.i1Profile')}
+              value={cpsProfiles[slot]}
+              onChange={(profile) => onCpsProfileChange(slot, profile)}
+              style={{ width: 120 }}
+              options={I1_PROFILE_CHOICES.map((profile) => ({
+                value: profile,
+                label: t(`pages.xray.amneziawg.i1ProfileOptions.${profile}`),
+              }))}
+            />
+            <FormField name={['settings', 'server', slot]} noStyle>
+              <Input placeholder="<r 64>" style={{ flex: 1 }} />
+            </FormField>
+            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => onRegenCps(slot)} />
+          </Space.Compact>
+        </Form.Item>
+      ))}
       <Divider style={{ margin: '0 0 14px 0' }}>{t('pages.xray.amneziawg.awg3Advanced')}</Divider>
       <FormField
         name={['settings', 'server', 'awgVersion']}
