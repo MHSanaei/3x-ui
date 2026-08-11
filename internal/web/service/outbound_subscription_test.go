@@ -5,9 +5,50 @@ import (
 	"errors"
 	"testing"
 
+	"gorm.io/gorm"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 )
+
+func TestOutboundSubscriptionCreatePropagatesAllocationDatabaseFailures(t *testing.T) {
+	setupSettingTestDB(t)
+	db := database.GetDB()
+	const callback = "test:fail_outbound_subscription_query"
+	errInjected := errors.New("injected outbound subscription query failure")
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		if tx.Statement != nil && tx.Statement.Table == "outbound_subscriptions" {
+			tx.AddError(errInjected)
+		}
+	}); err != nil {
+		t.Fatalf("register query callback: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Query().Remove(callback); err != nil {
+			t.Errorf("remove query callback: %v", err)
+		}
+	})
+
+	for _, tc := range []struct {
+		name      string
+		tagPrefix string
+		operation string
+	}{
+		{name: "default prefix query", tagPrefix: "", operation: "prefix allocation"},
+		{name: "priority count query", tagPrefix: "custom-", operation: "priority allocation"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			created, err := (&OutboundSubscriptionService{}).Create("test", "https://1.1.1.1/sub", tc.tagPrefix, true, 600, false, false, false)
+			if !errors.Is(err, errInjected) {
+				t.Fatalf("Create error = %v, want injected %s query failure", err, tc.operation)
+			}
+			if created != nil {
+				t.Fatalf("Create returned row %+v after %s query failure", created, tc.operation)
+			}
+		})
+	}
+}
 
 func TestReadBoundedOutboundSubscriptionBody(t *testing.T) {
 	t.Run("accepts body at the limit", func(t *testing.T) {
