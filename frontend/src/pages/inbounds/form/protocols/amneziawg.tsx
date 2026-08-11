@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { RadarChartOutlined, ReloadOutlined, ToolOutlined } from '@ant-design/icons';
+import { RadarChartOutlined, ReloadOutlined, ThunderboltOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
 import { CPS_SLOTS, I1_PROFILE_CHOICES, type CpsSlot, type I1ProfileChoice } from '@/lib/xray/i1Generators';
@@ -28,6 +28,7 @@ interface AmneziawgFieldsProps {
   onRegenCps: (slot: CpsSlot) => void;
   quicCapturing: boolean;
   onQuicCapture: (host: string, slot: CpsSlot) => void;
+  onQuicCaptureAll: (host: string) => void;
 }
 
 export default function AmneziawgFields({
@@ -48,6 +49,7 @@ export default function AmneziawgFields({
   onRegenCps,
   quicCapturing,
   onQuicCapture,
+  onQuicCaptureAll,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -184,6 +186,13 @@ export default function AmneziawgFields({
             onClick={() => onQuicCapture(quicCaptureHost, quicCaptureSlot)}
           >
             {t('pages.xray.amneziawg.quicCaptureButton')}
+          </Button>
+          <Button
+            loading={quicCapturing}
+            icon={<ThunderboltOutlined />}
+            onClick={() => onQuicCaptureAll(quicCaptureHost)}
+          >
+            {t('pages.xray.amneziawg.quicCaptureAllButton')}
           </Button>
         </Space.Compact>
       </Form.Item>

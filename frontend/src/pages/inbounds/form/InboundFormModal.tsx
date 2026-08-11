@@ -477,6 +477,45 @@ export default function InboundFormModal({
     }
   };
 
+  // Runs the same capture as onQuicCapture once per CPS slot, sequentially
+  // (gentler on the target host than 5 parallel UDP probes, and each
+  // handshake is independently random anyway -- no benefit to racing them).
+  // Slots that succeed are written immediately, so a later failure doesn't
+  // discard earlier progress.
+  const onQuicCaptureAll = async (host: string) => {
+    const trimmed = host.trim();
+    if (!trimmed) {
+      messageApi.warning(t('pages.xray.amneziawg.quicCaptureHostRequired'));
+      return;
+    }
+    setQuicCapturing(true);
+    try {
+      let successCount = 0;
+      for (const slot of CPS_SLOTS) {
+        const msg = await HttpUtil.post<QuicCaptureResult>(
+          '/panel/api/server/awgQuicCapture',
+          { host: trimmed },
+          { silent: true },
+        );
+        if (msg?.success && msg.obj) {
+          setV(`settings.server.${slot}`, msg.obj.chain);
+          successCount++;
+        }
+      }
+      if (successCount === CPS_SLOTS.length) {
+        messageApi.success(t('pages.xray.amneziawg.quicCaptureAllSuccess'));
+      } else if (successCount > 0) {
+        messageApi.warning(
+          t('pages.xray.amneziawg.quicCaptureAllPartial', { success: successCount, total: CPS_SLOTS.length }),
+        );
+      } else {
+        messageApi.error(t('pages.xray.amneziawg.awgQuicCaptureError'));
+      }
+    } finally {
+      setQuicCapturing(false);
+    }
+  };
+
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
   // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
   // "default" preset (internal/amneziawg/params.go) closely enough for a form
@@ -922,6 +961,7 @@ export default function InboundFormModal({
           onRegenCps={onRegenCps}
           quicCapturing={quicCapturing}
           onQuicCapture={onQuicCapture}
+          onQuicCaptureAll={onQuicCaptureAll}
         />
       )}
 
