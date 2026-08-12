@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md) | [کوردی](/README.ckb_IQ.md)
 
 <p align="center">
   <picture>
@@ -36,7 +36,7 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 - **Bot de Telegram** para monitorización y gestión remotas.
 - **API RESTful** con documentación Swagger dentro del panel.
 - **Almacenamiento flexible** — SQLite (predeterminado) o PostgreSQL.
-- **13 idiomas de interfaz** con temas oscuro y claro.
+- **14 idiomas de interfaz** con temas oscuro y claro.
 - **Integración con Fail2ban** para aplicar límites de IP por cliente.
 
 ## Capturas de pantalla
@@ -165,9 +165,9 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ## Idiomas Compatibles
 
-La interfaz del panel está disponible en 13 idiomas:
+La interfaz del panel está disponible en 14 idiomas:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · کوردی
 
 ## Contribuir
 

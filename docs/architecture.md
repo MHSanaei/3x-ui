@@ -218,7 +218,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   ├── network/          # Custom net listeners (e.g. proxy-protocol aware)
 │   │   ├── session/          # Session/cookie helpers
 │   │   ├── websocket/        # WS hub implementation
-│   │   ├── locale/ + translation/  # i18n middleware + 13 locale JSON catalogs
+│   │   ├── locale/ + translation/  # i18n middleware + 14 locale JSON catalogs
 │   │   ├── entity/           # Shared request/response DTOs
 │   │   └── dist/             # ⚠️ Vite build output, embedded via go:embed (generated — do not hand-edit)
 │   │
@@ -579,7 +579,7 @@ root → `go build ./...` / `go run main.go`.
   (`FetchCertFingerprint`), `service/node_mtls.go`, and `runtime/tls_client.go`.
 - **Restart is signal-driven.** `main.go` traps SIGHUP to restart panel+sub servers; the
   in-process restart hook (`global.SetRestartHook`) funnels into the same path.
-- **i18n:** backend catalogs in `internal/web/translation/` (13 locales, shared with the
+- **i18n:** backend catalogs in `internal/web/translation/` (14 locales, shared with the
   frontend); frontend wiring in `frontend/src/i18n/`. Persian (`fa_IR`) is a first-class
   locale (Jalali calendar via `persian-calendar-suite`).
 - **Tests live next to code** (`foo.go` ↔ `foo_test.go`), plus golden snapshots in

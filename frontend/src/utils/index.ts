@@ -863,6 +863,7 @@ export class LanguageManager {
     { name: 'Український', value: 'uk-UA', icon: '🇺🇦' },
     { name: 'Türkçe', value: 'tr-TR', icon: '🇹🇷' },
     { name: 'Português', value: 'pt-BR', icon: '🇧🇷' },
+    { name: 'کوردی', value: 'ckb-IQ', icon: '🇮🇶' },
   ];
 
   static getLanguage(): string {
@@ -884,6 +885,8 @@ export class LanguageManager {
         ['uk', LanguageManager.supportedLanguages[10].value],
         ['tr', LanguageManager.supportedLanguages[11].value],
         ['pt', LanguageManager.supportedLanguages[12].value],
+        ['ku', LanguageManager.supportedLanguages[13].value],
+        ['ckb', LanguageManager.supportedLanguages[13].value],
       ];
 
       simularLangs.forEach((pair) => {
