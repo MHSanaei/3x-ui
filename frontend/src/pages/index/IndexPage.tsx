@@ -23,9 +23,11 @@ import VitalTile from './VitalTile';
 import ThroughputCard from './ThroughputCard';
 import ConnectionsCard from './ConnectionsCard';
 import SystemStrip from './SystemStrip';
+import NaiveStatusCard from './NaiveStatusCard';
 import { mean, peak, useOverviewHistory } from './useOverviewHistory';
 import type { PanelUpdateInfo } from './PanelUpdateModal';
 const JsonEditor = lazy(() => import('@/components/form/JsonEditor'));
+const NaiveVersionModal = lazy(() => import('./NaiveVersionModal'));
 const PanelUpdateModal = lazy(() => import('./PanelUpdateModal'));
 const LogModal = lazy(() => import('./LogModal'));
 const BackupModal = lazy(() => import('./BackupModal'));
@@ -61,6 +63,7 @@ export default function IndexPage() {
   const [xrayMetricsOpen, setXrayMetricsOpen] = useState(false);
   const [xrayLogsOpen, setXrayLogsOpen] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
+  const [naiveVersionOpen, setNaiveVersionOpen] = useState(false);
   const [configTextOpen, setConfigTextOpen] = useState(false);
   const [configText, setConfigText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -206,6 +209,12 @@ export default function IndexPage() {
 
                   <hr className="ov-rule" />
 
+                  <NaiveStatusCard
+                    isMobile={isMobile}
+                    onOpenVersionModal={() => setNaiveVersionOpen(true)}
+                    onBusy={setBusy}
+                  />
+
                   <div className="ov-vitals">
                     <VitalTile
                       icon={<DashboardOutlined />}
@@ -320,6 +329,14 @@ export default function IndexPage() {
             open={versionOpen}
             status={status}
             onClose={() => setVersionOpen(false)}
+            onBusy={setBusy}
+          />
+        </LazyMount>
+        <LazyMount when={naiveVersionOpen}>
+          <NaiveVersionModal
+            open={naiveVersionOpen}
+            isMobile={isMobile}
+            onClose={() => setNaiveVersionOpen(false)}
             onBusy={setBusy}
           />
         </LazyMount>

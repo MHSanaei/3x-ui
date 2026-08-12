@@ -11,6 +11,7 @@ export const OutboundProtocols = Object.freeze({
   Socks: 'socks',
   HTTP: 'http',
   Loopback: 'loopback',
+  Naive: 'naive',
 });
 
 export const OutboundDomainStrategies = Object.freeze([

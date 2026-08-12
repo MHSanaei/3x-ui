@@ -1521,6 +1521,28 @@
         "allCities": "Tüm Şehirler",
         "moveToTop": "En üste taşı"
       },
+      "naiveForm": {
+        "advancedOptions": "Gelişmiş seçenekler",
+        "tunnelTimeoutHint": "Bu kadar saniye sonra tünel bağlantısını emekliye ayırır. Takılan uzun süreli bağlantılara yardımcı olur ancak SSH gibi uzun TCP oturumlarını bozabilir. Varsayılan: 1800; Android: 600.",
+        "httpWarning": "HTTP taşıması şifrelenmez. Yalnızca test için veya güvenilir ağlarda kullanın.",
+        "insecureConcurrencyHint": "Kararsız ağlarda birden fazla tünel bağlantısı kullanır, ancak trafiğin tespitini kolaylaştırır. Önce 2 deneyin; 4’ten fazlasından kaçının.",
+        "idleTimeoutHint": "Emekliye ayrılmış bağlantıları temizlemek için bu kadar saniye boşta kalan tünel akışlarını zorla kapatır. Varsayılan: 600; Android: 300.",
+        "extraHeadersHint": "Proxy isteklerine ek başlıklar ekler. Birden fazla başlığı CRLF satır sonlarıyla ayırın.",
+        "hostResolverRulesHint": "Bir alan adını statik olarak bir IP adresine eşler, örneğin: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "Yerleşik çözümleyicinin yapay adresler için kullandığı CIDR aralığı. Varsayılan: 100.64.0.0/10.",
+        "noPostQuantumHint": "Varsayılan kuantum sonrası anahtar anlaşmasını devre dışı bırakır."
+      },
+      "naive": {
+        "notInstalled": "Yüklü değil",
+        "install": "Yükle",
+        "uninstall": "Kaldır",
+        "restartAll": "Tümünü yeniden başlat",
+        "instances": "{count} örnek",
+        "uninstallConfirm": "Bu işlem tüm naive çıkışlarını durduracak. Devam edilsin mi?",
+        "stop": "Durdur",
+        "sectionTitle": "Naive",
+        "versionWarning": "Önemli: eski sürümler mevcut yapılandırmalarla uyumlu olmayabilir."
+      },
       "outboundSub": {
         "manage": "Abonelikler",
         "title": "Giden Bağlantı Abonelikleri",

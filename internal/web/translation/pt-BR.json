@@ -1521,6 +1521,28 @@
         "allCities": "Todas as Cidades",
         "moveToTop": "Mover para o topo"
       },
+      "naiveForm": {
+        "advancedOptions": "Opções avançadas",
+        "tunnelTimeoutHint": "Retira uma conexão de túnel após estes segundos. Ajuda com conexões longas travadas, mas pode interromper sessões TCP duradouras como SSH. Padrão: 1800; Android: 600.",
+        "httpWarning": "O transporte HTTP não é criptografado. Use apenas para testes ou em redes confiáveis.",
+        "insecureConcurrencyHint": "Usa várias conexões de túnel em redes instáveis, mas torna o tráfego mais fácil de detectar. Tente 2 primeiro; evite mais de 4.",
+        "idleTimeoutHint": "Fecha à força fluxos do túnel após estes segundos ociosos para permitir a limpeza de conexões retiradas. Padrão: 600; Android: 300.",
+        "extraHeadersHint": "Adiciona cabeçalhos extras às requisições do proxy. Separe vários cabeçalhos com quebras de linha CRLF.",
+        "hostResolverRulesHint": "Mapeia estaticamente um nome de host para um endereço IP, por exemplo: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "Faixa CIDR usada pelo resolvedor interno para endereços artificiais. Padrão: 100.64.0.0/10.",
+        "noPostQuantumHint": "Desativa a negociação de chaves pós-quântica usada por padrão."
+      },
+      "naive": {
+        "notInstalled": "Não instalado",
+        "install": "Instalar",
+        "uninstall": "Desinstalar",
+        "restartAll": "Reiniciar tudo",
+        "instances": "{count} instâncias",
+        "uninstallConfirm": "Isso irá parar todos os outbounds naive. Continuar?",
+        "stop": "Parar",
+        "sectionTitle": "Naive",
+        "versionWarning": "Importante: versões antigas podem não ser compatíveis com as configurações atuais."
+      },
       "outboundSub": {
         "manage": "Assinaturas",
         "title": "Assinaturas de Saída",

@@ -42,6 +42,15 @@ export function outboundAddresses(o: OutboundRow): string[] {
     }
     case Protocols.Wireguard:
       return (((settings?.peers as Array<{ endpoint?: string }>) || []).map((p) => p.endpoint || '').filter(Boolean));
+    case Protocols.Naive: {
+      try {
+        const value = new URL(String(settings?.proxy || ''));
+        const port = value.port || (value.protocol === 'http:' ? '80' : '443');
+        return [`${value.hostname}:${port}`];
+      } catch {
+        return [];
+      }
+    }
     default:
       return [];
   }

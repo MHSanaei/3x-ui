@@ -35,6 +35,8 @@ require (
 	pgregory.net/rapid v1.3.0
 )
 
+require github.com/ulikunitz/xz v0.5.15
+
 require (
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/andybalholm/brotli v1.2.2 // indirect

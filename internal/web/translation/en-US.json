@@ -1638,6 +1638,28 @@
         "allCities": "All Cities",
         "moveToTop": "Move to top"
       },
+      "naiveForm": {
+        "advancedOptions": "Advanced Options",
+        "tunnelTimeoutHint": "Retires a tunnel connection after this many seconds. Helps with stuck long-lived connections, but can break long-lived TCP sessions such as SSH. Default: 1800; Android: 600.",
+        "httpWarning": "HTTP transport is unencrypted. Use only for testing or on trusted networks.",
+        "insecureConcurrencyHint": "Uses multiple tunnel connections for poor networks, but makes traffic easier to detect. Try 2 first; avoid more than 4.",
+        "idleTimeoutHint": "Forcibly closes tunneled streams after this many idle seconds so retired connections can be cleaned up. Default: 600; Android: 300.",
+        "extraHeadersHint": "Appends extra headers to proxy requests. Separate multiple headers with CRLF line breaks.",
+        "hostResolverRulesHint": "Statically maps a hostname to an IP address, for example: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "CIDR range used by the built-in resolver for artificial addresses. Default: 100.64.0.0/10.",
+        "noPostQuantumHint": "Disables the default post-quantum key agreement."
+      },
+      "naive": {
+        "notInstalled": "Not Installed",
+        "install": "Install",
+        "uninstall": "Uninstall",
+        "restartAll": "Restart All",
+        "instances": "{count} instances",
+        "uninstallConfirm": "This will stop all naive outbounds. Proceed?",
+        "stop": "Stop",
+        "sectionTitle": "Naive",
+        "versionWarning": "Important: older versions may not be compatible with current configurations."
+      },
       "outboundSub": {
         "manage": "Subscriptions",
         "title": "Outbound Subscriptions",

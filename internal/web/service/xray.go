@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/naive"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -379,6 +380,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		logger.Warning("read nodes for egress injection failed:", err)
 	} else {
 		injectNodeEgresses(xrayConfig, nodes)
+	}
+	if err := naive.InjectNaiveOutbounds(xrayConfig); err != nil {
+		return nil, err
 	}
 
 	return xrayConfig, nil

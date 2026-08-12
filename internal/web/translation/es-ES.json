@@ -1521,6 +1521,28 @@
         "allCities": "Todas las ciudades",
         "moveToTop": "Mover al principio"
       },
+      "naiveForm": {
+        "advancedOptions": "Opciones avanzadas",
+        "tunnelTimeoutHint": "Retira una conexión de túnel tras estos segundos. Ayuda con conexiones persistentes atascadas, pero puede romper sesiones TCP largas como SSH. Predeterminado: 1800; Android: 600.",
+        "httpWarning": "El transporte HTTP no está cifrado. Úselo solo para pruebas o en redes de confianza.",
+        "insecureConcurrencyHint": "Usa varias conexiones de túnel en redes inestables, pero hace el tráfico más fácil de detectar. Prueba primero con 2; evita más de 4.",
+        "idleTimeoutHint": "Cierra por la fuerza los flujos del túnel tras estos segundos de inactividad para poder limpiar conexiones retiradas. Predeterminado: 600; Android: 300.",
+        "extraHeadersHint": "Añade cabeceras extra a las solicitudes al proxy. Separa varias cabeceras con saltos de línea CRLF.",
+        "hostResolverRulesHint": "Asigna estáticamente un nombre de host a una dirección IP, por ejemplo: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "Rango CIDR usado por el resolvedor integrado para direcciones artificiales. Predeterminado: 100.64.0.0/10.",
+        "noPostQuantumHint": "Desactiva el acuerdo de claves poscuántico usado de forma predeterminada."
+      },
+      "naive": {
+        "notInstalled": "No instalado",
+        "install": "Instalar",
+        "uninstall": "Desinstalar",
+        "restartAll": "Reiniciar todo",
+        "instances": "{count} instancias",
+        "uninstallConfirm": "Esto detendrá todas las salidas naive. ¿Continuar?",
+        "stop": "Detener",
+        "sectionTitle": "Naive",
+        "versionWarning": "Importante: las versiones antiguas pueden no ser compatibles con la configuración actual."
+      },
       "outboundSub": {
         "manage": "Suscripciones",
         "title": "Suscripciones de salida",

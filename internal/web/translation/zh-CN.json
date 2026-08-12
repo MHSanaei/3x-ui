@@ -1521,6 +1521,28 @@
         "allCities": "所有城市",
         "moveToTop": "移到顶部"
       },
+      "naiveForm": {
+        "advancedOptions": "高级选项",
+        "tunnelTimeoutHint": "隧道连接存活达到此秒数后停止承载新流。可缓解长连接卡死，但可能中断 SSH 等长时间 TCP 会话。默认：1800；Android：600。",
+        "httpWarning": "HTTP 传输未加密。仅用于测试或可信网络。",
+        "insecureConcurrencyHint": "在网络状况较差时使用多个隧道连接，但会让流量更容易被识别。建议先尝试 2，不建议超过 4。",
+        "idleTimeoutHint": "隧道流空闲达到此秒数后强制关闭，以便及时清理已退役连接。默认：600；Android：300。",
+        "extraHeadersHint": "向代理请求附加额外请求头。多个请求头使用 CRLF 换行分隔。",
+        "hostResolverRulesHint": "将域名静态解析到指定 IP，例如：MAP proxy.example.com 1.2.3.4。",
+        "resolverRangeHint": "内置解析器用于人工地址的 CIDR 范围。默认：100.64.0.0/10。",
+        "noPostQuantumHint": "关闭默认启用的后量子密钥协商。"
+      },
+      "naive": {
+        "notInstalled": "未安装",
+        "install": "安装",
+        "uninstall": "卸载",
+        "restartAll": "重启全部",
+        "instances": "实例数: {count}",
+        "uninstallConfirm": "这将停止所有 naive 出站。是否继续？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要：旧版本可能与当前配置不兼容。"
+      },
       "outboundSub": {
         "manage": "订阅",
         "title": "出站订阅",

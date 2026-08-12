@@ -1521,6 +1521,28 @@
         "allCities": "すべての都市",
         "moveToTop": "先頭に移動"
       },
+      "naiveForm": {
+        "advancedOptions": "詳細オプション",
+        "tunnelTimeoutHint": "指定秒数が経過したトンネル接続を新規通信に使わなくします。長時間接続が詰まる環境に有効ですが、SSH などの長時間 TCP セッションを切断する場合があります。既定値: 1800、Android: 600。",
+        "httpWarning": "HTTP トランスポートは暗号化されません。テスト用途または信頼できるネットワークでのみ使用してください。",
+        "insecureConcurrencyHint": "不安定なネットワークで複数のトンネル接続を使いますが、通信を検出されやすくします。まず 2 を試し、4 を超える設定は避けてください。",
+        "idleTimeoutHint": "指定秒数アイドル状態のトンネルストリームを強制終了し、退役した接続を速やかに整理します。既定値: 600、Android: 300。",
+        "extraHeadersHint": "プロキシへのリクエストに追加ヘッダーを付与します。複数のヘッダーは CRLF 改行で区切ります。",
+        "hostResolverRulesHint": "ホスト名を IP アドレスへ静的に割り当てます。例: MAP proxy.example.com 1.2.3.4。",
+        "resolverRangeHint": "内蔵リゾルバーが人工アドレスに使用する CIDR 範囲です。既定値: 100.64.0.0/10。",
+        "noPostQuantumHint": "既定で有効な耐量子鍵合意を無効にします。"
+      },
+      "naive": {
+        "notInstalled": "未インストール",
+        "install": "インストール",
+        "uninstall": "アンインストール",
+        "restartAll": "すべて再起動",
+        "instances": "{count} インスタンス",
+        "uninstallConfirm": "これによりすべての naive outbound が停止します。続行しますか？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要: 古いバージョンは現在の設定と互換性がない場合があります。"
+      },
       "outboundSub": {
         "manage": "サブスクリプション",
         "title": "アウトバウンドサブスクリプション",

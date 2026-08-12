@@ -1521,6 +1521,28 @@
         "allCities": "Semua Kota",
         "moveToTop": "Pindahkan ke atas"
       },
+      "naiveForm": {
+        "advancedOptions": "Opsi lanjutan",
+        "tunnelTimeoutHint": "Menghentikan penggunaan koneksi tunnel setelah jumlah detik ini. Membantu koneksi lama yang macet, tetapi dapat memutus sesi TCP panjang seperti SSH. Default: 1800; Android: 600.",
+        "httpWarning": "Transport HTTP tidak terenkripsi. Gunakan hanya untuk pengujian atau pada jaringan tepercaya.",
+        "insecureConcurrencyHint": "Menggunakan beberapa koneksi tunnel untuk jaringan buruk, tetapi membuat trafik lebih mudah dideteksi. Coba 2 terlebih dahulu; hindari lebih dari 4.",
+        "idleTimeoutHint": "Menutup paksa aliran tunnel setelah menganggur selama jumlah detik ini agar koneksi lama dapat dibersihkan. Default: 600; Android: 300.",
+        "extraHeadersHint": "Menambahkan header ekstra ke permintaan proxy. Pisahkan beberapa header dengan baris baru CRLF.",
+        "hostResolverRulesHint": "Memetakan nama host secara statis ke alamat IP, misalnya: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "Rentang CIDR yang digunakan resolver bawaan untuk alamat buatan. Default: 100.64.0.0/10.",
+        "noPostQuantumHint": "Menonaktifkan kesepakatan kunci pascakuantum yang digunakan secara default."
+      },
+      "naive": {
+        "notInstalled": "Belum terpasang",
+        "install": "Pasang",
+        "uninstall": "Copot",
+        "restartAll": "Mulai ulang semua",
+        "instances": "{count} instance",
+        "uninstallConfirm": "Ini akan menghentikan semua outbound naive. Lanjutkan?",
+        "stop": "Hentikan",
+        "sectionTitle": "Naive",
+        "versionWarning": "Penting: versi lama mungkin tidak kompatibel dengan konfigurasi saat ini."
+      },
       "outboundSub": {
         "manage": "Langganan",
         "title": "Langganan Outbound",

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/naive"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -282,6 +283,10 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 	defer release()
 
 	cfg := buildBatchTestConfig(items, allOutbounds, ports)
+
+	if err := naive.InjectNaiveOutbounds(cfg); err != nil {
+		return true, fmt.Errorf("Failed to inject naive outbounds: %w", err)
+	}
 
 	configPath, err := createTestConfigPath()
 	if err != nil {

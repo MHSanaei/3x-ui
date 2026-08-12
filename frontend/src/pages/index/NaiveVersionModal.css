@@ -1,0 +1,122 @@
+.naive-version-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.naive-release-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.naive-release-option {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 11px;
+  min-height: 58px;
+  padding: 10px 13px;
+  border: 1px solid var(--ant-color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.naive-release-option:hover,
+.naive-release-option.is-selected {
+  border-color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 8%, transparent);
+}
+
+.naive-release-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+}
+
+.naive-release-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.naive-release-copy strong {
+  overflow: hidden;
+  color: var(--ant-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.naive-release-copy span {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.naive-release-installed {
+  color: var(--ant-color-success);
+  font-size: 17px;
+}
+
+@media (max-width: 560px) {
+  .naive-release-option {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .naive-release-option .ant-tag {
+    display: none;
+  }
+}
+
+.naive-release-version,
+.naive-release-option strong {
+  display: inline-block;
+  width: auto;
+  max-width: none;
+  overflow: visible;
+  white-space: nowrap;
+  color: var(--ant-color-text) !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+.naive-release-option .ant-tag:has(.naive-release-version) {
+  width: auto;
+  max-width: none;
+  overflow: visible;
+}
+
+
+.naive-release-option .naive-release-version {
+  display: inline-block !important;
+  position: static !important;
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 1em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  transform: none !important;
+  white-space: nowrap !important;
+  color: var(--ant-color-text) !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
