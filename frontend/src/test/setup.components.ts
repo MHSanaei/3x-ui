@@ -48,6 +48,16 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// jsdom does not implement pseudo-element styles or Range geometry. Ant
+// Design and CodeMirror use these APIs for layout, so supply harmless test
+// fallbacks instead of emitting noisy "Not implemented" errors.
+const nativeGetComputedStyle = window.getComputedStyle.bind(window);
+window.getComputedStyle = ((element: Element) => nativeGetComputedStyle(element)) as typeof window.getComputedStyle;
+
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+}
+
 if (!i18next.isInitialized) {
   void i18next.use(initReactI18next).init({
     lng: 'en-US',
@@ -75,9 +85,12 @@ afterEach(async () => {
   }
 });
 
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, obj: {} } as any);
+vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string) => new Msg(
+  true,
+  '',
+  url.includes('/panel/api/inbounds/options') ? [] : {},
+));
