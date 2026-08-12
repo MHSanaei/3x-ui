@@ -166,35 +166,38 @@ export default function AmneziawgFields({
         <Input placeholder="4 or 100-800" />
       </FormField>
       <Form.Item label={t('pages.xray.amneziawg.quicCapture')} extra={t('pages.xray.amneziawg.quicCaptureHint')}>
-        <Space.Compact block style={{ display: 'flex' }}>
+        <Space direction="vertical" style={{ width: '100%' }} size={8}>
           <Input
             value={quicCaptureHost}
             onChange={(e) => setQuicCaptureHost(e.target.value)}
             placeholder="www.google.com"
-            style={{ flex: 1 }}
           />
-          <Select
-            aria-label={t('pages.xray.amneziawg.quicCaptureSlot')}
-            value={quicCaptureSlot}
-            onChange={setQuicCaptureSlot}
-            style={{ width: 90 }}
-            options={CPS_SLOTS.map((slot) => ({ value: slot, label: slot.toUpperCase() }))}
-          />
-          <Button
-            loading={quicCapturing}
-            icon={<RadarChartOutlined />}
-            onClick={() => onQuicCapture(quicCaptureHost, quicCaptureSlot)}
-          >
-            {t('pages.xray.amneziawg.quicCaptureButton')}
-          </Button>
-          <Button
-            loading={quicCapturing}
-            icon={<ThunderboltOutlined />}
-            onClick={() => onQuicCaptureAll(quicCaptureHost)}
-          >
-            {t('pages.xray.amneziawg.quicCaptureAllButton')}
-          </Button>
-        </Space.Compact>
+          <Space.Compact block style={{ display: 'flex' }}>
+            <Select
+              aria-label={t('pages.xray.amneziawg.quicCaptureSlot')}
+              value={quicCaptureSlot}
+              onChange={setQuicCaptureSlot}
+              style={{ width: 90 }}
+              options={CPS_SLOTS.map((slot) => ({ value: slot, label: slot.toUpperCase() }))}
+            />
+            <Button
+              loading={quicCapturing}
+              icon={<RadarChartOutlined />}
+              onClick={() => onQuicCapture(quicCaptureHost, quicCaptureSlot)}
+              style={{ flex: 1 }}
+            >
+              {t('pages.xray.amneziawg.quicCaptureButton')}
+            </Button>
+            <Button
+              loading={quicCapturing}
+              icon={<ThunderboltOutlined />}
+              onClick={() => onQuicCaptureAll(quicCaptureHost)}
+              style={{ flex: 1 }}
+            >
+              {t('pages.xray.amneziawg.quicCaptureAllButton')}
+            </Button>
+          </Space.Compact>
+        </Space>
       </Form.Item>
       {CPS_SLOTS.map((slot, index) => (
         <Form.Item
