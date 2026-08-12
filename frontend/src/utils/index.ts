@@ -75,11 +75,13 @@ export class HttpUtil {
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
-      console.error('GET request failed:', error);
       const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
       const data = err.response?.data;
       const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
-      if (!silent) this._handleMsg(errorMsg);
+      if (!silent) {
+        console.error('GET request failed:', error);
+        this._handleMsg(errorMsg);
+      }
       return errorMsg;
     }
   }
@@ -92,11 +94,13 @@ export class HttpUtil {
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
-      console.error('POST request failed:', error);
       const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
       const data = err.response?.data;
       const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
-      if (!silent) this._handleMsg(errorMsg);
+      if (!silent) {
+        console.error('POST request failed:', error);
+        this._handleMsg(errorMsg);
+      }
       return errorMsg;
     }
   }
