@@ -51,10 +51,12 @@ type SUBController struct {
 	subAnnounce      string
 	subEnableRouting bool
 	subRoutingRules  string
+	subRoutingSource string
 	subHideSettings  bool
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
+	subIncyRoutingSource string
 
 	subPath            string
 	subJsonPath        string
@@ -107,10 +109,12 @@ type subControllerConfig struct {
 	subAnnounce      string
 	subEnableRouting bool
 	subRoutingRules  string
+	subRoutingSource string
 	subHideSettings  bool
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
+	subIncyRoutingSource string
 }
 
 type SUBControllerOption func(*subControllerConfig)
@@ -211,6 +215,13 @@ func WithSUBRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subRoutingRules = value }
 }
 
+// WithSUBRoutingSource selects which routing rules Happ subscriptions serve:
+// a RoscomVPNSource* preset, or RoscomVPNSourceCustom to use the value from
+// WithSUBRoutingRules verbatim.
+func WithSUBRoutingSource(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subRoutingSource = value }
+}
+
 func WithSUBHideSettings(value bool) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subHideSettings = value }
 }
@@ -223,14 +234,21 @@ func WithSUBIncyRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subIncyRoutingRules = value }
 }
 
+// WithSUBIncyRoutingSource is WithSUBRoutingSource's Incy-side counterpart.
+func WithSUBIncyRoutingSource(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subIncyRoutingSource = value }
+}
+
 func defaultSUBControllerConfig() subControllerConfig {
 	return subControllerConfig{
-		subPath:        "/sub/",
-		subJsonPath:    "/json/",
-		subClashPath:   "/clash/",
-		subEncrypt:     true,
-		remarkTemplate: service.DefaultRemarkTemplate,
-		updateInterval: "12",
+		subPath:              "/sub/",
+		subJsonPath:          "/json/",
+		subClashPath:         "/clash/",
+		subEncrypt:           true,
+		remarkTemplate:       service.DefaultRemarkTemplate,
+		updateInterval:       "12",
+		subRoutingSource:     RoscomVPNSourceCustom,
+		subIncyRoutingSource: RoscomVPNSourceCustom,
 	}
 }
 
@@ -249,10 +267,12 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subAnnounce:      config.subAnnounce,
 		subEnableRouting: config.subEnableRouting,
 		subRoutingRules:  config.subRoutingRules,
+		subRoutingSource: config.subRoutingSource,
 		subHideSettings:  config.subHideSettings,
 
 		subIncyEnableRouting: config.subIncyEnableRouting,
 		subIncyRoutingRules:  config.subIncyRoutingRules,
+		subIncyRoutingSource: config.subIncyRoutingSource,
 
 		subPath:            config.subPath,
 		subJsonPath:        config.subJsonPath,
@@ -413,11 +433,13 @@ func (a *SUBController) subs(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 
-		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
-			result.WriteString(a.subIncyRoutingRules)
-			result.WriteString("\n")
+		if a.subIncyEnableRouting {
+			if rules := ResolveIncyRoutingRules(a.subIncyRoutingSource, a.subIncyRoutingRules); rules != "" {
+				result.WriteString(rules)
+				result.WriteString("\n")
+			}
 		}
 
 		if a.subEncrypt {
@@ -679,7 +701,7 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 	if profileUrl == "" {
 		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
 	}
@@ -718,7 +740,7 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 	if profileUrl == "" {
 		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.yaml"`)
 	} else if a.subTitle != "" {
@@ -739,9 +761,12 @@ func (a *SUBController) ApplyCommonHeaders(
 	profileUrl string,
 	profileAnnounce string,
 	profileEnableRouting bool,
+	profileRoutingSource string,
 	profileRoutingRules string,
 	profileHideSettings bool,
 ) {
+	profileRoutingRules = ResolveHappRoutingRules(profileRoutingSource, profileRoutingRules)
+
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
 

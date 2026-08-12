@@ -67,6 +67,7 @@ export interface AllSetting {
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subIncyRoutingSource: string;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -82,6 +83,7 @@ export interface AllSetting {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subRoutingSource: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
@@ -180,6 +182,7 @@ export interface AllSettingView {
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subIncyRoutingSource: string;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -195,6 +198,7 @@ export interface AllSettingView {
   subPort: number;
   subProfileUrl: string;
   subRoutingRules: string;
+  subRoutingSource: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;

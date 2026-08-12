@@ -94,9 +94,11 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
+	"subRoutingSource":            "custom",
 	"subHideSettings":             "false",
 	"subIncyEnableRouting":        "false",
 	"subIncyRoutingRules":         "",
+	"subIncyRoutingSource":        "custom",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -775,6 +777,13 @@ func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
 }
 
+// GetSubRoutingSource returns which routing rules Happ subscriptions serve:
+// a RoscomVPN preset name ("default"/"jsonsub"/"whitelist"), or "custom" to
+// use the admin's own SubRoutingRules text verbatim.
+func (s *SettingService) GetSubRoutingSource() (string, error) {
+	return s.getString("subRoutingSource")
+}
+
 func (s *SettingService) GetSubHideSettings() (bool, error) {
 	return s.getBool("subHideSettings")
 }
@@ -785,6 +794,11 @@ func (s *SettingService) GetSubIncyEnableRouting() (bool, error) {
 
 func (s *SettingService) GetSubIncyRoutingRules() (string, error) {
 	return s.getString("subIncyRoutingRules")
+}
+
+// GetSubIncyRoutingSource is GetSubRoutingSource's Incy-side counterpart.
+func (s *SettingService) GetSubIncyRoutingSource() (string, error) {
+	return s.getString("subIncyRoutingSource")
 }
 
 func (s *SettingService) GetSubListen() (string, error) {

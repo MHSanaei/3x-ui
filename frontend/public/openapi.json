@@ -223,6 +223,9 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subIncyRoutingSource": {
+            "type": "string"
+          },
           "subJsonAlwaysArray": {
             "type": "boolean"
           },
@@ -268,6 +271,9 @@
             "type": "string"
           },
           "subRoutingRules": {
+            "type": "string"
+          },
+          "subRoutingSource": {
             "type": "string"
           },
           "subShowIdentityOnAllLinks": {
@@ -429,6 +435,7 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subIncyRoutingSource",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -444,6 +451,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subRoutingSource",
           "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
@@ -694,6 +702,9 @@
           "subIncyRoutingRules": {
             "type": "string"
           },
+          "subIncyRoutingSource": {
+            "type": "string"
+          },
           "subJsonAlwaysArray": {
             "type": "boolean"
           },
@@ -739,6 +750,9 @@
             "type": "string"
           },
           "subRoutingRules": {
+            "type": "string"
+          },
+          "subRoutingSource": {
             "type": "string"
           },
           "subShowIdentityOnAllLinks": {
@@ -907,6 +921,7 @@
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subIncyRoutingSource",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -922,6 +937,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subRoutingSource",
           "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",

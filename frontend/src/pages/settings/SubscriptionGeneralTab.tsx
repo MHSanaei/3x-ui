@@ -1,4 +1,4 @@
-import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
+import { Alert, Button, Input, InputNumber, Select, Switch, Tabs } from 'antd';
 import { BranchesOutlined, CompassOutlined, IdcardOutlined, InfoCircleOutlined, NodeIndexOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -176,10 +176,25 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subEnableRouting')} description={t('pages.settings.subEnableRoutingDesc')}>
               <Switch checked={allSetting.subEnableRouting} onChange={(v) => updateSetting({ subEnableRouting: v })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subRoutingRules')} description={t('pages.settings.subRoutingRulesDesc')}>
-              <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
-                onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
+            <SettingListItem paddings="small" title={t('pages.settings.subRoutingSource')} description={allSetting.subRoutingSource === 'custom' || !allSetting.subRoutingSource ? t('pages.settings.subRoutingSourceDescCustom') : t('pages.settings.subRoutingSourceDescPreset')}>
+              <Select
+                value={allSetting.subRoutingSource || 'custom'}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ subRoutingSource: v })}
+                options={[
+                  { value: 'default', label: 'DEFAULT — RoscomVPN' },
+                  { value: 'jsonsub', label: 'JSONSUB — RoscomVPN' },
+                  { value: 'whitelist', label: 'WHITELIST — RoscomVPN' },
+                  { value: 'custom', label: t('pages.settings.subRoutingSourceCustom') },
+                ]}
+              />
             </SettingListItem>
+            {(!allSetting.subRoutingSource || allSetting.subRoutingSource === 'custom') && (
+              <SettingListItem paddings="small" title={t('pages.settings.subRoutingRules')} description={t('pages.settings.subRoutingRulesDesc')}>
+                <Input.TextArea value={allSetting.subRoutingRules} placeholder="happ://routing/add/..."
+                  onChange={(e) => updateSetting({ subRoutingRules: e.target.value })} />
+              </SettingListItem>
+            )}
             <SettingListItem paddings="small" title={t('pages.settings.subHideSettings')} description={t('pages.settings.subHideSettingsDesc')}>
               <Switch checked={allSetting.subHideSettings} onChange={(v) => updateSetting({ subHideSettings: v })} />
             </SettingListItem>
@@ -213,10 +228,25 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
             <SettingListItem paddings="small" title={t('pages.settings.subIncyEnableRouting')} description={t('pages.settings.subIncyEnableRoutingDesc')}>
               <Switch checked={allSetting.subIncyEnableRouting} onChange={(v) => updateSetting({ subIncyEnableRouting: v })} />
             </SettingListItem>
-            <SettingListItem paddings="small" title={t('pages.settings.subIncyRoutingRules')} description={t('pages.settings.subIncyRoutingRulesDesc')}>
-              <Input.TextArea value={allSetting.subIncyRoutingRules} placeholder="incy://routing/onadd/..."
-                onChange={(e) => updateSetting({ subIncyRoutingRules: e.target.value })} />
+            <SettingListItem paddings="small" title={t('pages.settings.subIncyRoutingSource')} description={allSetting.subIncyRoutingSource === 'custom' || !allSetting.subIncyRoutingSource ? t('pages.settings.subRoutingSourceDescCustom') : t('pages.settings.subRoutingSourceDescPreset')}>
+              <Select
+                value={allSetting.subIncyRoutingSource || 'custom'}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ subIncyRoutingSource: v })}
+                options={[
+                  { value: 'default', label: 'DEFAULT — RoscomVPN' },
+                  { value: 'jsonsub', label: 'JSONSUB — RoscomVPN' },
+                  { value: 'whitelist', label: 'WHITELIST — RoscomVPN' },
+                  { value: 'custom', label: t('pages.settings.subRoutingSourceCustom') },
+                ]}
+              />
             </SettingListItem>
+            {(!allSetting.subIncyRoutingSource || allSetting.subIncyRoutingSource === 'custom') && (
+              <SettingListItem paddings="small" title={t('pages.settings.subIncyRoutingRules')} description={t('pages.settings.subIncyRoutingRulesDesc')}>
+                <Input.TextArea value={allSetting.subIncyRoutingRules} placeholder="incy://routing/onadd/..."
+                  onChange={(e) => updateSetting({ subIncyRoutingRules: e.target.value })} />
+              </SettingListItem>
+            )}
           </>
         ),
       },

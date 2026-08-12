@@ -195,6 +195,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubRoutingRules = ""
 	}
 
+	SubRoutingSource, err := s.settingService.GetSubRoutingSource()
+	if err != nil {
+		SubRoutingSource = RoscomVPNSourceCustom
+	}
+
 	SubHideSettings, err := s.settingService.GetSubHideSettings()
 	if err != nil {
 		SubHideSettings = false
@@ -208,6 +213,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	SubIncyRoutingRules, err := s.settingService.GetSubIncyRoutingRules()
 	if err != nil {
 		SubIncyRoutingRules = ""
+	}
+
+	SubIncyRoutingSource, err := s.settingService.GetSubIncyRoutingSource()
+	if err != nil {
+		SubIncyRoutingSource = RoscomVPNSourceCustom
 	}
 
 	// set per-request localizer from headers/cookies
@@ -289,9 +299,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBAnnounce(SubAnnounce),
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),
+		WithSUBRoutingSource(SubRoutingSource),
 		WithSUBHideSettings(SubHideSettings),
 		WithSUBIncyEnableRouting(SubIncyEnableRouting),
 		WithSUBIncyRoutingRules(SubIncyRoutingRules),
+		WithSUBIncyRoutingSource(SubIncyRoutingSource),
 	)
 
 	return engine, nil

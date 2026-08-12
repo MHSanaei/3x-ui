@@ -197,6 +197,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subIncyRoutingSource": {
+        "type": "string"
+      },
       "subJsonAlwaysArray": {
         "type": "boolean"
       },
@@ -242,6 +245,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subRoutingRules": {
+        "type": "string"
+      },
+      "subRoutingSource": {
         "type": "string"
       },
       "subShowIdentityOnAllLinks": {
@@ -403,6 +409,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subIncyRoutingSource",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
@@ -418,6 +425,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subRoutingSource",
       "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
@@ -668,6 +676,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subIncyRoutingSource": {
+        "type": "string"
+      },
       "subJsonAlwaysArray": {
         "type": "boolean"
       },
@@ -713,6 +724,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subRoutingRules": {
+        "type": "string"
+      },
+      "subRoutingSource": {
         "type": "string"
       },
       "subShowIdentityOnAllLinks": {
@@ -881,6 +895,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subIncyRoutingSource",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
@@ -896,6 +911,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subRoutingSource",
       "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",

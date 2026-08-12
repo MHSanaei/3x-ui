@@ -41,8 +41,10 @@ export class AllSetting {
   subAnnounce = '';
   subEnableRouting = false;
   subRoutingRules = '';
+  subRoutingSource = 'custom';
   subIncyEnableRouting = false;
   subIncyRoutingRules = '';
+  subIncyRoutingSource = 'custom';
   subListen = '';
   subPort = 2096;
   subPath = '/sub/';
