@@ -151,6 +151,57 @@ function makeBackendProxy(target) {
   };
 }
 
+// Deps only reachable through swagger-ui-react (verified via `npm ls`). The
+// catch-all `vendor` chunk would otherwise eager-load them on first paint,
+// although the api-docs page is the only lazy route importing them.
+const SWAGGER_ONLY_DEPS = [
+  '@babel/runtime-corejs3',
+  '@scarf/scarf',
+  '@swagger-api/apidom-',
+  '@swaggerexpert/',
+  'base64-js',
+  'buffer',
+  'classnames',
+  'css.escape',
+  'deep-extend',
+  'dompurify',
+  'fast-json-patch',
+  'highlight.js',
+  'highlightjs-vue',
+  'ieee754',
+  'immutable',
+  'js-file-download',
+  'js-yaml',
+  'lodash',
+  'lowlight',
+  'neotraverse',
+  'node-abort-controller',
+  'openapi-path-templating',
+  'openapi-server-url-templating',
+  'prismjs',
+  'prop-types',
+  'ramda',
+  'ramda-adjunct',
+  'randexp',
+  'react-copy-to-clipboard',
+  'react-debounce-input',
+  'react-immutable-proptypes',
+  'react-immutable-pure-component',
+  'react-inspector',
+  'react-redux',
+  'react-syntax-highlighter',
+  'redux',
+  'redux-immutable',
+  'remarkable',
+  'reselect',
+  'serialize-error',
+  'sha.js',
+  'url-parse',
+  'xml',
+  'xml-but-prettier',
+  'zenscroll',
+];
+
 export default defineConfig({
   plugins: [react(), injectBasePathPlugin(), rocketLoaderOptOutPlugin()],
   resolve: {
@@ -222,6 +273,7 @@ export default defineConfig({
             id.includes('/node_modules/swagger-ui-react/')
             || id.includes('/node_modules/swagger-ui/')
             || id.includes('/node_modules/swagger-client/')
+            || SWAGGER_ONLY_DEPS.some((dep) => id.includes(`/node_modules/${dep}/`))
           ) return 'vendor-swagger';
           if (id.includes('/node_modules/uplot/')) return 'vendor-uplot';
           if (id.includes('dayjs')) return 'vendor-dayjs';
