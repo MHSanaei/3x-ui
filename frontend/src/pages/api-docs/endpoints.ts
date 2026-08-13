@@ -1228,7 +1228,7 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request — the token is a full-admin credential.',
+      'Manage scoped Bearer tokens for programmatic auth. Tokens grant admin, monitor, or node-sync access, may expire, and are stored as SHA-256 hashes. The plaintext is returned only once at creation.',
     endpoints: [
       {
         method: 'GET',
@@ -1239,11 +1239,13 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/setting/apiTokens/create',
-        summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.',
+        summary: 'Mint a scoped API token. The server-generated plaintext is returned only once and stored as a hash.',
         params: [
           { name: 'name', in: 'body', type: 'string', desc: 'Human-readable label, e.g. "central-panel-a".' },
+          { name: 'scope', in: 'body', type: 'string', desc: 'admin (default), monitor, or node-sync.' },
+          { name: 'expiresAt', in: 'body', type: 'number', desc: 'Future Unix milliseconds, or 0 for no expiry.' },
         ],
-        body: '{\n  "name": "central-panel-a"\n}',
+        body: '{\n  "name": "central-panel-a",\n  "scope": "node-sync",\n  "expiresAt": 1798761600000\n}',
         responseSchema: 'ApiTokenView',
         errorResponse: '{\n  "success": false,\n  "msg": "a token with that name already exists"\n}',
       },
@@ -1253,7 +1255,9 @@ export const sections: readonly Section[] = [
         summary: 'Permanently delete a token. Any caller using it stops authenticating immediately.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
+          { name: 'expectedScope', in: 'body', type: 'string', desc: 'Stored scope expected by the operator.' },
         ],
+        body: '{\n  "expectedScope": "node-sync"\n}',
         response: '{\n  "success": true\n}',
       },
       {
@@ -1263,8 +1267,9 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
           { name: 'enabled', in: 'body', type: 'boolean', desc: 'New enabled state.' },
+          { name: 'expectedScope', in: 'body', type: 'string', desc: 'Stored scope expected by the operator.' },
         ],
-        body: '{\n  "enabled": false\n}',
+        body: '{\n  "enabled": false,\n  "expectedScope": "node-sync"\n}',
         response: '{\n  "success": true\n}',
       },
     ],

@@ -71,11 +71,8 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 	c.Next()
 }
 
-// monitorScopeAllow is the explicit capability allowlist for the `monitor`
-// token scope: pure status/metrics endpoints that expose no DB, config, certs,
-// keys, client identities/links, or IPs. Keys are route patterns RELATIVE to
-// /panel/api (matched via c.FullPath so the dynamic panel base path does not
-// matter). This is an allowlist by design.
+// monitorScopeAllow exposes only status/metrics routes without sensitive data.
+// Keys are route patterns relative to /panel/api.
 var monitorScopeAllow = map[string]struct{}{
 	"/server/status":                              {},
 	"/server/cpuHistory/:bucket":                  {},
@@ -89,9 +86,8 @@ var monitorScopeAllow = map[string]struct{}{
 	"/nodes/history/:id/:metric/:bucket":          {},
 }
 
-// nodeSyncScopeAllow is the complete master-to-worker capability matrix. Keys
-// are registered Gin route patterns relative to /panel/api, so concrete path
-// parameters cannot broaden a token's authority. Methods are explicit.
+// nodeSyncScopeAllow is the node-sync route/method allowlist relative to
+// /panel/api; Gin patterns prevent concrete parameters broadening authority.
 var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/server/status":               {http.MethodGet: {}},
 	"/inbounds/list":               {http.MethodGet: {}},
@@ -117,9 +113,8 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/hosts/list":                  {http.MethodGet: {}},
 }
 
-// enforceTokenScope authorizes the request for the token's scope. admin is
-// unrestricted; monitor and node-sync are explicit allowlists. Session-login UI
-// users carry no api_token_scope and are unaffected.
+// enforceTokenScope applies explicit allowlists to monitor and node-sync tokens.
+// Admin tokens and session-login users retain their existing behavior.
 func (a *APIController) enforceTokenScope(c *gin.Context) {
 	scopeVal, ok := c.Get("api_token_scope")
 	if !ok {

@@ -147,6 +147,24 @@ func (s *ApiTokenService) Delete(id int) error {
 	return db.Where("id = ?", id).Delete(model.ApiToken{}).Error
 }
 
+func (s *ApiTokenService) DeleteExpectedScope(id int, expectedScope string) error {
+	if id <= 0 {
+		return common.NewError("invalid token id")
+	}
+	scope, err := requireExpectedScope(expectedScope)
+	if err != nil {
+		return err
+	}
+	res := database.GetDB().Where("id = ? AND scope = ?", id, scope).Delete(model.ApiToken{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("token not found with expected scope")
+	}
+	return nil
+}
+
 func (s *ApiTokenService) SetEnabled(id int, enabled bool) error {
 	if id <= 0 {
 		return common.NewError("invalid token id")
@@ -162,21 +180,15 @@ func (s *ApiTokenService) SetEnabled(id int, enabled bool) error {
 	return nil
 }
 
-func nowMilli() int64 { return time.Now().UnixMilli() }
-
-// DisableExpectedScope disables a token only when its stored scope matches the
-// caller's expectation. It is used by rotation to avoid revoking the newly
-// minted node-sync token when an operator passes the wrong id.
-func (s *ApiTokenService) DisableExpectedScope(id int, expectedScope string) error {
+func (s *ApiTokenService) SetEnabledExpectedScope(id int, expectedScope string, enabled bool) error {
 	if id <= 0 {
 		return common.NewError("invalid token id")
 	}
-	scope, err := NormalizeScope(expectedScope)
+	scope, err := requireExpectedScope(expectedScope)
 	if err != nil {
 		return err
 	}
-	db := database.GetDB()
-	res := db.Model(model.ApiToken{}).Where("id = ? AND scope = ?", id, scope).Update("enabled", false)
+	res := database.GetDB().Model(model.ApiToken{}).Where("id = ? AND scope = ?", id, scope).Update("enabled", enabled)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -184,6 +196,28 @@ func (s *ApiTokenService) DisableExpectedScope(id int, expectedScope string) err
 		return errors.New("token not found with expected scope")
 	}
 	return nil
+}
+
+func nowMilli() int64 { return time.Now().UnixMilli() }
+
+// DisableExpectedScope fails closed unless the stored scope matches the caller,
+// preventing rotation from revoking a newly minted token after a wrong ID.
+func (s *ApiTokenService) DisableExpectedScope(id int, expectedScope string) error {
+	if id <= 0 {
+		return common.NewError("invalid token id")
+	}
+	return s.SetEnabledExpectedScope(id, expectedScope, false)
+}
+
+func requireExpectedScope(expectedScope string) (string, error) {
+	if strings.TrimSpace(expectedScope) == "" {
+		return "", common.NewError("expected scope is required")
+	}
+	scope, err := NormalizeScope(expectedScope)
+	if err != nil {
+		return "", err
+	}
+	return scope, nil
 }
 
 // MatchToken returns the enabled, non-expired api_token row whose stored

@@ -110,9 +110,8 @@ func TestCheckAPIAuth_BearerSuccess(t *testing.T) {
 	}
 }
 
-// TestCheckAPIAuth_AcceptsVerifiedClientCert asserts that a completed mTLS
-// handshake (a non-empty verified client chain) authenticates as node-sync, not
-// admin. This prevents cert-auth from bypassing the scoped API-token matrix.
+// TestCheckAPIAuth_AcceptsVerifiedClientCert ensures verified mTLS authenticates
+// as node-sync rather than bypassing scope checks as admin.
 func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
 	engine, _ := newAPIAuthTestEngine(t)
 
