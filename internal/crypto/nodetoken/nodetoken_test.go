@@ -15,7 +15,7 @@ func testRing(t *testing.T, activeID string, ids ...string) *Keyring {
 	for _, id := range ids {
 		var k [keyLen]byte
 		for i := range k {
-			k[i] = byte(i) + byte(len(id)) // deterministic, distinct per id
+			k[i] = byte(i) + id[len(id)-1] // deterministic and distinct for k1/k2
 		}
 		kr.Keys[id] = k
 	}
@@ -91,13 +91,29 @@ func TestEncryptedNeverFallsBackToPlaintext(t *testing.T) {
 	}
 }
 
-func TestEncryptedUnderDisabledIsError(t *testing.T) {
+func TestEncryptionMarkerPassesThroughWhenDisabled(t *testing.T) {
 	c, _ := NewCodec(ModeOff, nil)
-	// Build a real ciphertext with an enabled codec, then try to read it under off.
-	enabled, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
-	enc, _ := enabled.Encrypt(1, "tok")
-	if _, err := c.Decrypt(1, enc); err == nil {
-		t.Fatal("off-mode must refuse to interpret an encrypted value")
+	stored := "enc:v1:not-ciphertext"
+	if got, err := c.Decrypt(1, stored); err != nil || got != stored {
+		t.Fatalf("off-mode changed a legacy token: got %q err=%v", got, err)
+	}
+}
+
+func TestParseKeyringRejectsDelimiterInKeyID(t *testing.T) {
+	key := base64.StdEncoding.EncodeToString(make([]byte, keyLen))
+	for _, tc := range []struct {
+		name, active string
+		keys         map[string]string
+	}{
+		{"active delimiter", "region:k1", map[string]string{"region:k1": key}},
+		{"key delimiter", "k1", map[string]string{"k1": key, "old:k0": key}},
+		{"empty key", "k1", map[string]string{"k1": key, "": key}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := parseKeyring(tc.active, tc.keys); err == nil {
+				t.Fatal("invalid key id was accepted")
+			}
+		})
 	}
 }
 
@@ -127,6 +143,9 @@ func TestEmptyTokenNeverEncrypted(t *testing.T) {
 func TestRotation(t *testing.T) {
 	// k2 active, k1 retained. Old-key value still decrypts; new writes use k2.
 	ring := testRing(t, "k2", "k1", "k2")
+	if ring.Keys["k1"] == ring.Keys["k2"] {
+		t.Fatal("rotation fixture keys k1 and k2 are identical")
+	}
 	c, _ := NewCodec(ModeRequired, ring)
 	// produce a k1 value via a codec whose active is k1
 	c1, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1", "k2"))

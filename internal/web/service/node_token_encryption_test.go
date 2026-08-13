@@ -1,17 +1,19 @@
 package service
 
 import (
+	"errors"
 	"strings"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// enableNodeTokenEncryption installs a test keyring for the duration of one test
-// and restores the off-mode codec afterwards so the package-global doesn't leak
-// into other tests.
+// enableNodeTokenEncryption installs a test keyring and restores off mode so
+// the package-global codec cannot leak between tests.
 func enableNodeTokenEncryption(t *testing.T) {
 	t.Helper()
 	var k [32]byte
@@ -28,6 +30,29 @@ func enableNodeTokenEncryption(t *testing.T) {
 		off, _ := nodetoken.NewCodec(nodetoken.ModeOff, nil)
 		nodetoken.Init(off)
 	})
+}
+
+func TestNodeToken_CreateNeverInsertsPlaintextTuple(t *testing.T) {
+	setupConflictDB(t)
+	enableNodeTokenEncryption(t)
+	db := database.GetDB()
+	const callback = "test:no-plaintext-node-insert"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if node, ok := tx.Statement.Dest.(*model.Node); ok && node.ApiToken != "" {
+			tx.AddError(errors.New("plaintext token reached node INSERT"))
+		}
+	}); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Create().Remove(callback) })
+
+	n := &model.Node{Name: "no-plain", Address: "127.0.0.1", Port: 2096, ApiToken: "secret", Enable: true}
+	if err := (&NodeService{}).Create(n); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if n.ApiToken != "secret" {
+		t.Fatalf("in-memory token = %q, want plaintext response value", n.ApiToken)
+	}
 }
 
 func rawStoredToken(t *testing.T, id int) string {
@@ -129,5 +154,27 @@ func TestNodeToken_MigratePlaintextRows(t *testing.T) {
 	changed2, _, _ := (&NodeService{}).MigrateNodeTokensToActiveKey()
 	if changed2 != 0 {
 		t.Fatalf("second migration should be a no-op, changed %d", changed2)
+	}
+}
+
+func TestNodeToken_MigrationRejectsCorruptActiveCiphertext(t *testing.T) {
+	setupConflictDB(t)
+	enableNodeTokenEncryption(t)
+	n := &model.Node{Name: "corrupt", Address: "127.0.0.1", Port: 2096, ApiToken: "secret", Enable: true}
+	if err := (&NodeService{}).Create(n); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	stored := rawStoredToken(t, n.Id)
+	body := strings.LastIndexByte(stored, ':') + 1
+	replacement := byte('A')
+	if stored[body] == replacement {
+		replacement = 'B'
+	}
+	corrupt := stored[:body] + string(replacement) + stored[body+1:]
+	if err := database.GetDB().Model(&model.Node{}).Where("id = ?", n.Id).Update("api_token", corrupt).Error; err != nil {
+		t.Fatalf("corrupt row: %v", err)
+	}
+	if _, _, err := (&NodeService{}).MigrateNodeTokensToActiveKey(); err == nil {
+		t.Fatal("migration trusted a corrupt active-key ciphertext")
 	}
 }

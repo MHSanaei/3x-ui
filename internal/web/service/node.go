@@ -101,11 +101,8 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 	return base64.StdEncoding.EncodeToString(sum[:]), nil
 }
 
-// decryptToken replaces a node's at-rest token with its plaintext so callers
-// (UI round-trip, probes, remote requests) see the usable value. A legacy
-// plaintext row passes through unchanged. A decrypt failure is surfaced via
-// LastError rather than dropping the row, so one unreadable token can't blank a
-// whole listing.
+// decryptToken exposes plaintext to callers. Failures blank only this token
+// and surface through LastError instead of dropping the node row.
 func decryptToken(n *model.Node) {
 	if n == nil || n.ApiToken == "" {
 		return
@@ -457,10 +454,12 @@ func (s *NodeService) Create(n *model.Node) error {
 	if !nodetoken.Enabled() {
 		return db.Create(n).Error
 	}
-	// Encryption binds the token to the node id (AAD), which only exists after
-	// insert — so insert, then re-write the token encrypted, in one transaction.
 	plaintext := n.ApiToken
 	return db.Transaction(func(tx *gorm.DB) error {
+		// The id-bound ciphertext can only be produced after insertion. Never put
+		// plaintext in the initial tuple: PostgreSQL WAL would retain it.
+		n.ApiToken = ""
+		defer func() { n.ApiToken = plaintext }()
 		if err := tx.Create(n).Error; err != nil {
 			return err
 		}
@@ -501,9 +500,7 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := db.Where("id = ?", id).First(existing).Error; err != nil {
 		return err
 	}
-	// Token field: a blank submission means "keep the stored token" (the UI does
-	// not echo secrets back), never "clear it". A non-blank value is encrypted
-	// at rest; re-submitting the stored ciphertext is a round-trip no-op.
+	// Blank means keep the hidden stored token; non-blank values are encrypted.
 	apiToken := existing.ApiToken
 	if in.ApiToken != "" {
 		enc, eerr := nodetoken.Encrypt(id, in.ApiToken)
@@ -651,11 +648,8 @@ func (s *NodeService) NodeFromRequestForCertificate(req *NodeMutationRequest) (*
 	return n, nil
 }
 
-// MigrateNodeTokensToActiveKey re-encrypts every node's stored bearer token
-// under the active key. It is idempotent (rows already on the active key are
-// skipped) and concurrency-safe: each row is updated with a compare-and-swap on
-// its current stored value, so a token changed by live traffic mid-migration is
-// left for the next run rather than clobbered. Returns (changed, skipped).
+// MigrateNodeTokensToActiveKey uses compare-and-swap to avoid clobbering live
+// changes. Current-key rows are skipped; changed and skipped counts are returned.
 func (s *NodeService) MigrateNodeTokensToActiveKey() (int, int, error) {
 	codec := nodetoken.Active()
 	if !codec.Enabled() {
@@ -669,7 +663,14 @@ func (s *NodeService) MigrateNodeTokensToActiveKey() (int, int, error) {
 	changed, skipped := 0, 0
 	for _, n := range nodes {
 		old := n.ApiToken
-		if old == "" || codec.EncryptedWithActive(old) {
+		if old == "" {
+			skipped++
+			continue
+		}
+		if codec.EncryptedWithActive(old) {
+			if _, err := codec.Decrypt(n.Id, old); err != nil {
+				return changed, skipped, fmt.Errorf("node %d validate active ciphertext: %w", n.Id, err)
+			}
 			skipped++
 			continue
 		}

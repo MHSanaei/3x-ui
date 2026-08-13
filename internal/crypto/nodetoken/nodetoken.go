@@ -1,23 +1,5 @@
-// Package nodetoken provides reversible at-rest encryption for the per-node
-// outbound bearer token the master replays to each worker node.
-//
-// Threat model: a database-only compromise (SQL injection, leaked backup, read
-// replica) must yield ciphertext, not live worker tokens. It does NOT protect
-// against compromise of the master process itself, which necessarily holds the
-// key to use the token. The master's *inbound* API tokens are SHA-256 hashes
-// (compare-only); this package is only for the *outbound* token, which must be
-// recoverable to be replayed and therefore cannot be hashed.
-//
-// On-disk format:  enc:v1:<key-id>:<base64url(nonce(12) || ciphertext+tag)>
-// Cipher:          AES-256-GCM, fresh 96-bit nonce per value.
-// AAD:             "nodes/api_token/<nodeID>" — binds ciphertext to its row so a
-//
-//	DB-write-capable attacker cannot move it between rows/fields.
-//
-// A versioned key-id supports rotation via a keyring (active key for writes,
-// active+previous keys for reads). Values without the "enc:" prefix are treated
-// as legacy plaintext (not yet migrated); an "enc:" value that cannot be
-// decrypted is always an error — never silently reinterpreted as plaintext.
+// Package nodetoken encrypts replayable per-node bearer tokens at rest with
+// row-bound AES-GCM and versioned key IDs.
 package nodetoken
 
 import (
@@ -31,9 +13,8 @@ import (
 	"sync"
 )
 
-// Mode is the explicit encryption policy. It is configured out-of-band (env)
-// rather than inferred from whether a key happens to be present, so that a lost
-// key cannot silently downgrade a previously-encrypted deployment to plaintext.
+// Mode is explicit so a missing key cannot silently downgrade encrypted
+// deployments to plaintext.
 type Mode int
 
 const (
@@ -71,8 +52,7 @@ func ParseMode(s string) (Mode, error) {
 	}
 }
 
-// Keyring holds the active key (used for new writes) plus any previous keys
-// retained for decrypting not-yet-rotated values.
+// Keyring holds the active write key and previous decryption keys.
 type Keyring struct {
 	ActiveID string
 	Keys     map[string][keyLen]byte
@@ -92,8 +72,7 @@ type Codec struct {
 	ring *Keyring // nil only in ModeOff
 }
 
-// NewCodec builds a Codec. In ModeMigration/ModeRequired a non-nil keyring with
-// a valid active key is required; in ModeOff the keyring is ignored.
+// NewCodec requires an active key outside ModeOff.
 func NewCodec(mode Mode, ring *Keyring) (*Codec, error) {
 	if mode == ModeOff {
 		return &Codec{mode: ModeOff}, nil
@@ -115,12 +94,8 @@ func aad(nodeID int) []byte { return []byte(fmt.Sprintf(aadKeyFormat, nodeID)) }
 // IsEncrypted reports whether a stored value is in this package's ciphertext form.
 func IsEncrypted(stored string) bool { return strings.HasPrefix(stored, encPrefix) }
 
-// Encrypt returns the at-rest form of plaintext for the given node.
-//   - ModeOff: returns plaintext unchanged (no-op, backward compatible).
-//   - otherwise: returns enc:v1:<active-id>:<...>. An empty plaintext is returned
-//     unchanged so optional/blank tokens are never turned into ciphertext.
-//   - already-encrypted input is returned unchanged (round-trip safe: a UI that
-//     re-submits the stored ciphertext does not get double-encrypted).
+// Encrypt returns plaintext in ModeOff or row-bound enc:v1 ciphertext otherwise.
+// Empty and already-valid encrypted values remain unchanged.
 func (c *Codec) Encrypt(nodeID int, plaintext string) (string, error) {
 	if c.mode == ModeOff || plaintext == "" {
 		return plaintext, nil
@@ -149,12 +124,12 @@ func (c *Codec) Encrypt(nodeID int, plaintext string) (string, error) {
 	return encScheme + c.ring.ActiveID + ":" + base64.RawURLEncoding.EncodeToString(blob), nil
 }
 
-// Decrypt returns the plaintext token for the given node.
-//   - A value without the "enc:" prefix is legacy plaintext: returned as-is in
-//     every mode (a not-yet-migrated row, or a transient form value with nodeID 0).
-//   - An "enc:" value must decrypt successfully or this returns an error; it is
-//     never reinterpreted as plaintext.
+// Decrypt passes legacy plaintext through; enc: values must authenticate and
+// are never reinterpreted as plaintext after an error.
 func (c *Codec) Decrypt(nodeID int, stored string) (string, error) {
+	if c.mode == ModeOff {
+		return stored, nil
+	}
 	if !IsEncrypted(stored) {
 		return stored, nil
 	}
@@ -199,8 +174,7 @@ func (c *Codec) ActiveKeyID() string {
 	return c.ring.ActiveID
 }
 
-// EncryptedWithActive reports whether stored is ciphertext already under the
-// active key — lets the migration skip rows that need no work.
+// EncryptedWithActive reports whether migration can skip a ciphertext row.
 func (c *Codec) EncryptedWithActive(stored string) bool {
 	if c.ring == nil || !IsEncrypted(stored) {
 		return false

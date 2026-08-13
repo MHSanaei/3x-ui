@@ -36,10 +36,8 @@ import (
 // cannot accumulate admin-equivalent credentials that are never revoked.
 const cliFallbackTokenName = "cli-fallback"
 
-// initNodeTokenCrypto installs the process-wide node-token codec from config.
-// In "off" mode it is a no-op pass-through (legacy plaintext). In
-// "migration"/"required" it loads the keyring (key file first, env fallback)
-// and fails closed if the policy demands a key that cannot load.
+// initNodeTokenCrypto loads the process codec, preferring the key file over
+// the environment and failing closed when an enabled policy lacks a key.
 func initNodeTokenCrypto() error {
 	mode, err := nodetoken.ParseMode(config.GetNodeTokenEncryptionMode())
 	if err != nil {
@@ -62,9 +60,7 @@ func initNodeTokenCrypto() error {
 		return err
 	}
 	nodetoken.Init(c)
-	// log.Printf (not logger.Infof): this runs from both runWebServer (logger
-	// ready) and the encrypt-tokens CLI (logger not initialized) — the package
-	// logger is nil in the CLI path and logger.Infof would panic.
+	// The CLI runs before package logger initialization, so use log.Printf.
 	log.Printf("node-token encryption enabled (mode=%s, active-key=%s)", config.GetNodeTokenEncryptionMode(), c.ActiveKeyID())
 	return nil
 }
@@ -341,9 +337,8 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 	}
 }
 
-// encryptNodeTokens re-encrypts all stored node bearer tokens under the active
-// key (one-time after enabling encryption, or after a key rotation). Requires
-// NODE_TOKEN_ENCRYPTION=migration|required and a configured key.
+// encryptNodeTokens re-encrypts stored tokens after enablement or rotation.
+// It requires migration|required mode and a configured key.
 func encryptNodeTokens() {
 	_ = godotenv.Load()
 	if err := initNodeTokenCrypto(); err != nil {
@@ -632,12 +627,7 @@ func main() {
 	oldUsage := flag.Usage
 	flag.Usage = func() {
 		oldUsage()
-		fmt.Println()
-		fmt.Println("Commands:")
-		fmt.Println("    run            run web panel")
-		fmt.Println("    migrate        migrate from other/old x-ui")
-		fmt.Println("    migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)")
-		fmt.Println("    setting        set settings")
+		fmt.Print(commandHelp())
 	}
 
 	flag.Parse()
@@ -746,4 +736,15 @@ func main() {
 		fmt.Println()
 		settingCmd.Usage()
 	}
+}
+
+func commandHelp() string {
+	return `
+Commands:
+    run            run web panel
+    migrate        migrate from other/old x-ui
+    migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)
+    encrypt-tokens encrypt node bearer tokens with the configured active key
+    setting        set settings
+`
 }
