@@ -2,9 +2,14 @@ package network
 
 import (
 	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -34,14 +39,73 @@ func TestServeHTTPLogsUnexpectedListenerFailure(t *testing.T) {
 	t.Fatal("unexpected listener failure was not recorded in the panel log")
 }
 
-func TestEveryHTTPServerReportsUnexpectedServeFailures(t *testing.T) {
-	for _, file := range []string{"../web.go", "../../sub/sub.go"} {
-		source, err := os.ReadFile(file)
+func TestServeHTTPSuppressesNormalServerClose(t *testing.T) {
+	const marker = "normal-close-must-stay-silent"
+	ServeHTTP(&http.Server{}, failingListener{err: http.ErrServerClosed}, marker)
+
+	for _, line := range logger.GetLogs(100, "error") {
+		if strings.Contains(line, marker) {
+			t.Fatalf("normal http.ErrServerClosed was recorded as an error: %s", line)
+		}
+	}
+}
+
+func TestProductionHTTPServersUseServeHTTPWrapper(t *testing.T) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("locate test source")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "../../.."))
+	fset := token.NewFileSet()
+
+	err := filepath.WalkDir(repoRoot, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" || entry.Name() == "vendor" || entry.Name() == "node_modules" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || path == currentFile || path == filepath.Join(filepath.Dir(currentFile), "serve.go") {
+			return nil
+		}
+
+		parsed, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
 		if err != nil {
-			t.Fatalf("read %s: %v", file, err)
+			return err
 		}
-		if got := strings.Count(string(source), "network.ServeHTTP("); got != 1 {
-			t.Fatalf("%s ServeHTTP call sites = %d, want 1", file, got)
+		usesHTTP := false
+		for _, imp := range parsed.Imports {
+			if imp.Path.Value == `"net/http"` {
+				usesHTTP = true
+				break
+			}
 		}
+		if !usesHTTP {
+			return nil
+		}
+
+		parsed, err = parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if ok && selector.Sel.Name == "Serve" {
+				position := fset.Position(call.Pos())
+				t.Errorf("direct Serve call at %s; production HTTP servers must use network.ServeHTTP", position)
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan production Go files: %v", err)
 	}
 }
