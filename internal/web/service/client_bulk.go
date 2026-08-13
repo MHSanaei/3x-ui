@@ -1077,7 +1077,7 @@ func (s *ClientService) bulkDelInboundClients(
 			logger.Warning("BulkDelete: node runtime lookup after commit failed:", perr)
 		} else if push {
 			for email := range foundEmails {
-				if err1 := rt.DeleteUser(context.Background(), oldInbound, email); err1 != nil {
+				if err1 := rt.DeleteClient(context.Background(), email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 				}
 			}

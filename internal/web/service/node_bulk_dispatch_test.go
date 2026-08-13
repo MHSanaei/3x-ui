@@ -230,6 +230,27 @@ func TestNodeBulkDeleteDoesNotPushBeforeFailedCommit(t *testing.T) {
 	}
 }
 
+func TestNodeBulkSmallDeleteRemovesWholeRemoteClient(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "full-delete@x", Enable: true}
+	nodeInbound(t, nodeID, 30024, []model.Client{client})
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 1 || len(result.Skipped) != 0 {
+		t.Fatalf("BulkDelete result = %+v, want one deleted client", result)
+	}
+	if got := fake.deleteClient.Load(); got != 1 {
+		t.Fatalf("remote DeleteClient calls = %d, want 1", got)
+	}
+	if got := fake.deleteUser.Load(); got != 0 {
+		t.Fatalf("remote DeleteUser detach calls = %d, want 0 for full deletion", got)
+	}
+}
+
 func TestNodeUpdateInboundClientNoopSkipsRuntimeAndDirty(t *testing.T) {
 	setupBulkDB(t)
 	nodeID, fake := setupNodeRuntime(t)
