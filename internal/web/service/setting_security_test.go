@@ -194,4 +194,3 @@ func TestGetSecret_FallbacksOnEmptyDatabaseSetting(t *testing.T) {
 		t.Fatalf("persisted secret = %q, want %q", persisted, secret)
 	}
 }
-
