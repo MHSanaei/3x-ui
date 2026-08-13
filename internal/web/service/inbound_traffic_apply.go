@@ -27,9 +27,12 @@ type trafficLocalApplyPlan struct {
 }
 
 type trafficMutationBatch struct {
-	localPlans []trafficLocalApplyPlan
-	nodeIDs    map[int]struct{}
+	localPlans  []trafficLocalApplyPlan
+	remotePlans []trafficInboundUpdatePlan
+	nodeIDs     map[int]struct{}
 }
+
+type trafficInboundUpdatePlan struct{ oldInbound, newInbound model.Inbound }
 
 func newTrafficMutationBatch() *trafficMutationBatch {
 	return &trafficMutationBatch{nodeIDs: make(map[int]struct{})}
@@ -59,8 +62,23 @@ func (s *InboundService) applyTrafficMutationBatch(b *trafficMutationBatch) bool
 		return false
 	}
 	needRestart := false
+	for i := range b.remotePlans {
+		plan := &b.remotePlans[i]
+		rt, err := s.runtimeFor(&plan.newInbound)
+		if err == nil {
+			err = rt.UpdateInbound(context.Background(), &plan.oldInbound, &plan.newInbound)
+		}
+		if err != nil {
+			logger.Debug("traffic post-commit remote apply failed:", err)
+			needRestart = true
+		}
+	}
 	for i := range b.localPlans {
 		plan := &b.localPlans[i]
+		if plan.inbound.Protocol == model.MTProto {
+			s.applyLocalMtproto(plan.inbound.Id)
+			continue
+		}
 		rt, err := s.runtimeFor(&plan.inbound)
 		if err == nil {
 			switch plan.action {

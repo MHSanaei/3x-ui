@@ -36,9 +36,8 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 
 func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, error) {
 	db := database.GetDB()
-	// Traffic deltas are the durable source of truth. Commit them before any
-	// best-effort lifecycle maintenance so a disable/renew helper failure cannot
-	// discard usage already reported by Xray.
+	// Commit durable traffic before best-effort lifecycle maintenance so helper
+	// failures cannot discard usage already reported by Xray.
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
 			return err
@@ -786,7 +785,8 @@ func (s *InboundService) ResetInboundTraffic(id int) error {
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	var deletedInbounds []model.Inbound
+	err = db.Transaction(func(tx *gorm.DB) error {
 		// Collect depleted emails globally — a shared-email row owned by one
 		// inbound depletes every sibling that lists the email.
 		now := time.Now().Unix() * 1000
@@ -849,6 +849,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 				continue
 			}
 			if len(newClients) == 0 {
+				deletedInbounds = append(deletedInbounds, *inbound)
 				if err := s.clientService.DetachInbound(tx, inbound.Id); err != nil {
 					return err
 				}
@@ -925,6 +926,23 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	for i := range deletedInbounds {
+		inbound := &deletedInbounds[i]
+		if rt, rtErr := s.runtimeFor(inbound); rtErr != nil {
+			logger.Warning("DelDepletedClients: runtime lookup failed after commit:", rtErr)
+		} else if rtErr = rt.DelInbound(context.Background(), inbound); rtErr != nil && !xray.IsMissingHandlerErr(rtErr) {
+			logger.Warning("DelDepletedClients: runtime cleanup failed after commit:", rtErr)
+		}
+		if inbound.Tag != "" {
+			if _, syncErr := (&XraySettingService{}).RemoveInboundTagReferences(inbound.Tag); syncErr != nil {
+				logger.Warning("DelDepletedClients: routing cleanup failed after commit:", syncErr)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {

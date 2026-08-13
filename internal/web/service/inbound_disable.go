@@ -132,11 +132,14 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		for _, t := range group {
 			emails[t.Email] = struct{}{}
 		}
-		_, inbound, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails)
+		oldInbound, inbound, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails)
 		if mErr != nil {
 			return false, 0, nil, mErr
 		}
 		if inbound.NodeID != nil {
+			mutationBatch.remotePlans = append(mutationBatch.remotePlans, trafficInboundUpdatePlan{
+				oldInbound: *oldInbound, newInbound: *inbound,
+			})
 			mutationBatch.addNode(*inbound.NodeID)
 			disabledNodeIDs[*inbound.NodeID] = struct{}{}
 			continue
