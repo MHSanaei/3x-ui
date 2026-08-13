@@ -2035,5 +2035,8 @@
     "statusFailed": "FALLIDO",
     "statusDown": "CAÍDO",
     "statusUp": "ACTIVO"
-  }
+  },
+  "subCopyPageTitle": "Enlace de suscripción",
+  "subCopyPageHeading": "Este es un enlace de suscripción",
+  "subCopyPageInstructions": "No necesita abrirlo en el navegador. Copie la dirección de esta página y péguela en la aplicación."
 }

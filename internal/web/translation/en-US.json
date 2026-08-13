@@ -2035,5 +2035,8 @@
     "statusFailed": "FAILED",
     "statusDown": "DOWN",
     "statusUp": "UP"
-  }
+  },
+  "subCopyPageTitle": "Subscription link",
+  "subCopyPageHeading": "This is a subscription link",
+  "subCopyPageInstructions": "You do not need to open it in a browser. Copy this page address and paste it into the app."
 }

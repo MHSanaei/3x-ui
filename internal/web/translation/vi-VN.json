@@ -2035,5 +2035,8 @@
     "statusFailed": "THẤT BẠI",
     "statusDown": "NGỪNG HOẠT ĐỘNG",
     "statusUp": "HOẠT ĐỘNG"
-  }
+  },
+  "subCopyPageTitle": "Liên kết đăng ký",
+  "subCopyPageHeading": "Đây là liên kết đăng ký",
+  "subCopyPageInstructions": "Bạn không cần mở liên kết trong trình duyệt. Hãy sao chép địa chỉ trang này và dán vào ứng dụng."
 }

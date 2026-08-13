@@ -2035,5 +2035,8 @@
     "statusFailed": "GAGAL",
     "statusDown": "MATI",
     "statusUp": "AKTIF"
-  }
+  },
+  "subCopyPageTitle": "Tautan langganan",
+  "subCopyPageHeading": "Ini adalah tautan langganan",
+  "subCopyPageInstructions": "Anda tidak perlu membukanya di browser. Salin alamat halaman ini dan tempelkan ke aplikasi."
 }

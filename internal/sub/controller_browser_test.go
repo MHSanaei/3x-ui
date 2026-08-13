@@ -3,9 +3,13 @@ package sub
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 )
 
 func TestIsBrowserSubscriptionRequest(t *testing.T) {
@@ -48,10 +52,56 @@ func TestIsBrowserSubscriptionRequest(t *testing.T) {
 			}
 			c.Request = req
 
-			if got := isBrowserSubscriptionRequest(c); got != tt.want {
+			if got := (&SUBController{}).isBrowserSubscriptionRequest(c); got != tt.want {
 				t.Fatalf("isBrowserSubscriptionRequest() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestBrowserClassificationHonorsConfiguredFormatMatchers(t *testing.T) {
+	cases := []struct {
+		name string
+		new  func() *SUBController
+	}{
+		{"clash", func() *SUBController {
+			return &SUBController{subClashAutoDetect: true, clashEnabled: true, clashUserAgent: regexp.MustCompile(`Custom-Client`)}
+		}},
+		{"json", func() *SUBController {
+			return &SUBController{jsonAutoDetect: true, jsonEnabled: true, jsonUserAgent: regexp.MustCompile(`Custom-Client`)}
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest(http.MethodGet, "/sub/abc", nil)
+			c.Request.Header.Set("User-Agent", "Mozilla/5.0 Custom-Client/1.0")
+			if tc.new().isBrowserSubscriptionRequest(c) {
+				t.Fatal("configured subscription client was classified as a browser")
+			}
+		})
+	}
+}
+
+func TestSubscriptionCopyPageUsesRequestLocale(t *testing.T) {
+	bundle := i18n.NewBundle(language.English)
+	for id, text := range map[string]string{
+		"subCopyPageTitle":        "Titre localisé",
+		"subCopyPageHeading":      "En-tête localisé",
+		"subCopyPageInstructions": "Instructions localisées",
+	} {
+		bundle.AddMessages(language.French, &i18n.Message{ID: id, Other: text})
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sub/abc", nil)
+	c.Request.Header.Set("Accept-Language", "fr-FR")
+	c.Set("localizer", i18n.NewLocalizer(bundle, "fr-FR"))
+
+	(&SUBController{}).serveSubscriptionCopyPage(c)
+	if body := w.Body.String(); !strings.Contains(body, `<html lang="fr-FR">`) ||
+		!strings.Contains(body, "Titre localisé") || !strings.Contains(body, "Instructions localisées") {
+		t.Fatalf("copy page was not localized from the request: %s", body)
 	}
 }
 

@@ -2035,5 +2035,8 @@
     "statusFailed": "BAŞARISIZ",
     "statusDown": "ÇEVRİMDIŞI",
     "statusUp": "ÇEVRİMİÇİ"
-  }
+  },
+  "subCopyPageTitle": "Abonelik bağlantısı",
+  "subCopyPageHeading": "Bu bir abonelik bağlantısıdır",
+  "subCopyPageInstructions": "Tarayıcıda açmanız gerekmez. Bu sayfanın adresini kopyalayıp uygulamaya yapıştırın."
 }
