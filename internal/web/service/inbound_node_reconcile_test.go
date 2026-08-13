@@ -299,6 +299,29 @@ func TestReconcileNode_AdoptsCompatibleOriginInboundWithoutRemoteMutation(t *tes
 	}
 }
 
+func TestReconcileNode_AmbiguousCompatibleInboundsAreNotSwept(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{"alias-a": 51, "alias-b": 52})
+	node := reconcileTestNode(t, ts, "ambiguous-node", "all", nil)
+	node.Guid = "origin-guid"
+	if err := database.GetDB().Model(node).Update("guid", node.Guid).Error; err != nil {
+		t.Fatalf("update node guid: %v", err)
+	}
+	seedInboundConflictNode(t, "desired-name", "", 0, model.Protocol(""), `{}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	err := (&InboundService{}).ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node)
+	if err == nil || !strings.Contains(err.Error(), "ambiguous compatible remote inbounds") {
+		t.Fatalf("ReconcileNode error = %v, want ambiguity error", err)
+	}
+	if got := deletedIDs(); len(got) != 0 {
+		t.Fatalf("deleted ambiguous candidates = %v, want none", got)
+	}
+}
+
 func TestReconcileNode_IncompatiblePortOccupantRemainsLoud(t *testing.T) {
 	setupConflictDB(t)
 

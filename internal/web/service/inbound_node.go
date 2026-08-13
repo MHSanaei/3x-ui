@@ -151,6 +151,9 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 				// No compatible occupant: keep the normal create path, which
 				// leaves a real port/protocol drift loud.
 			default:
+				for _, candidate := range compatible {
+					desiredTags[candidate.Tag] = struct{}{}
+				}
 				errs = append(errs, fmt.Errorf("reconcile inbound %q: ambiguous compatible remote inbounds", ib.Tag))
 				continue
 			}
