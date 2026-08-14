@@ -190,7 +190,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 			a.XrayService.SetToNeedRestart()
 			// Restart the auto-update clock so a scheduled rotation
 			// doesn't fire right after this manual one.
-			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
+			err = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
 		}
 	case "license":
 		license := c.PostForm("license")
@@ -202,7 +202,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		} else if err = a.SettingService.SetWarpUpdateInterval(interval); err == nil && interval > 0 {
 			// Count the interval from now rather than from epoch 0,
 			// otherwise the job would rotate on its next tick.
-			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
+			err = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
 		}
 	}
 

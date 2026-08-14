@@ -28,13 +28,19 @@ func (j *WarpIpJob) Run() {
 		return
 	}
 
-	lastUpdate, _ := j.settingService.GetWarpLastUpdate()
+	lastUpdate, err := j.settingService.GetWarpLastUpdate()
+	if err != nil {
+		logger.Warning("Failed to read scheduled WARP IP update time: ", err)
+		return
+	}
 	now := time.Now().Unix()
 
 	// First run after the feature is enabled (e.g. interval set via direct
 	// DB edit): establish a baseline instead of rotating immediately.
 	if lastUpdate == 0 {
-		_ = j.settingService.SetWarpLastUpdate(now)
+		if err := j.settingService.SetWarpLastUpdate(now); err != nil {
+			logger.Warning("Failed to establish scheduled WARP IP update time: ", err)
+		}
 		return
 	}
 
@@ -46,7 +52,9 @@ func (j *WarpIpJob) Run() {
 			return
 		}
 
-		_ = j.settingService.SetWarpLastUpdate(now)
+		if err := j.settingService.SetWarpLastUpdate(now); err != nil {
+			logger.Warning("WARP IP changed but the next-update time was not saved: ", err)
+		}
 		j.xrayService.SetToNeedRestart()
 		logger.Info("Successfully updated WARP IP and scheduled Xray restart")
 	}
