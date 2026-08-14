@@ -87,6 +87,24 @@ docker run --rm \
             *) echo "FAIL: panel did not serve (status ${code:-none})"; tail -n 30 /tmp/xui.log; exit 1 ;;
         esac
 
+        echo "--- verifying a second install preserves custom bin/ files ---"
+        echo "custom-sentinel" > /usr/local/x-ui/bin/geoip_custom.dat
+        geoip_sum_before=$(sha256sum /usr/local/x-ui/bin/geoip.dat | cut -d" " -f1)
+
+        if [ -n "${XUI_SMOKE_VERSION:-}" ]; then
+            cat /root/install.sh | bash -s -- "$XUI_SMOKE_VERSION"
+        else
+            cat /root/install.sh | bash
+        fi
+
+        test -f /usr/local/x-ui/bin/geoip_custom.dat \
+            || { echo "FAIL: custom bin/ file did not survive a second install"; exit 1; }
+        [ "$(cat /usr/local/x-ui/bin/geoip_custom.dat)" = "custom-sentinel" ] \
+            || { echo "FAIL: custom bin/ file content changed across a second install"; exit 1; }
+        geoip_sum_after=$(sha256sum /usr/local/x-ui/bin/geoip.dat | cut -d" " -f1)
+        [ "$geoip_sum_after" = "$geoip_sum_before" ] \
+            || { echo "FAIL: bundled geoip.dat changed across a same-version reinstall"; exit 1; }
+
         echo "SMOKE_PASS: user=$XUI_USERNAME port=$XUI_PANEL_PORT path=$XUI_WEB_BASE_PATH"
     '
 
