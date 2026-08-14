@@ -24,6 +24,7 @@ type fakeNodeRuntime struct {
 	deleteClient  atomic.Int32
 	deleteUser    atomic.Int32
 	updateInbound atomic.Int32
+	updateSubSort atomic.Int32
 	updateUser    atomic.Int32
 }
 
@@ -41,6 +42,11 @@ func (f *fakeNodeRuntime) DelInbound(context.Context, *model.Inbound) error {
 
 func (f *fakeNodeRuntime) UpdateInbound(context.Context, *model.Inbound, *model.Inbound) error {
 	f.updateInbound.Add(1)
+	return nil
+}
+
+func (f *fakeNodeRuntime) SetInboundSubSortIndex(context.Context, *model.Inbound, int) error {
+	f.updateSubSort.Add(1)
 	return nil
 }
 

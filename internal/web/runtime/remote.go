@@ -458,6 +458,16 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	return nil
 }
 
+func (r *Remote) SetInboundSubSortIndex(ctx context.Context, ib *model.Inbound, index int) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return err
+	}
+	payload := url.Values{"subSortIndex": []string{strconv.Itoa(index)}}
+	_, err = r.do(ctx, http.MethodPost, "panel/api/inbounds/"+strconv.Itoa(id)+"/subSortIndex", payload)
+	return err
+}
+
 // ReconcileInbound pushes ib only when its wire payload differs from the last
 // successful push, or when the node no longer reports the tag (existsOnNode
 // false) — a node that dropped/restarted must still be re-seeded. Returns

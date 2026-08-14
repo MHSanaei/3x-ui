@@ -256,11 +256,8 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	notifyClientsChanged()
 }
 
-// setInboundEnable flips only the enable flag of an inbound. This is a
-// dedicated endpoint because the regular update path serialises the entire
-// settings JSON (every client) — far too heavy for an interactive switch
-// on inbounds with thousands of clients. Frontend optimistically updates
-// the UI; we just persist + sync xray + nudge other open admin sessions.
+// setInboundSubSortIndex changes only subscription ordering without sending
+// the inbound's settings/client payload.
 func (a *InboundController) setInboundSubSortIndex(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -280,6 +277,7 @@ func (a *InboundController) setInboundSubSortIndex(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+	websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 }
 
 func (a *InboundController) setInboundEnable(c *gin.Context) {

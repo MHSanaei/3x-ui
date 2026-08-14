@@ -1264,9 +1264,8 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
-// SetInboundSubSortIndex changes only the subscription sort order. It reads the
-// stored inbound instead of accepting one, so a reorder cannot carry a stale
-// settings/client payload over a concurrent edit.
+// SetInboundSubSortIndex changes only the subscription sort order, so a
+// reorder cannot carry a stale settings/client payload over another edit.
 func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
 	index = normalizeSubSortIndex(index)
 	inbound, err := s.GetInbound(id)
@@ -1300,8 +1299,14 @@ func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
 		return perr
 	}
 	if push {
-		if err := rt.UpdateInbound(context.Background(), inbound, inbound); err != nil {
-			logger.Warning("SetInboundSubSortIndex: remote UpdateInbound on", rt.Name(), "failed:", err)
+		narrow, ok := rt.(interface {
+			SetInboundSubSortIndex(context.Context, *model.Inbound, int) error
+		})
+		if !ok {
+			return fmt.Errorf("runtime %s does not support narrow subscription ordering updates", rt.Name())
+		}
+		if err := narrow.SetInboundSubSortIndex(context.Background(), inbound, index); err != nil {
+			logger.Warning("SetInboundSubSortIndex: remote metadata update on", rt.Name(), "failed:", err)
 		}
 	}
 	return nil

@@ -36,3 +36,22 @@ func TestSetInboundSubSortIndexLeavesSettingsUntouched(t *testing.T) {
 		t.Fatalf("settings were rewritten:\n got %s\nwant %s", got.Settings, settings)
 	}
 }
+
+func TestSetInboundSubSortIndexUsesNarrowNodeUpdate(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	ib := nodeInbound(t, nodeID, 21002, []model.Client{{Email: "a@example.test", ID: "11111111-1111-1111-1111-111111111111"}})
+	ib.SubSortIndex = 1
+	if err := database.GetDB().Model(ib).Update("sub_sort_index", 1).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := (&InboundService{}).SetInboundSubSortIndex(ib.Id, 7); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := fake.updateSubSort.Load(); got != 1 {
+		t.Fatalf("narrow node updates = %d, want 1", got)
+	}
+	if got := fake.updateInbound.Load(); got != 0 {
+		t.Fatalf("full snapshot node updates = %d, want 0", got)
+	}
+}
