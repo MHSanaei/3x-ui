@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"sort"
@@ -20,16 +19,6 @@ const portReservationsGateEnv = "XUI_ENFORCE_PORT_RESERVATIONS"
 // 0x5855 is the fixed "XU" advisory-lock namespace. The remaining bits hold
 // node_scope (31 bits) and port (16 bits), so valid keys never hash-collide.
 const portReservationLockNamespace uint64 = 0x5855
-
-type portReservation struct {
-	InboundID int    `gorm:"column:inbound_id;not null;uniqueIndex:ux_inbound_port_reservation_owner_transport"`
-	NodeScope int    `gorm:"column:node_scope;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
-	Listen    string `gorm:"column:listen;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
-	Port      int    `gorm:"column:port;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
-	Transport uint8  `gorm:"column:transport;not null;uniqueIndex:ux_inbound_port_reservation_exact;uniqueIndex:ux_inbound_port_reservation_owner_transport"`
-}
-
-func (portReservation) TableName() string { return "inbound_port_reservations" }
 
 func portReservationsEnabled() bool {
 	return strings.TrimSpace(os.Getenv(portReservationsGateEnv)) == "1"
@@ -50,12 +39,12 @@ func inboundNodeScope(inbound *model.Inbound) int {
 	return *inbound.NodeID
 }
 
-func reservationRows(inbound *model.Inbound) []portReservation {
+func reservationRows(inbound *model.Inbound) []model.InboundPortReservation {
 	bits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
-	rows := make([]portReservation, 0, 2)
+	rows := make([]model.InboundPortReservation, 0, 2)
 	for _, transport := range []transportBits{transportTCP, transportUDP} {
 		if bits&transport != 0 {
-			rows = append(rows, portReservation{
+			rows = append(rows, model.InboundPortReservation{
 				InboundID: inbound.Id, NodeScope: inboundNodeScope(inbound),
 				Listen: canonicalReservationListen(inbound.Listen), Port: inbound.Port,
 				Transport: uint8(transport),
@@ -65,35 +54,21 @@ func reservationRows(inbound *model.Inbound) []portReservation {
 	return rows
 }
 
-// PrepareInboundPortReservations is the boot gate. With the gate disabled it
-// performs only a read-only audit. With it enabled, schema creation and the
-// authoritative backfill are one fail-closed transaction.
+// PrepareInboundPortReservations backfills the migrated reservation schema
+// in one fail-closed transaction when enforcement is enabled.
 func PrepareInboundPortReservations() error {
 	db := database.GetDB()
 	if db == nil {
 		return fmt.Errorf("database is not initialized")
 	}
 	if !portReservationsEnabled() {
-		conflicts, err := auditInboundPortConflicts(db)
-		if err != nil {
-			// Gate-off is deliberately observational and must preserve the
-			// pre-H04 startup contract even when the audit itself cannot run.
-			log.Printf("port-reservation readiness audit failed (gate remains off): %v", err)
-			return nil
-		}
-		if conflicts > 0 {
-			log.Printf("port-reservation readiness audit: %d semantic conflict(s); gate remains off", conflicts)
-		}
 		return nil
-	}
-	if err := db.AutoMigrate(&portReservation{}); err != nil {
-		return fmt.Errorf("create port-reservation schema: %w", err)
 	}
 	if err := validatePortReservationIndexes(db); err != nil {
 		return err
 	}
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&portReservation{}).Error; err != nil {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.InboundPortReservation{}).Error; err != nil {
 			return err
 		}
 		var inbounds []*model.Inbound
@@ -106,7 +81,7 @@ func PrepareInboundPortReservations() error {
 			}
 		}
 		var got int64
-		if err := tx.Model(&portReservation{}).Count(&got).Error; err != nil {
+		if err := tx.Model(&model.InboundPortReservation{}).Count(&got).Error; err != nil {
 			return err
 		}
 		want := int64(0)
@@ -125,7 +100,7 @@ func validatePortReservationIndexes(db *gorm.DB) error {
 		"ux_inbound_port_reservation_exact":           {"node_scope", "listen", "port", "transport"},
 		"ux_inbound_port_reservation_owner_transport": {"inbound_id", "transport"},
 	}
-	indexes, err := db.Migrator().GetIndexes(&portReservation{})
+	indexes, err := db.Migrator().GetIndexes(&model.InboundPortReservation{})
 	if err != nil {
 		return fmt.Errorf("inspect port-reservation indexes: %w", err)
 	}
@@ -158,25 +133,6 @@ func sameStringSlice(a, b []string) bool {
 	return true
 }
 
-func auditInboundPortConflicts(db *gorm.DB) (int, error) {
-	var inbounds []*model.Inbound
-	if err := db.Order("COALESCE(node_id, 0), port, id").Find(&inbounds).Error; err != nil {
-		return 0, err
-	}
-	conflicts := 0
-	for i := range inbounds {
-		for j := 0; j < i; j++ {
-			if inbounds[i].Port == inbounds[j].Port && sameNode(inbounds[i].NodeID, inbounds[j].NodeID) &&
-				listenOverlaps(inbounds[i].Listen, inbounds[j].Listen) &&
-				inboundTransports(inbounds[i].Protocol, inbounds[i].StreamSettings, inbounds[i].Settings)&
-					inboundTransports(inbounds[j].Protocol, inbounds[j].StreamSettings, inbounds[j].Settings) != 0 {
-				conflicts++
-			}
-		}
-	}
-	return conflicts, nil
-}
-
 func reserveInboundPortsTx(tx *gorm.DB, inbound *model.Inbound, ignoreID int) error {
 	if !portReservationsEnabled() {
 		return nil
@@ -200,7 +156,7 @@ func replaceInboundPortReservationsTx(tx *gorm.DB, inbound *model.Inbound) error
 	if !portReservationsEnabled() {
 		return nil
 	}
-	if err := tx.Where("inbound_id = ?", inbound.Id).Delete(&portReservation{}).Error; err != nil {
+	if err := tx.Where("inbound_id = ?", inbound.Id).Delete(&model.InboundPortReservation{}).Error; err != nil {
 		return err
 	}
 	return reserveInboundPortsTx(tx, inbound, inbound.Id)
@@ -210,7 +166,7 @@ func deleteInboundPortReservationsTx(tx *gorm.DB, inboundID int) error {
 	if !portReservationsEnabled() {
 		return nil
 	}
-	return tx.Where("inbound_id = ?", inboundID).Delete(&portReservation{}).Error
+	return tx.Where("inbound_id = ?", inboundID).Delete(&model.InboundPortReservation{}).Error
 }
 
 type portLockKey struct{ nodeScope, port int }

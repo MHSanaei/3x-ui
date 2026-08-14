@@ -31,6 +31,7 @@ The default SQLite database path is `/etc/x-ui/x-ui.db`. See
 | `XUI_PORT`               | —       | Override the panel port (1–65535). Takes precedence over the stored setting. |
 | `XUI_INIT_WEB_BASE_PATH` | `/`     | Initial web base path on **first** launch (e.g. `/panel`).               |
 | `XUI_ENABLE_FAIL2BAN`    | `true`  | Enable Fail2ban-based IP-limit enforcement.                              |
+| `XUI_ENFORCE_PORT_RESERVATIONS` | — | Set to `1` to enforce transactional inbound port reservations. |
 | `XUI_SKIP_HSTS`          | `false` | Skip the HSTS header — set `true` when TLS is terminated by a reverse proxy. |
 
 ## Logging & binaries

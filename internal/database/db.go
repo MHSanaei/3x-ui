@@ -66,6 +66,7 @@ func allModels() []any {
 	return []any{
 		&model.User{},
 		&model.Inbound{},
+		&model.InboundPortReservation{},
 		&model.OutboundTraffics{},
 		&model.Setting{},
 		&model.InboundClientIps{},

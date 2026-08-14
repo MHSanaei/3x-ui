@@ -30,6 +30,7 @@ icon: Variable
 | `XUI_PORT`               | —       | 覆盖面板端口（1–65535）。优先级高于已存储的设置。                       |
 | `XUI_INIT_WEB_BASE_PATH` | `/`     | **首次**启动时的初始 Web 根路径（例如 `/panel`）。                       |
 | `XUI_ENABLE_FAIL2BAN`    | `true`  | 启用基于 Fail2ban 的 IP 限制强制执行。                                  |
+| `XUI_ENFORCE_PORT_RESERVATIONS` | — | 设为 `1` 以启用入站端口的事务性预留。 |
 | `XUI_SKIP_HSTS`          | `false` | 跳过 HSTS 标头——当 TLS 由反向代理终结时设为 `true`。                    |
 
 ## 日志与二进制文件

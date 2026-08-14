@@ -1545,7 +1545,22 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	s.inboundService.MigrateDB()
 	if err = PrepareInboundPortReservations(); err != nil {
-		return common.NewErrorf("Error preparing inbound port reservations: %v", err)
+		if errClose := database.CloseDB(); errClose != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and imported DB could not close: %v", err, errClose)
+		}
+		dbReopened = false
+		if errRename := os.Rename(config.GetDBPath(), tempPath); errRename != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and imported DB could not be moved aside: %v", err, errRename)
+		}
+		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and fallback DB could not be restored: %v", err, errRename)
+		}
+		if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and fallback DB could not reopen: %v", err, errInit)
+		}
+		dbReopened = true
+		s.inboundService.MigrateDB()
+		return common.NewErrorf("Error preparing inbound port reservations; restored previous database: %v", err)
 	}
 
 	xrayStopped = false
@@ -1744,6 +1759,23 @@ func (s *ServerService) restorePostgresDump(file multipart.File) error {
 	if err := checkPgRestoreCanRead(bin, tempPath); err != nil {
 		return err
 	}
+	fallbackData, err := s.exportPostgresDB()
+	if err != nil {
+		return common.NewErrorf("failed to capture pre-restore PostgreSQL fallback: %v", err)
+	}
+	fallbackFile, err := os.CreateTemp("", "x-ui-pg-fallback-*.dump")
+	if err != nil {
+		return common.NewErrorf("failed to create PostgreSQL fallback file: %v", err)
+	}
+	fallbackPath := fallbackFile.Name()
+	defer os.Remove(fallbackPath)
+	if _, err := fallbackFile.Write(fallbackData); err != nil {
+		fallbackFile.Close()
+		return common.NewErrorf("failed to save PostgreSQL fallback: %v", err)
+	}
+	if err := fallbackFile.Close(); err != nil {
+		return common.NewErrorf("failed to close PostgreSQL fallback: %v", err)
+	}
 
 	xrayStopped := true
 	defer func() {
@@ -1775,7 +1807,24 @@ func (s *ServerService) restorePostgresDump(file multipart.File) error {
 	}
 	s.inboundService.MigrateDB()
 	if errPrep := PrepareInboundPortReservations(); errPrep != nil {
-		return common.NewErrorf("Error preparing inbound port reservations: %v", errPrep)
+		if errClose := database.CloseDB(); errClose != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and restored DB could not close: %v", errPrep, errClose)
+		}
+		rollback := exec.CommandContext(context.Background(), bin,
+			"--clean", "--if-exists", "--no-owner", "--no-privileges",
+			"--single-transaction", "--dbname", dbname, fallbackPath,
+		)
+		rollback.Env = env
+		var rollbackStderr bytes.Buffer
+		rollback.Stderr = &rollbackStderr
+		if rollbackErr := rollback.Run(); rollbackErr != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and PostgreSQL fallback restore failed: %v: %s", errPrep, rollbackErr, strings.TrimSpace(rollbackStderr.String()))
+		}
+		if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
+			return common.NewErrorf("Port reservation backfill failed (%v) and fallback database could not reopen: %v", errPrep, errInit)
+		}
+		s.inboundService.MigrateDB()
+		return common.NewErrorf("Error preparing inbound port reservations; restored previous PostgreSQL database: %v", errPrep)
 	}
 
 	if runErr != nil {

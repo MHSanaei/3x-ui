@@ -88,6 +88,16 @@ type Inbound struct {
 	FallbackParent *FallbackParentInfo `json:"fallbackParent,omitempty" gorm:"-"`
 }
 
+type InboundPortReservation struct {
+	InboundID int    `gorm:"column:inbound_id;not null;uniqueIndex:ux_inbound_port_reservation_owner_transport"`
+	NodeScope int    `gorm:"column:node_scope;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
+	Listen    string `gorm:"column:listen;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
+	Port      int    `gorm:"column:port;not null;uniqueIndex:ux_inbound_port_reservation_exact"`
+	Transport uint8  `gorm:"column:transport;not null;uniqueIndex:ux_inbound_port_reservation_exact;uniqueIndex:ux_inbound_port_reservation_owner_transport"`
+}
+
+func (InboundPortReservation) TableName() string { return "inbound_port_reservations" }
+
 // FallbackParentInfo carries everything the frontend needs to rewrite a
 // child inbound's client link: where to connect (the master's address
 // and port) and which path matched on the master's fallbacks array.

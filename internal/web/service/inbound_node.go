@@ -633,6 +633,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
 				continue
 			}
+			if err := reserveInboundPortsTx(tx, &newIb, newIb.Id); err != nil {
+				return false, fmt.Errorf("reserve adopted inbound %q: %w", newIb.Tag, err)
+			}
 			tagToCentral[snapIb.Tag] = &newIb
 			if newIb.Tag != snapIb.Tag {
 				tagToCentral[newIb.Tag] = &newIb
@@ -702,6 +705,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 
 		if len(updates) > 0 {
+			if !dirty {
+				candidate := *c
+				candidate.Listen = snapIb.Listen
+				candidate.Port = snapIb.Port
+				candidate.Protocol = snapIb.Protocol
+				candidate.Settings = adoptedSettings
+				candidate.StreamSettings = snapIb.StreamSettings
+				if err := replaceInboundPortReservationsTx(tx, &candidate); err != nil {
+					return false, fmt.Errorf("replace adopted inbound %q reservations: %w", c.Tag, err)
+				}
+			}
 			if err := tx.Model(model.Inbound{}).
 				Where("id = ?", c.Id).
 				Updates(updates).Error; err != nil {
@@ -775,6 +789,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 		}
 		if err := s.clientService.DetachInbound(tx, c.Id); err != nil {
+			return false, err
+		}
+		if err := deleteInboundPortReservationsTx(tx, c.Id); err != nil {
 			return false, err
 		}
 		if err := tx.Where("id = ?", c.Id).
