@@ -160,6 +160,23 @@ func saveMasterClientCredential(client crypto.CertKeyPEM, pin string) error {
 	})
 }
 
+// LoadMasterClientCert returns only the already-persisted credential. It never
+// mints or changes CA/client settings.
+func (s *SettingService) LoadMasterClientCert() (crypto.CertKeyPEM, error) {
+	certPem, err := s.getString(settingNodeMtlsClientCert)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	keyPem, err := s.getString(settingNodeMtlsClientKey)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	if certPem == "" || keyPem == "" {
+		return crypto.CertKeyPEM{}, common.NewError("master client certificate is not fully configured")
+	}
+	return crypto.CertKeyPEM{CertPEM: []byte(certPem), KeyPEM: []byte(keyPem)}, nil
+}
+
 // NodeMtlsClientCAPool builds the trust pool used as the panel listener's
 // ClientCAs for incoming node-API client certificates. It returns (nil, nil)
 // when no trust CA is configured, so mTLS stays off and the listener behaves

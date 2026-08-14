@@ -938,7 +938,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/nodes/mtls/reloadClient',
-        summary: 'Validate the current master mTLS client credential, close idle node connections, and advance the credential generation so new requests use the rotated certificate without restarting the panel.',
+        summary: 'Validate the stored master mTLS client credential and invalidate cached transports. Each transport closes its old idle pool and rebuilds with the rotated certificate before its next request.',
       },
       {
         method: 'GET',

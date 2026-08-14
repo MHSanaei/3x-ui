@@ -973,7 +973,8 @@
         "updateStarted": "パネルの更新を開始しました",
         "updateResult": "{ok} 個のノードで更新を開始、{failed} 個失敗",
         "updateNoneEligible": "オンラインで有効なノードを少なくとも1つ選択してください",
-        "saveMtls": "ノード mTLS を保存"
+        "saveMtls": "ノード mTLS を保存",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "TLS 検証",
       "tlsVerifyModeHint": "パネルがノードの HTTPS 証明書を検証する方法。ピン留めやスキップは自己署名証明書向け（https ノードのみ）。",

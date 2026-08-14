@@ -973,7 +973,8 @@
         "updateStarted": "Panel güncellemesi başlatıldı",
         "updateResult": "{ok} düğümde güncelleme başlatıldı, {failed} başarısız",
         "updateNoneEligible": "En az bir çevrimiçi ve etkin düğüm seçin",
-        "saveMtls": "Düğüm mTLS kaydet"
+        "saveMtls": "Düğüm mTLS kaydet",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "TLS Doğrulaması",
       "tlsVerifyModeHint": "Panelin düğümün HTTPS sertifikasını nasıl doğrulayacağını belirler. Sabitle veya Atla, kendinden imzalı sertifikalar içindir (yalnızca https düğümleri).",

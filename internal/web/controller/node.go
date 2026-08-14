@@ -51,10 +51,10 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 // closes cached mTLS pools so subsequent node requests present the new leaf.
 func (a *NodeController) reloadMtlsClient(c *gin.Context) {
 	if err := a.nodeService.ReloadMasterMtlsClient(); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), err)
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.reloadMtls"), err)
 		return
 	}
-	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.obtain"), nil)
+	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.reloadMtls"), nil)
 }
 
 // mtlsCa returns this panel's node-auth CA certificate (public) to paste into a

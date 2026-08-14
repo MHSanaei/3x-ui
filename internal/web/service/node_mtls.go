@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"strings"
@@ -30,7 +31,15 @@ func (s *NodeService) NodeMtlsCaCert() (string, error) {
 // out-of-process credential rotation take effect without restarting x-ui (and
 // therefore without stopping the xray child process in the same service).
 func (s *NodeService) ReloadMasterMtlsClient() error {
-	return runtime.ReloadMasterClientConnections()
+	stored, err := (&SettingService{}).LoadMasterClientCert()
+	if err != nil {
+		return err
+	}
+	if _, err := tls.X509KeyPair(stored.CertPEM, stored.KeyPEM); err != nil {
+		return err
+	}
+	runtime.InvalidateMasterClientConnections()
+	return nil
 }
 
 // SetNodeMtlsTrustCA stores the CA certificate this panel trusts for incoming

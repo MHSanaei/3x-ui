@@ -973,7 +973,8 @@
         "updateStarted": "Оновлення панелі розпочато",
         "updateResult": "Оновлення запущено на {ok} вузлах, {failed} не вдалося",
         "updateNoneEligible": "Виберіть принаймні один увімкнений вузол у мережі",
-        "saveMtls": "Зберегти mTLS вузла"
+        "saveMtls": "Зберегти mTLS вузла",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Перевірка TLS",
       "tlsVerifyModeHint": "Як панель перевіряє HTTPS-сертифікат вузла. Закріплення або Пропуск — для самопідписаних сертифікатів (лише https-вузли).",

@@ -199,6 +199,57 @@ func TestHTTPClientForNodeMTLSRebuildsTLSConfigAfterCredentialInvalidation(t *te
 	}
 }
 
+func TestHTTPClientForNodeProxyMTLSRebuildKeepsProxyAndNewCredential(t *testing.T) {
+	oldCert := masterCertForTest(t)
+	newCert := masterCertForTest(t)
+	selected := oldCert
+	SetMasterClientCertProvider(func() (tls.Certificate, error) { return selected, nil })
+	t.Cleanup(func() { SetMasterClientCertProvider(nil) })
+
+	const proxyURL = "http://127.0.0.1:18080"
+	client, err := HTTPClientForNode(&model.Node{Scheme: "https", TlsVerifyMode: "mtls"}, proxyURL)
+	if err != nil {
+		t.Fatalf("HTTPClientForNode: %v", err)
+	}
+	rotating, ok := client.Transport.(*credentialRotatingTransport)
+	if !ok {
+		t.Fatalf("transport = %T, want rotating transport", client.Transport)
+	}
+	current := func() *http.Transport {
+		rotating.mu.Lock()
+		defer rotating.mu.Unlock()
+		transport, ok := rotating.current.(*http.Transport)
+		if !ok {
+			t.Fatalf("current transport = %T, want *http.Transport", rotating.current)
+		}
+		return transport
+	}
+	assertProxy := func(transport *http.Transport) {
+		t.Helper()
+		if transport.Proxy == nil {
+			t.Fatalf("proxy function is nil, want %s", proxyURL)
+		}
+		req, _ := http.NewRequest(http.MethodGet, "https://node.example.test/", nil)
+		got, err := transport.Proxy(req)
+		if err != nil || got == nil || got.String() != proxyURL {
+			t.Fatalf("proxy = %v, error = %v, want %s", got, err, proxyURL)
+		}
+	}
+	assertProxy(current())
+
+	selected = newCert
+	InvalidateMasterClientConnections()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://node.example.test/", nil)
+	_, _ = client.Do(req)
+	rebuilt := current()
+	assertProxy(rebuilt)
+	if got := rebuilt.TLSClientConfig.Certificates[0].Certificate[0]; string(got) != string(newCert.Certificate[0]) {
+		t.Fatal("proxy mTLS rebuild retained the old credential")
+	}
+}
+
 // masterCertForTest builds a real CA-signed client certificate for mtls tests.
 func masterCertForTest(t *testing.T) tls.Certificate {
 	t.Helper()
