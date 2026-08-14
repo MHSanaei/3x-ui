@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
+	"sort"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -74,9 +78,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	var header string
-	var configArray []json_util.RawMessage
 
 	seenEmails := make(map[string]struct{})
+	entries := make([]subConfigEntry, 0, len(inbounds))
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
 		clients := subReq.matchingClients(inbound, subId)
@@ -88,10 +92,35 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			injectExternalProxy(inbound, hostEps)
 		}
 
+		var inboundConfigs []json_util.RawMessage
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
-			configArray = append(configArray, s.getConfig(subReq, inbound, client, host)...)
+			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, inbound, client, host)...)
 		}
+		if len(inboundConfigs) > 0 {
+			entries = append(entries, subConfigEntry{
+				sortIndex: inbound.SubSortIndex,
+				id:        inbound.Id,
+				configs:   inboundConfigs,
+			})
+		}
+	}
+	entries = s.appendBalancerEntries(entries)
+
+	// Inbounds arrive sorted by (sub_sort_index, id); balancers interleave by
+	// the same key and, on an equal number, follow the inbound group.
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].sortIndex != entries[j].sortIndex {
+			return entries[i].sortIndex < entries[j].sortIndex
+		}
+		if entries[i].kind != entries[j].kind {
+			return entries[i].kind < entries[j].kind
+		}
+		return entries[i].id < entries[j].id
+	})
+	var configArray []json_util.RawMessage
+	for _, entry := range entries {
+		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
 		for _, el := range expandEntry(ext) {
@@ -134,6 +163,162 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
+}
+
+// subConfigEntry is one ordered block of the JSON subscription: an inbound's
+// configs (kind 0) or a balancer config (kind 1).
+type subConfigEntry struct {
+	sortIndex int
+	kind      int
+	id        int
+	configs   []json_util.RawMessage
+}
+
+const (
+	subBalancerTag      = "balancer"
+	subBalancerProbeURL = "http://www.google.com/generate_204"
+)
+
+// appendBalancerEntries appends one entry per enabled balancer that has at
+// least one member outbound among the inbound entries.
+func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
+	balancers := getEnabledSubBalancers()
+	for i := range balancers {
+		config := s.buildBalancerConfig(&balancers[i], entries)
+		if config == nil {
+			continue
+		}
+		entries = append(entries, subConfigEntry{
+			sortIndex: balancers[i].SortOrder,
+			kind:      1,
+			id:        balancers[i].Id,
+			configs:   []json_util.RawMessage{config},
+		})
+	}
+	return entries
+}
+
+func getEnabledSubBalancers() []model.SubBalancer {
+	var balancers []model.SubBalancer
+	if err := database.GetDB().Model(&model.SubBalancer{}).
+		Where("enabled = ?", true).
+		Order("sort_order asc, id asc").Find(&balancers).Error; err != nil {
+		logger.Error("SubJsonService - getEnabledSubBalancers:", err)
+		return nil
+	}
+	return balancers
+}
+
+// balancerTransport maps a member outbound's network onto its tag suffix —
+// the naming convention proven against real clients (tcp → vless, hysteria → hy2).
+func balancerTransport(network string) string {
+	switch network {
+	case "":
+		return "other"
+	case "hysteria":
+		return "hy2"
+	case "tcp":
+		return "vless"
+	default:
+		return network
+	}
+}
+
+// buildBalancerConfig assembles the balancer profile: members retagged under
+// a per-balancer prefix, a routing.balancers entry selecting it, and a burst
+// observatory probing it. Returns nil when no member outbound exists.
+func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry) json_util.RawMessage {
+	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
+	usedTags := make(map[string]bool)
+	var proxies []json_util.RawMessage
+	for _, entry := range entries {
+		if !slices.Contains(balancer.InboundIds, entry.id) {
+			continue
+		}
+		for _, config := range entry.configs {
+			var doc map[string]any
+			if json.Unmarshal(config, &doc) != nil {
+				continue
+			}
+			outbounds, _ := doc["outbounds"].([]any)
+			if len(outbounds) == 0 {
+				continue
+			}
+			outbound, _ := outbounds[0].(map[string]any)
+			if outbound == nil || outbound["tag"] != "proxy" {
+				continue
+			}
+			network := outboundNetwork(outbound)
+			base := prefix + balancerTransport(network)
+			tag := base
+			for suffix := 2; usedTags[tag]; suffix++ {
+				tag = fmt.Sprintf("%s-%d", base, suffix)
+			}
+			usedTags[tag] = true
+			outbound["tag"] = tag
+			if raw, err := json.MarshalIndent(outbound, "", "  "); err == nil {
+				proxies = append(proxies, raw)
+			}
+		}
+	}
+	if len(proxies) == 0 {
+		return nil
+	}
+
+	outbounds := append([]json_util.RawMessage{}, proxies...)
+	outbounds = append(outbounds, s.defaultOutbounds...)
+
+	// The routing subtree in s.configJson is shared by every emitted document;
+	// clone it (and each rule map) before pointing rules at the balancer.
+	baseRouting, _ := s.configJson["routing"].(map[string]any)
+	routing := make(map[string]any, len(baseRouting)+1)
+	maps.Copy(routing, baseRouting)
+	baseRules, _ := baseRouting["rules"].([]any)
+	rules := make([]any, 0, len(baseRules)+1)
+	for _, rule := range baseRules {
+		ruleMap, ok := rule.(map[string]any)
+		if !ok {
+			rules = append(rules, rule)
+			continue
+		}
+		ruleMap = maps.Clone(ruleMap)
+		if ruleMap["outboundTag"] == "proxy" {
+			delete(ruleMap, "outboundTag")
+			ruleMap["balancerTag"] = subBalancerTag
+		}
+		rules = append(rules, ruleMap)
+	}
+	routing["rules"] = rules
+	routing["balancers"] = []any{map[string]any{
+		"tag":      subBalancerTag,
+		"selector": []string{prefix},
+		"strategy": map[string]any{"type": balancer.Strategy},
+	}}
+
+	newConfigJson := make(map[string]any, len(s.configJson)+2)
+	maps.Copy(newConfigJson, s.configJson)
+	newConfigJson["outbounds"] = outbounds
+	newConfigJson["remarks"] = balancer.Remark
+	newConfigJson["routing"] = routing
+	newConfigJson["burstObservatory"] = map[string]any{
+		"subjectSelector": []string{prefix},
+		"pingConfig": map[string]any{
+			"destination":  subBalancerProbeURL,
+			"connectivity": subBalancerProbeURL,
+			"interval":     "1m",
+			"sampling":     3,
+			"timeout":      "5s",
+		},
+	}
+
+	config, _ := json.MarshalIndent(newConfigJson, "", "  ")
+	return config
+}
+
+func outboundNetwork(outbound map[string]any) string {
+	stream, _ := outbound["streamSettings"].(map[string]any)
+	network, _ := stream["network"].(string)
+	return network
 }
 
 func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
