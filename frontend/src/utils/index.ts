@@ -718,16 +718,6 @@ export class NumberFormatter {
   }
 }
 
-export class Utils {
-  static debounce<A extends unknown[]>(fn: (...args: A) => unknown, delay: number): (...args: A) => void {
-    let timeoutID: ReturnType<typeof setTimeout> | null = null;
-    return function (this: unknown, ...args: A) {
-      if (timeoutID !== null) clearTimeout(timeoutID);
-      timeoutID = setTimeout(() => fn.apply(this, args), delay);
-    };
-  }
-}
-
 export class CookieManager {
   static getCookie(cname: string): string {
     const name = cname + '=';
@@ -811,38 +801,6 @@ export class ColorUtils {
       case now < (expiry as number): return COLORS.warning;
       default: return COLORS.danger;
     }
-  }
-}
-
-export class ArrayUtils {
-  static doAllItemsExist<T>(array1: T[], array2: T[]): boolean {
-    return array1.every((item) => array2.includes(item));
-  }
-}
-
-export interface BuildURLOptions {
-  host?: string;
-  port?: string;
-  isTLS?: boolean;
-  base: string;
-  path: string;
-}
-
-export class URLBuilder {
-  static buildURL({ host, port, isTLS, base, path }: BuildURLOptions): string {
-    if (!host || host.length === 0) host = window.location.hostname;
-    if (!port || port.length === 0) port = window.location.port;
-    if (isTLS === undefined) isTLS = window.location.protocol === 'https:';
-
-    const protocol = isTLS ? 'https:' : 'http:';
-    let portPart = String(port);
-    if (portPart === '' || (isTLS && portPart === '443') || (!isTLS && portPart === '80')) {
-      portPart = '';
-    } else {
-      portPart = `:${portPart}`;
-    }
-
-    return `${protocol}//${host}${portPart}${base}${path}`;
   }
 }
 
