@@ -38,7 +38,7 @@ export default function CloneInboundModal({
     ...(nodes || []).filter((n) => n.enable).map((n) => ({
       value: n.id,
       label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
-      disabled: n.status === 'offline',
+      disabled: n.status !== 'online',
     })),
   ], [nodes, t]);
 

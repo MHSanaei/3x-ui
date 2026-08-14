@@ -450,7 +450,7 @@ export default function InboundsPage() {
   const confirmClone = useCallback((dbInbound: DBInbound) => {
     // Node-eligible protocol with at least one deployable node → open the
     // target picker; anything else keeps the original one-click local clone.
-    if (NODE_ELIGIBLE_PROTOCOLS[dbInbound.protocol] && (nodesList || []).some((n) => n.enable)) {
+    if (NODE_ELIGIBLE_PROTOCOLS[dbInbound.protocol] && (nodesList || []).some((n) => n.enable && n.status === 'online')) {
       setCloneSource(dbInbound);
       setCloneOpen(true);
       return;
