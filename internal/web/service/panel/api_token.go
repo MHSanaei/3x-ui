@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -93,10 +95,19 @@ func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
 	if name == "" {
 		return nil, common.NewError("token name is required")
 	}
-	if err := database.GetDB().Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
+	plaintext := random.Seq(apiTokenLength)
+	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true}
+	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(row).Error
+	}); err != nil {
 		return nil, err
 	}
-	return s.Create(name)
+	view := toView(row)
+	view.Token = plaintext
+	return view, nil
 }
 
 func (s *ApiTokenService) Delete(id int) error {
