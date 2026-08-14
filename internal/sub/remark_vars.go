@@ -607,19 +607,27 @@ func appendKeptRun(runs []string, run string, leftRemoved, rightRemoved bool) []
 	return runs
 }
 
-func (s *SubService) effectiveTemplate(email string) string {
+func templateInfoKey(client model.Client) string {
+	if client.SubID != "" {
+		return "sub:" + client.SubID
+	}
+	return "email:" + client.Email
+}
+
+func (s *SubService) effectiveTemplate(client model.Client) string {
 	translated := translateUISingleBrackets(s.remarkTemplate)
 	if s.usageShown == nil {
 		s.usageShown = map[string]bool{}
 	}
-	if s.usageShown[email] {
+	key := templateInfoKey(client)
+	if s.usageShown[key] {
 		remove := firstLinkOnlyBodyTokens
 		if s.showIdentityOnAllLinks {
 			remove = usageInfoTokens
 		}
 		return filterRemarkTemplate(translated, remove)
 	}
-	s.usageShown[email] = true
+	s.usageShown[key] = true
 	return translated
 }
 
@@ -646,7 +654,7 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 	}
 	var tmpl string
 	if s.subscriptionBody {
-		tmpl = s.effectiveTemplate(client.Email)
+		tmpl = s.effectiveTemplate(client)
 	} else {
 		tmpl = filterRemarkTemplate(translateUISingleBrackets(s.remarkTemplate), displayRemoveTokens)
 	}
