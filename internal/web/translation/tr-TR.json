@@ -411,6 +411,8 @@
         "inboundCreateSuccess": "Gelen bağlantı başarıyla oluşturuldu.",
         "bulkDeleted": "{count} gelen bağlantı silindi",
         "bulkDeletedMixed": "{ok} silindi, {failed} başarısız",
+        "clonedMany": "{count} gelen bağlantı klonlandı",
+        "clonedMixed": "{ok} klonlandı, {failed} başarısız",
         "inboundDeleteSuccess": "Gelen bağlantı başarıyla silindi.",
         "inboundClientAddSuccess": "Gelen bağlantı kullanıcı(lar)ı eklendi.",
         "inboundClientDeleteSuccess": "Gelen bağlantı kullanıcısı silindi.",

@@ -411,6 +411,8 @@
         "inboundCreateSuccess": "インバウンドが正常に作成されました",
         "bulkDeleted": "{count} 件のインバウンドを削除しました",
         "bulkDeletedMixed": "{ok} 件削除、{failed} 件失敗",
+        "clonedMany": "{count} 件のインバウンドを複製しました",
+        "clonedMixed": "{ok} 件複製、{failed} 件失敗",
         "inboundDeleteSuccess": "インバウンドが正常に削除されました",
         "inboundClientAddSuccess": "インバウンドクライアントが追加されました",
         "inboundClientDeleteSuccess": "インバウンドクライアントが削除されました",

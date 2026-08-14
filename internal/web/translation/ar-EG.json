@@ -411,6 +411,8 @@
         "inboundCreateSuccess": "تم إنشاء الوارد بنجاح",
         "bulkDeleted": "تم حذف {count} إدخال",
         "bulkDeletedMixed": "تم حذف {ok}, وفشل {failed}",
+        "clonedMany": "تم استنساخ {count} إدخال",
+        "clonedMixed": "تم استنساخ {ok}, وفشل {failed}",
         "inboundDeleteSuccess": "تم حذف الوارد بنجاح",
         "inboundClientAddSuccess": "تمت إضافة عميل(عملاء) وارد",
         "inboundClientDeleteSuccess": "تم حذف عميل وارد",

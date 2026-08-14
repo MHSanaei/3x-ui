@@ -411,6 +411,8 @@
         "inboundCreateSuccess": "Đã tạo thành công kết nối inbound",
         "bulkDeleted": "Đã xóa {count} inbound",
         "bulkDeletedMixed": "Đã xóa {ok}, thất bại {failed}",
+        "clonedMany": "Đã nhân bản {count} inbound",
+        "clonedMixed": "Đã nhân bản {ok}, thất bại {failed}",
         "inboundDeleteSuccess": "Đã xóa thành công kết nối inbound",
         "inboundClientAddSuccess": "Đã thêm client inbound",
         "inboundClientDeleteSuccess": "Đã xóa client inbound",
