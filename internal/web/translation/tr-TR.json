@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "Yol / ile başlamalıdır"
       },
       "secretClear": "Temizle",
-      "secretClearUndo": "Temizlemeyi geri al"
+      "secretClearUndo": "Temizlemeyi geri al",
+      "subBalancers": {
+        "menu": "Abonelik dengeleyicileri",
+        "title": "Abonelik dengeleyici",
+        "add": "Dengeleyici ekle",
+        "desc": "Etkin her dengeleyici, seçilen inbound'ların uç noktalarından en iyisini otomatik seçen ek bir profil olarak JSON aboneliğine eklenir.",
+        "remark": "Açıklama",
+        "remarkPlaceholder": "Otomatik · en hızlı",
+        "strategy": "Strateji",
+        "strategyLeastLoad": "En düşük yük",
+        "strategyLeastPing": "En düşük ping",
+        "strategyRandom": "Rastgele",
+        "sortOrder": "Sıra",
+        "sortOrderHelp": "Abonelik listesindeki konumu, inbound sırası ile iç içe yerleşir; eşit numarada dengeleyici inbound'dan sonra gelir.",
+        "inbounds": "Inbound'lar",
+        "enabled": "Etkin",
+        "empty": "Henüz dengeleyici yok",
+        "deleteConfirm": "Bu dengeleyici silinsin mi?",
+        "errRemarkRequired": "Açıklama zorunludur",
+        "errInboundsRequired": "En az bir inbound seçin",
+        "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı"
+      }
     },
     "xray": {
       "save": "Kaydet",

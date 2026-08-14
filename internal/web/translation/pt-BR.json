@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "O caminho deve começar com /"
       },
       "secretClear": "Limpar",
-      "secretClearUndo": "Desfazer limpeza"
+      "secretClearUndo": "Desfazer limpeza",
+      "subBalancers": {
+        "menu": "Balanceadores de assinatura",
+        "title": "Balanceador de assinatura",
+        "add": "Adicionar balanceador",
+        "desc": "Cada balanceador ativo é adicionado à assinatura JSON como um perfil extra que escolhe automaticamente o melhor endpoint entre os inbounds selecionados.",
+        "remark": "Descrição",
+        "remarkPlaceholder": "Auto · mais rápido",
+        "strategy": "Estratégia",
+        "strategyLeastLoad": "Menor carga",
+        "strategyLeastPing": "Menor ping",
+        "strategyRandom": "Aleatório",
+        "sortOrder": "Ordem",
+        "sortOrderHelp": "Posição na lista da assinatura, intercalada com a ordem dos inbounds; em caso de empate, o balanceador vem depois do inbound.",
+        "inbounds": "Inbounds",
+        "enabled": "Ativado",
+        "empty": "Ainda não há balanceadores",
+        "deleteConfirm": "Excluir este balanceador?",
+        "errRemarkRequired": "A descrição é obrigatória",
+        "errInboundsRequired": "Selecione ao menos um inbound",
+        "errSortOrder": "A ordem deve ser um inteiro ≥ 1"
+      }
     },
     "xray": {
       "importRules": "Importar regras",

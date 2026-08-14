@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },
       "secretClear": "Xóa",
-      "secretClearUndo": "Hoàn tác xóa"
+      "secretClearUndo": "Hoàn tác xóa",
+      "subBalancers": {
+        "menu": "Bộ cân bằng đăng ký",
+        "title": "Bộ cân bằng đăng ký",
+        "add": "Thêm bộ cân bằng",
+        "desc": "Mỗi bộ cân bằng đang bật được thêm vào đăng ký JSON như một hồ sơ riêng, tự động chọn điểm cuối tốt nhất trong các inbound đã chọn.",
+        "remark": "Ghi chú",
+        "remarkPlaceholder": "Tự động · nhanh nhất",
+        "strategy": "Chiến lược",
+        "strategyLeastLoad": "Tải thấp nhất",
+        "strategyLeastPing": "Ping thấp nhất",
+        "strategyRandom": "Ngẫu nhiên",
+        "sortOrder": "Thứ tự",
+        "sortOrderHelp": "Vị trí trong danh sách đăng ký, xen kẽ với thứ tự inbound; khi cùng số, bộ cân bằng đứng sau inbound.",
+        "inbounds": "Inbound",
+        "enabled": "Đã bật",
+        "empty": "Chưa có bộ cân bằng nào",
+        "deleteConfirm": "Xóa bộ cân bằng này?",
+        "errRemarkRequired": "Cần nhập ghi chú",
+        "errInboundsRequired": "Chọn ít nhất một inbound",
+        "errSortOrder": "Thứ tự phải là số nguyên ≥ 1"
+      }
     },
     "xray": {
       "importRules": "Nhập quy tắc",

@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
       "secretClear": "Borrar",
-      "secretClearUndo": "Deshacer borrado"
+      "secretClearUndo": "Deshacer borrado",
+      "subBalancers": {
+        "menu": "Balanceadores de suscripción",
+        "title": "Balanceador de suscripción",
+        "add": "Añadir balanceador",
+        "desc": "Cada balanceador activo se añade a la suscripción JSON como un perfil adicional que elige automáticamente el mejor de los endpoints de los inbounds seleccionados.",
+        "remark": "Comentario",
+        "remarkPlaceholder": "Auto · el más rápido",
+        "strategy": "Estrategia",
+        "strategyLeastLoad": "Menor carga",
+        "strategyLeastPing": "Menor ping",
+        "strategyRandom": "Aleatorio",
+        "sortOrder": "Orden",
+        "sortOrderHelp": "Posición en la lista de la suscripción, intercalada con el orden de los inbounds; con el mismo número, el balanceador va después del inbound.",
+        "inbounds": "Inbounds",
+        "enabled": "Activado",
+        "empty": "Aún no hay balanceadores",
+        "deleteConfirm": "¿Eliminar este balanceador?",
+        "errRemarkRequired": "El comentario es obligatorio",
+        "errInboundsRequired": "Selecciona al menos un inbound",
+        "errSortOrder": "El orden debe ser un número entero ≥ 1"
+      }
     },
     "xray": {
       "save": "Guardar configuración",

@@ -1469,7 +1469,28 @@
         "pathLeadingSlash": "Path must start with /"
       },
       "secretClear": "Clear",
-      "secretClearUndo": "Undo clear"
+      "secretClearUndo": "Undo clear",
+      "subBalancers": {
+        "menu": "Sub Balancers",
+        "title": "Subscription balancer",
+        "add": "Add balancer",
+        "desc": "Each enabled balancer is added to the JSON subscription as one extra profile that automatically picks the best of the selected inbounds' endpoints (routing.balancers + burstObservatory in the client config).",
+        "remark": "Remark",
+        "remarkPlaceholder": "Auto · fastest",
+        "strategy": "Strategy",
+        "strategyLeastLoad": "Least load",
+        "strategyLeastPing": "Least ping",
+        "strategyRandom": "Random",
+        "sortOrder": "Order",
+        "sortOrderHelp": "Position in the subscription list, interleaved with the inbounds' own order; on equal numbers the balancer comes after the inbound.",
+        "inbounds": "Inbounds",
+        "enabled": "Enabled",
+        "empty": "No balancers yet",
+        "deleteConfirm": "Delete this balancer?",
+        "errRemarkRequired": "Remark is required",
+        "errInboundsRequired": "Select at least one inbound",
+        "errSortOrder": "Order must be a whole number ≥ 1"
+      }
     },
     "xray": {
       "save": "Save",

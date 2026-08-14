@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "Path harus diawali dengan /"
       },
       "secretClear": "Hapus",
-      "secretClearUndo": "Batalkan hapus"
+      "secretClearUndo": "Batalkan hapus",
+      "subBalancers": {
+        "menu": "Penyeimbang langganan",
+        "title": "Penyeimbang langganan",
+        "add": "Tambah penyeimbang",
+        "desc": "Setiap penyeimbang yang aktif ditambahkan ke langganan JSON sebagai profil tambahan yang otomatis memilih titik akhir terbaik dari inbound terpilih.",
+        "remark": "Keterangan",
+        "remarkPlaceholder": "Otomatis · tercepat",
+        "strategy": "Strategi",
+        "strategyLeastLoad": "Beban terendah",
+        "strategyLeastPing": "Ping terendah",
+        "strategyRandom": "Acak",
+        "sortOrder": "Urutan",
+        "sortOrderHelp": "Posisi dalam daftar langganan, berselang-seling dengan urutan inbound; jika sama, penyeimbang berada setelah inbound.",
+        "inbounds": "Inbound",
+        "enabled": "Aktif",
+        "empty": "Belum ada penyeimbang",
+        "deleteConfirm": "Hapus penyeimbang ini?",
+        "errRemarkRequired": "Keterangan wajib diisi",
+        "errInboundsRequired": "Pilih minimal satu inbound",
+        "errSortOrder": "Urutan harus bilangan bulat ≥ 1"
+      }
     },
     "xray": {
       "save": "Simpan",

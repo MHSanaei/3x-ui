@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },
       "secretClear": "クリア",
-      "secretClearUndo": "クリアを取り消す"
+      "secretClearUndo": "クリアを取り消す",
+      "subBalancers": {
+        "menu": "サブスクリプションバランサー",
+        "title": "サブスクリプションバランサー",
+        "add": "バランサーを追加",
+        "desc": "有効なバランサーは JSON サブスクリプションに追加プロファイルとして加わり、選択したインバウンドのエンドポイントから最適なものを自動選択します。",
+        "remark": "備考",
+        "remarkPlaceholder": "自動 · 最速",
+        "strategy": "方式",
+        "strategyLeastLoad": "最小負荷",
+        "strategyLeastPing": "最小 ping",
+        "strategyRandom": "ランダム",
+        "sortOrder": "順序",
+        "sortOrderHelp": "サブスクリプション一覧内の位置。インバウンドの順序と交互に並び、同番号の場合はインバウンドの後ろになります。",
+        "inbounds": "インバウンド",
+        "enabled": "有効",
+        "empty": "バランサーはまだありません",
+        "deleteConfirm": "このバランサーを削除しますか？",
+        "errRemarkRequired": "備考を入力してください",
+        "errInboundsRequired": "インバウンドを1つ以上選択してください",
+        "errSortOrder": "順序は1以上の整数にしてください"
+      }
     },
     "xray": {
       "importRules": "ルールをインポート",

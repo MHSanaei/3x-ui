@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "يجب أن يبدأ المسار بالرمز /"
       },
       "secretClear": "مسح",
-      "secretClearUndo": "تراجع عن المسح"
+      "secretClearUndo": "تراجع عن المسح",
+      "subBalancers": {
+        "menu": "موزّعات الاشتراك",
+        "title": "موزّع الاشتراك",
+        "add": "إضافة موزّع",
+        "desc": "كل موزّع مُفعّل يُضاف إلى اشتراك JSON كملف تعريف إضافي يختار تلقائيًا أفضل نقطة نهاية من الإينبوندات المحددة.",
+        "remark": "ملاحظة",
+        "remarkPlaceholder": "تلقائي · الأسرع",
+        "strategy": "الاستراتيجية",
+        "strategyLeastLoad": "أقل حمل",
+        "strategyLeastPing": "أقل ping",
+        "strategyRandom": "عشوائي",
+        "sortOrder": "الترتيب",
+        "sortOrderHelp": "الموضع في قائمة الاشتراك، متداخل مع ترتيب الإينبوندات؛ عند تساوي الرقم يأتي الموزّع بعد الإينباند.",
+        "inbounds": "الإينبوندات",
+        "enabled": "مُفعّل",
+        "empty": "لا يوجد موزّعات بعد",
+        "deleteConfirm": "حذف هذا الموزّع؟",
+        "errRemarkRequired": "الملاحظة مطلوبة",
+        "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
+        "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1"
+      }
     },
     "xray": {
       "save": "احفظ",

@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "路徑必須以 / 開頭"
       },
       "secretClear": "清除",
-      "secretClearUndo": "復原清除"
+      "secretClearUndo": "復原清除",
+      "subBalancers": {
+        "menu": "訂閱平衡器",
+        "title": "訂閱平衡器",
+        "add": "新增平衡器",
+        "desc": "每個啟用的平衡器會作為額外設定加入 JSON 訂閱，自動從所選入站的端點中挑選最佳節點（用戶端設定中的 routing.balancers + burstObservatory）。",
+        "remark": "備註",
+        "remarkPlaceholder": "自動 · 最快",
+        "strategy": "策略",
+        "strategyLeastLoad": "最小負載",
+        "strategyLeastPing": "最低延遲",
+        "strategyRandom": "隨機",
+        "sortOrder": "順序",
+        "sortOrderHelp": "在訂閱列表中的位置，與入站順序交錯排列；序號相同時排在入站之後。",
+        "inbounds": "入站",
+        "enabled": "啟用",
+        "empty": "尚無平衡器",
+        "deleteConfirm": "確定刪除此平衡器？",
+        "errRemarkRequired": "請填寫備註",
+        "errInboundsRequired": "請至少選擇一個入站",
+        "errSortOrder": "順序必須為不小於 1 的整數"
+      }
     },
     "xray": {
       "save": "儲存",

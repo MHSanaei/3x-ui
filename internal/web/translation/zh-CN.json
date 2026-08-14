@@ -1352,7 +1352,28 @@
         "pathLeadingSlash": "路径必须以 / 开头"
       },
       "secretClear": "清除",
-      "secretClearUndo": "撤销清除"
+      "secretClearUndo": "撤销清除",
+      "subBalancers": {
+        "menu": "订阅均衡器",
+        "title": "订阅均衡器",
+        "add": "添加均衡器",
+        "desc": "每个启用的均衡器会作为额外配置加入 JSON 订阅，自动在所选入站的端点中选择最优节点（客户端配置中的 routing.balancers + burstObservatory）。",
+        "remark": "备注",
+        "remarkPlaceholder": "自动 · 最快",
+        "strategy": "策略",
+        "strategyLeastLoad": "最小负载",
+        "strategyLeastPing": "最低延迟",
+        "strategyRandom": "随机",
+        "sortOrder": "顺序",
+        "sortOrderHelp": "在订阅列表中的位置，与入站顺序交错排列；序号相同时排在入站之后。",
+        "inbounds": "入站",
+        "enabled": "启用",
+        "empty": "暂无均衡器",
+        "deleteConfirm": "确定删除此均衡器？",
+        "errRemarkRequired": "请填写备注",
+        "errInboundsRequired": "请至少选择一个入站",
+        "errSortOrder": "顺序必须为不小于 1 的整数"
+      }
     },
     "xray": {
       "importRules": "导入规则",
