@@ -343,3 +343,29 @@ func TestGetUpdateStatus(t *testing.T) {
 		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
 }
+
+// TestEmbeddedAmneziaWGVersion asserts the test binary's own build info
+// really does carry amneziawg-go as a resolvable dependency (transitively,
+// via internal/web/service's own AmneziaWG wiring) and that
+// embeddedAmneziaWGVersion finds a real, go.mod-shaped version string --
+// not just that the function compiles. A regression here (e.g. the module
+// path constant drifting out of sync with go.mod after a future bump) would
+// otherwise silently show as an empty badge in the panel UI, never as a
+// build failure.
+func TestEmbeddedAmneziaWGVersion(t *testing.T) {
+	got := embeddedAmneziaWGVersion()
+	if got == "" {
+		t.Fatal("embeddedAmneziaWGVersion() = \"\", want a real module version (is amneziaWGModulePath still correct, and is amneziawg-go still a real dependency of this package's import graph?)")
+	}
+	if got[0] != 'v' {
+		t.Fatalf("embeddedAmneziaWGVersion() = %q, want a Go module version starting with 'v'", got)
+	}
+}
+
+func TestFetchLatestAmneziaWGVersionBestEffortNeverPanics(t *testing.T) {
+	// No network mocking here on purpose: this call is best-effort by
+	// contract (see its own doc comment) -- whatever it returns (a real
+	// tag name, or "" on any failure), the important behavior under test is
+	// that it never panics and never returns an error to its caller.
+	_ = fetchLatestAmneziaWGVersionBestEffort()
+}

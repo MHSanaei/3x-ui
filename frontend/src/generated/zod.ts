@@ -694,6 +694,7 @@ export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 export const ServerSettingsSchema = z.object({
   awgVersion: z.string().optional(),
   contentPaddingAddition: z.string().optional(),
+  disableCookies: z.boolean(),
   externalInterface: z.string().optional(),
   h1: z.string(),
   h2: z.string(),
@@ -717,6 +718,7 @@ export const ServerSettingsSchema = z.object({
   primaryDns: z.string().optional(),
   privateKey: z.string(),
   publicKey: z.string(),
+  randomTrailers: z.boolean(),
   rejectAfterTime: z.string().optional(),
   rekeyAfterTime: z.string().optional(),
   rekeyTimeout: z.string().optional(),

@@ -46,6 +46,8 @@ func (j *AmneziaWGJob) Run() {
 				RejectAfterTime:        inst.RejectAfterTime,
 				KeepaliveTimeout:       inst.KeepaliveTimeout,
 				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
+				RandomTrailers:         inst.RandomTrailers,
+				DisableCookies:         inst.DisableCookies,
 			},
 		})
 	}

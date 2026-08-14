@@ -383,6 +383,8 @@ export default function InboundFormModal({
       for (const field of AWG_TIMER_FIELDS) {
         setV(`settings.server.${field}`, '');
       }
+      setV('settings.server.randomTrailers', false);
+      setV('settings.server.disableCookies', false);
     }
   };
 

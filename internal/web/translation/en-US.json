@@ -142,6 +142,8 @@
       "currentPanelVersion": "Current panel version",
       "latestPanelVersion": "Latest panel version",
       "panelUpToDate": "Panel is up to date",
+      "awgEngineVersion": "AmneziaWG engine",
+      "awgEngineLatestVersion": "Latest known AmneziaWG engine",
       "devChannel": "Dev channel",
       "devChannelWarning": "Dev builds track every commit on main and aren't stable releases — there is no automatic downgrade.",
       "currentCommit": "Current commit",
@@ -1854,7 +1856,11 @@
         "keepaliveTimeout": "Keepalive Timeout (3.0)",
         "keepaliveTimeoutHint": "Requires the version above to be set to 3.0. Persistent-keepalive interval in seconds -- a single integer or a low-high range. Real default is 10s. Leave empty to keep it.",
         "maxHandshakeAttempts": "Max Handshake Attempts (3.0)",
-        "maxHandshakeAttemptsHint": "Requires the version above to be set to 3.0. Maximum handshake retries before giving up -- a single integer or a low-high range. Real default is 18. Leave empty to keep it."
+        "maxHandshakeAttemptsHint": "Requires the version above to be set to 3.0. Maximum handshake retries before giving up -- a single integer or a low-high range. Real default is 18. Leave empty to keep it.",
+        "randomTrailers": "Random Trailers (3.1)",
+        "randomTrailersHint": "Requires the version above to be set to 3.0, and the peer to run AmneziaWG 3.1+ with this same setting enabled. Appends a random amount of padding after every packet -- if only one side has it on, that side's larger packets get silently dropped by the other. Off by default.",
+        "disableCookies": "Disable Cookie Replies (3.1)",
+        "disableCookiesHint": "Requires the version above to be set to 3.0. Stops this server from sending WireGuard's built-in DoS-protection cookie replies during a handshake flood -- trades that protection away for a less distinctive packet shape. Purely local, no matching peer setting needed. Off by default."
       },
       "tun": {
         "userLevel": "User Level"

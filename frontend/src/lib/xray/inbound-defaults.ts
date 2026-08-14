@@ -332,6 +332,8 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       rejectAfterTime: '',
       keepaliveTimeout: '',
       maxHandshakeAttempts: '',
+      randomTrailers: false,
+      disableCookies: false,
     },
     clients: [],
   };

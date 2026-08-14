@@ -35,7 +35,7 @@ require (
 	pgregory.net/rapid v1.3.0
 )
 
-require github.com/amnezia-vpn/amneziawg-go/v3 v3.0.3
+require github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect

@@ -653,6 +653,7 @@ export interface RealityScanResult {
 export interface ServerSettings {
   awgVersion?: string;
   contentPaddingAddition?: string;
+  disableCookies: boolean;
   externalInterface?: string;
   h1: string;
   h2: string;
@@ -676,6 +677,7 @@ export interface ServerSettings {
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
+  randomTrailers: boolean;
   rejectAfterTime?: string;
   rekeyAfterTime?: string;
   rekeyTimeout?: string;

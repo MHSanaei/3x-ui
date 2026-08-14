@@ -98,6 +98,29 @@ type Instance struct {
 	KeepaliveTimeout     string
 	MaxHandshakeAttempts string
 
+	// RandomTrailers and DisableCookies are AmneziaWG 3.1's two new
+	// device-wide boolean toggles (confirmed against amneziawg-go
+	// v3.1.20260814's device/uapi.go: "random_trailers"/"disable_cookies",
+	// both strconv.ParseBool). Both default to false (amneziawg-go's own
+	// zero value) and are never auto-generated, same "opt-in, explicit"
+	// posture as HeaderProtectionKey above.
+	//
+	// RandomTrailers appends a random amount of padding after each real
+	// packet, up to the peer's UDP window. Confirmed via amneziawg-go's
+	// receive.go: a receiver only accepts an oversized packet when ITS OWN
+	// RandomTrailers is also true (size == expectedSize, or
+	// randomTrailers && size > expectedSize) -- so this is not purely
+	// local/cosmetic, both ends need it enabled together or the side
+	// without it starts silently dropping the other's packets.
+	//
+	// DisableCookies stops this device from ever sending WireGuard's
+	// handshake-flood DoS-protection cookie replies. Purely local --
+	// no peer-side coordination needed -- but a real security trade-off,
+	// not a free obfuscation win: it removes a real DoS mitigation in
+	// exchange for one less distinctive packet shape during a flood.
+	RandomTrailers bool
+	DisableCookies bool
+
 	Peers []Peer
 
 	// ExternalInterface named the host NIC PostUp/PostDown NAT rules
@@ -212,6 +235,15 @@ type ServerSettings struct {
 	RejectAfterTime      string `json:"rejectAfterTime,omitempty"`
 	KeepaliveTimeout     string `json:"keepaliveTimeout,omitempty"`
 	MaxHandshakeAttempts string `json:"maxHandshakeAttempts,omitempty"`
+
+	// RandomTrailers/DisableCookies mirror Instance's identically named
+	// AmneziaWG 3.1 fields -- see that type's own doc comment for the real
+	// protocol/interop details. Both real bool fields (not omitempty):
+	// buildUAPIConfig always emits both lines explicitly so the
+	// reconfigure-in-place diff correctly notices a true->false edit, not
+	// just false->true.
+	RandomTrailers bool `json:"randomTrailers"`
+	DisableCookies bool `json:"disableCookies"`
 
 	// AwgVersion is the admin-declared AmneziaWG protocol-version ceiling
 	// for this inbound: AwgVersion2 (default) or AwgVersion3. Purely a

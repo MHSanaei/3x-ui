@@ -324,6 +324,22 @@ export default function AmneziawgFields({
           <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgMaxHandshakeAttempts} />
         </Space.Compact>
       </Form.Item>
+      <FormField
+        name={['settings', 'server', 'randomTrailers']}
+        label={t('pages.xray.amneziawg.randomTrailers')}
+        extra={t('pages.xray.amneziawg.randomTrailersHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'disableCookies']}
+        label={t('pages.xray.amneziawg.disableCookies')}
+        extra={t('pages.xray.amneziawg.disableCookiesHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
     </>
   );
 }

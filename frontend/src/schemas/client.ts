@@ -74,6 +74,8 @@ export const AwgServerOptionSchema = z.object({
   i5: z.string().optional(),
   headerProtectionKey: z.string().optional(),
   contentPaddingAddition: z.string().optional(),
+  randomTrailers: z.boolean().optional(),
+  disableCookies: z.boolean().optional(),
 }).loose();
 
 export const InboundOptionSchema = z.object({

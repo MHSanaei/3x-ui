@@ -17,6 +17,13 @@ export interface PanelUpdateInfo {
   currentCommit?: string;
   latestCommit?: string;
   updateAvailable: boolean;
+  // Purely informational -- amneziawg-go is compiled directly into this
+  // binary, so there is no independent "update just the engine" action; an
+  // admin gets a newer engine by updating the panel itself, same button as
+  // above. awgEngineLatestVersion is best-effort and may be empty if the
+  // GitHub lookup failed -- never treated as an error.
+  awgEngineVersion?: string;
+  awgEngineLatestVersion?: string;
 }
 
 interface BusyEvent {
@@ -172,6 +179,23 @@ export default function PanelUpdateModal({
             </div>
           )}
         </div>
+
+        {info.awgEngineVersion && (
+          <div className="version-list">
+            <div className="version-list-item">
+              <span>{t('pages.index.awgEngineVersion')}</span>
+              <Tag color="green">{info.awgEngineVersion}</Tag>
+            </div>
+            {info.awgEngineLatestVersion && (
+              <div className="version-list-item">
+                <span>{t('pages.index.awgEngineLatestVersion')}</span>
+                <Tag color={info.awgEngineLatestVersion === info.awgEngineVersion ? 'green' : 'purple'}>
+                  {info.awgEngineLatestVersion}
+                </Tag>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="actions-row">
           <Button

@@ -374,3 +374,177 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 		t.Fatal("timed out waiting for the server side to finish")
 	}
 }
+
+func TestBuildUAPIConfigRandomTrailersAndDisableCookiesLines(t *testing.T) {
+	priv, _, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	inst := amneziawg.Instance{PrivateKey: priv}
+
+	// Unlike HeaderProtectionKey/ContentPaddingAddition, these two lines
+	// must always be present -- see DeviceOptions.RandomTrailers's own doc
+	// comment on why an absent line (instead of an explicit "false") would
+	// break the reconfigure-in-place diff for a true->false edit.
+	conf, err := buildUAPIConfig(inst, DeviceOptions{})
+	if err != nil {
+		t.Fatalf("buildUAPIConfig with empty options: %v", err)
+	}
+	if !strings.Contains(conf, "random_trailers=false\n") {
+		t.Errorf("expected an explicit random_trailers=false line even when unset, got:\n%s", conf)
+	}
+	if !strings.Contains(conf, "disable_cookies=false\n") {
+		t.Errorf("expected an explicit disable_cookies=false line even when unset, got:\n%s", conf)
+	}
+
+	conf, err = buildUAPIConfig(inst, DeviceOptions{RandomTrailers: true, DisableCookies: true})
+	if err != nil {
+		t.Fatalf("buildUAPIConfig with both enabled: %v", err)
+	}
+	if !strings.Contains(conf, "random_trailers=true\n") {
+		t.Errorf("expected a random_trailers=true line, got:\n%s", conf)
+	}
+	if !strings.Contains(conf, "disable_cookies=true\n") {
+		t.Errorf("expected a disable_cookies=true line, got:\n%s", conf)
+	}
+}
+
+// TestNewDeviceRandomTrailersAndDisableCookiesRoundTrip is the real proof
+// behind AmneziaWG 3.1's two new device-wide toggles: a genuine amneziawg-go
+// client with matching random_trailers=true/disable_cookies=true UAPI lines
+// completes a real handshake against a Device built via NewDevice/
+// DeviceOptions and exchanges real application data both directions through
+// it. This specifically exercises amneziawg-go's receive.go size-matching
+// path for RandomTrailers (device_test.go's HeaderProtection test doesn't
+// enable it), which only accepts a message when
+// `size == expectedSize || randomTrailers && size > expectedSize` -- proof
+// that setting it on both ends really does interoperate, not just that
+// IpcSet accepts the value.
+func TestNewDeviceRandomTrailersAndDisableCookiesRoundTrip(t *testing.T) {
+	serverPriv, serverPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate client keypair: %v", err)
+	}
+
+	const listenPort = 58721 // fixed loopback test port, distinct from every other test in this package
+
+	inst := amneziawg.Instance{
+		Id:            3,
+		InterfaceName: "awgtest3",
+		ListenPort:    listenPort,
+		PrivateKey:    serverPriv,
+		PublicKey:     serverPub,
+		Address:       []string{"10.203.0.1/24"},
+		MTU:           1420,
+		Peers: []amneziawg.Peer{{
+			Email:      "trailer-peer@example.com",
+			PublicKey:  clientPub,
+			AllowedIPs: []string{"10.203.0.2/32"},
+		}},
+	}
+
+	opts := DeviceOptions{RandomTrailers: true, DisableCookies: true}
+	dev, err := newUnconfiguredDevice(inst, opts)
+	if err != nil {
+		t.Fatalf("newUnconfiguredDevice: %v", err)
+	}
+	defer dev.Close()
+
+	const wantRequest = "hello from client, with a trailer"
+	const wantReply = "hello from server, with a trailer"
+	serverDone := make(chan error, 1)
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+		defer conn.Close()
+		buf := make([]byte, len(wantRequest))
+		if _, err := io.ReadFull(conn, buf); err != nil {
+			serverDone <- fmt.Errorf("server read: %w", err)
+			return
+		}
+		if string(buf) != wantRequest {
+			serverDone <- fmt.Errorf("server got %q, want %q", buf, wantRequest)
+			return
+		}
+		if _, err := conn.Write([]byte(wantReply)); err != nil {
+			serverDone <- fmt.Errorf("server write: %w", err)
+			return
+		}
+		serverDone <- nil
+	})
+
+	// Configure (IpcSet) must come after AttachTCPForwarder -- see
+	// newUnconfiguredDevice's doc comment.
+	if err := dev.Configure(inst, opts); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
+
+	clientTun, clientNet, err := netstack.CreateNetTUN(
+		[]netip.Addr{netip.MustParseAddr("10.203.0.2")},
+		[]netip.Addr{netip.MustParseAddr("1.1.1.1")}, 1420)
+	if err != nil {
+		t.Fatalf("client CreateNetTUN: %v", err)
+	}
+	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	defer clientDev.Close()
+
+	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
+	if err != nil {
+		t.Fatalf("client key to hex: %v", err)
+	}
+	serverPubHex, err := wireguard.KeyToHex(serverPub)
+	if err != nil {
+		t.Fatalf("server key to hex: %v", err)
+	}
+	clientConf := fmt.Sprintf(
+		"private_key=%s\nrandom_trailers=true\ndisable_cookies=true\npublic_key=%s\nendpoint=127.0.0.1:%d\nallowed_ip=0.0.0.0/0\n",
+		clientPrivHex, serverPubHex, listenPort)
+	if err := clientDev.IpcSet(clientConf); err != nil {
+		t.Fatalf("client IpcSet: %v", err)
+	}
+	if err := clientDev.Up(); err != nil {
+		t.Fatalf("client Up: %v", err)
+	}
+
+	dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var conn net.Conn
+	for {
+		c, dialErr := clientNet.DialContext(dialCtx, "tcp", "10.203.9.9:9999")
+		if dialErr == nil {
+			conn = c
+			break
+		}
+		select {
+		case <-dialCtx.Done():
+			t.Fatalf("client dial never succeeded: %v", dialErr)
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	defer conn.Close()
+
+	if _, err := conn.Write([]byte(wantRequest)); err != nil {
+		t.Fatalf("client write: %v", err)
+	}
+	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	reply := make([]byte, len(wantReply))
+	if _, err := io.ReadFull(conn, reply); err != nil {
+		t.Fatalf("client read reply: %v", err)
+	}
+	if string(reply) != wantReply {
+		t.Fatalf("client got reply %q, want %q", reply, wantReply)
+	}
+
+	select {
+	case err := <-serverDone:
+		if err != nil {
+			t.Fatalf("server side: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for the server side to finish")
+	}
+}

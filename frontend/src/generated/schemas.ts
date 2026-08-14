@@ -2881,6 +2881,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "contentPaddingAddition": {
         "type": "string"
       },
+      "disableCookies": {
+        "type": "boolean"
+      },
       "externalInterface": {
         "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
         "type": "string"
@@ -2954,6 +2957,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey": {
         "type": "string"
       },
+      "randomTrailers": {
+        "description": "RandomTrailers/DisableCookies mirror Instance's identically named\nAmneziaWG 3.1 fields -- see that type's own doc comment for the real\nprotocol/interop details. Both real bool fields (not omitempty):\nbuildUAPIConfig always emits both lines explicitly so the\nreconfigure-in-place diff correctly notices a true-\u003efalse edit, not\njust false-\u003etrue.",
+        "type": "boolean"
+      },
       "rejectAfterTime": {
         "type": "string"
       },
@@ -2990,6 +2997,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "disableCookies",
       "h1",
       "h2",
       "h3",
@@ -2999,6 +3007,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "jmin",
       "privateKey",
       "publicKey",
+      "randomTrailers",
       "s1",
       "s2",
       "s3",

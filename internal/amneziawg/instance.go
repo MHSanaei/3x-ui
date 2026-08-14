@@ -75,6 +75,8 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		RejectAfterTime:        server.RejectAfterTime,
 		KeepaliveTimeout:       server.KeepaliveTimeout,
 		MaxHandshakeAttempts:   server.MaxHandshakeAttempts,
+		RandomTrailers:         server.RandomTrailers,
+		DisableCookies:         server.DisableCookies,
 		Peers:                  peers,
 		ExternalInterface:      server.ExternalInterface,
 		IPv6Enabled:            server.IPv6Enabled,

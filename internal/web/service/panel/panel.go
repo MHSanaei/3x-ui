@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,19 @@ type PanelUpdateInfo struct {
 	CurrentCommit   string `json:"currentCommit,omitempty"`
 	LatestCommit    string `json:"latestCommit,omitempty"`
 	UpdateAvailable bool   `json:"updateAvailable"`
+	// AwgEngineVersion/AwgEngineLatestVersion are purely informational.
+	// amneziawg-go is compiled directly into this binary (go.mod) -- there
+	// is no independent "update just the engine" action, unlike the
+	// kernel-module architecture's separate amneziawg-tools package.
+	// Updating it means shipping a new panel build via the same mechanism
+	// as everything else above. AwgEngineLatestVersion is best-effort (a
+	// failed GitHub lookup never fails this whole call, see
+	// fetchLatestAmneziaWGVersionBestEffort) and left empty rather than
+	// compared, since amneziawg-go mixes semver (v3.0.3) and date-stamped
+	// (v3.1.20260814) tags inconsistently enough that a robust "is newer"
+	// comparison isn't worth building for a cosmetic badge.
+	AwgEngineVersion       string `json:"awgEngineVersion,omitempty"`
+	AwgEngineLatestVersion string `json:"awgEngineLatestVersion,omitempty"`
 }
 
 const (
@@ -45,6 +59,11 @@ const (
 	// devReleaseTag is the fixed-tag rolling pre-release the CI force-moves to the
 	// newest main commit; the dev update channel installs from it.
 	devReleaseTag = "dev-latest"
+
+	// amneziaWGModulePath is the Go module path embeddedAmneziaWGVersion looks
+	// up in this binary's own build info -- must match go.mod's require line
+	// (including the /v3 major-version suffix) exactly.
+	amneziaWGModulePath = "github.com/amnezia-vpn/amneziawg-go/v3"
 
 	updateStatePending = "pending"
 	updateStateSuccess = "success"
@@ -129,9 +148,22 @@ func (s *PanelService) RestartPanel(delay time.Duration) error {
 // is enabled on a dev build it compares commits against the rolling dev release;
 // otherwise it compares versions against the latest stable tag.
 func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
+	var info *PanelUpdateInfo
+	var err error
 	if devChannelActive() {
-		return getDevUpdateInfo()
+		info, err = getDevUpdateInfo()
+	} else {
+		info, err = getStableUpdateInfo()
 	}
+	if err != nil {
+		return nil, err
+	}
+	info.AwgEngineVersion = embeddedAmneziaWGVersion()
+	info.AwgEngineLatestVersion = fetchLatestAmneziaWGVersionBestEffort()
+	return info, nil
+}
+
+func getStableUpdateInfo() (*PanelUpdateInfo, error) {
 	latest, err := fetchLatestPanelVersion()
 	if err != nil {
 		return nil, err
@@ -462,6 +494,69 @@ func isCommitSHA(s string) bool {
 		}
 	}
 	return true
+}
+
+// embeddedAmneziaWGVersion reads the amneziawg-go module version straight
+// out of this binary's own build info -- always exactly what go.mod pinned
+// at build time, so it can never drift the way a hand-maintained constant
+// could (unlike internal/config/version, which must be bumped by hand for
+// every release).
+func embeddedAmneziaWGVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == amneziaWGModulePath {
+			return dep.Version
+		}
+	}
+	return ""
+}
+
+// fetchLatestAmneziaWGVersionBestEffort fetches the newest amneziawg-go tag
+// from GitHub. Best-effort: a failure here (rate limit, network blip) must
+// never fail the panel's own update check, so errors are swallowed -- an
+// empty result just means the frontend shows no "latest" badge.
+func fetchLatestAmneziaWGVersionBestEffort() string {
+	v, err := fetchLatestAmneziaWGVersion()
+	if err != nil {
+		logger.Debug("amneziawg-go latest-version check failed:", err)
+		return ""
+	}
+	return v
+}
+
+// fetchLatestAmneziaWGVersion returns the newest tag from GitHub's tags API,
+// which observably lists amneziawg-go's tags newest-first (not a documented
+// API guarantee, but consistent with what a human sees on the tags page --
+// good enough for a cosmetic "latest known" badge, not worth a real
+// semver/date comparison given the project mixes both tag styles).
+func fetchLatestAmneziaWGVersion() (string, error) {
+	client := (&service.SettingService{}).NewProxiedHTTPClient(10 * time.Second)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
+		"https://api.github.com/repos/amnezia-vpn/amneziawg-go/tags", nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
+	}
+	var tags []struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+		return "", err
+	}
+	if len(tags) == 0 {
+		return "", fmt.Errorf("amneziawg-go tags list is empty")
+	}
+	return tags[0].Name, nil
 }
 
 func shortCommit(sha string) string {

@@ -70,6 +70,8 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 				RejectAfterTime:        inst.RejectAfterTime,
 				KeepaliveTimeout:       inst.KeepaliveTimeout,
 				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
+				RandomTrailers:         inst.RandomTrailers,
+				DisableCookies:         inst.DisableCookies,
 			},
 		})
 		// A brand new inbound can be the first one to qualify for
@@ -201,6 +203,8 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 			RejectAfterTime:        inst.RejectAfterTime,
 			KeepaliveTimeout:       inst.KeepaliveTimeout,
 			MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
+			RandomTrailers:         inst.RandomTrailers,
+			DisableCookies:         inst.DisableCookies,
 		},
 	})
 }

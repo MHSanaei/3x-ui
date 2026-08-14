@@ -71,6 +71,12 @@ export function buildAmneziaWGClientConfig(
   // weaker obfuscation).
   if (server?.headerProtectionKey) lines.push(`HeaderProtectionKey = ${server.headerProtectionKey}`);
   if (server?.contentPaddingAddition) lines.push(`ContentPaddingAddition = ${server.contentPaddingAddition}`);
+  // AmneziaWG 3.1 -- RandomTrailers especially must match the server's
+  // value: amneziawg-go only accepts an oversized (trailer-padded) packet
+  // when the RECEIVING side's own RandomTrailers is also on, so a one-sided
+  // setting makes that side's packets start getting silently dropped.
+  if (server?.randomTrailers) lines.push('RandomTrailers = true');
+  if (server?.disableCookies) lines.push('DisableCookies = true');
 
   lines.push('');
   if (remark) lines.push(`# ${remark}`);

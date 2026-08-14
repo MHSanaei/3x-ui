@@ -674,6 +674,7 @@ export const EXAMPLES: Record<string, unknown> = {
   "ServerSettings": {
     "awgVersion": "",
     "contentPaddingAddition": "",
+    "disableCookies": false,
     "externalInterface": "",
     "h1": "",
     "h2": "",
@@ -697,6 +698,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "primaryDns": "",
     "privateKey": "",
     "publicKey": "",
+    "randomTrailers": false,
     "rejectAfterTime": "",
     "rekeyAfterTime": "",
     "rekeyTimeout": "",

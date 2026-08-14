@@ -45,6 +45,23 @@ type DeviceOptions struct {
 	RejectAfterTime        string
 	KeepaliveTimeout       string
 	MaxHandshakeAttempts   string
+	// RandomTrailers and DisableCookies are AmneziaWG 3.1's two device-wide
+	// bool toggles (confirmed against amneziawg-go v3.1.20260814's
+	// device/uapi.go: "random_trailers"/"disable_cookies", both
+	// strconv.ParseBool). Unlike the string fields above, buildUAPIConfig
+	// emits these unconditionally on every call -- a bool has no "absent"
+	// value to gate on, and always emitting both means the reconfigure-
+	// in-place diff correctly notices a true->false edit, not just
+	// false->true. RandomTrailers requires the peer to also run AmneziaWG
+	// 3.1+ with it enabled: amneziawg-go's own receive path only accepts
+	// an oversized (trailer-padded) packet when the RECEIVING side's own
+	// RandomTrailers is also true, so a one-sided setting makes that
+	// side's packets start getting silently dropped by the other.
+	// DisableCookies is purely local (no peer-side coordination needed)
+	// but trades away WireGuard's handshake-flood DoS-protection cookie
+	// replies for a less distinctive packet shape during a flood.
+	RandomTrailers bool
+	DisableCookies bool
 	// Logger is passed to device.NewDevice as-is; nil uses a silent logger
 	// (device.NewLogger(device.LogLevelSilent, "")).
 	Logger *device.Logger
@@ -221,6 +238,8 @@ func buildUAPIConfig(inst amneziawg.Instance, opts DeviceOptions) (string, error
 	if opts.MaxHandshakeAttempts != "" {
 		fmt.Fprintf(&b, "max_handshake_attempts=%s\n", opts.MaxHandshakeAttempts)
 	}
+	fmt.Fprintf(&b, "random_trailers=%t\n", opts.RandomTrailers)
+	fmt.Fprintf(&b, "disable_cookies=%t\n", opts.DisableCookies)
 
 	for _, p := range inst.Peers {
 		pubHex, err := wireguard.KeyToHex(p.PublicKey)

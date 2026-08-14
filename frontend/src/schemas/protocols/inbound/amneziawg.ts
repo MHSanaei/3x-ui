@@ -127,6 +127,11 @@ export const AmneziawgServerSchema = z.object({
   rejectAfterTime: z.string().default(''),
   keepaliveTimeout: z.string().default(''),
   maxHandshakeAttempts: z.string().default(''),
+  // AmneziaWG 3.1's two device-wide toggles, same AWG_VERSION_3 gate as the
+  // fields above. randomTrailers requires the peer to also run 3.1+ with it
+  // enabled (see amneziawg.tsx's hint); disableCookies is purely local.
+  randomTrailers: z.boolean().default(false),
+  disableCookies: z.boolean().default(false),
 });
 export type AmneziawgServer = z.infer<typeof AmneziawgServerSchema>;
 
