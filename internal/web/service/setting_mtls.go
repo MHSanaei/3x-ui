@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -95,6 +96,9 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	}
 	storedPin = strings.ToLower(strings.TrimSpace(storedPin))
 	if certPem != "" && keyPem != "" {
+		if _, err := tls.X509KeyPair([]byte(certPem), []byte(keyPem)); err != nil {
+			return crypto.CertKeyPEM{}, common.NewError("stored master client certificate/key pair is invalid: ", err)
+		}
 		actualPin, err := clientCertSHA256FromPEM([]byte(certPem))
 		if err != nil {
 			return crypto.CertKeyPEM{}, err
@@ -113,12 +117,6 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	// master client credential (and indirectly the CA). Only mint on first use.
 	if certPem != "" || keyPem != "" {
 		return crypto.CertKeyPEM{}, common.NewError("master client cert is incomplete: one of cert/key is missing; refusing to reissue")
-	}
-	// A surviving pin proves that this panel previously had a master client
-	// credential. Minting a replacement here would silently strand every node
-	// already enforcing the old leaf identity after a partial/old DR restore.
-	if storedPin != "" {
-		return crypto.CertKeyPEM{}, common.NewError("master client credential is missing while nodeMtlsClientCertSha256 is present; refusing to reissue")
 	}
 	ca, err := s.EnsureNodeMtlsCA()
 	if err != nil {
