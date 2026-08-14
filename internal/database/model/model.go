@@ -1205,6 +1205,22 @@ type OutboundSubscription struct {
 	OutboundCount        int    `json:"outboundCount" gorm:"-"`
 }
 
+// SubBalancer is one extra config document in the JSON subscription whose
+// members are the selected inbounds' proxy outbounds. SortOrder shares
+// Inbound.SubSortIndex semantics; ties put the balancer after the inbound.
+type SubBalancer struct {
+	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Remark     string `json:"remark" form:"remark" validate:"required,max=256"`
+	Strategy   string `json:"strategy" form:"strategy" validate:"omitempty,oneof=leastLoad leastPing random"`
+	InboundIds []int  `json:"inboundIds" form:"inboundIds" gorm:"serializer:json;column:inbound_ids"`
+	SortOrder  int    `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1"`
+	// No gorm default:true — a bool default makes an explicit false at insert
+	// collapse back to the column default (zero value is skipped).
+	Enabled   bool  `json:"enabled" form:"enabled"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
 func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientMergeConflict {
 	var conflicts []ClientMergeConflict
 	keep := func(field string, oldV, newV, kept any) {
