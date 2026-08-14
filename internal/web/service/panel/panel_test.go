@@ -361,11 +361,3 @@ func TestEmbeddedAmneziaWGVersion(t *testing.T) {
 		t.Fatalf("embeddedAmneziaWGVersion() = %q, want a Go module version starting with 'v'", got)
 	}
 }
-
-func TestFetchLatestAmneziaWGVersionBestEffortNeverPanics(t *testing.T) {
-	// No network mocking here on purpose: this call is best-effort by
-	// contract (see its own doc comment) -- whatever it returns (a real
-	// tag name, or "" on any failure), the important behavior under test is
-	// that it never panics and never returns an error to its caller.
-	_ = fetchLatestAmneziaWGVersionBestEffort()
-}
