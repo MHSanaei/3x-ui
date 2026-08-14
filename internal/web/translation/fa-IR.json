@@ -66,6 +66,7 @@
   "comment": "توضیحات",
   "success": "موفق",
   "lastOnline": "آخرین فعالیت",
+  "lastSubFetch": "آخرین دریافت اشتراک",
   "getVersion": "دریافت نسخه",
   "install": "نصب",
   "clients": "کاربران",

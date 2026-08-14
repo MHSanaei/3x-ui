@@ -218,7 +218,10 @@ export default function ClientInfoModal({
                     {client.enable && isOnline
                       ? <Tag color="green">{t('pages.clients.online')}</Tag>
                       : <Tag>{t('pages.clients.offline')}</Tag>}
-                    <span className="hint">{t('lastOnline')}: {dateLabel(traffic?.lastOnline)}</span>
+                    <span className="hint">
+                      {t('lastOnline')}: {dateLabel(traffic?.lastOnline)}
+                      {' · '}{t('lastSubFetch')}: {dateLabel(traffic?.lastSubFetch)}
+                    </span>
                   </td>
                 </tr>
                 <tr>

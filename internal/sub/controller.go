@@ -385,10 +385,12 @@ func (a *SUBController) subs(c *gin.Context) {
 		return
 	}
 	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
 	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
 	}
@@ -425,6 +427,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		} else {
 			c.String(200, result.String())
 		}
+		a.recordSubscriptionFetch(c)
+	}
+}
+
+func (a *SUBController) recordSubscriptionFetch(c *gin.Context) {
+	if c.Request == nil || c.Request.Method != http.MethodGet || c.Writer.Status() != http.StatusOK {
+		return
+	}
+	if err := a.subService.RecordSubscriptionFetch(c.Param("subid")); err != nil {
+		logger.Warning("Failed to record subscription fetch:", err)
 	}
 }
 
@@ -650,6 +662,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
@@ -662,6 +675,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 	if !a.serveJsonBody(c, alwaysReturnArray, contentType, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
@@ -693,6 +707,7 @@ func (a *SUBController) subClashs(c *gin.Context) {
 		if !a.serveClashBody(c, true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
@@ -701,6 +716,7 @@ func (a *SUBController) subClashs(c *gin.Context) {
 	if !a.serveClashBody(c, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {

@@ -317,6 +317,7 @@ export interface ClientTraffic {
   id: number;
   inboundId: number;
   lastOnline: number;
+  lastSubFetch: number;
   reset: number;
   subId: string;
   total: number;
