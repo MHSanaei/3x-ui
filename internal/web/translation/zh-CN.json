@@ -709,6 +709,8 @@
       "actions": "操作",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "该客户端的流量配额。0 = 不限制。",
+      "quotaMultiplier": "流量倍率",
+      "quotaMultiplierDesc": "该客户端的流量扣费倍率（1 = 正常倍率）。",
       "expiryTime": "过期时间",
       "addClients": "添加客户端",
       "limitIp": "IP 限制",

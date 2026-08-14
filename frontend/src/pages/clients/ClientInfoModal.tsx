@@ -311,6 +311,10 @@ export default function ClientInfoModal({
                   </td>
                 </tr>
                 <tr>
+                  <td>{t('pages.clients.quotaMultiplier')}</td>
+                  <td><Tag color={client.quotaMultiplier && client.quotaMultiplier !== 1 ? 'gold' : undefined}>{client.quotaMultiplier ?? 1}x</Tag></td>
+                </tr>
+                <tr>
                   <td>{t('pages.clients.ipLimit')}</td>
                   <td>{!client.limitIp ? <Tag>∞</Tag> : <Tag>{client.limitIp}</Tag>}</td>
                 </tr>

@@ -709,6 +709,8 @@
       "actions": "Actions",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
+      "quotaMultiplier": "Quota Multiplier",
+      "quotaMultiplierDesc": "Traffic multiplier factor for this client (1 = normal rate).",
       "expiryTime": "Expiry",
       "addClients": "Add Clients",
       "limitIp": "IP Limit",

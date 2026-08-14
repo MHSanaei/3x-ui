@@ -21,8 +21,9 @@ type ClientSlim struct {
 	Email      string              `json:"email"`
 	SubID      string              `json:"subId"`
 	Enable     bool                `json:"enable"`
-	TotalGB    int64               `json:"totalGB"`
-	ExpiryTime int64               `json:"expiryTime"`
+	TotalGB         int64               `json:"totalGB"`
+	QuotaMultiplier float64             `json:"quotaMultiplier"`
+	ExpiryTime      int64               `json:"expiryTime"`
 	LimitIP    int                 `json:"limitIp"`
 	Reset      int                 `json:"reset"`
 	Group      string              `json:"group,omitempty"`
@@ -457,12 +458,17 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 		if rec == nil {
 			continue
 		}
+		mult := rec.QuotaMultiplier
+		if mult <= 0 {
+			mult = 1
+		}
 		items = append(items, ClientSlim{
-			Email:      rec.Email,
-			SubID:      rec.SubID,
-			Enable:     rec.Enable,
-			TotalGB:    rec.TotalGB,
-			ExpiryTime: rec.ExpiryTime,
+			Email:           rec.Email,
+			SubID:           rec.SubID,
+			Enable:          rec.Enable,
+			TotalGB:         rec.TotalGB,
+			QuotaMultiplier: mult,
+			ExpiryTime:      rec.ExpiryTime,
 			LimitIP:    rec.LimitIP,
 			Reset:      rec.Reset,
 			Group:      rec.Group,

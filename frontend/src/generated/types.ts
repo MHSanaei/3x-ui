@@ -259,6 +259,7 @@ export interface Client {
   preSharedKey?: string;
   privateKey?: string;
   publicKey?: string;
+  quotaMultiplier?: number;
   reset: number;
   reverse?: ClientReverse | null;
   secret?: string;
@@ -294,6 +295,7 @@ export interface ClientRecord {
   preSharedKey: string;
   privateKey: string;
   publicKey: string;
+  quotaMultiplier: number;
   reset: number;
   reverse: unknown;
   secret: string;

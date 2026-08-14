@@ -231,3 +231,56 @@ func TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients(t *testing.T) {
 		t.Errorf("normal traffic not applied: up=%d down=%d, want 30/40", normal.Up, normal.Down)
 	}
 }
+
+func TestAddClientTraffic_QuotaMultiplier(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+
+	const multEmail = "mult-user"
+	const normalEmail = "normal-user"
+
+	if err := db.Create(&model.ClientRecord{Email: multEmail, QuotaMultiplier: 1.5, Enable: true}).Error; err != nil {
+		t.Fatalf("create mult client: %v", err)
+	}
+	if err := db.Create(&model.ClientRecord{Email: normalEmail, QuotaMultiplier: 1.0, Enable: true}).Error; err != nil {
+		t.Fatalf("create normal client: %v", err)
+	}
+
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: multEmail, Enable: true}).Error; err != nil {
+		t.Fatalf("create mult traffic row: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: normalEmail, Enable: true}).Error; err != nil {
+		t.Fatalf("create normal traffic row: %v", err)
+	}
+
+	svc := InboundService{}
+	err := svc.addClientTraffic(db, []*xray.ClientTraffic{
+		{Email: multEmail, Up: 100, Down: 200},
+		{Email: normalEmail, Up: 100, Down: 200},
+	})
+	if err != nil {
+		t.Fatalf("addClientTraffic: %v", err)
+	}
+
+	var multTraf xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", multEmail).First(&multTraf).Error; err != nil {
+		t.Fatalf("reload mult row: %v", err)
+	}
+	if multTraf.Up != 150 || multTraf.Down != 300 {
+		t.Errorf("quota multiplier traffic wrong: up=%d down=%d, want 150/300", multTraf.Up, multTraf.Down)
+	}
+
+	var normTraf xray.ClientTraffic
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", normalEmail).First(&normTraf).Error; err != nil {
+		t.Fatalf("reload normal row: %v", err)
+	}
+	if normTraf.Up != 100 || normTraf.Down != 200 {
+		t.Errorf("normal client traffic wrong: up=%d down=%d, want 100/200", normTraf.Up, normTraf.Down)
+	}
+}

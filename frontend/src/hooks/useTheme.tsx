@@ -7,6 +7,7 @@ const STORAGE_DARK = 'dark-mode';
 const STORAGE_ULTRA = 'isUltraDarkThemeEnabled';
 
 function readBool(key: string, fallback: boolean): boolean {
+  if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return fallback;
   const raw = localStorage.getItem(key);
   if (raw === null) return fallback;
   return raw === 'true';
@@ -164,8 +165,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     applyDom(isDark, isUltra);
-    localStorage.setItem(STORAGE_DARK, String(isDark));
-    localStorage.setItem(STORAGE_ULTRA, String(isUltra));
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem(STORAGE_DARK, String(isDark));
+      localStorage.setItem(STORAGE_ULTRA, String(isUltra));
+    }
   }, [isDark, isUltra]);
 
   const toggleTheme = useCallback(() => setIsDark((v) => !v), []);

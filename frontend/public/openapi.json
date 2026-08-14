@@ -1086,6 +1086,10 @@
           "publicKey": {
             "type": "string"
           },
+          "quotaMultiplier": {
+            "description": "Multiplier for traffic quota usage",
+            "type": "number"
+          },
           "reset": {
             "description": "Reset period in days",
             "type": "integer"
@@ -1220,6 +1224,9 @@
           "publicKey": {
             "type": "string"
           },
+          "quotaMultiplier": {
+            "type": "number"
+          },
           "reset": {
             "type": "integer"
           },
@@ -1267,6 +1274,7 @@
           "preSharedKey",
           "privateKey",
           "publicKey",
+          "quotaMultiplier",
           "reset",
           "reverse",
           "secret",

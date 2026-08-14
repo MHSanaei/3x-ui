@@ -143,6 +143,27 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 			trafficByEmail[traffics[i].Email] = traffics[i]
 		}
 	}
+
+	type clientMultiplier struct {
+		Email           string  `gorm:"column:email"`
+		QuotaMultiplier float64 `gorm:"column:quota_multiplier"`
+	}
+	var multRows []clientMultiplier
+	if err = tx.Model(&model.ClientRecord{}).
+		Select("email, quota_multiplier").
+		Where("email IN ?", emails).
+		Scan(&multRows).Error; err != nil {
+		logger.Warning("AddClientTraffic fetch quota_multiplier: ", err)
+	}
+	multByEmail := make(map[string]float64, len(multRows))
+	for _, m := range multRows {
+		if m.QuotaMultiplier > 0 {
+			multByEmail[m.Email] = m.QuotaMultiplier
+		} else {
+			multByEmail[m.Email] = 1.0
+		}
+	}
+
 	now := time.Now().UnixMilli()
 	// Use atomic per-row UPDATE instead of read-modify-write Save. tx.Save
 	// issues UPDATEs in slice order, which varies between concurrent callers;
@@ -154,6 +175,16 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		if !ok || (t.Up == 0 && t.Down == 0) {
 			continue
 		}
+		mult := multByEmail[ct.Email]
+		if mult <= 0 {
+			mult = 1.0
+		}
+		scaledUp := t.Up
+		scaledDown := t.Down
+		if mult != 1.0 {
+			scaledUp = int64(float64(t.Up) * mult)
+			scaledDown = int64(float64(t.Down) * mult)
+		}
 		if err = tx.Exec(
 			fmt.Sprintf(
 				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s WHERE email = ?`,
@@ -161,7 +192,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
 			),
-			t.Up, t.Down, now, ct.Email,
+			scaledUp, scaledDown, now, ct.Email,
 		).Error; err != nil {
 			logger.Warning("AddClientTraffic update data ", err)
 		}

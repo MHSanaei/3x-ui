@@ -143,6 +143,9 @@ func initModels() error {
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
+	if err := migrateQuotaMultiplierColumn(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -307,6 +310,13 @@ func migrateSyncOrphanColumns() error {
 		return nil
 	}
 	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
+}
+
+func migrateQuotaMultiplierColumn() error {
+	if !db.Migrator().HasColumn(&model.ClientRecord{}, "quota_multiplier") {
+		return nil
+	}
+	return db.Exec("UPDATE clients SET quota_multiplier = 1 WHERE quota_multiplier IS NULL OR quota_multiplier <= 0").Error
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {

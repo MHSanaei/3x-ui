@@ -1060,6 +1060,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey": {
         "type": "string"
       },
+      "quotaMultiplier": {
+        "description": "Multiplier for traffic quota usage",
+        "type": "number"
+      },
       "reset": {
         "description": "Reset period in days",
         "type": "integer"
@@ -1194,6 +1198,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey": {
         "type": "string"
       },
+      "quotaMultiplier": {
+        "type": "number"
+      },
       "reset": {
         "type": "integer"
       },
@@ -1241,6 +1248,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "preSharedKey",
       "privateKey",
       "publicKey",
+      "quotaMultiplier",
       "reset",
       "reverse",
       "secret",

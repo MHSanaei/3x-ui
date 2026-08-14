@@ -55,6 +55,11 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.SubID = incoming.SubID
 	row.LimitIP = incoming.LimitIP
 	row.TotalGB = incoming.TotalGB
+	if incoming.QuotaMultiplier > 0 {
+		row.QuotaMultiplier = incoming.QuotaMultiplier
+	} else if row.QuotaMultiplier <= 0 {
+		row.QuotaMultiplier = 1
+	}
 	row.ExpiryTime = incoming.ExpiryTime
 	row.Enable = incoming.Enable
 	row.TgID = incoming.TgID

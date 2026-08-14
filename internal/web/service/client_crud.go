@@ -463,6 +463,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"tg_id":             merged.TgID,
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
+				"quota_multiplier":  merged.QuotaMultiplier,
 			}).Error; err != nil {
 			return needRestart, err
 		}

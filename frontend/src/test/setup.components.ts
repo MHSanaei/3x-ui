@@ -9,7 +9,7 @@ vi.mock('persian-calendar-suite', () => ({
   PersianDateTimePicker: () => null,
 }));
 
-if (typeof globalThis.localStorage === 'undefined') {
+if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.getItem !== 'function') {
   const store = new Map<string, string>();
   const storage = {
     getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
