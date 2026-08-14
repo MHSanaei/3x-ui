@@ -13,9 +13,10 @@ afterEach(() => {
 });
 
 describe('useAllSettings', () => {
-  it('keeps backend-accepted settings editable when the frontend schema is stricter', async () => {
+  it('accepts legacy overlength regex settings without logging a response validation warning', async () => {
     const subJsonUserAgentRegex = 'x'.repeat(2_049);
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', { subJsonUserAgentRegex }));
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const queryClient = makeTestQueryClient();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -25,6 +26,7 @@ describe('useAllSettings', () => {
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
     expect(result.current.allSetting.subJsonUserAgentRegex).toBe(subJsonUserAgentRegex);
+    expect(warning).not.toHaveBeenCalled();
   });
 
   it('keeps an edited setting when a refetch returns older server data', async () => {
