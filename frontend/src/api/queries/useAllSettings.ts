@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { AllSetting } from '@/models/setting';
-import { AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
+import { AllSettingResponseSchema, AllSettingSchema, type AllSettingInput } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
 import { useServerDraft } from '@/hooks/useServerDraft';
 
@@ -17,7 +17,7 @@ type SettingSaveResult = {
 async function fetchAllSetting(): Promise<AllSettingInput | null> {
   const msg = await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch settings');
-  const validated = parseMsg(msg, AllSettingSchema, 'setting/all');
+  const validated = parseMsg(msg, AllSettingResponseSchema, 'setting/all');
   return validated.obj;
 }
 
