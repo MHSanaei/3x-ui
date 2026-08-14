@@ -226,6 +226,47 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   }
 }
 
+function ensureFinalMask(stream: Raw): Raw {
+  if (!stream.finalmask || typeof stream.finalmask !== 'object') stream.finalmask = {};
+  return stream.finalmask as Raw;
+}
+
+// Rebuild the salamander mask from the standard Hysteria2 obfs pair (every
+// non-3x-ui client, and this panel's own generator, speak it instead of the
+// private fm=<json> dump). A salamander mask already carrying a password via fm=
+// wins; a password-less one is completed rather than left empty.
+function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
+  if ((params.get('obfs') ?? '').toLowerCase() !== 'salamander') return;
+  const password = firstParam(params, 'obfs-password', 'obfs_password', 'obfsPassword');
+  if (!password) return;
+  const finalmask = ensureFinalMask(stream);
+  const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as Raw[]) : [];
+  const existing = udp.find((m) => m && typeof m === 'object' && (m as Raw).type === 'salamander') as Raw | undefined;
+  if (existing) {
+    const settings = (existing.settings && typeof existing.settings === 'object'
+      ? existing.settings
+      : (existing.settings = {})) as Raw;
+    if (typeof settings.password !== 'string' || settings.password.length === 0) settings.password = password;
+    return;
+  }
+  finalmask.udp = [...udp, { type: 'salamander', settings: { password } }];
+}
+
+// Rebuild the UDP port-hopping range from the standard mport param, which the
+// generator emits as finalmask.quicParams.udpHop.ports. A range already supplied
+// via fm= wins; the client-side interval falls back to the panel's default.
+function applyHysteria2Hop(stream: Raw, params: URLSearchParams): void {
+  const ports = firstParam(params, 'mport');
+  if (!ports) return;
+  const finalmask = ensureFinalMask(stream);
+  const quicParams = (finalmask.quicParams && typeof finalmask.quicParams === 'object'
+    ? finalmask.quicParams
+    : (finalmask.quicParams = {})) as Raw;
+  const existingHop = quicParams.udpHop as Raw | undefined;
+  if (existingHop && typeof existingHop.ports === 'string' && existingHop.ports.length > 0) return;
+  quicParams.udpHop = { ports, interval: '5-10' };
+}
+
 const QUIC_PARAMS_NUMERIC_KEYS = [
   'initStreamReceiveWindow',
   'maxStreamReceiveWindow',
@@ -525,6 +566,8 @@ export function parseHysteria2Link(link: string): Raw | null {
     },
   };
   applyFinalMaskParam(stream, params);
+  applyHysteria2Obfs(stream, params);
+  applyHysteria2Hop(stream, params);
   return {
     protocol: 'hysteria',
     tag: decodeRemark(url),
