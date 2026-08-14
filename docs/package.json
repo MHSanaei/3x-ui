@@ -19,12 +19,12 @@
   },
   "dependencies": {
     "@orama/orama": "^3.1.18",
-    "fumadocs-core": "^16.14.1",
+    "fumadocs-core": "^16.14.3",
     "fumadocs-docgen": "^3.1.0",
-    "fumadocs-mdx": "^15.2.2",
+    "fumadocs-mdx": "^15.2.3",
     "fumadocs-openapi": "^11.2.3",
-    "fumadocs-ui": "^16.14.1",
-    "lucide-react": "^1.29.0",
+    "fumadocs-ui": "^16.14.3",
+    "lucide-react": "^1.31.0",
     "mermaid": "^11.16.1",
     "next": "16.3.0",
     "next-themes": "^0.4.6",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "eslint": "^9.39.5",
@@ -50,5 +50,5 @@
     "typescript": "6.0.3",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@11.20.0"
+  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
 }
