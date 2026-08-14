@@ -7,6 +7,8 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -192,7 +194,7 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	}
 	certs, err := parseCertificateBundlePEM([]byte(caPem))
 	if err != nil {
-		return nil, common.NewError("nodeMtlsClientCAPem is not a valid certificate bundle: ", err)
+		return nil, fmt.Errorf("nodeMtlsClientCAPem is not a valid certificate bundle: %w", err)
 	}
 	pool := x509.NewCertPool()
 	for _, cert := range certs {
@@ -201,28 +203,28 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	return pool, nil
 }
 
-// parseCertificateBundlePEM validates every non-whitespace byte of a PEM
-// certificate bundle and returns the certificates it contains.
-// x509.CertPool.AppendCertsFromPEM reports success once it has parsed a single
-// certificate, so a bundle whose later entries are damaged or truncated is
-// accepted with those entries silently missing from the pool.
+// parseCertificateBundlePEM avoids AppendCertsFromPEM because that helper can
+// silently accept a bundle after parsing only its first certificate.
 func parseCertificateBundlePEM(bundle []byte) ([]*x509.Certificate, error) {
 	rest := bytes.TrimSpace(bundle)
 	if len(rest) == 0 {
-		return nil, common.NewError("certificate bundle is empty")
+		return nil, errors.New("certificate bundle is empty")
 	}
 	certs := make([]*x509.Certificate, 0, 1)
 	for len(rest) > 0 {
+		if !bytes.HasPrefix(rest, []byte("-----BEGIN CERTIFICATE-----")) {
+			return nil, errors.New("certificate bundle contains malformed or non-PEM data")
+		}
 		block, next := pem.Decode(rest)
 		if block == nil {
-			return nil, common.NewError("certificate bundle contains malformed or non-PEM data")
+			return nil, errors.New("certificate bundle contains malformed or non-PEM data")
 		}
 		if block.Type != "CERTIFICATE" {
-			return nil, common.NewError("certificate bundle contains a non-certificate PEM block")
+			return nil, errors.New("certificate bundle contains a non-certificate PEM block")
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, err
+			return nil, errors.New("certificate bundle contains an invalid certificate")
 		}
 		certs = append(certs, cert)
 		rest = bytes.TrimSpace(next)

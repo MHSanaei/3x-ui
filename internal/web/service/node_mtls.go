@@ -40,10 +40,8 @@ func (s *NodeService) ReloadMasterMtlsClient() error {
 	return nil
 }
 
-// SetNodeMtlsTrustCA stores the CA certificate this panel trusts for incoming
-// node-API client certificates. An empty value clears it (mTLS off). A
-// non-empty value must be a PEM certificate (fail closed). Takes effect on the
-// next panel restart, when the listener's ClientCAs is rebuilt.
+// SetNodeMtlsTrustCA stores the CA certificate bundle trusted for incoming
+// node-API clients. An empty value clears it; changes apply after restart.
 func (s *NodeService) SetNodeMtlsTrustCA(caPem string) error {
 	caPem = strings.TrimSpace(caPem)
 	if caPem != "" {

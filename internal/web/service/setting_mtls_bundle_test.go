@@ -26,23 +26,25 @@ func TestParseCertificateBundlePEM(t *testing.T) {
 		name      string
 		bundle    string
 		wantCerts int
-		wantErr   bool
+		wantErr   string
 	}{
 		{name: "single certificate", bundle: first, wantCerts: 1},
 		{name: "two certificates", bundle: first + second, wantCerts: 2},
-		{name: "empty", bundle: "", wantErr: true},
-		{name: "whitespace only", bundle: "\n\t  \n", wantErr: true},
-		{name: "second certificate corrupt", bundle: first + corrupt, wantErr: true},
-		{name: "trailing non-PEM data", bundle: first + "not a certificate\n", wantErr: true},
-		{name: "non-certificate block", bundle: first + "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n", wantErr: true},
+		{name: "empty", bundle: "", wantErr: "certificate bundle is empty"},
+		{name: "whitespace only", bundle: "\n\t  \n", wantErr: "certificate bundle is empty"},
+		{name: "leading non-PEM data", bundle: "junk\n" + first, wantErr: "certificate bundle contains malformed or non-PEM data"},
+		{name: "interstitial non-PEM data", bundle: first + "junk\n" + second, wantErr: "certificate bundle contains malformed or non-PEM data"},
+		{name: "second certificate corrupt", bundle: first + corrupt, wantErr: "certificate bundle contains malformed or non-PEM data"},
+		{name: "trailing non-PEM data", bundle: first + "not a certificate\n", wantErr: "certificate bundle contains malformed or non-PEM data"},
+		{name: "non-certificate block", bundle: first + "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n", wantErr: "certificate bundle contains malformed or non-PEM data"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			certs, err := parseCertificateBundlePEM([]byte(tt.bundle))
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("parseCertificateBundlePEM() = %d certs, want an error", len(certs))
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("parseCertificateBundlePEM() error = %v, want %q", err, tt.wantErr)
 				}
 				return
 			}
@@ -65,7 +67,8 @@ func TestNodeMtlsClientCAPoolRejectsPartiallyValidBundle(t *testing.T) {
 	}
 
 	pool, err := s.NodeMtlsClientCAPool()
-	if err == nil {
-		t.Fatalf("NodeMtlsClientCAPool() = %v, want an error for a partially valid bundle", pool)
+	want := "nodeMtlsClientCAPem is not a valid certificate bundle: certificate bundle contains malformed or non-PEM data"
+	if err == nil || err.Error() != want {
+		t.Fatalf("NodeMtlsClientCAPool() = %v, error = %v, want %q", pool, err, want)
 	}
 }
