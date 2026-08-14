@@ -6,14 +6,53 @@ import (
 	"testing"
 
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
+func TestUniqueSubIDUpgradeSeedsBeforeCreatingIndex(t *testing.T) {
+	t.Setenv("XUI_DB_TYPE", "sqlite")
+	t.Setenv(subIDEnforceEnv, "1")
+	path := filepath.Join(t.TempDir(), "legacy.db")
+	legacy, err := gorm.Open(sqlite.Open(path), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("open legacy db: %v", err)
+	}
+	if err := legacy.AutoMigrate(&model.Inbound{}, &model.User{}); err != nil {
+		t.Fatalf("migrate legacy inbound: %v", err)
+	}
+	if err := legacy.Create(&model.User{Username: "legacy-admin", Password: "legacy-password"}).Error; err != nil {
+		t.Fatalf("create legacy user: %v", err)
+	}
+	settings := `{"clients":[{"email":"one@example.test","id":"u1","subId":"shared"},{"email":"two@example.test","id":"u2","subId":"shared"}]}`
+	if err := legacy.Create(&model.Inbound{Tag: "legacy", Port: 443, Protocol: model.VLESS, Settings: settings}).Error; err != nil {
+		t.Fatalf("create legacy inbound: %v", err)
+	}
+	legacySQL, _ := legacy.DB()
+	_ = legacySQL.Close()
+
+	if err := InitDB(path); err == nil {
+		t.Fatal("upgrade with duplicate seeded sub_ids unexpectedly succeeded")
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	var clients int64
+	if err := db.Model(&model.ClientRecord{}).Where("sub_id = ?", "shared").Count(&clients).Error; err != nil {
+		t.Fatalf("count seeded clients: %v", err)
+	}
+	if clients != 2 {
+		t.Fatalf("seeded duplicate clients = %d, want 2 before index preflight", clients)
+	}
+	if db.Migrator().HasIndex(&model.ClientRecord{}, subIDUniqueIndex) {
+		t.Fatal("unique index was left behind after duplicate preflight failure")
+	}
+}
+
 func freshUniqueSubIDDB(t *testing.T) {
 	t.Helper()
+	t.Setenv("XUI_DB_TYPE", "sqlite")
 	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
 		t.Fatalf("InitDB failed: %v", err)
 	}

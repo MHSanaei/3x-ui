@@ -143,9 +143,6 @@ func initModels() error {
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
-	if err := createUniqueSubIDIndex(); err != nil {
-		return err
-	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -1887,9 +1884,8 @@ func seedClientsFromInboundJSON() error {
 
 // --- DB-003: unique sub_id ----------------------------------------------------
 
-// subIDUniqueIndex is the partial unique index enforcing one client per
-// non-empty sub_id. Partial (WHERE sub_id <> ”) so the many clients that
-// legitimately carry no sub_id stay unconstrained.
+// subIDUniqueIndex enforces one client per non-empty sub_id. The partial
+// predicate (WHERE sub_id <> ”) leaves clients without sub_ids unconstrained.
 const subIDUniqueIndex = "idx_client_record_sub_id_unique"
 
 // subIDEnforceEnv gates creation of the DB-003 index. The index is a schema
@@ -2186,7 +2182,10 @@ func InitDB(dbPath string) error {
 	if err := initUser(); err != nil {
 		return err
 	}
-	return runSeeders(isUsersEmpty)
+	if err := runSeeders(isUsersEmpty); err != nil {
+		return err
+	}
+	return createUniqueSubIDIndex()
 }
 
 func normalizeApiTokenCreatedAtSeconds() error {
