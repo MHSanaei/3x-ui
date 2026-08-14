@@ -739,3 +739,11 @@ func TestSharedSubIDRemark_FullInfoOncePerSubscription(t *testing.T) {
 		t.Fatalf("second credential with shared subId remark = %q, want identity suppressed", got)
 	}
 }
+
+func TestGenTemplatedRemarkPreservesConfiguredOuterWhitespace(t *testing.T) {
+	s := &SubService{remarkTemplate: "  {{INBOUND}}  ", subscriptionBody: true, usageShown: map[string]bool{}}
+	got := s.genTemplatedRemark(&model.Inbound{Remark: "DE"}, model.Client{Email: "user@example.test"}, "", "tcp")
+	if got != "  DE  " {
+		t.Fatalf("remark = %q, want configured outer whitespace preserved", got)
+	}
+}

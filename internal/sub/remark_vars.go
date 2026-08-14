@@ -658,7 +658,7 @@ func (s *SubService) genTemplatedRemark(inbound *model.Inbound, client model.Cli
 	} else {
 		tmpl = filterRemarkTemplate(translateUISingleBrackets(s.remarkTemplate), displayRemoveTokens)
 	}
-	if out := strings.TrimSpace(expandRemarkVars(tmpl, ctx)); out != "" {
+	if out := expandRemarkVars(tmpl, ctx); strings.TrimSpace(out) != "" {
 		return out
 	}
 	return ctx.configName()
