@@ -498,7 +498,7 @@ func TestUsagePercentage(t *testing.T) {
 
 func TestUsagePercentageSurvivesFragmentEncoding(t *testing.T) {
 	remark := "node " + usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 50 * gb})
-	link := "vless://id@example.test:443#" + url.PathEscape(remark)
+	link := buildLinkWithParams("vless://id@example.test:443", nil, remark)
 	if strings.Contains(link, "%25") {
 		t.Fatalf("encoded remark contains %%25, Happ drops such remarks: %s", link)
 	}
