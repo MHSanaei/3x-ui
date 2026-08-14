@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -63,6 +66,52 @@ func TestNodeControllerResponsesDoNotLeakApiToken(t *testing.T) {
 		if !strings.Contains(body, `"hasApiToken":true`) {
 			t.Fatalf("%s did not expose credential presence: %s", path, body)
 		}
+	}
+}
+
+func TestNodeControllerProbeReportsHeartbeatPersistenceFailure(t *testing.T) {
+	engine := newNodeCredentialTestEngine(t)
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"obj":{"cpu":1,"mem":{"current":1,"total":2},"xray":{"version":"1","state":"running"},"panelVersion":"v3.6.0","panelGuid":"guid","uptime":7,"netIO":{"up":3,"down":4}}}`))
+	}))
+	defer remote.Close()
+	host, portString, err := net.SplitHostPort(strings.TrimPrefix(remote.URL, "http://"))
+	if err != nil {
+		t.Fatalf("split remote addr: %v", err)
+	}
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		t.Fatalf("parse remote port: %v", err)
+	}
+	node := &model.Node{Scheme: "http", Address: host, Port: port, BasePath: "/", Enable: true, AllowPrivateAddress: true}
+	if err := database.GetDB().Create(node).Error; err != nil {
+		t.Fatalf("seed node: %v", err)
+	}
+
+	db := database.GetDB()
+	const callback = "test:fail_node_heartbeat_update"
+	errInjected := errors.New("injected heartbeat persistence failure")
+	if err := db.Callback().Update().Before("gorm:update").Register(callback, func(tx *gorm.DB) {
+		if tx.Statement != nil && tx.Statement.Table == "nodes" {
+			tx.AddError(errInjected)
+		}
+	}); err != nil {
+		t.Fatalf("register update callback: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Update().Remove(callback); err != nil {
+			t.Errorf("remove update callback: %v", err)
+		}
+	})
+
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/panel/api/nodes/probe/"+strconv.Itoa(node.Id), nil))
+	if !strings.Contains(w.Body.String(), `"success":false`) {
+		t.Fatalf("probe reported success despite heartbeat persistence failure: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), errInjected.Error()) {
+		t.Fatalf("probe response omitted persistence error: %s", w.Body.String())
 	}
 }
 
