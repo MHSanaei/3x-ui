@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -162,6 +164,90 @@ func TestNodeBulk_SmallAddPushesLive(t *testing.T) {
 	}
 	if got := fake.addClient.Load(); got != int32(small) {
 		t.Fatalf("small add streamed %d AddClient RPCs, want %d", got, small)
+	}
+}
+
+func TestNodeBulkAdjustDoesNotPushBeforeFailedCommit(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{
+		ID:         uuid.NewString(),
+		Email:      "txfail-adjust@x",
+		Enable:     true,
+		ExpiryTime: 1_900_000_000_000,
+	}
+	nodeInbound(t, nodeID, 30022, []model.Client{client})
+
+	db := database.GetDB()
+	const callbackName = "bulk-adjust:fail-inbound-update"
+	if err := db.Callback().Update().After("gorm:update").Register(callbackName, func(tx *gorm.DB) {
+		if tx.Statement != nil && tx.Statement.Table == "inbounds" {
+			tx.AddError(errors.New("injected bulk-adjust transaction failure"))
+		}
+	}); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(callbackName) })
+
+	result, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{client.Email}, 1, 0, "")
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if result.Adjusted != 0 || len(result.Skipped) != 1 {
+		t.Fatalf("BulkAdjust result = %+v, want one skipped client after injected failure", result)
+	}
+	if got := fake.updateUser.Load(); got != 0 {
+		t.Fatalf("failed transaction pushed %d UpdateUser call(s) to the node, want 0", got)
+	}
+}
+
+func TestNodeBulkDeleteDoesNotPushBeforeFailedCommit(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "txfail-delete@x", Enable: true}
+	nodeInbound(t, nodeID, 30023, []model.Client{client})
+
+	db := database.GetDB()
+	const callbackName = "bulk-delete:fail-inbound-update"
+	if err := db.Callback().Update().After("gorm:update").Register(callbackName, func(tx *gorm.DB) {
+		if tx.Statement != nil && tx.Statement.Table == "inbounds" {
+			tx.AddError(errors.New("injected bulk-delete transaction failure"))
+		}
+	}); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(callbackName) })
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 0 || len(result.Skipped) != 1 {
+		t.Fatalf("BulkDelete result = %+v, want one skipped client after injected failure", result)
+	}
+	if got := fake.deleteClient.Load() + fake.deleteUser.Load(); got != 0 {
+		t.Fatalf("failed transaction pushed %d delete call(s) to the node, want 0", got)
+	}
+}
+
+func TestNodeBulkSmallDeleteRemovesWholeRemoteClient(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "full-delete@x", Enable: true}
+	nodeInbound(t, nodeID, 30024, []model.Client{client})
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 1 || len(result.Skipped) != 0 {
+		t.Fatalf("BulkDelete result = %+v, want one deleted client", result)
+	}
+	if got := fake.deleteClient.Load(); got != 1 {
+		t.Fatalf("remote DeleteClient calls = %d, want 1", got)
+	}
+	if got := fake.deleteUser.Load(); got != 0 {
+		t.Fatalf("remote DeleteUser detach calls = %d, want 0 for full deletion", got)
 	}
 }
 
