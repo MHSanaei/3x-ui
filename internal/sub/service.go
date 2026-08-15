@@ -2488,6 +2488,7 @@ type PageData struct {
 	SubClashUrl   string
 	SubTitle      string
 	SubSupportUrl string
+	SubAnnounce   string
 	Result        []string
 	Emails        []string
 }
