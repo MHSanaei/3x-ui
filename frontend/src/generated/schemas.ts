@@ -1909,6 +1909,10 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "disableFlow": {
+        "example": false,
+        "type": "boolean"
+      },
       "down": {
         "description": "Download traffic in bytes",
         "format": "int64",
@@ -2038,6 +2042,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "clientStats",
+      "disableFlow",
       "down",
       "enable",
       "expiryTime",

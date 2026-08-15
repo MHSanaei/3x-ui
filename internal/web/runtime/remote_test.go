@@ -185,6 +185,17 @@ func TestWireInboundIncludesShareAddressFields(t *testing.T) {
 	}
 }
 
+// A node that does not mirror DisableFlow re-injects Vision into its own xray
+// config and share links, undoing the opt-out on every multi-node deployment.
+func TestWireInboundCarriesDisableFlow(t *testing.T) {
+	if got := wireInbound(&model.Inbound{DisableFlow: true}, 0).Get("disableFlow"); got != "true" {
+		t.Fatalf("disableFlow = %q, want true", got)
+	}
+	if got := wireInbound(&model.Inbound{}, 0).Get("disableFlow"); got != "false" {
+		t.Fatalf("disableFlow = %q, want false", got)
+	}
+}
+
 func TestRemoteHTTPClientEgressProxy(t *testing.T) {
 	// OutboundTag + a resolver → a dedicated proxy client (not the shared default).
 	withTag := NewRemote(&model.Node{Id: 1, Scheme: "https", TlsVerifyMode: "verify", OutboundTag: "warp"}, stubEgress{url: "socks5://127.0.0.1:1080"})

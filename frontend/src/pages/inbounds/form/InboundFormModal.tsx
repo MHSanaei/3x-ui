@@ -127,6 +127,42 @@ function isValidShareAddrInput(value: string): boolean {
   return SHARE_ADDR_HOSTNAME_RE.test(v);
 }
 
+interface RhfValidationIssue {
+  path: PropertyKey[];
+  message: string;
+}
+
+function firstRhfValidationIssue(
+  value: unknown,
+  path: PropertyKey[] = [],
+): RhfValidationIssue | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  // `type` is what marks a react-hook-form leaf FieldError; anything else is a group.
+  if ('type' in record) {
+    return { path, message: typeof record.message === 'string' ? record.message : '' };
+  }
+  for (const key of Object.keys(record)) {
+    const issue = firstRhfValidationIssue(record[key], [...path, key]);
+    if (issue) return issue;
+  }
+  return null;
+}
+
+function tabForValidationPath(path: PropertyKey[]): string {
+  if (path[0] === 'settings') return 'protocol';
+  if (path[0] === 'sniffing') return 'sniffing';
+  if (path[0] === 'streamSettings') {
+    if (
+      path[1] === 'security'
+      || path[1] === 'realitySettings'
+      || path[1] === 'tlsSettings'
+    ) return 'security';
+    return 'stream';
+  }
+  return 'basic';
+}
+
 interface InboundFormModalProps {
   open: boolean;
   onClose: () => void;
@@ -195,6 +231,7 @@ export default function InboundFormModal({
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
+  const [activeTab, setActiveTab] = useState('basic');
   const {
     fallbacks,
     fallbackChildOptions,
@@ -356,6 +393,7 @@ export default function InboundFormModal({
       : buildAddModeValues();
     methods.reset(initial);
     setScanResult(null);
+    setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
       port: initial.port ?? 0,
@@ -430,6 +468,9 @@ export default function InboundFormModal({
       if (!NODE_ELIGIBLE_PROTOCOLS[next]) {
         setV('nodeId', null);
       }
+      if (next !== Protocols.VLESS) {
+        setV('disableFlow', false);
+      }
       if (next === Protocols.HYSTERIA) {
         setV('streamSettings', {
           network: 'hysteria',
@@ -457,8 +498,7 @@ export default function InboundFormModal({
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [mode, methods]);
 
-  const submit = async () => {
-    if (!(await methods.trigger())) return;
+  const saveValues = async () => {
     /*
      * getValues() returns the entire form store, including settings.clients and
      * settings.fallbacks which have no bound field (clients are managed via the
@@ -499,6 +539,17 @@ export default function InboundFormModal({
       setSaving(false);
     }
   };
+
+  /*
+   * Field errors render inline, but every tab is force-rendered, so an error on
+   * a hidden tab looks like a dead Save button — jump to it and say what broke.
+   */
+  const submit = methods.handleSubmit(saveValues, (errors) => {
+    const issue = firstRhfValidationIssue(errors);
+    if (!issue) return;
+    setActiveTab(tabForValidationPath(issue.path));
+    messageApi.error(formatInboundIssue(issue, methods.getValues(), t));
+  });
 
   const title = mode === 'edit'
     ? t('pages.inbounds.modifyInbound')
@@ -580,6 +631,16 @@ export default function InboundFormModal({
       >
         <InputNumber min={1} />
       </FormField>
+
+      {protocol === Protocols.VLESS && (
+        <FormField
+          name="disableFlow"
+          valueProp="checked"
+          label={labelWithHint(t('pages.inbounds.form.disableFlow'), t('pages.inbounds.form.disableFlowHelp'))}
+        >
+          <Switch />
+        </FormField>
+      )}
 
       <FormField
         name="port"
@@ -948,7 +1009,7 @@ export default function InboundFormModal({
             wrapperCol={{ sm: { span: 14 } }}
             labelWrap
           >
-            <Tabs items={[
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
               ...(([
                 Protocols.VLESS,

@@ -248,7 +248,7 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		proxy["uuid"] = applyVlessRoute(client.ID, hostVlessRoute(ep))
 		inboundSettings := subReq.linkSettings(inbound)
 		streamSecurity, _ := stream["security"].(string)
-		if client.Flow != "" && vlessFlowAllowed(network, streamSecurity, inboundSettings) {
+		if client.Flow != "" && !inbound.DisableFlow && vlessFlowAllowed(network, streamSecurity, inboundSettings) {
 			proxy["flow"] = client.Flow
 		}
 		if encryption, ok := inboundSettings["encryption"].(string); ok {
