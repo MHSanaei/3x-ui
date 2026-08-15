@@ -412,6 +412,8 @@
         "inboundCreateSuccess": "ورودی با موفقیت ایجاد شد",
         "bulkDeleted": "{count} اینباند حذف شد",
         "bulkDeletedMixed": "{ok} حذف، {failed} ناموفق",
+        "clonedMany": "{count} اینباند کلون شد",
+        "clonedMixed": "{ok} کلون، {failed} ناموفق",
         "inboundDeleteSuccess": "ورودی با موفقیت حذف شد",
         "inboundClientAddSuccess": "کلاینت(های) ورودی اضافه شدند",
         "inboundClientDeleteSuccess": "کلاینت ورودی حذف شد",

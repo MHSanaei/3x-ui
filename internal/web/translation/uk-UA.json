@@ -412,6 +412,8 @@
         "inboundCreateSuccess": "Вхідне підключення успішно створено",
         "bulkDeleted": "Видалено підключень: {count}",
         "bulkDeletedMixed": "Видалено: {ok}, не вдалось: {failed}",
+        "clonedMany": "Скопійовано підключень: {count}",
+        "clonedMixed": "Скопійовано: {ok}, не вдалось: {failed}",
         "inboundDeleteSuccess": "Вхідне підключення успішно видалено",
         "inboundClientAddSuccess": "Клієнт(и) вхідного підключення додано",
         "inboundClientDeleteSuccess": "Клієнта вхідного підключення видалено",

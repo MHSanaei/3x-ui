@@ -412,6 +412,8 @@
         "inboundCreateSuccess": "Entrada creada correctamente",
         "bulkDeleted": "{count} inbounds eliminados",
         "bulkDeletedMixed": "{ok} eliminados, {failed} fallidos",
+        "clonedMany": "{count} inbounds clonados",
+        "clonedMixed": "{ok} clonados, {failed} fallidos",
         "inboundDeleteSuccess": "Entrada eliminada correctamente",
         "inboundClientAddSuccess": "Cliente(s) de entrada añadido(s)",
         "inboundClientDeleteSuccess": "Cliente de entrada eliminado",

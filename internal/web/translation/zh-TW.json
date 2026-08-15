@@ -412,6 +412,8 @@
         "inboundCreateSuccess": "入站連接已成功建立",
         "bulkDeleted": "已刪除 {count} 個入站",
         "bulkDeletedMixed": "已刪除 {ok} 個，失敗 {failed} 個",
+        "clonedMany": "已複製 {count} 個入站",
+        "clonedMixed": "已複製 {ok} 個，失敗 {failed} 個",
         "inboundDeleteSuccess": "入站連接已成功刪除",
         "inboundClientAddSuccess": "已新增入站客戶端",
         "inboundClientDeleteSuccess": "入站客戶端已刪除",

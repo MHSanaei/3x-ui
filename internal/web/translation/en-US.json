@@ -412,6 +412,8 @@
         "inboundCreateSuccess": "Inbound has been successfully created.",
         "bulkDeleted": "{count} inbounds deleted",
         "bulkDeletedMixed": "{ok} deleted, {failed} failed",
+        "clonedMany": "{count} inbounds cloned",
+        "clonedMixed": "{ok} cloned, {failed} failed",
         "inboundDeleteSuccess": "Inbound has been successfully deleted.",
         "inboundClientAddSuccess": "Inbound client(s) have been added.",
         "inboundClientDeleteSuccess": "Inbound client has been deleted.",
