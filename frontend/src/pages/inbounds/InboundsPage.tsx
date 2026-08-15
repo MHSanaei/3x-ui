@@ -23,7 +23,6 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
-import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import { buildClonePayload } from '@/lib/xray/inbound-clone';
 import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
 import { genAmneziaWGLinks, genInboundLinks, genWireguardLinks, preferPublicHost } from '@/lib/xray/inbound-link';
