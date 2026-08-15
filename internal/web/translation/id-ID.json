@@ -66,6 +66,7 @@
   "comment": "Komentar",
   "success": "Berhasil",
   "lastOnline": "Terakhir online",
+  "lastSubFetch": "Pengambilan langganan terakhir",
   "getVersion": "Dapatkan Versi",
   "install": "Instal",
   "clients": "Klien",

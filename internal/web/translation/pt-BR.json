@@ -66,6 +66,7 @@
   "comment": "Comentário",
   "success": "Com Sucesso",
   "lastOnline": "Última vez online",
+  "lastSubFetch": "Última busca da assinatura",
   "getVersion": "Obter Versão",
   "install": "Instalar",
   "clients": "Clientes",

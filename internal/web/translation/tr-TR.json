@@ -66,6 +66,7 @@
   "comment": "Yorum",
   "success": "Başarılı",
   "lastOnline": "Son Çevrimiçi",
+  "lastSubFetch": "Son abonelik çekme",
   "getVersion": "Sürümü Al",
   "install": "Yükle",
   "clients": "Kullanıcılar",

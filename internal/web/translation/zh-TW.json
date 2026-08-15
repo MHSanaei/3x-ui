@@ -66,6 +66,7 @@
   "comment": "評論",
   "success": "成功",
   "lastOnline": "上次上線",
+  "lastSubFetch": "上次取得訂閱",
   "getVersion": "獲取版本",
   "install": "安裝",
   "clients": "客戶端",

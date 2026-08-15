@@ -66,6 +66,7 @@
   "comment": "Bình luận",
   "success": "Thành công",
   "lastOnline": "Lần online gần nhất",
+  "lastSubFetch": "Lần tải gói đăng ký gần nhất",
   "getVersion": "Lấy phiên bản",
   "install": "Cài đặt",
   "clients": "Các khách hàng",

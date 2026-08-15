@@ -340,6 +340,7 @@ export const ClientTrafficSchema = z.object({
   id: z.number().int(),
   inboundId: z.number().int(),
   lastOnline: z.number().int(),
+  lastSubFetch: z.number().int(),
   reset: z.number().int(),
   subId: z.string(),
   total: z.number().int(),

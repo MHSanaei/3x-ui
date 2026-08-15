@@ -66,6 +66,7 @@
   "comment": "تعليق",
   "success": "تم بنجاح",
   "lastOnline": "آخر متصل",
+  "lastSubFetch": "آخر جلب للاشتراك",
   "getVersion": "جيب النسخة",
   "install": "تثبيت",
   "clients": "عملاء",
