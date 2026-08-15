@@ -287,7 +287,6 @@ export default function InboundList({
             }}
             pagination={paginationFor(visibleInbounds)}
             scroll={{ x: tableScrollX, y: 'calc(100vh - 320px)' }}
-            virtual
             style={{ marginTop: 10 }}
             size="small"
             locale={{

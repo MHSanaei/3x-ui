@@ -1351,7 +1351,6 @@ export default function ClientsPage() {
                           pagination={tablePagination}
                           size="small"
                           scroll={{ x: 1200, y: 'calc(100vh - 380px)' }}
-                          virtual
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
