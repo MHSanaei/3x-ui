@@ -16,7 +16,6 @@ import {
   message,
 } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
-import type { FieldErrors } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
 import type { RealityScanResult } from '@/generated/types';
@@ -138,12 +137,12 @@ function firstRhfValidationIssue(
   path: PropertyKey[] = [],
 ): RhfValidationIssue | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<PropertyKey, unknown>;
-  if (typeof record.message === 'string' && record.message !== '') {
-    return { path, message: record.message };
+  const record = value as Record<string, unknown>;
+  // `type` is what marks a react-hook-form leaf FieldError; anything else is a group.
+  if ('type' in record) {
+    return { path, message: typeof record.message === 'string' ? record.message : '' };
   }
-  for (const key of Reflect.ownKeys(record)) {
-    if (key === 'message' || key === 'type' || key === 'types' || key === 'ref') continue;
+  for (const key of Object.keys(record)) {
     const issue = firstRhfValidationIssue(record[key], [...path, key]);
     if (issue) return issue;
   }
@@ -538,18 +537,16 @@ export default function InboundFormModal({
     }
   };
 
-  const submit = methods.handleSubmit(
-    saveValues,
-    (errors: FieldErrors<InboundFormValues>) => {
-      const issue = firstRhfValidationIssue(errors);
-      if (!issue) {
-        messageApi.error(t('validation.invalid', { defaultValue: 'Invalid form value' }));
-        return;
-      }
-      setActiveTab(tabForValidationPath(issue.path));
-      messageApi.error(formatInboundIssue(issue, methods.getValues(), t));
-    },
-  );
+  /*
+   * Field errors render inline, but every tab is force-rendered, so an error on
+   * a hidden tab looks like a dead Save button — jump to it and say what broke.
+   */
+  const submit = methods.handleSubmit(saveValues, (errors) => {
+    const issue = firstRhfValidationIssue(errors);
+    if (!issue) return;
+    setActiveTab(tabForValidationPath(issue.path));
+    messageApi.error(formatInboundIssue(issue, methods.getValues(), t));
+  });
 
   const title = mode === 'edit'
     ? t('pages.inbounds.modifyInbound')
