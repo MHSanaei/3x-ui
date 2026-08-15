@@ -974,7 +974,8 @@
         "updateStarted": "Actualización del panel iniciada",
         "updateResult": "Actualización iniciada en {ok} nodo(s), {failed} fallaron",
         "updateNoneEligible": "Selecciona al menos un nodo en línea y habilitado",
-        "saveMtls": "Guardar mTLS del nodo"
+        "saveMtls": "Guardar mTLS del nodo",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Verificación TLS",
       "tlsVerifyModeHint": "Cómo valida el panel el certificado HTTPS del nodo. Fijar u Omitir son para certificados autofirmados (solo nodos https).",

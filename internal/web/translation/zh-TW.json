@@ -974,7 +974,8 @@
         "updateStarted": "已開始更新面板",
         "updateResult": "已在 {ok} 個節點上觸發更新，{failed} 個失敗",
         "updateNoneEligible": "請至少選擇一個在線且已啟用的節點",
-        "saveMtls": "儲存節點 mTLS"
+        "saveMtls": "儲存節點 mTLS",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "TLS 驗證",
       "tlsVerifyModeHint": "面板如何驗證節點的 HTTPS 憑證。釘選或略過用於自簽憑證（僅 https 節點）。",

@@ -974,7 +974,8 @@
         "updateStarted": "Pembaruan panel dimulai",
         "updateResult": "Pembaruan dipicu pada {ok} node, {failed} gagal",
         "updateNoneEligible": "Pilih minimal satu node online dan aktif",
-        "saveMtls": "Simpan mTLS node"
+        "saveMtls": "Simpan mTLS node",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Verifikasi TLS",
       "tlsVerifyModeHint": "Cara panel memvalidasi sertifikat HTTPS node. Pin atau Lewati untuk sertifikat self-signed (hanya node https).",

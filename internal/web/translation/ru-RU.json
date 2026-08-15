@@ -974,7 +974,8 @@
         "updateStarted": "Обновление панели запущено",
         "updateResult": "Обновление запущено на {ok} узлах, {failed} не удалось",
         "updateNoneEligible": "Выберите хотя бы один включённый узел в сети",
-        "saveMtls": "Сохранить mTLS узла"
+        "saveMtls": "Сохранить mTLS узла",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Проверка TLS",
       "tlsVerifyModeHint": "Как панель проверяет HTTPS-сертификат узла. Закрепление или Пропуск — для самоподписанных сертификатов (только https-узлы).",

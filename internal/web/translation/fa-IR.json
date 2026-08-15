@@ -974,7 +974,8 @@
         "updateStarted": "به‌روزرسانی پنل آغاز شد",
         "updateResult": "به‌روزرسانی روی {ok} نود آغاز شد، {failed} ناموفق",
         "updateNoneEligible": "حداقل یک نود آنلاین و فعال انتخاب کنید",
-        "saveMtls": "ذخیره mTLS نود"
+        "saveMtls": "ذخیره mTLS نود",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "اعتبارسنجی TLS",
       "tlsVerifyModeHint": "اینکه پنل گواهی HTTPS نود را چطور بررسی کند. Pin یا Skip برای گواهی‌های self-signed است (فقط نودهای https).",

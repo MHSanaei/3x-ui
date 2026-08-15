@@ -974,7 +974,8 @@
         "updateStarted": "بدأ تحديث اللوحة",
         "updateResult": "تم بدء التحديث على {ok} عقدة، فشل {failed}",
         "updateNoneEligible": "اختر عقدة واحدة على الأقل متصلة ومفعّلة",
-        "saveMtls": "حفظ mTLS النود"
+        "saveMtls": "حفظ mTLS النود",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "التحقق من TLS",
       "tlsVerifyModeHint": "كيف يتحقق اللوحة من شهادة HTTPS الخاصة بالعقدة. التثبيت أو التخطّي مخصّصان للشهادات الموقّعة ذاتيًا (عُقد https فقط).",
