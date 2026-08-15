@@ -113,7 +113,7 @@ func TestUpdateInboundClientCaseOnlyRenameSurvivesExistingClientIpsRow(t *testin
 	}
 }
 
-func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
+func TestClientUpdateAllowsSharedSubIDAndRenamesEmail(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
@@ -127,22 +127,43 @@ func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
 		t.Fatalf("seed linkage: %v", err)
 	}
 	origId := lookupClientRecord(t, "keep@x").Id
-	origSettings := mustInboundSettings(t, inboundSvc, ib.Id)
-
 	updated := source[0]
 	updated.Email = "kept@x"
 	updated.SubID = "sub-other"
-	if _, err := svc.Update(inboundSvc, origId, updated, 0); err == nil {
-		t.Fatalf("Update with colliding subId succeeded, want error")
+	updated.TotalGB = 42
+	if _, err := svc.Update(inboundSvc, origId, updated, 0); err != nil {
+		t.Fatalf("Update with shared subId: %v", err)
 	}
 
-	rec := lookupClientRecord(t, "keep@x")
+	rec := lookupClientRecord(t, "kept@x")
 	if rec.Id != origId {
-		t.Fatalf("record id changed after rejected update")
+		t.Fatalf("record id after update = %d, want %d", rec.Id, origId)
 	}
-	if got := mustInboundSettings(t, inboundSvc, ib.Id); got != origSettings {
-		t.Fatalf("inbound settings changed after rejected update")
+	other := lookupClientRecord(t, "other@x")
+	if rec.SubID != "sub-other" || other.SubID != "sub-other" {
+		t.Fatalf("subIds after update = %q and %q, want shared subId", rec.SubID, other.SubID)
 	}
+	if rec.Email == other.Email {
+		t.Fatalf("updated clients share email %q, want distinct identities", rec.Email)
+	}
+
+	inbound, err := inboundSvc.GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	clients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	if len(clients) != 2 {
+		t.Fatalf("inbound clients = %d, want 2", len(clients))
+	}
+	for _, client := range clients {
+		if client.Email == "kept@x" && client.SubID == "sub-other" && client.TotalGB == 42 {
+			return
+		}
+	}
+	t.Fatalf("edited client missing from inbound settings: %+v", clients)
 }
 
 func TestClientUpdateKeepsSharedSubIDEditable(t *testing.T) {
