@@ -1373,7 +1373,23 @@
         "deleteConfirm": "确定删除此均衡器？",
         "errRemarkRequired": "请填写备注",
         "errInboundsRequired": "请至少选择一个入站",
-        "errSortOrder": "顺序必须为不小于 1 的整数"
+        "errSortOrder": "顺序必须为不小于 1 的整数",
+        "observatory": {
+          "title": "均衡器探活",
+          "desc": "写入每个 leastPing/leastLoad 均衡器配置的 burstObservatory 探活参数。random/roundRobin 不生成探活。作为面板级 JSON 订阅设置保存。",
+          "destination": "探活 URL",
+          "destinationDesc": "客户端探测每个成员出站的地址。",
+          "connectivity": "连通性 URL",
+          "connectivityDesc": "可选地址，检查成员能否到达探活目标。留空则跳过。",
+          "interval": "探活间隔",
+          "intervalDesc": "探活轮次之间的时间，例如 1m。",
+          "timeout": "探活超时",
+          "timeoutDesc": "单次探活超时，例如 5s。",
+          "sampling": "采样",
+          "samplingDesc": "用于稳定度平均的连续探活次数。",
+          "httpMethod": "HTTP 方法",
+          "httpMethodDesc": "探活请求使用的 HTTP 方法。"
+        }
       }
     },
     "xray": {

@@ -1373,7 +1373,23 @@
         "deleteConfirm": "حذف هذا الموزّع؟",
         "errRemarkRequired": "الملاحظة مطلوبة",
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
-        "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1"
+        "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
+        "observatory": {
+          "title": "مرصد الموزّع",
+          "desc": "معاملات probe لـ burstObservatory المُضمَّن في كل ملف leastPing/leastLoad. random/roundRobin بلا مرصد. يُحفظ كإعداد شامل لاشتراك JSON.",
+          "destination": "عنوان probe",
+          "destinationDesc": "العنوان الذي يقيس العميل به كل صادر عضو.",
+          "connectivity": "عنوان الاتصالية",
+          "connectivityDesc": "عنوان اختياري للتحقق مرة واحدة من وصول العضو للهدف. اتركه فارغًا للتخطي.",
+          "interval": "فترة probe",
+          "intervalDesc": "الزمن بين جولات probe، مثال 1m.",
+          "timeout": "مهلة probe",
+          "timeoutDesc": "مهلة probe واحدة، مثال 5s.",
+          "sampling": "أخذ العينات",
+          "samplingDesc": "عدد probe المتتالية لقياس الاستقرار.",
+          "httpMethod": "أسلوب HTTP",
+          "httpMethodDesc": "الأسلوب المستخدم في طلبات probe."
+        }
       }
     },
     "xray": {

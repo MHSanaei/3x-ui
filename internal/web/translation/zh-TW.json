@@ -1373,7 +1373,23 @@
         "deleteConfirm": "確定刪除此平衡器？",
         "errRemarkRequired": "請填寫備註",
         "errInboundsRequired": "請至少選擇一個入站",
-        "errSortOrder": "順序必須為不小於 1 的整數"
+        "errSortOrder": "順序必須為不小於 1 的整數",
+        "observatory": {
+          "title": "平衡器探活",
+          "desc": "寫入每個 leastPing/leastLoad 平衡器設定檔的 burstObservatory 探活參數。random/roundRobin 不產生探活。以面板級 JSON 訂閱設定儲存。",
+          "destination": "探活 URL",
+          "destinationDesc": "用戶端探測每個成員出站的位址。",
+          "connectivity": "連通性 URL",
+          "connectivityDesc": "選用位址，檢查成員能否到達探活目標。留空則跳過。",
+          "interval": "探活間隔",
+          "intervalDesc": "探活輪次之間的時間，例如 1m。",
+          "timeout": "探活逾時",
+          "timeoutDesc": "單次探活逾時，例如 5s。",
+          "sampling": "取樣",
+          "samplingDesc": "用於穩定度平均的連續探活次數。",
+          "httpMethod": "HTTP 方法",
+          "httpMethodDesc": "探活請求使用的 HTTP 方法。"
+        }
       }
     },
     "xray": {

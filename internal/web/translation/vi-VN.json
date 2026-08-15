@@ -1373,7 +1373,23 @@
         "deleteConfirm": "Xóa bộ cân bằng này?",
         "errRemarkRequired": "Cần nhập ghi chú",
         "errInboundsRequired": "Chọn ít nhất một inbound",
-        "errSortOrder": "Thứ tự phải là số nguyên ≥ 1"
+        "errSortOrder": "Thứ tự phải là số nguyên ≥ 1",
+        "observatory": {
+          "title": "Đài quan sát bộ cân bằng",
+          "desc": "Tham số probe cho burstObservatory nhúng vào mỗi hồ sơ leastPing/leastLoad. random/roundRobin không có đài quan sát. Lưu thành cài đặt chung của đăng ký JSON.",
+          "destination": "URL probe",
+          "destinationDesc": "Địa chỉ client thăm dò để đo mỗi outbound thành viên.",
+          "connectivity": "URL kết nối",
+          "connectivityDesc": "Địa chỉ tuỳ chọn để kiểm tra một lần thành viên có tới đích được không. Để trống để bỏ qua.",
+          "interval": "Khoảng probe",
+          "intervalDesc": "Thời gian giữa các vòng probe, vd. 1m.",
+          "timeout": "Hết giờ probe",
+          "timeoutDesc": "Hết giờ cho mỗi probe, vd. 5s.",
+          "sampling": "Lấy mẫu",
+          "samplingDesc": "Số lần probe liên tiếp để trung bình độ ổn định.",
+          "httpMethod": "Phương thức HTTP",
+          "httpMethodDesc": "Phương thức dùng cho yêu cầu probe."
+        }
       }
     },
     "xray": {

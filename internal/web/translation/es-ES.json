@@ -1373,7 +1373,23 @@
         "deleteConfirm": "¿Eliminar este balanceador?",
         "errRemarkRequired": "El comentario es obligatorio",
         "errInboundsRequired": "Selecciona al menos un inbound",
-        "errSortOrder": "El orden debe ser un número entero ≥ 1"
+        "errSortOrder": "El orden debe ser un número entero ≥ 1",
+        "observatory": {
+          "title": "Observatorio del balanceador",
+          "desc": "Parámetros de probe para el burstObservatory incluido en cada perfil leastPing/leastLoad. random/roundRobin no generan observatorio. Se guarda como ajuste global de la suscripción JSON.",
+          "destination": "URL de probe",
+          "destinationDesc": "Dirección que el cliente sondea para medir cada salida miembro.",
+          "connectivity": "URL de conectividad",
+          "connectivityDesc": "Dirección opcional para verificar una vez que el miembro llega al destino. Vacío para omitir.",
+          "interval": "Intervalo de probe",
+          "intervalDesc": "Tiempo entre rondas de probe, p. ej. 1m.",
+          "timeout": "Tiempo de espera de probe",
+          "timeoutDesc": "Tiempo de espera de cada probe, p. ej. 5s.",
+          "sampling": "Muestreo",
+          "samplingDesc": "Número de probes consecutivos para promediar estabilidad.",
+          "httpMethod": "Método HTTP",
+          "httpMethodDesc": "Método usado para las solicitudes de probe."
+        }
       }
     },
     "xray": {

@@ -1373,7 +1373,23 @@
         "deleteConfirm": "Bu dengeleyici silinsin mi?",
         "errRemarkRequired": "Açıklama zorunludur",
         "errInboundsRequired": "En az bir inbound seçin",
-        "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı"
+        "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı",
+        "observatory": {
+          "title": "Dengeleyici gözlemi",
+          "desc": "Her leastPing/leastLoad dengeleyici profiline gömülen burstObservatory probe parametreleri. random/roundRobin için gözlem eklenmez. Paneller arası JSON abonelik ayarı olarak saklanır.",
+          "destination": "Probe URL'si",
+          "destinationDesc": "İstemcinin her üye çıkışı ölçmek için denediği adres.",
+          "connectivity": "Bağlantı URL'si",
+          "connectivityDesc": "Üyenin hedefe ulaşabildiğini tek kez doğrulamak için isteğe bağlı adres. Atlamak için boş bırakın.",
+          "interval": "Probe aralığı",
+          "intervalDesc": "Probe turları arasındaki süre, örn. 1m.",
+          "timeout": "Probe zaman aşımı",
+          "timeoutDesc": "Tek bir probe için zaman aşımı, örn. 5s.",
+          "sampling": "Örnekleme",
+          "samplingDesc": "Kararlılık ortalaması için ardışık probe sayısı.",
+          "httpMethod": "HTTP yöntemi",
+          "httpMethodDesc": "Probe isteklerinde kullanılan HTTP yöntemi."
+        }
       }
     },
     "xray": {
