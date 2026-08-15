@@ -102,6 +102,7 @@ export default function CloneInboundModal({
           {t('pages.inbounds.cloneConfirmContent')}
         </Typography.Paragraph>
         <Select
+          aria-label={t('pages.inbounds.deployTo')}
           mode="multiple"
           style={{ width: '100%' }}
           value={targets}
