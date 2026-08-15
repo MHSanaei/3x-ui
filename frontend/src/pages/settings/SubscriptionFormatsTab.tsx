@@ -12,6 +12,7 @@ import {
   FileTextOutlined,
   NodeIndexOutlined,
   PartitionOutlined,
+  RadarChartOutlined,
   RocketOutlined,
   SendOutlined,
   SettingOutlined,
@@ -41,6 +42,15 @@ const DEFAULT_RULES: { type: string; outboundTag: string; domain?: string[]; ip?
   { type: 'field', outboundTag: 'direct', domain: ['geosite:category-ir'] },
   { type: 'field', outboundTag: 'direct', ip: ['geoip:private', 'geoip:ir'] },
 ];
+
+const DEFAULT_OBSERVATORY = {
+  destination: 'http://www.google.com/generate_204',
+  connectivity: 'http://www.google.com/generate_204',
+  interval: '1m',
+  sampling: 3,
+  timeout: '5s',
+  httpMethod: 'HEAD',
+};
 
 const directIPsOptions = [
   { label: 'Private IP', value: 'geoip:private' },
@@ -145,6 +155,21 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
       rules[idx] = { ...rules[idx], domain: [...value] };
     }
     updateSetting({ subJsonRules: JSON.stringify(rules) });
+  }
+
+  const observatoryEnabled = allSetting.subJsonObservatory !== '';
+  const observatoryObj = useMemo(
+    () => (observatoryEnabled ? readJson<typeof DEFAULT_OBSERVATORY>(allSetting.subJsonObservatory, DEFAULT_OBSERVATORY) : DEFAULT_OBSERVATORY),
+    [allSetting.subJsonObservatory, observatoryEnabled],
+  );
+
+  function setObservatoryEnabled(v: boolean) {
+    updateSetting({ subJsonObservatory: v ? JSON.stringify(DEFAULT_OBSERVATORY) : '' });
+  }
+
+  function setObservatoryField<K extends keyof typeof DEFAULT_OBSERVATORY>(key: K, value: typeof DEFAULT_OBSERVATORY[K]) {
+    const next = { ...observatoryObj, [key]: value };
+    updateSetting({ subJsonObservatory: JSON.stringify(next) });
   }
 
   return (
@@ -325,6 +350,61 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
                     style={{ width: '100%' }}
                     onChange={setDirectDomains}
                     options={directDomainsOptions}
+                  />
+                </SettingListItem>
+              </div>
+            )}
+          </>
+        ),
+      },
+      {
+        key: '5',
+        label: catTabLabel(<RadarChartOutlined />, t('pages.settings.subBalancers.observatory.title'), isMobile),
+        children: (
+          <>
+            <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.title')} description={t('pages.settings.subBalancers.observatory.desc')}>
+              <Switch checked={observatoryEnabled} onChange={setObservatoryEnabled} />
+            </SettingListItem>
+            {observatoryEnabled && (
+              <div className="format-settings">
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.destination')} description={t('pages.settings.subBalancers.observatory.destinationDesc')}>
+                  <Input
+                    value={observatoryObj.destination}
+                    placeholder="http://www.google.com/generate_204"
+                    onChange={(e) => setObservatoryField('destination', e.target.value)}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.connectivity')} description={t('pages.settings.subBalancers.observatory.connectivityDesc')}>
+                  <Input
+                    value={observatoryObj.connectivity}
+                    placeholder="http://www.google.com/generate_204"
+                    onChange={(e) => setObservatoryField('connectivity', e.target.value)}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.interval')} description={t('pages.settings.subBalancers.observatory.intervalDesc')}>
+                  <Input
+                    value={observatoryObj.interval}
+                    placeholder="1m"
+                    onChange={(e) => setObservatoryField('interval', e.target.value)}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.timeout')} description={t('pages.settings.subBalancers.observatory.timeoutDesc')}>
+                  <Input
+                    value={observatoryObj.timeout}
+                    placeholder="5s"
+                    onChange={(e) => setObservatoryField('timeout', e.target.value)}
+                  />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.sampling')} description={t('pages.settings.subBalancers.observatory.samplingDesc')}>
+                  <InputNumber value={observatoryObj.sampling} min={1} style={{ width: '100%' }}
+                    onChange={onNumber((v) => setObservatoryField('sampling', v))} />
+                </SettingListItem>
+                <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.httpMethod')} description={t('pages.settings.subBalancers.observatory.httpMethodDesc')}>
+                  <Select
+                    value={observatoryObj.httpMethod}
+                    style={{ width: '100%' }}
+                    onChange={(v) => setObservatoryField('httpMethod', v)}
+                    options={['HEAD', 'GET'].map((m) => ({ value: m, label: m }))}
                   />
                 </SettingListItem>
               </div>
