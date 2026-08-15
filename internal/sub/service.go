@@ -38,9 +38,8 @@ type SubService struct {
 	// other context — the sub info page, the panel's link/QR displays — renders
 	// the name-only template, like Remnawave.
 	subscriptionBody bool
-	// usageShown tracks, per client email, whether the info part of the template
-	// has already been emitted this request, so it appears on the first body
-	// link only. Per-request state; reset in PrepareForRequest.
+	// usageShown emits info once per subscription identity, including twins.
+	// PrepareForRequest resets this per-request state.
 	usageShown             map[string]bool
 	showIdentityOnAllLinks bool
 	inboundService         service.InboundService

@@ -235,3 +235,18 @@ func TestFilterNodeSnapshotMatchesPrefixedSelectedTag(t *testing.T) {
 		t.Fatalf("bare selected tag in-100-tcp was dropped; kept=%v", kept)
 	}
 }
+
+func TestFilterNodeSnapshotKeepsAdoptedAlias(t *testing.T) {
+	snap := &runtime.TrafficSnapshot{
+		Inbounds:       []*model.Inbound{{Tag: "deployed-alias"}, {Tag: "unmanaged"}},
+		ManagedAliases: []string{"deployed-alias"},
+	}
+	FilterNodeSnapshot(&model.Node{
+		InboundSyncMode: "selected",
+		InboundTags:     []string{"desired-name"},
+	}, snap)
+
+	if len(snap.Inbounds) != 1 || snap.Inbounds[0].Tag != "deployed-alias" {
+		t.Fatalf("filtered snapshot = %#v, want adopted alias only", snap.Inbounds)
+	}
+}

@@ -36,11 +36,17 @@ const sampleLink = 'vless://11112222-3333-4444-5555-666677778888@panel.example.c
 
 export const Collapsed: Story = {
   args: { label: 'vless', text: sampleLink, fileName: 'client-config.txt' },
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, canvasElement, userEvent }) => {
     await expect(canvas.queryByText(/vless:\/\/11112222/)).not.toBeInTheDocument();
     await userEvent.click(canvas.getByText('vless'));
     const configText = await canvas.findByText(/vless:\/\/11112222/);
     await waitFor(() => expect(configText).toBeVisible());
+    // Collapse fades content in over motionDurationMid; wait it out so the a11y
+    // scan doesn't sample a mid-transition, lower-contrast opacity.
+    await waitFor(() => {
+      const panel = canvasElement.querySelector('.ant-collapse-panel');
+      expect(panel && getComputedStyle(panel).opacity).toBe('1');
+    });
     await expect(canvas.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Download' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'QR Code' })).toBeVisible();

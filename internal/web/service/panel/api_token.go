@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -79,6 +81,28 @@ func (s *ApiTokenService) Create(name string) (*ApiTokenView, error) {
 		Enabled: true,
 	}
 	if err := db.Create(row).Error; err != nil {
+		return nil, err
+	}
+	view := toView(row)
+	view.Token = plaintext
+	return view, nil
+}
+
+// RecreateByName replaces any token with this name, keeping exactly one so a
+// repeatedly-run caller cannot accumulate credentials it can never revoke.
+func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, common.NewError("token name is required")
+	}
+	plaintext := random.Seq(apiTokenLength)
+	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true}
+	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(row).Error
+	}); err != nil {
 		return nil, err
 	}
 	view := toView(row)
