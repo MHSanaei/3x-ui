@@ -10,6 +10,7 @@ export const ClientTrafficSchema = z.object({
   expiryTime: z.number().optional(),
   enable: z.boolean().optional(),
   lastOnline: z.number().optional(),
+  lastSubFetch: z.number().optional(),
 });
 
 export const ClientRecordSchema = z.object({
@@ -24,6 +25,7 @@ export const ClientRecordSchema = z.object({
   totalGB: z.number().optional(),
   expiryTime: z.number().optional(),
   limitIp: z.number().optional(),
+  limitHwid: z.number().optional(),
   tgId: z.union([z.number(), z.string()]).optional(),
   group: z.string().optional(),
   comment: z.string().optional(),
@@ -68,9 +70,15 @@ export const InboundOptionSchema = z.object({
 
 export const InboundOptionsSchema = z.array(InboundOptionSchema);
 
+// The *Count fields are exact; the email arrays stop at the server's cap and
+// only feed the hover popovers, so never derive a counter from their length.
 export const ClientsSummarySchema = z.object({
   total: z.number(),
   active: z.number(),
+  onlineCount: z.number().optional().default(0),
+  depletedCount: z.number().optional().default(0),
+  expiringCount: z.number().optional().default(0),
+  deactiveCount: z.number().optional().default(0),
   online: nullableStringArray,
   depleted: nullableStringArray,
   expiring: nullableStringArray,
@@ -198,6 +206,7 @@ export const ClientFormSchema = z.object({
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
   limitIp: z.number().int().min(0),
+  limitHwid: z.number().int().min(0),
   tgId: z.number().int().min(0),
   group: z.string(),
   comment: z.string(),
@@ -231,6 +240,7 @@ export const ClientBulkAddFormSchema = z.object({
   comment: z.string(),
   flow: z.string(),
   limitIp: z.number().int().min(0),
+  limitHwid: z.number().int().min(0),
   totalGB: z.number().min(0),
   expiryTime: z.number(),
   reset: z.number().int().min(0),

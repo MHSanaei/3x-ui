@@ -270,6 +270,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -441,6 +444,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -737,6 +741,9 @@
           "subRoutingRules": {
             "type": "string"
           },
+          "subShowIdentityOnAllLinks": {
+            "type": "boolean"
+          },
           "subSupportUrl": {
             "type": "string"
           },
@@ -915,6 +922,7 @@
           "subPort",
           "subProfileUrl",
           "subRoutingRules",
+          "subShowIdentityOnAllLinks",
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
@@ -955,10 +963,17 @@
           "enabled": {
             "type": "boolean"
           },
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
           "id": {
             "type": "integer"
           },
           "name": {
+            "type": "string"
+          },
+          "scope": {
             "type": "string"
           },
           "token": {
@@ -969,8 +984,10 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
           "name",
+          "scope",
           "token"
         ],
         "type": "object"
@@ -986,12 +1003,21 @@
             "example": true,
             "type": "boolean"
           },
+          "expiresAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
           "id": {
             "example": 2,
             "type": "integer"
           },
           "name": {
             "example": "central-panel-a",
+            "type": "string"
+          },
+          "scope": {
+            "example": "admin",
             "type": "string"
           },
           "token": {
@@ -1002,8 +1028,10 @@
         "required": [
           "createdAt",
           "enabled",
+          "expiresAt",
           "id",
-          "name"
+          "name",
+          "scope"
         ],
         "type": "object"
       },
@@ -1197,6 +1225,9 @@
           "keepAlive": {
             "type": "integer"
           },
+          "limitHwid": {
+            "type": "integer"
+          },
           "limitIp": {
             "type": "integer"
           },
@@ -1254,6 +1285,7 @@
           "group",
           "id",
           "keepAlive",
+          "limitHwid",
           "limitIp",
           "password",
           "preSharedKey",
@@ -1316,6 +1348,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "lastSubFetch": {
+            "example": 1735680000000,
+            "format": "int64",
+            "type": "integer"
+          },
           "reset": {
             "example": 0,
             "type": "integer"
@@ -1347,6 +1384,7 @@
           "id",
           "inboundId",
           "lastOnline",
+          "lastSubFetch",
           "reset",
           "subId",
           "total",
@@ -1367,6 +1405,157 @@
         },
         "required": [
           "masterId"
+        ],
+        "type": "object"
+      },
+      "GeoCategory": {
+        "description": "GeoCategory is one code inside a database, such as geosite's \"google\".",
+        "properties": {
+          "attributes": {
+            "example": [
+              "ads",
+              "cn"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "code": {
+            "example": "google",
+            "type": "string"
+          },
+          "entries": {
+            "example": 1284,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attributes",
+          "code",
+          "entries"
+        ],
+        "type": "object"
+      },
+      "GeoCategoryPage": {
+        "description": "GeoCategoryPage is one page of categories plus the unpaged total.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GeoCategory"
+            },
+            "type": "array"
+          },
+          "total": {
+            "example": 1043,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
+      "GeoEntry": {
+        "description": "GeoEntry is a single rule inside a category: a domain rule for geosite\ndatabases, a CIDR for geoip ones.",
+        "properties": {
+          "kind": {
+            "example": "domain",
+            "type": "string"
+          },
+          "value": {
+            "example": "google.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "type": "object"
+      },
+      "GeoEntryPage": {
+        "description": "GeoEntryPage is one page of category entries plus the unpaged total.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GeoEntry"
+            },
+            "type": "array"
+          },
+          "total": {
+            "example": 1284,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
+      "GeoFile": {
+        "description": "GeoFile describes one .dat database found in the asset directory.",
+        "properties": {
+          "categories": {
+            "example": 1043,
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "kind": {
+            "example": "site",
+            "type": "string"
+          },
+          "modifiedAt": {
+            "example": 1769558400000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "example": "geosite.dat",
+            "type": "string"
+          },
+          "size": {
+            "example": 1467392,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "categories",
+          "kind",
+          "modifiedAt",
+          "name",
+          "size"
+        ],
+        "type": "object"
+      },
+      "GeodataTokenIssue": {
+        "description": "GeodataTokenIssue reports a routing token the running core would reject,\nor would silently match nothing against.",
+        "properties": {
+          "code": {
+            "example": "blabla",
+            "type": "string"
+          },
+          "file": {
+            "example": "geosite.dat",
+            "type": "string"
+          },
+          "reason": {
+            "example": "categoryMissing",
+            "type": "string"
+          },
+          "token": {
+            "example": "geosite:blabla",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "token"
         ],
         "type": "object"
       },
@@ -1860,6 +2049,13 @@
             ],
             "type": "string"
           },
+          "trafficResetDay": {
+            "description": "Day of month for monthly traffic resets",
+            "example": 1,
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
           "up": {
             "description": "Upload traffic in bytes",
             "format": "int64",
@@ -1886,6 +2082,7 @@
           "tag",
           "total",
           "trafficReset",
+          "trafficResetDay",
           "up"
         ],
         "type": "object"
@@ -2385,6 +2582,7 @@
           },
           "configDirtyAt": {
             "example": 0,
+            "format": "int64",
             "type": "integer"
           },
           "cpuPct": {
@@ -2393,6 +2591,7 @@
           },
           "createdAt": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "depletedCount": {
@@ -2441,6 +2640,7 @@
           },
           "lastHeartbeat": {
             "example": 1700000000,
+            "format": "int64",
             "type": "integer"
           },
           "latencyMs": {
@@ -2457,10 +2657,12 @@
           },
           "netDown": {
             "example": 1048576,
+            "format": "int64",
             "type": "integer"
           },
           "netUp": {
             "example": 2097152,
+            "format": "int64",
             "type": "integer"
           },
           "onlineCount": {
@@ -2507,10 +2709,12 @@
           },
           "updatedAt": {
             "example": 1700003600,
+            "format": "int64",
             "type": "integer"
           },
           "uptimeSecs": {
             "example": 86400,
+            "format": "int64",
             "type": "integer"
           },
           "xrayError": {
@@ -2867,7 +3071,7 @@
     },
     {
       "name": "API Tokens",
-      "description": "Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request — the token is a full-admin credential."
+      "description": "Manage scoped Bearer tokens for programmatic auth. Tokens grant admin, monitor, or node-sync access, may expire, and are stored as SHA-256 hashes. The plaintext is returned only once at creation."
     },
     {
       "name": "Xray Settings",
@@ -3116,6 +3320,7 @@
                           "id": 14825,
                           "inboundId": 1,
                           "lastOnline": 1735680000000,
+                          "lastSubFetch": 1735680000000,
                           "reset": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
@@ -3144,6 +3349,7 @@
                       "tag": "in-443-tcp",
                       "total": 0,
                       "trafficReset": "never",
+                      "trafficResetDay": 1,
                       "up": 0
                     }
                   ]
@@ -3631,6 +3837,60 @@
         }
       }
     },
+    "/panel/api/inbounds/{id}/subSortIndex": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Set only the subscription sort order. Reads the stored inbound, so a reorder cannot carry a stale client list over a concurrent edit.",
+        "operationId": "post_panel_api_inbounds_id_subSortIndex",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "subSortIndex": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/inbounds/{id}/resetTraffic": {
       "post": {
         "tags": [
@@ -3949,6 +4209,36 @@
                 "example": {
                   "success": true,
                   "msg": "Inbound updated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/openapi.json": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Serve this API description as an OpenAPI 3 document — the same file that powers the API Docs page. Requires a session or Bearer token like the rest of /panel/api. Useful for generating clients or importing into API tooling.",
+        "operationId": "get_panel_api_openapi_json",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
@@ -5637,7 +5927,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
+        "summary": "Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters: the *Count fields are exact, while the email arrays beside them stop at 200 entries so the payload does not grow with the panel. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.",
         "operationId": "get_panel_api_clients_list_paged",
         "parameters": [
           {
@@ -5732,6 +6022,7 @@
                         "totalGB": 53687091200,
                         "expiryTime": 1735689600000,
                         "limitIp": 0,
+                        "limitHwid": 0,
                         "reset": 0,
                         "inboundIds": [
                           3,
@@ -5753,12 +6044,18 @@
                     "summary": {
                       "total": 2000,
                       "active": 1850,
+                      "onlineCount": 1,
+                      "depletedCount": 0,
+                      "expiringCount": 0,
+                      "deactiveCount": 150,
                       "online": [
                         "alice@example.com"
                       ],
                       "depleted": [],
                       "expiring": [],
-                      "deactive": []
+                      "deactive": [
+                        "bob@example.com"
+                      ]
                     }
                   }
                 }
@@ -5809,6 +6106,47 @@
         }
       }
     },
+    "/panel/api/clients/get/tgId/{tgId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.",
+        "operationId": "get_panel_api_clients_get_tgId_tgId",
+        "parameters": [
+          {
+            "name": "tgId",
+            "in": "path",
+            "required": true,
+            "description": "Telegram user ID (numeric).",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/add": {
       "post": {
         "tags": [
@@ -5830,6 +6168,7 @@
                   "expiryTime": 1735689600000,
                   "tgId": 0,
                   "limitIp": 0,
+                  "limitHwid": 0,
                   "enable": true
                 },
                 "inboundIds": [
@@ -5896,6 +6235,7 @@
                 "email": "alice@example.com",
                 "totalGB": 107374182400,
                 "expiryTime": 1767225600000,
+                "limitHwid": 2,
                 "tgId": 123456789,
                 "enable": true
               }
@@ -6244,7 +6584,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
+        "summary": "Delete every client that is not attached to any inbound, along with its traffic record, IP log, HWID devices, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.",
         "operationId": "post_panel_api_clients_delOrphans",
         "responses": {
           "200": {
@@ -6308,6 +6648,7 @@
                         "id": "...",
                         "totalGB": 53687091200,
                         "expiryTime": 0,
+                        "limitHwid": 2,
                         "enable": true,
                         "subId": "..."
                       },
@@ -6635,6 +6976,7 @@
                     "email": "alice@example.com",
                     "totalGB": 53687091200,
                     "expiryTime": 0,
+                    "limitHwid": 2,
                     "enable": true
                   },
                   "inboundIds": [
@@ -6646,6 +6988,7 @@
                     "email": "bob@example.com",
                     "totalGB": 53687091200,
                     "expiryTime": 0,
+                    "limitHwid": 0,
                     "enable": true
                   },
                   "inboundIds": [
@@ -7440,6 +7783,100 @@
         }
       }
     },
+    "/panel/api/clients/hwids/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "operationId": "post_panel_api_clients_hwids_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "firstSeen": 1735000000000,
+                      "lastSeen": 1735100000000,
+                      "userAgent": "Happ/1.0",
+                      "deviceOs": "android",
+                      "osVersion": "15",
+                      "deviceModel": "Pixel 9"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Clear all registered HWID devices for a client so new devices can register again.",
+        "operationId": "delete_panel_api_clients_hwids_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/onlines": {
       "post": {
         "tags": [
@@ -7685,6 +8122,7 @@
                     "id": 14825,
                     "inboundId": 1,
                     "lastOnline": 1735680000000,
+                    "lastSubFetch": 1735680000000,
                     "reset": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
@@ -7934,6 +8372,36 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/mtls/reloadClient": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Validate the stored master mTLS client credential and invalidate cached transports. Each transport closes its old idle pool and rebuilds with the rotated certificate before its next request.",
+        "operationId": "post_panel_api_nodes_mtls_reloadClient",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9674,6 +10142,36 @@
         }
       }
     },
+    "/panel/api/setting/factoryDefaults": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Return the shipped (factory) default value per browser-safe setting key, so clients can tell a stored value apart from the default it would fall back to. Per-install material (secret, panelGuid, mTLS keys) and credential fields are never included.",
+        "operationId": "post_panel_api_setting_factoryDefaults",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/setting/update": {
       "post": {
         "tags": [
@@ -10006,7 +10504,7 @@
         "tags": [
           "API Tokens"
         ],
-        "summary": "Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.",
+        "summary": "Mint a scoped API token. The server-generated plaintext is returned only once and stored as a hash.",
         "operationId": "post_panel_api_setting_apiTokens_create",
         "requestBody": {
           "required": true,
@@ -10018,14 +10516,26 @@
                   "name": {
                     "type": "string",
                     "description": "Human-readable label, e.g. \"central-panel-a\"."
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "admin (default), monitor, or node-sync."
+                  },
+                  "expiresAt": {
+                    "type": "integer",
+                    "description": "Future Unix milliseconds, or 0 for no expiry."
                   }
                 },
                 "required": [
-                  "name"
+                  "name",
+                  "scope",
+                  "expiresAt"
                 ]
               },
               "example": {
-                "name": "central-panel-a"
+                "name": "central-panel-a",
+                "scope": "node-sync",
+                "expiresAt": 1798761600000
               }
             }
           }
@@ -10054,8 +10564,10 @@
                   "obj": {
                     "createdAt": 1736000000,
                     "enabled": true,
+                    "expiresAt": 0,
                     "id": 2,
                     "name": "central-panel-a",
+                    "scope": "admin",
                     "token": "new-token-string"
                   }
                 }
@@ -10105,6 +10617,28 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedScope": {
+                    "type": "string",
+                    "description": "Stored scope expected by the operator."
+                  }
+                },
+                "required": [
+                  "expectedScope"
+                ]
+              },
+              "example": {
+                "expectedScope": "node-sync"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -10159,14 +10693,20 @@
                   "enabled": {
                     "type": "boolean",
                     "description": "New enabled state."
+                  },
+                  "expectedScope": {
+                    "type": "string",
+                    "description": "Stored scope expected by the operator."
                   }
                 },
                 "required": [
-                  "enabled"
+                  "enabled",
+                  "expectedScope"
                 ]
               },
               "example": {
-                "enabled": false
+                "enabled": false,
+                "expectedScope": "node-sync"
               }
             }
           }
@@ -10678,6 +11218,221 @@
         }
       }
     },
+    "/panel/api/xray/geodata/files": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "List the geo databases (.dat files) in the Xray asset folder, with the layout detected from their contents, size, modification time and category count. A database that fails to parse is still listed, with the reason in \"error\".",
+        "operationId": "get_panel_api_xray_geodata_files",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/geodata/categories": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "One page of a database's categories, each with its entry count and the attributes its domains carry (e.g. \"ads\", \"cn\").",
+        "operationId": "get_panel_api_xray_geodata_categories",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "required": true,
+            "description": "Database file name inside the asset folder, e.g. geosite.dat (required).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive substring filter on the category code.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Rows to skip. Defaults to 0.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Rows to return, capped at 500. Omit it to return every category — the index is small and the panel filters it client-side.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/geodata/entries": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "One page of the rules inside a category — domain rules typed as domain/full/keyword/regexp for geosite databases, CIDRs for geoip ones.",
+        "operationId": "get_panel_api_xray_geodata_entries",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "required": true,
+            "description": "Database file name inside the asset folder (required).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "Category code, case-insensitive, e.g. google (required).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive substring filter on the rule value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Rows to skip. Defaults to 0.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Rows to return, capped at 500. Defaults to the cap.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/geodata/validate": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Check routing tokens against the databases on disk and return only the ones that do not resolve. Plain domains and CIDRs are ignored. Each issue carries a reason: syntax, fileMissing or categoryMissing.",
+        "operationId": "post_panel_api_xray_geodata_validate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/outbound-subs": {
       "get": {
         "tags": [
@@ -10974,7 +11729,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. Default path: /sub/:subid.",
+        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. Default path: /sub/:subid.",
         "operationId": "get_subPath_subid",
         "parameters": [
           {
@@ -10982,6 +11737,15 @@
             "in": "path",
             "required": true,
             "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Set to \"info\" to get the subscription status view-model as JSON instead of the links.",
             "schema": {
               "type": "string"
             }

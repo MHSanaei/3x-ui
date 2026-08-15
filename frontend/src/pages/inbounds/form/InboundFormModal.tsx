@@ -34,6 +34,7 @@ import {
   isSS2022,
 } from '@/lib/xray/protocol-capabilities';
 import {
+  InboundDbFieldsSchema,
   InboundFormBaseSchema,
   InboundFormSchema,
   type InboundFormValues,
@@ -43,6 +44,7 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
@@ -101,14 +103,6 @@ const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label:
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
 const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const SHARE_ADDR_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
-const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
-  Protocols.VLESS,
-  Protocols.VMESS,
-  Protocols.TROJAN,
-  Protocols.SHADOWSOCKS,
-  Protocols.HYSTERIA,
-  Protocols.WIREGUARD,
-]);
 
 function isValidShareAddrInput(value: string): boolean {
   const v = value.trim();
@@ -253,7 +247,7 @@ export default function InboundFormModal({
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (useWatch({ control, name: 'protocol' }) ?? '') as string;
-  const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
+  const isNodeEligible = !!NODE_ELIGIBLE_PROTOCOLS[protocol];
   /*
    * The `node` share-address strategy only means something when the inbound can
    * actually live on a node — otherwise the node address it would resolve to is
@@ -293,6 +287,7 @@ export default function InboundFormModal({
   const wTunnelNetwork = useWatch({ control, name: 'settings.allowedNetwork' });
   const wTotal = (useWatch({ control, name: 'total' }) as number | undefined) ?? 0;
   const wExpiry = (useWatch({ control, name: 'expiryTime' }) as number | undefined) ?? 0;
+  const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
   const currentTagInput = (): InboundTagInput => ({
@@ -471,7 +466,7 @@ export default function InboundFormModal({
       const next = getV('protocol') as string;
       const settings = createDefaultInboundSettings(next) ?? undefined;
       setV('settings', settings);
-      if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
+      if (!NODE_ELIGIBLE_PROTOCOLS[next]) {
         setV('nodeId', null);
       }
       if (next === Protocols.HYSTERIA) {
@@ -583,8 +578,10 @@ export default function InboundFormModal({
             allowClear
             options={selectableNodes.map((n) => ({
               value: n.id,
-              label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
-              disabled: n.status === 'offline',
+              // Same rule as the clone target picker: only online is
+              // deployable (`unknown` = no heartbeat yet).
+              label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
+              disabled: n.status !== 'online',
             }))}
           />
         </FormField>
@@ -669,6 +666,16 @@ export default function InboundFormModal({
           }))}
         />
       </FormField>
+
+      {trafficReset === 'monthly' && (
+        <FormField
+          name="trafficResetDay"
+          label={t('pages.inbounds.periodicTrafficResetDay')}
+          rules={{ validate: rhfZodValidate(InboundDbFieldsSchema.shape.trafficResetDay) }}
+        >
+          <InputNumber min={1} max={31} />
+        </FormField>
+      )}
 
       <Form.Item
         label={

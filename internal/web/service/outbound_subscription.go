@@ -30,8 +30,8 @@ import (
 // CheckXrayConfig's version gate.
 func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
 	coreVersion := "Unknown"
-	if p != nil {
-		coreVersion = p.GetXrayVersion()
+	if process := currentXrayProcess(); process != nil {
+		coreVersion = process.GetXrayVersion()
 	}
 	kept := make([]any, 0, len(outbounds))
 	var dropped []string
@@ -156,10 +156,12 @@ func defaultPrefixNumber(subs []*model.OutboundSubscription, excludeId int) int 
 // nextDefaultSubPrefix builds the default "subN-" prefix for a new/edited
 // subscription, picking the smallest free N (excludeId skips a subscription's
 // own current prefix when editing).
-func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) string {
+func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) (string, error) {
 	var subs []*model.OutboundSubscription
-	_ = database.GetDB().Find(&subs).Error
-	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId))
+	if err := database.GetDB().Find(&subs).Error; err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId)), nil
 }
 
 func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
@@ -175,11 +177,16 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 	}
 	prefix := strings.TrimSpace(tagPrefix)
 	if prefix == "" {
-		prefix = s.nextDefaultSubPrefix(0)
+		prefix, err = s.nextDefaultSubPrefix(0)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// New subscriptions go to the end of the priority order.
 	var count int64
-	database.GetDB().Model(&model.OutboundSubscription{}).Count(&count)
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
 	sub := &model.OutboundSubscription{
 		Remark:         strings.TrimSpace(remark),
 		Url:            cleanURL,
@@ -215,7 +222,10 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	}
 	prefix := strings.TrimSpace(tagPrefix)
 	if prefix == "" {
-		prefix = s.nextDefaultSubPrefix(sub.Id)
+		prefix, err = s.nextDefaultSubPrefix(sub.Id)
+		if err != nil {
+			return err
+		}
 	}
 	sub.Remark = strings.TrimSpace(remark)
 	sub.Url = cleanURL

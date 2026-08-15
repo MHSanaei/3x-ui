@@ -38,6 +38,7 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import { onNumber } from '@/utils/onNumber';
 import PromptModal from '@/components/feedback/PromptModal';
 import TextModal from '@/components/feedback/TextModal';
 
@@ -626,14 +627,14 @@ export default function OutboundsTab({
                   <InputNumber
                     min={0}
                     value={intervalHours}
-                    onChange={(v) => setIntervalHM(Number(v) || 0, intervalMinutes)}
+                    onChange={onNumber((v) => setIntervalHM(v, intervalMinutes))}
                     style={{ width: 80 }}
                   /> {t('pages.xray.outboundSub.hours')}
                   <InputNumber
                     min={0}
                     max={59}
                     value={intervalMinutes}
-                    onChange={(v) => setIntervalHM(intervalHours, Number(v) || 0)}
+                    onChange={onNumber((v) => setIntervalHM(intervalHours, v))}
                     style={{ width: 80 }}
                   /> {t('pages.xray.outboundSub.minutes')}
                 </Space>

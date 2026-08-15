@@ -265,11 +265,11 @@ export default function XhttpForm() {
           >
             <Select
               options={[
-                { value: '', label: 'Default (body)' },
+                { value: '', label: 'Default (auto)' },
+                { value: 'auto', label: 'auto' },
                 { value: 'body', label: 'body' },
                 { value: 'header', label: 'header' },
                 { value: 'cookie', label: 'cookie' },
-                { value: 'query', label: 'query' },
               ]}
             />
           </FormField>

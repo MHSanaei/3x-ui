@@ -35,3 +35,35 @@ func TestBuildPageData_SplitsMultiHostLinks(t *testing.T) {
 		t.Fatalf("Emails = %v, want %v", page.Emails, wantEmails)
 	}
 }
+
+func TestSubIsOnline(t *testing.T) {
+	tests := []struct {
+		name   string
+		sub    []string
+		online []string
+		want   bool
+	}{
+		{name: "nobody online", sub: []string{"a@x"}, online: nil, want: false},
+		{name: "no sub emails", sub: nil, online: []string{"a@x"}, want: false},
+		{name: "sub client online", sub: []string{"a@x"}, online: []string{"z@x", "a@x"}, want: true},
+		{name: "only other clients online", sub: []string{"a@x"}, online: []string{"z@x"}, want: false},
+		{name: "any of several sub entries online", sub: []string{"a@x", "b@x"}, online: []string{"b@x"}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := subIsOnline(tt.sub, tt.online); got != tt.want {
+				t.Fatalf("subIsOnline(%v, %v) = %v, want %v", tt.sub, tt.online, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildPageData_IsOnlineFalseWithoutLiveConnections(t *testing.T) {
+	s := &SubService{}
+
+	page := s.BuildPageData("s1", "", xray.ClientTraffic{}, 0, []string{"vless://a@h1:443?type=tcp#DE-john@x"}, []string{"john@x"}, "", "", "", "/", "", "")
+
+	if page.IsOnline {
+		t.Fatal("IsOnline must be false when the subscription's client has no live connection")
+	}
+}

@@ -371,9 +371,7 @@ func (s *Server) Start() (err error) {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	go func() {
-		_ = s.httpServer.Serve(listener)
-	}()
+	go network.ServeHTTP(s.httpServer, listener, "Subscription server")
 
 	return nil
 }

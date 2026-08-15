@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-const outDir = path.resolve(__dirname, '../internal/web/dist');
+const outDir = path.resolve(import.meta.dirname, '../internal/web/dist');
 const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
@@ -12,12 +12,12 @@ function resolveDBPath() {
   if (envFolder) {
     const abs = path.isAbsolute(envFolder)
       ? envFolder
-      : path.resolve(__dirname, '..', envFolder);
+      : path.resolve(import.meta.dirname, '..', envFolder);
     return path.join(abs, 'x-ui.db');
   }
-  const repoSubDB = path.resolve(__dirname, '..', 'x-ui', 'x-ui.db');
+  const repoSubDB = path.resolve(import.meta.dirname, '..', 'x-ui', 'x-ui.db');
   if (fs.existsSync(repoSubDB)) return repoSubDB;
-  const repoDB = path.resolve(__dirname, '..', 'x-ui.db');
+  const repoDB = path.resolve(import.meta.dirname, '..', 'x-ui.db');
   if (fs.existsSync(repoDB)) return repoDB;
   return '/etc/x-ui/x-ui.db';
 }
@@ -54,7 +54,7 @@ function refreshBasePath() {
 
 function readPanelVersion() {
   try {
-    const versionFile = path.resolve(__dirname, '..', 'config', 'version');
+    const versionFile = path.resolve(import.meta.dirname, '..', 'config', 'version');
     return fs.readFileSync(versionFile, 'utf8').trim();
   } catch (_e) {
     return '';
@@ -151,11 +151,62 @@ function makeBackendProxy(target) {
   };
 }
 
+// Deps only reachable through swagger-ui-react (verified via `npm ls`). The
+// catch-all `vendor` chunk would otherwise eager-load them on first paint,
+// although the api-docs page is the only lazy route importing them.
+const SWAGGER_ONLY_DEPS = [
+  '@babel/runtime-corejs3',
+  '@scarf/scarf',
+  '@swagger-api/apidom-',
+  '@swaggerexpert/',
+  'base64-js',
+  'buffer',
+  'classnames',
+  'css.escape',
+  'deep-extend',
+  'dompurify',
+  'fast-json-patch',
+  'highlight.js',
+  'highlightjs-vue',
+  'ieee754',
+  'immutable',
+  'js-file-download',
+  'js-yaml',
+  'lodash',
+  'lowlight',
+  'neotraverse',
+  'node-abort-controller',
+  'openapi-path-templating',
+  'openapi-server-url-templating',
+  'prismjs',
+  'prop-types',
+  'ramda',
+  'ramda-adjunct',
+  'randexp',
+  'react-copy-to-clipboard',
+  'react-debounce-input',
+  'react-immutable-proptypes',
+  'react-immutable-pure-component',
+  'react-inspector',
+  'react-redux',
+  'react-syntax-highlighter',
+  'redux',
+  'redux-immutable',
+  'remarkable',
+  'reselect',
+  'serialize-error',
+  'sha.js',
+  'url-parse',
+  'xml',
+  'xml-but-prettier',
+  'zenscroll',
+];
+
 export default defineConfig({
   plugins: [react(), injectBasePathPlugin(), rocketLoaderOptOutPlugin()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(import.meta.dirname, 'src'),
     },
   },
   experimental: {
@@ -171,14 +222,20 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
-    sourcemap: true,
+    // Everything in outDir is embedded into the Go binary via embed.FS, so
+    // production sourcemaps (~18MB across 112 files, 72% of dist) ship inside
+    // every release build. Nothing consumes them there; `npm run dev` serves
+    // its own maps regardless of this setting. To debug a minified bundle
+    // (including the XUI_DEBUG serve-from-disk path), build once with
+    // XUI_SOURCEMAP=true — no tracked-file edit to accidentally commit.
+    sourcemap: process.env.XUI_SOURCEMAP === 'true',
     target: 'es2020',
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       input: {
-        index: path.resolve(__dirname, 'index.html'),
-        login: path.resolve(__dirname, 'login.html'),
-        subpage: path.resolve(__dirname, 'subpage.html'),
+        index: path.resolve(import.meta.dirname, 'index.html'),
+        login: path.resolve(import.meta.dirname, 'login.html'),
+        subpage: path.resolve(import.meta.dirname, 'subpage.html'),
       },
       output: {
         manualChunks(id) {
@@ -216,6 +273,7 @@ export default defineConfig({
             id.includes('/node_modules/swagger-ui-react/')
             || id.includes('/node_modules/swagger-ui/')
             || id.includes('/node_modules/swagger-client/')
+            || SWAGGER_ONLY_DEPS.some((dep) => id.includes(`/node_modules/${dep}/`))
           ) return 'vendor-swagger';
           if (id.includes('/node_modules/uplot/')) return 'vendor-uplot';
           if (id.includes('dayjs')) return 'vendor-dayjs';

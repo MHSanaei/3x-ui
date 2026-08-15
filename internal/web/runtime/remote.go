@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -78,8 +79,9 @@ func (e *remoteAPIError) Error() string { return "remote: " + e.msg }
 type Remote struct {
 	node *model.Node
 
-	mu            sync.RWMutex
-	remoteIDByTag map[string]int
+	mu             sync.RWMutex
+	remoteIDByTag  map[string]int
+	adoptedAliases map[string]string
 	// pushedFP holds the fingerprint of the last inbound wire payload successfully
 	// pushed, keyed by panel-side tag, so reconcile can skip re-sending an
 	// unchanged inbound. Guarded by mu; dropped with the Remote on node config change.
@@ -99,8 +101,10 @@ type Remote struct {
 }
 
 type RemoteInboundOption struct {
+	Id       int            `json:"id"`
 	Tag      string         `json:"tag"`
 	Remark   string         `json:"remark"`
+	Listen   string         `json:"listen"`
 	Protocol model.Protocol `json:"protocol"`
 	Port     int            `json:"port"`
 }
@@ -109,6 +113,7 @@ func NewRemote(n *model.Node, r NodeEgressResolver) *Remote {
 	return &Remote{
 		node:           n,
 		remoteIDByTag:  make(map[string]int),
+		adoptedAliases: make(map[string]string),
 		pushedFP:       make(map[string]string),
 		egressResolver: r,
 	}
@@ -225,7 +230,11 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, err
 	}
 	if r.node.ApiToken != "" {
-		req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+		token, err := nodetoken.Decrypt(r.node.Id, r.node.ApiToken)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt node token: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	req.Header.Set("Accept", "application/json")
 	if contentType != "" {
@@ -449,6 +458,16 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	return nil
 }
 
+func (r *Remote) SetInboundSubSortIndex(ctx context.Context, ib *model.Inbound, index int) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return err
+	}
+	payload := url.Values{"subSortIndex": []string{strconv.Itoa(index)}}
+	_, err = r.do(ctx, http.MethodPost, "panel/api/inbounds/"+strconv.Itoa(id)+"/subSortIndex", payload)
+	return err
+}
+
 // ReconcileInbound pushes ib only when its wire payload differs from the last
 // successful push, or when the node no longer reports the tag (existsOnNode
 // false) — a node that dropped/restarted must still be re-seeded. Returns
@@ -479,11 +498,31 @@ func (r *Remote) recordPushedInbound(ib *model.Inbound) {
 	r.mu.Unlock()
 }
 
-// RecordAdoptedInbound stamps the fingerprint when the master adopts the
-// node's own settings serialization into its DB — direct knowledge of the
-// exact payload the node holds.
+// RecordAdoptedInbound stamps the exact payload fingerprint after the master
+// adopts a node's settings serialization.
 func (r *Remote) RecordAdoptedInbound(ib *model.Inbound) {
 	r.recordPushedInbound(ib)
+}
+
+// AdoptInboundAlias records a deployed alias without mutating either panel.
+// The runtime association is rediscovered after a master restart.
+func (r *Remote) AdoptInboundAlias(ib *model.Inbound, remote RemoteInboundOption) {
+	r.mu.Lock()
+	r.remoteIDByTag[remote.Tag] = remote.Id
+	r.remoteIDByTag[ib.Tag] = remote.Id
+	r.adoptedAliases[ib.Tag] = remote.Tag
+	r.pushedFP[ib.Tag] = wireFingerprint(wireInbound(ib, r.node.Id))
+	r.mu.Unlock()
+}
+
+func (r *Remote) AdoptedInboundAliases() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	aliases := make([]string, 0, len(r.adoptedAliases))
+	for _, alias := range r.adoptedAliases {
+		aliases = append(aliases, alias)
+	}
+	return aliases
 }
 
 // AdvancePushedInbound moves the reconcile-skip fingerprint from an inbound's
@@ -661,15 +700,21 @@ func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) err
 }
 
 type TrafficSnapshot struct {
-	Inbounds     []*model.Inbound
-	OnlineEmails []string
+	Inbounds       []*model.Inbound
+	OnlineEmails   []string
+	ManagedAliases []string
 	// OnlineTree is the node's GUID-keyed online subtree (its own clients under
 	// its panelGuid plus every descendant under theirs). Preferred over the flat
 	// OnlineEmails so the master can attribute deeply nested clients to the real
 	// node across a chain (#4983). Empty when the node is an old build without
 	// the per-GUID endpoint — OnlineEmails is the fallback then.
-	OnlineTree    map[string][]string
-	LastOnlineMap map[string]int64
+	OnlineTree map[string][]string
+	// ActiveInboundTree is the GUID-keyed subtree of inbound tags that carried
+	// traffic within the node's online grace window. Empty when the node is an
+	// old build without the endpoint; the master then falls back to email-only
+	// online attribution for that node.
+	ActiveInboundTree map[string][]string
+	LastOnlineMap     map[string]int64
 	// HostGroups carries the node's per-inbound host overrides (TLS/SNI/
 	// fingerprint), fetched only when the snapshot holds a not-yet-adopted tag.
 	HostGroups []*entity.HostGroup
@@ -724,6 +769,13 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		_ = json.Unmarshal(envLastOnline.Obj, &snap.LastOnlineMap)
 	}
 
+	envActiveInbounds, err := r.do(ctx, http.MethodPost, "panel/api/clients/activeInbounds", nil)
+	if err != nil {
+		logger.Debugf("remote %s active inbounds fetch failed: %v", r.node.Name, err)
+	} else if len(envActiveInbounds.Obj) > 0 {
+		_ = json.Unmarshal(envActiveInbounds.Obj, &snap.ActiveInboundTree)
+	}
+
 	return snap, nil
 }
 
@@ -769,6 +821,9 @@ func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	v.Set("shareAddr", ib.ShareAddr)
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
+	}
+	if ib.TrafficResetDay > 0 {
+		v.Set("trafficResetDay", strconv.Itoa(ib.TrafficResetDay))
 	}
 	return v
 }

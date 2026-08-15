@@ -72,6 +72,7 @@ type SUBController struct {
 	subService      *SubService
 	subJsonService  *SubJsonService
 	subClashService *SubClashService
+	clientService   service.ClientService
 	settingService  service.SettingService
 
 	subTemplateMu    sync.RWMutex
@@ -307,6 +308,31 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	if !wantsHTML {
 		return false
 	}
+	page, ok := a.buildSubPageData(c)
+	if !ok {
+		return true
+	}
+	a.serveSubPage(c, page.BasePath, page)
+	return true
+}
+
+func (a *SUBController) maybeServeSubInfo(c *gin.Context) bool {
+	if !strings.EqualFold(c.Query("format"), "info") {
+		return false
+	}
+	page, ok := a.buildSubPageData(c)
+	if !ok {
+		return true
+	}
+	info := a.subPageContext(page)
+	delete(info, "links")
+	info["emails"] = dedupeEmails(page.Emails)
+	setNoCacheHeaders(c)
+	c.JSON(http.StatusOK, info)
+	return true
+}
+
+func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subId := c.Param("subid")
 	_, host, _, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
@@ -314,7 +340,7 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || len(subs) == 0 {
 		writeSubError(c, err)
-		return true
+		return PageData{}, false
 	}
 	subURL, subJsonURL, subClashURL := subReq.BuildURLs(a.subPath, a.subJsonPath, a.subClashPath, subId)
 	if !a.jsonEnabled {
@@ -328,23 +354,49 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 		basePath = "/"
 	}
 	basePathStr := basePath.(string)
-	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
-	a.serveSubPage(c, basePathStr, page)
-	return true
+	metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, "")
+	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, metadata.Title, metadata.SupportURL)
+	page.SubAnnounce = metadata.Announce
+	return page, true
+}
+
+func dedupeEmails(emails []string) []string {
+	out := make([]string, 0, len(emails))
+	seen := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		if email == "" {
+			continue
+		}
+		if _, dup := seen[email]; dup {
+			continue
+		}
+		seen[email] = struct{}{}
+		out = append(out, email)
+	}
+	return out
 }
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
+	if a.maybeServeSubInfo(c) {
+		logSubscriptionRoute(userAgent, "info")
+		return
+	}
 	if a.maybeServeSubPage(c) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
+	if !a.enforceHwid(c) {
+		return
+	}
 	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
 	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
 	}
@@ -365,11 +417,9 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+		profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, profileURL)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
 			result.WriteString(a.subIncyRoutingRules)
@@ -381,6 +431,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		} else {
 			c.String(200, result.String())
 		}
+		a.recordSubscriptionFetch(c)
+	}
+}
+
+func (a *SUBController) recordSubscriptionFetch(c *gin.Context) {
+	if c.Request == nil || c.Request.Method != http.MethodGet || c.Writer.Status() != http.StatusOK {
+		return
+	}
+	if err := a.subService.RecordSubscriptionFetch(c.Param("subid")); err != nil {
+		logger.Warning("Failed to record subscription fetch:", err)
 	}
 }
 
@@ -463,38 +523,7 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 		body = bytes.ReplaceAll(body, []byte(`href="/assets/`), []byte(`href="`+basePath+`assets/`))
 	}
 
-	// JSON-marshal the view-model so the SPA can read it as a plain
-	// The panel's "Calendar Type" setting decides whether the SubPage
-	// renders dates in Gregorian or Jalali — surface it here so the SPA
-	// can match the rest of the panel without a round-trip.
-	datepicker, _ := a.settingService.GetDatepicker()
-	if datepicker == "" {
-		datepicker = "gregorian"
-	}
-
-	subData := map[string]any{
-		"sId":           page.SId,
-		"enabled":       page.Enabled,
-		"download":      page.Download,
-		"upload":        page.Upload,
-		"total":         page.Total,
-		"used":          page.Used,
-		"remained":      page.Remained,
-		"expire":        page.Expire,
-		"lastOnline":    page.LastOnline,
-		"downloadByte":  page.DownloadByte,
-		"uploadByte":    page.UploadByte,
-		"totalByte":     page.TotalByte,
-		"subUrl":        page.SubUrl,
-		"subJsonUrl":    page.SubJsonUrl,
-		"subClashUrl":   page.SubClashUrl,
-		"subTitle":      page.SubTitle,
-		"subSupportUrl": page.SubSupportUrl,
-		"links":         page.Result,
-		"emails":        page.Emails,
-		"datepicker":    datepicker,
-		"announce":      a.subAnnounce,
-	}
+	subData := a.subPageContext(page)
 
 	// When an admin has configured a custom subscription theme, render it
 	// instead of the default SPA. We render into a buffer first so a template
@@ -541,6 +570,78 @@ func (a *SUBController) serveSubPage(c *gin.Context, basePath string, page PageD
 
 	setNoCacheHeaders(c)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", out)
+}
+
+// subPageContext builds the shared view-model map: the template context for
+// custom sub themes, the window.__SUB_PAGE_DATA__ payload the SPA reads, and
+// (without links) the ?format=info JSON body. The panel's "Calendar Type"
+// setting decides whether dates render Gregorian or Jalali — surfaced here so
+// consumers match the rest of the panel without a round-trip.
+func (a *SUBController) subPageContext(page PageData) map[string]any {
+	datepicker, _ := a.settingService.GetDatepicker()
+	if datepicker == "" {
+		datepicker = "gregorian"
+	}
+
+	return map[string]any{
+		"sId":           page.SId,
+		"enabled":       page.Enabled,
+		"isOnline":      page.IsOnline,
+		"download":      page.Download,
+		"upload":        page.Upload,
+		"total":         page.Total,
+		"used":          page.Used,
+		"remained":      page.Remained,
+		"expire":        page.Expire,
+		"lastOnline":    page.LastOnline,
+		"downloadByte":  page.DownloadByte,
+		"uploadByte":    page.UploadByte,
+		"totalByte":     page.TotalByte,
+		"subUrl":        page.SubUrl,
+		"subJsonUrl":    page.SubJsonUrl,
+		"subClashUrl":   page.SubClashUrl,
+		"subTitle":      page.SubTitle,
+		"subSupportUrl": page.SubSupportUrl,
+		"links":         page.Result,
+		"emails":        page.Emails,
+		"datepicker":    datepicker,
+		"announce":      page.SubAnnounce,
+	}
+}
+
+func (a *SUBController) enforceHwid(c *gin.Context) bool {
+	result, err := a.clientService.EnforceHwidForSubID(c.Param("subid"), service.HwidRequest{
+		Hwid:        c.GetHeader("X-HWID"),
+		UserAgent:   c.GetHeader("User-Agent"),
+		DeviceOS:    c.GetHeader("X-Device-OS"),
+		OsVersion:   c.GetHeader("X-Ver-OS"),
+		DeviceModel: c.GetHeader("X-Device-Model"),
+	})
+	if err != nil {
+		writeSubError(c, err)
+		return false
+	}
+	applyHwidHeaders(c, result)
+	if !result.Allowed {
+		c.Status(http.StatusNotFound)
+		return false
+	}
+	return true
+}
+
+func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
+	if result.Active {
+		c.Header("X-Hwid-Active", "true")
+	}
+	if result.NotSupported {
+		c.Header("X-Hwid-Not-Supported", "true")
+	}
+	if result.LimitReached {
+		c.Header("X-Hwid-Limit", "true")
+	}
+	if result.MaxDevicesReached {
+		c.Header("X-Hwid-Max-Devices-Reached", "true")
+	}
 }
 
 // setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
@@ -600,9 +701,13 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
+		return
+	}
+	if !a.enforceHwid(c) {
 		return
 	}
 	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
@@ -612,6 +717,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 	if !a.serveJsonBody(c, alwaysReturnArray, contentType, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
@@ -625,11 +731,15 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 	if len(jsonSub) == 0 {
 		return false
 	}
-	profileUrl := a.subProfileUrl
-	if profileUrl == "" {
-		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	var subReq *SubService
+	metadata := a.metadataForSubRequest(func() *SubService {
+		if subReq == nil {
+			subReq = a.subService.ForRequest(host)
+		}
+		return subReq
+	}, subId, profileURL)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
 	}
@@ -643,14 +753,19 @@ func (a *SUBController) subClashs(c *gin.Context) {
 		if !a.serveClashBody(c, true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
 		return
 	}
+	if !a.enforceHwid(c) {
+		return
+	}
 	if !a.serveClashBody(c, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
@@ -664,16 +779,20 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 	if len(clashSub) == 0 {
 		return false
 	}
-	profileUrl := a.subProfileUrl
-	if profileUrl == "" {
-		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
+	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	var subReq *SubService
+	metadata := a.metadataForSubRequest(func() *SubService {
+		if subReq == nil {
+			subReq = a.subService.ForRequest(host)
+		}
+		return subReq
+	}, subId, profileURL)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.yaml"`)
-	} else if a.subTitle != "" {
+	} else if metadata.Title != "" {
 		// Clash clients commonly use Content-Disposition to choose the imported profile name.
-		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
+		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(metadata.Title)))
 	}
 	c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
 	return true

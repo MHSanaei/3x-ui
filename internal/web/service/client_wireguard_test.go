@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -20,7 +21,8 @@ func TestAllocateWireguardAddress(t *testing.T) {
 		{name: "fills gap", used: []string{"10.0.0.3/32", "10.0.0.4/32"}, base: "10.0.0.0/24", want: "10.0.0.2/32"},
 		{name: "ignores catch-all", used: []string{"0.0.0.0/0", "::/0"}, base: "10.0.0.0/24", want: "10.0.0.2/32"},
 		{name: "default base when empty", used: nil, base: "", want: "10.0.0.2/32"},
-		{name: "exhausted /30", used: []string{"10.9.0.2/32", "10.9.0.3/32"}, base: "10.9.0.0/30", err: true},
+		{name: "full ipv4 scope widens instead of failing", used: []string{"10.9.0.2/32", "10.9.0.3/32"}, base: "10.9.0.0/30", want: "10.9.0.4/32"},
+		{name: "exhausted ipv6 scope errors", used: []string{"fd00::2/128", "fd00::3/128"}, base: "fd00::/126", err: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -127,6 +129,40 @@ func TestDefaultWireguardClientsHonorsExistingSubnet(t *testing.T) {
 	}
 	if got := clients[0].AllowedIPs[0]; got != "172.16.0.3/32" {
 		t.Fatalf("new client address = %q, want 172.16.0.3/32 in existing subnet", got)
+	}
+}
+
+func TestAllocateWireguardAddressWidensPastFullSlash24(t *testing.T) {
+	used := make([]string, 0, 254)
+	for i := 2; i <= 255; i++ {
+		used = append(used, fmt.Sprintf("10.0.0.%d/32", i))
+	}
+
+	got, err := allocateWireguardAddress(used, "10.0.0.0/24")
+	if err != nil {
+		t.Fatalf("allocate with a full /24: %v", err)
+	}
+	if got != "10.0.1.0/32" {
+		t.Fatalf("address after a full /24 = %q, want 10.0.1.0/32", got)
+	}
+
+	used = append(used, got)
+	next, err := allocateWireguardAddress(used, "10.0.0.0/24")
+	if err != nil {
+		t.Fatalf("allocate after widening: %v", err)
+	}
+	if next != "10.0.1.1/32" {
+		t.Fatalf("second widened address = %q, want 10.0.1.1/32", next)
+	}
+}
+
+func TestAllocateWireguardAddressFillsItsOwnSlash24First(t *testing.T) {
+	got, err := allocateWireguardAddress([]string{"172.16.0.2/32"}, "172.16.0.0/24")
+	if err != nil {
+		t.Fatalf("allocateWireguardAddress: %v", err)
+	}
+	if got != "172.16.0.3/32" {
+		t.Fatalf("address = %q, want 172.16.0.3/32 — the inbound's own /24 comes first", got)
 	}
 }
 

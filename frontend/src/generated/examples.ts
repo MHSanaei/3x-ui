@@ -75,6 +75,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
+    "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -186,6 +187,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileUrl": "",
     "subRoutingRules": "",
+    "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
     "subThemeDir": "",
     "subTitle": "",
@@ -218,15 +220,19 @@ export const EXAMPLES: Record<string, unknown> = {
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
+    "expiresAt": 0,
     "id": 0,
     "name": "",
+    "scope": "",
     "token": ""
   },
   "ApiTokenView": {
     "createdAt": 1736000000,
     "enabled": true,
+    "expiresAt": 0,
     "id": 2,
     "name": "central-panel-a",
+    "scope": "admin",
     "token": "new-token-string"
   },
   "Client": {
@@ -277,6 +283,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "group": "",
     "id": 0,
     "keepAlive": 0,
+    "limitHwid": 0,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",
@@ -303,6 +310,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 14825,
     "inboundId": 1,
     "lastOnline": 1735680000000,
+    "lastSubFetch": 1735680000000,
     "reset": 0,
     "subId": "i7tvdpeffi0hvvf1",
     "total": 10737418240,
@@ -312,6 +320,54 @@ export const EXAMPLES: Record<string, unknown> = {
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""
+  },
+  "GeoCategory": {
+    "attributes": [
+      "ads",
+      "cn"
+    ],
+    "code": "google",
+    "entries": 1284
+  },
+  "GeoCategoryPage": {
+    "items": [
+      {
+        "attributes": [
+          "ads",
+          "cn"
+        ],
+        "code": "google",
+        "entries": 1284
+      }
+    ],
+    "total": 1043
+  },
+  "GeoEntry": {
+    "kind": "domain",
+    "value": "google.com"
+  },
+  "GeoEntryPage": {
+    "items": [
+      {
+        "kind": "domain",
+        "value": "google.com"
+      }
+    ],
+    "total": 1284
+  },
+  "GeoFile": {
+    "categories": 1043,
+    "error": "",
+    "kind": "site",
+    "modifiedAt": 1769558400000,
+    "name": "geosite.dat",
+    "size": 1467392
+  },
+  "GeodataTokenIssue": {
+    "code": "blabla",
+    "file": "geosite.dat",
+    "reason": "categoryMissing",
+    "token": "geosite:blabla"
   },
   "HistoryOfSeeders": {
     "id": 0,
@@ -420,6 +476,7 @@ export const EXAMPLES: Record<string, unknown> = {
         "id": 14825,
         "inboundId": 1,
         "lastOnline": 1735680000000,
+        "lastSubFetch": 1735680000000,
         "reset": 0,
         "subId": "i7tvdpeffi0hvvf1",
         "total": 10737418240,
@@ -448,6 +505,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",
+    "trafficResetDay": 1,
     "up": 0
   },
   "InboundClientIps": {

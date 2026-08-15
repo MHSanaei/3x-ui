@@ -1,7 +1,7 @@
 {
   "protocol": "hysteria",
   "settings": {
-    "version": 1,
+    "version": 2,
     "clients": [
       {
         "auth": "hyst3ria-v1-token-XYZ",

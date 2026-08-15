@@ -54,6 +54,7 @@ type Inbound struct {
 	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
 	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
 	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
+	TrafficResetDay      int                  `json:"trafficResetDay" form:"trafficResetDay" gorm:"default:1" validate:"omitempty,gte=1,lte=31" example:"1"`                                                        // Day of month for monthly traffic resets
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
@@ -153,12 +154,24 @@ type HistoryOfSeeders struct {
 // from the seconds-based API token timestamp contract.
 const ApiTokenUnixMillisecondsThreshold int64 = 100_000_000_000
 
+const (
+	ApiScopeAdmin    = "admin"
+	ApiScopeMonitor  = "monitor"
+	ApiScopeNodeSync = "node-sync"
+)
+
+func IsKnownApiScope(s string) bool {
+	return s == ApiScopeAdmin || s == ApiScopeMonitor || s == ApiScopeNodeSync
+}
+
 type ApiToken struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
 	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
 	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
+	Scope     string `json:"scope" gorm:"not null;default:admin"`
+	ExpiresAt int64  `json:"expiresAt" gorm:"not null;default:0"`
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
@@ -227,6 +240,57 @@ func jsonStringFieldFromRaw(r json.RawMessage) string {
 		}
 	}
 	return string(trimmed)
+}
+
+// hysteriaConfigVersion is the only hysteria version xray-core builds. Both
+// the protocol settings and the transport settings answer anything else with
+// "version != 2", and that error rejects the whole config — every other
+// inbound on the server goes down with it, not just the hysteria one.
+const hysteriaConfigVersion = 2
+
+// HealHysteriaVersion pins a hysteria inbound's settings.version to the
+// version xray-core accepts. Rows written before the panel settled on v2, or
+// through the API and the raw JSON editor, can still carry the legacy 1 or no
+// version at all, either of which stops the core from starting.
+func HealHysteriaVersion(settings string) (string, bool) {
+	return healVersionField(settings, nil)
+}
+
+// HealHysteriaStreamVersion does the same for the transport half,
+// streamSettings.hysteriaSettings.version, which xray-core validates
+// separately. An absent hysteriaSettings object is left alone.
+func HealHysteriaStreamVersion(streamSettings string) (string, bool) {
+	return healVersionField(streamSettings, []string{"hysteriaSettings"})
+}
+
+// healVersionField rewrites the "version" key of the object reached by path to
+// hysteriaConfigVersion, reporting whether anything changed. A path that does
+// not resolve to an object leaves the input untouched.
+func healVersionField(raw string, path []string) (string, bool) {
+	if raw == "" {
+		return raw, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return raw, false
+	}
+	target := parsed
+	for _, key := range path {
+		next, ok := target[key].(map[string]any)
+		if !ok {
+			return raw, false
+		}
+		target = next
+	}
+	if version, ok := target["version"].(float64); ok && version == hysteriaConfigVersion {
+		return raw, false
+	}
+	target["version"] = hysteriaConfigVersion
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return raw, false
+	}
+	return string(out), true
 }
 
 // StripInboundXhttpClientFields removes xHTTP knobs that belong on the
@@ -298,10 +362,19 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		if converted, ok := WireguardClientsToPeers(settings); ok {
 			settings = converted
 		}
+	case Hysteria:
+		if healed, ok := HealHysteriaVersion(settings); ok {
+			settings = healed
+		}
 	}
 	streamSettings := i.StreamSettings
 	if stripped, ok := StripInboundXhttpClientFields(streamSettings); ok {
 		streamSettings = stripped
+	}
+	if i.Protocol == Hysteria {
+		if healed, ok := HealHysteriaStreamVersion(streamSettings); ok {
+			streamSettings = healed
+		}
 	}
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
@@ -841,15 +914,19 @@ type ClientRecord struct {
 	Secret       string `json:"secret" gorm:"column:secret"`
 	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
 	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
+	LimitHwid    int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
 	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
 	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
 	Enable       bool   `json:"enable" gorm:"default:true"`
-	TgID         int64  `json:"tgId" gorm:"column:tg_id"`
+	TgID         int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
 	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
 	Comment      string `json:"comment"`
 	Reset        int    `json:"reset" gorm:"default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
+	// deleting; orphans from any other cause stay at zero and are never reaped.
+	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -904,6 +981,20 @@ type ClientInbound struct {
 }
 
 func (ClientInbound) TableName() string { return "client_inbounds" }
+
+type ClientHwid struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	SubID       string `json:"subId" gorm:"column:sub_id;not null;index;uniqueIndex:idx_client_hwids_sub_hash,priority:1"`
+	HwidHash    string `json:"-" gorm:"column:hwid_hash;size:64;not null;uniqueIndex:idx_client_hwids_sub_hash,priority:2"`
+	FirstSeen   int64  `json:"firstSeen" gorm:"column:first_seen;not null"`
+	LastSeen    int64  `json:"lastSeen" gorm:"column:last_seen;not null;index"`
+	UserAgent   string `json:"userAgent" gorm:"column:user_agent"`
+	DeviceOS    string `json:"deviceOs" gorm:"column:device_os"`
+	OsVersion   string `json:"osVersion" gorm:"column:os_version"`
+	DeviceModel string `json:"deviceModel" gorm:"column:device_model"`
+}
+
+func (ClientHwid) TableName() string { return "client_hwids" }
 
 // ClientExternalLink is a per-client entry surfaced in the client's
 // subscription. Two kinds:
@@ -1189,6 +1280,16 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if picked != existing.LimitIP {
 			keep("limitIp", existing.LimitIP, incoming.LimitIP, picked)
 			existing.LimitIP = picked
+		}
+	}
+	if existing.LimitHwid != incoming.LimitHwid && incoming.LimitHwid != 0 {
+		picked := existing.LimitHwid
+		if existing.LimitHwid == 0 || incoming.LimitHwid > existing.LimitHwid {
+			picked = incoming.LimitHwid
+		}
+		if picked != existing.LimitHwid {
+			keep("limitHwid", existing.LimitHwid, incoming.LimitHwid, picked)
+			existing.LimitHwid = picked
 		}
 	}
 	if existing.TgID != incoming.TgID && incoming.TgID != 0 {

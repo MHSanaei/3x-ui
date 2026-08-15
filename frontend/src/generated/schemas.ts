@@ -244,6 +244,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "type": "string"
       },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
+      },
       "subSupportUrl": {
         "type": "string"
       },
@@ -415,6 +418,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -711,6 +715,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subRoutingRules": {
         "type": "string"
       },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
+      },
       "subSupportUrl": {
         "type": "string"
       },
@@ -889,6 +896,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -929,10 +937,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "enabled": {
         "type": "boolean"
       },
+      "expiresAt": {
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "type": "integer"
       },
       "name": {
+        "type": "string"
+      },
+      "scope": {
         "type": "string"
       },
       "token": {
@@ -943,8 +958,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
       "name",
+      "scope",
       "token"
     ],
     "type": "object"
@@ -960,12 +977,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "expiresAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "example": 2,
         "type": "integer"
       },
       "name": {
         "example": "central-panel-a",
+        "type": "string"
+      },
+      "scope": {
+        "example": "admin",
         "type": "string"
       },
       "token": {
@@ -976,8 +1002,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
-      "name"
+      "name",
+      "scope"
     ],
     "type": "object"
   },
@@ -1171,6 +1199,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitHwid": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
@@ -1228,6 +1259,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitHwid",
       "limitIp",
       "password",
       "preSharedKey",
@@ -1290,6 +1322,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
       "reset": {
         "example": 0,
         "type": "integer"
@@ -1321,6 +1358,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "lastSubFetch",
       "reset",
       "subId",
       "total",
@@ -1341,6 +1379,157 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "masterId"
+    ],
+    "type": "object"
+  },
+  "GeoCategory": {
+    "description": "GeoCategory is one code inside a database, such as geosite's \"google\".",
+    "properties": {
+      "attributes": {
+        "example": [
+          "ads",
+          "cn"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "code": {
+        "example": "google",
+        "type": "string"
+      },
+      "entries": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "attributes",
+      "code",
+      "entries"
+    ],
+    "type": "object"
+  },
+  "GeoCategoryPage": {
+    "description": "GeoCategoryPage is one page of categories plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoCategory"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1043,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoEntry": {
+    "description": "GeoEntry is a single rule inside a category: a domain rule for geosite\ndatabases, a CIDR for geoip ones.",
+    "properties": {
+      "kind": {
+        "example": "domain",
+        "type": "string"
+      },
+      "value": {
+        "example": "google.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "type": "object"
+  },
+  "GeoEntryPage": {
+    "description": "GeoEntryPage is one page of category entries plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoEntry"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoFile": {
+    "description": "GeoFile describes one .dat database found in the asset directory.",
+    "properties": {
+      "categories": {
+        "example": 1043,
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      },
+      "kind": {
+        "example": "site",
+        "type": "string"
+      },
+      "modifiedAt": {
+        "example": 1769558400000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "name": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "size": {
+        "example": 1467392,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "categories",
+      "kind",
+      "modifiedAt",
+      "name",
+      "size"
+    ],
+    "type": "object"
+  },
+  "GeodataTokenIssue": {
+    "description": "GeodataTokenIssue reports a routing token the running core would reject,\nor would silently match nothing against.",
+    "properties": {
+      "code": {
+        "example": "blabla",
+        "type": "string"
+      },
+      "file": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "reason": {
+        "example": "categoryMissing",
+        "type": "string"
+      },
+      "token": {
+        "example": "geosite:blabla",
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason",
+      "token"
     ],
     "type": "object"
   },
@@ -1834,6 +2023,13 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "trafficResetDay": {
+        "description": "Day of month for monthly traffic resets",
+        "example": 1,
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "up": {
         "description": "Upload traffic in bytes",
         "format": "int64",
@@ -1860,6 +2056,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tag",
       "total",
       "trafficReset",
+      "trafficResetDay",
       "up"
     ],
     "type": "object"
@@ -2359,6 +2556,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "configDirtyAt": {
         "example": 0,
+        "format": "int64",
         "type": "integer"
       },
       "cpuPct": {
@@ -2367,6 +2565,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "createdAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "depletedCount": {
@@ -2415,6 +2614,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastHeartbeat": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "latencyMs": {
@@ -2431,10 +2631,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "netDown": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "netUp": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "onlineCount": {
@@ -2481,10 +2683,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "updatedAt": {
         "example": 1700003600,
+        "format": "int64",
         "type": "integer"
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {

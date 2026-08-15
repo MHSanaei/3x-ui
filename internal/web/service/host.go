@@ -213,11 +213,11 @@ func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 		return nil, err
 	}
 	if len(hosts) == 0 {
-		return nil, common.NewError("host group not found")
+		return nil, common.NewError("host not found")
 	}
 	grouped := groupHosts(hosts)
 	if len(grouped) == 0 {
-		return nil, common.NewError("host group not found")
+		return nil, common.NewError("host not found")
 	}
 	return grouped[0], nil
 }
@@ -253,7 +253,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 			return err
 		}
 		if count == 0 {
-			return common.NewError("host group not found")
+			return common.NewError("host not found")
 		}
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err

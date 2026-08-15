@@ -389,6 +389,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		j.inboundService.ClearNodeOnlineClients(n.Id)
 		return nil
 	}
+	snap.ManagedAliases = rt.AdoptedInboundAliases()
 	service.FilterNodeSnapshot(n, snap)
 	_, _, dirty, _, _ := j.nodeService.NodeSyncState(n.Id)
 	if !dirty {

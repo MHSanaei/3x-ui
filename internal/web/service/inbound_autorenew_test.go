@@ -52,7 +52,7 @@ func TestAutoRenewClients_MultiInbound(t *testing.T) {
 		t.Fatalf("seed client_traffics: %v", err)
 	}
 
-	if _, count, err := svc.autoRenewClients(db); err != nil {
+	if _, count, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
 		t.Fatalf("autoRenewClients: %v", err)
 	} else if count != 3 {
 		t.Fatalf("renewed count = %d, want 3", count)
