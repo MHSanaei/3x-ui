@@ -527,8 +527,10 @@ export default function InboundFormModal({
             allowClear
             options={selectableNodes.map((n) => ({
               value: n.id,
-              label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
-              disabled: n.status === 'offline',
+              // Same rule as the clone target picker: only online is
+              // deployable (`unknown` = no heartbeat yet).
+              label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
+              disabled: n.status !== 'online',
             }))}
           />
         </FormField>

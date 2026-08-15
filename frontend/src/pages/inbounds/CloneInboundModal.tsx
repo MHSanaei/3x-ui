@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Select, Typography, message } from 'antd';
 
 import { HttpUtil } from '@/utils';
+import { SelectAllClearButtons } from '@/components/form';
 import { buildClonePayload, pickClonePort } from '@/lib/xray/inbound-clone';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import type { DBInbound } from '@/models/dbinbound';
@@ -37,20 +38,32 @@ export default function CloneInboundModal({
     { value: LOCAL_PANEL, label: t('pages.inbounds.localPanel'), disabled: false },
     ...(nodes || []).filter((n) => n.enable).map((n) => ({
       value: n.id,
-      label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
+      // Only online nodes are deployable targets: nodes report `unknown`
+      // until their first heartbeat, and the backend refuses any status
+      // other than online.
+      label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
       disabled: n.status !== 'online',
     })),
   ], [nodes, t]);
 
-  // Reset the selection on every open: pre-select the source inbound's own
-  // node when it is a selectable target, otherwise the local panel (the only
-  // destination the clone action had before this picker existed).
+  // "Select all" must not pick targets the user can't pick manually —
+  // offline nodes are disabled options in the dropdown.
+  const selectableOptions = useMemo(() => targetOptions.filter((o) => !o.disabled), [targetOptions]);
+
+  // Reset the selection when the dialog OPENS: pre-select the source
+  // inbound's own node when it is a selectable target, otherwise the local
+  // panel (the only destination the clone action had before this picker).
+  // Deps are deliberately `[open]` only — `nodes` gets a new identity on every
+  // background refetch (heartbeats bump latency/status), and keying the reset
+  // on it would clobber the user's selection mid-dialog.
   useEffect(() => {
     if (!open || !dbInbound) return;
     const src = dbInbound.nodeId ?? LOCAL_PANEL;
-    const srcOption = targetOptions.find((o) => o.value === src);
-    setTargets([srcOption && !srcOption.disabled ? src : LOCAL_PANEL]);
-  }, [open, dbInbound, targetOptions]);
+    const srcNode = (nodes || []).find((n) => n.id === src);
+    const selectable = !!srcNode && !!srcNode.enable && srcNode.status === 'online';
+    setTargets([selectable ? src : LOCAL_PANEL]);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [open]);
 
   async function submit() {
     if (!dbInbound || targets.length === 0) return;
@@ -101,6 +114,11 @@ export default function CloneInboundModal({
         <Typography.Paragraph type="secondary">
           {t('pages.inbounds.cloneConfirmContent')}
         </Typography.Paragraph>
+        <SelectAllClearButtons
+          options={selectableOptions}
+          value={targets}
+          onChange={setTargets}
+        />
         <Select
           aria-label={t('pages.inbounds.deployTo')}
           mode="multiple"
