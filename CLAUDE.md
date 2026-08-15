@@ -38,6 +38,8 @@ file locations when it can answer in one hop.
   Inbound, Client, Setting, User are the core), inbound Protocol enum,
   AutoMigrate + hand-written migrations in `db.go`.
 - `internal/xray/` — Xray child-process lifecycle, config generation, gRPC API.
+- `internal/xray/geodata/` — streaming geosite/geoip `.dat` reader (cached
+  category index + paged entries) and `geosite:`/`geoip:`/`ext:` token parsing.
 - `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
 - `internal/sub/` — subscription server (raw / JSON / Clash).
 - `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,

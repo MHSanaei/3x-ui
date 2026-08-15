@@ -1422,6 +1422,44 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/xray/geodata/files',
+        summary: 'List the geo databases (.dat files) in the Xray asset folder, with the layout detected from their contents, size, modification time and category count. A database that fails to parse is still listed, with the reason in "error".',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/geodata/categories',
+        summary: 'One page of a database\'s categories, each with its entry count and the attributes its domains carry (e.g. "ads", "cn").',
+        params: [
+          { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder, e.g. geosite.dat (required).' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the category code.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Omit it to return every category — the index is small and the panel filters it client-side.' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/geodata/entries',
+        summary: 'One page of the rules inside a category — domain rules typed as domain/full/keyword/regexp for geosite databases, CIDRs for geoip ones.',
+        params: [
+          { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder (required).' },
+          { name: 'code', in: 'query', type: 'string', desc: 'Category code, case-insensitive, e.g. google (required).' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the rule value.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Defaults to the cap.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/geodata/validate',
+        summary: 'Check routing tokens against the databases on disk and return only the ones that do not resolve. Plain domains and CIDRs are ignored. Each issue carries a reason: syntax, fileMissing or categoryMissing.',
+        params: [
+          { name: 'tokens', in: 'body (form)', type: 'string', desc: 'Comma-separated routing tokens, e.g. "geosite:google,geosite:blabla". Max 500 per request.' },
+          { name: 'kind', in: 'body (form)', type: 'string', desc: '"ip" to parse the tokens as IP rules (geoip:, ext-ip:, leading !). Anything else parses them as domain rules (geosite:, ext-site:).' },
+        ],
+        body: 'kind=domain&tokens=geosite:google,geosite:blabla',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/xray/outbound-subs',
         summary: 'List all outbound subscriptions (remote URLs that supply additional outbounds), newest first.',
       },
