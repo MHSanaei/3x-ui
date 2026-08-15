@@ -118,33 +118,10 @@ func TestSubInfoEndpoint_HTMLPageStillWinsWithoutFormatParam(t *testing.T) {
 	if ct := w.Header().Get("Content-Type"); !strings.Contains(ct, "text/html") {
 		t.Fatalf("Content-Type = %q, want text/html for a browser request", ct)
 	}
-	if strings.Contains(w.Body.String(), "__SUB_PAGE_DATA__") {
-		t.Fatal("copy-only browser page must not embed subscription page data")
+	if !strings.Contains(w.Body.String(), "__SUB_PAGE_DATA__") {
+		t.Fatal("browser request must still get the SPA page with injected page data")
 	}
-	if !strings.Contains(w.Body.String(), "This is a subscription link") {
-		t.Fatalf("browser request did not get the copy-only page; body=%s", w.Body.String())
-	}
-}
-
-func TestExplicitHTMLRequestUsesCopyOnlyPage(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	initSubDB(t)
-	seedInfoEndpointSub(t, "explicit-html", "explicit@x")
-	oldDistFS := distFS
-	distFS = testDistFS
-	t.Cleanup(func() { distFS = oldDistFS })
-
-	router := gin.New()
-	NewSUBController(router.Group("/"))
-	req := httptest.NewRequest(http.MethodGet, "/sub/explicit-html?html=1", nil)
-	req.Host = "sub.example.com"
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "__SUB_PAGE_DATA__") {
-		t.Fatal("explicit HTML request exposed subscription page data")
+	if !strings.Contains(w.Body.String(), `"isOnline":false`) {
+		t.Fatalf("injected page data must carry isOnline; body=%s", w.Body.String())
 	}
 }

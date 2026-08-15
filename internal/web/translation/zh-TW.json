@@ -2075,8 +2075,5 @@
     "statusFailed": "失敗",
     "statusDown": "中斷",
     "statusUp": "恢復"
-  },
-  "subCopyPageTitle": "訂閱連結",
-  "subCopyPageHeading": "這是訂閱連結",
-  "subCopyPageInstructions": "無需在瀏覽器中開啟。請複製此頁面位址並貼到應用程式中。"
+  }
 }

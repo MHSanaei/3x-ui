@@ -2075,8 +2075,5 @@
     "statusFailed": "فشل",
     "statusDown": "غير متصل",
     "statusUp": "متصل"
-  },
-  "subCopyPageTitle": "رابط الاشتراك",
-  "subCopyPageHeading": "هذا رابط اشتراك",
-  "subCopyPageInstructions": "لا حاجة لفتحه في المتصفح. انسخ عنوان هذه الصفحة والصقه في التطبيق."
+  }
 }

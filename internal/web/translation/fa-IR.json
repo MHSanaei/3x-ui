@@ -2075,8 +2075,5 @@
     "statusFailed": "ناموفق",
     "statusDown": "قطع",
     "statusUp": "وصل"
-  },
-  "subCopyPageTitle": "پیوند اشتراک",
-  "subCopyPageHeading": "این یک پیوند اشتراک است",
-  "subCopyPageInstructions": "نیازی نیست آن را در مرورگر باز کنید. نشانی این صفحه را کپی و در برنامه جای‌گذاری کنید."
+  }
 }

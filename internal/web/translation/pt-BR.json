@@ -2075,8 +2075,5 @@
     "statusFailed": "FALHOU",
     "statusDown": "INATIVO",
     "statusUp": "ATIVO"
-  },
-  "subCopyPageTitle": "Link de assinatura",
-  "subCopyPageHeading": "Este é um link de assinatura",
-  "subCopyPageInstructions": "Não é necessário abri-lo no navegador. Copie o endereço desta página e cole-o no aplicativo."
+  }
 }
