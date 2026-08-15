@@ -26,6 +26,7 @@ type SubJsonService struct {
 	defaultOutbounds []json_util.RawMessage
 	finalMask        string
 	mux              string
+	observatory      subBalancerObservatoryConfig
 
 	SubService *SubService
 }
@@ -57,6 +58,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		defaultOutbounds: defaultOutbounds,
 		finalMask:        finalMask,
 		mux:              mux,
+		observatory:      defaultSubBalancerObservatoryConfig(),
 		SubService:       subService,
 	}
 }
@@ -179,6 +181,74 @@ const (
 	subBalancerProbeURL = "http://www.google.com/generate_204"
 )
 
+// subBalancerObservatoryConfig is the panel-wide burstObservatory ping config
+// emitted into every client-side balancer doc (subJsonObservatory setting).
+type subBalancerObservatoryConfig struct {
+	Destination  string `json:"destination"`
+	Connectivity string `json:"connectivity"`
+	Interval     string `json:"interval"`
+	Sampling     int    `json:"sampling"`
+	Timeout      string `json:"timeout"`
+	HTTPMethod   string `json:"httpMethod"`
+}
+
+func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
+	return subBalancerObservatoryConfig{
+		Destination:  subBalancerProbeURL,
+		Connectivity: subBalancerProbeURL,
+		Interval:     "1m",
+		Sampling:     3,
+		Timeout:      "5s",
+		HTTPMethod:   "HEAD",
+	}
+}
+
+// SetObservatoryConfig overrides defaults from the panel JSON setting; invalid
+// or empty fields keep the default so a partial config always works.
+func (s *SubJsonService) SetObservatoryConfig(cfg string) {
+	s.observatory = defaultSubBalancerObservatoryConfig()
+	if cfg == "" {
+		return
+	}
+	var parsed subBalancerObservatoryConfig
+	if json.Unmarshal([]byte(cfg), &parsed) != nil {
+		return
+	}
+	if parsed.Destination != "" {
+		s.observatory.Destination = parsed.Destination
+	}
+	if parsed.Connectivity != "" {
+		s.observatory.Connectivity = parsed.Connectivity
+	}
+	if parsed.Interval != "" {
+		s.observatory.Interval = parsed.Interval
+	}
+	if parsed.Sampling > 0 {
+		s.observatory.Sampling = parsed.Sampling
+	}
+	if parsed.Timeout != "" {
+		s.observatory.Timeout = parsed.Timeout
+	}
+	if parsed.HTTPMethod == "HEAD" || parsed.HTTPMethod == "GET" {
+		s.observatory.HTTPMethod = parsed.HTTPMethod
+	}
+}
+
+func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
+	o := s.observatory
+	return map[string]any{
+		"subjectSelector": []string{prefix},
+		"pingConfig": map[string]any{
+			"destination":  o.Destination,
+			"connectivity": o.Connectivity,
+			"interval":     o.Interval,
+			"sampling":     o.Sampling,
+			"timeout":      o.Timeout,
+			"httpMethod":   o.HTTPMethod,
+		},
+	}
+}
+
 // appendBalancerEntries appends one entry per enabled balancer that has at
 // least one member outbound among the inbound entries.
 func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
@@ -225,8 +295,8 @@ func balancerTransport(network string) string {
 }
 
 // buildBalancerConfig assembles the balancer profile: members retagged under
-// a per-balancer prefix, a routing.balancers entry selecting it, and a burst
-// observatory probing it. Returns nil when no member outbound exists.
+// a per-balancer prefix, a routing.balancers entry selecting it, and (for
+// leastPing/leastLoad) a burst observatory probing it.
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
@@ -300,15 +370,11 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	newConfigJson["outbounds"] = outbounds
 	newConfigJson["remarks"] = balancer.Remark
 	newConfigJson["routing"] = routing
-	newConfigJson["burstObservatory"] = map[string]any{
-		"subjectSelector": []string{prefix},
-		"pingConfig": map[string]any{
-			"destination":  subBalancerProbeURL,
-			"connectivity": subBalancerProbeURL,
-			"interval":     "1m",
-			"sampling":     3,
-			"timeout":      "5s",
-		},
+	// random/roundRobin have no fallback, so an observatory would only make the
+	// client probe every outbound for nothing. Emit one for the strategies that
+	// actually consume probe results.
+	if balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad" {
+		newConfigJson["burstObservatory"] = s.balancerObservatory(prefix)
 	}
 
 	config, _ := json.MarshalIndent(newConfigJson, "", "  ")

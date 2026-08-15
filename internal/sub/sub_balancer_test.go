@@ -226,3 +226,49 @@ func TestSubJson_BalancerTagDedup(t *testing.T) {
 		t.Fatalf("balancer outbound tags = %v", tags)
 	}
 }
+
+// random/roundRobin have no fallback so they emit no observatory; leastPing
+// carries one, with the panel-wide ping config overriding the defaults.
+func TestSubJson_BalancerObservatoryConditional(t *testing.T) {
+	seedSubDB(t)
+	rr := seedSubInbound(t, "s1", "rr", 4741, 1, wsTLSStream)
+	lp := seedSubInbound(t, "s1", "lp", 4742, 2, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "rnd", Strategy: "random", InboundIds: []int{rr.Id}, SortOrder: 1, Enabled: true,
+	})
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{lp.Id}, SortOrder: 2, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", NewSubService(""))
+	js.SetObservatoryConfig(`{"destination":"https://probe.example/204","httpMethod":"GET","sampling":5}`)
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs := parseSubJsonDocs(t, out)
+
+	rnd := findDocByRemarks(docs, "rnd")
+	if _, has := rnd["burstObservatory"]; has {
+		t.Fatalf("random balancer must not emit burstObservatory: %v", rnd["burstObservatory"])
+	}
+
+	pinger := findDocByRemarks(docs, "pinger")
+	obs, _ := pinger["burstObservatory"].(map[string]any)
+	if obs == nil {
+		t.Fatalf("leastPing balancer must emit burstObservatory:\n%s", out)
+	}
+	ping, _ := obs["pingConfig"].(map[string]any)
+	if ping["destination"] != "https://probe.example/204" {
+		t.Fatalf("destination = %v, want custom probe URL", ping["destination"])
+	}
+	if ping["httpMethod"] != "GET" {
+		t.Fatalf("httpMethod = %v, want GET", ping["httpMethod"])
+	}
+	if ping["sampling"] != float64(5) {
+		t.Fatalf("sampling = %v, want 5", ping["sampling"])
+	}
+	if ping["interval"] != "1m" {
+		t.Fatalf("interval = %v, want default 1m", ping["interval"])
+	}
+}
