@@ -1350,8 +1350,7 @@ export default function ClientsPage() {
                           rowSelection={rowSelection}
                           pagination={tablePagination}
                           size="small"
-                          scroll={{ x: 1200, y: 'calc(100vh - 380px)' }}
-                          virtual
+                          scroll={{ x: 1200 }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (

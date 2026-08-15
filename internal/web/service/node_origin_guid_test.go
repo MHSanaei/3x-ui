@@ -1,12 +1,25 @@
 package service
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+func assertStringSet(t *testing.T, label string, got, want []string) {
+	t.Helper()
+	g := append([]string(nil), got...)
+	w := append([]string(nil), want...)
+	slices.Sort(g)
+	slices.Sort(w)
+	if !slices.Equal(g, w) {
+		t.Fatalf("%s = %v, want %v", label, got, want)
+	}
+}
 
 // #4983: a synced inbound's OriginNodeGuid must point at the panel that
 // physically hosts it. A node's own local inbound (empty origin in its
@@ -128,6 +141,174 @@ func TestSetRemoteTraffic_RemapsClonedNodeOwnGuidOrigin(t *testing.T) {
 	}
 	if og := origin("fwd-8443-tcp"); og != "child-guid" {
 		t.Fatalf("forwarded inbound origin = %q, want child-guid (kept across the hop)", og)
+	}
+}
+
+func TestSetRemoteTraffic_RemapsActiveInboundTreeAndCentralTags(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	previousProcess, previousResult := xrayState.snapshot()
+	process := xray.NewTestProcess(nil, "")
+	xrayState.replace(process)
+	t.Cleanup(func() {
+		xrayState.mu.Lock()
+		xrayState.process = previousProcess
+		xrayState.result = previousResult
+		xrayState.mu.Unlock()
+	})
+
+	// Force the remote inbound to be adopted with an n1- prefix on the master:
+	// the active-inbound tree still arrives with the node-local tag.
+	if err := db.Create(&model.Inbound{
+		Tag: "shared-tag", Enable: true, Port: 1000, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+	}).Error; err != nil {
+		t.Fatalf("create local conflicting inbound: %v", err)
+	}
+
+	// Two cloned nodes share the same panelGuid, so the node's own active tags
+	// must be keyed by node:1 instead of the duplicated GUID.
+	for _, n := range []*model.Node{
+		{Id: 1, Name: "a", Address: "10.0.0.1", Port: 2053, ApiToken: "t", Guid: "dup"},
+		{Id: 2, Name: "b", Address: "10.0.0.2", Port: 2053, ApiToken: "t", Guid: "dup"},
+	} {
+		if err := db.Create(n).Error; err != nil {
+			t.Fatalf("create node %s: %v", n.Name, err)
+		}
+	}
+
+	snap := &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{{
+			Tag:      "shared-tag",
+			Enable:   true,
+			Port:     8443,
+			Protocol: model.VLESS,
+			Settings: `{"clients":[]}`,
+		}},
+		ActiveInboundTree: map[string][]string{
+			"dup": {"shared-tag"},
+		},
+	}
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	merged := process.GetMergedActiveInboundTrees()
+	assertStringSet(t, "active node:1", merged["node:1"], []string{"n1-shared-tag"})
+	if _, ok := merged["dup"]; ok {
+		t.Fatalf("cloned active-inbound subtree must not stay under shared GUID: %v", merged)
+	}
+}
+
+func TestSetRemoteTraffic_NormalizesForwardedActiveInboundSubtreeTags(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	previousProcess, previousResult := xrayState.snapshot()
+	process := xray.NewTestProcess(nil, "")
+	xrayState.replace(process)
+	t.Cleanup(func() {
+		xrayState.mu.Lock()
+		xrayState.process = previousProcess
+		xrayState.result = previousResult
+		xrayState.mu.Unlock()
+	})
+
+	for _, tag := range []string{"own-tag", "child-tag"} {
+		if err := db.Create(&model.Inbound{
+			Tag: tag, Enable: true, Port: 1000, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+		}).Error; err != nil {
+			t.Fatalf("create local conflicting inbound %q: %v", tag, err)
+		}
+	}
+	if err := db.Create(&model.Node{
+		Id: 1, Name: "node2", Address: "10.0.0.2", Port: 2053, ApiToken: "t", Guid: "node2-guid",
+	}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	snap := &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{
+			{
+				Tag:      "own-tag",
+				Enable:   true,
+				Port:     8443,
+				Protocol: model.VLESS,
+				Settings: `{"clients":[]}`,
+			},
+			{
+				Tag:            "child-tag",
+				Enable:         true,
+				Port:           9443,
+				Protocol:       model.VLESS,
+				Settings:       `{"clients":[]}`,
+				OriginNodeGuid: "child-guid",
+			},
+		},
+		ActiveInboundTree: map[string][]string{
+			"node2-guid": {"own-tag"},
+			"child-guid": {"child-tag"},
+		},
+	}
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	merged := process.GetMergedActiveInboundTrees()
+	assertStringSet(t, "direct node active tags", merged["node2-guid"], []string{"n1-own-tag"})
+	assertStringSet(t, "forwarded child active tags", merged["child-guid"], []string{"n1-child-tag"})
+}
+
+func TestSetRemoteTraffic_DropsForeignActiveInboundGuid(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	previousProcess, previousResult := xrayState.snapshot()
+	process := xray.NewTestProcess(nil, "")
+	xrayState.replace(process)
+	t.Cleanup(func() {
+		xrayState.mu.Lock()
+		xrayState.process = previousProcess
+		xrayState.result = previousResult
+		xrayState.mu.Unlock()
+	})
+
+	for _, n := range []*model.Node{
+		{Id: 1, Name: "node-a", Address: "10.0.0.1", Port: 2053, ApiToken: "t", Guid: "node-a-guid"},
+		{Id: 2, Name: "node-b", Address: "10.0.0.2", Port: 2053, ApiToken: "t", Guid: "node-b-guid"},
+	} {
+		if err := db.Create(n).Error; err != nil {
+			t.Fatalf("create node %s: %v", n.Name, err)
+		}
+	}
+
+	snap := &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{{
+			Tag:      "own-tag",
+			Enable:   true,
+			Port:     8443,
+			Protocol: model.VLESS,
+			Settings: `{"clients":[]}`,
+		}},
+		ActiveInboundTree: map[string][]string{
+			"node-a-guid": {"own-tag"},
+			"node-b-guid": {"foreign-tag"},
+		},
+	}
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	merged := process.GetMergedActiveInboundTrees()
+	assertStringSet(t, "own active tags", merged["node-a-guid"], []string{"own-tag"})
+	if _, ok := merged["node-b-guid"]; ok {
+		t.Fatalf("foreign active-inbound subtree should be ignored: %v", merged)
 	}
 }
 

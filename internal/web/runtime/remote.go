@@ -458,6 +458,16 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	return nil
 }
 
+func (r *Remote) SetInboundSubSortIndex(ctx context.Context, ib *model.Inbound, index int) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return err
+	}
+	payload := url.Values{"subSortIndex": []string{strconv.Itoa(index)}}
+	_, err = r.do(ctx, http.MethodPost, "panel/api/inbounds/"+strconv.Itoa(id)+"/subSortIndex", payload)
+	return err
+}
+
 // ReconcileInbound pushes ib only when its wire payload differs from the last
 // successful push, or when the node no longer reports the tag (existsOnNode
 // false) — a node that dropped/restarted must still be re-seeded. Returns
@@ -698,8 +708,13 @@ type TrafficSnapshot struct {
 	// OnlineEmails so the master can attribute deeply nested clients to the real
 	// node across a chain (#4983). Empty when the node is an old build without
 	// the per-GUID endpoint — OnlineEmails is the fallback then.
-	OnlineTree    map[string][]string
-	LastOnlineMap map[string]int64
+	OnlineTree map[string][]string
+	// ActiveInboundTree is the GUID-keyed subtree of inbound tags that carried
+	// traffic within the node's online grace window. Empty when the node is an
+	// old build without the endpoint; the master then falls back to email-only
+	// online attribution for that node.
+	ActiveInboundTree map[string][]string
+	LastOnlineMap     map[string]int64
 	// HostGroups carries the node's per-inbound host overrides (TLS/SNI/
 	// fingerprint), fetched only when the snapshot holds a not-yet-adopted tag.
 	HostGroups []*entity.HostGroup
@@ -752,6 +767,13 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		logger.Warning("remote", r.node.Name, "lastOnline fetch failed:", err)
 	} else if len(envLastOnline.Obj) > 0 {
 		_ = json.Unmarshal(envLastOnline.Obj, &snap.LastOnlineMap)
+	}
+
+	envActiveInbounds, err := r.do(ctx, http.MethodPost, "panel/api/clients/activeInbounds", nil)
+	if err != nil {
+		logger.Debugf("remote %s active inbounds fetch failed: %v", r.node.Name, err)
+	} else if len(envActiveInbounds.Obj) > 0 {
+		_ = json.Unmarshal(envActiveInbounds.Obj, &snap.ActiveInboundTree)
 	}
 
 	return snap, nil
