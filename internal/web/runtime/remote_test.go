@@ -54,6 +54,37 @@ func TestRemoteDo_AcceptsNormalResponse(t *testing.T) {
 	}
 }
 
+func TestRemoteSetInboundSubSortIndexSendsOnlyNarrowField(t *testing.T) {
+	var posted url.Values
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch req.URL.Path {
+		case "/panel/api/inbounds/list":
+			_, _ = w.Write([]byte(`{"success":true,"obj":[{"id":42,"tag":"remote-tag"}]}`))
+		case "/panel/api/inbounds/42/subSortIndex":
+			if err := req.ParseForm(); err != nil {
+				t.Fatalf("ParseForm: %v", err)
+			}
+			posted = req.PostForm
+			_, _ = w.Write([]byte(`{"success":true}`))
+		default:
+			http.NotFound(w, req)
+		}
+	}))
+	defer srv.Close()
+	r := NewRemote(nodeForPlainServer(t, srv, "verify", "tok"), nil)
+	ib := &model.Inbound{Tag: "remote-tag", Settings: `{"clients":[{"email":"newer"}]}`}
+	if err := r.SetInboundSubSortIndex(context.Background(), ib, 7); err != nil {
+		t.Fatalf("SetInboundSubSortIndex: %v", err)
+	}
+	if got := posted.Get("subSortIndex"); got != "7" {
+		t.Fatalf("subSortIndex = %q, want 7", got)
+	}
+	if len(posted) != 1 {
+		t.Fatalf("posted fields = %v, want only subSortIndex", posted)
+	}
+}
+
 // TestReadCappedBody_Boundary pins the cap+1 contract cheaply (no large allocs):
 // a body of exactly limit is accepted; limit+1 and beyond are rejected.
 func TestReadCappedBody_Boundary(t *testing.T) {
