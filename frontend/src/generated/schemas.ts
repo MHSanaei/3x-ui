@@ -1199,6 +1199,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitHwid": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
@@ -1256,6 +1259,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitHwid",
       "limitIp",
       "password",
       "preSharedKey",
