@@ -14,7 +14,7 @@ import (
 // running: one instance per enabled local mtproto inbound, serving only the
 // secrets of clients that are both enabled in the inbound settings and not
 // depletion-disabled in client_traffics. That is the same effective client set
-// buildRuntimeInboundForAPI pushes on interactive edits, so the reconcile job
+// buildInboundForLocalRuntime pushes on interactive edits, so the reconcile job
 // and the push paths agree on one fingerprint — a disagreement would surface
 // as a needless mtg restart, and a job that read only the raw settings would
 // keep serving depleted clients until an unrelated restart. Inbounds whose
@@ -95,7 +95,7 @@ func (s *InboundService) applyLocalMtproto(inboundId int) {
 	}
 	payload := inbound
 	if inbound.Enable {
-		if built, bErr := s.buildRuntimeInboundForAPI(database.GetDB(), inbound); bErr == nil {
+		if built, bErr := s.buildInboundForLocalRuntime(database.GetDB(), inbound); bErr == nil {
 			payload = built
 		}
 	}

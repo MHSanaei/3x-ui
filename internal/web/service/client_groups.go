@@ -234,7 +234,9 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	var records []model.ClientRecord
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+		if err := db.Where("email IN ?", batch).
+			Where("group_name IS NULL OR group_name <> ?", group).
+			Find(&rows).Error; err != nil {
 			return 0, err
 		}
 		records = append(records, rows...)
@@ -248,13 +250,17 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	}
 
 	tx := db.Begin()
+	var affected int64
 	for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
-		if err := tx.Model(&model.ClientRecord{}).
+		result := tx.Model(&model.ClientRecord{}).
 			Where("email IN ?", batch).
-			UpdateColumn("group_name", group).Error; err != nil {
+			Where("group_name IS NULL OR group_name <> ?", group).
+			UpdateColumn("group_name", group)
+		if result.Error != nil {
 			tx.Rollback()
-			return 0, err
+			return 0, result.Error
 		}
+		affected += result.RowsAffected
 	}
 
 	var inboundIDs []int
@@ -331,7 +337,7 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	if err := tx.Commit().Error; err != nil {
 		return 0, err
 	}
-	return len(records), nil
+	return int(affected), nil
 }
 
 func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {

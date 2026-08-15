@@ -103,3 +103,16 @@ export const AllSettingSchema = z.object({
 }).loose();
 
 export type AllSettingInput = z.infer<typeof AllSettingSchema>;
+
+// Existing installations can contain regex values saved before the backend
+// enforced its 2,048-character limit. Accept those values when reading so the
+// settings page can display and let users correct them, while keeping the
+// stricter schema above for outgoing updates.
+export const AllSettingResponseSchema = AllSettingSchema.extend({
+  subJsonUserAgentRegex: z.string().optional(),
+  subClashUserAgentRegex: z.string().optional(),
+});
+
+export const FactoryDefaultsSchema = z.record(z.string(), z.string());
+
+export type FactoryDefaults = z.infer<typeof FactoryDefaultsSchema>;

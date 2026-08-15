@@ -16,6 +16,13 @@
   white-space: nowrap;
 }
 
+.client-email-more {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ant-color-border-secondary, rgba(128, 128, 128, 0.2));
+  opacity: 0.65;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;

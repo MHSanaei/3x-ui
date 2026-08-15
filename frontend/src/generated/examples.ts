@@ -220,15 +220,19 @@ export const EXAMPLES: Record<string, unknown> = {
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
+    "expiresAt": 0,
     "id": 0,
     "name": "",
+    "scope": "",
     "token": ""
   },
   "ApiTokenView": {
     "createdAt": 1736000000,
     "enabled": true,
+    "expiresAt": 0,
     "id": 2,
     "name": "central-panel-a",
+    "scope": "admin",
     "token": "new-token-string"
   },
   "Client": {
@@ -279,6 +283,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "group": "",
     "id": 0,
     "keepAlive": 0,
+    "limitHwid": 0,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",
@@ -305,6 +310,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 14825,
     "inboundId": 1,
     "lastOnline": 1735680000000,
+    "lastSubFetch": 1735680000000,
     "reset": 0,
     "subId": "i7tvdpeffi0hvvf1",
     "total": 10737418240,
@@ -422,6 +428,7 @@ export const EXAMPLES: Record<string, unknown> = {
         "id": 14825,
         "inboundId": 1,
         "lastOnline": 1735680000000,
+        "lastSubFetch": 1735680000000,
         "reset": 0,
         "subId": "i7tvdpeffi0hvvf1",
         "total": 10737418240,
@@ -451,6 +458,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",
+    "trafficResetDay": 1,
     "up": 0
   },
   "InboundClientIps": {

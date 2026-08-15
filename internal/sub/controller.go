@@ -72,6 +72,7 @@ type SUBController struct {
 	subService      *SubService
 	subJsonService  *SubJsonService
 	subClashService *SubClashService
+	clientService   service.ClientService
 	settingService  service.SettingService
 
 	subTemplateMu    sync.RWMutex
@@ -384,11 +385,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
+	if !a.enforceHwid(c) {
+		return
+	}
 	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
 	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
 	}
@@ -425,6 +431,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		} else {
 			c.String(200, result.String())
 		}
+		a.recordSubscriptionFetch(c)
+	}
+}
+
+func (a *SUBController) recordSubscriptionFetch(c *gin.Context) {
+	if c.Request == nil || c.Request.Method != http.MethodGet || c.Writer.Status() != http.StatusOK {
+		return
+	}
+	if err := a.subService.RecordSubscriptionFetch(c.Param("subid")); err != nil {
+		logger.Warning("Failed to record subscription fetch:", err)
 	}
 }
 
@@ -593,6 +609,41 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 	}
 }
 
+func (a *SUBController) enforceHwid(c *gin.Context) bool {
+	result, err := a.clientService.EnforceHwidForSubID(c.Param("subid"), service.HwidRequest{
+		Hwid:        c.GetHeader("X-HWID"),
+		UserAgent:   c.GetHeader("User-Agent"),
+		DeviceOS:    c.GetHeader("X-Device-OS"),
+		OsVersion:   c.GetHeader("X-Ver-OS"),
+		DeviceModel: c.GetHeader("X-Device-Model"),
+	})
+	if err != nil {
+		writeSubError(c, err)
+		return false
+	}
+	applyHwidHeaders(c, result)
+	if !result.Allowed {
+		c.Status(http.StatusNotFound)
+		return false
+	}
+	return true
+}
+
+func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
+	if result.Active {
+		c.Header("X-Hwid-Active", "true")
+	}
+	if result.NotSupported {
+		c.Header("X-Hwid-Not-Supported", "true")
+	}
+	if result.LimitReached {
+		c.Header("X-Hwid-Limit", "true")
+	}
+	if result.MaxDevicesReached {
+		c.Header("X-Hwid-Max-Devices-Reached", "true")
+	}
+}
+
 // setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
 // clients and browsers always fetch fresh traffic/expiry data.
 func setNoCacheHeaders(c *gin.Context) {
@@ -650,9 +701,13 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
+		return
+	}
+	if !a.enforceHwid(c) {
 		return
 	}
 	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
@@ -662,6 +717,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 	if !a.serveJsonBody(c, alwaysReturnArray, contentType, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
@@ -693,14 +749,19 @@ func (a *SUBController) subClashs(c *gin.Context) {
 		if !a.serveClashBody(c, true) {
 			writeSubError(c, nil)
 		}
+		a.recordSubscriptionFetch(c)
 		return
 	}
 	if a.maybeServeSubPage(c) {
 		return
 	}
+	if !a.enforceHwid(c) {
+		return
+	}
 	if !a.serveClashBody(c, false) {
 		writeSubError(c, nil)
 	}
+	a.recordSubscriptionFetch(c)
 }
 
 func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {

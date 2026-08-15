@@ -96,13 +96,15 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&inbounds).Error; err != nil {
 		return err
 	}
-	remoteTags, err := rt.ListRemoteTags(ctx)
+	remoteInbounds, err := rt.ListInboundOptions(ctx)
 	if err != nil {
 		return err
 	}
+	remoteTags := make([]string, 0, len(remoteInbounds))
 	remoteTagSet := make(map[string]struct{}, len(remoteTags))
-	for _, tag := range remoteTags {
-		remoteTagSet[tag] = struct{}{}
+	for _, remoteIb := range remoteInbounds {
+		remoteTags = append(remoteTags, remoteIb.Tag)
+		remoteTagSet[remoteIb.Tag] = struct{}{}
 	}
 	prefix := nodeTagPrefix(&nodeID)
 	desiredTags := make(map[string]struct{}, len(inbounds)*2)
@@ -125,12 +127,36 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 				}
 			}
 		}
-		// Reconcile with the same runtime-built payload interactive pushes
-		// send (disabled clients filtered, settings.fallbacks injected) so
-		// fingerprints line up and fallback edits actually reach the node.
 		runtimeIb := ib
-		if built, bErr := s.buildRuntimeInboundForAPI(db, ib); bErr == nil {
+		if built, bErr := s.buildInboundForNodePush(db, ib); bErr == nil {
 			runtimeIb = built
+		}
+		if !existsOnNode && n.Guid != "" && ib.OriginNodeGuid == n.Guid {
+			var compatible []runtime.RemoteInboundOption
+			for _, remoteIb := range remoteInbounds {
+				if remoteIb.Port == runtimeIb.Port &&
+					remoteIb.Protocol == runtimeIb.Protocol &&
+					strings.TrimSpace(remoteIb.Listen) == strings.TrimSpace(runtimeIb.Listen) {
+					compatible = append(compatible, remoteIb)
+				}
+			}
+			switch len(compatible) {
+			case 1:
+				alias := compatible[0]
+				desiredTags[alias.Tag] = struct{}{}
+				rt.AdoptInboundAlias(runtimeIb, alias)
+				existsOnNode = true
+				logger.Infof("adopted compatible inbound %q on node %s as %q", alias.Tag, n.Name, ib.Tag)
+			case 0:
+				// No compatible occupant: keep the normal create path, which
+				// leaves a real port/protocol drift loud.
+			default:
+				for _, candidate := range compatible {
+					desiredTags[candidate.Tag] = struct{}{}
+				}
+				errs = append(errs, fmt.Errorf("reconcile inbound %q: ambiguous compatible remote inbounds", ib.Tag))
+				continue
+			}
 		}
 		if _, err := rt.ReconcileInbound(ctx, runtimeIb, existsOnNode); err != nil {
 			errs = append(errs, fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err))
@@ -311,7 +337,8 @@ func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
 		c.ExpiryTime != snapIb.ExpiryTime ||
 		c.StreamSettings != snapIb.StreamSettings ||
 		c.Sniffing != snapIb.Sniffing ||
-		c.TrafficReset != snapIb.TrafficReset
+		c.TrafficReset != snapIb.TrafficReset ||
+		c.TrafficResetDay != normalizeTrafficResetDay(snapIb.TrafficResetDay)
 }
 
 // adoptedWireInbound is the central inbound as it reads after adopting the
@@ -330,6 +357,7 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	a.StreamSettings = snapIb.StreamSettings
 	a.Sniffing = snapIb.Sniffing
 	a.TrafficReset = snapIb.TrafficReset
+	a.TrafficResetDay = normalizeTrafficResetDay(snapIb.TrafficResetDay)
 	return &a
 }
 
@@ -350,7 +378,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// origin (an inbound the node forwards from its own sub-node) is kept as-is,
 	// so a chained Node1->Node2->Node3 still attributes Node3's inbounds to Node3.
 	var nodeRow model.Node
-	db.Select("guid").Where("id = ?", nodeID).First(&nodeRow)
+	db.Select("guid", "config_dirty", "inbound_sync_mode", "inbound_tags").Where("id = ?", nodeID).First(&nodeRow)
+	// Re-read inside the serialized writer: a client added while this snapshot
+	// was in flight marks the node dirty after the caller sampled the flag.
+	dirty = dirty || nodeRow.ConfigDirty
+	nodeRow.Id = nodeID
+	unmanagedTag := unmanagedTagPredicate(&nodeRow)
 	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
 	guidShared := nodeRow.Guid != "" && selfKey != nodeRow.Guid
 	originGuidFor := func(snapIb *model.Inbound) string {
@@ -511,6 +544,29 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 		c, ok := tagToCentral[snapIb.Tag]
 		if !ok {
+			origin := originGuidFor(snapIb)
+			var compatible []*model.Inbound
+			for i := range central {
+				candidate := &central[i]
+				if candidate.OriginNodeGuid == origin &&
+					candidate.Port == snapIb.Port &&
+					candidate.Protocol == snapIb.Protocol &&
+					strings.TrimSpace(candidate.Listen) == strings.TrimSpace(snapIb.Listen) {
+					compatible = append(compatible, candidate)
+				}
+			}
+			switch len(compatible) {
+			case 1:
+				c, ok = compatible[0], true
+				tagToCentral[snapIb.Tag] = c
+				snapTags[c.Tag] = struct{}{}
+			case 0:
+				// A genuinely new inbound follows the normal adoption path.
+			default:
+				return false, fmt.Errorf("setRemoteTraffic: inbound %q has ambiguous compatible central aliases", snapIb.Tag)
+			}
+		}
+		if !ok {
 			if dirty {
 				continue
 			}
@@ -561,6 +617,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				StreamSettings:       snapIb.StreamSettings,
 				Sniffing:             snapIb.Sniffing,
 				TrafficReset:         snapIb.TrafficReset,
+				TrafficResetDay:      normalizeTrafficResetDay(snapIb.TrafficResetDay),
 				LastTrafficResetTime: snapIb.LastTrafficResetTime,
 				Enable:               snapIb.Enable,
 				Remark:               snapIb.Remark,
@@ -616,6 +673,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["stream_settings"] = snapIb.StreamSettings
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
+			updates["traffic_reset_day"] = normalizeTrafficResetDay(snapIb.TrafficResetDay)
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
 			if adoptedWireChanged(c, snapIb, adoptedSettings) {
 				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, adoptedSettings))
@@ -665,6 +723,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			continue
 		}
 		if _, kept := snapTags[c.Tag]; kept {
+			continue
+		}
+		if unmanagedTag(c.Tag) {
 			continue
 		}
 		var goneEmails []string
@@ -882,7 +943,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if uErr != nil {
 				return false, uErr
 			}
-			if !stillUsed {
+			// Usage, quota and expiry live on this row, so a client the orphan
+			// sweep will mark keeps it until the reaper confirms the removal.
+			if !stillUsed && !clientRecordExists(tx, existing.Email) {
 				if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
 					Delete(&xray.ClientTraffic{}).Error; err != nil {
 					return false, err
@@ -897,6 +960,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		emails    map[string]struct{}
 	}
 	var perInboundOld []oldSet
+	syncFailedInbounds := map[int]struct{}{}
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -969,10 +1033,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
 			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, err)
+			syncFailedInbounds[c.Id] = struct{}{}
 		}
 	}
 
 	for _, old := range perInboundOld {
+		// The sweep's premise is that links were just rebuilt from the snapshot,
+		// which is exactly what a failed SyncInbound violates.
+		if _, failed := syncFailedInbounds[old.inboundID]; failed {
+			continue
+		}
 		var stillAttached []string
 		if err := tx.Table("clients").
 			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
@@ -998,17 +1068,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if attachmentCount > 0 {
 				continue
 			}
-			if err := tx.Where("email = ?", email).Delete(&model.ClientRecord{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete ClientRecord %q failed: %v", email, err)
-			}
-			if err := tx.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete ClientTraffic %q failed: %v", email, err)
-			}
-			if err := tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
-				logger.Warningf("setRemoteTraffic: delete NodeClientTraffic %q failed: %v", email, err)
+			// "Ended the merge unattached" is true for a real remote deletion and
+			// equally true for a bad merge, so record a strike instead of deleting.
+			if err := markSyncOrphan(tx, email, now); err != nil {
+				logger.Warningf("setRemoteTraffic: mark orphan %q failed: %v", email, err)
+				continue
 			}
 			structuralChange = true
 		}
+	}
+
+	if err := clearSyncOrphanMarks(tx); err != nil {
+		logger.Warning("setRemoteTraffic: clear orphan marks failed:", err)
 	}
 
 	if err := liftActivatedClientRecordExpiries(tx); err != nil {
@@ -1032,7 +1103,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	if p != nil {
+	if process := currentXrayProcess(); process != nil {
 		tree := snap.OnlineTree
 		switch {
 		case len(tree) == 0 && len(snap.OnlineEmails) > 0:
@@ -1054,17 +1125,40 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				tree = remapped
 			}
 		}
-		p.SetNodeOnlineTree(nodeID, tree)
+		process.SetNodeOnlineTree(nodeID, tree)
 	}
 
 	return structuralChange, nil
 }
 
+func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
+	restartOnDisable, err := (&SettingService{}).GetRestartXrayOnClientDisable()
+	if err != nil {
+		logger.Warning("disableInvalidClients: get RestartXrayOnClientDisable failed:", err)
+		return
+	}
+	if !restartOnDisable {
+		return
+	}
+	for _, nodeID := range nodeIDs {
+		nodeIDCopy := nodeID
+		rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
+		if rtErr != nil {
+			logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
+			continue
+		}
+		if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
+			logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
+		}
+	}
+}
+
 func (s *InboundService) GetOnlineClients() []string {
-	if p == nil {
+	process := currentXrayProcess()
+	if process == nil {
 		return []string{}
 	}
-	return p.GetOnlineClients()
+	return process.GetOnlineClients()
 }
 
 // GetOnlineClientsByGuid returns online emails keyed by the panelGuid of the
@@ -1073,11 +1167,12 @@ func (s *InboundService) GetOnlineClients() []string {
 // node-id keying so a client three hops down is attributed to its real node,
 // not the intermediate one it was synced through.
 func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
-	if p == nil {
+	process := currentXrayProcess()
+	if process == nil {
 		return map[string][]string{}
 	}
-	out := p.GetMergedNodeTrees()
-	if local := p.GetLocalOnlineClients(); len(local) > 0 {
+	out := process.GetMergedNodeTrees()
+	if local := process.GetLocalOnlineClients(); len(local) > 0 {
 		if guid := s.panelGuid(); guid != "" {
 			out[guid] = mergeEmails(out[guid], local)
 		}
@@ -1090,10 +1185,11 @@ func (s *InboundService) GetOnlineClientsByGuid() map[string][]string {
 // report per-inbound activity, so a GUID missing from the map means "don't
 // gate" for that node's inbounds.
 func (s *InboundService) GetActiveInboundsByGuid() map[string][]string {
-	if p == nil {
+	process := currentXrayProcess()
+	if process == nil {
 		return map[string][]string{}
 	}
-	active := p.GetLocalActiveInbounds()
+	active := process.GetLocalActiveInbounds()
 	if len(active) == 0 {
 		return map[string][]string{}
 	}
@@ -1105,14 +1201,14 @@ func (s *InboundService) GetActiveInboundsByGuid() map[string][]string {
 }
 
 func (s *InboundService) SetNodeOnlineTree(nodeID int, tree map[string][]string) {
-	if p != nil {
-		p.SetNodeOnlineTree(nodeID, tree)
+	if process := currentXrayProcess(); process != nil {
+		process.SetNodeOnlineTree(nodeID, tree)
 	}
 }
 
 func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
-	if p != nil {
-		p.ClearNodeOnlineClients(nodeID)
+	if process := currentXrayProcess(); process != nil {
+		process.ClearNodeOnlineClients(nodeID)
 	}
 }
 
@@ -1173,8 +1269,8 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 // xray.Process for why the local sets are kept separate from the shared
 // last_online column.
 func (s *InboundService) RefreshLocalOnlineClients(activeEmails, activeInboundTags []string) {
-	if p != nil {
-		p.RefreshLocalOnline(activeEmails, activeInboundTags, time.Now().UnixMilli(), onlineGracePeriodMs)
+	if process := currentXrayProcess(); process != nil {
+		process.RefreshLocalOnline(activeEmails, activeInboundTags, time.Now().UnixMilli(), onlineGracePeriodMs)
 	}
 }
 

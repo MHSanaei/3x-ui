@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
@@ -13,14 +13,18 @@ function readBool(key: string, fallback: boolean): boolean {
 }
 
 function applyDom(isDark: boolean, isUltra: boolean) {
-  document.body.setAttribute('class', isDark ? 'dark' : 'light');
+  document.body.classList.remove('dark', 'light');
+  document.body.classList.add(isDark ? 'dark' : 'light');
   if (isUltra) {
     document.documentElement.setAttribute('data-theme', 'ultra-dark');
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
   const msg = document.getElementById('message');
-  if (msg) msg.className = isDark ? 'dark' : 'light';
+  if (msg) {
+    msg.classList.remove('dark', 'light');
+    msg.classList.add(isDark ? 'dark' : 'light');
+  }
 }
 
 // module load so the document is in the right theme before React mounts.
@@ -92,9 +96,24 @@ const LIGHT_BUTTON_TOKENS = {
   colorPrimaryActive: '#073ea8',
 };
 
+// hashed:false drops the `:where(.css-<hash>)` wrapper antd puts around every
+// rule. It costs nothing in specificity — `:where()` contributes zero, so the
+// panel's own `.ant-*` overrides still win — and it removes roughly 5,700
+// wrappers, 16% of the generated stylesheet, from what the browser has to parse.
+//
+// cssVar.key pins the CSS-variable scope. Every panel page mounts its own
+// ConfigProvider (there is no root one), and without a fixed key each mints a
+// fresh useId-derived scope, so navigating re-serialises and re-injects the whole
+// token block under a new class instead of reusing the one already in the head.
+const SHARED_STYLE_CONFIG = {
+  hashed: false,
+  cssVar: { key: 'xui' },
+} as const;
+
 export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeConfig {
   if (!isDark) {
     return {
+      ...SHARED_STYLE_CONFIG,
       algorithm: antdTheme.defaultAlgorithm,
       token: LIGHT_CONTRAST_TOKENS,
       components: {
@@ -104,6 +123,7 @@ export function buildAntdThemeConfig(isDark: boolean, isUltra: boolean): ThemeCo
     };
   }
   return {
+    ...SHARED_STYLE_CONFIG,
     algorithm: antdTheme.darkAlgorithm,
     token: isUltra ? ULTRA_DARK_TOKENS : DARK_TOKENS,
     components: {
@@ -142,7 +162,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(initialDark);
   const [isUltra, setIsUltra] = useState<boolean>(initialUltra);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyDom(isDark, isUltra);
     localStorage.setItem(STORAGE_DARK, String(isDark));
     localStorage.setItem(STORAGE_ULTRA, String(isUltra));

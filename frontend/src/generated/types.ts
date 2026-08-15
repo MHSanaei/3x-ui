@@ -4,6 +4,7 @@ export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
 export type staticEgressResolver = string;
+export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
@@ -228,16 +229,20 @@ export interface AllSettingView {
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
   name: string;
+  scope: string;
   token: string;
 }
 
 export interface ApiTokenView {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
   name: string;
+  scope: string;
   token?: string;
 }
 
@@ -289,6 +294,7 @@ export interface ClientRecord {
   group: string;
   id: number;
   keepAlive: number;
+  limitHwid: number;
   limitIp: number;
   password: string;
   preSharedKey: string;
@@ -317,6 +323,7 @@ export interface ClientTraffic {
   id: number;
   inboundId: number;
   lastOnline: number;
+  lastSubFetch: number;
   reset: number;
   subId: string;
   total: number;
@@ -429,6 +436,7 @@ export interface Inbound {
   tag: string;
   total: number;
   trafficReset: string;
+  trafficResetDay: number;
   up: number;
 }
 

@@ -937,10 +937,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "enabled": {
         "type": "boolean"
       },
+      "expiresAt": {
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "type": "integer"
       },
       "name": {
+        "type": "string"
+      },
+      "scope": {
         "type": "string"
       },
       "token": {
@@ -951,8 +958,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
       "name",
+      "scope",
       "token"
     ],
     "type": "object"
@@ -968,12 +977,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "expiresAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "example": 2,
         "type": "integer"
       },
       "name": {
         "example": "central-panel-a",
+        "type": "string"
+      },
+      "scope": {
+        "example": "admin",
         "type": "string"
       },
       "token": {
@@ -984,8 +1002,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
-      "name"
+      "name",
+      "scope"
     ],
     "type": "object"
   },
@@ -1179,6 +1199,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitHwid": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
@@ -1236,6 +1259,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitHwid",
       "limitIp",
       "password",
       "preSharedKey",
@@ -1298,6 +1322,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
       "reset": {
         "example": 0,
         "type": "integer"
@@ -1329,6 +1358,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "lastSubFetch",
       "reset",
       "subId",
       "total",
@@ -1846,6 +1876,13 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "trafficResetDay": {
+        "description": "Day of month for monthly traffic resets",
+        "example": 1,
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "up": {
         "description": "Upload traffic in bytes",
         "format": "int64",
@@ -1873,6 +1910,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tag",
       "total",
       "trafficReset",
+      "trafficResetDay",
       "up"
     ],
     "type": "object"

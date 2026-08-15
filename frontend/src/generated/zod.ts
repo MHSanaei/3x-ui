@@ -15,6 +15,9 @@ export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
+export const trafficLocalApplyActionSchema = z.number().int();
+export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
+
 export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
@@ -242,8 +245,10 @@ export type AllSettingView = z.infer<typeof AllSettingViewSchema>;
 export const ApiTokenSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
   name: z.string(),
+  scope: z.string(),
   token: z.string(),
 });
 export type ApiToken = z.infer<typeof ApiTokenSchema>;
@@ -251,8 +256,10 @@ export type ApiToken = z.infer<typeof ApiTokenSchema>;
 export const ApiTokenViewSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
+  expiresAt: z.number().int(),
   id: z.number().int(),
   name: z.string(),
+  scope: z.string(),
   token: z.string().optional(),
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
@@ -307,6 +314,7 @@ export const ClientRecordSchema = z.object({
   group: z.string(),
   id: z.number().int(),
   keepAlive: z.number().int(),
+  limitHwid: z.number().int(),
   limitIp: z.number().int(),
   password: z.string(),
   preSharedKey: z.string(),
@@ -337,6 +345,7 @@ export const ClientTrafficSchema = z.object({
   id: z.number().int(),
   inboundId: z.number().int(),
   lastOnline: z.number().int(),
+  lastSubFetch: z.number().int(),
   reset: z.number().int(),
   subId: z.string(),
   total: z.number().int(),
@@ -454,6 +463,7 @@ export const InboundSchema = z.object({
   tag: z.string(),
   total: z.number().int(),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+  trafficResetDay: z.number().int().min(1).max(31),
   up: z.number().int(),
 });
 export type Inbound = z.infer<typeof InboundSchema>;
