@@ -65,6 +65,7 @@ export class AllSetting {
   subJsonMux = '';
   subJsonRules = '';
   subJsonFinalMask = '';
+  subJsonObservatory = '';
   subThemeDir = '';
   subHideSettings = false;
 
