@@ -816,6 +816,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	successEmails := make([]string, 0, len(recordsByEmail))
 	successIds := make([]int, 0, len(recordsByEmail))
 	failedEmails := make([]string, 0, len(recordsByEmail))
+	successSubIDs := make([]string, 0, len(recordsByEmail))
 	for email, rec := range recordsByEmail {
 		if _, skipped := skippedReasons[email]; skipped {
 			failedEmails = append(failedEmails, email)
@@ -823,6 +824,7 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 		}
 		successEmails = append(successEmails, email)
 		successIds = append(successIds, rec.Id)
+		successSubIDs = append(successSubIDs, rec.SubID)
 	}
 	withdrawClientTombstones(failedEmails...)
 
@@ -831,6 +833,9 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 		// cross-transaction lock-order deadlock on client_traffics/inbounds.
 		if err := runSerializedTx(func(tx *gorm.DB) error {
 			if e := adjustGroupBaselinesForRemovedTraffic(tx, successEmails); e != nil {
+				return e
+			}
+			if e := clearClientHwidsBySubIDTx(tx, successSubIDs...); e != nil {
 				return e
 			}
 			for _, batch := range chunkInts(successIds, sqlInChunk) {
@@ -1119,6 +1124,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	type prepared struct {
 		client     model.Client
 		inboundIds []int
+		limitHwid  int
 	}
 	prep := make([]prepared, 0, len(payloads))
 	emails := make([]string, 0, len(payloads))
@@ -1171,7 +1177,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		seenEmail[le] = struct{}{}
 		seenSubID[client.SubID] = le
 
-		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds})
+		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds, limitHwid: payloads[i].LimitHwid})
 		emails = append(emails, email)
 		subIDs = append(subIDs, client.SubID)
 	}
@@ -1303,9 +1309,13 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	for idx := range prep {
 		if failed[idx] {
 			skip(prep[idx].client.Email, reason[idx])
-		} else {
-			result.Created++
+			continue
 		}
+		if err := s.setClientLimitHwidByEmail(nil, prep[idx].client.Email, prep[idx].limitHwid); err != nil {
+			skip(prep[idx].client.Email, err.Error())
+			continue
+		}
+		result.Created++
 	}
 	return result, needRestart, nil
 }

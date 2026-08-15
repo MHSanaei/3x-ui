@@ -43,7 +43,7 @@ func TestAddClientStat_RefreshesStaleRowOnInboundDeleteThenReuse(t *testing.T) {
 	if _, err := svc.Update(inboundSvc, rec0.Id, model.Client{
 		Email: email, SubID: subID, Enable: false,
 		TotalGB: 0, ExpiryTime: 1000, Reset: 0,
-	}); err != nil {
+	}, 0); err != nil {
 		t.Fatalf("Update to disabled: %v", err)
 	}
 

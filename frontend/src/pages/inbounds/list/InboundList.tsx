@@ -286,7 +286,8 @@ export default function InboundList({
               onChange: (keys: Key[]) => setSelectedRowKeys(keys as number[]),
             }}
             pagination={paginationFor(visibleInbounds)}
-            scroll={{ x: tableScrollX }}
+            scroll={{ x: tableScrollX, y: 'calc(100vh - 320px)' }}
+            virtual
             style={{ marginTop: 10 }}
             size="small"
             locale={{

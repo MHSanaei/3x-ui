@@ -103,7 +103,7 @@ func TestUpdate_PersistsFields_NoInbound(t *testing.T) {
 
 			updated := rec.ToClient()
 			tc.mutate(updated)
-			if _, err := svc.Update(inboundSvc, rec.Id, *updated); err != nil {
+			if _, err := svc.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); err != nil {
 				t.Fatalf("Update: %v", err)
 			}
 
@@ -142,7 +142,7 @@ func TestUpdate_NoInbound_PreservesCredentialsWhenOmitted(t *testing.T) {
 	updated.Auth = ""
 	updated.Secret = ""
 	updated.Comment = "only comment changed"
-	if _, err := svc.Update(inboundSvc, rec.Id, *updated); err != nil {
+	if _, err := svc.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 

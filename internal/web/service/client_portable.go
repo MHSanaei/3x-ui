@@ -54,6 +54,7 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 		out = append(out, ClientCreatePayload{
 			Client:     *client,
 			InboundIds: attachments[rows[i].Id],
+			LimitHwid:  rows[i].LimitHwid,
 		})
 	}
 	return out, nil
@@ -151,7 +152,9 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 		}
 		client.UpdatedAt = now
 
-		if err := db.Create(client.ToRecord()).Error; err != nil {
+		rec := client.ToRecord()
+		rec.LimitHwid = orphans[i].LimitHwid
+		if err := db.Create(rec).Error; err != nil {
 			skip(email, err.Error())
 			continue
 		}
@@ -178,16 +181,21 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 
 	ids := make([]int, 0, len(rows))
 	emails := make([]string, 0, len(rows))
+	subIDs := make([]string, 0, len(rows))
 	for i := range rows {
 		ids = append(ids, rows[i].Id)
 		if rows[i].Email != "" {
 			emails = append(emails, rows[i].Email)
 		}
+		subIDs = append(subIDs, rows[i].SubID)
 	}
 	tombstoneClientEmails(emails)
 
 	if err := runSerializedTx(func(tx *gorm.DB) error {
 		if e := adjustGroupBaselinesForRemovedTraffic(tx, emails); e != nil {
+			return e
+		}
+		if e := clearClientHwidsBySubIDTx(tx, subIDs...); e != nil {
 			return e
 		}
 		for _, batch := range chunkInts(ids, sqlInChunk) {

@@ -1,14 +1,40 @@
 package service
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
+
+func TestReloadMasterMtlsClientDoesNotMintMissingCredential(t *testing.T) {
+	_ = setupSettingMtlsDB(t)
+	runtime.SetMasterClientCertProvider(func() (tls.Certificate, error) {
+		pair, err := (&SettingService{}).EnsureMasterClientCert()
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		return tls.X509KeyPair(pair.CertPEM, pair.KeyPEM)
+	})
+	t.Cleanup(func() { runtime.SetMasterClientCertProvider(nil) })
+	if err := (&NodeService{}).ReloadMasterMtlsClient(); err == nil {
+		t.Fatal("reload on a fresh database unexpectedly succeeded")
+	}
+	var count int64
+	keys := []string{settingNodeMtlsCaCert, settingNodeMtlsCaKey, settingNodeMtlsClientCert, settingNodeMtlsClientKey}
+	if err := database.GetDB().Model(&model.Setting{}).Where("key IN ?", keys).Count(&count).Error; err != nil {
+		t.Fatalf("count mTLS settings: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("reload created %d mTLS setting rows, want 0", count)
+	}
+}
 
 func TestNormalizeKeepsMtls(t *testing.T) {
 	s := &NodeService{}

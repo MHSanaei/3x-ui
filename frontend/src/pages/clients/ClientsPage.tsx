@@ -852,7 +852,8 @@ export default function ClientsPage() {
       render: (_v, record) => {
         const bucket = clientBucket(record);
         const lastOnline = record.traffic?.lastOnline ?? 0;
-        const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`;
+        const lastSubFetch = record.traffic?.lastSubFetch ?? 0;
+        const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}\n${t('lastSubFetch')}: ${lastSubFetch > 0 ? IntlUtil.formatDate(lastSubFetch, datepicker) : '-'}`;
         if (bucket === 'depleted') return (
           <Tooltip title={lastOnlineTitle}>
             <Tag color="red">{t('depleted')}</Tag>
@@ -1349,7 +1350,8 @@ export default function ClientsPage() {
                           rowSelection={rowSelection}
                           pagination={tablePagination}
                           size="small"
-                          scroll={{ x: 1200 }}
+                          scroll={{ x: 1200, y: 'calc(100vh - 380px)' }}
+                          virtual
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
