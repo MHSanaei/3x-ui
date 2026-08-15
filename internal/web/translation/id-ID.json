@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "Beban terendah",
         "strategyLeastPing": "Ping terendah",
         "strategyRandom": "Acak",
+        "strategyRoundRobin": "Round robin",
         "sortOrder": "Urutan",
         "sortOrderHelp": "Posisi dalam daftar langganan, berselang-seling dengan urutan inbound; jika sama, penyeimbang berada setelah inbound.",
         "inbounds": "Inbound",

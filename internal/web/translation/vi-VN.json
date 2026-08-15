@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "Tải thấp nhất",
         "strategyLeastPing": "Ping thấp nhất",
         "strategyRandom": "Ngẫu nhiên",
+        "strategyRoundRobin": "Luân phiên",
         "sortOrder": "Thứ tự",
         "sortOrderHelp": "Vị trí trong danh sách đăng ký, xen kẽ với thứ tự inbound; khi cùng số, bộ cân bằng đứng sau inbound.",
         "inbounds": "Inbound",

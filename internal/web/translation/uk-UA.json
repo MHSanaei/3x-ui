@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "Найменше навантаження",
         "strategyLeastPing": "Найменший ping",
         "strategyRandom": "Випадково",
+        "strategyRoundRobin": "По черзі",
         "sortOrder": "Порядок",
         "sortOrderHelp": "Позиція у списку підписки, чергується з порядком інбаундів; за однакового номера йде після інбаунда.",
         "inbounds": "Інбаунди",

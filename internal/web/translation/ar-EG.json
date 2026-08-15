@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "أقل حمل",
         "strategyLeastPing": "أقل ping",
         "strategyRandom": "عشوائي",
+        "strategyRoundRobin": "دوران",
         "sortOrder": "الترتيب",
         "sortOrderHelp": "الموضع في قائمة الاشتراك، متداخل مع ترتيب الإينبوندات؛ عند تساوي الرقم يأتي الموزّع بعد الإينباند.",
         "inbounds": "الإينبوندات",

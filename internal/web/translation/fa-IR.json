@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "کم‌ترین بار",
         "strategyLeastPing": "کم‌ترین پینگ",
         "strategyRandom": "تصادفی",
+        "strategyRoundRobin": "گردشی",
         "sortOrder": "ترتیب",
         "sortOrderHelp": "جایگاه در فهرست اشتراک، درهم‌تنیده با ترتیب اینباند‌ها؛ با شمارهٔ برابر، موزان‌کننده بعد از اینباند می‌آید.",
         "inbounds": "اینباند‌ها",

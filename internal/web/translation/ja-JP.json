@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "最小負荷",
         "strategyLeastPing": "最小 ping",
         "strategyRandom": "ランダム",
+        "strategyRoundRobin": "ラウンドロビン",
         "sortOrder": "順序",
         "sortOrderHelp": "サブスクリプション一覧内の位置。インバウンドの順序と交互に並び、同番号の場合はインバウンドの後ろになります。",
         "inbounds": "インバウンド",

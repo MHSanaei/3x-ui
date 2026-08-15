@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "En düşük yük",
         "strategyLeastPing": "En düşük ping",
         "strategyRandom": "Rastgele",
+        "strategyRoundRobin": "Sıralı",
         "sortOrder": "Sıra",
         "sortOrderHelp": "Abonelik listesindeki konumu, inbound sırası ile iç içe yerleşir; eşit numarada dengeleyici inbound'dan sonra gelir.",
         "inbounds": "Inbound'lar",

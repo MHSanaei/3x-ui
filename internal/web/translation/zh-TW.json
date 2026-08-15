@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "最小負載",
         "strategyLeastPing": "最低延遲",
         "strategyRandom": "隨機",
+        "strategyRoundRobin": "輪詢",
         "sortOrder": "順序",
         "sortOrderHelp": "在訂閱列表中的位置，與入站順序交錯排列；序號相同時排在入站之後。",
         "inbounds": "入站",

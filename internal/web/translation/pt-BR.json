@@ -1364,6 +1364,7 @@
         "strategyLeastLoad": "Menor carga",
         "strategyLeastPing": "Menor ping",
         "strategyRandom": "Aleatório",
+        "strategyRoundRobin": "Round robin",
         "sortOrder": "Ordem",
         "sortOrderHelp": "Posição na lista da assinatura, intercalada com a ordem dos inbounds; em caso de empate, o balanceador vem depois do inbound.",
         "inbounds": "Inbounds",
