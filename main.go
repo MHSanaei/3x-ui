@@ -469,7 +469,7 @@ func GetApiToken(getApiToken bool) {
 		fmt.Println("apiToken:", created.Token)
 		return
 	}
-	created, err := apiTokenService.Create("install")
+	created, err := apiTokenService.Create("install", "", 0)
 	if err != nil {
 		fmt.Println("create apiToken failed, error info:", err)
 		return
