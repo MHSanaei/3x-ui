@@ -512,6 +512,20 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	// Adoption, replacement and the orphan sweep all mutate reservations, so the
+	// snapshot must hold the same port locks AddInbound/UpdateInbound take.
+	portKeys := make([]portLockKey, 0, len(central)+len(snap.Inbounds))
+	for i := range central {
+		portKeys = append(portKeys, portLockKey{nodeScope: nodeID, port: central[i].Port})
+	}
+	for _, snapIb := range snap.Inbounds {
+		if snapIb != nil {
+			portKeys = append(portKeys, portLockKey{nodeScope: nodeID, port: snapIb.Port})
+		}
+	}
+	unlockPorts := lockPortReservationKeys(portKeys...)
+	defer unlockPorts()
+
 	tx := db.Begin()
 	committed := false
 	defer func() {
@@ -519,6 +533,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			tx.Rollback()
 		}
 	}()
+	if err := lockPortReservationKeysTx(tx, portKeys...); err != nil {
+		return false, err
+	}
 
 	structuralChange := false
 

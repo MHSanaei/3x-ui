@@ -127,6 +127,10 @@ func MigrateData(srcPath, dstDSN string) error {
 		}
 
 		for _, m := range migrationModels() {
+			if !src.Migrator().HasTable(m) {
+				log.Printf("  %-32s absent in source, skipped", reflect.TypeOf(m).Elem().Name())
+				continue
+			}
 			n, err := copyTable(src, tx, m)
 			if err != nil {
 				return fmt.Errorf("copy %T: %w", m, err)
@@ -200,6 +204,11 @@ func copyAllModels(src, dst *gorm.DB) error {
 		}
 	}
 	for _, m := range migrationModels() {
+		// A table added by a newer release is absent from an older source; the
+		// destination has just been AutoMigrated, so skipping leaves it empty.
+		if !src.Migrator().HasTable(m) {
+			continue
+		}
 		if _, err := copyTable(src, dst, m); err != nil {
 			return fmt.Errorf("copy %T: %w", m, err)
 		}
