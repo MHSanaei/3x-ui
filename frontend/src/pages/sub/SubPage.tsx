@@ -38,6 +38,7 @@ import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import SubUsageSummary from './SubUsageSummary';
 import './SubPage.css';
 
@@ -84,15 +85,8 @@ export default function SubPage() {
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
-
-  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
+  const { isMobile } = useMediaQuery(576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 576);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const onLangChange = useCallback((next: string) => {
     setLang(next);

@@ -48,6 +48,7 @@ export interface RawInboundRow {
   shareAddrStrategy?: string;
   shareAddr?: string;
   subSortIndex?: number;
+  disableFlow?: boolean;
   clientStats?: unknown;
 }
 
@@ -76,6 +77,7 @@ export interface WireInboundPayload {
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
+  disableFlow: boolean;
 }
 
 function coerceJsonObject(value: unknown): Record<string, unknown> {
@@ -211,6 +213,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
   } as InboundFormValues;
@@ -363,6 +366,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
     subSortIndex: values.subSortIndex,
+    disableFlow: values.disableFlow,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;

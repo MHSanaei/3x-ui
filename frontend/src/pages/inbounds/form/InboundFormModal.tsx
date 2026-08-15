@@ -43,6 +43,7 @@ import { Protocols } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
 import { TcpStreamSettingsSchema } from '@/schemas/protocols/stream/tcp';
@@ -102,14 +103,6 @@ const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label:
 const TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
 const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const SHARE_ADDR_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
-const NODE_ELIGIBLE_PROTOCOLS = new Set<string>([
-  Protocols.VLESS,
-  Protocols.VMESS,
-  Protocols.TROJAN,
-  Protocols.SHADOWSOCKS,
-  Protocols.HYSTERIA,
-  Protocols.WIREGUARD,
-]);
 
 function isValidShareAddrInput(value: string): boolean {
   const v = value.trim();
@@ -133,6 +126,42 @@ function isValidShareAddrInput(value: string): boolean {
     }
   }
   return SHARE_ADDR_HOSTNAME_RE.test(v);
+}
+
+interface RhfValidationIssue {
+  path: PropertyKey[];
+  message: string;
+}
+
+function firstRhfValidationIssue(
+  value: unknown,
+  path: PropertyKey[] = [],
+): RhfValidationIssue | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  // `type` is what marks a react-hook-form leaf FieldError; anything else is a group.
+  if ('type' in record) {
+    return { path, message: typeof record.message === 'string' ? record.message : '' };
+  }
+  for (const key of Object.keys(record)) {
+    const issue = firstRhfValidationIssue(record[key], [...path, key]);
+    if (issue) return issue;
+  }
+  return null;
+}
+
+function tabForValidationPath(path: PropertyKey[]): string {
+  if (path[0] === 'settings') return 'protocol';
+  if (path[0] === 'sniffing') return 'sniffing';
+  if (path[0] === 'streamSettings') {
+    if (
+      path[1] === 'security'
+      || path[1] === 'realitySettings'
+      || path[1] === 'tlsSettings'
+    ) return 'security';
+    return 'stream';
+  }
+  return 'basic';
 }
 
 interface InboundFormModalProps {
@@ -203,6 +232,7 @@ export default function InboundFormModal({
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
+  const [activeTab, setActiveTab] = useState('basic');
   const {
     fallbacks,
     fallbackChildOptions,
@@ -217,7 +247,7 @@ export default function InboundFormModal({
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
   const protocol = (useWatch({ control, name: 'protocol' }) ?? '') as string;
-  const isNodeEligible = NODE_ELIGIBLE_PROTOCOLS.has(protocol);
+  const isNodeEligible = !!NODE_ELIGIBLE_PROTOCOLS[protocol];
   /*
    * The `node` share-address strategy only means something when the inbound can
    * actually live on a node — otherwise the node address it would resolve to is
@@ -441,6 +471,7 @@ export default function InboundFormModal({
       : buildAddModeValues();
     methods.reset(initial);
     setScanResult(null);
+    setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
     autoTagRef.current = isAutoInboundTag(initialTag, {
       port: initial.port ?? 0,
@@ -512,8 +543,11 @@ export default function InboundFormModal({
       const next = getV('protocol') as string;
       const settings = createDefaultInboundSettings(next) ?? undefined;
       setV('settings', settings);
-      if (!NODE_ELIGIBLE_PROTOCOLS.has(next)) {
+      if (!NODE_ELIGIBLE_PROTOCOLS[next]) {
         setV('nodeId', null);
+      }
+      if (next !== Protocols.VLESS) {
+        setV('disableFlow', false);
       }
       if (next === Protocols.HYSTERIA) {
         setV('streamSettings', {
@@ -542,8 +576,7 @@ export default function InboundFormModal({
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [mode, methods]);
 
-  const submit = async () => {
-    if (!(await methods.trigger())) return;
+  const saveValues = async () => {
     /*
      * getValues() returns the entire form store, including settings.clients and
      * settings.fallbacks which have no bound field (clients are managed via the
@@ -585,6 +618,17 @@ export default function InboundFormModal({
     }
   };
 
+  /*
+   * Field errors render inline, but every tab is force-rendered, so an error on
+   * a hidden tab looks like a dead Save button — jump to it and say what broke.
+   */
+  const submit = methods.handleSubmit(saveValues, (errors) => {
+    const issue = firstRhfValidationIssue(errors);
+    if (!issue) return;
+    setActiveTab(tabForValidationPath(issue.path));
+    messageApi.error(formatInboundIssue(issue, methods.getValues(), t));
+  });
+
   const title = mode === 'edit'
     ? t('pages.inbounds.modifyInbound')
     : t('pages.inbounds.addInbound');
@@ -612,8 +656,10 @@ export default function InboundFormModal({
             allowClear
             options={selectableNodes.map((n) => ({
               value: n.id,
-              label: `${n.name}${n.status === 'offline' ? ' (offline)' : ''}`,
-              disabled: n.status === 'offline',
+              // Same rule as the clone target picker: only online is
+              // deployable (`unknown` = no heartbeat yet).
+              label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
+              disabled: n.status !== 'online',
             }))}
           />
         </FormField>
@@ -663,6 +709,16 @@ export default function InboundFormModal({
       >
         <InputNumber min={1} />
       </FormField>
+
+      {protocol === Protocols.VLESS && (
+        <FormField
+          name="disableFlow"
+          valueProp="checked"
+          label={labelWithHint(t('pages.inbounds.form.disableFlow'), t('pages.inbounds.form.disableFlowHelp'))}
+        >
+          <Switch />
+        </FormField>
+      )}
 
       <FormField
         name="port"
@@ -1039,7 +1095,7 @@ export default function InboundFormModal({
             wrapperCol={{ sm: { span: 14 } }}
             labelWrap
           >
-            <Tabs items={[
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               { key: 'basic', label: t('pages.xray.basicTemplate'), children: basicTab, forceRender: true },
               ...(([
                 Protocols.VLESS,

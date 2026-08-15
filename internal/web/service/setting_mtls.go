@@ -1,11 +1,14 @@
 package service
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 var masterClientCredentialMu sync.Mutex
@@ -133,6 +137,7 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	if err := saveMasterClientCredential(client, pin); err != nil {
 		return crypto.CertKeyPEM{}, err
 	}
+	runtime.InvalidateMasterClientConnections()
 	return client, nil
 }
 
@@ -158,6 +163,23 @@ func saveMasterClientCredential(client crypto.CertKeyPEM, pin string) error {
 	})
 }
 
+// LoadMasterClientCert returns only the already-persisted credential. It never
+// mints or changes CA/client settings.
+func (s *SettingService) LoadMasterClientCert() (crypto.CertKeyPEM, error) {
+	certPem, err := s.getString(settingNodeMtlsClientCert)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	keyPem, err := s.getString(settingNodeMtlsClientKey)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	if certPem == "" || keyPem == "" {
+		return crypto.CertKeyPEM{}, common.NewError("master client certificate is not fully configured")
+	}
+	return crypto.CertKeyPEM{CertPEM: []byte(certPem), KeyPEM: []byte(keyPem)}, nil
+}
+
 // NodeMtlsClientCAPool builds the trust pool used as the panel listener's
 // ClientCAs for incoming node-API client certificates. It returns (nil, nil)
 // when no trust CA is configured, so mTLS stays off and the listener behaves
@@ -170,9 +192,42 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	if caPem == "" {
 		return nil, nil
 	}
+	certs, err := parseCertificateBundlePEM([]byte(caPem))
+	if err != nil {
+		return nil, fmt.Errorf("nodeMtlsClientCAPem is not a valid certificate bundle: %w", err)
+	}
 	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM([]byte(caPem)) {
-		return nil, common.NewError("nodeMtlsClientCAPem is not a valid certificate")
+	for _, cert := range certs {
+		pool.AddCert(cert)
 	}
 	return pool, nil
+}
+
+// parseCertificateBundlePEM avoids AppendCertsFromPEM because that helper can
+// silently accept a bundle after parsing only its first certificate.
+func parseCertificateBundlePEM(bundle []byte) ([]*x509.Certificate, error) {
+	rest := bytes.TrimSpace(bundle)
+	if len(rest) == 0 {
+		return nil, errors.New("certificate bundle is empty")
+	}
+	certs := make([]*x509.Certificate, 0, 1)
+	for len(rest) > 0 {
+		if !bytes.HasPrefix(rest, []byte("-----BEGIN CERTIFICATE-----")) {
+			return nil, errors.New("certificate bundle contains malformed or non-PEM data")
+		}
+		block, next := pem.Decode(rest)
+		if block == nil {
+			return nil, errors.New("certificate bundle contains malformed or non-PEM data")
+		}
+		if block.Type != "CERTIFICATE" {
+			return nil, errors.New("certificate bundle contains a non-certificate PEM block")
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, errors.New("certificate bundle contains an invalid certificate")
+		}
+		certs = append(certs, cert)
+		rest = bytes.TrimSpace(next)
+	}
+	return certs, nil
 }

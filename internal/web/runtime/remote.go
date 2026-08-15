@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -229,7 +230,11 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, err
 	}
 	if r.node.ApiToken != "" {
-		req.Header.Set("Authorization", "Bearer "+r.node.ApiToken)
+		token, err := nodetoken.Decrypt(r.node.Id, r.node.ApiToken)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt node token: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	req.Header.Set("Accept", "application/json")
 	if contentType != "" {
@@ -451,6 +456,16 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	r.cacheSet(newIb.Tag, id)
 	r.recordPushedInbound(newIb)
 	return nil
+}
+
+func (r *Remote) SetInboundSubSortIndex(ctx context.Context, ib *model.Inbound, index int) error {
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return err
+	}
+	payload := url.Values{"subSortIndex": []string{strconv.Itoa(index)}}
+	_, err = r.do(ctx, http.MethodPost, "panel/api/inbounds/"+strconv.Itoa(id)+"/subSortIndex", payload)
+	return err
 }
 
 // ReconcileInbound pushes ib only when its wire payload differs from the last
@@ -693,8 +708,13 @@ type TrafficSnapshot struct {
 	// OnlineEmails so the master can attribute deeply nested clients to the real
 	// node across a chain (#4983). Empty when the node is an old build without
 	// the per-GUID endpoint — OnlineEmails is the fallback then.
-	OnlineTree    map[string][]string
-	LastOnlineMap map[string]int64
+	OnlineTree map[string][]string
+	// ActiveInboundTree is the GUID-keyed subtree of inbound tags that carried
+	// traffic within the node's online grace window. Empty when the node is an
+	// old build without the endpoint; the master then falls back to email-only
+	// online attribution for that node.
+	ActiveInboundTree map[string][]string
+	LastOnlineMap     map[string]int64
 	// HostGroups carries the node's per-inbound host overrides (TLS/SNI/
 	// fingerprint), fetched only when the snapshot holds a not-yet-adopted tag.
 	HostGroups []*entity.HostGroup
@@ -749,6 +769,13 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		_ = json.Unmarshal(envLastOnline.Obj, &snap.LastOnlineMap)
 	}
 
+	envActiveInbounds, err := r.do(ctx, http.MethodPost, "panel/api/clients/activeInbounds", nil)
+	if err != nil {
+		logger.Debugf("remote %s active inbounds fetch failed: %v", r.node.Name, err)
+	} else if len(envActiveInbounds.Obj) > 0 {
+		_ = json.Unmarshal(envActiveInbounds.Obj, &snap.ActiveInboundTree)
+	}
+
 	return snap, nil
 }
 
@@ -792,6 +819,7 @@ func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	}
 	v.Set("shareAddrStrategy", shareAddrStrategy)
 	v.Set("shareAddr", ib.ShareAddr)
+	v.Set("disableFlow", strconv.FormatBool(ib.DisableFlow))
 	if ib.TrafficReset != "" {
 		v.Set("trafficReset", ib.TrafficReset)
 	}
