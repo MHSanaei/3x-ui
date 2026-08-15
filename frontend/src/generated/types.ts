@@ -73,6 +73,7 @@ export interface AllSetting {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -186,6 +187,7 @@ export interface AllSettingView {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;

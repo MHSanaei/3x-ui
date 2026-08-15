@@ -212,6 +212,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux": {
         "type": "string"
       },
+      "subJsonObservatory": {
+        "type": "string"
+      },
       "subJsonPath": {
         "type": "string"
       },
@@ -408,6 +411,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
+      "subJsonObservatory",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
@@ -683,6 +687,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux": {
         "type": "string"
       },
+      "subJsonObservatory": {
+        "type": "string"
+      },
       "subJsonPath": {
         "type": "string"
       },
@@ -886,6 +893,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
+      "subJsonObservatory",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",

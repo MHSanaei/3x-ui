@@ -238,6 +238,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -434,6 +437,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
@@ -709,6 +713,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -912,6 +919,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
