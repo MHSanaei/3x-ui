@@ -3083,6 +3083,10 @@
       "description": "Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray."
     },
     {
+      "name": "Subscription Balancers",
+      "description": "Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Subscription."
+    },
+    {
       "name": "Subscription Server",
       "description": "A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info."
     },
@@ -11707,6 +11711,185 @@
         ],
         "summary": "Preview a subscription URL: fetch and parse it into outbounds without persisting anything.",
         "operationId": "post_panel_api_xray_outbound_subs_parse",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers": {
+      "get": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "List all subscription balancers in sort order (sort_order asc, id asc).",
+        "operationId": "get_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.",
+        "operationId": "post_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).",
+        "operationId": "post_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id.",
+        "operationId": "delete_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}/del": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).",
+        "operationId": "post_panel_api_sub_balancers_id_del",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
