@@ -2075,5 +2075,8 @@
     "statusFailed": "НЕУДАЧНО",
     "statusDown": "НЕДОСТУПЕН",
     "statusUp": "РАБОТАЕТ"
-  }
+  },
+  "subCopyPageTitle": "Ссылка подписки",
+  "subCopyPageHeading": "Это ссылка подписки",
+  "subCopyPageInstructions": "Открывать её в браузере не нужно. Скопируйте адрес этой страницы и вставьте его в приложение."
 }

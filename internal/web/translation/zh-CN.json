@@ -2075,5 +2075,8 @@
     "statusFailed": "失败",
     "statusDown": "断开",
     "statusUp": "恢复"
-  }
+  },
+  "subCopyPageTitle": "订阅链接",
+  "subCopyPageHeading": "这是一个订阅链接",
+  "subCopyPageInstructions": "无需在浏览器中打开。请复制此页面地址并粘贴到应用中。"
 }

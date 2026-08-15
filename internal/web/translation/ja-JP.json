@@ -2075,5 +2075,8 @@
     "statusFailed": "失敗",
     "statusDown": "ダウン",
     "statusUp": "アップ"
-  }
+  },
+  "subCopyPageTitle": "サブスクリプションリンク",
+  "subCopyPageHeading": "これはサブスクリプションリンクです",
+  "subCopyPageInstructions": "ブラウザーで開く必要はありません。このページのアドレスをコピーしてアプリに貼り付けてください。"
 }
