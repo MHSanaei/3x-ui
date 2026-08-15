@@ -1211,7 +1211,7 @@ type OutboundSubscription struct {
 type SubBalancer struct {
 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Remark     string `json:"remark" form:"remark" validate:"required,max=256"`
-	Strategy   string `json:"strategy" form:"strategy" validate:"omitempty,oneof=leastLoad leastPing random"`
+	Strategy   string `json:"strategy" form:"strategy" validate:"omitempty,oneof=leastLoad leastPing random roundRobin"`
 	InboundIds []int  `json:"inboundIds" form:"inboundIds" gorm:"serializer:json;column:inbound_ids"`
 	SortOrder  int    `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1"`
 	// No gorm default:true — a bool default makes an explicit false at insert

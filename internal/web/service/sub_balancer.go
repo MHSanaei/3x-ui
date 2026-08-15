@@ -9,9 +9,10 @@ import (
 )
 
 var subBalancerStrategies = map[string]struct{}{
-	"leastLoad": {},
-	"leastPing": {},
-	"random":    {},
+	"leastLoad":  {},
+	"leastPing":  {},
+	"random":     {},
+	"roundRobin": {},
 }
 
 // SubBalancerService manages client-side JSON-subscription balancers; rows

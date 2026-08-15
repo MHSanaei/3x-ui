@@ -98,6 +98,30 @@ func TestSubBalancerServiceCRUD(t *testing.T) {
 	}
 }
 
+// roundRobin is a valid xray routing strategy (selects outbounds in order) and
+// must pass the same validation as the other three.
+func TestSubBalancerServiceRoundRobin(t *testing.T) {
+	setupSubBalancerDB(t)
+	svc := &SubBalancerService{}
+
+	created, err := svc.Create(&model.SubBalancer{
+		Remark: "rr", Strategy: "roundRobin", InboundIds: []int{1, 2}, SortOrder: 1, Enabled: true,
+	})
+	if err != nil {
+		t.Fatalf("create roundRobin: %v", err)
+	}
+	if created.Strategy != "roundRobin" {
+		t.Fatalf("strategy = %q, want roundRobin", created.Strategy)
+	}
+	stored, err := svc.Get(created.Id)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if stored.Strategy != "roundRobin" {
+		t.Fatalf("stored strategy = %q, want roundRobin", stored.Strategy)
+	}
+}
+
 func TestSubBalancerServiceValidation(t *testing.T) {
 	setupSubBalancerDB(t)
 	svc := &SubBalancerService{}
