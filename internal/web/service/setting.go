@@ -117,6 +117,7 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
+	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
@@ -883,6 +884,10 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
+}
+
+func (s *SettingService) GetSubJsonObservatory() (string, error) {
+	return s.getString("subJsonObservatory")
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {
