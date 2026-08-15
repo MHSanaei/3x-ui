@@ -729,6 +729,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if unmanagedTag(c.Tag) {
 			continue
 		}
+		// This drops the central inbound and its clients' traffic history, so say
+		// so: silent removal is indistinguishable from an inbound never arriving.
+		logger.Warningf("setRemoteTraffic: node %d no longer reports inbound %q (id %d, port %d) — removing it centrally", nodeID, c.Tag, c.Id, c.Port)
 		var goneEmails []string
 		if err := tx.Model(xray.ClientTraffic{}).
 			Where("inbound_id = ?", c.Id).
