@@ -546,15 +546,17 @@ func (a *SUBController) serveSubscriptionCopyPage(c *gin.Context) {
   <meta name="robots" content="noindex,nofollow">
   <title>{{TITLE}}</title>
   <style>
-    html, body { margin: 0; min-height: 100%; background: #050505; color: #f2f2f2; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
-    main { max-width: 520px; padding: 32px; }
+		* { box-sizing: border-box; }
+		html { min-height: 100%; background: #050505; }
+		body { margin: 0; width: 100%; min-height: 100vh; min-height: 100dvh; padding: 24px; overflow-x: hidden; display: grid; place-items: center; background: #050505; color: #f2f2f2; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: center; }
+		main { width: 100%; max-width: 520px; min-width: 0; padding: 32px; overflow-wrap: anywhere; }
     h1 { margin: 0 0 14px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
     p { margin: 0; color: #b8b8b8; font-size: 16px; line-height: 1.55; }
+		@media (max-width: 480px) { body { padding: 16px; } main { padding: 24px 8px; } }
   </style>
 </head>
 <body>
-  <main>
+	<main dir="auto">
     <h1>{{HEADING}}</h1>
     <p>{{INSTRUCTIONS}}</p>
   </main>

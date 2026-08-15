@@ -105,6 +105,28 @@ func TestSubscriptionCopyPageUsesRequestLocale(t *testing.T) {
 	}
 }
 
+func TestSubscriptionCopyPageIsMobileSafe(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/sub/abc", nil)
+
+	(&SUBController{}).serveSubscriptionCopyPage(c)
+	body := w.Body.String()
+	for _, required := range []string{
+		`<meta name="viewport" content="width=device-width, initial-scale=1">`,
+		`* { box-sizing: border-box; }`,
+		`min-height: 100dvh`,
+		`overflow-x: hidden`,
+		`overflow-wrap: anywhere`,
+		`@media (max-width: 480px)`,
+		`<main dir="auto">`,
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("copy page is missing mobile layout constraint %q", required)
+		}
+	}
+}
+
 func TestExplicitSubPageRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
