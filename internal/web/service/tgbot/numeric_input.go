@@ -1,8 +1,7 @@
 package tgbot
 
-// updateNumericInput applies one key from the shared inline number pad.
-// Key -2 clears the value, -1 removes the last decimal digit, and 0..9 append
-// a digit. Callers retain their own validation and keyboard labels.
+// updateNumericInput applies one number-pad key: -2 clears, -1 backspaces, and 0..9 append.
+// Callers retain their own validation and keyboard labels.
 func updateNumericInput(value, key int) int {
 	switch key {
 	case -2:
