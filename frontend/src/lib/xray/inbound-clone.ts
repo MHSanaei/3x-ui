@@ -13,7 +13,7 @@ import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 export function buildClonePayload(dbInbound: DBInbound, port: number, nodeId: number | null) {
   let clonedSettings: string;
   try {
-    const raw = coerceInboundJsonField(dbInbound.settings);
+    const raw = { ...coerceInboundJsonField(dbInbound.settings) };
     raw.clients = [];
     clonedSettings = JSON.stringify(raw);
   } catch {
