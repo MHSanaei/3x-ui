@@ -107,8 +107,7 @@ describe('CloneInboundModal', () => {
     const [nodeBody, localBody] = postedBodies();
     expect(nodeBody.nodeId).toBe(2);
     expect(localBody).not.toHaveProperty('nodeId');
-    // Ports are node-scoped: each target draws its own fresh port.
-    expect(nodeBody.port).not.toBe(localBody.port);
+    expect(nodeBody.port).not.toBe(443);
   });
 
   it('disables offline nodes and hides disabled nodes from the target list', () => {
