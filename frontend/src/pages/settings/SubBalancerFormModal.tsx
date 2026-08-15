@@ -25,6 +25,7 @@ const STRATEGY_LABEL_KEYS: Record<SubBalancerStrategy, string> = {
   leastLoad: 'pages.settings.subBalancers.strategyLeastLoad',
   leastPing: 'pages.settings.subBalancers.strategyLeastPing',
   random: 'pages.settings.subBalancers.strategyRandom',
+  roundRobin: 'pages.settings.subBalancers.strategyRoundRobin',
 };
  
 function initialState(balancer: SubBalancer | null): SubBalancerFormValues {

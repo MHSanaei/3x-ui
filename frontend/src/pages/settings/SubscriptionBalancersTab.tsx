@@ -14,6 +14,7 @@ const STRATEGY_COLORS: Record<string, string> = {
   leastLoad: 'geekblue',
   leastPing: 'green',
   random: 'orange',
+  roundRobin: 'purple',
 };
  
 export default function SubscriptionBalancersTab() {
