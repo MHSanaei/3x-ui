@@ -627,6 +627,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				Up:                   snapIb.Up,
 				Down:                 snapIb.Down,
 				ShareAddrStrategy:    "node",
+				DisableFlow:          snapIb.DisableFlow,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
