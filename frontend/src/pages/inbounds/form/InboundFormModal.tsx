@@ -430,6 +430,9 @@ export default function InboundFormModal({
       if (!NODE_ELIGIBLE_PROTOCOLS[next]) {
         setV('nodeId', null);
       }
+      if (next !== Protocols.VLESS) {
+        setV('disableFlow', false);
+      }
       if (next === Protocols.HYSTERIA) {
         setV('streamSettings', {
           network: 'hysteria',
@@ -580,6 +583,16 @@ export default function InboundFormModal({
       >
         <InputNumber min={1} />
       </FormField>
+
+      {protocol === Protocols.VLESS && (
+        <FormField
+          name="disableFlow"
+          valueProp="checked"
+          label={labelWithHint(t('pages.inbounds.form.disableFlow'), t('pages.inbounds.form.disableFlowHelp'))}
+        >
+          <Switch />
+        </FormField>
+      )}
 
       <FormField
         name="port"
