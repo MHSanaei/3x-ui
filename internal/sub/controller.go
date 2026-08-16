@@ -374,7 +374,9 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 		basePath = "/"
 	}
 	basePathStr := basePath.(string)
-	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, a.subTitle, a.subSupportUrl)
+	metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, "")
+	page := subReq.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, emails, subURL, subJsonURL, subClashURL, basePathStr, metadata.Title, metadata.SupportURL)
+	page.SubAnnounce = metadata.Announce
 	return page, true
 }
 
@@ -433,11 +435,9 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		profileUrl := a.subProfileUrl
-		if profileUrl == "" {
-			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
+		profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, profileURL)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 
 		if a.subIncyEnableRouting {
 			if rules := ResolveIncyRoutingRules(a.subIncyRoutingSource, a.subIncyRoutingRules); rules != "" {
@@ -615,7 +615,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,
-		"announce":      a.subAnnounce,
+		"announce":      page.SubAnnounce,
 	}
 }
 
@@ -739,11 +739,15 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 	if len(jsonSub) == 0 {
 		return false
 	}
-	profileUrl := a.subProfileUrl
-	if profileUrl == "" {
-		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
+	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	var subReq *SubService
+	metadata := a.metadataForSubRequest(func() *SubService {
+		if subReq == nil {
+			subReq = a.subService.ForRequest(host)
+		}
+		return subReq
+	}, subId, profileURL)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
 	}
@@ -781,16 +785,20 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 	if len(clashSub) == 0 {
 		return false
 	}
-	profileUrl := a.subProfileUrl
-	if profileUrl == "" {
-		profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-	}
-	a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
+	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+	var subReq *SubService
+	metadata := a.metadataForSubRequest(func() *SubService {
+		if subReq == nil {
+			subReq = a.subService.ForRequest(host)
+		}
+		return subReq
+	}, subId, profileURL)
+	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.yaml"`)
-	} else if a.subTitle != "" {
+	} else if metadata.Title != "" {
 		// Clash clients commonly use Content-Disposition to choose the imported profile name.
-		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(a.subTitle)))
+		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''%s`, url.PathEscape(metadata.Title)))
 	}
 	c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
 	return true

@@ -118,19 +118,36 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
         children: (
           <>
             <SettingListItem paddings="small" title={t('pages.settings.subTitle')} description={t('pages.settings.subTitleDesc')}>
-              <Input value={allSetting.subTitle} onChange={(e) => updateSetting({ subTitle: e.target.value })} />
+              <RemarkTemplateField
+                value={allSetting.subTitle}
+                onChange={(v) => updateSetting({ subTitle: v })}
+                metadataOnly
+              />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subSupportUrl')} description={t('pages.settings.subSupportUrlDesc')}>
-              <Input value={allSetting.subSupportUrl} placeholder="https://example.com"
-                onChange={(e) => updateSetting({ subSupportUrl: e.target.value })} />
+              <RemarkTemplateField
+                value={allSetting.subSupportUrl}
+                placeholder="https://example.com"
+                onChange={(v) => updateSetting({ subSupportUrl: v })}
+                metadataOnly
+              />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subProfileUrl')} description={t('pages.settings.subProfileUrlDesc')}>
-              <Input value={allSetting.subProfileUrl} placeholder="https://example.com"
-                onChange={(e) => updateSetting({ subProfileUrl: e.target.value })} />
+              <RemarkTemplateField
+                value={allSetting.subProfileUrl}
+                placeholder="https://example.com"
+                onChange={(v) => updateSetting({ subProfileUrl: v })}
+                metadataOnly
+              />
             </SettingListItem>
             <SettingListItem paddings="small" title={t('pages.settings.subAnnounce')} description={t('pages.settings.subAnnounceDesc')}>
-              <Input.TextArea value={allSetting.subAnnounce}
-                onChange={(e) => updateSetting({ subAnnounce: e.target.value })} />
+              <RemarkTemplateField
+                value={allSetting.subAnnounce}
+                onChange={(v) => updateSetting({ subAnnounce: v })}
+                multiline
+                rows={3}
+                metadataOnly
+              />
             </SettingListItem>
             <SettingListItem
               paddings="small"
