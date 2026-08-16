@@ -26,6 +26,7 @@ type AllSetting struct {
 	WebBasePath       string `json:"webBasePath" form:"webBasePath"`
 	SessionMaxAge     int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"`
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
+	IpLimitAllowlist  string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
 	PanelOutbound     string `json:"panelOutbound" form:"panelOutbound"`
 
 	PageSize                  int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
@@ -244,6 +245,22 @@ func (s *AllSetting) CheckValid() error {
 		}
 		if _, _, err := net.ParseCIDR(cidr); err != nil {
 			return common.NewError("trusted proxy CIDR is not valid:", cidr)
+		}
+	}
+
+	// Rejected here rather than skipped at scan time: a typo in an allowlist
+	// entry silently leaves the address unprotected, and the operator would
+	// only find out when a trusted network gets banned.
+	for entry := range strings.SplitSeq(s.IpLimitAllowlist, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if ip := net.ParseIP(entry); ip != nil {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(entry); err != nil {
+			return common.NewError("IP limit allowlist entry is not valid:", entry)
 		}
 	}
 

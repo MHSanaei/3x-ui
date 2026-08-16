@@ -1469,7 +1469,9 @@
         "pathLeadingSlash": "Path must start with /"
       },
       "secretClear": "Clear",
-      "secretClearUndo": "Undo clear"
+      "secretClearUndo": "Undo clear",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "save": "Save",

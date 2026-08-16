@@ -1352,7 +1352,9 @@
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
       "secretClear": "Borrar",
-      "secretClearUndo": "Deshacer borrado"
+      "secretClearUndo": "Deshacer borrado",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "save": "Guardar configuración",

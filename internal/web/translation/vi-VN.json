@@ -1352,7 +1352,9 @@
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },
       "secretClear": "Xóa",
-      "secretClearUndo": "Hoàn tác xóa"
+      "secretClearUndo": "Hoàn tác xóa",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "importRules": "Nhập quy tắc",

@@ -35,6 +35,7 @@ type CheckClientIpJob struct {
 	disAllowedIps []string
 	bannedSeen    map[string]int64
 	xrayService   service.XrayService
+	allowlist     ipLimitAllowlist
 }
 
 var job *CheckClientIpJob
@@ -61,6 +62,8 @@ func (j *CheckClientIpJob) Run() {
 	if !isFail2BanEnabled() {
 		return
 	}
+
+	j.allowlist = j.loadAllowlist()
 
 	hasLimit := j.hasLimitIp()
 	f2bInstalled := false
@@ -119,6 +122,18 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 // normalized clients table (limit_ip is synced there by SyncInbound and the
 // legacy seeder), replacing the old `settings LIKE '%limitIp%'` scan that
 // loaded and JSON-parsed every inbound's settings blob on each 10s run.
+// loadAllowlist reads the operator's trusted addresses once per scan; a bad
+// read leaves the list empty, which enforces the limit as before rather than
+// silently exempting everyone.
+func (j *CheckClientIpJob) loadAllowlist() ipLimitAllowlist {
+	raw, err := (&service.SettingService{}).GetIpLimitAllowlist()
+	if err != nil {
+		logger.Warning("[LimitIP] could not read the allowlist, enforcing without it:", err)
+		return ipLimitAllowlist{}
+	}
+	return parseIpLimitAllowlist(raw)
+}
+
 func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
 	var probe int64
@@ -510,7 +525,11 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 	j.disAllowedIps = []string{}
 
 	// historical db-only ips are excluded from this count on purpose.
-	keptLive, bannedLive := selectIpsToBan(liveIps, limitIp)
+	limitedIps, allowedIps := j.allowlist.split(liveIps)
+	keptLive, bannedLive := selectIpsToBan(limitedIps, limitIp)
+	// Allowlisted addresses stay connected and out of the count: charging them
+	// against the limit would still cut the shared network the entry protects.
+	keptLive = append(keptLive, allowedIps...)
 	actionable := j.filterAdvancedSinceLastBan(clientEmail, bannedLive)
 	if len(actionable) > 0 {
 		shouldCleanLog = true

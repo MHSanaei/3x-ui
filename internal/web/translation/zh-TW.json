@@ -1352,7 +1352,9 @@
         "pathLeadingSlash": "路徑必須以 / 開頭"
       },
       "secretClear": "清除",
-      "secretClearUndo": "復原清除"
+      "secretClearUndo": "復原清除",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "save": "儲存",

@@ -1352,7 +1352,9 @@
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },
       "secretClear": "クリア",
-      "secretClearUndo": "クリアを取り消す"
+      "secretClearUndo": "クリアを取り消す",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "importRules": "ルールをインポート",
