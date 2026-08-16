@@ -327,16 +327,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "masterId": 0,
     "path": ""
   },
-  "GeodataCategories": {
-    "domain": [
-      "geosite:cn",
-      "geosite:youtube"
-    ],
-    "ip": [
-      "geoip:cn",
-      "geoip:private"
-    ]
-  },
   "HistoryOfSeeders": {
     "id": 0,
     "seederName": ""

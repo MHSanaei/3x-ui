@@ -41,7 +41,6 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.GET("/getOutboundsTraffic", a.getOutboundsTraffic)
 	g.GET("/getXrayResult", a.getXrayResult)
-	g.GET("/getGeodataCategories", a.getGeodataCategories)
 
 	g.POST("/", a.getXraySetting)
 	g.POST("/warp/:action", a.warp)
@@ -167,15 +166,6 @@ func (a *XraySettingController) getDefaultXrayConfig(c *gin.Context) {
 // getXrayResult retrieves the current Xray service result.
 func (a *XraySettingController) getXrayResult(c *gin.Context) {
 	jsonObj(c, a.XrayService.GetXrayResult(), nil)
-}
-
-// getGeodataCategories returns every geosite/geoip category found in the
-// .dat files currently present in the Xray bin folder (including any custom
-// files the admin added via the Geodata auto-update feature), formatted as
-// ready-to-use routing-rule suggestion strings for the routing rule editor's
-// Domain/IP autocomplete.
-func (a *XraySettingController) getGeodataCategories(c *gin.Context) {
-	jsonObj(c, a.XraySettingService.GetGeodataCategories(), nil)
 }
 
 // warp handles Warp-related operations based on the action parameter.

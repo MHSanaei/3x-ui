@@ -6,7 +6,6 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { InputAddon } from '@/components/ui';
 import { FormField } from '@/components/form/rhf';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
-import { useGeodataCategories } from '@/api/queries/useGeodataCategories';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 import { buildRemarkByTag, formatInboundTag, isApiRule } from './helpers';
 
@@ -143,16 +142,6 @@ export default function RuleFormModal({
   const { data: inboundOptions } = useInboundOptions();
   const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
 
-  const { data: geodataCategories } = useGeodataCategories(open);
-  const domainOptions = useMemo(
-    () => (geodataCategories?.domain ?? []).map((value) => ({ value, label: value })),
-    [geodataCategories],
-  );
-  const ipOptions = useMemo(
-    () => (geodataCategories?.ip ?? []).map((value) => ({ value, label: value })),
-    [geodataCategories],
-  );
-
   useEffect(() => {
     if (!open) return;
     if (rule) {
@@ -248,7 +237,7 @@ export default function RuleFormModal({
             }
             transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <TagsAutocomplete id="sourceIP" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <TagsAutocomplete id="sourceIP" options={[]} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -329,7 +318,7 @@ export default function RuleFormModal({
             }
             transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <TagsAutocomplete id="ip" options={ipOptions} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <TagsAutocomplete id="ip" options={[]} placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -341,7 +330,7 @@ export default function RuleFormModal({
             }
             transform={{ input: toTagsArray, output: fromTagsArray }}
           >
-            <TagsAutocomplete id="domain" options={domainOptions} placeholder="google.com, geosite:cn" />
+            <TagsAutocomplete id="domain" options={[]} placeholder="google.com, geosite:cn" />
           </FormField>
 
           <FormField

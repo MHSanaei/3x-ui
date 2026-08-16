@@ -1410,36 +1410,6 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
-  "GeodataCategories": {
-    "description": "GeodataCategories lists every geosite/geoip category found in the .dat\nfiles currently present in the Xray bin folder, already formatted as\nready-to-use xray-core routing-rule values (see formatGeodataSuggestion).\nReturned by XraySettingService.GetGeodataCategories and served as\nGET /panel/api/xray/getGeodataCategories for the routing rule editor's\nDomain/IP autocomplete.",
-    "properties": {
-      "domain": {
-        "example": [
-          "geosite:cn",
-          "geosite:youtube"
-        ],
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "ip": {
-        "example": [
-          "geoip:cn",
-          "geoip:private"
-        ],
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      }
-    },
-    "required": [
-      "domain",
-      "ip"
-    ],
-    "type": "object"
-  },
   "HistoryOfSeeders": {
     "description": "HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.",
     "properties": {

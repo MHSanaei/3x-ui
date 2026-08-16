@@ -39,17 +39,6 @@ export const RuleObjectSchema = z.object({
 });
 export type RuleObject = z.infer<typeof RuleObjectSchema>;
 
-// Response shape of GET /panel/api/xray/getGeodataCategories: every
-// geosite/geoip category found in the .dat files currently present in the
-// Xray bin folder, already formatted as ready-to-use rule values (e.g.
-// "geosite:youtube", "ext:geosite_roscom.dat:some-code") for the routing
-// rule editor's Domain/IP autocomplete.
-export const GeodataCategoriesSchema = z.object({
-  domain: z.array(z.string()).nullable().transform((v) => v ?? []),
-  ip: z.array(z.string()).nullable().transform((v) => v ?? []),
-});
-export type GeodataCategories = z.infer<typeof GeodataCategoriesSchema>;
-
 export const BalancerStrategyTypeSchema = z.enum([
   'random',
   'roundRobin',
