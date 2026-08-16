@@ -105,11 +105,11 @@ func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 	}
 }
 
-// defaultAmneziaWGServer builds a fresh server block: a random AmneziaWG 2.0
+// defaultAmneziaWGServer builds a fresh server block: a random AmneziaWG 3.1
 // obfuscation set, the default tunnel subnet/DNS, and a freshly generated
 // keypair.
 func defaultAmneziaWGServer() (*amneziawg.ServerSettings, error) {
-	obf := amneziawg.GenerateObfuscation20("default")
+	obf := amneziawg.GenerateObfuscation31()
 	server := &amneziawg.ServerSettings{
 		SubnetIP:     "10.8.1.0",
 		SubnetCIDR:   24,

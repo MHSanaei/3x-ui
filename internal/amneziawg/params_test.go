@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestGenerateObfuscation20DefaultRanges(t *testing.T) {
+func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
 	for i := 0; i < 200; i++ {
-		o := GenerateObfuscation20("default")
+		o := GenerateObfuscation31()
 		if o.Jc < 3 || o.Jc > 6 {
 			t.Fatalf("Jc = %d, want [3,6]", o.Jc)
 		}
@@ -51,21 +51,6 @@ func TestGenerateObfuscation20DefaultRanges(t *testing.T) {
 	}
 }
 
-func TestGenerateObfuscation20MobilePreset(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		o := GenerateObfuscation20("mobile")
-		if o.Jc != 3 {
-			t.Fatalf("mobile preset: Jc = %d, want 3", o.Jc)
-		}
-		if o.Jmin < 30 || o.Jmin > 50 {
-			t.Fatalf("mobile preset: Jmin = %d, want [30,50]", o.Jmin)
-		}
-		if o.Jmax < o.Jmin+20 || o.Jmax > o.Jmin+80 {
-			t.Fatalf("mobile preset: Jmax = %d, want [Jmin+20, Jmin+80] (Jmin=%d)", o.Jmax, o.Jmin)
-		}
-	}
-}
-
 func TestGenerateHRangesNonOverlapping(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		h := generateHRanges()
@@ -88,8 +73,8 @@ func TestGenerateHRangesNonOverlapping(t *testing.T) {
 	}
 }
 
-func validObfuscation() Obfuscation20 {
-	return GenerateObfuscation20("default")
+func validObfuscation() Obfuscation31 {
+	return GenerateObfuscation31()
 }
 
 func TestValidateObfuscationAcceptsGenerated(t *testing.T) {

@@ -7,11 +7,11 @@ package amneziawg
 
 import "github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
-// Obfuscation20 is an AmneziaWG 2.0 obfuscation parameter set (junk packets,
+// Obfuscation31 is an AmneziaWG 3.1 obfuscation parameter set (junk packets,
 // padding, magic headers, the I1 signature packet). The same values must be
 // applied on both ends of a tunnel, so the server stores them and every
 // client config inherits them verbatim.
-type Obfuscation20 struct {
+type Obfuscation31 struct {
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
 	Jmax int    `json:"jmax"`
@@ -55,7 +55,7 @@ type Instance struct {
 	Address []string
 	MTU     int
 
-	Obfuscation Obfuscation20
+	Obfuscation Obfuscation31
 	Peers       []Peer
 
 	// ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.
@@ -117,11 +117,11 @@ type ServerSettings struct {
 	// Instance.RouteThroughXray for what that means. Off by default.
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
-	// Obfuscation20's fields, repeated flat (not embedded) rather than
+	// Obfuscation31's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an
-	// embedded Obfuscation20 the same way, but the frontend's Go->Zod/TS
+	// embedded Obfuscation31 the same way, but the frontend's Go->Zod/TS
 	// generator (tools/openapigen) does not — it emits a genuinely nested
-	// `obfuscation20` object, which would silently diverge from the real
+	// `obfuscation31` object, which would silently diverge from the real
 	// wire JSON. See Obfuscation() below for the manager-facing conversion.
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
@@ -137,11 +137,11 @@ type ServerSettings struct {
 	I1   string `json:"i1,omitempty"`
 }
 
-// Obfuscation extracts the Obfuscation20 parameter set from a ServerSettings
+// Obfuscation extracts the Obfuscation31 parameter set from a ServerSettings
 // block, for callers (the Manager, ValidateObfuscation) that want the
 // grouped type rather than the flat wire fields.
-func (s ServerSettings) Obfuscation() Obfuscation20 {
-	return Obfuscation20{
+func (s ServerSettings) Obfuscation() Obfuscation31 {
+	return Obfuscation31{
 		Jc: s.Jc, Jmin: s.Jmin, Jmax: s.Jmax,
 		S1: s.S1, S2: s.S2, S3: s.S3, S4: s.S4,
 		H1: s.H1, H2: s.H2, H3: s.H3, H4: s.H4,

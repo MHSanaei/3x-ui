@@ -645,11 +645,9 @@ func sanitizeConfigValue(v string) string {
 }
 
 // writeObfuscation writes the AmneziaWG obfuscation parameters that must be
-// identical on both ends of a tunnel. S3/S4 and I1 are emitted only when set,
-// so a plain 1.x-equivalent set (S3=S4=0, I1="") produces the classic
-// generator's output; a 2.0 set adds the extra padding, header ranges and CPS
-// packet.
-func writeObfuscation(b *strings.Builder, o Obfuscation20) {
+// identical on both ends of a tunnel. Optional parameters are emitted only
+// when set, so blanking a field omits its feature from the rendered config.
+func writeObfuscation(b *strings.Builder, o Obfuscation31) {
 	fmt.Fprintf(b, "Jc = %d\n", o.Jc)
 	fmt.Fprintf(b, "Jmin = %d\n", o.Jmin)
 	fmt.Fprintf(b, "Jmax = %d\n", o.Jmax)

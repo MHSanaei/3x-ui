@@ -118,12 +118,12 @@ func TestServerAddress(t *testing.T) {
 	}
 }
 
-// fixedObfuscation is a deterministic Obfuscation20 for tests that compare
-// two instances for equality — GenerateObfuscation20 is randomized per call
+// fixedObfuscation is a deterministic Obfuscation31 for tests that compare
+// two instances for equality — GenerateObfuscation31 is randomized per call
 // by design (see its doc comment) and must never be used where the test
 // expects two "identical" instances to actually match.
-func fixedObfuscation() Obfuscation20 {
-	return Obfuscation20{Jc: 4, Jmin: 40, Jmax: 100, S1: 30, S2: 90, S3: 20, S4: 10, H1: "10-2000", H2: "3000-5000", H3: "6000-8000", H4: "9000-11000", I1: "<r 64>"}
+func fixedObfuscation() Obfuscation31 {
+	return Obfuscation31{Jc: 4, Jmin: 40, Jmax: 100, S1: 30, S2: 90, S3: 20, S4: 10, H1: "10-2000", H2: "3000-5000", H3: "6000-8000", H4: "9000-11000", I1: "<r 64>"}
 }
 
 func baseInstance() Instance {
@@ -501,7 +501,7 @@ func TestGenerateServerConfigContainsExpectedLines(t *testing.T) {
 
 func TestWriteObfuscationDefaultsBlankH(t *testing.T) {
 	var b strings.Builder
-	writeObfuscation(&b, Obfuscation20{})
+	writeObfuscation(&b, Obfuscation31{})
 	out := b.String()
 	for i, want := range []string{"H1 = 1", "H2 = 2", "H3 = 3", "H4 = 4"} {
 		if !strings.Contains(out, want) {

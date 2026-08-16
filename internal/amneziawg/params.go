@@ -36,25 +36,15 @@ func randInt(min, max int) int {
 	return min + int(n.Int64())
 }
 
-// GenerateObfuscation20 produces a randomized AmneziaWG 2.0 parameter set.
-// preset "mobile" tunes junk packets for restrictive mobile carriers; any
-// other value uses the balanced "default" preset. Values are randomized per
-// call so each server gets a unique fingerprint — a static value gets
-// profiled by DPI, defeating the point of the obfuscation.
-func GenerateObfuscation20(preset string) Obfuscation20 {
-	var o Obfuscation20
+// GenerateObfuscation31 produces a randomized AmneziaWG 3.1 parameter set.
+// Values are randomized per call so each server gets a unique fingerprint —
+// a static value gets profiled by DPI, defeating the point.
+func GenerateObfuscation31() Obfuscation31 {
+	var o Obfuscation31
 
-	switch preset {
-	case "mobile":
-		// Jc=3 and a narrow Jmax survive carriers like Tele2/Yota/Megafon.
-		o.Jc = 3
-		o.Jmin = randInt(30, 50)
-		o.Jmax = o.Jmin + randInt(20, 80)
-	default:
-		o.Jc = randInt(3, 6)
-		o.Jmin = randInt(40, 89)
-		o.Jmax = o.Jmin + randInt(50, 250)
-	}
+	o.Jc = randInt(3, 6)
+	o.Jmin = randInt(40, 89)
+	o.Jmax = o.Jmin + randInt(50, 250)
 
 	o.S1 = randInt(15, 150)
 	o.S2 = randInt(15, 150)
@@ -100,7 +90,7 @@ func generateHRanges() [4]string {
 // down on `awg-quick up`. Empty H values are allowed (they fall back to a
 // default when the config is generated). Each H value accepts either a
 // single integer ("1") or a range ("100-800").
-func ValidateObfuscation(o Obfuscation20) error {
+func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
 	}

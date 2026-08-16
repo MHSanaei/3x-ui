@@ -364,9 +364,9 @@ export default function InboundFormModal({
     setV('settings.server.publicKey', kp.publicKey);
   };
 
-  // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
-  // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
-  // "default" preset (internal/amneziawg/params.go) closely enough for a form
+  // Randomizes the AmneziaWG 3.1 obfuscation set client-side, mirroring the
+  // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation31
+  // (internal/amneziawg/params.go) closely enough for a form
   // suggestion — exact parity isn't required since the user can still edit
   // any field afterward, and a fresh, non-crypto-grade random value here is
   // no weaker than what the backend would have generated on first save.

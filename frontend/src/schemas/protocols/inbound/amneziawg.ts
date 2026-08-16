@@ -34,12 +34,12 @@ export const AmneziawgClientSchema = z.object({
 });
 export type AmneziawgClient = z.infer<typeof AmneziawgClientSchema>;
 
-// Server-wide AmneziaWG 2.0 obfuscation parameters and tunnel identity,
+// Server-wide AmneziaWG 3.1 obfuscation parameters and tunnel identity,
 // mirroring internal/amneziawg.ServerSettings on the Go side exactly (same
 // field names) — the listen port is not duplicated here, it's the inbound's
 // own port like every other protocol. H1-H4 blank falls back to the classic
-// 1/2/3/4 magic header on save; I1 blank omits the 2.0-only CPS signature
-// packet (a 1.x-compatible config).
+// 1/2/3/4 magic header on save; blank optional fields omit their feature
+// from the rendered config.
 export const AmneziawgServerSchema = z.object({
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),

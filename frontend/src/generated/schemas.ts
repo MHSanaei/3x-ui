@@ -3026,7 +3026,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "jc": {
-        "description": "Obfuscation20's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation20 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation20` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
+        "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
         "type": "integer"
       },
       "jmax": {
