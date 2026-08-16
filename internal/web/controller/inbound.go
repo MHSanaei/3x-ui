@@ -75,6 +75,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/bulkDel", a.bulkDelInbounds)
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/setEnable/:id", a.setInboundEnable)
+	g.POST("/:id/subSortIndex", a.setInboundSubSortIndex)
 	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
 	g.POST("/:id/delAllClients", a.delAllInboundClients)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
@@ -257,11 +258,30 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	notifyClientsChanged()
 }
 
-// setInboundEnable flips only the enable flag of an inbound. This is a
-// dedicated endpoint because the regular update path serialises the entire
-// settings JSON (every client) — far too heavy for an interactive switch
-// on inbounds with thousands of clients. Frontend optimistically updates
-// the UI; we just persist + sync xray + nudge other open admin sessions.
+// setInboundSubSortIndex changes only subscription ordering without sending
+// the inbound's settings/client payload.
+func (a *InboundController) setInboundSubSortIndex(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		return
+	}
+	type form struct {
+		SubSortIndex int `json:"subSortIndex" form:"subSortIndex" binding:"required,min=1"`
+	}
+	var f form
+	if err := c.ShouldBind(&f); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.inboundService.SetInboundSubSortIndex(id, f.SubSortIndex); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+	websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+}
+
 func (a *InboundController) setInboundEnable(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
