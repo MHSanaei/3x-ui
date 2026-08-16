@@ -77,6 +77,28 @@ func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, erro
 	return instances, nil
 }
 
+// AmneziaWGBridgeTags returns the tags of the Xray bridges injectAmneziawgEgress
+// creates. Those bridges reuse their AmneziaWG inbound's own tag so the stock
+// Routing page can target them, which also means Xray reports their bytes under
+// that tag -- bytes AmneziaWGJob already reports from `awg show dump`. The
+// traffic job drops the Xray side using this set; see dropAmneziawgBridgeTraffic.
+func (s *InboundService) AmneziaWGBridgeTags() (map[string]struct{}, error) {
+	var inbounds []*model.Inbound
+	err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Find(&inbounds).Error
+	if err != nil {
+		return nil, err
+	}
+	tags := make(map[string]struct{}, len(inbounds))
+	for _, ib := range inbounds {
+		if ib.Tag != "" && amneziawgWantsEgressBridge(ib) {
+			tags[ib.Tag] = struct{}{}
+		}
+	}
+	return tags, nil
+}
+
 // applyLocalAmneziaWG pushes a single local AmneziaWG inbound's current peer
 // set to its interface right after a client edit commits, so an add,
 // removal, re-key or enable-toggle takes effect immediately instead of

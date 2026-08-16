@@ -693,6 +693,25 @@ const amneziawgEgressStreamSettings = `{"sockopt":{"tproxy":"tproxy"}}`
 // and only sniffing recovers the name from the payload.
 const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
 
+// amneziawgWantsEgressBridge reports whether an inbound gets its own Xray
+// bridge. Shared with AmneziaWGBridgeTags, whose traffic filter has to name
+// the exact same set of tags this injector creates or the two silently drift.
+func amneziawgWantsEgressBridge(inbound *model.Inbound) bool {
+	if inbound == nil || inbound.Protocol != model.AmneziaWG || !inbound.Enable || inbound.NodeID != nil {
+		return false
+	}
+	inst, ok := amneziawg.InstanceFromInbound(inbound)
+	if !ok || !inst.RouteThroughXray {
+		return false
+	}
+	for _, p := range inst.Peers {
+		if amneziawg.FirstIPv4(p.AllowedIPs) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // injectAmneziawgEgress gives every enabled, RouteThroughXray inbound with a
 // qualifying peer its own loopback dokodemo-door bridge, tagged with that
 // inbound's own tag so the stock Routing page's picker already lists it (see
@@ -709,21 +728,7 @@ func injectAmneziawgEgress(cfg *xray.Config, inbounds []*model.Inbound) {
 	}
 
 	for _, inbound := range inbounds {
-		if inbound.Protocol != model.AmneziaWG || !inbound.Enable || inbound.NodeID != nil {
-			continue
-		}
-		inst, ok := amneziawg.InstanceFromInbound(inbound)
-		if !ok || !inst.RouteThroughXray {
-			continue
-		}
-		hasQualifyingPeer := false
-		for _, p := range inst.Peers {
-			if amneziawg.FirstIPv4(p.AllowedIPs) != "" {
-				hasQualifyingPeer = true
-				break
-			}
-		}
-		if !hasQualifyingPeer {
+		if !amneziawgWantsEgressBridge(inbound) {
 			continue
 		}
 		if _, taken := existingTags[inbound.Tag]; taken {

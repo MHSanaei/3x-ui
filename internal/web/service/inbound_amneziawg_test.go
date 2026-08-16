@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/base64"
 	"encoding/json"
+	"maps"
 	"strings"
 	"testing"
 
@@ -301,5 +302,48 @@ func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
 	filtered := svc.GetAmneziaWGLogs("100", "AWG-QUICK")
 	if len(filtered.Events) != 1 || !strings.Contains(filtered.Events[0], "awg-quick") {
 		t.Fatalf("filter must narrow to the matching line, got %v", filtered.Events)
+	}
+}
+
+// The traffic job drops the Xray-side rows for these tags, so this set has to
+// name exactly the bridges injectAmneziawgEgress creates: name one too few and
+// the inbound's traffic doubles again, one too many and real traffic vanishes.
+func TestAmneziaWGBridgeTags_MatchesTheBridgesInjectAmneziawgEgressCreates(t *testing.T) {
+	setupConflictDB(t)
+
+	peer := []model.Client{{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}}}
+	routed := amneziawgInbound(1, "awg-routed", peer)
+	unrouted := amneziawgInbound(2, "awg-unrouted", peer)
+	unrouted.Settings = strings.Replace(unrouted.Settings, `"routeThroughXray":true`, `"routeThroughXray":false`, 1)
+	noPeers := amneziawgInbound(3, "awg-nopeers", nil)
+	disabled := amneziawgInbound(4, "awg-disabled", peer)
+	disabled.Enable = false
+
+	all := []*model.Inbound{routed, unrouted, noPeers, disabled}
+	for _, ib := range all {
+		if err := database.GetDB().Create(ib).Error; err != nil {
+			t.Fatalf("seed %s: %v", ib.Tag, err)
+		}
+	}
+
+	got, err := (&InboundService{}).AmneziaWGBridgeTags()
+	if err != nil {
+		t.Fatalf("AmneziaWGBridgeTags: %v", err)
+	}
+
+	cfg := egressTestConfig()
+	injectAmneziawgEgress(cfg, all)
+	want := make(map[string]struct{})
+	for _, ib := range cfg.InboundConfigs {
+		if ib.Protocol == "dokodemo-door" {
+			want[ib.Tag] = struct{}{}
+		}
+	}
+
+	if len(want) != 1 {
+		t.Fatalf("expected exactly the routed inbound to get a bridge, got %v", want)
+	}
+	if !maps.Equal(got, want) {
+		t.Fatalf("bridge tags = %v, but injectAmneziawgEgress created %v", got, want)
 	}
 }
