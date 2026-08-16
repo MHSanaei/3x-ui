@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -59,5 +60,40 @@ func TestAddInboundConcurrentOverlappingListenersSingleWinner(t *testing.T) {
 			t.Fatalf("round %d port %d: concurrent AddInbound committed=%d, want exactly 1 (rejections: %v)",
 				round, port, committed, rejections)
 		}
+	}
+}
+
+// Editing an inbound onto a port another one already holds must be rejected —
+// the check moved inside the transaction, and nothing else guards this path.
+func TestUpdateInboundRejectsPortTakenByAnother(t *testing.T) {
+	setupConflictDB(t)
+
+	svc := &InboundService{}
+	first := &model.Inbound{
+		Tag: "update-holder", Listen: "", Port: 25101, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp"}`, Settings: `{"clients":[]}`,
+	}
+	if _, _, err := svc.AddInbound(first); err != nil {
+		t.Fatalf("seed holder: %v", err)
+	}
+	second := &model.Inbound{
+		Tag: "update-mover", Listen: "", Port: 25102, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp"}`, Settings: `{"clients":[]}`,
+	}
+	if _, _, err := svc.AddInbound(second); err != nil {
+		t.Fatalf("seed mover: %v", err)
+	}
+
+	second.Port = first.Port
+	if _, _, err := svc.UpdateInbound(second); err == nil {
+		t.Fatal("moving an inbound onto a port already in use was accepted")
+	}
+
+	var stored model.Inbound
+	if err := database.GetDB().First(&stored, second.Id).Error; err != nil {
+		t.Fatal(err)
+	}
+	if stored.Port != 25102 {
+		t.Fatalf("rejected update still changed the stored port to %d", stored.Port)
 	}
 }
