@@ -175,6 +175,7 @@ func TestNormalizeAmneziaWGSettings_RejectsBad31Values(t *testing.T) {
 		{"zero rekeyTimeout", `"rekeyTimeout":"0"`},
 		{"rekey overlapping reject", `"rekeyAfterTime":"100-200","rejectAfterTime":"150-300"`},
 		{"control chars in i2", `"i2":"<r 64>\nPostUp = evil"`},
+		{"line-wrapped headerProtectionKey", `"headerProtectionKey":"MCPfRGcDGotJ6Tcn\r\nIdDqsemj2cMIiGHnPUHM5ivXN18="`},
 	}
 	for _, c := range cases {
 		inbound := &model.Inbound{
@@ -185,6 +186,32 @@ func TestNormalizeAmneziaWGSettings_RejectsBad31Values(t *testing.T) {
 		if err := svc.normalizeAmneziaWGSettings(inbound); err == nil {
 			t.Errorf("%s must be rejected", c.name)
 		}
+	}
+}
+
+func TestNormalizeAmneziaWGSettings_CanonicalizesRangeValues(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+	inbound := &model.Inbound{
+		Protocol: model.AmneziaWG,
+		Port:     51820,
+		Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24,` +
+			`"rekeyAfterTime":"110 - 140","rejectAfterTime":"190-250","keepaliveTimeout":"   "},"clients":[]}`,
+	}
+	if err := svc.normalizeAmneziaWGSettings(inbound); err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+		t.Fatalf("re-parse normalized settings (err=%v): %s", err, inbound.Settings)
+	}
+	if parsed.Server.RekeyAfterTime != "110-140" {
+		t.Errorf("rekeyAfterTime = %q, want canonical \"110-140\"", parsed.Server.RekeyAfterTime)
+	}
+	// A whitespace-only value must collapse to "feature off", not be stored
+	// as a value the server emitter renders into an invalid blank line.
+	if parsed.Server.KeepaliveTimeout != "" {
+		t.Errorf("keepaliveTimeout = %q, want collapsed to empty", parsed.Server.KeepaliveTimeout)
 	}
 }
 

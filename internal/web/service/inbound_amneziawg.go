@@ -195,6 +195,14 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 			return err
 		}
 	}
+	parsed.Server.HeaderProtectionKey = strings.TrimSpace(parsed.Server.HeaderProtectionKey)
+	for _, f := range []*string{
+		&parsed.Server.ContentPaddingAddition, &parsed.Server.RekeyAfterTime,
+		&parsed.Server.RekeyTimeout, &parsed.Server.RejectAfterTime,
+		&parsed.Server.KeepaliveTimeout, &parsed.Server.MaxHandshakeAttempts,
+	} {
+		*f = amneziawg.CanonicalizeUintRange(*f)
+	}
 	if err := amneziawg.ValidateObfuscation(parsed.Server.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}

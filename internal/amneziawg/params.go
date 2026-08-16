@@ -173,10 +173,16 @@ func ValidateObfuscation(o Obfuscation31) error {
 		}
 	}
 	// Sessions must renew before hard expiry: every possible rekey interval
-	// has to fire before the earliest possible reject cutoff.
-	if o.RekeyAfterTime != "" && o.RejectAfterTime != "" {
-		_, rekeyHi, _ := parseUintRange(o.RekeyAfterTime)
-		rejectLo, _, _ := parseUintRange(o.RejectAfterTime)
+	// has to fire before the earliest possible reject cutoff. A blank side
+	// means the WireGuard default (rekey 120s, reject 180s) still applies.
+	if o.RekeyAfterTime != "" || o.RejectAfterTime != "" {
+		rekeyHi, rejectLo := int64(120), int64(180)
+		if o.RekeyAfterTime != "" {
+			_, rekeyHi, _ = parseUintRange(o.RekeyAfterTime)
+		}
+		if o.RejectAfterTime != "" {
+			rejectLo, _, _ = parseUintRange(o.RejectAfterTime)
+		}
 		if rekeyHi >= rejectLo {
 			return fmt.Errorf("invalid rekeyAfterTime/rejectAfterTime: max rekey %d must be below min reject %d", rekeyHi, rejectLo)
 		}
@@ -184,11 +190,23 @@ func ValidateObfuscation(o Obfuscation31) error {
 	return nil
 }
 
+// CanonicalizeUintRange trims a range value and removes inner spaces, so a
+// pasted "110 - 140" is stored (and later emitted) as "110-140" and a
+// whitespace-only value collapses back to "feature off".
+func CanonicalizeUintRange(v string) string {
+	return strings.ReplaceAll(strings.TrimSpace(v), " ", "")
+}
+
 // validateHeaderProtectionKey accepts an empty value (feature off) or a
 // base64-encoded 32-byte key, the exact shape amneziawg-tools parses.
+// Control chars are rejected up front: DecodeString silently IGNORES \r\n,
+// so a line-wrapped pasted key would otherwise pass and split client configs.
 func validateHeaderProtectionKey(v string) error {
 	if v == "" {
 		return nil
+	}
+	if err := ValidateConfigValue("headerProtectionKey", v); err != nil {
+		return err
 	}
 	key, err := base64.StdEncoding.DecodeString(v)
 	if err != nil {
@@ -293,6 +311,11 @@ func ValidateConfigValue(field, v string) error {
 func validateUintRange(v string, minAllowed int64) error {
 	if strings.TrimSpace(v) == "" {
 		return nil
+	}
+	// parseUintRange trims each half, so "110\n-140" would otherwise pass
+	// validation and then split a rendered config line in two.
+	if err := ValidateConfigValue("range", v); err != nil {
+		return fmt.Errorf("value %q must not contain control characters", v)
 	}
 	lo, hi, ok := parseUintRange(v)
 	if !ok {

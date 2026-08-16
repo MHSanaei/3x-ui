@@ -204,6 +204,14 @@ func TestStructuralFingerprintStableAndSensitive(t *testing.T) {
 	if a.structuralFingerprint() == i.structuralFingerprint() {
 		t.Fatal("toggling RandomTrailers must change the structural fingerprint -- the rendered config changed")
 	}
+
+	j := baseInstance()
+	j.Obfuscation.I1, j.Obfuscation.I2 = "a", "b|c"
+	k := baseInstance()
+	k.Obfuscation.I1, k.Obfuscation.I2 = "a|b", "c"
+	if j.structuralFingerprint() == k.structuralFingerprint() {
+		t.Fatal("adjacent free-text fields must not be join-ambiguous -- '|' is a legal I1-I5 character")
+	}
 }
 
 func TestPeersFingerprintOrderIndependentButContentSensitive(t *testing.T) {

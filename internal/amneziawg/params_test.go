@@ -208,6 +208,18 @@ func TestValidateObfuscationRejectsBadTimingRanges(t *testing.T) {
 			o.RekeyAfterTime = "180"
 			o.RejectAfterTime = "180-300"
 		}},
+		{"embedded newline splits the config line", func(o *Obfuscation31) {
+			o.RekeyAfterTime = "110\n-140"
+			o.RejectAfterTime = "190-250"
+		}},
+		{"reject alone below the 120s default rekey", func(o *Obfuscation31) {
+			o.RekeyAfterTime = ""
+			o.RejectAfterTime = "30-60"
+		}},
+		{"rekey alone above the 180s default reject", func(o *Obfuscation31) {
+			o.RekeyAfterTime = "200-300"
+			o.RejectAfterTime = ""
+		}},
 	}
 	for _, c := range cases {
 		o := validObfuscation()
@@ -227,12 +239,30 @@ func TestValidateObfuscationRejectsBadHeaderProtectionKey(t *testing.T) {
 		{"16-byte key", base64.StdEncoding.EncodeToString(make([]byte, 16))},
 		{"33-byte key", base64.StdEncoding.EncodeToString(make([]byte, 33))},
 		{"control characters", "AAAA\nBBBB"},
+		// DecodeString IGNORES \r\n, so this decodes to a valid 32 bytes —
+		// only the explicit control-character check can catch the line wrap.
+		{"line-wrapped but decodable key", "MCPfRGcDGotJ6Tcn\r\nIdDqsemj2cMIiGHnPUHM5ivXN18="},
 	}
 	for _, c := range cases {
 		o := validObfuscation()
 		o.HeaderProtectionKey = c.key
 		if err := ValidateObfuscation(o); err == nil {
 			t.Errorf("headerProtectionKey %s (%q) must be rejected", c.name, c.key)
+		}
+	}
+}
+
+func TestCanonicalizeUintRange(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"110 - 140", "110-140"},
+		{"  120  ", "120"},
+		{"   ", ""},
+		{"", ""},
+		{"110-140", "110-140"},
+	}
+	for _, c := range cases {
+		if got := CanonicalizeUintRange(c.in); got != c.want {
+			t.Errorf("CanonicalizeUintRange(%q) = %q, want %q", c.in, got, c.want)
 		}
 	}
 }

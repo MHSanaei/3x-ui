@@ -156,7 +156,9 @@ func (inst Instance) structuralFingerprint() string {
 		inst.IPv6ExternalInterface,
 		strconv.FormatBool(inst.RouteThroughXray),
 	}
-	return strings.Join(parts, "|")
+	// "\n" cannot appear in any fingerprinted field (ValidateConfigValue),
+	// unlike "|", which is legal in I1-I5 and would make the join ambiguous.
+	return strings.Join(parts, "\n")
 }
 
 // peersFingerprint identifies the reloadable peer set regardless of order, so
