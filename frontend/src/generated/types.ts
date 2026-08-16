@@ -233,16 +233,20 @@ export interface AllSettingView {
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
   name: string;
+  scope: string;
   token: string;
 }
 
 export interface ApiTokenView {
   createdAt: number;
   enabled: boolean;
+  expiresAt: number;
   id: number;
   name: string;
+  scope: string;
   token?: string;
 }
 
