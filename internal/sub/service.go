@@ -279,6 +279,16 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 	return out
 }
 
+// RecordSubscriptionFetch records a successful subscription response for all clients sharing subId.
+func (s *SubService) RecordSubscriptionFetch(subId string) error {
+	if strings.TrimSpace(subId) == "" {
+		return nil
+	}
+	return database.GetDB().Model(&xray.ClientTraffic{}).
+		Where("email IN (SELECT email FROM clients WHERE sub_id = ?)", subId).
+		Update("last_sub_fetch", time.Now().UnixMilli()).Error
+}
+
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	return s.ForRequest(host).getSubs(subId)

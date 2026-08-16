@@ -1382,6 +1382,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "lastSubFetch": {
+            "example": 1735680000000,
+            "format": "int64",
+            "type": "integer"
+          },
           "reset": {
             "example": 0,
             "type": "integer"
@@ -1413,6 +1418,7 @@
           "id",
           "inboundId",
           "lastOnline",
+          "lastSubFetch",
           "reset",
           "subId",
           "total",
@@ -3522,6 +3528,7 @@
                           "id": 14825,
                           "inboundId": 1,
                           "lastOnline": 1735680000000,
+                          "lastSubFetch": 1735680000000,
                           "reset": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
@@ -8430,6 +8437,7 @@
                     "id": 14825,
                     "inboundId": 1,
                     "lastOnline": 1735680000000,
+                    "lastSubFetch": 1735680000000,
                     "reset": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,

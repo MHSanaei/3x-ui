@@ -87,7 +87,18 @@ func allModels() []any {
 	}
 }
 
+func migrateClientTrafficLastSubFetchColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&xray.ClientTraffic{}) || migrator.HasColumn(&xray.ClientTraffic{}, "last_sub_fetch") {
+		return nil
+	}
+	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
+}
+
 func initModels() error {
+	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
 	models := allModels()
 	for _, mdl := range models {
 		if IsPostgres() && postgresModelSettled(mdl) {

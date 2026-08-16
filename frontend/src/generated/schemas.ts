@@ -1356,6 +1356,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
       "reset": {
         "example": 0,
         "type": "integer"
@@ -1387,6 +1392,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "lastSubFetch",
       "reset",
       "subId",
       "total",
