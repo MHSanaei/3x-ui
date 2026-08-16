@@ -127,6 +127,75 @@ func TestPortReservationsSQLiteProcessLockSerializesSamePort(t *testing.T) {
 	}
 }
 
+// Wildcard and specific listeners on one port are distinct rows for
+// ux_inbound_port_reservation_exact, so only the semantic check rejects the pair.
+func TestPortReservationsSQLiteConcurrentWildcardAndSpecificSingleWinner(t *testing.T) {
+	if database.IsPostgres() {
+		t.Skip("SQLite-only: the Postgres race is covered by the advisory-lock test")
+	}
+	t.Setenv(portReservationsGateEnv, "1")
+	setupPortReservationDB(t)
+	if err := PrepareInboundPortReservations(); err != nil {
+		t.Fatal(err)
+	}
+
+	const rounds = 25
+	for round := range rounds {
+		port := 24000 + round
+		claims := []*model.Inbound{
+			{
+				Tag: fmt.Sprintf("h04-sqlite-race-%d-wildcard", round), Listen: "",
+				Port: port, Protocol: model.VLESS,
+				StreamSettings: `{"network":"tcp"}`, Settings: `{"clients":[]}`,
+			},
+			{
+				Tag: fmt.Sprintf("h04-sqlite-race-%d-specific", round), Listen: "127.0.0.1",
+				Port: port, Protocol: model.Trojan,
+				StreamSettings: `{"network":"tcp"}`, Settings: `{"clients":[]}`,
+			},
+		}
+
+		start := make(chan struct{})
+		errs := make(chan error, len(claims))
+		var wg sync.WaitGroup
+		for _, claim := range claims {
+			wg.Add(1)
+			go func(inbound *model.Inbound) {
+				defer wg.Done()
+				<-start
+				_, _, err := (&InboundService{}).AddInbound(inbound)
+				errs <- err
+			}(claim)
+		}
+		close(start)
+		wg.Wait()
+		close(errs)
+
+		committed := 0
+		rejections := make([]string, 0, len(claims))
+		for err := range errs {
+			if err == nil {
+				committed++
+				continue
+			}
+			rejections = append(rejections, err.Error())
+		}
+		if committed != 1 {
+			t.Fatalf("round %d port %d: concurrent AddInbound committed=%d, want exactly 1 (rejections: %v)",
+				round, port, committed, rejections)
+		}
+
+		var reserved int64
+		if err := database.GetDB().Model(&model.InboundPortReservation{}).
+			Where("port = ?", port).Count(&reserved).Error; err != nil {
+			t.Fatal(err)
+		}
+		if reserved != 1 {
+			t.Fatalf("round %d port %d: reservations=%d, want exactly 1", round, port, reserved)
+		}
+	}
+}
+
 func TestPortReservationsPostgresConcurrentSamePortSingleWinner(t *testing.T) {
 	if os.Getenv("XUI_DB_TYPE") != "postgres" || strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" {
 		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run port-reservation concurrency test")
