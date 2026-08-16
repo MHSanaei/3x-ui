@@ -257,7 +257,9 @@
       "healthCritical": "{list} — nguy cấp",
       "panel": "Panel",
       "threads": "Luồng",
-      "uptime": "Thời gian chạy"
+      "uptime": "Thời gian chạy",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",

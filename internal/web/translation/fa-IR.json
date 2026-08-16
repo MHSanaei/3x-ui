@@ -257,7 +257,9 @@
       "healthCritical": "{list} — بحرانی",
       "panel": "پنل",
       "threads": "نخ‌ها",
-      "uptime": "مدت کارکرد"
+      "uptime": "مدت کارکرد",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",

@@ -30,6 +30,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
@@ -1434,9 +1435,62 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	return data, "x-ui.dump", nil
 }
 
-func (s *ServerService) ImportDB(file multipart.File) error {
+// hostBoundSettingKeys are the settings that describe *this* machine rather
+// than the configuration being carried: where the panel and the subscription
+// service listen, the certificates they present, and the identity this panel
+// uses towards its nodes. An import that overwrites them leaves the
+// destination unreachable on its own address, or impersonating the source.
+var hostBoundSettingKeys = []string{
+	"webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webBasePath",
+	"subListen", "subDomain", "subPort", "subCertFile", "subKeyFile", "subURI", "subJsonURI",
+	"secret", "panelGuid",
+	"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem",
+	"nodeMtlsClientKeyPem", "nodeMtlsClientCertSha256", "nodeMtlsClientCAPem",
+}
+
+func captureHostBoundSettings() map[string]string {
+	db := database.GetDB()
+	if db == nil {
+		return nil
+	}
+	var rows []model.Setting
+	if err := db.Model(&model.Setting{}).Where("key IN ?", hostBoundSettingKeys).Find(&rows).Error; err != nil {
+		logger.Warningf("Import: could not read this machine's settings, they will come from the uploaded file: %v", err)
+		return nil
+	}
+	kept := make(map[string]string, len(rows))
+	for _, row := range rows {
+		kept[row.Key] = row.Value
+	}
+	return kept
+}
+
+func restoreHostBoundSettings(kept map[string]string) {
+	if len(kept) == 0 {
+		return
+	}
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	for _, key := range hostBoundSettingKeys {
+		value, ok := kept[key]
+		if !ok {
+			continue
+		}
+		// The imported row may or may not exist; settings are key-value, so an
+		// upsert keyed on the name is the only safe write here.
+		if err := db.Where(model.Setting{Key: key}).
+			Assign(model.Setting{Value: value}).
+			FirstOrCreate(&model.Setting{}).Error; err != nil {
+			logger.Warningf("Import: could not restore setting %q for this machine: %v", key, err)
+		}
+	}
+}
+
+func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) error {
 	if database.IsPostgres() {
-		return s.importPostgresDB(file)
+		return s.importPostgresDB(file, keepHostSettings)
 	}
 	kind, err := sniffUploadKind(file)
 	if err != nil {
@@ -1486,6 +1540,11 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	}()
 	if errStop := s.StopXrayService(); errStop != nil {
 		logger.Warningf("Failed to stop Xray before DB import: %v", errStop)
+	}
+
+	var keptSettings map[string]string
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
 	}
 
 	if errClose := database.CloseDB(); errClose != nil {
@@ -1542,6 +1601,8 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
 	dbReopened = true
+
+	restoreHostBoundSettings(keptSettings)
 
 	s.inboundService.MigrateDB()
 
@@ -1697,7 +1758,7 @@ func sniffUploadKind(file multipart.File) (int, error) {
 	return sniffImportKind(header[:n]), nil
 }
 
-func (s *ServerService) importPostgresDB(file multipart.File) error {
+func (s *ServerService) importPostgresDB(file multipart.File, keepHostSettings bool) error {
 	kind, err := sniffUploadKind(file)
 	if err != nil {
 		return common.NewErrorf("Error reading uploaded file: %v", err)

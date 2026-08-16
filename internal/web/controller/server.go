@@ -375,7 +375,11 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-	if err := a.serverService.ImportDB(file); err != nil {
+	// Absent field keeps this machine's own listen addresses, certificates and
+	// node identity: the safe default for the common case of moving a config to
+	// a new host. Send keepHostSettings=false to clone a machine wholesale.
+	keepHostSettings := c.Request.FormValue("keepHostSettings") != "false"
+	if err := a.serverService.ImportDB(file, keepHostSettings); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.importDatabaseError"), err)
 		return
 	}

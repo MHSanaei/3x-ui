@@ -257,7 +257,9 @@
       "healthCritical": "{list} — 危险",
       "panel": "面板",
       "threads": "线程",
-      "uptime": "运行时间"
+      "uptime": "运行时间",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",

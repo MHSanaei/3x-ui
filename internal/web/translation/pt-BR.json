@@ -257,7 +257,9 @@
       "healthCritical": "{list} — crítico",
       "panel": "Painel",
       "threads": "Threads",
-      "uptime": "Tempo ativo"
+      "uptime": "Tempo ativo",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "Total Enviado/Recebido",

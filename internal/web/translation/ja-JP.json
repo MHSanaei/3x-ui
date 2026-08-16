@@ -257,7 +257,9 @@
       "healthCritical": "{list} — 危険水準",
       "panel": "パネル",
       "threads": "スレッド",
-      "uptime": "稼働時間"
+      "uptime": "稼働時間",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",

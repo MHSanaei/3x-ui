@@ -257,7 +257,9 @@
       "healthCritical": "{list} — حرج",
       "panel": "اللوحة",
       "threads": "الخيوط",
-      "uptime": "مدة التشغيل"
+      "uptime": "مدة التشغيل",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",
