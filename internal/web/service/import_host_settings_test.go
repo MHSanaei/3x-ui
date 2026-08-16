@@ -33,8 +33,8 @@ func TestImportKeepsHostBoundSettings(t *testing.T) {
 	}
 
 	kept := captureHostBoundSettings()
-	if len(kept) != len(mine) {
-		t.Fatalf("captured %d host settings, want %d: %v", len(kept), len(mine), kept)
+	if len(kept.values) != len(mine) {
+		t.Fatalf("captured %d host settings, want %d: %v", len(kept.values), len(mine), kept.values)
 	}
 
 	// Stand in for the import: every row now holds the source machine's value.
@@ -67,5 +67,33 @@ func TestImportKeepsHostBoundSettings(t *testing.T) {
 	}
 	if carried.Value != "from-imported-file" {
 		t.Fatalf("remarkTemplate = %q, want the imported value: only host-bound keys may survive", carried.Value)
+	}
+}
+
+// The destination usually has no row at all for the certificate paths and the
+// node identity — the built-in default applies. The imported row must go, or
+// the panel quietly adopts the source machine's certificate path.
+func TestImportDropsHostBoundSettingsThisMachineNeverHad(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	kept := captureHostBoundSettings()
+
+	for _, key := range []string{"webCertFile", "subCertFile", "nodeMtlsClientCertPem"} {
+		if err := db.Create(&model.Setting{Key: key, Value: "from-imported-file"}).Error; err != nil {
+			t.Fatalf("seed imported %s: %v", key, err)
+		}
+	}
+
+	restoreHostBoundSettings(kept)
+
+	for _, key := range []string{"webCertFile", "subCertFile", "nodeMtlsClientCertPem"} {
+		var count int64
+		if err := db.Model(&model.Setting{}).Where("key = ?", key).Count(&count).Error; err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatalf("imported %s survived although this machine had no row for it", key)
+		}
 	}
 }
