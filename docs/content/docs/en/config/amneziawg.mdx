@@ -34,7 +34,7 @@ fingerprint gets through.
 | **DNS (primary/secondary)** | Seeded into downloadable client configs; the server's own interface doesn't need one. |
 | **External interface**    | The host NIC PostUp/PostDown NAT rules attach to. Leave blank to auto-detect. |
 
-### Obfuscation (AmneziaWG 2.0)
+### Obfuscation (AmneziaWG 3.1)
 
 The same values must match on both ends of the tunnel, so the server stores
 them once and every client config inherits them. The panel generates a
@@ -49,13 +49,28 @@ value defeats the point, since DPI can fingerprint it over time.
 | **S3**       | Cookie-reply padding, `0`-`64`.                                               |
 | **S4**       | Transport (data) packet padding, `0`-`32`.                                    |
 | **H1-H4**    | Magic header values that replace WireGuard's standard message-type bytes. Each is a single integer or a `low-high` range; `1`-`4` are reserved (real WireGuard message types) and must not be used. |
-| **I1**       | An optional signature packet — random bytes prepended before the handshake, e.g. `<r 148>`. |
+| **I1-I5**    | Optional signature packets — random bytes prepended before the handshake, e.g. `<r 148>`. Generated sets fill `I1` only, matching Amnezia's own generator. |
+| **HeaderProtectionKey** | A base64 32-byte key for the 3.0 header-protection mechanism. Must match on every client config; blank disables it. |
+| **ContentPaddingAddition** | A single integer or `low-high` byte range of extra padding on content packets. Kept `<= 64` by the generator so a 1420-MTU tunnel doesn't fragment. |
+| **RekeyAfterTime / RekeyTimeout / RejectAfterTime / KeepaliveTimeout / MaxHandshakeAttempts** | Handshake-timing randomization: each is a `low-high` range (seconds; attempts for the last one) the peer samples from, so session timing stops being a WireGuard fingerprint. Every `RekeyAfterTime` value must stay below every `RejectAfterTime` value. Blank keeps the WireGuard default. |
+| **RandomTrailers** | Appends a random number of bytes to the end of every packet.                 |
+| **DisableCookies** | Never send cookie replies — removes a DPI-visible WireGuard message type, at the cost of WireGuard's handshake-flood mitigation. |
 
 <Callout type="info">
   If you enter obfuscation values by hand instead of using the generated
   defaults, keep `H1`-`H4` **non-overlapping** and above `4`, and double-check
   `S1 + 56 != S2` — a bad value here can keep the interface from coming up at
   all (`awg-quick up` fails).
+</Callout>
+
+<Callout type="warn">
+  The 3.1 parameters need **amneziawg-tools `v3.1.20260812`+** and the kernel
+  module (or `amneziawg-go`) at **`v3.1.20260814`+** on the host — earlier
+  tools reject the config outright, and the earlier 3.1 module can panic when
+  `RandomTrailers` is on. The 3.x kernel module also requires **Linux 6.7+**
+  (Ubuntu 24.04 is fine; 22.04's 5.15 kernel is not). Clients must run a
+  3.1-capable Amnezia app; blanking the 3.1 fields renders a config older
+  clients still understand.
 </Callout>
 
 ## Set it up in the panel
@@ -122,7 +137,7 @@ base64url'd) looks like this:
 [Interface]
 PrivateKey = <client private key>
 Address = 10.8.1.2/32
-DNS = 1.1.1.1
+DNS = 8.8.8.8, 8.8.4.4
 Jc = 4
 Jmin = 65
 Jmax = 220
@@ -130,17 +145,27 @@ S1 = 87
 S2 = 44
 S3 = 21
 S4 = 9
-H1 = 1417709896-1417711088
-H2 = 1417712345-1417713988
-H3 = 1417715001-1417716777
-H4 = 1417718002-1417719555
+H1 = 462980921-463150218
+H2 = 1177681572-1177787900
+H3 = 1907413509-1907903969
+H4 = 2029908558-2030313135
 I1 = <r 148>
+HeaderProtectionKey = 8Iu83eHDA3fMKKSGaEsVW9Ycd2lYYzc0MYlk1jJTvE4=
+ContentPaddingAddition = 17-49
+RekeyAfterTime = 111-139
+RekeyTimeout = 4-7
+RejectAfterTime = 187-251
+KeepaliveTimeout = 9-14
+MaxHandshakeAttempts = 19-36
+RandomTrailers = on
+DisableCookies = on
 
 # my-client
 [Peer]
 PublicKey = <server public key>
 AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = your-server:443
+PersistentKeepalive = 25
 ```
 
 ## Not yet covered

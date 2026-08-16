@@ -251,6 +251,36 @@ should_install_amneziawg() {
     [[ "$reply" == "y" || "$reply" == "Y" ]]
 }
 
+# The AmneziaWG 3.x kernel module needs nla_put_uint, which only exists in
+# Linux 6.7+ — on an older kernel the DKMS build fails or produces a 2.x
+# module without the 3.1 obfuscation parameters the panel generates.
+check_awg_kernel_version() {
+    local kmaj kmin
+    kmaj=$(uname -r | cut -d. -f1)
+    kmin=$(uname -r | cut -d. -f2)
+    if ((kmaj < 6 || (kmaj == 6 && kmin < 7))); then
+        echo -e "${yellow}Warning: the AmneziaWG 3.x kernel module needs Linux >= 6.7 (found $(uname -r)).${plain}"
+        echo -e "${yellow}The DKMS build may fail or produce a 2.x module without 3.1 obfuscation support.${plain}"
+    fi
+}
+
+# The panel generates AmneziaWG 3.1 parameters (HeaderProtectionKey etc.);
+# amneziawg-tools older than v3.1.20260812 reject them as unknown config
+# keys, so warn while the admin is still looking at the install output.
+check_awg_31_support() {
+    local ver maj min
+    ver=$(awg --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+' | head -n1)
+    [[ -n "$ver" ]] || return 0
+    maj=${ver#v}
+    min=${maj#*.}
+    maj=${maj%%.*}
+    if ((maj < 3 || (maj == 3 && min < 1))); then
+        echo -e "${yellow}Warning: installed amneziawg-tools are ${ver}, but the panel's AmneziaWG inbounds${plain}"
+        echo -e "${yellow}use 3.1 parameters. Upgrade amneziawg-tools to v3.1.20260812+ and the kernel${plain}"
+        echo -e "${yellow}module/amneziawg-go to v3.1.20260814+, or those inbounds will fail to start.${plain}"
+    fi
+}
+
 # ppa:amnezia/ppa (Ubuntu/Debian/Armbian) is the primary, tested path; other
 # distros fall back to plain wireguard-tools with a manual-install pointer.
 # See https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.
@@ -262,12 +292,14 @@ install_amneziawg() {
     if command -v awg &>/dev/null; then
         echo -e "${green}AmneziaWG (awg) already installed.${plain}"
         modprobe amneziawg 2>/dev/null || true
+        check_awg_31_support
         install_ndppd
         enable_ipv6_forwarding
         enable_tproxy_support
         return
     fi
 
+    check_awg_kernel_version
     echo -e "${green}Installing AmneziaWG...${plain}"
     export DEBIAN_FRONTEND=noninteractive
     export DEBCONF_NONINTERACTIVE_SEEN=true
@@ -341,6 +373,7 @@ install_amneziawg() {
 
     if command -v awg &>/dev/null; then
         echo -e "${green}awg: $(awg --version 2>/dev/null || echo 'installed')${plain}"
+        check_awg_31_support
     else
         echo -e "${yellow}Warning: 'awg' binary not found. The panel will work, but an AmneziaWG${plain}"
         echo -e "${yellow}inbound's tunnel will not start until you install it manually.${plain}"
