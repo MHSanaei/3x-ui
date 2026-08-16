@@ -545,6 +545,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}()
 
 	structuralChange := false
+	lifecycleLifted := false
 
 	var adoptedInbounds []*model.Inbound
 
@@ -683,13 +684,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if deduped, changed := dedupeSettingsClients(adoptedSettings); changed {
 			adoptedSettings = deduped
 		}
-		// Lift after strip/dedupe, but keep the pre-lift blob for the reconcile
-		// fingerprint: RecordAdoptedInbound must reflect what the node reported,
-		// or ReconcileInbound will skip re-pushing the corrected clients.
+		// Lift after strip/dedupe. Fingerprint the pre-lift blob only — never the
+		// lifted form — so ReconcileInbound sees a mismatch against central
+		// (lifted) settings and re-pushes. When a lift ran, also mark the node
+		// dirty: reconcile only runs on the dirty path.
 		wireSettings := adoptedSettings
 		lifted, liftChanged := liftClientLifecycleInSettings(adoptedSettings, centralCSByEmail)
 		if liftChanged {
 			adoptedSettings = lifted
+			lifecycleLifted = true
 		}
 
 		updates := map[string]any{}
@@ -708,7 +711,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["traffic_reset"] = snapIb.TrafficReset
 			updates["traffic_reset_day"] = normalizeTrafficResetDay(snapIb.TrafficResetDay)
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
-			if !liftChanged && adoptedWireChanged(c, snapIb, wireSettings) {
+			if liftChanged || adoptedWireChanged(c, snapIb, wireSettings) {
 				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, wireSettings))
 			}
 		}
@@ -1053,14 +1056,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if existing != nil {
 				clients[i].ExpiryTime = mergeActivationExpiry(existing.ExpiryTime, nodeSettingsExpiry)
 			}
-			if !clients[i].Enable {
-				nodeExpiry := nodeSettingsExpiry
-				if cs, hit := csByEmail[clients[i].Email]; hit {
-					nodeExpiry = cs.ExpiryTime
+			if cs, hit := csByEmail[clients[i].Email]; hit && !cs.Enable {
+				if staleNodeDisable(existing, cs.ExpiryTime) {
+					if existing != nil {
+						clients[i].Enable = existing.Enable
+					}
+				} else {
+					clients[i].Enable = false
 				}
-				if staleNodeDisable(existing, nodeExpiry) && existing != nil {
-					// Settings JSON already carries enable=false; restore the
-					// traffic-row enable so SyncInbound does not disable the record.
+			} else if !clients[i].Enable {
+				if staleNodeDisable(existing, nodeSettingsExpiry) && existing != nil {
 					clients[i].Enable = existing.Enable
 				}
 			}
@@ -1151,6 +1156,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	committed = true
+
+	if lifecycleLifted && !dirty {
+		// Node still reports pre-extension clients; dirty so the next sync tick
+		// reconciles. Adoption fingerprint was stamped from wireSettings (stale),
+		// so ReconcileInbound mismatches the lifted DB row and actually pushes.
+		if err := (&NodeService{}).MarkNodeDirty(nodeID); err != nil {
+			logger.Warningf("setRemoteTraffic: mark node %d dirty after lifecycle lift failed: %v", nodeID, err)
+		}
+	}
 
 	if len(adoptedInbounds) > 0 {
 		if mgr := runtime.GetManager(); mgr != nil {

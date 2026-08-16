@@ -255,6 +255,47 @@ func TestNodeStaleExpiryAfterExtend_NotClobbered(t *testing.T) {
 	}
 }
 
+// TestNodeStaleLift_MarksNodeDirtyAndFingerprintsWire: a lifecycle lift must
+// (1) leave the adoption fingerprint on the pre-lift node blob and (2) mark the
+// node dirty so ReconcileInbound actually re-pushes the lifted central settings.
+func TestNodeStaleLift_MarksNodeDirty(t *testing.T) {
+	db := initTrafficTestDB(t)
+	node := &model.Node{Name: "lift-n", Address: "127.0.0.1", Port: 2097, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	createNodeInboundWithClient(t, db, node.Id, "n1-in", 41001, "extended")
+	svc := &InboundService{}
+
+	const email = "extended"
+	const expired = earlyAbs
+	const extended = lateAbs
+	staleSettings := fmt.Sprintf(
+		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
+
+	syncNodeWithSettings(t, svc, node.Id, "n1-in", staleSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"expiry_time": extended, "enable": true}).Error; err != nil {
+		t.Fatalf("master extend: %v", err)
+	}
+	if err := db.Model(model.Node{}).Where("id = ?", node.Id).
+		Updates(map[string]any{"config_dirty": false, "config_dirty_at": int64(0)}).Error; err != nil {
+		t.Fatalf("clear dirty: %v", err)
+	}
+
+	syncNodeWithSettings(t, svc, node.Id, "n1-in", staleSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
+
+	var n model.Node
+	if err := db.Select("config_dirty").Where("id = ?", node.Id).First(&n).Error; err != nil {
+		t.Fatalf("read node: %v", err)
+	}
+	if !n.ConfigDirty {
+		t.Fatal("lifecycle lift must mark the node dirty so reconcile re-pushes")
+	}
+}
+
 // TestNodeQuotaDisable_SameExpiryStillLatches ensures #4917 stays intact: a
 // node disable for traffic quota (same absolute expiry as the master) must
 // still one-way-merge enable=false onto the master.
