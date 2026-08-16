@@ -745,6 +745,16 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	if server.ContentPaddingAddition != "" {
 		fmt.Fprintf(&b, "ContentPaddingAddition = %s\n", server.ContentPaddingAddition)
 	}
+	// AmneziaWG 3.1 -- RandomTrailers especially must match the server's
+	// value: amneziawg-go only accepts an oversized (trailer-padded) packet
+	// when the RECEIVING side's own RandomTrailers is also on, so a one-sided
+	// setting makes that side's packets start getting silently dropped.
+	if server.RandomTrailers {
+		b.WriteString("RandomTrailers = true\n")
+	}
+	if server.DisableCookies {
+		b.WriteString("DisableCookies = true\n")
+	}
 
 	fmt.Fprintf(&b, "\n# %s\n", remark)
 	b.WriteString("[Peer]\n")

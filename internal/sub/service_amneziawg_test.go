@@ -29,7 +29,8 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 		Protocol: model.AmneziaWG,
 		Remark:   "awg-sub",
 		Settings: `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `","mtu":1420,"primaryDns":"8.8.8.8",` +
-			`"headerProtectionKey":"some-header-protection-key","contentPaddingAddition":"20-40"},` +
+			`"headerProtectionKey":"some-header-protection-key","contentPaddingAddition":"20-40",` +
+			`"randomTrailers":true,"disableCookies":true},` +
 			`"clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.8.1.2/32"],"keepAlive":25}]}`,
 	}
 
@@ -53,6 +54,8 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 		"DNS = 8.8.8.8",
 		"HeaderProtectionKey = some-header-protection-key",
 		"ContentPaddingAddition = 20-40",
+		"RandomTrailers = true",
+		"DisableCookies = true",
 		"[Peer]",
 		"PublicKey = " + serverPub,
 		"Endpoint = 203.0.113.7:51820",
@@ -60,6 +63,44 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("decoded config missing %q\n got: %s", want, text)
+		}
+	}
+}
+
+// TestGenAmneziaWGLinkRandomTrailersDisableCookiesOmitted covers AmneziaWG
+// 3.1's two boolean fields when left at their default (false): the config
+// text must omit both lines entirely, matching the frontend's own
+// buildAmneziaWGClientConfig -- neither is ever emitted as "= false".
+func TestGenAmneziaWGLinkRandomTrailersDisableCookiesOmitted(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "awg-sub",
+		Settings: `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `"},` +
+			`"clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.8.1.2/32"]}]}`,
+	}
+
+	s := &SubService{}
+	link := s.genAmneziaWGLink(inbound, "user")
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(link, "vpn://"))
+	if err != nil {
+		t.Fatalf("link body does not decode as base64url: %v\n got: %s", err, link)
+	}
+	text := string(raw)
+
+	for _, unwanted := range []string{"RandomTrailers", "DisableCookies"} {
+		if strings.Contains(text, unwanted) {
+			t.Fatalf("decoded config should not contain %q when unset\n got: %s", unwanted, text)
 		}
 	}
 }
