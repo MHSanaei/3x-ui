@@ -75,6 +75,17 @@ func run(root, outDir string) error {
 			),
 		},
 		{
+			Path: resolveRel(root, "internal/xray/geodata"),
+			StructAllow: setOf(
+				"GeoFile",
+				"GeoCategory",
+				"GeoEntry",
+				"GeoCategoryPage",
+				"GeoEntryPage",
+			),
+			AliasAllow: setOf("GeoKind"),
+		},
+		{
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
@@ -83,7 +94,7 @@ func run(root, outDir string) error {
 				"ProbeResultUI",
 				"RealityScanResult",
 				"QuicCaptureResult",
-				"GeodataCategories",
+				"GeodataTokenIssue",
 			),
 		},
 		{

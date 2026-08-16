@@ -327,6 +327,54 @@ export const EXAMPLES: Record<string, unknown> = {
     "masterId": 0,
     "path": ""
   },
+  "GeoCategory": {
+    "attributes": [
+      "ads",
+      "cn"
+    ],
+    "code": "google",
+    "entries": 1284
+  },
+  "GeoCategoryPage": {
+    "items": [
+      {
+        "attributes": [
+          "ads",
+          "cn"
+        ],
+        "code": "google",
+        "entries": 1284
+      }
+    ],
+    "total": 1043
+  },
+  "GeoEntry": {
+    "kind": "domain",
+    "value": "google.com"
+  },
+  "GeoEntryPage": {
+    "items": [
+      {
+        "kind": "domain",
+        "value": "google.com"
+      }
+    ],
+    "total": 1284
+  },
+  "GeoFile": {
+    "categories": 1043,
+    "error": "",
+    "kind": "site",
+    "modifiedAt": 1769558400000,
+    "name": "geosite.dat",
+    "size": 1467392
+  },
+  "GeodataTokenIssue": {
+    "code": "blabla",
+    "file": "geosite.dat",
+    "reason": "categoryMissing",
+    "token": "geosite:blabla"
+  },
   "HistoryOfSeeders": {
     "id": 0,
     "seederName": ""

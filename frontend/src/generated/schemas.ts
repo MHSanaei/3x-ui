@@ -1410,6 +1410,157 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "GeoCategory": {
+    "description": "GeoCategory is one code inside a database, such as geosite's \"google\".",
+    "properties": {
+      "attributes": {
+        "example": [
+          "ads",
+          "cn"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "code": {
+        "example": "google",
+        "type": "string"
+      },
+      "entries": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "attributes",
+      "code",
+      "entries"
+    ],
+    "type": "object"
+  },
+  "GeoCategoryPage": {
+    "description": "GeoCategoryPage is one page of categories plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoCategory"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1043,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoEntry": {
+    "description": "GeoEntry is a single rule inside a category: a domain rule for geosite\ndatabases, a CIDR for geoip ones.",
+    "properties": {
+      "kind": {
+        "example": "domain",
+        "type": "string"
+      },
+      "value": {
+        "example": "google.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "type": "object"
+  },
+  "GeoEntryPage": {
+    "description": "GeoEntryPage is one page of category entries plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoEntry"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoFile": {
+    "description": "GeoFile describes one .dat database found in the asset directory.",
+    "properties": {
+      "categories": {
+        "example": 1043,
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      },
+      "kind": {
+        "example": "site",
+        "type": "string"
+      },
+      "modifiedAt": {
+        "example": 1769558400000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "name": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "size": {
+        "example": 1467392,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "categories",
+      "kind",
+      "modifiedAt",
+      "name",
+      "size"
+    ],
+    "type": "object"
+  },
+  "GeodataTokenIssue": {
+    "description": "GeodataTokenIssue reports a routing token the running core would reject,\nor would silently match nothing against.",
+    "properties": {
+      "code": {
+        "example": "blabla",
+        "type": "string"
+      },
+      "file": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "reason": {
+        "example": "categoryMissing",
+        "type": "string"
+      },
+      "token": {
+        "example": "geosite:blabla",
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason",
+      "token"
+    ],
+    "type": "object"
+  },
   "HistoryOfSeeders": {
     "description": "HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.",
     "properties": {
