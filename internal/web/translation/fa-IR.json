@@ -112,7 +112,8 @@
     "docs": "مستندات",
     "openMenu": "باز کردن منو",
     "pinSidebar": "ثابت کردن نوار کناری",
-    "unpinSidebar": "برداشتن تثبیت نوار کناری"
+    "unpinSidebar": "برداشتن تثبیت نوار کناری",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — بحرانی",
       "panel": "پنل",
       "threads": "نخ‌ها",
-      "uptime": "مدت کارکرد"
+      "uptime": "مدت کارکرد",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",
@@ -1352,7 +1361,9 @@
         "pathLeadingSlash": "مسیر باید با / شروع شود"
       },
       "secretClear": "پاک کردن",
-      "secretClearUndo": "لغو پاک کردن"
+      "secretClearUndo": "لغو پاک کردن",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "ذخیره",

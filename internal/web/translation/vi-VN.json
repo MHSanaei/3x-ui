@@ -112,7 +112,8 @@
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
-    "unpinSidebar": "Bỏ ghim thanh bên"
+    "unpinSidebar": "Bỏ ghim thanh bên",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — nguy cấp",
       "panel": "Panel",
       "threads": "Luồng",
-      "uptime": "Thời gian chạy"
+      "uptime": "Thời gian chạy",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",
@@ -1352,7 +1361,9 @@
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },
       "secretClear": "Xóa",
-      "secretClearUndo": "Hoàn tác xóa"
+      "secretClearUndo": "Hoàn tác xóa",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "importRules": "Nhập quy tắc",

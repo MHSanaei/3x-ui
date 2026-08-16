@@ -112,7 +112,8 @@
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
-    "unpinSidebar": "サイドバーの固定を解除"
+    "unpinSidebar": "サイドバーの固定を解除",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — 危険水準",
       "panel": "パネル",
       "threads": "スレッド",
-      "uptime": "稼働時間"
+      "uptime": "稼働時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",
@@ -1352,7 +1361,9 @@
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },
       "secretClear": "クリア",
-      "secretClearUndo": "クリアを取り消す"
+      "secretClearUndo": "クリアを取り消す",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "importRules": "ルールをインポート",

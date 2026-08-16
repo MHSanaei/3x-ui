@@ -108,11 +108,11 @@ export default function LogModal({ open, onClose }: LogModalProps) {
               style={{ width: 95 }}
               onChange={setLevel}
               options={[
-                { value: 'debug', label: 'Debug' },
-                { value: 'info', label: 'Info' },
-                { value: 'notice', label: 'Notice' },
-                { value: 'warning', label: 'Warning' },
-                { value: 'err', label: 'Error' },
+                { value: 'debug', label: t('pages.index.logLevelDebug') },
+                { value: 'info', label: t('pages.index.logLevelInfo') },
+                { value: 'notice', label: t('pages.index.logLevelNotice') },
+                { value: 'warning', label: t('pages.index.logLevelWarning') },
+                { value: 'err', label: t('pages.index.logLevelError') },
               ]}
             />
           </Space.Compact>
