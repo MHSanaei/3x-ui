@@ -65,7 +65,7 @@ func TestUpdateBroadcastAllowedIPsDoesNotOverwriteOtherInboundWhenMismatched(t *
 	wgIb, awgIb, recId := seedDualProtocolClient(t, "dual@x", "10.0.0.5/32", "10.8.1.5/32")
 
 	updated := model.Client{Email: "dual@x", Enable: true, AllowedIPs: []string{"10.0.0.5/32"}}
-	if _, err := svc.Update(inboundSvc, recId, updated); err != nil {
+	if _, err := svc.Update(inboundSvc, recId, updated, 0); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func TestUpdateAllowedIPsByInboundAppliesDistinctValuesPerInbound(t *testing.T) 
 			awgIb.Id: {"10.8.1.9/32"},
 		},
 	}
-	if _, err := svc.Update(inboundSvc, recId, updated); err != nil {
+	if _, err := svc.Update(inboundSvc, recId, updated, 0); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
