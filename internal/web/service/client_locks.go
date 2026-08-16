@@ -274,7 +274,7 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 			changed = true
 		}
 		nodeEnable, _ := cm["enable"].(bool)
-		if !nodeEnable && staleNodeDisable(tr.ExpiryTime, nodeExpiry) && tr.Enable {
+		if !nodeEnable && staleNodeDisable(tr, nodeExpiry) && tr.Enable {
 			cm["enable"] = true
 			changed = true
 		}
@@ -292,17 +292,10 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 }
 
 func jsonClientInt64(v any) (int64, bool) {
-	switch n := v.(type) {
-	case float64:
-		return int64(n), true
-	case int64:
-		return n, true
-	case int:
-		return int64(n), true
-	case json.Number:
-		i, err := n.Int64()
-		return i, err == nil
-	default:
+	// json.Unmarshal into map[string]any yields float64 for numbers.
+	n, ok := v.(float64)
+	if !ok {
 		return 0, false
 	}
+	return int64(n), true
 }
