@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 )
@@ -231,4 +232,77 @@ func stripTombstonedClients(settings string) (string, bool) {
 		return settings, false
 	}
 	return string(b), true
+}
+
+// liftClientLifecycleInSettings applies mergeActivationExpiry / staleNodeDisable
+// to each client entry in a node settings blob before the master adopts it, so a
+// lagging snapshot cannot rewrite central inbound JSON with a pre-extension
+// deadline or enable=false (#6228).
+func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*xray.ClientTraffic) (string, bool) {
+	if settings == "" || len(trafficByEmail) == 0 {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, _ := parsed["clients"].([]any)
+	if len(clients) == 0 {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		email, _ := cm["email"].(string)
+		if email == "" {
+			continue
+		}
+		tr := trafficByEmail[email]
+		if tr == nil {
+			continue
+		}
+		nodeExpiry, hasExpiry := jsonClientInt64(cm["expiryTime"])
+		if !hasExpiry {
+			continue
+		}
+		merged := mergeActivationExpiry(tr.ExpiryTime, nodeExpiry)
+		if merged != nodeExpiry {
+			cm["expiryTime"] = merged
+			changed = true
+		}
+		nodeEnable, _ := cm["enable"].(bool)
+		if !nodeEnable && staleNodeDisable(tr.ExpiryTime, nodeExpiry) && tr.Enable {
+			cm["enable"] = true
+			changed = true
+		}
+		clients[i] = cm
+	}
+	if !changed {
+		return settings, false
+	}
+	parsed["clients"] = clients
+	b, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(b), true
+}
+
+func jsonClientInt64(v any) (int64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	case json.Number:
+		i, err := n.Int64()
+		return i, err == nil
+	default:
+		return 0, false
+	}
 }

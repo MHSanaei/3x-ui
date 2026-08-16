@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -37,7 +38,7 @@ func TestMergeActivationExpiry(t *testing.T) {
 	}
 }
 
-func TestNodeDisableIsStale(t *testing.T) {
+func TestStaleNodeDisable(t *testing.T) {
 	const (
 		early = int64(1000)
 		late  = int64(2000)
@@ -45,20 +46,19 @@ func TestNodeDisableIsStale(t *testing.T) {
 	cases := []struct {
 		name                  string
 		masterExpiry, nodeExp int64
-		nodeEnable, wantStale bool
+		wantStale             bool
 	}{
-		{"node still enabled", late, early, true, false},
-		{"same absolute deadline", late, late, false, false},
-		{"node older than master after extend", late, early, false, true},
-		{"node newer renewal disable", early, late, false, false},
-		{"unactivated node", late, -1, false, false},
-		{"unlimited master", 0, early, false, false},
+		{"same absolute deadline", late, late, false},
+		{"node older than master after extend", late, early, true},
+		{"node newer renewal", early, late, false},
+		{"unactivated node", late, -1, false},
+		{"unlimited master", 0, early, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := nodeDisableIsStale(c.masterExpiry, c.nodeExp, c.nodeEnable); got != c.wantStale {
-				t.Fatalf("nodeDisableIsStale(%d,%d,%v) = %v, want %v",
-					c.masterExpiry, c.nodeExp, c.nodeEnable, got, c.wantStale)
+			if got := staleNodeDisable(c.masterExpiry, c.nodeExp); got != c.wantStale {
+				t.Fatalf("staleNodeDisable(%d,%d) = %v, want %v",
+					c.masterExpiry, c.nodeExp, got, c.wantStale)
 			}
 		})
 	}
@@ -147,8 +147,6 @@ func TestNodeFirstConnectExpiry_NotClobbered_WithSettings(t *testing.T) {
 // TestNodeRenewExtendsExpiry guards against over-correcting: a node that renews
 // a client (traffic reset / auto-renew) legitimately moves the deadline FORWARD
 // to a later absolute timestamp, and that must still propagate to the master.
-// The guard rejects un-activated (<= 0) values and earlier absolute deadlines,
-// never a later positive one.
 func TestNodeRenewExtendsExpiry(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
@@ -170,22 +168,20 @@ func TestNodeRenewExtendsExpiry(t *testing.T) {
 }
 
 // TestNodeStaleExpiryAfterExtend_NotClobbered reproduces #6228: a client expires,
-// the admin extends it on the master (shared client_traffics gets a later
-// deadline and is re-enabled), then a node that still holds the previous
+// the admin extends it on the master, then a node that still holds the previous
 // deadline syncs enable=false + the old expiry. That snapshot must not undo the
-// extension or latch the master disable — otherwise the client is removed again
-// with "due to expiration or traffic limit".
+// extension on traffics, client records, or the adopted inbound settings JSON.
 func TestNodeStaleExpiryAfterExtend_NotClobbered(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "extended")
 	svc := &InboundService{}
 
 	const email = "extended"
-	const expired = int64(1786835245763)  // past
-	const extended = int64(1789427245763) // later extension on the master
+	const expired = int64(1786835245763)
+	const extended = int64(1789427245763)
 
-	staleSettings := `{"clients":[{"email":"extended","enable":false,"expiryTime":1786835245763}]}`
-	liveSettings := `{"clients":[{"email":"extended","enable":true,"expiryTime":1789427245763}]}`
+	staleSettings := fmt.Sprintf(
+		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
 
 	syncNodeWithSettings(t, svc, 1, "n1-in", staleSettings,
 		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
@@ -194,30 +190,60 @@ func TestNodeStaleExpiryAfterExtend_NotClobbered(t *testing.T) {
 			got.ExpiryTime, got.Enable, expired)
 	}
 
-	// Master-side extension (UpdateClientStat / BulkAdjust) lands on the shared row.
 	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
 		Updates(map[string]any{"expiry_time": extended, "enable": true}).Error; err != nil {
-		t.Fatalf("master extend: %v", err)
+		t.Fatalf("master extend traffic: %v", err)
+	}
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
+		Updates(map[string]any{"expiry_time": extended, "enable": true}).Error; err != nil {
+		t.Fatalf("master extend record: %v", err)
 	}
 
-	// Stale node snapshot still reporting the previous deadline + disable.
 	syncNodeWithSettings(t, svc, 1, "n1-in", staleSettings,
 		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
+
 	got := readTraffic(t, db, email)
 	if got.ExpiryTime != extended {
-		t.Fatalf("stale node expiry clobbered the extension: expiry=%d, want %d", got.ExpiryTime, extended)
+		t.Fatalf("stale node expiry clobbered traffics: expiry=%d, want %d", got.ExpiryTime, extended)
 	}
 	if !got.Enable {
-		t.Fatal("stale node disable latched the master enable off after extension")
+		t.Fatal("stale node disable latched traffics.enable off after extension")
 	}
 
-	// A live node that has received the extension may still report it.
-	syncNodeWithSettings(t, svc, 1, "n1-in", liveSettings,
-		xray.ClientTraffic{Email: email, Up: 1, Down: 1, ExpiryTime: extended, Enable: true})
-	got = readTraffic(t, db, email)
-	if got.ExpiryTime != extended || !got.Enable {
-		t.Fatalf("after live sync: expiry=%d enable=%v, want expiry=%d enable=true",
-			got.ExpiryTime, got.Enable, extended)
+	var rec model.ClientRecord
+	if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+		t.Fatalf("read client record: %v", err)
+	}
+	if rec.ExpiryTime != extended {
+		t.Fatalf("stale SyncInbound clobbered record expiry: %d, want %d", rec.ExpiryTime, extended)
+	}
+	if !rec.Enable {
+		t.Fatal("stale SyncInbound latched clients.enable off after extension")
+	}
+
+	var ib model.Inbound
+	if err := db.Where("tag = ?", "n1-in").First(&ib).Error; err != nil {
+		t.Fatalf("read inbound: %v", err)
+	}
+	clients, err := svc.GetClients(&ib)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	var found bool
+	for _, c := range clients {
+		if c.Email != email {
+			continue
+		}
+		found = true
+		if c.ExpiryTime != extended {
+			t.Fatalf("adopted settings kept stale expiry: %d, want %d", c.ExpiryTime, extended)
+		}
+		if !c.Enable {
+			t.Fatal("adopted settings kept enable=false after extension")
+		}
+	}
+	if !found {
+		t.Fatal("client missing from adopted inbound settings after stale sync")
 	}
 }
 
@@ -235,11 +261,6 @@ func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
 		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: expiry, Enable: true,
 	})
-	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
-		Updates(map[string]any{"enable": true, "up": 10, "down": 10, "total": 100}).Error; err != nil {
-		t.Fatalf("seed master enable: %v", err)
-	}
-
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
 		Email: email, Up: 60, Down: 50, Total: 100, ExpiryTime: expiry, Enable: false,
 	})
