@@ -32,7 +32,7 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
         <InputNumber min={1} max={32} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 'mtu']} label={t('pages.xray.amneziawg.mtu')}>
-        <InputNumber style={{ width: '100%' }} />
+        <InputNumber min={1} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 'primaryDns']} label={t('pages.xray.amneziawg.primaryDns')}>
         <Input placeholder="8.8.8.8" />
@@ -124,6 +124,71 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
         extra={t('pages.xray.amneziawg.i1Hint')}
       >
         <Input placeholder="<r 64>" />
+      </FormField>
+      <FormField name={['settings', 'server', 'i2']} label={t('pages.xray.amneziawg.i2')}>
+        <Input placeholder="<r 64>" />
+      </FormField>
+      <FormField name={['settings', 'server', 'i3']} label={t('pages.xray.amneziawg.i3')}>
+        <Input placeholder="<r 64>" />
+      </FormField>
+      <FormField name={['settings', 'server', 'i4']} label={t('pages.xray.amneziawg.i4')}>
+        <Input placeholder="<r 64>" />
+      </FormField>
+      <FormField name={['settings', 'server', 'i5']} label={t('pages.xray.amneziawg.i5')}>
+        <Input placeholder="<r 64>" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'headerProtectionKey']}
+        label={t('pages.xray.amneziawg.headerProtectionKey')}
+        extra={t('pages.xray.amneziawg.headerProtectionKeyHint')}
+      >
+        <Input />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'contentPaddingAddition']}
+        label={t('pages.xray.amneziawg.contentPaddingAddition')}
+        extra={t('pages.xray.amneziawg.contentPaddingAdditionHint')}
+      >
+        <Input placeholder="8-64" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'rekeyAfterTime']}
+        label={t('pages.xray.amneziawg.rekeyAfterTime')}
+        extra={t('pages.xray.amneziawg.timingRangeHint')}
+      >
+        <Input placeholder="100-160" />
+      </FormField>
+      <FormField name={['settings', 'server', 'rekeyTimeout']} label={t('pages.xray.amneziawg.rekeyTimeout')}>
+        <Input placeholder="3-10" />
+      </FormField>
+      <FormField name={['settings', 'server', 'rejectAfterTime']} label={t('pages.xray.amneziawg.rejectAfterTime')}>
+        <Input placeholder="190-250" />
+      </FormField>
+      <FormField name={['settings', 'server', 'keepaliveTimeout']} label={t('pages.xray.amneziawg.keepaliveTimeout')}>
+        <Input placeholder="8-20" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'maxHandshakeAttempts']}
+        label={t('pages.xray.amneziawg.maxHandshakeAttempts')}
+        extra={t('pages.xray.amneziawg.maxHandshakeAttemptsHint')}
+      >
+        <Input placeholder="15-50" />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'randomTrailers']}
+        label={t('pages.xray.amneziawg.randomTrailers')}
+        extra={t('pages.xray.amneziawg.randomTrailersHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      <FormField
+        name={['settings', 'server', 'disableCookies']}
+        label={t('pages.xray.amneziawg.disableCookies')}
+        extra={t('pages.xray.amneziawg.disableCookiesHint')}
+        valueProp="checked"
+      >
+        <Switch />
       </FormField>
     </>
   );
