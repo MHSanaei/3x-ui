@@ -60,7 +60,7 @@ func TestUpdateInboundClientCaseOnlyRenameDoesNotDuplicateRecord(t *testing.T) {
 
 	updated := source[0]
 	updated.Email = "Test"
-	if _, err := svc.Update(inboundSvc, origId, updated); err != nil {
+	if _, err := svc.Update(inboundSvc, origId, updated, 0); err != nil {
 		t.Fatalf("Update case-only email: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestClientUpdateDuplicateSubIDDoesNotRenameEmail(t *testing.T) {
 	updated := source[0]
 	updated.Email = "kept@x"
 	updated.SubID = "sub-other"
-	if _, err := svc.Update(inboundSvc, origId, updated); err == nil {
+	if _, err := svc.Update(inboundSvc, origId, updated, 0); err == nil {
 		t.Fatalf("Update with colliding subId succeeded, want error")
 	}
 
@@ -128,7 +128,7 @@ func TestClientUpdateKeepsSharedSubIDEditable(t *testing.T) {
 
 	updated := source[0]
 	updated.TotalGB = 42
-	if _, err := svc.Update(inboundSvc, first.Id, updated); err != nil {
+	if _, err := svc.Update(inboundSvc, first.Id, updated, 0); err != nil {
 		t.Fatalf("Update of a client whose subId is already shared: %v", err)
 	}
 	if got := lookupClientRecord(t, "a@node").TotalGB; got != 42 {
@@ -138,7 +138,7 @@ func TestClientUpdateKeepsSharedSubIDEditable(t *testing.T) {
 	omitted := source[0]
 	omitted.SubID = ""
 	omitted.TotalGB = 43
-	if _, err := svc.Update(inboundSvc, first.Id, omitted); err != nil {
+	if _, err := svc.Update(inboundSvc, first.Id, omitted, 0); err != nil {
 		t.Fatalf("Update with subId omitted entirely: %v", err)
 	}
 	other := lookupClientRecord(t, "b@node")

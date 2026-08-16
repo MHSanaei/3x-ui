@@ -24,6 +24,7 @@ type ClientSlim struct {
 	TotalGB    int64               `json:"totalGB"`
 	ExpiryTime int64               `json:"expiryTime"`
 	LimitIP    int                 `json:"limitIp"`
+	LimitHwid  int                 `json:"limitHwid"`
 	Reset      int                 `json:"reset"`
 	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
@@ -457,21 +458,11 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 		if rec == nil {
 			continue
 		}
-		items = append(items, ClientSlim{
-			Email:      rec.Email,
-			SubID:      rec.SubID,
-			Enable:     rec.Enable,
-			TotalGB:    rec.TotalGB,
-			ExpiryTime: rec.ExpiryTime,
-			LimitIP:    rec.LimitIP,
-			Reset:      rec.Reset,
-			Group:      rec.Group,
-			Comment:    rec.Comment,
-			InboundIds: attachments[rec.Id],
-			Traffic:    trafficByEmail[rec.Email],
-			CreatedAt:  rec.CreatedAt,
-			UpdatedAt:  rec.UpdatedAt,
-		})
+		items = append(items, toClientSlim(ClientWithAttachments{
+			ClientRecord: *rec,
+			InboundIds:   attachments[rec.Id],
+			Traffic:      trafficByEmail[rec.Email],
+		}))
 	}
 	return items, nil
 }
@@ -602,6 +593,25 @@ func (s *ClientService) listGroupNames() ([]string, error) {
 
 func sqlInt(v int64) string {
 	return strconv.FormatInt(v, 10)
+}
+
+func toClientSlim(c ClientWithAttachments) ClientSlim {
+	return ClientSlim{
+		Email:      c.Email,
+		SubID:      c.SubID,
+		Enable:     c.Enable,
+		TotalGB:    c.TotalGB,
+		ExpiryTime: c.ExpiryTime,
+		LimitIP:    c.LimitIP,
+		LimitHwid:  c.LimitHwid,
+		Reset:      c.Reset,
+		Group:      c.Group,
+		Comment:    c.Comment,
+		InboundIds: c.InboundIds,
+		Traffic:    c.Traffic,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
+	}
 }
 
 // escapeLikeLiteral neutralises LIKE wildcards so searching for "a_b" keeps
