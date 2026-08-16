@@ -759,16 +759,20 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 		b.WriteString("DisableCookies = on\n")
 	}
 
+	// Peer field order follows wg-quick(8) and the panel's other two AmneziaWG
+	// emitters (genAmneziaWGConfig, buildAmneziaWGClientConfig); all three are
+	// independent implementations, so any drift here is invisible until a user
+	// compares a subscription link against a downloaded .conf.
 	fmt.Fprintf(&b, "\n# %s\n", remark)
 	b.WriteString("[Peer]\n")
 	fmt.Fprintf(&b, "PublicKey = %s\n", server.PublicKey)
+	if client.PreSharedKey != "" {
+		fmt.Fprintf(&b, "PresharedKey = %s\n", client.PreSharedKey)
+	}
 	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
 	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
-	if client.PreSharedKey != "" {
-		fmt.Fprintf(&b, "\nPresharedKey = %s", client.PreSharedKey)
-	}
 	if client.KeepAlive > 0 {
-		fmt.Fprintf(&b, "\nPersistentKeepalive = %d\n", client.KeepAlive)
+		fmt.Fprintf(&b, "\nPersistentKeepalive = %d", client.KeepAlive)
 	}
 
 	return b.String()

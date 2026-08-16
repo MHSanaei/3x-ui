@@ -403,7 +403,9 @@ describe('genAmneziaWGLink vpn:// scheme', () => {
     expect(decoded).toContain('PrivateKey = clientPrivKey==\n');
     expect(decoded).toContain('PublicKey = serverPubKey==\n');
     expect(decoded).toContain('Endpoint = awg.example.test:51820');
-    expect(decoded).toContain('PersistentKeepalive = 25\n');
+    // No trailing newline: the text ends on its last set field whichever that
+    // is, so the three emitters produce the same shape for the same client.
+    expect(decoded.endsWith('PersistentKeepalive = 25')).toBe(true);
   });
 
   it('omits every unset 3.1 field — a lone HeaderProtectionKey line would break the handshake', () => {

@@ -965,16 +965,19 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   }
   if (server.randomTrailers) txt += `RandomTrailers = on\n`;
   if (server.disableCookies) txt += `DisableCookies = on\n`;
+  // Peer field order follows wg-quick(8) and the panel's other two AmneziaWG
+  // emitters (amneziaWGConfigText in Go, buildAmneziaWGClientConfig); all three
+  // are independent implementations and must not drift apart.
   txt += `\n# ${remark}\n`;
   txt += `[Peer]\n`;
   txt += `PublicKey = ${server.publicKey ?? ''}\n`;
+  if (client.preSharedKey && client.preSharedKey.length > 0) {
+    txt += `PresharedKey = ${client.preSharedKey}\n`;
+  }
   txt += `AllowedIPs = 0.0.0.0/0, ::/0\n`;
   txt += `Endpoint = ${address}:${port}`;
-  if (client.preSharedKey && client.preSharedKey.length > 0) {
-    txt += `\nPresharedKey = ${client.preSharedKey}`;
-  }
   if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
-    txt += `\nPersistentKeepalive = ${client.keepAlive}\n`;
+    txt += `\nPersistentKeepalive = ${client.keepAlive}`;
   }
   return txt;
 }

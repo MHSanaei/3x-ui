@@ -2,9 +2,11 @@ package sub
 
 import (
 	"encoding/base64"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -184,4 +186,55 @@ func TestGetInboundsBySubIdIncludesAmneziaWG(t *testing.T) {
 	if len(inbounds) != 1 || inbounds[0].Id != in.Id {
 		t.Fatalf("amneziawg inbound not returned for subId: %+v", inbounds)
 	}
+}
+
+// peerFieldOrder is wg-quick(8)'s own [Peer] order. The panel emits an
+// AmneziaWG .conf from three independent places -- this one, and the frontend's
+// genAmneziaWGConfig and buildAmneziaWGClientConfig -- and a user comparing a
+// subscription link against a downloaded .conf sees any drift immediately.
+var peerFieldOrder = []string{"PublicKey", "PresharedKey", "AllowedIPs", "Endpoint", "PersistentKeepalive"}
+
+func peerFields(t *testing.T, conf string) []string {
+	t.Helper()
+	idx := strings.Index(conf, "[Peer]")
+	if idx < 0 {
+		t.Fatalf("config has no [Peer] block:\n%s", conf)
+	}
+	var got []string
+	for _, line := range strings.Split(conf[idx:], "\n") {
+		key := strings.TrimSpace(strings.SplitN(line, "=", 2)[0])
+		if slices.Contains(peerFieldOrder, key) {
+			got = append(got, key)
+		}
+	}
+	return got
+}
+
+func TestAmneziaWGConfigTextPeerFieldOrder(t *testing.T) {
+	server := &amneziawg.ServerSettings{PublicKey: "serverPub", PrimaryDNS: "8.8.8.8", MTU: 1420}
+
+	t.Run("every optional field set", func(t *testing.T) {
+		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}, PreSharedKey: "psk", KeepAlive: 25}
+		conf := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "remark")
+		if got := peerFields(t, conf); !slices.Equal(got, peerFieldOrder) {
+			t.Fatalf("peer fields = %v, want %v\n%s", got, peerFieldOrder, conf)
+		}
+		// No trailing newline, whichever optional field happens to be last --
+		// the frontend emitters end the same way for the same client.
+		if strings.HasSuffix(conf, "\n") {
+			t.Fatalf("config must not end with a newline:\n%q", conf)
+		}
+	})
+
+	t.Run("no preshared key or keepalive", func(t *testing.T) {
+		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}}
+		conf := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "remark")
+		want := []string{"PublicKey", "AllowedIPs", "Endpoint"}
+		if got := peerFields(t, conf); !slices.Equal(got, want) {
+			t.Fatalf("peer fields = %v, want %v\n%s", got, want, conf)
+		}
+		if strings.HasSuffix(conf, "\n") {
+			t.Fatalf("config must not end with a newline:\n%q", conf)
+		}
+	})
 }
