@@ -25,13 +25,40 @@ func TestMergeActivationExpiry(t *testing.T) {
 		{"node still un-activated does not reset deadline", early, dur, early},
 		{"node un-activated zero does not reset deadline", early, 0, early},
 		{"node renewal extends the deadline forward", early, late, late},
-		{"node positive adopted even if earlier", late, early, early},
+		{"stale earlier absolute does not clobber later", late, early, late},
 		{"both un-activated keep node value", dur, dur, dur},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if got := mergeActivationExpiry(c.existing, c.node); got != c.want {
 				t.Fatalf("mergeActivationExpiry(%d,%d) = %d, want %d", c.existing, c.node, got, c.want)
+			}
+		})
+	}
+}
+
+func TestNodeDisableIsStale(t *testing.T) {
+	const (
+		early = int64(1000)
+		late  = int64(2000)
+	)
+	cases := []struct {
+		name                  string
+		masterExpiry, nodeExp int64
+		nodeEnable, wantStale bool
+	}{
+		{"node still enabled", late, early, true, false},
+		{"same absolute deadline", late, late, false, false},
+		{"node older than master after extend", late, early, false, true},
+		{"node newer renewal disable", early, late, false, false},
+		{"unactivated node", late, -1, false, false},
+		{"unlimited master", 0, early, false, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := nodeDisableIsStale(c.masterExpiry, c.nodeExp, c.nodeEnable); got != c.wantStale {
+				t.Fatalf("nodeDisableIsStale(%d,%d,%v) = %v, want %v",
+					c.masterExpiry, c.nodeExp, c.nodeEnable, got, c.wantStale)
 			}
 		})
 	}
@@ -120,7 +147,8 @@ func TestNodeFirstConnectExpiry_NotClobbered_WithSettings(t *testing.T) {
 // TestNodeRenewExtendsExpiry guards against over-correcting: a node that renews
 // a client (traffic reset / auto-renew) legitimately moves the deadline FORWARD
 // to a later absolute timestamp, and that must still propagate to the master.
-// The guard only rejects un-activated (<= 0) values, never a positive one.
+// The guard rejects un-activated (<= 0) values and earlier absolute deadlines,
+// never a later positive one.
 func TestNodeRenewExtendsExpiry(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
@@ -138,6 +166,85 @@ func TestNodeRenewExtendsExpiry(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{Email: email, Up: 20, Down: 20, ExpiryTime: renewed, Enable: true})
 	if got := readTraffic(t, db, email).ExpiryTime; got != renewed {
 		t.Fatalf("node renewal did not propagate: expiry = %d, want %d", got, renewed)
+	}
+}
+
+// TestNodeStaleExpiryAfterExtend_NotClobbered reproduces #6228: a client expires,
+// the admin extends it on the master (shared client_traffics gets a later
+// deadline and is re-enabled), then a node that still holds the previous
+// deadline syncs enable=false + the old expiry. That snapshot must not undo the
+// extension or latch the master disable — otherwise the client is removed again
+// with "due to expiration or traffic limit".
+func TestNodeStaleExpiryAfterExtend_NotClobbered(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "extended")
+	svc := &InboundService{}
+
+	const email = "extended"
+	const expired = int64(1786835245763)  // past
+	const extended = int64(1789427245763) // later extension on the master
+
+	staleSettings := `{"clients":[{"email":"extended","enable":false,"expiryTime":1786835245763}]}`
+	liveSettings := `{"clients":[{"email":"extended","enable":true,"expiryTime":1789427245763}]}`
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", staleSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
+	if got := readTraffic(t, db, email); got.ExpiryTime != expired || got.Enable {
+		t.Fatalf("after expiry: expiry=%d enable=%v, want expiry=%d enable=false",
+			got.ExpiryTime, got.Enable, expired)
+	}
+
+	// Master-side extension (UpdateClientStat / BulkAdjust) lands on the shared row.
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"expiry_time": extended, "enable": true}).Error; err != nil {
+		t.Fatalf("master extend: %v", err)
+	}
+
+	// Stale node snapshot still reporting the previous deadline + disable.
+	syncNodeWithSettings(t, svc, 1, "n1-in", staleSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: expired, Enable: false})
+	got := readTraffic(t, db, email)
+	if got.ExpiryTime != extended {
+		t.Fatalf("stale node expiry clobbered the extension: expiry=%d, want %d", got.ExpiryTime, extended)
+	}
+	if !got.Enable {
+		t.Fatal("stale node disable latched the master enable off after extension")
+	}
+
+	// A live node that has received the extension may still report it.
+	syncNodeWithSettings(t, svc, 1, "n1-in", liveSettings,
+		xray.ClientTraffic{Email: email, Up: 1, Down: 1, ExpiryTime: extended, Enable: true})
+	got = readTraffic(t, db, email)
+	if got.ExpiryTime != extended || !got.Enable {
+		t.Fatalf("after live sync: expiry=%d enable=%v, want expiry=%d enable=true",
+			got.ExpiryTime, got.Enable, extended)
+	}
+}
+
+// TestNodeQuotaDisable_SameExpiryStillLatches ensures #4917 stays intact: a
+// node disable for traffic quota (same absolute expiry as the master) must
+// still one-way-merge enable=false onto the master.
+func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	svc := &InboundService{}
+
+	const email = "quota"
+	const expiry = int64(1893456000000)
+
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: expiry, Enable: true,
+	})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"enable": true, "up": 10, "down": 10, "total": 100}).Error; err != nil {
+		t.Fatalf("seed master enable: %v", err)
+	}
+
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 60, Down: 50, Total: 100, ExpiryTime: expiry, Enable: false,
+	})
+	if got := readTraffic(t, db, email); got.Enable {
+		t.Fatal("same-expiry node disable must still latch master enable off (#4917)")
 	}
 }
 

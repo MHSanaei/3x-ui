@@ -37,9 +37,27 @@ func GreatestExpr(a, b string) string {
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
 
+// ClientTrafficEnableMergeExpr merges a node-reported enable into
+// client_traffics.enable. Placeholders (in order): nodeEnable, nodeExpiry,
+// nodeExpiry.
+//
+//   - node enable true: keep the master's enable — never re-enable from a stale
+//     snapshot (#4917).
+//   - node enable false with an older absolute expiry than the master: keep the
+//     master's enable — the node is still enforcing a pre-extension deadline
+//     (#6228).
+//   - otherwise adopt the disable.
 func ClientTrafficEnableMergeExpr() string {
 	if IsPostgres() {
-		return "CASE WHEN ?::boolean THEN enable::boolean ELSE false END"
+		return `CASE
+			WHEN ?::boolean THEN enable::boolean
+			WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT) THEN enable::boolean
+			ELSE false
+		END`
 	}
-	return "CASE WHEN ? THEN enable ELSE 0 END"
+	return `CASE
+		WHEN ? THEN enable
+		WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT) THEN enable
+		ELSE 0
+	END`
 }

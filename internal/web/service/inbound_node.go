@@ -224,14 +224,28 @@ func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email strin
 // another node already activated.
 //
 // A node may legitimately move an already-activated deadline forward (traffic
-// reset / auto-renew extends it), so any positive node value is still adopted —
-// only an un-activated (<= 0) value is rejected once an absolute deadline
-// exists. Kept in lockstep with the SQL CASE in setRemoteTrafficLocked.
+// reset / auto-renew extends it), so a later absolute value is still adopted.
+// An earlier absolute value is rejected: after an admin extends an expired
+// client on the master, a node that has not yet received the push keeps
+// reporting the previous (past) deadline, and adopting it would undo the
+// extension and make disableInvalidClients remove the client again (#6228).
+// Kept in lockstep with the SQL CASE in setRemoteTrafficLocked.
 func mergeActivationExpiry(existing, node int64) int64 {
-	if existing > 0 && node <= 0 {
+	if existing > 0 && (node <= 0 || node < existing) {
 		return existing
 	}
 	return node
+}
+
+// nodeDisableIsStale reports a node-side enable=false that must not latch the
+// master's client_traffics.enable off. After an expired client is extended on
+// the master, a node still enforcing the previous deadline disables locally and
+// would otherwise one-way-merge that disable onto the master (#4917 / #6228).
+func nodeDisableIsStale(masterExpiry, nodeExpiry int64, nodeEnable bool) bool {
+	if nodeEnable {
+		return false
+	}
+	return masterExpiry > 0 && nodeExpiry > 0 && nodeExpiry < masterExpiry
 }
 
 // nodeClientRenewed reports a node-side auto-renew: an absolute deadline moved
@@ -891,15 +905,20 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				// expiry_time merge mirrors mergeActivationExpiry: a node that has not
 				// yet seen the client's first connection keeps reporting the negative
 				// "start after first connect" duration, which must never reset the
-				// absolute deadline another node already activated. A positive node
-				// value is still adopted (e.g. auto-renew moves the deadline forward).
-				// CAST(? AS BIGINT): in the `<= 0` comparison Postgres would otherwise
-				// infer int4 from the literal and overflow on real expiry values.
+				// absolute deadline another node already activated. A later absolute
+				// value is still adopted (auto-renew); an earlier absolute value is
+				// rejected so a stale post-expire node snapshot cannot undo a master
+				// extension (#6228). CAST(? AS BIGINT): in the comparisons Postgres
+				// would otherwise infer int4 from the literal and overflow on real
+				// expiry values.
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = %s, down = %s, enable = %s, total = ?,
-						     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
+						     expiry_time = CASE
+						       WHEN expiry_time > 0 AND (CAST(? AS BIGINT) <= 0 OR CAST(? AS BIGINT) < expiry_time) THEN expiry_time
+						       ELSE CAST(? AS BIGINT)
+						     END,
 						     reset = ?, last_online = %s
 						 WHERE email = ?`,
 						database.ClampedAddExpr("up"),
@@ -907,8 +926,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						enableExpr,
 						database.GreatestExpr("last_online", "?"),
 					),
-					deltaUp, deltaDown, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
+					deltaUp, deltaDown,
+					cs.Enable, cs.ExpiryTime, cs.ExpiryTime,
+					cs.Total,
+					cs.ExpiryTime, cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
@@ -995,17 +1016,31 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			logger.Warningf("setRemoteTraffic: parse clients for tag %q failed: %v", snapIb.Tag, gcErr)
 			continue
 		}
-		csEnableByEmail := make(map[string]bool, len(snapIb.ClientStats))
+		csByEmail := make(map[string]xray.ClientTraffic, len(snapIb.ClientStats))
 		for _, cs := range snapIb.ClientStats {
-			csEnableByEmail[cs.Email] = cs.Enable
+			csByEmail[cs.Email] = cs
 		}
 		filtered := clients[:0]
 		for i := range clients {
 			if isClientEmailTombstoned(clients[i].Email) {
 				continue
 			}
-			if cse, hit := csEnableByEmail[clients[i].Email]; hit && !cse {
-				clients[i].Enable = false
+			if existing := centralCSByEmail[clients[i].Email]; existing != nil {
+				// Prefer the merged traffic-row deadline so SyncInbound does not
+				// rewrite client records / links from a stale node settings JSON.
+				clients[i].ExpiryTime = mergeActivationExpiry(existing.ExpiryTime, clients[i].ExpiryTime)
+			}
+			if cs, hit := csByEmail[clients[i].Email]; hit {
+				masterExpiry := clients[i].ExpiryTime
+				if existing := centralCSByEmail[clients[i].Email]; existing != nil {
+					masterExpiry = mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
+				}
+				if nodeDisableIsStale(masterExpiry, cs.ExpiryTime, cs.Enable) {
+					// Keep the master's enable: the node is disabling against an
+					// older deadline than the shared traffic row already holds.
+				} else if !cs.Enable {
+					clients[i].Enable = false
+				}
 			}
 			filtered = append(filtered, clients[i])
 		}
