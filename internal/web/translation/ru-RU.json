@@ -413,6 +413,8 @@
         "inboundCreateSuccess": "Подключение успешно создано",
         "bulkDeleted": "Удалено подключений: {count}",
         "bulkDeletedMixed": "Удалено: {ok}, не удалось: {failed}",
+        "clonedMany": "Скопировано подключений: {count}",
+        "clonedMixed": "Скопировано: {ok}, не удалось: {failed}",
         "inboundDeleteSuccess": "Подключение успешно удалено",
         "inboundClientAddSuccess": "Клиент(ы) подключения добавлен(ы)",
         "inboundClientDeleteSuccess": "Клиент подключения удалён",
