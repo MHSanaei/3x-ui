@@ -23,6 +23,11 @@ _openapi:
         must be a PEM certificate. Applied on the next panel restart.
       url: '#set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart'
     - depth: 2
+      title: Validate the stored master mTLS client credential and invalidate cached
+        transports. Each transport closes its old idle pool and rebuilds with
+        the rotated certificate before its next request.
+      url: '#validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request'
+    - depth: 2
       title: Fetch a single node by ID.
       url: '#fetch-a-single-node-by-id'
     - depth: 2
@@ -32,12 +37,15 @@ _openapi:
         panel.
       url: '#fetch-a-nodes-own-web-tls-certificatekey-file-paths-proxied-to-the-node-used-by-the-inbound-forms-set-cert-from-panel-so-a-node-assigned-inbound-gets-paths-that-exist-on-the-node-not-the-central-panel'
     - depth: 2
-      title: Register a new remote node. Provide its URL, apiToken, and optional
-        remark / allowPrivateAddress flag.
-      url: '#register-a-new-remote-node-provide-its-url-apitoken-and-optional-remark--allowprivateaddress-flag'
+      title: Register a new remote node. Provide its URL, write-only apiToken, and
+        optional remark / allowPrivateAddress flag. Responses expose hasApiToken
+        only.
+      url: '#register-a-new-remote-node-provide-its-url-write-only-apitoken-and-optional-remark--allowprivateaddress-flag-responses-expose-hasapitoken-only'
     - depth: 2
-      title: Replace a node’s connection details. Same body shape as /add.
-      url: '#replace-a-nodes-connection-details-same-body-shape-as-add'
+      title: 'Replace a node’s connection details. apiToken is write-only: omit it or
+        send an empty string to keep the stored token; set clearApiToken=true to
+        clear it.'
+      url: '#replace-a-nodes-connection-details-apitoken-is-write-only-omit-it-or-send-an-empty-string-to-keep-the-stored-token-set-clearapitokentrue-to-clear-it'
     - depth: 2
       title: Delete a node. Inbounds bound to it are not auto-migrated.
       url: '#delete-a-node-inbounds-bound-to-it-are-not-auto-migrated'
@@ -72,11 +80,6 @@ _openapi:
       title: Aggregated metric history for a node — same shape as /server/history,
         scoped to one node.
       url: '#aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node'
-    - depth: 2
-      title: Validate the stored master mTLS client credential and invalidate cached
-        transports. Each transport closes its old idle pool and rebuilds with
-        the rotated certificate before its next request.
-      url: '#validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request'
   structuredData:
     headings:
       - content: List every configured node with its connection details, health, and
@@ -91,6 +94,10 @@ _openapi:
           CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty
           value must be a PEM certificate. Applied on the next panel restart.
         id: set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart
+      - content: Validate the stored master mTLS client credential and invalidate cached
+          transports. Each transport closes its old idle pool and rebuilds with
+          the rotated certificate before its next request.
+        id: validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request
       - content: Fetch a single node by ID.
         id: fetch-a-single-node-by-id
       - content: Fetch a node's own web TLS certificate/key file paths (proxied to the
@@ -98,11 +105,14 @@ _openapi:
           node-assigned inbound gets paths that exist on the node, not the
           central panel.
         id: fetch-a-nodes-own-web-tls-certificatekey-file-paths-proxied-to-the-node-used-by-the-inbound-forms-set-cert-from-panel-so-a-node-assigned-inbound-gets-paths-that-exist-on-the-node-not-the-central-panel
-      - content: Register a new remote node. Provide its URL, apiToken, and optional
-          remark / allowPrivateAddress flag.
-        id: register-a-new-remote-node-provide-its-url-apitoken-and-optional-remark--allowprivateaddress-flag
-      - content: Replace a node’s connection details. Same body shape as /add.
-        id: replace-a-nodes-connection-details-same-body-shape-as-add
+      - content: Register a new remote node. Provide its URL, write-only apiToken, and
+          optional remark / allowPrivateAddress flag. Responses expose
+          hasApiToken only.
+        id: register-a-new-remote-node-provide-its-url-write-only-apitoken-and-optional-remark--allowprivateaddress-flag-responses-expose-hasapitoken-only
+      - content: 'Replace a node’s connection details. apiToken is write-only: omit it
+          or send an empty string to keep the stored token; set
+          clearApiToken=true to clear it.'
+        id: replace-a-nodes-connection-details-apitoken-is-write-only-omit-it-or-send-an-empty-string-to-keep-the-stored-token-set-clearapitokentrue-to-clear-it
       - content: Delete a node. Inbounds bound to it are not auto-migrated.
         id: delete-a-node-inbounds-bound-to-it-are-not-auto-migrated
       - content: Pause or resume traffic sync with this node.
@@ -129,10 +139,6 @@ _openapi:
       - content: Aggregated metric history for a node — same shape as /server/history,
           scoped to one node.
         id: aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node
-      - content: Validate the stored master mTLS client credential and invalidate cached
-          transports. Each transport closes its old idle pool and rebuilds with
-          the rotated certificate before its next request.
-        id: validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request
     contents: []
 ---
 
@@ -145,7 +151,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"},{"path":"/panel/api/nodes/mtls/reloadClient","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/mtls/reloadClient","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"}]} showTitle />
     </>
   );
 }

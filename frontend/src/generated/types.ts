@@ -683,22 +683,35 @@ export interface RealityScanResult {
 }
 
 export interface ServerSettings {
+  contentPaddingAddition?: string;
+  disableCookies?: boolean;
   externalInterface?: string;
   h1: string;
   h2: string;
   h3: string;
   h4: string;
+  headerProtectionKey?: string;
   i1?: string;
+  i2?: string;
+  i3?: string;
+  i4?: string;
+  i5?: string;
   ipv6Enabled?: boolean;
   ipv6ExternalInterface?: string;
   ipv6Subnet?: string;
   jc: number;
   jmax: number;
   jmin: number;
+  keepaliveTimeout?: string;
+  maxHandshakeAttempts?: string;
   mtu?: number;
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
+  randomTrailers?: boolean;
+  rejectAfterTime?: string;
+  rekeyAfterTime?: string;
+  rekeyTimeout?: string;
   routeThroughXray?: boolean;
   s1: number;
   s2: number;

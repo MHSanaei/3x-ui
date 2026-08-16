@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -145,7 +146,11 @@ func (inst Instance) structuralFingerprint() string {
 		strconv.Itoa(inst.MTU),
 		strconv.Itoa(o.Jc), strconv.Itoa(o.Jmin), strconv.Itoa(o.Jmax),
 		strconv.Itoa(o.S1), strconv.Itoa(o.S2), strconv.Itoa(o.S3), strconv.Itoa(o.S4),
-		o.H1, o.H2, o.H3, o.H4, o.I1,
+		o.H1, o.H2, o.H3, o.H4, o.I1, o.I2, o.I3, o.I4, o.I5,
+		o.HeaderProtectionKey, o.ContentPaddingAddition,
+		o.RekeyAfterTime, o.RekeyTimeout, o.RejectAfterTime,
+		o.KeepaliveTimeout, o.MaxHandshakeAttempts,
+		strconv.FormatBool(o.RandomTrailers), strconv.FormatBool(o.DisableCookies),
 		inst.ExternalInterface,
 		strconv.FormatBool(inst.IPv6Enabled),
 		inst.IPv6ExternalInterface,
@@ -227,6 +232,9 @@ type Manager struct {
 	// swept records that the one-time startup cleanup of orphaned interfaces
 	// (survivors of a previous x-ui run) has already run.
 	swept bool
+	// warnedOldTools rate-limits the pre-3.1 awg tools warning to one log
+	// line per process (see warnIfOldToolsLocked).
+	warnedOldTools bool
 }
 
 var (
@@ -287,6 +295,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	action := ensureRestart
 	if exists {
 		action = ensureActionFor(isInterfaceUp(cur.inst.InterfaceName), cur.structuralFP, cur.hostRulesFP, cur.peersFP, structFP, hostRulesFP, peersFP)
+	}
+	if action != ensureNoop && inst.Obfuscation.Uses31Features() {
+		m.warnIfOldToolsLocked(inst)
 	}
 
 	switch action {
@@ -663,8 +674,30 @@ func writeObfuscation(b *strings.Builder, o Obfuscation31) {
 	fmt.Fprintf(b, "H2 = %s\n", hOrDefault(o.H2, "2"))
 	fmt.Fprintf(b, "H3 = %s\n", hOrDefault(o.H3, "3"))
 	fmt.Fprintf(b, "H4 = %s\n", hOrDefault(o.H4, "4"))
-	if o.I1 != "" {
-		fmt.Fprintf(b, "I1 = %s\n", sanitizeConfigValue(o.I1))
+	for i, v := range []string{o.I1, o.I2, o.I3, o.I4, o.I5} {
+		if v != "" {
+			fmt.Fprintf(b, "I%d = %s\n", i+1, sanitizeConfigValue(v))
+		}
+	}
+	optional := []struct{ key, v string }{
+		{"HeaderProtectionKey", o.HeaderProtectionKey},
+		{"ContentPaddingAddition", o.ContentPaddingAddition},
+		{"RekeyAfterTime", o.RekeyAfterTime},
+		{"RekeyTimeout", o.RekeyTimeout},
+		{"RejectAfterTime", o.RejectAfterTime},
+		{"KeepaliveTimeout", o.KeepaliveTimeout},
+		{"MaxHandshakeAttempts", o.MaxHandshakeAttempts},
+	}
+	for _, p := range optional {
+		if p.v != "" {
+			fmt.Fprintf(b, "%s = %s\n", p.key, sanitizeConfigValue(p.v))
+		}
+	}
+	if o.RandomTrailers {
+		b.WriteString("RandomTrailers = on\n")
+	}
+	if o.DisableCookies {
+		b.WriteString("DisableCookies = on\n")
 	}
 }
 
@@ -1040,4 +1073,69 @@ func IsAwgInstalled() bool {
 	_, err1 := exec.LookPath("awg")
 	_, err2 := exec.LookPath("awg-quick")
 	return err1 == nil && err2 == nil
+}
+
+var (
+	toolsVersionOnce sync.Once
+	toolsMajor       int
+	toolsMinor       int
+	toolsVersionOK   bool
+)
+
+// awgToolsVersion returns the installed amneziawg-tools version, parsed once
+// per process from `awg --version`. ok is false when awg is missing or its
+// output carries no recognizable version.
+func awgToolsVersion() (major, minor int, ok bool) {
+	toolsVersionOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
+		defer cancel()
+		out, err := exec.CommandContext(ctx, "awg", "--version").CombinedOutput()
+		if err != nil {
+			return
+		}
+		toolsMajor, toolsMinor, toolsVersionOK = parseAwgVersion(string(out))
+	})
+	return toolsMajor, toolsMinor, toolsVersionOK
+}
+
+var awgVersionPattern = regexp.MustCompile(`v?(\d+)\.(\d+)`)
+
+// parseAwgVersion extracts major.minor from `awg --version` output, e.g.
+// "wireguard-tools v3.1.20260812 - https://...".
+func parseAwgVersion(out string) (major, minor int, ok bool) {
+	m := awgVersionPattern.FindStringSubmatch(out)
+	if m == nil {
+		return 0, 0, false
+	}
+	major, err1 := strconv.Atoi(m[1])
+	minor, err2 := strconv.Atoi(m[2])
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	return major, minor, true
+}
+
+// Uses31Features reports whether the set carries any AmneziaWG 3.x-only
+// parameter that pre-3.1 awg tools reject as an unknown config key.
+func (o Obfuscation31) Uses31Features() bool {
+	return o.HeaderProtectionKey != "" || o.ContentPaddingAddition != "" ||
+		o.RekeyAfterTime != "" || o.RekeyTimeout != "" || o.RejectAfterTime != "" ||
+		o.KeepaliveTimeout != "" || o.MaxHandshakeAttempts != "" ||
+		o.RandomTrailers || o.DisableCookies
+}
+
+// warnIfOldToolsLocked logs, once per process, that the installed awg tools
+// predate the 3.1 parameters an inbound is about to use. The apply still
+// proceeds — awg-quick itself reports the definitive failure. Caller must
+// hold m.mu.
+func (m *Manager) warnIfOldToolsLocked(inst Instance) {
+	if m.warnedOldTools {
+		return
+	}
+	major, minor, ok := awgToolsVersion()
+	if !ok || major > 3 || (major == 3 && minor >= 1) {
+		return
+	}
+	m.warnedOldTools = true
+	logger.Warningf("amneziawg: installed awg tools are v%d.%d but inbound %d uses AmneziaWG 3.1 parameters (HeaderProtectionKey etc.); awg-quick will likely reject the config — upgrade amneziawg-tools to v3.1.20260812+ and the kernel module/amneziawg-go to v3.1.20260814+", major, minor, inst.Id)
 }

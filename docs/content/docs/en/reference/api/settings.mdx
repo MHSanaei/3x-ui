@@ -1,7 +1,6 @@
 ---
 title: Settings
-description: >-
-  Panel configuration and user credentials. All endpoints live under
+description: Panel configuration and user credentials. All endpoints live under
   /panel/api/setting and require a logged-in session or Bearer token.
 full: true
 _openapi:
@@ -9,101 +8,87 @@ _openapi:
     - ./public/openapi.json
   toc:
     - depth: 2
-      title: >-
-        Return every panel setting: web server, Telegram bot, subscription,
-        security, LDAP. The full JSON blob that the Settings page edits.
-      url: >-
-        #return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits
+      title: 'Return every panel setting: web server, Telegram bot, subscription,
+        security, LDAP. The full JSON blob that the Settings page edits.'
+      url: '#return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits'
     - depth: 2
-      title: >-
-        Return the computed default settings based on the request host. Useful
-        to preview what a fresh install would use.
-      url: >-
-        #return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
+      title: Return the computed default settings based on the request host. Useful to
+        preview what a fresh install would use.
+      url: '#return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use'
     - depth: 2
-      title: >-
-        Persist every setting at once. The body mirrors the shape returned by
+      title: Return the shipped (factory) default value per browser-safe setting key,
+        so clients can tell a stored value apart from the default it would fall
+        back to. Per-install material (secret, panelGuid, mTLS keys) and
+        credential fields are never included.
+      url: '#return-the-shipped-factory-default-value-per-browser-safe-setting-key-so-clients-can-tell-a-stored-value-apart-from-the-default-it-would-fall-back-to-per-install-material-secret-panelguid-mtls-keys-and-credential-fields-are-never-included'
+    - depth: 2
+      title: Persist every setting at once. The body mirrors the shape returned by
         /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected
         before write.
-      url: >-
-        #persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
+      url: '#persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write'
     - depth: 2
-      title: >-
-        Change the panel admin username and password. Requires the current
+      title: Validate any regular expression with the backend Go RE2 compiler without
+        saving it.
+      url: '#validate-any-regular-expression-with-the-backend-go-re2-compiler-without-saving-it'
+    - depth: 2
+      title: Change the panel admin username and password. Requires the current
         credentials for verification. The session is refreshed with the new
         values on success.
-      url: >-
-        #change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success
+      url: '#change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success'
     - depth: 2
-      title: >-
-        Restart the entire 3x-ui process after a 3-second grace period. The
+      title: Restart the entire 3x-ui process after a 3-second grace period. The
         connection drops immediately; the panel comes back online ~5-10 seconds
         later.
-      url: >-
-        #restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later
+      url: '#restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later'
     - depth: 2
-      title: >-
-        Test SMTP connection with stage-by-stage reporting (connect, auth,
-        send). Returns structured result with stage and message.
-      url: >-
-        #test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message
+      title: Test SMTP connection with stage-by-stage reporting (connect, auth, send).
+        Returns structured result with stage and message.
+      url: '#test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message'
     - depth: 2
-      title: >-
-        Test Telegram bot connection by sending a test message to the configured
+      title: Test Telegram bot connection by sending a test message to the configured
         chat.
-      url: >-
-        #test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
+      url: '#test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat'
     - depth: 2
-      title: >-
-        Return the built-in default Xray JSON config template that ships with
+      title: Return the built-in default Xray JSON config template that ships with
         this panel version.
-      url: >-
-        #return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
+      url: '#return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version'
   structuredData:
     headings:
-      - content: >-
-          Return every panel setting: web server, Telegram bot, subscription,
-          security, LDAP. The full JSON blob that the Settings page edits.
-        id: >-
-          return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits
-      - content: >-
-          Return the computed default settings based on the request host. Useful
+      - content: 'Return every panel setting: web server, Telegram bot, subscription,
+          security, LDAP. The full JSON blob that the Settings page edits.'
+        id: return-every-panel-setting-web-server-telegram-bot-subscription-security-ldap-the-full-json-blob-that-the-settings-page-edits
+      - content: Return the computed default settings based on the request host. Useful
           to preview what a fresh install would use.
-        id: >-
-          return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
-      - content: >-
-          Persist every setting at once. The body mirrors the shape returned by
+        id: return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
+      - content: Return the shipped (factory) default value per browser-safe setting
+          key, so clients can tell a stored value apart from the default it
+          would fall back to. Per-install material (secret, panelGuid, mTLS
+          keys) and credential fields are never included.
+        id: return-the-shipped-factory-default-value-per-browser-safe-setting-key-so-clients-can-tell-a-stored-value-apart-from-the-default-it-would-fall-back-to-per-install-material-secret-panelguid-mtls-keys-and-credential-fields-are-never-included
+      - content: Persist every setting at once. The body mirrors the shape returned by
           /all. Invalid values (bad ports, missing cert pairs, etc.) are
           rejected before write.
-        id: >-
-          persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
-      - content: >-
-          Change the panel admin username and password. Requires the current
+        id: persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
+      - content: Validate any regular expression with the backend Go RE2 compiler
+          without saving it.
+        id: validate-any-regular-expression-with-the-backend-go-re2-compiler-without-saving-it
+      - content: Change the panel admin username and password. Requires the current
           credentials for verification. The session is refreshed with the new
           values on success.
-        id: >-
-          change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success
-      - content: >-
-          Restart the entire 3x-ui process after a 3-second grace period. The
+        id: change-the-panel-admin-username-and-password-requires-the-current-credentials-for-verification-the-session-is-refreshed-with-the-new-values-on-success
+      - content: Restart the entire 3x-ui process after a 3-second grace period. The
           connection drops immediately; the panel comes back online ~5-10
           seconds later.
-        id: >-
-          restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later
-      - content: >-
-          Test SMTP connection with stage-by-stage reporting (connect, auth,
+        id: restart-the-entire-3x-ui-process-after-a-3-second-grace-period-the-connection-drops-immediately-the-panel-comes-back-online-5-10-seconds-later
+      - content: Test SMTP connection with stage-by-stage reporting (connect, auth,
           send). Returns structured result with stage and message.
-        id: >-
-          test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message
-      - content: >-
-          Test Telegram bot connection by sending a test message to the
+        id: test-smtp-connection-with-stage-by-stage-reporting-connect-auth-send-returns-structured-result-with-stage-and-message
+      - content: Test Telegram bot connection by sending a test message to the
           configured chat.
-        id: >-
-          test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
-      - content: >-
-          Return the built-in default Xray JSON config template that ships with
+        id: test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
+      - content: Return the built-in default Xray JSON config template that ships with
           this panel version.
-        id: >-
-          return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
+        id: return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
     contents: []
 ---
 
@@ -116,7 +101,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
     </>
   );
 }

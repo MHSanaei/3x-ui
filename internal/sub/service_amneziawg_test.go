@@ -59,6 +59,80 @@ func TestGenAmneziaWGLinkFields(t *testing.T) {
 			t.Fatalf("decoded config missing %q\n got: %s", want, text)
 		}
 	}
+
+	// The server block sets none of the 3.1 fields: none may leak into the
+	// client config (a lone HeaderProtectionKey would break the handshake).
+	for _, absent := range []string{"HeaderProtectionKey", "RandomTrailers", "DisableCookies", "RekeyAfterTime", "ContentPaddingAddition"} {
+		if strings.Contains(text, absent) {
+			t.Fatalf("config must omit unset 3.1 field %q\n got: %s", absent, text)
+		}
+	}
+}
+
+// TestGenAmneziaWGLink31Fields pins the AmneziaWG 3.1 [Interface] lines and
+// their order in the decoded vpn:// payload — client and server configs must
+// carry the identical parameter block for the tunnel to work.
+func TestGenAmneziaWGLink31Fields(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "awg-31",
+		Settings: `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `",` +
+			`"jc":4,"jmin":40,"jmax":100,"s1":30,"s2":90,"s3":20,"s4":10,` +
+			`"h1":"10-2000","h2":"3000-5000","h3":"6000-8000","h4":"9000-11000",` +
+			`"i1":"<r 64>","i2":"<r 80>",` +
+			`"headerProtectionKey":"MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=",` +
+			`"contentPaddingAddition":"16-48","rekeyAfterTime":"110-140","rekeyTimeout":"4-8",` +
+			`"rejectAfterTime":"190-250","keepaliveTimeout":"9-15","maxHandshakeAttempts":"20-40",` +
+			`"randomTrailers":true,"disableCookies":true},` +
+			`"clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.8.1.2/32"]}]}`,
+	}
+
+	s := &SubService{}
+	link := s.genAmneziaWGLink(inbound, "user")
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(link, "vpn://"))
+	if err != nil {
+		t.Fatalf("link body does not decode as base64url: %v\n got: %s", err, link)
+	}
+	text := string(raw)
+
+	want := []string{
+		"Jc = 4",
+		"H4 = 9000-11000",
+		"I1 = <r 64>",
+		"I2 = <r 80>",
+		"HeaderProtectionKey = MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=",
+		"ContentPaddingAddition = 16-48",
+		"RekeyAfterTime = 110-140",
+		"RekeyTimeout = 4-8",
+		"RejectAfterTime = 190-250",
+		"KeepaliveTimeout = 9-15",
+		"MaxHandshakeAttempts = 20-40",
+		"RandomTrailers = on",
+		"DisableCookies = on",
+		"[Peer]",
+	}
+	pos := -1
+	for _, w := range want {
+		i := strings.Index(text, w)
+		if i < 0 {
+			t.Fatalf("decoded config missing %q\n got: %s", w, text)
+		}
+		if i < pos {
+			t.Fatalf("%q out of order in decoded config:\n%s", w, text)
+		}
+		pos = i
+	}
 }
 
 func TestGenAmneziaWGLinkWrongProtocol(t *testing.T) {

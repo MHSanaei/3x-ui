@@ -733,8 +733,30 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	fmt.Fprintf(&b, "H2 = %s\n", amneziaWGHeaderOrDefault(server.H2, "2"))
 	fmt.Fprintf(&b, "H3 = %s\n", amneziaWGHeaderOrDefault(server.H3, "3"))
 	fmt.Fprintf(&b, "H4 = %s\n", amneziaWGHeaderOrDefault(server.H4, "4"))
-	if server.I1 != "" {
-		fmt.Fprintf(&b, "I1 = %s\n", server.I1)
+	for i, v := range []string{server.I1, server.I2, server.I3, server.I4, server.I5} {
+		if v != "" {
+			fmt.Fprintf(&b, "I%d = %s\n", i+1, v)
+		}
+	}
+	optional := []struct{ key, v string }{
+		{"HeaderProtectionKey", server.HeaderProtectionKey},
+		{"ContentPaddingAddition", server.ContentPaddingAddition},
+		{"RekeyAfterTime", server.RekeyAfterTime},
+		{"RekeyTimeout", server.RekeyTimeout},
+		{"RejectAfterTime", server.RejectAfterTime},
+		{"KeepaliveTimeout", server.KeepaliveTimeout},
+		{"MaxHandshakeAttempts", server.MaxHandshakeAttempts},
+	}
+	for _, p := range optional {
+		if p.v != "" {
+			fmt.Fprintf(&b, "%s = %s\n", p.key, p.v)
+		}
+	}
+	if server.RandomTrailers {
+		b.WriteString("RandomTrailers = on\n")
+	}
+	if server.DisableCookies {
+		b.WriteString("DisableCookies = on\n")
 	}
 
 	fmt.Fprintf(&b, "\n# %s\n", remark)

@@ -2,6 +2,7 @@ package amneziawg
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"net/netip"
@@ -60,9 +61,53 @@ func GenerateObfuscation31() Obfuscation31 {
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
 	// CPS signature packet: N random bytes prepended before each handshake.
+	// I2-I5 stay empty, matching Amnezia's own generator.
 	o.I1 = fmt.Sprintf("<r %d>", randInt(32, 256))
 
+	o.HeaderProtectionKey = generateHeaderProtectionKey()
+
+	// Total padding stays <= 64: it rides on full-size transport packets, the
+	// same MTU-headroom concern that caps S4 at 32.
+	cpLo := randInt(8, 24)
+	o.ContentPaddingAddition = fmt.Sprintf("%d-%d", cpLo, cpLo+randInt(8, 40))
+
+	// Timing windows bracket WireGuard's own constants (rekey 120s, reject
+	// 180s, retry 5s, keepalive 10s) so sessions still renew before expiry.
+	rkLo := randInt(100, 120)
+	rkHi := rkLo + randInt(10, 40)
+	o.RekeyAfterTime = fmt.Sprintf("%d-%d", rkLo, rkHi)
+
+	// Every reject value exceeds every rekey value by >= 30s by construction.
+	rjLo := rkHi + randInt(30, 60)
+	o.RejectAfterTime = fmt.Sprintf("%d-%d", rjLo, rjLo+randInt(30, 90))
+
+	rtLo := randInt(3, 6)
+	o.RekeyTimeout = fmt.Sprintf("%d-%d", rtLo, rtLo+randInt(1, 4))
+
+	// Max 20s: must stay under clients' typical 25s PersistentKeepalive and
+	// common ~30s NAT UDP timeouts, or idle links lose their NAT mapping.
+	kaLo := randInt(8, 12)
+	o.KeepaliveTimeout = fmt.Sprintf("%d-%d", kaLo, kaLo+randInt(2, 8))
+
+	haLo := randInt(15, 25)
+	o.MaxHandshakeAttempts = fmt.Sprintf("%d-%d", haLo, haLo+randInt(5, 25))
+
+	o.RandomTrailers = true
+	// Cookie replies are a DPI-fingerprintable message type; stealth default
+	// trades away WG's handshake-flood mitigation, toggleable per inbound.
+	o.DisableCookies = true
+
 	return o
+}
+
+// generateHeaderProtectionKey returns base64.StdEncoding of 32 crypto/rand
+// bytes — the key format amneziawg-tools' HeaderProtectionKey parser expects.
+func generateHeaderProtectionKey() string {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(key)
 }
 
 // generateHRanges returns four non-overlapping "low-high" ranges for H1-H4.
@@ -104,9 +149,53 @@ func ValidateObfuscation(o Obfuscation31) error {
 		return fmt.Errorf("invalid S1/S2: S1+56 must not equal S2 (%d+56 == %d)", o.S1, o.S2)
 	}
 	for i, h := range []string{o.H1, o.H2, o.H3, o.H4} {
-		if err := validateHValue(h); err != nil {
+		if err := validateUintRange(h, 0); err != nil {
 			return fmt.Errorf("invalid H%d: %w", i+1, err)
 		}
+	}
+	if err := validateHeaderProtectionKey(o.HeaderProtectionKey); err != nil {
+		return err
+	}
+	if err := validateUintRange(o.ContentPaddingAddition, 0); err != nil {
+		return fmt.Errorf("invalid contentPaddingAddition: %w", err)
+	}
+	timing := []struct{ field, v string }{
+		{"rekeyAfterTime", o.RekeyAfterTime},
+		{"rekeyTimeout", o.RekeyTimeout},
+		{"rejectAfterTime", o.RejectAfterTime},
+		{"keepaliveTimeout", o.KeepaliveTimeout},
+		{"maxHandshakeAttempts", o.MaxHandshakeAttempts},
+	}
+	for _, tf := range timing {
+		// Zero would disable the timer or retry loop outright, so min is 1.
+		if err := validateUintRange(tf.v, 1); err != nil {
+			return fmt.Errorf("invalid %s: %w", tf.field, err)
+		}
+	}
+	// Sessions must renew before hard expiry: every possible rekey interval
+	// has to fire before the earliest possible reject cutoff.
+	if o.RekeyAfterTime != "" && o.RejectAfterTime != "" {
+		_, rekeyHi, _ := parseUintRange(o.RekeyAfterTime)
+		rejectLo, _, _ := parseUintRange(o.RejectAfterTime)
+		if rekeyHi >= rejectLo {
+			return fmt.Errorf("invalid rekeyAfterTime/rejectAfterTime: max rekey %d must be below min reject %d", rekeyHi, rejectLo)
+		}
+	}
+	return nil
+}
+
+// validateHeaderProtectionKey accepts an empty value (feature off) or a
+// base64-encoded 32-byte key, the exact shape amneziawg-tools parses.
+func validateHeaderProtectionKey(v string) error {
+	if v == "" {
+		return nil
+	}
+	key, err := base64.StdEncoding.DecodeString(v)
+	if err != nil {
+		return fmt.Errorf("invalid headerProtectionKey: not base64: %w", err)
+	}
+	if len(key) != 32 {
+		return fmt.Errorf("invalid headerProtectionKey: got %d bytes, want 32", len(key))
 	}
 	return nil
 }
@@ -198,27 +287,41 @@ func ValidateConfigValue(field, v string) error {
 	return nil
 }
 
-// validateHValue checks one H parameter: empty, a single uint32, or
-// "low-high" with 0 <= low <= high <= uint32 max.
-func validateHValue(v string) error {
-	v = strings.TrimSpace(v)
-	if v == "" {
+// validateUintRange checks a uint32-range parameter (H1-H4, the 3.x padding
+// and timing fields): empty, a single integer, or "low-high", with
+// minAllowed <= low <= high <= uint32 max.
+func validateUintRange(v string, minAllowed int64) error {
+	if strings.TrimSpace(v) == "" {
 		return nil
 	}
-	if lo, hi, isRange := strings.Cut(v, "-"); isRange {
-		l, err1 := strconv.ParseInt(strings.TrimSpace(lo), 10, 64)
-		h, err2 := strconv.ParseInt(strings.TrimSpace(hi), 10, 64)
-		if err1 != nil || err2 != nil {
-			return fmt.Errorf("range %q must be two integers", v)
-		}
-		if l < 0 || h > hMaxValid || l > h {
-			return fmt.Errorf("range %q must satisfy 0 <= low <= high <= %d", v, hMaxValid)
-		}
-		return nil
+	lo, hi, ok := parseUintRange(v)
+	if !ok {
+		return fmt.Errorf("value %q must be an integer or a low-high range", v)
 	}
-	n, err := strconv.ParseInt(v, 10, 64)
-	if err != nil || n < 0 || n > hMaxValid {
-		return fmt.Errorf("value %q must be an integer in 0..%d or a low-high range", v, hMaxValid)
+	if lo < minAllowed || hi > hMaxValid || lo > hi {
+		return fmt.Errorf("range %q must satisfy %d <= low <= high <= %d", v, minAllowed, hMaxValid)
 	}
 	return nil
+}
+
+// parseUintRange parses "N" (lo == hi) or "low-high"; ok is false when the
+// value is empty or not numeric. Bounds are NOT checked here.
+func parseUintRange(v string) (lo, hi int64, ok bool) {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 0, 0, false
+	}
+	if loS, hiS, isRange := strings.Cut(v, "-"); isRange {
+		l, err1 := strconv.ParseInt(strings.TrimSpace(loS), 10, 64)
+		h, err2 := strconv.ParseInt(strings.TrimSpace(hiS), 10, 64)
+		if err1 != nil || err2 != nil {
+			return 0, 0, false
+		}
+		return l, h, true
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return 0, 0, false
+	}
+	return n, n, true
 }

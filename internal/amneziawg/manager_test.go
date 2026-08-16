@@ -123,7 +123,20 @@ func TestServerAddress(t *testing.T) {
 // by design (see its doc comment) and must never be used where the test
 // expects two "identical" instances to actually match.
 func fixedObfuscation() Obfuscation31 {
-	return Obfuscation31{Jc: 4, Jmin: 40, Jmax: 100, S1: 30, S2: 90, S3: 20, S4: 10, H1: "10-2000", H2: "3000-5000", H3: "6000-8000", H4: "9000-11000", I1: "<r 64>"}
+	return Obfuscation31{
+		Jc: 4, Jmin: 40, Jmax: 100, S1: 30, S2: 90, S3: 20, S4: 10,
+		H1: "10-2000", H2: "3000-5000", H3: "6000-8000", H4: "9000-11000",
+		I1: "<r 64>", I2: "<r 80>",
+		HeaderProtectionKey:    "MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=",
+		ContentPaddingAddition: "16-48",
+		RekeyAfterTime:         "110-140",
+		RekeyTimeout:           "4-8",
+		RejectAfterTime:        "190-250",
+		KeepaliveTimeout:       "9-15",
+		MaxHandshakeAttempts:   "20-40",
+		RandomTrailers:         true,
+		DisableCookies:         true,
+	}
 }
 
 func baseInstance() Instance {
@@ -178,6 +191,18 @@ func TestStructuralFingerprintStableAndSensitive(t *testing.T) {
 	g.RouteThroughXray = true
 	if a.structuralFingerprint() == g.structuralFingerprint() {
 		t.Fatal("toggling RouteThroughXray must change the structural fingerprint -- it changes whether PostUp/PostDown contain any TPROXY rules at all")
+	}
+
+	h := baseInstance()
+	h.Obfuscation.HeaderProtectionKey = "b0FpFDbtxb4W1YXsSq1NsPXbiTNDGeahIS1AmXjxx2c="
+	if a.structuralFingerprint() == h.structuralFingerprint() {
+		t.Fatal("changing HeaderProtectionKey must change the structural fingerprint -- the rendered config changed")
+	}
+
+	i := baseInstance()
+	i.Obfuscation.RandomTrailers = false
+	if a.structuralFingerprint() == i.structuralFingerprint() {
+		t.Fatal("toggling RandomTrailers must change the structural fingerprint -- the rendered config changed")
 	}
 }
 
@@ -511,6 +536,78 @@ func TestWriteObfuscationDefaultsBlankH(t *testing.T) {
 	// S3/S4/I1 are zero-valued here and must be omitted entirely.
 	if strings.Contains(out, "S3") || strings.Contains(out, "S4") || strings.Contains(out, "I1") {
 		t.Errorf("zero-valued S3/S4/I1 must be omitted, got:\n%s", out)
+	}
+	// Same for every 3.1 field: empty means the feature stays off the wire.
+	for _, key := range []string{
+		"I2", "I3", "I4", "I5",
+		"HeaderProtectionKey", "ContentPaddingAddition",
+		"RekeyAfterTime", "RekeyTimeout", "RejectAfterTime",
+		"KeepaliveTimeout", "MaxHandshakeAttempts",
+		"RandomTrailers", "DisableCookies",
+	} {
+		if strings.Contains(out, key) {
+			t.Errorf("zero-valued %s must be omitted, got:\n%s", key, out)
+		}
+	}
+}
+
+func TestWriteObfuscationEmits31FieldsInOrder(t *testing.T) {
+	var b strings.Builder
+	writeObfuscation(&b, fixedObfuscation())
+	out := b.String()
+
+	want := []string{
+		"Jc = 4",
+		"H4 = 9000-11000",
+		"I1 = <r 64>",
+		"I2 = <r 80>",
+		"HeaderProtectionKey = MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=",
+		"ContentPaddingAddition = 16-48",
+		"RekeyAfterTime = 110-140",
+		"RekeyTimeout = 4-8",
+		"RejectAfterTime = 190-250",
+		"KeepaliveTimeout = 9-15",
+		"MaxHandshakeAttempts = 20-40",
+		"RandomTrailers = on",
+		"DisableCookies = on",
+	}
+	pos := -1
+	for _, w := range want {
+		i := strings.Index(out, w)
+		if i < 0 {
+			t.Fatalf("missing %q in:\n%s", w, out)
+		}
+		if i < pos {
+			t.Fatalf("%q out of order (must follow the previous key) in:\n%s", w, out)
+		}
+		pos = i
+	}
+	// I3-I5 are empty in the fixture and must not appear.
+	for _, absent := range []string{"I3", "I4", "I5"} {
+		if strings.Contains(out, absent) {
+			t.Errorf("empty %s must be omitted, got:\n%s", absent, out)
+		}
+	}
+}
+
+func TestParseAwgVersion(t *testing.T) {
+	cases := []struct {
+		out       string
+		wantMajor int
+		wantMinor int
+		wantOK    bool
+	}{
+		{"wireguard-tools v3.1.20260812 - https://git.zx2c4.com/wireguard-tools/", 3, 1, true},
+		{"wireguard-tools v1.0.20250706", 1, 0, true},
+		{"3.0.20260730", 3, 0, true},
+		{"awg: command not found", 0, 0, false},
+		{"", 0, 0, false},
+	}
+	for _, c := range cases {
+		major, minor, ok := parseAwgVersion(c.out)
+		if ok != c.wantOK || major != c.wantMajor || minor != c.wantMinor {
+			t.Errorf("parseAwgVersion(%q) = (%d, %d, %v), want (%d, %d, %v)", c.out, major, minor, ok, c.wantMajor, c.wantMinor, c.wantOK)
+		}
 	}
 }
 

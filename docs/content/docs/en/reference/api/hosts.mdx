@@ -1,7 +1,6 @@
 ---
 title: Hosts
-description: >-
-  Per-inbound override endpoints. Each enabled host renders one extra
+description: Per-inbound override endpoints. Each enabled host renders one extra
   subscription link/proxy with its own address/port/TLS, superseding the legacy
   externalProxy array. All endpoints under /panel/api/hosts.
 full: true
@@ -10,86 +9,69 @@ _openapi:
     - ./public/openapi.json
   toc:
     - depth: 2
-      title: >-
-        List every host across all inbounds, grouped by inbound then ordered by
+      title: List every host across all inbounds, grouped by inbound then ordered by
         sort order.
-      url: >-
-        #list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order
+      url: '#list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order'
     - depth: 2
-      title: Fetch a single host by ID.
-      url: '#fetch-a-single-host-by-id'
+      title: Fetch a single host group by Group ID.
+      url: '#fetch-a-single-host-group-by-group-id'
     - depth: 2
-      title: Fetch one inbound's hosts, ordered by sort order then id.
-      url: '#fetch-one-inbounds-hosts-ordered-by-sort-order-then-id'
+      title: Fetch one inbound's hosts, grouped by host group.
+      url: '#fetch-one-inbounds-hosts-grouped-by-host-group'
     - depth: 2
       title: Distinct, sorted set of tags used across all hosts.
       url: '#distinct-sorted-set-of-tags-used-across-all-hosts'
     - depth: 2
-      title: >-
-        Create a host on an inbound. inboundId and remark are required; security
-        defaults to "same" (inherit the inbound).
-      url: >-
-        #create-a-host-on-an-inbound-inboundid-and-remark-are-required-security-defaults-to-same-inherit-the-inbound
+      title: Create a host group on inbounds.
+      url: '#create-a-host-group-on-inbounds'
     - depth: 2
-      title: >-
-        Replace a host’s content. The inbound and sort order are immutable here
-        (use /reorder for ordering).
-      url: >-
-        #replace-a-hosts-content-the-inbound-and-sort-order-are-immutable-here-use-reorder-for-ordering
+      title: Replace a host group’s content.
+      url: '#replace-a-host-groups-content'
     - depth: 2
-      title: Delete a host.
-      url: '#delete-a-host'
+      title: Delete a host group.
+      url: '#delete-a-host-group'
     - depth: 2
-      title: >-
-        Enable or disable a single host (disabled hosts are skipped in
-        subscriptions).
-      url: >-
-        #enable-or-disable-a-single-host-disabled-hosts-are-skipped-in-subscriptions
+      title: Enable or disable a host group.
+      url: '#enable-or-disable-a-host-group'
     - depth: 2
-      title: Set host sort order by the position of each id in the array.
-      url: '#set-host-sort-order-by-the-position-of-each-id-in-the-array'
+      title: Set host group sort order by the position of each groupId in the array.
+      url: '#set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array'
     - depth: 2
-      title: Enable or disable many hosts in one call.
-      url: '#enable-or-disable-many-hosts-in-one-call'
+      title: Add a host group to inbounds (same as /add).
+      url: '#add-a-host-group-to-inbounds-same-as-add'
     - depth: 2
-      title: Delete many hosts in one call.
-      url: '#delete-many-hosts-in-one-call'
+      title: Enable or disable many host groups in one call.
+      url: '#enable-or-disable-many-host-groups-in-one-call'
+    - depth: 2
+      title: Delete many host groups in one call.
+      url: '#delete-many-host-groups-in-one-call'
   structuredData:
     headings:
-      - content: >-
-          List every host across all inbounds, grouped by inbound then ordered
-          by sort order.
-        id: >-
-          list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order
-      - content: Fetch a single host by ID.
-        id: fetch-a-single-host-by-id
-      - content: Fetch one inbound's hosts, ordered by sort order then id.
-        id: fetch-one-inbounds-hosts-ordered-by-sort-order-then-id
+      - content: List every host across all inbounds, grouped by inbound then ordered by
+          sort order.
+        id: list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order
+      - content: Fetch a single host group by Group ID.
+        id: fetch-a-single-host-group-by-group-id
+      - content: Fetch one inbound's hosts, grouped by host group.
+        id: fetch-one-inbounds-hosts-grouped-by-host-group
       - content: Distinct, sorted set of tags used across all hosts.
         id: distinct-sorted-set-of-tags-used-across-all-hosts
-      - content: >-
-          Create a host on an inbound. inboundId and remark are required;
-          security defaults to "same" (inherit the inbound).
-        id: >-
-          create-a-host-on-an-inbound-inboundid-and-remark-are-required-security-defaults-to-same-inherit-the-inbound
-      - content: >-
-          Replace a host’s content. The inbound and sort order are immutable
-          here (use /reorder for ordering).
-        id: >-
-          replace-a-hosts-content-the-inbound-and-sort-order-are-immutable-here-use-reorder-for-ordering
-      - content: Delete a host.
-        id: delete-a-host
-      - content: >-
-          Enable or disable a single host (disabled hosts are skipped in
-          subscriptions).
-        id: >-
-          enable-or-disable-a-single-host-disabled-hosts-are-skipped-in-subscriptions
-      - content: Set host sort order by the position of each id in the array.
-        id: set-host-sort-order-by-the-position-of-each-id-in-the-array
-      - content: Enable or disable many hosts in one call.
-        id: enable-or-disable-many-hosts-in-one-call
-      - content: Delete many hosts in one call.
-        id: delete-many-hosts-in-one-call
+      - content: Create a host group on inbounds.
+        id: create-a-host-group-on-inbounds
+      - content: Replace a host group’s content.
+        id: replace-a-host-groups-content
+      - content: Delete a host group.
+        id: delete-a-host-group
+      - content: Enable or disable a host group.
+        id: enable-or-disable-a-host-group
+      - content: Set host group sort order by the position of each groupId in the array.
+        id: set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array
+      - content: Add a host group to inbounds (same as /add).
+        id: add-a-host-group-to-inbounds-same-as-add
+      - content: Enable or disable many host groups in one call.
+        id: enable-or-disable-many-host-groups-in-one-call
+      - content: Delete many host groups in one call.
+        id: delete-many-host-groups-in-one-call
     contents: []
 ---
 
@@ -102,7 +84,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/get/{id}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{id}","method":"post"},{"path":"/panel/api/hosts/del/{id}","method":"post"},{"path":"/panel/api/hosts/setEnable/{id}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/get/{groupId}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{groupId}","method":"post"},{"path":"/panel/api/hosts/del/{groupId}","method":"post"},{"path":"/panel/api/hosts/setEnable/{groupId}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/add","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
     </>
   );
 }

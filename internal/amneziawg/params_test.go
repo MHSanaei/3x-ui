@@ -1,6 +1,7 @@
 package amneziawg
 
 import (
+	"encoding/base64"
 	"strconv"
 	"strings"
 	"testing"
@@ -34,7 +35,7 @@ func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
 			t.Fatalf("S4 = %d, want [4,27]", o.S4)
 		}
 		for name, h := range map[string]string{"H1": o.H1, "H2": o.H2, "H3": o.H3, "H4": o.H4} {
-			if err := validateHValue(h); err != nil {
+			if err := validateUintRange(h, 0); err != nil {
 				t.Fatalf("%s = %q invalid: %v", name, h, err)
 			}
 			if h == "" {
@@ -48,7 +49,45 @@ func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
 		if err != nil || n < 32 || n > 256 {
 			t.Fatalf("I1 = %q, embedded N must be an integer in [32,256]", o.I1)
 		}
+		for name, v := range map[string]string{"I2": o.I2, "I3": o.I3, "I4": o.I4, "I5": o.I5} {
+			if v != "" {
+				t.Fatalf("%s = %q, generated sets must leave I2-I5 empty", name, v)
+			}
+		}
+		key, err := base64.StdEncoding.DecodeString(o.HeaderProtectionKey)
+		if err != nil || len(key) != 32 {
+			t.Fatalf("HeaderProtectionKey = %q, must be base64 of 32 bytes (err=%v)", o.HeaderProtectionKey, err)
+		}
+		assertRangeWithin(t, "ContentPaddingAddition", o.ContentPaddingAddition, 8, 64)
+		rkLo, rkHi := assertRangeWithin(t, "RekeyAfterTime", o.RekeyAfterTime, 100, 160)
+		if rkHi-rkLo < 10 || rkHi-rkLo > 40 {
+			t.Fatalf("RekeyAfterTime = %q, width must be in [10,40]", o.RekeyAfterTime)
+		}
+		rjLo, _ := assertRangeWithin(t, "RejectAfterTime", o.RejectAfterTime, 130, 310)
+		if rjLo < rkHi+30 {
+			t.Fatalf("RejectAfterTime = %q must start >= 30s above RekeyAfterTime max %d", o.RejectAfterTime, rkHi)
+		}
+		assertRangeWithin(t, "RekeyTimeout", o.RekeyTimeout, 3, 10)
+		assertRangeWithin(t, "KeepaliveTimeout", o.KeepaliveTimeout, 8, 20)
+		assertRangeWithin(t, "MaxHandshakeAttempts", o.MaxHandshakeAttempts, 15, 50)
+		if !o.RandomTrailers || !o.DisableCookies {
+			t.Fatalf("RandomTrailers/DisableCookies = %v/%v, generated sets default both on", o.RandomTrailers, o.DisableCookies)
+		}
 	}
+}
+
+// assertRangeWithin parses a "lo-hi" value and fails unless
+// min <= lo <= hi <= max, returning the parsed bounds.
+func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int64) {
+	t.Helper()
+	lo, hi, ok := parseUintRange(v)
+	if !ok || !strings.Contains(v, "-") {
+		t.Fatalf("%s = %q, want a lo-hi range", name, v)
+	}
+	if lo < min || hi > max || lo > hi {
+		t.Fatalf("%s = %q, want %d <= lo <= hi <= %d", name, v, min, max)
+	}
+	return lo, hi
 }
 
 func TestGenerateHRangesNonOverlapping(t *testing.T) {
@@ -136,6 +175,75 @@ func TestValidateObfuscationRejectsBadH(t *testing.T) {
 		if err := ValidateObfuscation(o); err == nil {
 			t.Fatalf("H1 = %q must be rejected", h)
 		}
+	}
+}
+
+func TestValidateObfuscationAcceptsEmpty31Fields(t *testing.T) {
+	o := validObfuscation()
+	o.HeaderProtectionKey = ""
+	o.ContentPaddingAddition = ""
+	o.RekeyAfterTime, o.RekeyTimeout, o.RejectAfterTime = "", "", ""
+	o.KeepaliveTimeout, o.MaxHandshakeAttempts = "", ""
+	o.RandomTrailers, o.DisableCookies = false, false
+	if err := ValidateObfuscation(o); err != nil {
+		t.Fatalf("all-empty 3.1 fields must be accepted (features off): %v", err)
+	}
+}
+
+func TestValidateObfuscationRejectsBadTimingRanges(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(o *Obfuscation31)
+	}{
+		{"zero rekeyTimeout", func(o *Obfuscation31) { o.RekeyTimeout = "0" }},
+		{"zero-low range", func(o *Obfuscation31) { o.KeepaliveTimeout = "0-10" }},
+		{"inverted range", func(o *Obfuscation31) { o.RekeyAfterTime = "160-100" }},
+		{"non-numeric", func(o *Obfuscation31) { o.MaxHandshakeAttempts = "many" }},
+		{"trailing dash", func(o *Obfuscation31) { o.RejectAfterTime = "200-" }},
+		{"rekey max not below reject min", func(o *Obfuscation31) {
+			o.RekeyAfterTime = "100-200"
+			o.RejectAfterTime = "200-300"
+		}},
+		{"single rekey value at reject min", func(o *Obfuscation31) {
+			o.RekeyAfterTime = "180"
+			o.RejectAfterTime = "180-300"
+		}},
+	}
+	for _, c := range cases {
+		o := validObfuscation()
+		c.mutate(&o)
+		if err := ValidateObfuscation(o); err == nil {
+			t.Errorf("%s must be rejected", c.name)
+		}
+	}
+}
+
+func TestValidateObfuscationRejectsBadHeaderProtectionKey(t *testing.T) {
+	cases := []struct {
+		name string
+		key  string
+	}{
+		{"not base64", "not!!!base64"},
+		{"16-byte key", base64.StdEncoding.EncodeToString(make([]byte, 16))},
+		{"33-byte key", base64.StdEncoding.EncodeToString(make([]byte, 33))},
+		{"control characters", "AAAA\nBBBB"},
+	}
+	for _, c := range cases {
+		o := validObfuscation()
+		o.HeaderProtectionKey = c.key
+		if err := ValidateObfuscation(o); err == nil {
+			t.Errorf("headerProtectionKey %s (%q) must be rejected", c.name, c.key)
+		}
+	}
+}
+
+func TestValidateObfuscationAcceptsSingleValueRanges(t *testing.T) {
+	o := validObfuscation()
+	o.ContentPaddingAddition = "32"
+	o.RekeyAfterTime = "120"
+	o.RejectAfterTime = "180"
+	if err := ValidateObfuscation(o); err != nil {
+		t.Fatalf("single-integer values must be accepted like the awg parser does: %v", err)
 	}
 }
 

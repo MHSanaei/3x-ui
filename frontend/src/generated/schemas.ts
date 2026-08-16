@@ -2996,6 +2996,12 @@ export const SCHEMAS: Record<string, unknown> = {
   "ServerSettings": {
     "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {
+      "contentPaddingAddition": {
+        "type": "string"
+      },
+      "disableCookies": {
+        "type": "boolean"
+      },
       "externalInterface": {
         "description": "ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.\nEmpty means auto-detect.",
         "type": "string"
@@ -3012,7 +3018,22 @@ export const SCHEMAS: Record<string, unknown> = {
       "h4": {
         "type": "string"
       },
+      "headerProtectionKey": {
+        "type": "string"
+      },
       "i1": {
+        "type": "string"
+      },
+      "i2": {
+        "type": "string"
+      },
+      "i3": {
+        "type": "string"
+      },
+      "i4": {
+        "type": "string"
+      },
+      "i5": {
         "type": "string"
       },
       "ipv6Enabled": {
@@ -3035,6 +3056,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "jmin": {
         "type": "integer"
       },
+      "keepaliveTimeout": {
+        "type": "string"
+      },
+      "maxHandshakeAttempts": {
+        "type": "string"
+      },
       "mtu": {
         "type": "integer"
       },
@@ -3046,6 +3073,18 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "publicKey": {
+        "type": "string"
+      },
+      "randomTrailers": {
+        "type": "boolean"
+      },
+      "rejectAfterTime": {
+        "type": "string"
+      },
+      "rekeyAfterTime": {
+        "type": "string"
+      },
+      "rekeyTimeout": {
         "type": "string"
       },
       "routeThroughXray": {

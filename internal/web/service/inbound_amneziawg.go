@@ -127,6 +127,16 @@ func defaultAmneziaWGServer() (*amneziawg.ServerSettings, error) {
 		H3:           obf.H3,
 		H4:           obf.H4,
 		I1:           obf.I1,
+
+		HeaderProtectionKey:    obf.HeaderProtectionKey,
+		ContentPaddingAddition: obf.ContentPaddingAddition,
+		RekeyAfterTime:         obf.RekeyAfterTime,
+		RekeyTimeout:           obf.RekeyTimeout,
+		RejectAfterTime:        obf.RejectAfterTime,
+		KeepaliveTimeout:       obf.KeepaliveTimeout,
+		MaxHandshakeAttempts:   obf.MaxHandshakeAttempts,
+		RandomTrailers:         obf.RandomTrailers,
+		DisableCookies:         obf.DisableCookies,
 	}
 	if err := fillAmneziaWGServerKeys(server); err != nil {
 		return nil, err
@@ -206,8 +216,17 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err := amneziawg.ValidateConfigValue("publicKey", parsed.Server.PublicKey); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
-	if err := amneziawg.ValidateConfigValue("i1", parsed.Server.I1); err != nil {
-		return fmt.Errorf("amneziawg: %w", err)
+	signaturePackets := []struct{ field, v string }{
+		{"i1", parsed.Server.I1},
+		{"i2", parsed.Server.I2},
+		{"i3", parsed.Server.I3},
+		{"i4", parsed.Server.I4},
+		{"i5", parsed.Server.I5},
+	}
+	for _, sp := range signaturePackets {
+		if err := amneziawg.ValidateConfigValue(sp.field, sp.v); err != nil {
+			return fmt.Errorf("amneziawg: %w", err)
+		}
 	}
 
 	portCtx, err := s.loadPortConflictContext()
