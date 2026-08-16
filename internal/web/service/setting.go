@@ -59,6 +59,7 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsCaKeyPem":            "",
 	"nodeMtlsClientCertPem":       "",
 	"nodeMtlsClientKeyPem":        "",
+	"nodeMtlsClientCertSha256":    "",
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
