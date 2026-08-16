@@ -27,15 +27,20 @@ function hLine(key: string, value: string | undefined, fallback: string): string
   return `${key} = ${value && value.trim() !== '' ? value : fallback}`;
 }
 
+// addressOverride carries this inbound's own AllowedIPs (ClientHydrateSchema's
+// tunnelAllowedIPs). ClientRecord.allowedIPs is a single shared column, so for
+// an identity attached to both WireGuard and AmneziaWG it holds the WireGuard
+// address — writing that into the AmneziaWG .conf yields an unroutable peer.
 export function buildAmneziaWGClientConfig(
   client: ClientRecord,
   inbound: InboundOption | undefined,
   host = window.location.hostname,
   publicHost = '',
+  addressOverride = '',
 ): string {
   const server = inbound?.awgServer;
   const endpointHost = resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
-  const address = client.allowedIPs || '10.8.1.2/32';
+  const address = addressOverride || client.allowedIPs || '10.8.1.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email, client.comment].filter(Boolean).join(' - ');

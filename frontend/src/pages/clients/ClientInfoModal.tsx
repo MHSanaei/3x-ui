@@ -46,6 +46,7 @@ interface ClientInfoModalProps {
   open: boolean;
   client: ClientRecord | null;
   inboundsById: Record<number, InboundOption>;
+  tunnelAllowedIPs?: Record<number, string>;
   isOnline: boolean;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
@@ -76,6 +77,7 @@ export default function ClientInfoModal({
   open,
   client,
   inboundsById,
+  tunnelAllowedIPs,
   isOnline,
   subSettings = DEFAULT_SUB,
   onOpenChange,
@@ -154,8 +156,9 @@ export default function ClientInfoModal({
   const awgInbound = useMemo(() => findAmneziaWGInbound(client, inboundsById), [client, inboundsById]);
   const awgConfigText = useMemo(() => {
     if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
-    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '');
-  }, [client, awgInbound, subSettings?.publicHost]);
+    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
+    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '', address);
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
 
   async function copyValue(text: string) {
     if (!text) return;

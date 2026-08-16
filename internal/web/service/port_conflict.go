@@ -252,7 +252,7 @@ func (s *InboundService) checkAmneziawgEgressConflict(inbound *model.Inbound, ig
 		if !ok || !inst.RouteThroughXray {
 			continue
 		}
-		if amneziawg.EgressPortForInbound(c.Id) != inbound.Port {
+		if port, ok := amneziawg.EgressPortForInbound(c.Id); !ok || port != inbound.Port {
 			continue
 		}
 		return &portConflictDetail{

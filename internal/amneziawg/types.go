@@ -1,16 +1,12 @@
-// Package amneziawg manages native AmneziaWG interfaces (via awg-quick/awg,
-// the AmneziaWG DKMS kernel module's userspace tools) as sidecars to the
-// panel, the same way internal/mtproto manages mtg processes: one inbound
-// row maps to one desired Instance, and a Manager reconciles the running
-// interfaces toward whatever the database currently wants.
+// Package amneziawg manages native AmneziaWG interfaces (via awg-quick/awg) as
+// panel sidecars, the way internal/mtproto manages mtg: one inbound row maps to
+// one Instance, and a Manager reconciles the running interfaces toward the DB.
 package amneziawg
 
 import "github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
-// Obfuscation31 is an AmneziaWG 3.1 obfuscation parameter set (junk packets,
-// padding, magic headers, signature packets, header protection, timing
-// randomization). The same values are applied on both ends of a tunnel, so
-// the server stores them and every client config inherits them verbatim.
+// Obfuscation31 is an AmneziaWG 3.1 obfuscation parameter set. Both ends of a
+// tunnel must match, so every client config inherits the server's values.
 type Obfuscation31 struct {
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
@@ -29,8 +25,8 @@ type Obfuscation31 struct {
 	I4   string `json:"i4,omitempty"`
 	I5   string `json:"i5,omitempty"`
 
-	// HeaderProtectionKey is a base64 32-byte key shared by both ends (3.0
-	// header protection); the ranges/booleans below are 3.x-only and optional.
+	// HeaderProtectionKey is a base64 32-byte key shared by both ends; the
+	// ranges/booleans below are 3.x-only and optional.
 	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
 	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
 	RekeyAfterTime         string `json:"rekeyAfterTime,omitempty"`
@@ -42,9 +38,8 @@ type Obfuscation31 struct {
 	DisableCookies         bool   `json:"disableCookies,omitempty"`
 }
 
-// Peer is one desired AmneziaWG peer: a client device the interface accepts.
-// Email attributes traffic and online status back to the owning client, the
-// same role SecretEntry.Name plays for mtproto.
+// Peer is one desired AmneziaWG peer. Email attributes traffic and online
+// status back to the owning client, as SecretEntry.Name does for mtproto.
 type Peer struct {
 	Email        string
 	PublicKey    string
@@ -56,9 +51,8 @@ type Peer struct {
 	ForwardedPorts string
 }
 
-// Instance is the desired runtime configuration of one AmneziaWG inbound: a
-// single interface (e.g. awg1) with a set of peers, mirroring how one mtproto
-// inbound maps to one mtg process (internal/mtproto.Instance).
+// Instance is one AmneziaWG inbound's desired runtime state: a single
+// interface (e.g. awg1) with a set of peers.
 type Instance struct {
 	Id            int
 	Tag           string
@@ -78,30 +72,19 @@ type Instance struct {
 	// Empty means auto-detect at config-generation time.
 	ExternalInterface string
 
-	// IPv6Enabled turns on the per-peer NDP proxy PostUp/PostDown entries
-	// (ip -6 neigh add/del proxy) for peers that have an IPv6 AllowedIPs
-	// entry. IPv6ExternalInterface overrides ExternalInterface for those
-	// entries specifically; empty means reuse ExternalInterface.
+	// IPv6Enabled turns on per-peer NDP proxy PostUp/PostDown entries.
+	// IPv6ExternalInterface overrides ExternalInterface for those only.
 	IPv6Enabled           bool
 	IPv6ExternalInterface string
 
-	// RouteThroughXray gates the entire TPROXY-into-Xray bridge (see
-	// EgressPortForInbound / injectAmneziawgEgress) for this instance: off by
-	// default, so a plain AmneziaWG tunnel never depends on Xray being up at
-	// all. Turning it on makes every peer's traffic TPROXY'd into this
-	// instance's own loopback Xray bridge, tagged with the inbound's own
-	// tag; the actual routing decision from there is left entirely to the
-	// panel's stock Routing page (pick this inbound's tag as source, an
-	// outbound, and optionally a peer's IP), exactly like routing any other
-	// protocol -- only whether the bridge exists at all is a per-inbound
-	// choice.
+	// RouteThroughXray gates this instance's whole TPROXY-into-Xray bridge; off
+	// by default, so a plain tunnel never depends on Xray running at all. Where
+	// routed traffic then goes is left to the panel's stock Routing page.
 	RouteThroughXray bool
 }
 
-// ServerSettings is the "server" block of an AmneziaWG inbound's Settings
-// JSON: the interface-level configuration shared by every client/peer. The
-// listen port is deliberately not duplicated here — it lives on the inbound
-// row itself (Inbound.Port), like every other protocol.
+// ServerSettings is the "server" block of an AmneziaWG inbound's Settings JSON.
+// The listen port lives on the inbound row itself, like every other protocol.
 type ServerSettings struct {
 	PrivateKey string `json:"privateKey"`
 	PublicKey  string `json:"publicKey"`
@@ -110,8 +93,8 @@ type ServerSettings struct {
 	SubnetCIDR int    `json:"subnetCidr"`
 	MTU        int    `json:"mtu,omitempty"`
 
-	// PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client
-	// configs; the server's own interface never sets one (see BuildClientConfig).
+	// PrimaryDNS/SecondaryDNS seed downloadable client configs only; the
+	// server's own interface never sets a DNS line.
 	PrimaryDNS   string `json:"primaryDns,omitempty"`
 	SecondaryDNS string `json:"secondaryDns,omitempty"`
 
@@ -119,12 +102,9 @@ type ServerSettings struct {
 	// Empty means auto-detect.
 	ExternalInterface string `json:"externalInterface,omitempty"`
 
-	// IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is
-	// allocated from IPv6Subnet alongside each client's IPv4 one, and the
-	// server proxies NDP for each enabled client's address so upstream
-	// routers see it as directly reachable (no NAT66). IPv6ExternalInterface
-	// overrides ExternalInterface for the NDP-proxy PostUp/PostDown entries
-	// specifically; empty reuses ExternalInterface.
+	// IPv6Enabled allocates each client an IPv6 host address from IPv6Subnet and
+	// proxies NDP for it, so upstream routers see it as directly reachable
+	// (no NAT66). IPv6ExternalInterface overrides ExternalInterface for those.
 	IPv6Enabled           bool   `json:"ipv6Enabled,omitempty"`
 	IPv6Subnet            string `json:"ipv6Subnet,omitempty"`
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
@@ -133,12 +113,9 @@ type ServerSettings struct {
 	// Instance.RouteThroughXray for what that means. Off by default.
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
-	// Obfuscation31's fields, repeated flat (not embedded) rather than
-	// nested under their own key: encoding/json would happily inline an
-	// embedded Obfuscation31 the same way, but the frontend's Go->Zod/TS
-	// generator (tools/openapigen) does not — it emits a genuinely nested
-	// `obfuscation31` object, which would silently diverge from the real
-	// wire JSON. See Obfuscation() below for the manager-facing conversion.
+	// Obfuscation31's fields repeated flat, not embedded: encoding/json would
+	// inline an embedded struct but tools/openapigen emits a nested object,
+	// which would silently diverge from the real wire JSON.
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
 	Jmax int    `json:"jmax"`
@@ -167,9 +144,8 @@ type ServerSettings struct {
 	DisableCookies         bool   `json:"disableCookies,omitempty"`
 }
 
-// Obfuscation extracts the Obfuscation31 parameter set from a ServerSettings
-// block, for callers (the Manager, ValidateObfuscation) that want the
-// grouped type rather than the flat wire fields.
+// Obfuscation regroups the flat wire fields above into Obfuscation31, for
+// callers that want the grouped type.
 func (s ServerSettings) Obfuscation() Obfuscation31 {
 	return Obfuscation31{
 		Jc: s.Jc, Jmin: s.Jmin, Jmax: s.Jmax,
@@ -188,10 +164,8 @@ func (s ServerSettings) Obfuscation() Obfuscation31 {
 	}
 }
 
-// InboundSettings is the full Settings JSON shape stored on an AmneziaWG
-// inbound row: one server block plus the usual generic client list, so bulk
-// operations, the QR modal and subscriptions all come from the same shared
-// infrastructure every other protocol uses.
+// InboundSettings is an AmneziaWG inbound's full Settings JSON: one server
+// block plus the generic client list every other protocol's tooling reads.
 type InboundSettings struct {
 	Server  *ServerSettings `json:"server"`
 	Clients []model.Client  `json:"clients"`

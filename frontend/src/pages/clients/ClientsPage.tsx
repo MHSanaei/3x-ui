@@ -261,6 +261,7 @@ export default function ClientsPage() {
   const [infoClient, setInfoClient] = useState<ClientRecord | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [qrClient, setQrClient] = useState<ClientRecord | null>(null);
+  const [viewingTunnelAllowedIPs, setViewingTunnelAllowedIPs] = useState<Record<number, string>>({});
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [subLinksOpen, setSubLinksOpen] = useState(false);
@@ -563,6 +564,7 @@ export default function ClientsPage() {
     if (!row) return;
     const full = await hydrate(row.email);
     setInfoClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    setViewingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
     setInfoOpen(true);
   }, [hydrate]);
 
@@ -571,6 +573,7 @@ export default function ClientsPage() {
     if (!row) return;
     const full = await hydrate(row.email);
     setQrClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+    setViewingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
     setQrOpen(true);
   }, [hydrate]);
 
@@ -1524,6 +1527,7 @@ export default function ClientsPage() {
             open={infoOpen}
             client={infoClient}
             inboundsById={inboundsById}
+            tunnelAllowedIPs={viewingTunnelAllowedIPs}
             isOnline={infoClient ? isOnline(infoClient.email) : false}
             subSettings={subSettings}
             onOpenChange={setInfoOpen}
@@ -1534,6 +1538,7 @@ export default function ClientsPage() {
             open={qrOpen}
             client={qrClient}
             inboundsById={inboundsById}
+            tunnelAllowedIPs={viewingTunnelAllowedIPs}
             subSettings={subSettings}
             onOpenChange={setQrOpen}
           />

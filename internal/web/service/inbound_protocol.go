@@ -53,16 +53,10 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	}
 }
 
-// nodeEligibleProtocols mirrors NODE_ELIGIBLE_PROTOCOLS from the frontend
-// (frontend/src/pages/inbounds/form/InboundFormModal.tsx), which hides the
-// "Deploy To" node picker for anything not in this set. MTProto and
-// AmneziaWG are both sidecar-managed rather than plain Xray inbounds, and
-// their reconcile loops (mtproto.Manager, amneziawg.Manager) only ever
-// query for NodeID IS NULL rows -- a node-assigned instance of either would
-// never be reconciled by the master, yet nothing previously stopped one
-// from being created that way (the frontend allowlist has no server-side
-// mirror). A future protocol defaults to ineligible until added here,
-// matching the frontend's own opt-in shape.
+// nodeEligibleProtocols mirrors the frontend's NODE_ELIGIBLE_PROTOCOLS. The
+// sidecar-managed protocols are absent because their reconcile loops only query
+// NodeID IS NULL rows, so a node-assigned one would never be reconciled at all.
+// A new protocol defaults to ineligible until added here, as on the frontend.
 var nodeEligibleProtocols = map[model.Protocol]bool{
 	model.VLESS:       true,
 	model.VMESS:       true,

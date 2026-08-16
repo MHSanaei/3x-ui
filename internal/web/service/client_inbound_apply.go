@@ -239,28 +239,15 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	return needRestart, nil
 }
 
-// otherTunnelAllowedIPs collects every AllowedIPs entry already claimed by a
-// WireGuard/AmneziaWG client on any OTHER enabled inbound of either protocol
-// on this panel, mapped to a short human-readable description of which
-// inbound holds it. defaultWireguardClients/defaultAmneziaWGClients only
-// ever check uniqueness against their OWN inbound's client list, so two
-// inbounds (whether the same protocol or not) that happen to share a subnet
-// could otherwise silently hand out or accept the same address — this is
-// the cross-inbound half of that guarantee.
-// Deliberately not filtered by enable: a disabled sibling inbound's
-// addresses stay reserved so re-enabling it later can't collide with
-// something handed out in the meantime.
+// otherTunnelAllowedIPs maps every AllowedIPs entry claimed on another
+// WireGuard/AmneziaWG inbound to a description of which one holds it: the
+// per-inbound defaulters only check their own client list, so two inbounds
+// sharing a subnet could otherwise hand out the same address. Disabled
+// siblings count too, keeping their addresses reserved for a later re-enable.
 //
-// selfEmails excludes a sibling inbound's entry from being treated as a
-// collision when it belongs to one of these emails — the identity currently
-// being added/attached, not some other client. Since ClientRecord.Email is
-// globally unique, a match here can only ever be this same identity's own
-// entry on another inbound, never a genuine different-client collision.
-// This matters for Attach: it deliberately gives one identity the same
-// AllowedIPs on every inbound it's attached to (ClientService.Attach copies
-// the ClientRecord's stored address into each inbound it processes), so
-// attaching the same email to a second inbound right after the first must
-// not see the first inbound's now-fresh copy of its own address as taken.
+// selfEmails skips this identity's own entries. Email is globally unique, so a
+// match there is never a real collision -- and Attach deliberately reuses one
+// address across every inbound it attaches the identity to.
 func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
 	var inbounds []*model.Inbound
 	err := database.GetDB().Model(model.Inbound{}).

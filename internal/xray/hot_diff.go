@@ -137,7 +137,7 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			return false
 		}
 		if exists && (inboundUsesSocksAccounts(oldIb) || inboundUsesSocksAccounts(newIb)) {
-			logger.Debug("hot diff: inbound [", oldIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. internal/amneziawgnet's per-peer relay); a gRPC remove+add reports success but was observed in production to silently drop an account, forcing a full restart instead of a hot swap")
+			logger.Debug("hot diff: inbound [", oldIb.Tag, "] is a password-auth SOCKS5 inbound; a gRPC remove+add reports success but was observed to silently drop an account, forcing a full restart instead of a hot swap")
 			return false
 		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
@@ -158,11 +158,11 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			return false
 		}
 		if inboundUsesTproxy(newIb) {
-			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a TPROXY target (e.g. internal/amneziawg's Xray egress bridge); a gRPC add reports success but does not reliably bind a working listener, forcing a full restart instead of a hot add")
+			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a TPROXY target (e.g. an AmneziaWG Xray egress bridge); a gRPC add reports success but does not reliably bind a working listener, forcing a full restart instead of a hot add")
 			return false
 		}
 		if inboundUsesSocksAccounts(newIb) {
-			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. internal/amneziawgnet's per-peer relay); forcing a full restart instead of a hot add, same reasoning as the existing-inbound case above")
+			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a password-auth SOCKS5 inbound; forcing a full restart instead of a hot add, same reasoning as the existing-inbound case above")
 			return false
 		}
 		raw, err := json.Marshal(newIb)
@@ -280,15 +280,9 @@ func inboundUsesReality(ib *InboundConfig) bool {
 	return stream.Security == "reality"
 }
 
-// inboundUsesTproxy reports whether an inbound's streamSettings mark it as a
-// TPROXY target (internal/amneziawg's own Xray egress bridge -- see
-// service.amneziawgEgressStreamSettings -- is the only inbound kind this
-// fork ever generates with sockopt.tproxy set). Confirmed directly against a
-// real Xray-core instance: adding this kind of inbound through the gRPC
-// HandlerService reports success, but no listener actually ends up bound on
-// the configured port, so TPROXY-redirected traffic silently goes nowhere
-// until the next full restart. Forcing a restart here is the same
-// defensive pattern already used for REALITY inbounds above.
+// inboundUsesTproxy reports whether streamSettings mark an inbound as a TPROXY
+// target. A gRPC add of one reports success but binds no working listener, so
+// redirected traffic goes nowhere until the next full restart.
 func inboundUsesTproxy(ib *InboundConfig) bool {
 	if ib == nil || len(ib.StreamSettings) == 0 {
 		return false
@@ -304,28 +298,10 @@ func inboundUsesTproxy(ib *InboundConfig) bool {
 	return stream.Sockopt.Tproxy != "" && stream.Sockopt.Tproxy != "off"
 }
 
-// inboundUsesSocksAccounts reports whether an inbound is a password-auth
-// SOCKS5 inbound with one or more named accounts -- the shape
-// internal/amneziawgnet's per-inbound relay (internal/web/service/xray.go's
-// injectAmneziawgnetSocks) is the only generator of in this fork; every
-// other SOCKS5 bridge this fork builds (panel egress, per-node egress,
-// mtproto egress) uses "noauth" with no per-account identity at all, so this
-// check can't accidentally rope in one of those lower-churn bridges.
-//
-// Real production incident, not a theoretical concern: a single client
-// edit under an AmneziaWG inbound left this inbound's settings unchanged in
-// every way relevant to accounts.user was already correct in the freshly
-// regenerated config, yet the account for a peer whose email contained
-// non-ASCII characters silently vanished from the running Xray process
-// after a gRPC remove+add hot swap -- while a full process restart (reading
-// the same JSON straight from disk) always produced the correct account
-// list. socks isn't in userDiffableProtocols (that only covers vless/vmess/
-// trojan, which use a wholly different clients+email shape, not
-// accounts+user), so without this check any settings drift on this inbound
-// -- even one unrelated to the account list itself -- falls through to the
-// generic remove+add path and can reproduce the same silent drop. Forcing a
-// full restart here is the same defensive choice already made above for
-// REALITY and TPROXY.
+// inboundUsesSocksAccounts reports whether an inbound is a password-auth SOCKS5
+// inbound. socks is not in userDiffableProtocols, and a gRPC remove+add of one
+// was observed to silently drop an account with a non-ASCII user; the bridges
+// this fork generates itself are all "noauth", so none are caught here.
 func inboundUsesSocksAccounts(ib *InboundConfig) bool {
 	if ib == nil || ib.Protocol != "socks" || len(ib.Settings) == 0 {
 		return false

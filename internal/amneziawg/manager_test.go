@@ -394,11 +394,21 @@ func TestRouteEgressLines(t *testing.T) {
 }
 
 func TestEgressPortForInbound(t *testing.T) {
-	if got := EgressPortForInbound(1); got != EgressBasePort+1 {
-		t.Errorf("EgressPortForInbound(1) = %d, want %d", got, EgressBasePort+1)
+	got, ok := EgressPortForInbound(1)
+	if got != EgressBasePort+1 || !ok {
+		t.Errorf("EgressPortForInbound(1) = %d, %v; want %d, true", got, ok, EgressBasePort+1)
 	}
-	if EgressPortForInbound(1) == EgressPortForInbound(2) {
+	second, _ := EgressPortForInbound(2)
+	if got == second {
 		t.Fatal("different inbound ids must derive different ports")
+	}
+	// 63100 + 2436 = 65536: Xray rejects the whole generated config over one
+	// out-of-range port, so the bridge has to be skipped instead.
+	if _, ok := EgressPortForInbound(65536 - EgressBasePort); ok {
+		t.Error("an id deriving a port past 65535 must report ok=false")
+	}
+	if _, ok := EgressPortForInbound(65535 - EgressBasePort); !ok {
+		t.Error("an id deriving exactly 65535 is still valid")
 	}
 }
 
@@ -419,7 +429,8 @@ func TestDefaultPostUpDownEmitsTproxyForEveryPeerWhenRouteThroughXrayOn(t *testi
 	inst.RouteThroughXray = true
 	up, down := defaultPostUpDown(inst, "eth0")
 
-	wantPort := fmt.Sprintf("--on-port %d", EgressPortForInbound(inst.Id))
+	egressPort, _ := EgressPortForInbound(inst.Id)
+	wantPort := fmt.Sprintf("--on-port %d", egressPort)
 	if !strings.Contains(up, "TPROXY") || !strings.Contains(up, wantPort) {
 		t.Errorf("expected TPROXY rules targeting this instance's own bridge port in PostUp, got:\n%s", up)
 	}
@@ -529,6 +540,52 @@ func TestGenerateServerConfigContainsExpectedLines(t *testing.T) {
 	// The second peer has no PresharedKey — its block must not emit the field at all.
 	if strings.Count(cfg, "PresharedKey") != 1 {
 		t.Errorf("expected exactly one PresharedKey line (peer b@x has none), got config:\n%s", cfg)
+	}
+}
+
+// A .conf value that reaches generateServerConfig without control characters
+// stripped lets a later line re-open an [Interface] section, and awg-quick
+// runs that section's PostUp as root on the next apply.
+func TestGenerateServerConfigNeverEmitsAnInjectedSection(t *testing.T) {
+	tests := []struct {
+		name  string
+		mutue func(*Instance)
+	}{
+		{"peer allowedIPs", func(i *Instance) {
+			i.Peers[0].AllowedIPs = []string{"10.8.1.2/32\n[Interface]\nPostUp = touch /tmp/pwned"}
+		}},
+		{"magic header H1", func(i *Instance) {
+			i.Obfuscation.H1 = "1\n[Interface]\nPostUp = touch /tmp/pwned"
+		}},
+		{"external interface", func(i *Instance) {
+			i.ExternalInterface = "eth0; touch /tmp/pwned"
+		}},
+		{"ipv6 external interface", func(i *Instance) {
+			i.IPv6Enabled = true
+			i.IPv6ExternalInterface = "eth0; touch /tmp/pwned"
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inst := baseInstance()
+			tt.mutue(&inst)
+			cfg := generateServerConfig(inst)
+			var sections, hooks int
+			for _, line := range strings.Split(cfg, "\n") {
+				switch {
+				case line == "[Interface]":
+					sections++
+				case strings.HasPrefix(line, "PostUp"), strings.HasPrefix(line, "PostDown"):
+					hooks++
+				}
+				if strings.HasPrefix(line, "PostUp") && strings.Contains(line, "touch /tmp/pwned") {
+					t.Fatalf("injected payload reached a root-executed hook:\n%s", cfg)
+				}
+			}
+			if sections != 1 || hooks != 2 {
+				t.Fatalf("want exactly 1 [Interface] and 2 hook lines, got %d and %d:\n%s", sections, hooks, cfg)
+			}
+		})
 	}
 }
 

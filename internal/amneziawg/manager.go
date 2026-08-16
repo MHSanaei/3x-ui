@@ -27,17 +27,13 @@ import (
 // the AmneziaWG DKMS package's own layout.
 const configDir = "/etc/amnezia/amneziawg"
 
-// onlineWindow is how recent a peer's last handshake must be to count it as
-// online, matching the typical WireGuard rekey interval (every 120s) plus
-// margin.
+// onlineWindow is how recent a handshake must be to count as online: the
+// WireGuard rekey interval (120s) plus margin.
 const onlineWindow = 180 * time.Second
 
-// InstanceFromInbound derives a desired Instance from an AmneziaWG inbound,
-// building one peer per active client. Returns false when the inbound is not
-// a usable AmneziaWG inbound (wrong protocol, unparseable settings, or no
-// server block) or has no enabled peer to serve — mirroring
-// mtproto.InstanceFromInbound, which skips the sidecar entirely rather than
-// run it with nothing to serve.
+// InstanceFromInbound derives a desired Instance, one peer per active client.
+// ok is false for an unusable inbound or one with no peer to serve, mirroring
+// mtproto.InstanceFromInbound rather than running with nothing to serve.
 func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	if ib == nil || ib.Protocol != model.AmneziaWG {
 		return Instance{}, false
@@ -96,23 +92,16 @@ func interfaceNameForID(id int) string {
 	return fmt.Sprintf("awg%d", id)
 }
 
-// serverAddress returns the server's own tunnel address for a subnet base,
-// e.g. "10.8.1.1/24" for base "10.8.1.0" or "10.8.1.5". The server always
-// holds the first usable host of the network subnetIP/cidr actually
-// describes -- derived via netip rather than assuming subnetIP already ends
-// in ".0", so a subnetIP that isn't a bare network address (a typo, or a
-// manually edited value) can never collide with peer addresses, which are
-// allocated starting from the network's second host upward (see
-// allocateWireguardAddress). Falls back to the previous literal behavior
-// only if subnetIP/cidr doesn't parse as an IPv4 network at all -- normal
-// saves never reach that path since ValidateSubnetIPv4 already rejects it.
+// serverAddress returns the server's own tunnel address: always the network's
+// first usable host, derived via netip rather than assuming subnetIP ends in
+// ".0", so a typo'd base can never collide with peer addresses (which start at
+// the second host, see allocateWireguardAddress).
 func serverAddress(subnetIP string, cidr int) string {
 	if cidr <= 0 {
 		cidr = 24
 	}
-	// A /32 has no host bits at all -- "first usable host" is meaningless,
-	// and Next() would step outside the block entirely -- so a single-host
-	// base is used exactly as given, same as before this fix.
+	// A /32 has no host bits, so Next() would step outside the block: use a
+	// single-host base exactly as given.
 	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%d", subnetIP, cidr))
 	if err != nil || !prefix.Addr().Is4() || cidr >= 32 {
 		return fmt.Sprintf("%s/%d", subnetIP, cidr)
@@ -121,10 +110,8 @@ func serverAddress(subnetIP string, cidr int) string {
 	return fmt.Sprintf("%s/%d", host, cidr)
 }
 
-// serverAddressV6 returns the server's own IPv6 tunnel address for a subnet
-// CIDR (e.g. "fd86:ea04:1115::1/64" for "fd86:ea04:1115::/64"), the first
-// usable host in the prefix. ok is false when subnetCIDR is empty or not a
-// valid IPv6 prefix.
+// serverAddressV6 returns the first usable host of an IPv6 prefix (e.g.
+// "fd86:ea04:1115::1/64"); ok is false when subnetCIDR isn't one.
 func serverAddressV6(subnetCIDR string) (addr string, ok bool) {
 	prefix, err := netip.ParsePrefix(subnetCIDR)
 	if err != nil || !prefix.Addr().Is6() {
@@ -161,13 +148,9 @@ func (inst Instance) structuralFingerprint() string {
 	return strings.Join(parts, "\n")
 }
 
-// peersFingerprint identifies the reloadable peer set regardless of order, so
-// a reordered clients array in the stored settings does not read as a
-// change. It moves whenever a peer is added, removed, disabled, re-keyed, or
-// re-addressed — all of which `awg syncconf` applies in place. Deliberately
-// excludes ForwardedPorts: those live in PostUp/PostDown, not the WireGuard
-// peer table, so a ports-only change needs hostRulesFingerprint's full
-// bounce instead of a syncconf reload.
+// peersFingerprint identifies the order-independent peer set `awg syncconf`
+// can apply in place. Excludes ForwardedPorts on purpose: those live in
+// PostUp/PostDown, so they need hostRulesFingerprint's full bounce instead.
 func (inst Instance) peersFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
@@ -177,24 +160,11 @@ func (inst Instance) peersFingerprint() string {
 	return strings.Join(pairs, "|")
 }
 
-// hostRulesFingerprint identifies per-peer state that only ever takes effect
-// through PostUp/PostDown shell rules — forwarded ports (whose DNAT rules
-// are keyed on the peer's IPv4 address, the same as the TPROXY rule below);
-// when RouteThroughXray is on, every peer's IPv4 address (the TPROXY rule
-// into this instance's own Xray bridge is keyed on it); and when IPv6 is
-// enabled, the peer's IPv6 address (its NDP-proxy PostUp/PostDown entry) —
-// rather than the WireGuard peer table itself. It is checked separately from
-// peersFingerprint because `awg syncconf` never re-runs PostUp/PostDown, so
-// a change here must force a full interface bounce (ensureRestart) to
-// actually take effect, unlike a key-only change that syncconf can apply in
-// place. The IPv4 component is included whenever RouteThroughXray is on OR
-// the peer has forwarded ports — either one means PostUp/PostDown text is
-// keyed on that address, so a re-IP with either feature off must still force
-// a bounce (otherwise the old DNAT/TPROXY rule survives pointed at an
-// address the reconciler is now free to hand to a different peer). The IPv6
-// component stays IPv6Enabled-gated only, matching the single feature that
-// reads it. Skipping both entirely when neither applies preserves the
-// syncconf fast path for a plain instance's peer add/remove/re-IP.
+// hostRulesFingerprint identifies per-peer state that only takes effect through
+// PostUp/PostDown (forwarded ports, TPROXY and NDP-proxy rules, all keyed on a
+// peer address). `awg syncconf` never re-runs those hooks, so a change here must
+// force a full bounce; each component is gated on the feature that reads it, so
+// a plain instance keeps the syncconf fast path for peer add/remove/re-IP.
 func (inst Instance) hostRulesFingerprint() string {
 	pairs := make([]string, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
@@ -211,9 +181,8 @@ func (inst Instance) hostRulesFingerprint() string {
 	return strings.Join(pairs, "|")
 }
 
-// peerCounters is the last-seen cumulative transfer counters for one peer,
-// used to compute per-poll deltas the same way mtproto tracks per-secret
-// counters.
+// peerCounters is one peer's last-seen cumulative transfer, for computing
+// per-poll deltas the way mtproto tracks per-secret counters.
 type peerCounters struct {
 	rx int64
 	tx int64
@@ -231,11 +200,11 @@ type managed struct {
 type Manager struct {
 	mu     sync.Mutex
 	ifaces map[int]*managed
-	// swept records that the one-time startup cleanup of orphaned interfaces
-	// (survivors of a previous x-ui run) has already run.
+	// swept records that the one-time startup cleanup of interfaces left by a
+	// previous x-ui run has already happened.
 	swept bool
-	// warnedOldTools rate-limits the pre-3.1 awg tools warning to one log
-	// line per process (see warnIfOldToolsLocked).
+	// warnedOldTools rate-limits the pre-3.1 awg tools warning to one line per
+	// process (see warnIfOldToolsLocked).
 	warnedOldTools bool
 }
 
@@ -252,9 +221,8 @@ func GetManager() *Manager {
 	return manager
 }
 
-// ensureAction is what ensureLocked must do to move a running interface to a
-// desired instance: leave it alone, hot-reload just its peers, or fully
-// bounce it.
+// ensureAction is what ensureLocked must do to reach a desired instance: leave
+// it alone, hot-reload just its peers, or fully bounce it.
 type ensureAction int
 
 const (
@@ -263,13 +231,9 @@ const (
 	ensureRestart
 )
 
-// ensureActionFor decides how to apply a desired instance to the currently
-// managed interface. A structural change, a host-rules change (forwarded
-// ports, or simply a peer's presence/IP — its always-on TPROXY rule only
-// lives in PostUp/PostDown), or a down interface all force a restart; a
-// peers-only change (keys only, no IP/presence change) is a candidate for
-// an in-place `syncconf`; identical fingerprints on an up interface need
-// nothing.
+// ensureActionFor decides how to apply a desired instance: a structural or
+// host-rules change (or a down interface) forces a restart, a peers-only change
+// is a candidate for in-place `syncconf`, identical fingerprints need nothing.
 func ensureActionFor(up bool, curStructFP, curHostRulesFP, curPeersFP, newStructFP, newHostRulesFP, newPeersFP string) ensureAction {
 	if !up || curStructFP != newStructFP || curHostRulesFP != newHostRulesFP {
 		return ensureRestart
@@ -314,14 +278,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			return err
 		}
 	case ensureRestart:
-		// Checked against the interface's actual kernel state, not `exists`:
-		// after an ungraceful exit (kill -9, OOM, panic) the previous
-		// process's interface can still be up even though this fresh
-		// Manager has never seen it (exists is always false on a cold
-		// start). Skipping the teardown in that case would send
-		// interfaceUp straight into "ip link add" against a name that
-		// already exists, which fails and leaves this inbound stuck
-		// retrying every reconcile forever.
+		// Kernel state, not `exists`: after an ungraceful exit the previous
+		// process's interface is still up while a fresh Manager has never seen
+		// it, and "ip link add" against an existing name fails forever.
 		if isInterfaceUp(inst.InterfaceName) {
 			_ = interfaceDown(inst.InterfaceName)
 		}
@@ -342,13 +301,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	return nil
 }
 
-// nextTrafficBaseline decides what per-peer traffic counters ensureLocked
-// should carry into the next managed entry. Only a reload (awg syncconf)
-// preserves the kernel's own per-peer transfer counters; a full down+up
-// zeroes them. Carrying the old baseline forward after a restart would make
-// the next CollectTraffic compute a large negative delta (clamped to 0 by
-// the caller), silently discarding whatever the peers transferred since the
-// previous poll instead of just resuming the count from zero.
+// nextTrafficBaseline keeps the per-peer counters only across a reload; a full
+// down+up zeroes the kernel's own, and carrying the old baseline over that
+// would make the next poll compute a negative delta and discard real traffic.
 func nextTrafficBaseline(action ensureAction, prev map[string]peerCounters) map[string]peerCounters {
 	if action == ensureReload {
 		return prev
@@ -368,32 +323,19 @@ func (m *Manager) Remove(id int) {
 	}
 }
 
-// sweepOrphansLocked tears down any AmneziaWG interface and config file left
-// behind by a previous x-ui process whose inbound is no longer in the
-// current desired set — most commonly because it was deleted from the
-// database entirely while the panel was down, so it will never again appear
-// in any future Reconcile call and would otherwise never be discovered (it
-// has no entry in m.ifaces for the per-id cleanup loop below to catch,
-// because that map always starts empty on a fresh process). Runs once per
-// process lifetime, mirroring mtproto.Manager.sweepOrphansLocked.
-//
-// Deliberately only called from Reconcile, not Ensure: Ensure only ever
-// carries a single instance, and a `want` set of just that one id would
-// misidentify every other still-desired-but-not-yet-reconciled-this-process
-// interface as an orphan. A crashed-but-still-wanted interface is instead
-// recovered normally by ensureLocked's ensureRestart branch, which checks
-// the interface's actual kernel state rather than this manager's in-memory
-// bookkeeping.
+// sweepOrphansLocked tears down interfaces left by a previous process whose
+// inbound is gone from the DB entirely: m.ifaces starts empty on a fresh
+// process, so nothing else would ever discover them. Runs once per process,
+// and only from Reconcile -- Ensure's single-instance `want` set would
+// misidentify every other still-desired interface as an orphan.
 func (m *Manager) sweepOrphansLocked(want map[int]struct{}) {
 	if m.swept {
 		return
 	}
 	entries, err := os.ReadDir(configDir)
 	if err != nil {
-		// Left false on purpose: a transient error (the directory not existing
-		// yet, a momentary filesystem hiccup) should let the next Reconcile
-		// tick retry the sweep, rather than permanently disabling it for this
-		// process's whole lifetime over a failure that may not recur.
+		// swept left false on purpose, so a transient error (no directory yet,
+		// a filesystem hiccup) lets the next tick retry instead of giving up.
 		return
 	}
 	m.swept = true
@@ -412,9 +354,8 @@ func (m *Manager) sweepOrphansLocked(want map[int]struct{}) {
 	}
 }
 
-// orphanedInterfaces returns the interface names among confFileNames (the
-// basenames of configDir's entries) whose parsed inbound id is not present
-// in want — the pure decision sweepOrphansLocked acts on.
+// orphanedInterfaces returns the names among confFileNames whose inbound id is
+// not in want -- the pure decision sweepOrphansLocked acts on.
 func orphanedInterfaces(confFileNames []string, want map[int]struct{}) []string {
 	var out []string
 	for _, name := range confFileNames {
@@ -434,10 +375,8 @@ func orphanedInterfaces(confFileNames []string, want map[int]struct{}) []string 
 	return out
 }
 
-// inboundIDForInterfaceName parses the inbound id back out of an interface
-// name produced by interfaceNameForID, e.g. "awg42" -> 42, ok=true. Requires
-// the suffix to be all decimal digits so a stray or hand-crafted file name
-// (e.g. "awg-1.conf") can never resolve to a negative id.
+// inboundIDForInterfaceName reverses interfaceNameForID ("awg42" -> 42). The
+// suffix must be all digits, so "awg-1.conf" can never resolve to a negative id.
 func inboundIDForInterfaceName(name string) (int, bool) {
 	suffix, ok := strings.CutPrefix(name, "awg")
 	if !ok || suffix == "" {
@@ -455,10 +394,8 @@ func inboundIDForInterfaceName(name string) (int, bool) {
 	return id, true
 }
 
-// Reconcile drives the running set toward the desired instances: it tears
-// down interfaces that are no longer wanted and ensures the rest. Used at
-// boot and periodically to recover from crashes or an out-of-band `awg-quick
-// down`.
+// Reconcile drives the running set toward desired, tearing down what is no
+// longer wanted. Recovers from crashes and out-of-band `awg-quick down`.
 func (m *Manager) Reconcile(desired []Instance) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -504,9 +441,8 @@ func (m *Manager) HasRunning() bool {
 	return false
 }
 
-// Traffic is a per-peer traffic delta scraped from `awg show <iface> dump`.
-// Tag is the owning inbound's tag and Email is the client the bytes belong
-// to.
+// Traffic is a per-peer delta scraped from `awg show <iface> dump`; Tag is the
+// owning inbound and Email the client the bytes belong to.
 type Traffic struct {
 	Tag   string
 	Email string
@@ -514,18 +450,15 @@ type Traffic struct {
 	Down  int64
 }
 
-// CollectTraffic polls `awg show <iface> dump` for every running interface
-// and returns the per-peer byte deltas since the previous poll, plus the
-// emails of peers with a handshake inside onlineWindow.
+// CollectTraffic returns each running interface's per-peer byte deltas since
+// the previous poll, plus the emails of peers handshaked inside onlineWindow.
 func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 	type snap struct {
 		id   int
 		inst Instance
 		last map[string]peerCounters
-		// entry is the exact *managed snapshotted below, kept so the
-		// write-back can detect a concurrent ensureRestart/ensureReload
-		// (which replaces the map entry with a fresh pointer, see
-		// ensureLocked) that happened while getPeerStats ran lock-free.
+		// entry is the exact *managed snapshotted below, so the write-back can
+		// detect an ensureLocked that replaced it while getPeerStats ran.
 		entry *managed
 	}
 	m.mu.Lock()
@@ -579,15 +512,9 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		}
 
 		m.mu.Lock()
-		// Only write back if this is still the exact entry snapshotted above:
-		// getPeerStats ran without the lock held, so ensureLocked could have
-		// restarted (or reloaded) this same interface in the meantime,
-		// replacing the map entry with a fresh *managed and, for a restart,
-		// resetting last to empty (kernel counters zero on down+up). Writing
-		// newLast back over that unconditionally would silently resurrect the
-		// pre-restart counters as the new baseline, making the next poll
-		// compute a negative delta and clamp a real poll's worth of traffic
-		// to zero.
+		// Only if still the exact entry snapshotted above: a restart in the
+		// meantime reset last to empty, and writing newLast over that would
+		// resurrect the pre-restart baseline and zero a real poll of traffic.
 		if cur, ok := m.ifaces[s.id]; ok && cur == s.entry {
 			cur.last = newLast
 		}
@@ -598,9 +525,8 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 
 // --- config rendering ---
 
-// generateServerConfig builds the awg-quick .conf content for an interface:
-// its own [Interface] block (keys, address, obfuscation, NAT PostUp/PostDown)
-// followed by one [Peer] block per client.
+// generateServerConfig builds an interface's awg-quick .conf: its [Interface]
+// block followed by one [Peer] block per client.
 func generateServerConfig(inst Instance) string {
 	var b strings.Builder
 
@@ -615,7 +541,7 @@ func generateServerConfig(inst Instance) string {
 	}
 	writeObfuscation(&b, inst.Obfuscation)
 
-	ext := inst.ExternalInterface
+	ext := safeInterfaceName(inst.ExternalInterface)
 	if ext == "" {
 		ext = detectDefaultInterface()
 	}
@@ -632,22 +558,16 @@ func generateServerConfig(inst Instance) string {
 		if p.PresharedKey != "" {
 			fmt.Fprintf(&b, "PresharedKey = %s\n", sanitizeConfigValue(p.PresharedKey))
 		}
-		fmt.Fprintf(&b, "AllowedIPs = %s\n", strings.Join(p.AllowedIPs, ", "))
+		fmt.Fprintf(&b, "AllowedIPs = %s\n", sanitizeConfigValue(strings.Join(p.AllowedIPs, ", ")))
 	}
 
 	return b.String()
 }
 
-// sanitizeConfigValue strips newlines, carriage returns, and other control
-// characters from a value about to be interpolated into the generated
-// .conf. ValidateConfigValue rejects these at save time, but a row that
-// predates that validation (an upgrade, a node sync, a restored backup, a
-// direct DB edit) would otherwise still reach awg-quick's parser, where a
-// newline lets a later line re-open a new section and smuggle in a hook
-// awg-quick executes as root. This is the render-time backstop; it
-// silently drops the offending bytes rather than failing the whole config
-// build, matching how hOrDefault degrades a blank H value instead of
-// emitting an invalid line.
+// sanitizeConfigValue is the render-time backstop for ValidateConfigValue: a
+// row predating it (an upgrade, a restored backup, a direct DB edit) would
+// otherwise reach awg-quick's parser, where a newline re-opens a section and
+// smuggles in a hook it executes as root. Drops the bytes, never fails.
 func sanitizeConfigValue(v string) string {
 	return strings.Map(func(r rune) rune {
 		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {
@@ -657,9 +577,8 @@ func sanitizeConfigValue(v string) string {
 	}, v)
 }
 
-// writeObfuscation writes the AmneziaWG obfuscation parameters that must be
-// identical on both ends of a tunnel. Optional parameters are emitted only
-// when set, so blanking a field omits its feature from the rendered config.
+// writeObfuscation emits the parameters both ends of a tunnel must share.
+// Optional ones only when set, so blanking a field turns its feature off.
 func writeObfuscation(b *strings.Builder, o Obfuscation31) {
 	fmt.Fprintf(b, "Jc = %d\n", o.Jc)
 	fmt.Fprintf(b, "Jmin = %d\n", o.Jmin)
@@ -672,10 +591,10 @@ func writeObfuscation(b *strings.Builder, o Obfuscation31) {
 	if o.S4 > 0 {
 		fmt.Fprintf(b, "S4 = %d\n", o.S4)
 	}
-	fmt.Fprintf(b, "H1 = %s\n", hOrDefault(o.H1, "1"))
-	fmt.Fprintf(b, "H2 = %s\n", hOrDefault(o.H2, "2"))
-	fmt.Fprintf(b, "H3 = %s\n", hOrDefault(o.H3, "3"))
-	fmt.Fprintf(b, "H4 = %s\n", hOrDefault(o.H4, "4"))
+	fmt.Fprintf(b, "H1 = %s\n", sanitizeConfigValue(hOrDefault(o.H1, "1")))
+	fmt.Fprintf(b, "H2 = %s\n", sanitizeConfigValue(hOrDefault(o.H2, "2")))
+	fmt.Fprintf(b, "H3 = %s\n", sanitizeConfigValue(hOrDefault(o.H3, "3")))
+	fmt.Fprintf(b, "H4 = %s\n", sanitizeConfigValue(hOrDefault(o.H4, "4")))
 	for i, v := range []string{o.I1, o.I2, o.I3, o.I4, o.I5} {
 		if v != "" {
 			fmt.Fprintf(b, "I%d = %s\n", i+1, sanitizeConfigValue(v))
@@ -703,8 +622,18 @@ func writeObfuscation(b *strings.Builder, o Obfuscation31) {
 	}
 }
 
-// hOrDefault returns def when v is blank, guarding against an empty H value
-// (which would emit an invalid "H1 = " line) on legacy/partial records.
+// safeInterfaceName is the render-time backstop for ValidateInterfaceName:
+// PostUp/PostDown run as root, where stripping control characters alone would
+// still let a shell metacharacter through.
+func safeInterfaceName(name string) string {
+	if ValidateInterfaceName(name) != nil {
+		return ""
+	}
+	return name
+}
+
+// hOrDefault returns def when v is blank, so a legacy record cannot emit an
+// invalid "H1 = " line.
 func hOrDefault(v, def string) string {
 	if strings.TrimSpace(v) == "" {
 		return def
@@ -712,22 +641,9 @@ func hOrDefault(v, def string) string {
 	return v
 }
 
-// defaultPostUpDown returns NAT + forwarding rules: MASQUERADE the tunnel
-// subnet out the external interface, accept forwarded traffic in both
-// directions, and — when the instance has IPv6 enabled — the IPv6-forward
-// rules, proxy_ndp sysctl, and one `ip -6 neigh add proxy` entry per enabled
-// peer with an IPv6 address, so upstream routers see each client's IPv6 as
-// directly reachable on the LAN without NAT66. Also emits DNAT+FORWARD rules
-// for each enabled peer with a non-empty ForwardedPorts spec, and — only
-// when the instance has RouteThroughXray enabled — a mangle-table TPROXY
-// rule redirecting every peer's traffic into this instance's own Xray
-// bridge (see EgressPortForInbound), plus the one-time policy route TPROXY
-// needs to deliver it there. RouteThroughXray is off by default: a plain
-// AmneziaWG tunnel has no Xray dependency at all unless the admin opts in.
-// When it is on, it is entirely up to the admin's own Xray Routing rules
-// (targeting this inbound's own tag, which injectAmneziawgEgress reuses for
-// the bridge) whether that traffic ever actually goes anywhere beyond
-// Xray's default routing.
+// defaultPostUpDown returns the interface's NAT and forwarding rules, plus the
+// per-peer NDP-proxy entries (IPv6Enabled), DNAT rules (ForwardedPorts) and
+// TPROXY rules into its own Xray bridge (RouteThroughXray, off by default).
 func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	iface := inst.InterfaceName
 	up := []string{
@@ -744,7 +660,7 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	}
 
 	if inst.IPv6Enabled {
-		ext6 := inst.IPv6ExternalInterface
+		ext6 := safeInterfaceName(inst.IPv6ExternalInterface)
 		if ext6 == "" {
 			ext6 = ext
 		}
@@ -782,8 +698,10 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 		down = append(down, portForwardLines("-D", ext, iface, clientIP, p.Email, p.ForwardedPorts)...)
 	}
 
-	if inst.RouteThroughXray {
-		egressPort := EgressPortForInbound(inst.Id)
+	// A bridge Xray itself will refuse to open (see EgressPortForInbound) must
+	// not get TPROXY rules either, or every peer's traffic is redirected into
+	// a socket that never exists.
+	if egressPort, portOK := EgressPortForInbound(inst.Id); inst.RouteThroughXray && portOK {
 		anyPeerTproxied := false
 		for _, p := range inst.Peers {
 			clientIP := FirstIPv4(p.AllowedIPs)
@@ -795,43 +713,16 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 			anyPeerTproxied = true
 		}
 		if anyPeerTproxied {
-			// The fwmark->table->local-everywhere policy route is what lets TPROXY
-			// deliver a peer's packets to this instance's own Xray bridge even
-			// though their destination is never one of this host's own addresses.
-			// It is system-wide, not interface-specific, so — like the
-			// IPv6-forwarding sysctl above — it is added idempotently here and
-			// never torn down in PostDown; a second AmneziaWG instance must find
-			// it already in place, not race to remove what the first still needs.
-			// "ip rule add" is not itself idempotent (a second call inserts a
-			// duplicate rather than deduplicating), and hostRulesFingerprint keys
-			// on every peer's presence/IP when RouteThroughXray is on, so PostUp
-			// re-runs on any client add/remove/re-IP — without the existence
-			// check below, "ip rule show" would accumulate one duplicate entry
-			// per bounce forever.
-			//
-			// TPROXY never rewrites the packet's own destination address — only
-			// the routing decision changes, via the fwmark+table trick above — so
-			// by the time this packet reaches the host's own INPUT chain, its
-			// destination still looks like some remote address (e.g. 8.8.8.8),
-			// never this host's own. A default-deny firewall whose INPUT chain
-			// sanity-checks "is this destination actually local" (UFW's
-			// ufw-not-local, using addrtype --dst-type LOCAL, is exactly this) can
-			// never see it as legitimate and silently drops it before Xray's
-			// socket ever sees a single byte — TPROXY's own counters keep
-			// incrementing the whole time, making this look like a Xray-side bug
-			// even though Xray never gets the chance to fail. The fix is the same
-			// shape as the policy route above: an idempotent, never-torn-down,
-			// system-wide accept for this fwmark, inserted at the very front of
-			// the base INPUT chain so it runs before any such sanity check,
-			// regardless of which firewall manager (ufw, firewalld, bare
-			// iptables) owns the rest of that chain.
+			// Both rules below are system-wide, idempotent and never torn down: a
+			// second instance must find them in place, not race to remove what the
+			// first still needs. The policy route is what lets TPROXY deliver a
+			// packet whose destination is never one of this host's addresses; the
+			// INPUT accept is what stops a default-deny firewall's "is this
+			// destination local" check (UFW's ufw-not-local) from silently
+			// dropping it before Xray's socket ever sees a byte.
 			up = append(up,
-				// grep -c (not -q): -q exits as soon as it matches, so "ip rule
-				// list" can take SIGPIPE; under `set -o pipefail` the pipeline then
-				// reports 141 even though the rule WAS found, and "ip rule add"
-				// below runs anyway -- reintroducing the exact duplicate-rule
-				// accumulation this existence check exists to prevent. -c reads
-				// every line to completion and still exits 1 on no match.
+				// grep -c, not -q: -q exits early, so "ip rule list" takes SIGPIPE
+				// and pipefail reports 141 even on a match, adding a duplicate rule.
 				fmt.Sprintf("ip rule list | grep -c 'fwmark %#x lookup %d' >/dev/null || ip rule add fwmark %#x lookup %d", EgressFwmark, EgressTable, EgressFwmark, EgressTable),
 				fmt.Sprintf("ip route replace local 0.0.0.0/0 dev lo table %d", EgressTable),
 				fmt.Sprintf("iptables -C INPUT -m mark --mark %#x -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -m mark --mark %#x -j ACCEPT", EgressFwmark, EgressFwmark),
@@ -843,16 +734,9 @@ func defaultPostUpDown(inst Instance, ext string) (postUp, postDown string) {
 	return strings.Join(up, "; "), strings.Join(appendOrTrue(down), "; ")
 }
 
-// appendOrTrue suffixes every command with " || true", making the whole
-// PostDown chain best-effort. wg-quick/awg-quick joins hook commands with
-// "; " and runs the result under `set -e -o pipefail`, so the first non-zero
-// command aborts everything after it. On teardown that matters: if
-// something has already flushed the filter table out from under the
-// interface (a ufw/firewalld reload, fail2ban rebuilding its chains), the
-// first "-D" fails and every command after it — including the nat-table DNAT
-// deletes a flush does NOT remove — is skipped, and the next PostUp re-adds
-// them, accumulating one set per bounce. PostUp is left alone: a real setup
-// failure there should still surface, not be silently swallowed.
+// appendOrTrue makes PostDown best-effort: awg-quick runs the joined hooks under
+// `set -e`, so one failed "-D" (a ufw reload flushed the table already) would
+// skip every later delete and leak a rule set per bounce. PostUp is left strict.
 func appendOrTrue(cmds []string) []string {
 	out := make([]string, len(cmds))
 	for i, c := range cmds {
@@ -861,8 +745,7 @@ func appendOrTrue(cmds []string) []string {
 	return out
 }
 
-// firstAddress returns the first configured interface address, used as the
-// NAT source subnet for PostUp/PostDown.
+// firstAddress returns the NAT source subnet for PostUp/PostDown.
 func firstAddress(addresses []string) string {
 	if len(addresses) == 0 {
 		return ""
@@ -870,8 +753,8 @@ func firstAddress(addresses []string) string {
 	return addresses[0]
 }
 
-// firstIPv6 returns the first IPv6 address (mask stripped) among allowedIPs,
-// or "" if none — used to build one NDP proxy PostUp/PostDown entry per peer.
+// firstIPv6 returns the first IPv6 address among allowedIPs, mask stripped --
+// one NDP proxy PostUp/PostDown entry per peer is built from it.
 func firstIPv6(allowedIPs []string) string {
 	for _, a := range allowedIPs {
 		if prefix, err := netip.ParsePrefix(a); err == nil {
@@ -887,11 +770,8 @@ func firstIPv6(allowedIPs []string) string {
 	return ""
 }
 
-// FirstIPv4 returns the first IPv4 address (mask stripped) among allowedIPs,
-// or "" if none — used as the DNAT target for a peer's forwarded ports and,
-// by internal/web/service's injectAmneziawgEgress, as the source-IP match for
-// a routed peer's Xray rule. Exported so both packages derive a peer's
-// tunnel IPv4 address the exact same way.
+// FirstIPv4 returns the first IPv4 address among allowedIPs, mask stripped.
+// Exported so internal/web/service derives a peer's tunnel address identically.
 func FirstIPv4(allowedIPs []string) string {
 	for _, a := range allowedIPs {
 		if prefix, err := netip.ParsePrefix(a); err == nil {
@@ -908,8 +788,7 @@ func FirstIPv4(allowedIPs []string) string {
 }
 
 // detectDefaultInterface returns the first non-loopback, non-tunnel, UP
-// interface that has a routable IPv4 address. Falls back to "eth0" only if
-// nothing is found.
+// interface with a routable IPv4 address, falling back to "eth0".
 func detectDefaultInterface() string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -961,9 +840,8 @@ func removeConfigFile(interfaceName string) {
 	}
 }
 
-// awgCommandTimeout bounds every short-lived awg/awg-quick invocation so a
-// hung command (e.g. a stuck kernel module operation) can't block the
-// reconcile job indefinitely.
+// awgCommandTimeout bounds every awg/awg-quick call, so a stuck kernel module
+// operation can't block the reconcile job indefinitely.
 const awgCommandTimeout = 30 * time.Second
 
 // interfaceUp brings an AmneziaWG interface up via awg-quick.
@@ -996,9 +874,8 @@ func isInterfaceUp(interfaceName string) bool {
 	return exec.CommandContext(ctx, "awg", "show", interfaceName).Run() == nil
 }
 
-// syncConfig applies a peers-only config change without dropping existing
-// connections on other peers, falling back to a full restart when the live
-// interface won't accept the diff (or isn't up yet).
+// syncConfig applies a peers-only change without dropping other peers'
+// connections, falling back to a restart when the interface won't take it.
 func syncConfig(inst Instance) error {
 	if !isInterfaceUp(inst.InterfaceName) {
 		return interfaceUp(inst.InterfaceName)
@@ -1037,11 +914,8 @@ type peerStat struct {
 	tx              int64 // bytes sent to the peer (its download)
 }
 
-// getPeerStats parses `awg show <iface> dump`. The dump format is
-// tab-separated: line 1 is the interface (private-key, public-key,
-// listen-port, fwmark); each following line is one peer (public-key,
-// preshared-key, endpoint, allowed-ips, latest-handshake, transfer-rx,
-// transfer-tx, persistent-keepalive).
+// getPeerStats runs `awg show <iface> dump`: line 1 is the interface, each
+// later line one peer (key, psk, endpoint, ips, handshake, rx, tx, keepalive).
 func getPeerStats(interfaceName string) ([]peerStat, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
 	defer cancel()
@@ -1084,9 +958,8 @@ var (
 	toolsVersionOK   bool
 )
 
-// awgToolsVersion returns the installed amneziawg-tools version, parsed once
-// per process from `awg --version`. ok is false when awg is missing or its
-// output carries no recognizable version.
+// awgToolsVersion parses the installed amneziawg-tools version once per
+// process; ok is false when awg is missing or its output has no version.
 func awgToolsVersion() (major, minor int, ok bool) {
 	toolsVersionOnce.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), awgCommandTimeout)
@@ -1117,7 +990,7 @@ func parseAwgVersion(out string) (major, minor int, ok bool) {
 	return major, minor, true
 }
 
-// Uses31Features reports whether the set carries any AmneziaWG 3.x-only
+// Uses31Features reports whether the set carries an AmneziaWG 3.x-only
 // parameter that pre-3.1 awg tools reject as an unknown config key.
 func (o Obfuscation31) Uses31Features() bool {
 	return o.HeaderProtectionKey != "" || o.ContentPaddingAddition != "" ||
@@ -1126,10 +999,9 @@ func (o Obfuscation31) Uses31Features() bool {
 		o.RandomTrailers || o.DisableCookies
 }
 
-// warnIfOldToolsLocked logs, once per process, that the installed awg tools
-// predate the 3.1 parameters an inbound is about to use. The apply still
-// proceeds — awg-quick itself reports the definitive failure. Caller must
-// hold m.mu.
+// warnIfOldToolsLocked logs once per process that the installed awg tools
+// predate the 3.1 parameters in use; the apply still proceeds, since awg-quick
+// itself reports the definitive failure. Caller must hold m.mu.
 func (m *Manager) warnIfOldToolsLocked(inst Instance) {
 	if m.warnedOldTools {
 		return

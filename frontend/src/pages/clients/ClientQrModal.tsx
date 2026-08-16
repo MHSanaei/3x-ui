@@ -21,6 +21,7 @@ interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
   inboundsById: Record<number, InboundOption>;
+  tunnelAllowedIPs?: Record<number, string>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -36,6 +37,7 @@ export default function ClientQrModal({
   open,
   client,
   inboundsById,
+  tunnelAllowedIPs,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -63,8 +65,9 @@ export default function ClientQrModal({
   const awgInbound = useMemo(() => findAmneziaWGInbound(client, inboundsById), [client, inboundsById]);
   const awgConfigText = useMemo(() => {
     if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
-    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '');
-  }, [client, awgInbound, subSettings?.publicHost]);
+    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
+    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '', address);
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
 
   const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
 

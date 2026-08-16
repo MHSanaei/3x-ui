@@ -226,3 +226,46 @@ func TestInboundAmneziaWGServer_MissingServerBlockReturnsNil(t *testing.T) {
 		t.Fatalf("settings with no server block must return nil, got %+v", got)
 	}
 }
+
+// A newline inside a client's allowedIPs used to reach the rendered .conf,
+// where a following "[Interface]\nPostUp = ..." is executed as root by
+// awg-quick on the next apply.
+func TestNormalizeAmneziaWGSettings_RejectsInjectedClientAllowedIPs(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+	inbound := &model.Inbound{
+		Protocol: model.AmneziaWG,
+		Port:     51820,
+		Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24},` +
+			`"clients":[{"email":"a@x","enable":true,"publicKey":"pk",` +
+			`"allowedIPs":["10.8.1.2/32\n[Interface]\nPostUp = touch /tmp/pwned"]}]}`,
+	}
+	err := svc.normalizeAmneziaWGSettings(inbound)
+	if err == nil {
+		t.Fatalf("an allowedIPs entry carrying a config-injection payload must be rejected; settings became:\n%s", inbound.Settings)
+	}
+	if !strings.Contains(err.Error(), "allowedIPs") {
+		t.Errorf("error should name the offending field, got %q", err)
+	}
+}
+
+func TestNormalizeAmneziaWGSettings_CanonicalizesClientAllowedIPs(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+	inbound := &model.Inbound{
+		Protocol: model.AmneziaWG,
+		Port:     51820,
+		Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24},` +
+			`"clients":[{"email":"a@x","enable":true,"publicKey":"pk","allowedIPs":[" 10.8.1.2 "]}]}`,
+	}
+	if err := svc.normalizeAmneziaWGSettings(inbound); err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		t.Fatalf("re-parse normalized settings: %v", err)
+	}
+	if len(parsed.Clients) != 1 || len(parsed.Clients[0].AllowedIPs) != 1 || parsed.Clients[0].AllowedIPs[0] != "10.8.1.2/32" {
+		t.Fatalf("allowedIPs = %v, want [\"10.8.1.2/32\"]", parsed.Clients)
+	}
+}

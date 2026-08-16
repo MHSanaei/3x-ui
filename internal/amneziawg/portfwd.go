@@ -31,13 +31,9 @@ func (p portSpec) dnatTarget(clientIP string) string {
 	return fmt.Sprintf("%s:%d", clientIP, p.start)
 }
 
-// parseForwardedPorts splits a user-supplied string ("80, 443; 8000-8100")
-// into validated port specs. Tokens are separated by comma or semicolon;
-// whitespace is ignored. Invalid tokens are silently dropped — the input is
-// a free-form text field and validation is best-effort by design. Every
-// returned spec's bounds are integers in [1, 65535], so callers can safely
-// embed them in a shell-executed PostUp/PostDown line without further
-// escaping.
+// parseForwardedPorts splits a free-form "80, 443; 8000-8100" into specs,
+// silently dropping invalid tokens. Every returned bound is an integer in
+// [1, 65535], so callers may embed them in a shell-executed line unescaped.
 func parseForwardedPorts(input string) []portSpec {
 	if input == "" {
 		return nil
@@ -90,14 +86,9 @@ func parsePortNumber(s string) (int, bool) {
 	return n, true
 }
 
-// ForwardedPortsInclude reports whether port is covered by any spec in a raw
-// ForwardedPorts string (a single port or an inclusive range). For callers
-// outside this package that need to check a spec against something other
-// than rendering it into iptables rules -- e.g. save-time validation that a
-// client isn't about to hijack the panel's own port or another inbound's
-// port (portForwardLines has no -d restriction, so a forwarded port that
-// collides with one already in use on the host silently redirects it to the
-// tunnel client instead).
+// ForwardedPortsInclude reports whether port is covered by a raw
+// ForwardedPorts string. portForwardLines has no -d restriction, so save-time
+// callers use this to reject a spec that would hijack a port already in use.
 func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	for _, spec := range parseForwardedPorts(forwardedPorts) {
 		if port >= spec.start && port <= spec.end {
@@ -107,12 +98,8 @@ func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	return false
 }
 
-// portForwardComment returns a short, shell-safe iptables comment tag for one
-// peer's forwarded-port rules, so PostDown removes exactly what PostUp added
-// regardless of ordering. Derived from a hash of the peer's email rather than
-// the email itself: email is admin/API-supplied free text that ends up
-// embedded in a shell-executed PostUp/PostDown line, and a hash can never
-// carry a shell metacharacter through.
+// portForwardComment tags one peer's forwarded-port rules so PostDown removes
+// exactly what PostUp added. Hashed for the same reason routeEgressComment is.
 func portForwardComment(email string) string {
 	if email == "" {
 		return "awg-fwd"
@@ -122,11 +109,9 @@ func portForwardComment(email string) string {
 	return fmt.Sprintf("awg-fwd-%08x", h.Sum32())
 }
 
-// portForwardLines returns the PostUp ("-A") or PostDown ("-D") iptables
-// lines for one peer's forwarded-ports spec: a DNAT rule (tcp and udp) per
-// spec in the nat table, plus a matching FORWARD accept rule. UDP is
-// included unconditionally since many common uses (games, P2P) need it.
-// Returns nil when forwardedPorts has no valid spec or clientIP is empty.
+// portForwardLines returns the PostUp ("-A") or PostDown ("-D") DNAT + FORWARD
+// rules for one peer's forwarded ports, tcp and udp alike (games and P2P need
+// UDP). Returns nil when the spec has no valid entry or clientIP is empty.
 func portForwardLines(action, extIface, tunIface, clientIP, email, forwardedPorts string) []string {
 	specs := parseForwardedPorts(forwardedPorts)
 	if len(specs) == 0 {

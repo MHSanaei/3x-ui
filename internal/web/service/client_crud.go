@@ -658,21 +658,11 @@ func (s *ClientService) hasTunnelAttachment(inboundSvc *InboundService, inboundI
 	return false
 }
 
-// addressesFitAmneziaWGInbound reports whether every entry in addrs parses
-// as a host address inside ib's own configured subnet(s). Only AmneziaWG is
-// checked -- unlike WireGuard (allocateWireguardAddress can widen out to a
-// /16 fallback pool for it), an AmneziaWG peer's address must fall inside
-// the kernel interface's own configured Address subnet to be routable at
-// all (see allocateWireguardAddress's allowWidening doc comment), so
-// inheriting an address from an unrelated subnet isn't just cosmetically
-// wrong for AmneziaWG, it produces a peer that can never actually connect.
-// Real case this guards against: an identity's stored address came from
-// WireGuard's own fallback subnet (10.0.0.0/24, used when that inbound has
-// no other clients to infer a base from) and gets attached to a second,
-// AmneziaWG inbound whose configured subnet is something else entirely
-// (e.g. 10.8.1.0/24) -- addressesFitAmneziaWGInbound catches that mismatch
-// so Attach can allocate fresh for this inbound instead of silently
-// persisting an unroutable peer.
+// addressesFitAmneziaWGInbound reports whether every entry in addrs falls
+// inside ib's own configured subnet(s). AmneziaWG only: its kernel interface
+// Address is exactly that subnet, so an address inherited from elsewhere (an
+// identity attached to a WireGuard inbound first, say) produces a peer that
+// can never connect -- Attach allocates fresh instead.
 func addressesFitAmneziaWGInbound(addrs []string, ib *model.Inbound) bool {
 	if ib.Protocol != model.AmneziaWG || len(addrs) == 0 {
 		return true

@@ -578,7 +578,8 @@ func TestInjectAmneziawgEgress_CreatesBridgeTaggedWithInboundsOwnTag(t *testing.
 		t.Fatalf("expected the bridge to be appended, got %d inbounds", len(cfg.InboundConfigs))
 	}
 	ib := cfg.InboundConfigs[1]
-	if ib.Tag != "awg-7" || ib.Protocol != "dokodemo-door" || ib.Port != amneziawg.EgressPortForInbound(7) {
+	wantPort, _ := amneziawg.EgressPortForInbound(7)
+	if ib.Tag != "awg-7" || ib.Protocol != "dokodemo-door" || ib.Port != wantPort {
 		t.Fatalf("bridge must reuse the inbound's own tag (so it's already selectable in the stock Routing page) and this instance's own derived port, got %+v", ib)
 	}
 	if string(ib.Listen) != `"127.0.0.1"` {
@@ -617,7 +618,9 @@ func TestInjectAmneziawgEgress_MultipleInboundsEachGetOwnBridge(t *testing.T) {
 	for _, ib := range cfg.InboundConfigs[1:] {
 		byTag[ib.Tag] = ib.Port
 	}
-	if byTag["awg-1"] != amneziawg.EgressPortForInbound(1) || byTag["awg-2"] != amneziawg.EgressPortForInbound(2) {
+	port1, _ := amneziawg.EgressPortForInbound(1)
+	port2, _ := amneziawg.EgressPortForInbound(2)
+	if byTag["awg-1"] != port1 || byTag["awg-2"] != port2 {
 		t.Fatalf("each inbound must get its own tag and its own derived port, got %+v", byTag)
 	}
 }

@@ -101,7 +101,7 @@ func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 		}
 	}
 	if err := rt.UpdateInbound(context.Background(), inbound, payload); err != nil {
-		logger.Debug("amneziawg: immediate apply failed for inbound", inboundId, ":", err)
+		logger.Debugf("amneziawg: immediate apply failed for inbound %d: %v", inboundId, err)
 	}
 }
 
@@ -241,7 +241,8 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 	if err != nil {
 		return err
 	}
-	for _, c := range parsed.Clients {
+	for i := range parsed.Clients {
+		c := &parsed.Clients[i]
 		if hit := s.checkForwardedPortsConflict(portCtx, c.ForwardedPorts); hit != "" {
 			return fmt.Errorf("amneziawg: client %q forwardedPorts collides with %s", c.Email, hit)
 		}
@@ -254,6 +255,13 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		if err := amneziawg.ValidateConfigValue("preSharedKey", c.PreSharedKey); err != nil {
 			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
 		}
+		// AllowedIPs lands verbatim in a rendered [Peer] block, so a newline here
+		// re-opens an [Interface] section whose PostUp awg-quick runs as root.
+		normalized, err := normalizeWireguardAllowedIPs(c.AllowedIPs)
+		if err != nil {
+			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
+		}
+		c.AllowedIPs = normalized
 	}
 
 	bs, err := json.MarshalIndent(parsed, "", "  ")

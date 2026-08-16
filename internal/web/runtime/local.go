@@ -142,21 +142,11 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 	return mtproto.GetManager().Ensure(inst)
 }
 
-// updateAmneziaWGInbound mirrors updateMtprotoInbound: it skips the
-// Remove+Ensure sequence a plain Del+Add would force so that, on an
-// AmneziaWG-to-AmneziaWG edit, Manager.Ensure's own fingerprint comparison
-// can pick a peers-only `syncconf` instead of always bouncing the interface
-// (see internal/amneziawg.Manager.ensureLocked).
-//
-// Every exit path below only touches the kernel interface via
-// amneziawg.GetManager() -- none of it rebuilds Xray's own config, which is
-// what actually creates/removes injectAmneziawgEgress's TPROXY bridge. A
-// peer edit that changes whether this inbound has a qualifying peer at all
-// (its first peer added, or its last one removed), or that toggles
-// RouteThroughXray, must still get that bridge created or torn down, so flag
-// Xray for a resync unconditionally here rather than trying to enumerate
-// which of the branches below need it. This was a real, confirmed bug: the
-// bridge silently never appeared until a full panel restart.
+// updateAmneziaWGInbound mirrors updateMtprotoInbound, skipping the Del+Add a
+// plain update would force so Ensure can still pick a peers-only `syncconf`.
+// Nothing below rebuilds Xray's config, which is what creates or removes the
+// injectAmneziawgEgress bridge, so Xray is flagged for a resync
+// unconditionally -- otherwise the bridge never appears until a panel restart.
 func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if l.deps.SetNeedRestart != nil {
 		l.deps.SetNeedRestart()

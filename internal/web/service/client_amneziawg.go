@@ -33,21 +33,11 @@ func defaultAmneziaWGSubnetBases(settingsJSON string) (v4Base, v6Base string, er
 	return v4Base, v6Base, nil
 }
 
-// defaultAmneziaWGClients fills in blank AmneziaWG credentials for newly
-// added clients: a generated keypair when none was provided, a derived
-// public key when only a private key was given, and a unique tunnel address
-// allocated from the inbound's own configured subnet. It mutates both the
-// typed clients and the parallel raw client maps that get persisted into the
-// inbound settings. Existing values are never overwritten, so editing a
-// client never rotates its keys. Mirrors defaultWireguardClients, reusing
-// its IP allocation and validation helpers — the only real difference is
-// where the allocation base comes from.
-//
-// crossInboundUsed maps AllowedIPs already claimed by clients on every OTHER
-// WireGuard/AmneziaWG inbound on this panel to a human-readable description
-// of which inbound holds it (see otherTunnelAllowedIPs) — it only narrows
-// which addresses are free to hand out or accept, and lets a manual-entry
-// collision name the other inbound instead of just the address.
+// defaultAmneziaWGClients fills in blank credentials and a free tunnel address
+// for new clients, mutating both the typed clients and the parallel raw maps
+// persisted into the settings. Existing values are never overwritten, so an
+// edit never rotates keys. Mirrors defaultWireguardClients; crossInboundUsed
+// (see otherTunnelAllowedIPs) narrows which addresses are still free.
 func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	v4Base, v6Base, err := defaultAmneziaWGSubnetBases(settingsJSON)
 	if err != nil {

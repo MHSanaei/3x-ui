@@ -749,7 +749,7 @@ func TestCheckPortConflict_AmneziawgEgressBridgeBlockedLocal(t *testing.T) {
 	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
-	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+	bridgePort, _ := amneziawg.EgressPortForInbound(awgInbound.Id)
 
 	svc := &InboundService{}
 	candidate := &model.Inbound{
@@ -781,7 +781,7 @@ func TestCheckPortConflict_AmneziawgEgressBridgeAllowedOnNode(t *testing.T) {
 	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
-	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+	bridgePort, _ := amneziawg.EgressPortForInbound(awgInbound.Id)
 
 	svc := &InboundService{}
 	candidate := &model.Inbound{
@@ -805,7 +805,7 @@ func TestCheckPortConflict_AmneziawgEgressBridgeIgnoredWhenDisabled(t *testing.T
 	if err := database.GetDB().Create(awg).Error; err != nil {
 		t.Fatalf("seed disabled awg inbound: %v", err)
 	}
-	bridgePort := amneziawg.EgressPortForInbound(awg.Id)
+	bridgePort, _ := amneziawg.EgressPortForInbound(awg.Id)
 
 	svc := &InboundService{}
 	candidate := &model.Inbound{
@@ -831,7 +831,7 @@ func TestCheckPortConflict_AmneziawgEgressBridgeIgnoredWhenRouteThroughXrayOff(t
 	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
 		t.Fatalf("read seeded row: %v", err)
 	}
-	bridgePort := amneziawg.EgressPortForInbound(awgInbound.Id)
+	bridgePort, _ := amneziawg.EgressPortForInbound(awgInbound.Id)
 
 	svc := &InboundService{}
 	candidate := &model.Inbound{
