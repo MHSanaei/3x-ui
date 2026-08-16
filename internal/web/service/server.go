@@ -90,6 +90,13 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
+	// AmneziaWG gates the overview's AmneziaWG log view: Configured stays true
+	// while an inbound exists but its interface is down, which is exactly when
+	// that view's event lines are worth reading.
+	AmneziaWG struct {
+		Configured bool `json:"configured"`
+		Running    bool `json:"running"`
+	} `json:"amneziawg"`
 	PanelVersion string    `json:"panelVersion"`
 	PanelGuid    string    `json:"panelGuid"`
 	Uptime       uint64    `json:"uptime"`
@@ -612,6 +619,16 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+
+	var amneziawgCount int64
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Count(&amneziawgCount).Error; err != nil {
+		logger.Warning("count amneziawg inbounds failed:", err)
+	}
+	status.AmneziaWG.Configured = amneziawgCount > 0
+	status.AmneziaWG.Running = amneziawg.GetManager().HasRunning()
+
 	status.PanelVersion = config.GetPanelVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
 		status.PanelGuid = guid
@@ -1193,6 +1210,58 @@ func amneziawgEmailIndex(inbounds []*model.Inbound) map[string]string {
 		}
 	}
 	return index
+}
+
+// AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live
+// per-peer activity of every running interface, plus the panel's own recent
+// AmneziaWG lifecycle log lines (interface up/down, awg-quick failures) that
+// explain a peer being absent from Peers at all.
+type AmneziaWGLogs struct {
+	Peers   []amneziawg.PeerActivity `json:"peers"`
+	Events  []string                 `json:"events"`
+	Running bool                     `json:"running"`
+}
+
+// amneziawgEventMarker selects the panel's own AmneziaWG log lines: every
+// logger call in internal/amneziawg and its jobs prefixes its message with it.
+const amneziawgEventMarker = "amneziawg"
+
+// GetAmneziaWGLogs returns at most count peer rows and count event lines,
+// optionally narrowed to rows whose text contains filter (case-insensitive),
+// mirroring GetXrayLogs' own count+filter contract.
+func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWGLogs {
+	limit, err := strconv.Atoi(count)
+	if err != nil || limit < 1 || limit > 10000 {
+		limit = 100
+	}
+	needle := strings.ToLower(strings.TrimSpace(filter))
+
+	manager := amneziawg.GetManager()
+	logs := &AmneziaWGLogs{Peers: []amneziawg.PeerActivity{}, Events: []string{}, Running: manager.HasRunning()}
+
+	for _, peer := range manager.Activity() {
+		if len(logs.Peers) >= limit {
+			break
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(peer.Email+" "+peer.Tag+" "+peer.Interface+" "+peer.Endpoint+" "+peer.AllowedIPs), needle) {
+			continue
+		}
+		logs.Peers = append(logs.Peers, peer)
+	}
+
+	for _, line := range logger.GetLogs(10000, "debug") {
+		if len(logs.Events) >= limit {
+			break
+		}
+		if !strings.Contains(strings.ToLower(line), amneziawgEventMarker) {
+			continue
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(line), needle) {
+			continue
+		}
+		logs.Events = append(logs.Events, line)
+	}
+	return logs
 }
 
 func (s *ServerService) GetXrayLogs(

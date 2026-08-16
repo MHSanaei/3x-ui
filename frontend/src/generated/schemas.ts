@@ -2994,7 +2994,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "type": "object"
   },
   "ServerSettings": {
-    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
+    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings JSON.\nThe listen port lives on the inbound row itself, like every other protocol.",
     "properties": {
       "contentPaddingAddition": {
         "type": "string"
@@ -3037,7 +3037,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "ipv6Enabled": {
-        "description": "IPv6Enabled turns on native IPv6 for clients: an IPv6 host address is\nallocated from IPv6Subnet alongside each client's IPv4 one, and the\nserver proxies NDP for each enabled client's address so upstream\nrouters see it as directly reachable (no NAT66). IPv6ExternalInterface\noverrides ExternalInterface for the NDP-proxy PostUp/PostDown entries\nspecifically; empty reuses ExternalInterface.",
+        "description": "IPv6Enabled allocates each client an IPv6 host address from IPv6Subnet and\nproxies NDP for it, so upstream routers see it as directly reachable\n(no NAT66). IPv6ExternalInterface overrides ExternalInterface for those.",
         "type": "boolean"
       },
       "ipv6ExternalInterface": {
@@ -3047,7 +3047,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "jc": {
-        "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
+        "description": "Obfuscation31's fields repeated flat, not embedded: encoding/json would\ninline an embedded struct but tools/openapigen emits a nested object,\nwhich would silently diverge from the real wire JSON.",
         "type": "integer"
       },
       "jmax": {
@@ -3066,7 +3066,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "primaryDns": {
-        "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
+        "description": "PrimaryDNS/SecondaryDNS seed downloadable client configs only; the\nserver's own interface never sets a DNS line.",
         "type": "string"
       },
       "privateKey": {

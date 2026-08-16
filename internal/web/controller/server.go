@@ -74,6 +74,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
+	g.POST("/amneziawglogs/:count", a.getAmneziaWGLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
@@ -317,6 +318,13 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 		freedoms,
 		blackholes,
 	)
+	jsonObj(c, logs, nil)
+}
+
+// getAmneziaWGLogs retrieves the live AmneziaWG peer activity and the panel's
+// own AmneziaWG event lines, optionally narrowed by a free-text filter.
+func (a *ServerController) getAmneziaWGLogs(c *gin.Context) {
+	logs := a.serverService.GetAmneziaWGLogs(c.Param("count"), c.PostForm("filter"))
 	jsonObj(c, logs, nil)
 }
 

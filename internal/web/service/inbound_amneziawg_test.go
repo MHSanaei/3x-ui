@@ -6,9 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/op/go-logging"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
 func TestCheckForwardedPortsConflict_EmptySpecNoConflict(t *testing.T) {
@@ -267,5 +270,36 @@ func TestNormalizeAmneziaWGSettings_CanonicalizesClientAllowedIPs(t *testing.T) 
 	}
 	if len(parsed.Clients) != 1 || len(parsed.Clients[0].AllowedIPs) != 1 || parsed.Clients[0].AllowedIPs[0] != "10.8.1.2/32" {
 		t.Fatalf("allowedIPs = %v, want [\"10.8.1.2/32\"]", parsed.Clients)
+	}
+}
+
+func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
+	logger.InitLogger(logging.DEBUG)
+	logger.Info("amneziawg: started interface awg1 for inbound 1")
+	logger.Info("xray: unrelated line that must never show up here")
+	logger.Warning("amneziawg: awg-quick up awg2 failed")
+
+	svc := &ServerService{}
+	logs := svc.GetAmneziaWGLogs("not-a-number", "")
+	if logs == nil {
+		t.Fatal("GetAmneziaWGLogs must never return nil")
+	}
+	for _, line := range logs.Events {
+		if !strings.Contains(strings.ToLower(line), "amneziawg") {
+			t.Fatalf("non-AmneziaWG line leaked into the event list: %q", line)
+		}
+	}
+	if len(logs.Events) < 2 {
+		t.Fatalf("both AmneziaWG lines should be present, got %v", logs.Events)
+	}
+
+	// count caps the event list, so an operator asking for 1 gets 1.
+	if one := svc.GetAmneziaWGLogs("1", ""); len(one.Events) != 1 {
+		t.Fatalf("count=1 must cap the event list, got %d", len(one.Events))
+	}
+	// filter narrows further, case-insensitively.
+	filtered := svc.GetAmneziaWGLogs("100", "AWG-QUICK")
+	if len(filtered.Events) != 1 || !strings.Contains(filtered.Events[0], "awg-quick") {
+		t.Fatalf("filter must narrow to the matching line, got %v", filtered.Events)
 	}
 }

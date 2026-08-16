@@ -3,6 +3,7 @@ package amneziawg
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -523,6 +524,90 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 	return out, online
 }
 
+// PeerActivity is one peer's live kernel-reported state, the counterpart of an
+// Xray access-log entry: a tunnel logs no requests, only handshakes and bytes.
+type PeerActivity struct {
+	Interface  string `json:"interface"`
+	Tag        string `json:"tag"`
+	InboundId  int    `json:"inboundId"`
+	Email      string `json:"email"`
+	Endpoint   string `json:"endpoint"`
+	AllowedIPs string `json:"allowedIPs"`
+	// Handshake is unix milliseconds, 0 when the peer has never connected.
+	Handshake int64 `json:"handshake"`
+	Up        int64 `json:"up"`
+	Down      int64 `json:"down"`
+	Online    bool  `json:"online"`
+}
+
+// Activity returns every managed interface's peers, newest handshake first. An
+// interface awg cannot be queried for is skipped, not reported as empty.
+func (m *Manager) Activity() []PeerActivity {
+	m.mu.Lock()
+	instances := make([]Instance, 0, len(m.ifaces))
+	for _, cur := range m.ifaces {
+		instances = append(instances, cur.inst)
+	}
+	m.mu.Unlock()
+
+	now := time.Now()
+	var out []PeerActivity
+	for _, inst := range instances {
+		stats, err := getPeerStats(inst.InterfaceName)
+		if err != nil {
+			continue
+		}
+		out = append(out, peerActivity(inst, stats, now)...)
+	}
+	slices.SortFunc(out, func(a, b PeerActivity) int {
+		if a.Handshake != b.Handshake {
+			return cmp.Compare(b.Handshake, a.Handshake)
+		}
+		return strings.Compare(a.Email, b.Email)
+	})
+	return out
+}
+
+// peerActivity joins desired peers (which carry the email) with the kernel's
+// dump rows (which carry the counters) on public key.
+func peerActivity(inst Instance, stats []peerStat, now time.Time) []PeerActivity {
+	byKey := make(map[string]peerStat, len(stats))
+	for _, st := range stats {
+		byKey[st.publicKey] = st
+	}
+	out := make([]PeerActivity, 0, len(inst.Peers))
+	for _, p := range inst.Peers {
+		st, ok := byKey[p.PublicKey]
+		if !ok {
+			continue
+		}
+		var handshakeMs int64
+		online := false
+		if st.latestHandshake > 0 {
+			at := time.Unix(st.latestHandshake, 0)
+			handshakeMs = at.UnixMilli()
+			online = now.Sub(at) < onlineWindow
+		}
+		allowed := st.allowedIPs
+		if allowed == "" {
+			allowed = strings.Join(p.AllowedIPs, ", ")
+		}
+		out = append(out, PeerActivity{
+			Interface:  inst.InterfaceName,
+			Tag:        inst.Tag,
+			InboundId:  inst.Id,
+			Email:      p.Email,
+			Endpoint:   st.endpoint,
+			AllowedIPs: allowed,
+			Handshake:  handshakeMs,
+			Up:         st.rx,
+			Down:       st.tx,
+			Online:     online,
+		})
+	}
+	return out
+}
+
 // --- config rendering ---
 
 // generateServerConfig builds an interface's awg-quick .conf: its [Interface]
@@ -909,6 +994,8 @@ func restartInterface(interfaceName string) error {
 // peerStat is one peer's runtime stats parsed from `awg show <iface> dump`.
 type peerStat struct {
 	publicKey       string
+	endpoint        string
+	allowedIPs      string
 	latestHandshake int64 // unix seconds
 	rx              int64 // bytes received from the peer (its upload)
 	tx              int64 // bytes sent to the peer (its download)
@@ -923,7 +1010,12 @@ func getPeerStats(interfaceName string) ([]peerStat, error) {
 	if err != nil {
 		return nil, fmt.Errorf("awg show %s dump failed: %w", interfaceName, err)
 	}
+	return parsePeerStatsDump(out), nil
+}
 
+// parsePeerStatsDump turns `awg show <iface> dump` output into peer stats,
+// skipping the leading interface line and any row too short to be a peer.
+func parsePeerStatsDump(out []byte) []peerStat {
 	var stats []peerStat
 	scanner := bufio.NewScanner(bytes.NewReader(out))
 	first := true
@@ -939,9 +1031,17 @@ func getPeerStats(interfaceName string) ([]peerStat, error) {
 		handshake, _ := strconv.ParseInt(fields[4], 10, 64)
 		rx, _ := strconv.ParseInt(fields[5], 10, 64)
 		tx, _ := strconv.ParseInt(fields[6], 10, 64)
-		stats = append(stats, peerStat{publicKey: fields[0], latestHandshake: handshake, rx: rx, tx: tx})
+		// awg prints "(none)" for a peer that has never connected.
+		endpoint := fields[2]
+		if endpoint == "(none)" {
+			endpoint = ""
+		}
+		stats = append(stats, peerStat{
+			publicKey: fields[0], endpoint: endpoint, allowedIPs: fields[3],
+			latestHandshake: handshake, rx: rx, tx: tx,
+		})
 	}
-	return stats, nil
+	return stats
 }
 
 // IsAwgInstalled reports whether the awg and awg-quick binaries are on PATH.

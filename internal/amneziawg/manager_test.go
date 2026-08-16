@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -724,5 +725,70 @@ func TestOrphanedInterfacesEmptyWantOrphansEverything(t *testing.T) {
 	got := orphanedInterfaces([]string{"awg5.conf"}, map[int]struct{}{})
 	if want := []string{"awg5"}; !slices.Equal(got, want) {
 		t.Errorf("orphanedInterfaces() = %v, want %v", got, want)
+	}
+}
+
+func TestGetPeerStatsParsesDumpRows(t *testing.T) {
+	// Interface line first, then one connected peer and one that has never
+	// handshaked (awg prints "(none)" for its endpoint).
+	dump := "privK\tpubK\t51820\toff\n" +
+		"pubA\tpskA\t203.0.113.9:1234\t10.8.1.2/32\t1735732800\t1024\t2048\t25\n" +
+		"pubB\t(none)\t(none)\t10.8.1.3/32\t0\t0\t0\t0\n" +
+		"short\trow\n"
+
+	stats := parsePeerStatsDump([]byte(dump))
+	if len(stats) != 2 {
+		t.Fatalf("want 2 peer rows (the 2-field row is dropped), got %d: %+v", len(stats), stats)
+	}
+	if stats[0].publicKey != "pubA" || stats[0].endpoint != "203.0.113.9:1234" || stats[0].allowedIPs != "10.8.1.2/32" {
+		t.Errorf("peer A mismatch: %+v", stats[0])
+	}
+	if stats[0].latestHandshake != 1735732800 || stats[0].rx != 1024 || stats[0].tx != 2048 {
+		t.Errorf("peer A counters mismatch: %+v", stats[0])
+	}
+	if stats[1].endpoint != "" {
+		t.Errorf("a never-connected peer's %q endpoint must render as empty, got %q", "(none)", stats[1].endpoint)
+	}
+}
+
+func TestPeerActivityJoinsDumpRowsToClientEmails(t *testing.T) {
+	inst := baseInstance() // peers a@x (pubA) and b@x (pubB)
+	now := time.Unix(1_700_000_000, 0)
+	stats := []peerStat{
+		{publicKey: "pubA", endpoint: "203.0.113.9:1234", allowedIPs: "10.8.1.2/32", latestHandshake: now.Unix() - 30, rx: 10, tx: 20},
+		{publicKey: "pubB", latestHandshake: now.Unix() - int64(onlineWindow.Seconds()) - 1, rx: 1, tx: 2},
+		{publicKey: "unknown-peer", latestHandshake: now.Unix()},
+	}
+
+	got := peerActivity(inst, stats, now)
+	if len(got) != 2 {
+		t.Fatalf("a dump row with no matching desired peer must be dropped; got %d rows: %+v", len(got), got)
+	}
+	if got[0].Email != "a@x" || got[0].Tag != inst.Tag || got[0].Interface != inst.InterfaceName {
+		t.Errorf("row 0 identity mismatch: %+v", got[0])
+	}
+	if !got[0].Online {
+		t.Errorf("a handshake 30s ago is inside onlineWindow, want Online: %+v", got[0])
+	}
+	if got[1].Online {
+		t.Errorf("a handshake older than onlineWindow must not read as online: %+v", got[1])
+	}
+	// The dump had no allowed-ips for pubB, so the desired peer's own value fills in.
+	if got[1].AllowedIPs != "10.8.1.3/32" {
+		t.Errorf("AllowedIPs = %q, want the desired peer's own value", got[1].AllowedIPs)
+	}
+}
+
+func TestPeerActivityNeverConnectedPeerHasZeroHandshake(t *testing.T) {
+	inst := baseInstance()
+	now := time.Unix(1_700_000_000, 0)
+	got := peerActivity(inst, []peerStat{{publicKey: "pubA", latestHandshake: 0}}, now)
+	if len(got) != 1 {
+		t.Fatalf("want 1 row, got %d", len(got))
+	}
+	// 0 must stay 0 rather than becoming the unix epoch in milliseconds, or
+	// the UI renders "1970-01-01" instead of "never".
+	if got[0].Handshake != 0 || got[0].Online {
+		t.Fatalf("a never-connected peer must report Handshake 0 and Online false, got %+v", got[0])
 	}
 }

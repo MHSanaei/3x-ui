@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Tag, Tooltip } from 'antd';
 import {
+  ApiOutlined,
   ArrowUpOutlined,
   AreaChartOutlined,
   BarsOutlined,
@@ -28,6 +29,7 @@ interface OverviewActionBarProps {
   onRestartXray: () => void;
   onOpenLogs: () => void;
   onOpenXrayLogs: () => void;
+  onOpenAmneziaWGLogs: () => void;
   onOpenConfig: () => void;
   onOpenBackup: () => void;
   onOpenSystemHistory: () => void;
@@ -61,6 +63,7 @@ export default function OverviewActionBar({
   onRestartXray,
   onOpenLogs,
   onOpenXrayLogs,
+  onOpenAmneziaWGLogs,
   onOpenConfig,
   onOpenBackup,
   onOpenSystemHistory,
@@ -82,6 +85,9 @@ export default function OverviewActionBar({
       { key: 'logs', icon: <BarsOutlined />, text: t('pages.index.logs'), onClick: onOpenLogs },
       ...(accessLogEnable
         ? [{ key: 'accessLogs', icon: <FileTextOutlined />, text: t('pages.index.accessLogs'), onClick: onOpenXrayLogs }]
+        : []),
+      ...(status.amneziawg.configured
+        ? [{ key: 'amneziawgLogs', icon: <ApiOutlined />, text: t('pages.index.amneziawgLogs'), onClick: onOpenAmneziaWGLogs }]
         : []),
       { key: 'config', icon: <ControlOutlined />, text: t('pages.index.config'), onClick: onOpenConfig },
       { key: 'backup', icon: <CloudServerOutlined />, text: t('pages.index.backupTitle'), onClick: onOpenBackup },
