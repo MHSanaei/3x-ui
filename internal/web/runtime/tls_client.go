@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -25,6 +26,7 @@ type MasterClientCertProvider func() (tls.Certificate, error)
 var (
 	masterClientCertMu sync.RWMutex
 	masterClientCert   MasterClientCertProvider
+	masterCertEpoch    atomic.Uint64
 )
 
 // SetMasterClientCertProvider installs the provider used to obtain the master
@@ -45,6 +47,91 @@ func getMasterClientCert() (tls.Certificate, error) {
 	return p()
 }
 
+// InvalidateMasterClientConnections advances the client-credential generation.
+// Every cached mTLS transport observes the generation before its next request,
+// replaces its TLS transport, and closes the old idle pool. Requests already
+// in flight are not interrupted; no request that starts after invalidation can
+// reuse a connection authenticated with the previous leaf.
+func InvalidateMasterClientConnections() {
+	masterCertEpoch.Add(1)
+}
+
+// ReloadMasterClientConnections validates that the currently configured
+// provider can load the master credential, then invalidates every cached mTLS
+// transport. Operators that rotate the credential outside the process (for
+// example by restoring settings) can call this without restarting the panel.
+func ReloadMasterClientConnections() error {
+	if _, err := getMasterClientCert(); err != nil {
+		return err
+	}
+	InvalidateMasterClientConnections()
+	return nil
+}
+
+type idleClosingRoundTripper interface {
+	http.RoundTripper
+	CloseIdleConnections()
+}
+
+type credentialRotatingTransport struct {
+	mu         sync.Mutex
+	generation uint64
+	current    idleClosingRoundTripper
+	build      func() (idleClosingRoundTripper, error)
+}
+
+func buildStableCredentialTransport(build func() (idleClosingRoundTripper, error)) (idleClosingRoundTripper, uint64, error) {
+	for {
+		before := masterCertEpoch.Load()
+		current, err := build()
+		if err != nil {
+			return nil, 0, err
+		}
+		after := masterCertEpoch.Load()
+		if before == after {
+			return current, after, nil
+		}
+		current.CloseIdleConnections()
+	}
+}
+
+func newCredentialRotatingTransport(build func() (idleClosingRoundTripper, error)) (*credentialRotatingTransport, error) {
+	current, generation, err := buildStableCredentialTransport(build)
+	if err != nil {
+		return nil, err
+	}
+	return &credentialRotatingTransport{
+		generation: generation,
+		current:    current,
+		build:      build,
+	}, nil
+}
+
+func (t *credentialRotatingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.mu.Lock()
+	if masterCertEpoch.Load() != t.generation {
+		next, generation, err := buildStableCredentialTransport(t.build)
+		if err != nil {
+			t.mu.Unlock()
+			return nil, err
+		}
+		previous := t.current
+		t.current = next
+		t.generation = generation
+		previous.CloseIdleConnections()
+	}
+	current := t.current
+	t.mu.Unlock()
+	return current.RoundTrip(req)
+}
+
+func (t *credentialRotatingTransport) CloseIdleConnections() {
+	t.mu.Lock()
+	current := t.current
+	t.mu.Unlock()
+	current.CloseIdleConnections()
+}
+
 // defaultNodeHTTPClient reaches nodes trusting the system CA store ("verify"
 // mode or plain http); shared so connections pool across nodes.
 var defaultNodeHTTPClient = &http.Client{
@@ -62,6 +149,30 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 		mode = "verify"
 	}
 	if proxyURL != "" {
+		if mode == "mtls" && n.Scheme != "http" {
+			timeout := remoteHTTPTimeout
+			build := func() (idleClosingRoundTripper, error) {
+				client, err := netproxy.NewHTTPClient(proxyURL, remoteHTTPTimeout)
+				if err != nil {
+					return nil, err
+				}
+				transport, ok := client.Transport.(*http.Transport)
+				if !ok {
+					return nil, common.NewError("mtls proxy client transport does not support credential rotation")
+				}
+				tlsCfg, err := tlsConfigForNode(n)
+				if err != nil {
+					return nil, err
+				}
+				transport.TLSClientConfig = tlsCfg
+				return transport, nil
+			}
+			transport, err := newCredentialRotatingTransport(build)
+			if err != nil {
+				return nil, err
+			}
+			return &http.Client{Transport: transport, Timeout: timeout}, nil
+		}
 		client, err := netproxy.NewHTTPClient(proxyURL, remoteHTTPTimeout)
 		if err != nil {
 			return nil, err
@@ -82,6 +193,26 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	}
 	if mode == "verify" || n.Scheme == "http" {
 		return defaultNodeHTTPClient, nil
+	}
+	if mode == "mtls" {
+		build := func() (idleClosingRoundTripper, error) {
+			tlsCfg, err := tlsConfigForNode(n)
+			if err != nil {
+				return nil, err
+			}
+			return &http.Transport{
+				MaxIdleConns:        64,
+				MaxIdleConnsPerHost: 4,
+				IdleConnTimeout:     60 * time.Second,
+				DialContext:         netsafe.SSRFGuardedDialContext,
+				TLSClientConfig:     tlsCfg,
+			}, nil
+		}
+		transport, err := newCredentialRotatingTransport(build)
+		if err != nil {
+			return nil, err
+		}
+		return &http.Client{Transport: transport}, nil
 	}
 	tlsCfg, err := tlsConfigForNode(n)
 	if err != nil {

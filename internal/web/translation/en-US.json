@@ -1100,7 +1100,8 @@
         "updateStarted": "Panel update started",
         "updateResult": "Update triggered on {ok} node(s), {failed} failed",
         "updateNoneEligible": "Select at least one online, enabled node",
-        "saveMtls": "Save node mTLS"
+        "saveMtls": "Save node mTLS",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "TLS verification",
       "tlsVerifyModeHint": "How the panel validates the node's HTTPS certificate. Pin or Skip are for self-signed certs (https nodes only).",

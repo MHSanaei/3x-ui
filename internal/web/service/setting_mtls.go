@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 var masterClientCredentialMu sync.Mutex
@@ -133,6 +134,7 @@ func (s *SettingService) EnsureMasterClientCert() (crypto.CertKeyPEM, error) {
 	if err := saveMasterClientCredential(client, pin); err != nil {
 		return crypto.CertKeyPEM{}, err
 	}
+	runtime.InvalidateMasterClientConnections()
 	return client, nil
 }
 
@@ -156,6 +158,23 @@ func saveMasterClientCredential(client crypto.CertKeyPEM, pin string) error {
 		}
 		return nil
 	})
+}
+
+// LoadMasterClientCert returns only the already-persisted credential. It never
+// mints or changes CA/client settings.
+func (s *SettingService) LoadMasterClientCert() (crypto.CertKeyPEM, error) {
+	certPem, err := s.getString(settingNodeMtlsClientCert)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	keyPem, err := s.getString(settingNodeMtlsClientKey)
+	if err != nil {
+		return crypto.CertKeyPEM{}, err
+	}
+	if certPem == "" || keyPem == "" {
+		return crypto.CertKeyPEM{}, common.NewError("master client certificate is not fully configured")
+	}
+	return crypto.CertKeyPEM{CertPEM: []byte(certPem), KeyPEM: []byte(keyPem)}, nil
 }
 
 // NodeMtlsClientCAPool builds the trust pool used as the panel listener's
