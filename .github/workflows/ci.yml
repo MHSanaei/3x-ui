@@ -70,6 +70,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL schema and migration tests
+        run: |
+          set -o pipefail
+          XUI_DB_TYPE=postgres XUI_DB_DSN="host=127.0.0.1 port=5432 user=postgres password=postgres dbname=xui_durable sslmode=disable" \
+            go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
+          if grep -q -- '--- SKIP' /tmp/postgres-schema.log; then
+            echo 'PostgreSQL schema tests skipped instead of running' >&2
+            exit 1
+          fi
+
   codegen:
     runs-on: ubuntu-latest
     steps:
