@@ -660,10 +660,13 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSecret() ([]byte, error) {
 	secret, err := s.getString("secret")
-	if secret == defaultValueMap["secret"] {
-		err := s.saveSetting("secret", secret)
-		if err != nil {
-			logger.Warning("save secret failed:", err)
+	if secret == "" || secret == defaultValueMap["secret"] {
+		if secret == "" {
+			secret = defaultValueMap["secret"]
+		}
+		saveErr := s.saveSetting("secret", secret)
+		if saveErr != nil {
+			logger.Warning("save secret failed:", saveErr)
 		}
 	}
 	return []byte(secret), err
