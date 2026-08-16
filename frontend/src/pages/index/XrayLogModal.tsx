@@ -25,12 +25,20 @@ interface XrayLogEntry {
   Event?: number;
 }
 
+// The downloaded log is a data format people grep, so it keeps the stable
+// tokens; only what is rendered on screen follows the panel language.
+const EVENT_TOKENS: Record<number, string> = { 0: 'DIRECT', 1: 'BLOCKED', 2: 'PROXY' };
+
 const EVENT_KEYS: Record<number, string> = {
   0: 'pages.index.accessDirect',
   1: 'pages.index.accessBlocked',
   2: 'pages.index.accessProxy',
 };
 const EVENT_COLORS: Record<number, string> = { 0: 'green', 1: 'red', 2: 'blue' };
+
+function eventToken(ev?: number): string {
+  return EVENT_TOKENS[ev ?? -1] ?? String(ev ?? '');
+}
 
 function eventLabel(t: TFunction, ev?: number): string {
   const key = EVENT_KEYS[ev ?? -1];
@@ -118,7 +126,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       try {
         const dt = l.DateTime ? new Date(l.DateTime) : null;
         const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
-        const eventText = eventLabel(t, l.Event);
+        const eventText = eventToken(l.Event);
         const emailPart = l.Email ? ` Email=${l.Email}` : '';
         return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
       } catch {

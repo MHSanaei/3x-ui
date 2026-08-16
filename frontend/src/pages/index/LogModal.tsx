@@ -105,7 +105,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
             <Select
               value={level}
               size="small"
-              style={{ width: 95 }}
+              style={{ minWidth: 95 }}
               onChange={setLevel}
               options={[
                 { value: 'debug', label: t('pages.index.logLevelDebug') },
