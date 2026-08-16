@@ -1,4 +1,5 @@
 import { RandomUtil, Wireguard } from '@/utils';
+import { generateAwgObfuscation } from '@/lib/xray/amneziawg-obfuscation';
 
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
@@ -290,10 +291,9 @@ export function createDefaultWireguardInboundSettings(
 // WireGuard's Xray-native inbound, the server's publicKey is a real
 // persisted field here (the Go backend reads it directly rather than
 // re-deriving it), so it's seeded alongside privateKey. The obfuscation
-// parameters (jc/jmin/.../i1) use the same starting values the Go backend's
-// own generator range-checks against; the user (or the backend's own
-// defaulting on save) can randomize/edit them further — see
-// internal/amneziawg.GenerateObfuscation31 on the Go side.
+// parameters are randomized per inbound (a static default would give every
+// install the same DPI fingerprint), mirroring the Go backend's
+// internal/amneziawg.GenerateObfuscation31.
 export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSettings {
   const kp = Wireguard.generateKeypair();
   return {
@@ -309,18 +309,7 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       ipv6Subnet: '',
       ipv6ExternalInterface: '',
       routeThroughXray: false,
-      jc: 5,
-      jmin: 10,
-      jmax: 50,
-      s1: 30,
-      s2: 45,
-      s3: 10,
-      s4: 5,
-      h1: '',
-      h2: '',
-      h3: '',
-      h4: '',
-      i1: '',
+      ...generateAwgObfuscation(),
     },
     clients: [],
   };

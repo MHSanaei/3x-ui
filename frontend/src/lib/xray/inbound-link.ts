@@ -947,6 +947,24 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   txt += `${amneziaWGHLine('H3', server.h3, '3')}\n`;
   txt += `${amneziaWGHLine('H4', server.h4, '4')}\n`;
   if (server.i1) txt += `I1 = ${server.i1}\n`;
+  if (server.i2) txt += `I2 = ${server.i2}\n`;
+  if (server.i3) txt += `I3 = ${server.i3}\n`;
+  if (server.i4) txt += `I4 = ${server.i4}\n`;
+  if (server.i5) txt += `I5 = ${server.i5}\n`;
+  const optional31: Array<[string, string | undefined]> = [
+    ['HeaderProtectionKey', server.headerProtectionKey],
+    ['ContentPaddingAddition', server.contentPaddingAddition],
+    ['RekeyAfterTime', server.rekeyAfterTime],
+    ['RekeyTimeout', server.rekeyTimeout],
+    ['RejectAfterTime', server.rejectAfterTime],
+    ['KeepaliveTimeout', server.keepaliveTimeout],
+    ['MaxHandshakeAttempts', server.maxHandshakeAttempts],
+  ];
+  for (const [key, value] of optional31) {
+    if (value && value.trim() !== '') txt += `${key} = ${value}\n`;
+  }
+  if (server.randomTrailers) txt += `RandomTrailers = on\n`;
+  if (server.disableCookies) txt += `DisableCookies = on\n`;
   txt += `\n# ${remark}\n`;
   txt += `[Peer]\n`;
   txt += `PublicKey = ${server.publicKey ?? ''}\n`;

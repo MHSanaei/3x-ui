@@ -65,6 +65,19 @@ export const AmneziawgServerSchema = z.object({
   h3: z.string().default(''),
   h4: z.string().default(''),
   i1: z.string().default(''),
+  i2: z.string().default(''),
+  i3: z.string().default(''),
+  i4: z.string().default(''),
+  i5: z.string().default(''),
+  headerProtectionKey: z.string().default(''),
+  contentPaddingAddition: z.string().default(''),
+  rekeyAfterTime: z.string().default(''),
+  rekeyTimeout: z.string().default(''),
+  rejectAfterTime: z.string().default(''),
+  keepaliveTimeout: z.string().default(''),
+  maxHandshakeAttempts: z.string().default(''),
+  randomTrailers: z.boolean().default(false),
+  disableCookies: z.boolean().default(false),
 });
 export type AmneziawgServer = z.infer<typeof AmneziawgServerSchema>;
 

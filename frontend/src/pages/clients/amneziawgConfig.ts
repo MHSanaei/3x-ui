@@ -62,6 +62,24 @@ export function buildAmneziaWGClientConfig(
   lines.push(hLine('H3', server?.h3, '3'));
   lines.push(hLine('H4', server?.h4, '4'));
   if (server?.i1) lines.push(`I1 = ${server.i1}`);
+  if (server?.i2) lines.push(`I2 = ${server.i2}`);
+  if (server?.i3) lines.push(`I3 = ${server.i3}`);
+  if (server?.i4) lines.push(`I4 = ${server.i4}`);
+  if (server?.i5) lines.push(`I5 = ${server.i5}`);
+  const optional31: Array<[string, string | undefined]> = [
+    ['HeaderProtectionKey', server?.headerProtectionKey],
+    ['ContentPaddingAddition', server?.contentPaddingAddition],
+    ['RekeyAfterTime', server?.rekeyAfterTime],
+    ['RekeyTimeout', server?.rekeyTimeout],
+    ['RejectAfterTime', server?.rejectAfterTime],
+    ['KeepaliveTimeout', server?.keepaliveTimeout],
+    ['MaxHandshakeAttempts', server?.maxHandshakeAttempts],
+  ];
+  for (const [key, value] of optional31) {
+    if (value && value.trim() !== '') lines.push(`${key} = ${value}`);
+  }
+  if (server?.randomTrailers) lines.push('RandomTrailers = on');
+  if (server?.disableCookies) lines.push('DisableCookies = on');
 
   lines.push('');
   if (remark) lines.push(`# ${remark}`);
