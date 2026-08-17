@@ -860,7 +860,9 @@
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
         "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
     },
     "groups": {
       "name": "Tên",

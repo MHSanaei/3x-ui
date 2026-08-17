@@ -860,7 +860,9 @@
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
     },
     "groups": {
       "name": "名稱",

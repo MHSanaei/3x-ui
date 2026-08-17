@@ -894,6 +894,7 @@ type Client struct {
 	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment      string         `json:"comment" form:"comment"`       // Client comment
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
+	ResetMax     int            `json:"resetMax" form:"resetMax"`     // Max auto-renew count, 0 = unlimited
 	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
 }

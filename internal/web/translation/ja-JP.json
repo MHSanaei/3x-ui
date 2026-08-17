@@ -860,7 +860,9 @@
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
         "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
     },
     "groups": {
       "name": "名前",

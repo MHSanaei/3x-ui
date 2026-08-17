@@ -860,7 +860,9 @@
         "delOrphans": "{count} کلاینت بدون اینباند حذف شد",
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
     },
     "groups": {
       "name": "نام",

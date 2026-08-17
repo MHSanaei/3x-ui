@@ -1084,6 +1084,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Reset period in days",
         "type": "integer"
       },
+      "resetMax": {
+        "description": "Max auto-renew count, 0 = unlimited",
+        "type": "integer"
+      },
       "reverse": {
         "allOf": [
           {
@@ -1128,6 +1132,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expiryTime",
       "limitIp",
       "reset",
+      "resetMax",
       "security",
       "subId",
       "tgId",
@@ -1331,6 +1336,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 0,
         "type": "integer"
       },
+      "resetCount": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetMax": {
+        "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.\nResetCount is how many have fired, so a prepaid plan stops on its own.",
+        "example": 0,
+        "type": "integer"
+      },
       "subId": {
         "example": "i7tvdpeffi0hvvf1",
         "type": "string"
@@ -1360,6 +1374,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastOnline",
       "lastSubFetch",
       "reset",
+      "resetCount",
+      "resetMax",
       "subId",
       "total",
       "up",

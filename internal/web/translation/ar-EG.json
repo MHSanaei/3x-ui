@@ -860,7 +860,9 @@
         "delOrphans": "تم حذف {count} عميل غير مرتبط",
         "imported": "تم استيراد {count} عميل",
         "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
     },
     "groups": {
       "name": "الاسم",
