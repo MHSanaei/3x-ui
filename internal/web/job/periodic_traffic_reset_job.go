@@ -34,8 +34,11 @@ func monthlyResetDue(resetDay int, now time.Time) bool {
 	return now.Day() == min(resetDay, lastDay)
 }
 
-// Run resets traffic statistics for all inbounds that match the configured reset period.
+// Run resets traffic statistics for all inbounds that match the configured reset
+// period, then for the clients carrying that period on their own (#5497).
 func (j *PeriodicTrafficResetJob) Run() {
+	defer j.resetClientsOnTheirOwnCycle()
+
 	inbounds, err := j.inboundService.GetInboundsByTrafficReset(string(j.period))
 	if err != nil {
 		logger.Warning("Failed to get inbounds for traffic reset:", err)
@@ -76,5 +79,43 @@ func (j *PeriodicTrafficResetJob) Run() {
 
 	if resetCount > 0 {
 		logger.Infof("Periodic traffic reset completed: %d inbounds reset", resetCount)
+	}
+}
+
+// resetClientsOnTheirOwnCycle resets clients whose cycle is set individually. A
+// client inside an inbound on the same cycle is reset twice, which is harmless.
+func (j *PeriodicTrafficResetJob) resetClientsOnTheirOwnCycle() {
+	records, err := j.clientService.GetRecordsByTrafficReset(string(j.period))
+	if err != nil {
+		logger.Warning("Failed to get clients for traffic reset:", err)
+		return
+	}
+
+	if j.period == "monthly" {
+		now := time.Now().In(j.location)
+		due := records[:0]
+		for _, rec := range records {
+			if monthlyResetDue(rec.TrafficResetDay, now) {
+				due = append(due, rec)
+			}
+		}
+		records = due
+	}
+	if len(records) == 0 {
+		return
+	}
+	logger.Infof("Running periodic traffic reset job for period: %s (%d matching clients)", j.period, len(records))
+
+	resetCount := 0
+	for _, rec := range records {
+		if _, resetErr := j.clientService.ResetTrafficByEmail(&j.inboundService, rec.Email); resetErr != nil {
+			logger.Warning("Failed to reset traffic for client", rec.Email, ":", resetErr)
+			continue
+		}
+		resetCount++
+	}
+
+	if resetCount > 0 {
+		logger.Infof("Periodic traffic reset completed: %d clients reset", resetCount)
 	}
 }

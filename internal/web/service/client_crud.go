@@ -43,6 +43,33 @@ func validateClientSubID(subID string) error {
 	return nil
 }
 
+// Rejected rather than coerced: an unknown cycle would leave the operator with
+// a field that reads as configured while no job ever selects the client.
+func validateClientTrafficReset(period string, day int) error {
+	switch period {
+	case "", "never", "hourly", "daily", "weekly", "monthly":
+	default:
+		return common.NewError("client trafficReset must be never, hourly, daily, weekly or monthly, got:", period)
+	}
+	if day < 0 || day > 31 {
+		return common.NewError("client trafficResetDay must be between 0 and 31, got:", day)
+	}
+	return nil
+}
+
+// GetRecordsByTrafficReset returns the clients whose own reset cycle matches the
+// period, independent of the cycle configured on the inbounds they belong to.
+func (s *ClientService) GetRecordsByTrafficReset(period string) ([]model.ClientRecord, error) {
+	var records []model.ClientRecord
+	err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("traffic_reset = ?", period).
+		Find(&records).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	return records, nil
+}
+
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -55,6 +82,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	if err := validateClientSubID(client.SubID); err != nil {
+		return false, err
+	}
+	if err := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); err != nil {
 		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
@@ -344,6 +374,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
+	if err := validateClientTrafficReset(updated.TrafficReset, updated.TrafficResetDay); err != nil {
+		return false, err
+	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -466,6 +499,8 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"tg_id":             merged.TgID,
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
+				"traffic_reset":     merged.TrafficReset,
+				"traffic_reset_day": merged.TrafficResetDay,
 			}).Error; err != nil {
 			return needRestart, err
 		}

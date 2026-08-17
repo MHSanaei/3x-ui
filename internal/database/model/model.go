@@ -894,38 +894,43 @@ type Client struct {
 	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment      string         `json:"comment" form:"comment"`       // Client comment
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	// Per-client traffic reset cycle, independent of the inbound's own (#5497).
+	TrafficReset    string `json:"trafficReset" form:"trafficReset" validate:"omitempty,oneof=never hourly daily weekly monthly"`
+	TrafficResetDay int    `json:"trafficResetDay" form:"trafficResetDay" validate:"omitempty,gte=1,lte=31"`
+	CreatedAt       int64  `json:"created_at,omitempty"` // Creation timestamp
+	UpdatedAt       int64  `json:"updated_at,omitempty"` // Last update timestamp
 }
 
 type ClientRecord struct {
-	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID        string `json:"subId" gorm:"index;column:sub_id"`
-	UUID         string `json:"uuid" gorm:"column:uuid"`
-	Password     string `json:"password"`
-	Auth         string `json:"auth"`
-	Flow         string `json:"flow"`
-	Security     string `json:"security"`
-	Reverse      string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey   string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey    string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs   string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	Secret       string `json:"secret" gorm:"column:secret"`
-	AdTag        string `json:"adTag" gorm:"column:ad_tag;default:''"`
-	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
-	LimitHwid    int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
-	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable       bool   `json:"enable" gorm:"default:true"`
-	TgID         int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
-	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment      string `json:"comment"`
-	Reset        int    `json:"reset" gorm:"default:0"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id              int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email           string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID           string `json:"subId" gorm:"index;column:sub_id"`
+	UUID            string `json:"uuid" gorm:"column:uuid"`
+	Password        string `json:"password"`
+	Auth            string `json:"auth"`
+	Flow            string `json:"flow"`
+	Security        string `json:"security"`
+	Reverse         string `json:"reverse" gorm:"column:reverse"`
+	PrivateKey      string `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey       string `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs      string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey    string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive       int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	Secret          string `json:"secret" gorm:"column:secret"`
+	AdTag           string `json:"adTag" gorm:"column:ad_tag;default:''"`
+	LimitIP         int    `json:"limitIp" gorm:"column:limit_ip"`
+	LimitHwid       int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
+	TotalGB         int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime      int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable          bool   `json:"enable" gorm:"default:true"`
+	TgID            int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
+	Group           string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment         string `json:"comment"`
+	Reset           int    `json:"reset" gorm:"default:0"`
+	TrafficReset    string `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
+	TrafficResetDay int    `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
+	CreatedAt       int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt       int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
@@ -1090,23 +1095,25 @@ func (Host) TableName() string { return "hosts" }
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
-		Email:      c.Email,
-		SubID:      c.SubID,
-		UUID:       c.ID,
-		Password:   c.Password,
-		Auth:       c.Auth,
-		Flow:       c.Flow,
-		Security:   c.Security,
-		LimitIP:    c.LimitIP,
-		TotalGB:    c.TotalGB,
-		ExpiryTime: c.ExpiryTime,
-		Enable:     c.Enable,
-		TgID:       c.TgID,
-		Group:      c.Group,
-		Comment:    c.Comment,
-		Reset:      c.Reset,
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
+		Email:           c.Email,
+		SubID:           c.SubID,
+		UUID:            c.ID,
+		Password:        c.Password,
+		Auth:            c.Auth,
+		Flow:            c.Flow,
+		Security:        c.Security,
+		LimitIP:         c.LimitIP,
+		TotalGB:         c.TotalGB,
+		ExpiryTime:      c.ExpiryTime,
+		Enable:          c.Enable,
+		TgID:            c.TgID,
+		Group:           c.Group,
+		Comment:         c.Comment,
+		Reset:           c.Reset,
+		TrafficReset:    c.TrafficReset,
+		TrafficResetDay: c.TrafficResetDay,
+		CreatedAt:       c.CreatedAt,
+		UpdatedAt:       c.UpdatedAt,
 
 		PrivateKey:   c.PrivateKey,
 		PublicKey:    c.PublicKey,
@@ -1143,23 +1150,25 @@ func splitWireguardAllowedIPs(csv string) []string {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:         r.UUID,
-		Email:      r.Email,
-		SubID:      r.SubID,
-		Password:   r.Password,
-		Auth:       r.Auth,
-		Flow:       r.Flow,
-		Security:   r.Security,
-		LimitIP:    r.LimitIP,
-		TotalGB:    r.TotalGB,
-		ExpiryTime: r.ExpiryTime,
-		Enable:     r.Enable,
-		TgID:       r.TgID,
-		Group:      r.Group,
-		Comment:    r.Comment,
-		Reset:      r.Reset,
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		ID:              r.UUID,
+		Email:           r.Email,
+		SubID:           r.SubID,
+		Password:        r.Password,
+		Auth:            r.Auth,
+		Flow:            r.Flow,
+		Security:        r.Security,
+		LimitIP:         r.LimitIP,
+		TotalGB:         r.TotalGB,
+		ExpiryTime:      r.ExpiryTime,
+		Enable:          r.Enable,
+		TgID:            r.TgID,
+		Group:           r.Group,
+		Comment:         r.Comment,
+		Reset:           r.Reset,
+		TrafficReset:    r.TrafficReset,
+		TrafficResetDay: r.TrafficResetDay,
+		CreatedAt:       r.CreatedAt,
+		UpdatedAt:       r.UpdatedAt,
 
 		PrivateKey:   r.PrivateKey,
 		PublicKey:    r.PublicKey,
@@ -1304,6 +1313,18 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.TrafficReset != incoming.TrafficReset && incoming.TrafficReset != "" {
+		if incomingNewer || existing.TrafficReset == "" || existing.TrafficReset == "never" {
+			keep("trafficReset", existing.TrafficReset, incoming.TrafficReset, incoming.TrafficReset)
+			existing.TrafficReset = incoming.TrafficReset
+		}
+	}
+	if existing.TrafficResetDay != incoming.TrafficResetDay && incoming.TrafficResetDay != 0 {
+		if incomingNewer || existing.TrafficResetDay == 0 {
+			keep("trafficResetDay", existing.TrafficResetDay, incoming.TrafficResetDay, incoming.TrafficResetDay)
+			existing.TrafficResetDay = incoming.TrafficResetDay
 		}
 	}
 	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {

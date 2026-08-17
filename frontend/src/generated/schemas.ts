@@ -1115,6 +1115,22 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficReset": {
+        "description": "Per-client traffic reset cycle, independent of the inbound's own (#5497).",
+        "enum": [
+          "never",
+          "hourly",
+          "daily",
+          "weekly",
+          "monthly"
+        ],
+        "type": "string"
+      },
+      "trafficResetDay": {
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "updated_at": {
         "description": "Last update timestamp",
         "format": "int64",
@@ -1131,7 +1147,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "security",
       "subId",
       "tgId",
-      "totalGB"
+      "totalGB",
+      "trafficReset",
+      "trafficResetDay"
     ],
     "type": "object"
   },
@@ -1238,6 +1256,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficReset": {
+        "type": "string"
+      },
+      "trafficResetDay": {
+        "type": "integer"
+      },
       "updatedAt": {
         "format": "int64",
         "type": "integer"
@@ -1272,6 +1296,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subId",
       "tgId",
       "totalGB",
+      "trafficReset",
+      "trafficResetDay",
       "updatedAt",
       "uuid"
     ],

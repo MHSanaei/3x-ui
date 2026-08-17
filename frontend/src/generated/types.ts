@@ -272,6 +272,8 @@ export interface Client {
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset: string;
+  trafficResetDay: number;
   updated_at?: number;
 }
 
@@ -308,6 +310,8 @@ export interface ClientRecord {
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset: string;
+  trafficResetDay: number;
   updatedAt: number;
   uuid: string;
 }

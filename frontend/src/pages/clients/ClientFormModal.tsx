@@ -35,6 +35,9 @@ import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } fro
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
+
+const CLIENT_TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
+
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
 
@@ -131,6 +134,8 @@ const EMPTY: Values = {
   delayedStart: false,
   delayedDays: 0,
   reset: 0,
+  trafficReset: 'never' as const,
+  trafficResetDay: 1,
   limitIp: 0,
   limitHwid: 0,
   tgId: 0,
@@ -199,6 +204,7 @@ export default function ClientFormModal({
   const secret = useWatch({ control: methods.control, name: 'secret' });
   const email = useWatch({ control: methods.control, name: 'email' });
   const uuid = useWatch({ control: methods.control, name: 'uuid' });
+  const trafficReset = useWatch({ control: methods.control, name: 'trafficReset' });
   const password = useWatch({ control: methods.control, name: 'password' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
   const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
@@ -250,6 +256,8 @@ export default function ClientFormModal({
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
+        trafficReset: (client.trafficReset as ClientFormValues['trafficReset']) || 'never',
+        trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
         limitHwid: client.limitHwid || 0,
         tgId: Number(client.tgId) || 0,
@@ -538,6 +546,8 @@ email: values.email,
       delayedStart: values.delayedStart,
       delayedDays: values.delayedDays,
       reset: values.reset,
+      trafficReset: values.trafficReset,
+      trafficResetDay: values.trafficResetDay,
       limitIp: values.limitIp,
       limitHwid: values.limitHwid,
       tgId: values.tgId,
@@ -566,6 +576,8 @@ email: values.email,
       totalGB: totalBytes,
       expiryTime,
 reset: Number(values.reset) || 0,
+trafficReset: values.trafficReset || 'never',
+trafficResetDay: Number(values.trafficResetDay) || 1,
       limitIp: Number(values.limitIp) || 0,
       limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
@@ -785,6 +797,30 @@ reset: Number(values.reset) || 0,
                             <InputNumber min={0} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="trafficReset"
+                            label={t('pages.inbounds.periodicTrafficResetTitle')}
+                          >
+                            <Select
+                              options={CLIENT_TRAFFIC_RESETS.map((r) => ({
+                                value: r,
+                                label: t(`pages.inbounds.periodicTrafficReset.${r}`),
+                              }))}
+                            />
+                          </FormField>
+                        </Col>
+                        {trafficReset === 'monthly' && (
+                          <Col xs={12} md={6}>
+                            <FormField
+                              name="trafficResetDay"
+                              label={t('pages.inbounds.periodicTrafficResetDay')}
+                              transform={{ output: (v) => Number(v) || 1 }}
+                            >
+                              <InputNumber min={1} max={31} style={{ width: '100%' }} />
+                            </FormField>
+                          </Col>
+                        )}
                       </Row>
 
                       <Row gutter={16}>

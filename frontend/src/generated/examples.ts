@@ -262,6 +262,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficReset": "never",
+    "trafficResetDay": 1,
     "updated_at": 0
   },
   "ClientInbound": {
@@ -296,6 +298,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficReset": "",
+    "trafficResetDay": 0,
     "updatedAt": 0,
     "uuid": ""
   },
