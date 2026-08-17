@@ -233,6 +233,8 @@ function proxyOutbound(c: SubClient): Record<string, unknown> {
   };
 }
 
+// Mirrors the one-document-per-client model only; the panel also emits
+// balancer documents (sub_balancers) that are intentionally out of scope here.
 function jsonConfig(c: SubClient): Record<string, unknown> {
   return {
     remarks: c.remark,

@@ -1542,7 +1542,7 @@ export const sections: readonly Section[] = [
     id: 'sub-balancers',
     title: 'Subscription Balancers',
     description:
-      'Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Subscription.',
+      'Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers.',
     endpoints: [
       {
         method: 'GET',
