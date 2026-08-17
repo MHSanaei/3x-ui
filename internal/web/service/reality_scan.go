@@ -180,12 +180,12 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	if net.ParseIP(dialHost) != nil {
 		res.IP = dialHost
 	}
+	// Target stays the dialed address (it is what the inbound dials); Host is
+	// the SNI the handshake sent, which may differ for a fronting proxy.
+	res.Host = dialHost
+	res.Target = addr
 	if sni != "" {
 		res.Host = sni
-		res.Target = net.JoinHostPort(sni, strconv.Itoa(port))
-	} else {
-		res.Host = dialHost
-		res.Target = addr
 	}
 
 	ctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(context.Background(), allowPrivate), timeout)
@@ -291,19 +291,24 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	return res
 }
 
-func (s *ServerService) probeRealityTarget(host string, port int, xver int, allowPrivate bool) *RealityScanResult {
-	return s.probeRealityAddr(host, port, host, realityScanTimeout, xver, allowPrivate)
-}
-
-// ScanRealityTarget probes one operator-supplied target. allowPrivate lifts the
-// SSRF guard for this probe only, after the panel confirmed the local-network
-// warning; the verdict then carries PrivateTarget so the UI keeps warning.
-func (s *ServerService) ScanRealityTarget(target string, xver int, allowPrivate bool) (*RealityScanResult, error) {
+// ScanRealityTarget probes one operator-supplied target. sni is the name the
+// handshake sends and the certificate is verified against — the inbound's
+// serverNames, since that is what clients send; empty falls back to the target
+// host. allowPrivate lifts the SSRF guard for this probe only, after the panel
+// confirmed the local-network warning; the verdict then carries PrivateTarget
+// so the UI keeps warning.
+func (s *ServerService) ScanRealityTarget(target string, sni string, xver int, allowPrivate bool) (*RealityScanResult, error) {
 	host, port, err := splitRealityTarget(target)
 	if err != nil {
 		return nil, err
 	}
-	return s.probeRealityTarget(host, port, xver, allowPrivate), nil
+	sni = strings.TrimSpace(sni)
+	if sni == "" {
+		sni = host
+	} else if sni, err = netsafe.NormalizeHost(sni); err != nil {
+		return nil, common.NewError("invalid SNI: ", err)
+	}
+	return s.probeRealityAddr(host, port, sni, realityScanTimeout, xver, allowPrivate), nil
 }
 
 func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {

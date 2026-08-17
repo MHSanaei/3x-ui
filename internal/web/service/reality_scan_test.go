@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -81,13 +82,13 @@ func TestSplitRealityTarget(t *testing.T) {
 }
 
 func TestScanRealityTargetInputValidation(t *testing.T) {
-	if _, err := (&ServerService{}).ScanRealityTarget("", 0, false); err == nil {
+	if _, err := (&ServerService{}).ScanRealityTarget("", "", 0, false); err == nil {
 		t.Error("ScanRealityTarget(empty) expected error, got nil")
 	}
 }
 
 func TestScanRealityTargetBlocksPrivate(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", 0, false)
+	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", "", 0, false)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(loopback) unexpected error: %v", err)
 	}
@@ -111,7 +112,7 @@ func TestScanRealityTargetAllowPrivateReportsCertificate(t *testing.T) {
 	defer srv.Close()
 	target := strings.TrimPrefix(srv.URL, "https://")
 
-	blocked, err := (&ServerService{}).ScanRealityTarget(target, 0, false)
+	blocked, err := (&ServerService{}).ScanRealityTarget(target, "", 0, false)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(guard on) unexpected error: %v", err)
 	}
@@ -122,7 +123,7 @@ func TestScanRealityTargetAllowPrivateReportsCertificate(t *testing.T) {
 		t.Error("guard on should flag privateTarget")
 	}
 
-	res, err := (&ServerService{}).ScanRealityTarget(target, 0, true)
+	res, err := (&ServerService{}).ScanRealityTarget(target, "", 0, true)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(allowPrivate) unexpected error: %v", err)
 	}
@@ -138,6 +139,48 @@ func TestScanRealityTargetAllowPrivateReportsCertificate(t *testing.T) {
 	// The httptest cert is self-signed, so an honest verdict is "not trusted".
 	if res.CertValid || res.Feasible {
 		t.Errorf("self-signed target should not be trusted/feasible, got certValid=%v feasible=%v", res.CertValid, res.Feasible)
+	}
+}
+
+// A fronting proxy answers a bare target name with its default certificate, so
+// the probe must send the inbound's serverNames as SNI and verify against it.
+// The httptest certificate is issued for example.com.
+func TestScanRealityTargetUsesSNI(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	target := strings.TrimPrefix(srv.URL, "https://")
+	svc := &ServerService{}
+
+	matching, err := svc.ScanRealityTarget(target, "example.com", 0, true)
+	if err != nil {
+		t.Fatalf("ScanRealityTarget(matching SNI) unexpected error: %v", err)
+	}
+	if matching.Host != "example.com" {
+		t.Errorf("host = %q, want the SNI example.com", matching.Host)
+	}
+	// Target keeps the dialed address: it is what goes back into the inbound.
+	if matching.Target != target {
+		t.Errorf("target = %q, want the dialed %q", matching.Target, target)
+	}
+	if strings.Contains(matching.Reason, "certificate is valid for") {
+		t.Errorf("matching SNI should pass the hostname check, got %q", matching.Reason)
+	}
+	if !slices.Contains(matching.ServerNames, "example.com") {
+		t.Errorf("serverNames = %v, want it to contain example.com", matching.ServerNames)
+	}
+
+	mismatched, err := svc.ScanRealityTarget(target, "traefik", 0, true)
+	if err != nil {
+		t.Fatalf("ScanRealityTarget(mismatched SNI) unexpected error: %v", err)
+	}
+	if !strings.Contains(mismatched.Reason, "not traefik") {
+		t.Errorf("mismatched SNI should report the hostname mismatch, got %q", mismatched.Reason)
+	}
+
+	if _, err := svc.ScanRealityTarget(target, "bad sni!", 0, true); err == nil {
+		t.Error("ScanRealityTarget(invalid SNI) expected an error, got nil")
 	}
 }
 

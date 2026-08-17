@@ -524,6 +524,7 @@ export const sections: readonly Section[] = [
         summary: 'Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.',
         params: [
           { name: 'target', in: 'body (form)', type: 'string', desc: 'Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443.' },
+          { name: 'sni', in: 'body (form)', type: 'string', optional: true, desc: 'SNI the handshake sends and the certificate is verified against (the inbound serverNames). Defaults to the target host, which a fronting proxy answers with its default certificate.' },
           { name: 'xver', in: 'body (form)', type: 'number', optional: true, desc: 'PROXY protocol version the target expects (matches the inbound xver). 0 = none.' },
           { name: 'allowPrivate', in: 'body (form)', type: 'boolean', optional: true, desc: 'Probe a private/internal/loopback target (LAN, Docker service name). Default false (SSRF guard blocks it and the response sets privateTarget=true).' },
         ],
