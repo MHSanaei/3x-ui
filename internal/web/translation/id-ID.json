@@ -861,8 +861,8 @@
         "imported": "{count} klien diimpor",
         "importedMixed": "{ok} diimpor, {failed} dilewati"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "Perpanjang pada tanggal",
+      "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari."
     },
     "groups": {
       "name": "Nama",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "Kedaluwarsa sebagai timestamp Unix (detik)",
         "descCREATED_UNIX": "Waktu pembuatan sebagai timestamp Unix (detik)",
         "descRESET_DAYS": "Periode reset trafik dalam hari",
+        "descRESET_DAY": "Tanggal perpanjangan setiap bulan",
         "descPROTOCOL": "Protokol inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Jaringan transport (tcp, ws, grpc, …)",
         "descSECURITY": "Keamanan transport (TLS, REALITY, NONE)"

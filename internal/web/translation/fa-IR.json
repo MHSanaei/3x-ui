@@ -861,8 +861,8 @@
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "روز تمدید",
+      "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند."
     },
     "groups": {
       "name": "نام",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "انقضا به‌صورت مهر زمانی Unix (ثانیه)",
         "descCREATED_UNIX": "زمان ایجاد به‌صورت مهر زمانی Unix (ثانیه)",
         "descRESET_DAYS": "دورهٔ بازنشانی ترافیک به روز",
+        "descRESET_DAY": "روز ماه برای تمدید تقویمی",
         "descPROTOCOL": "پروتکل اینباند (VLESS، VMess، Trojan، …)",
         "descTRANSPORT": "شبکهٔ انتقال (tcp، ws، grpc، …)",
         "descSECURITY": "امنیت انتقال (TLS، REALITY، NONE)"

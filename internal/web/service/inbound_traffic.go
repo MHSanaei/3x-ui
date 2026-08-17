@@ -433,9 +433,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 					newExpiryTime += (int64(traffic.Reset) * 86400000)
 				}
 			} else {
-				// Unreachable while the selection filter holds, and kept anyway:
-				// a zero interval in the loop above would spin forever on the
-				// single traffic writer and take the whole panel with it.
+				// Unreachable while the selection filter holds: a zero interval above
+				// would spin forever on the single traffic writer and hang the panel.
 				continue
 			}
 			c["expiryTime"] = newExpiryTime

@@ -861,8 +861,8 @@
         "imported": "{count} kullanıcı içe aktarıldı",
         "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "Yenileme günü",
+      "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur."
     },
     "groups": {
       "name": "İsim",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "Son kullanma Unix zaman damgası olarak (saniye)",
         "descCREATED_UNIX": "Oluşturulma zamanı Unix zaman damgası olarak (saniye)",
         "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)",
+        "descRESET_DAY": "Takvime göre yenileme günü",
         "descPROTOCOL": "Gelen bağlantı protokolü (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Taşıma ağı (tcp, ws, grpc, …)",
         "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)"

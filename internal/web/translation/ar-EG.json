@@ -861,8 +861,8 @@
         "imported": "تم استيراد {count} عميل",
         "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "يوم التجديد",
+      "renewOnDayDesc": "يتم التجديد في هذا اليوم من كل شهر ميلادي، عند منتصف الليل بتوقيت اللوحة، بدلاً من كل N يوم. إذا كان الشهر أقصر من اليوم المختار، يتم التجديد في آخر يوم منه. القيمة 0 تُبقي وضع الفاصل اليومي."
     },
     "groups": {
       "name": "الاسم",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "الانتهاء كطابع زمني Unix (بالثواني)",
         "descCREATED_UNIX": "وقت الإنشاء كطابع زمني Unix (بالثواني)",
         "descRESET_DAYS": "فترة إعادة تعيين حركة المرور بالأيام",
+        "descRESET_DAY": "يوم الشهر الذي يتم فيه التجديد",
         "descPROTOCOL": "بروتوكول الوارد (VLESS، VMess، Trojan، …)",
         "descTRANSPORT": "شبكة النقل (tcp، ws، grpc، …)",
         "descSECURITY": "أمان النقل (TLS، REALITY، NONE)"

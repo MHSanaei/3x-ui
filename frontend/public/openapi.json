@@ -1251,6 +1251,9 @@
           "reset": {
             "type": "integer"
           },
+          "resetDay": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1297,6 +1300,7 @@
           "privateKey",
           "publicKey",
           "reset",
+          "resetDay",
           "reverse",
           "secret",
           "security",

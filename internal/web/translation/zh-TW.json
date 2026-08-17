@@ -861,8 +861,8 @@
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "按日期續期",
+      "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。"
     },
     "groups": {
       "name": "名稱",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "到期時間（Unix 時間戳記，秒）",
         "descCREATED_UNIX": "建立時間（Unix 時間戳記，秒）",
         "descRESET_DAYS": "流量重置週期（天）",
+        "descRESET_DAY": "按月續期的日期",
         "descPROTOCOL": "入站協定（VLESS、VMess、Trojan…）",
         "descTRANSPORT": "傳輸網路（tcp、ws、grpc…）",
         "descSECURITY": "傳輸安全（TLS、REALITY、NONE）"

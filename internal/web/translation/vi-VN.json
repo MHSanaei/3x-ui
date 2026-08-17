@@ -861,8 +861,8 @@
         "imported": "Đã nhập {count} khách hàng",
         "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "Gia hạn vào ngày",
+      "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày."
     },
     "groups": {
       "name": "Tên",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "Hết hạn dạng dấu thời gian Unix (giây)",
         "descCREATED_UNIX": "Thời điểm tạo dạng dấu thời gian Unix (giây)",
         "descRESET_DAYS": "Chu kỳ đặt lại lưu lượng tính theo ngày",
+        "descRESET_DAY": "Ngày trong tháng để gia hạn",
         "descPROTOCOL": "Giao thức inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Mạng truyền tải (tcp, ws, grpc, …)",
         "descSECURITY": "Bảo mật truyền tải (TLS, REALITY, NONE)"

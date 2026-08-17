@@ -925,6 +925,7 @@ type ClientRecord struct {
 	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
 	Comment      string `json:"comment"`
 	Reset        int    `json:"reset" gorm:"default:0"`
+	ResetDay     int    `json:"resetDay" gorm:"column:reset_day;default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
@@ -1106,6 +1107,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		Group:      c.Group,
 		Comment:    c.Comment,
 		Reset:      c.Reset,
+		ResetDay:   c.ResetDay,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 
@@ -1159,6 +1161,7 @@ func (r *ClientRecord) ToClient() *Client {
 		Group:      r.Group,
 		Comment:    r.Comment,
 		Reset:      r.Reset,
+		ResetDay:   r.ResetDay,
 		CreatedAt:  r.CreatedAt,
 		UpdatedAt:  r.UpdatedAt,
 
@@ -1305,6 +1308,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.ResetDay != incoming.ResetDay && incoming.ResetDay != 0 {
+		if incomingNewer || existing.ResetDay == 0 {
+			keep("resetDay", existing.ResetDay, incoming.ResetDay, incoming.ResetDay)
+			existing.ResetDay = incoming.ResetDay
 		}
 	}
 	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {

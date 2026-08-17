@@ -792,8 +792,8 @@ reset: Number(values.reset) || 0,
                         <Col xs={12} md={6}>
                           <FormField
                             name="resetDay"
-                            label={t('pages.clients.renewDay')}
-                            tooltip={t('pages.clients.renewDayDesc')}
+                            label={t('pages.clients.renewOnDay')}
+                            tooltip={t('pages.clients.renewOnDayDesc')}
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} max={31} style={{ width: '100%' }} />

@@ -303,6 +303,7 @@ export interface ClientRecord {
   privateKey: string;
   publicKey: string;
   reset: number;
+  resetDay: number;
   reverse: unknown;
   secret: string;
   security: string;

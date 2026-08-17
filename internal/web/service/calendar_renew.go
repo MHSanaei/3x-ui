@@ -2,12 +2,8 @@ package service
 
 import "time"
 
-// nextCalendarRenewal returns the next renewal instant strictly after from, on
-// the given day of the month at midnight in loc.
-//
-// A day that does not exist in the target month falls back to that month's last
-// day, so a client billed on the 31st renews on 28 February and returns to the
-// 31st in March rather than drifting to the 3rd (#6071).
+// nextCalendarRenewal returns the next renewal strictly after from, at midnight
+// in loc; a missing day clamps to the month's last, so the 31st comes back (#6106).
 func nextCalendarRenewal(from time.Time, day int, loc *time.Location) time.Time {
 	if loc == nil {
 		loc = time.UTC
@@ -31,9 +27,8 @@ func nextCalendarRenewal(from time.Time, day int, loc *time.Location) time.Time 
 	return candidate
 }
 
-// calendarDay builds midnight on the requested day, clamped to the last day the
-// month actually has. time.Date would roll 31 February forward into March,
-// which is the drift this whole mode exists to avoid.
+// Clamped rather than normalized: time.Date rolls 31 February into March, which
+// is the drift this mode exists to avoid.
 func calendarDay(year int, month time.Month, day int, loc *time.Location) time.Time {
 	last := daysInMonth(year, month)
 	if day > last {

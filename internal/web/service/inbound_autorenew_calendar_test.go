@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -106,14 +107,29 @@ func TestAutoRenewClients_CalendarModeClampsShortMonths(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := time.UnixMilli(row.ExpiryTime).In(zone)
-	last := daysInMonth(got.Year(), got.Month())
-	want := 31
-	if last < 31 {
-		want = last
+	want := firstBillingMidnightAfter(t, time.Now().In(zone), 31, zone)
+	if !got.Equal(want) {
+		t.Fatalf("renewed to %s, want %s", got.Format(time.RFC3339), want.Format(time.RFC3339))
 	}
-	if got.Day() != want {
-		t.Fatalf("renewed to day %d of %s, want %d", got.Day(), got.Month(), want)
+}
+
+// Deliberately not built on nextCalendarRenewal: it walks a day at a time and
+// derives month length from time.Date's own zero-day trick, so it can disagree.
+func firstBillingMidnightAfter(t *testing.T, from time.Time, day int, loc *time.Location) time.Time {
+	t.Helper()
+	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
+	for i := 0; i < 400; i++ {
+		cur = cur.AddDate(0, 0, 1)
+		want := day
+		if last := time.Date(cur.Year(), cur.Month()+1, 0, 0, 0, 0, 0, loc).Day(); want > last {
+			want = last
+		}
+		if cur.Day() == want {
+			return cur
+		}
 	}
+	t.Fatalf("no billing midnight for day %d within a year of %s", day, from)
+	return time.Time{}
 }
 
 // Interval clients must be untouched by the new field.
@@ -177,17 +193,23 @@ func TestAutoRenewClients_RowWithNoModeIsNotSelected(t *testing.T) {
 		t.Fatalf("seed client_traffics: %v", err)
 	}
 
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		if _, _, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
-			t.Errorf("autoRenewClients: %v", err)
-		}
-	}()
-	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		t.Fatal("autoRenewClients did not return: a row with no renewal mode reached the interval loop")
+	// Asserted against the query rather than by running the loop: the failure
+	// this guards is a hang, and a stuck goroutine outlives the test's DB.
+	var selected int64
+	if err := db.Model(&xray.ClientTraffic{}).
+		Where("(reset > 0 or reset_day > 0) and expiry_time > 0 and expiry_time <= ?", time.Now().UnixMilli()).
+		Where("email = ?", "none@x").
+		Count(&selected).Error; err != nil {
+		t.Fatal(err)
+	}
+	if selected != 0 {
+		t.Fatal("a row with no renewal mode was selected for renewal: it would reach the interval loop and spin forever")
+	}
+
+	if _, count, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	} else if count != 0 {
+		t.Fatalf("renewed count = %d, want 0", count)
 	}
 
 	var row xray.ClientTraffic
@@ -196,5 +218,72 @@ func TestAutoRenewClients_RowWithNoModeIsNotSelected(t *testing.T) {
 	}
 	if row.ExpiryTime != past {
 		t.Fatalf("a client with no renewal mode was renewed to %d", row.ExpiryTime)
+	}
+}
+
+// The billing day has to survive the clients table, not just the settings JSON:
+// an ordinary edit rebuilds the client from the record and writes it back (#6106).
+func TestClientEditKeepsTheBillingDay(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+
+	clients := []model.Client{
+		{Email: "keep@x", ID: "55555555-5555-5555-5555-555555555555", Enable: true, ResetDay: 20, ExpiryTime: time.Now().Add(24 * time.Hour).UnixMilli()},
+	}
+	ib := mkInbound(t, 30205, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	mkTraffic(t, ib.Id, "keep@x", 10, 20, 0, 0, true)
+
+	rec, err := svc.clientService.GetRecordByEmail(nil, "keep@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.ResetDay != 20 {
+		t.Fatalf("clients.reset_day = %d, want the 20 the client was created with", rec.ResetDay)
+	}
+
+	// What the edit dialog does: hydrate the record, change something else, save.
+	edited := rec.ToClient()
+	edited.Comment = "renamed"
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	// The inbound JSON is what xray and the edit dialog read back, and it is
+	// rebuilt from the record, so it is where a dropped converter field shows.
+	var stored model.Inbound
+	if err := db.Where("id = ?", ib.Id).First(&stored).Error; err != nil {
+		t.Fatal(err)
+	}
+	var settings struct {
+		Clients []model.Client `json:"clients"`
+	}
+	if err := json.Unmarshal([]byte(stored.Settings), &settings); err != nil {
+		t.Fatalf("parse inbound settings: %v", err)
+	}
+	if len(settings.Clients) != 1 {
+		t.Fatalf("inbound holds %d clients, want 1", len(settings.Clients))
+	}
+	if settings.Clients[0].ResetDay != 20 {
+		t.Fatalf("inbound settings resetDay = %d after an unrelated edit, want 20: calendar mode was silently turned off", settings.Clients[0].ResetDay)
+	}
+
+	rec, err = svc.clientService.GetRecordByEmail(nil, "keep@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after edit: %v", err)
+	}
+	if rec.ResetDay != 20 {
+		t.Fatalf("clients.reset_day = %d after an unrelated edit, want 20", rec.ResetDay)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "keep@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	if row.ResetDay != 20 {
+		t.Fatalf("client_traffics.reset_day = %d after an unrelated edit, want 20", row.ResetDay)
 	}
 }

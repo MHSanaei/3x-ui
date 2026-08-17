@@ -325,6 +325,7 @@ export const ClientRecordSchema = z.object({
   privateKey: z.string(),
   publicKey: z.string(),
   reset: z.number().int(),
+  resetDay: z.number().int(),
   reverse: z.unknown(),
   secret: z.string(),
   security: z.string(),

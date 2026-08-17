@@ -1225,6 +1225,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "reset": {
         "type": "integer"
       },
+      "resetDay": {
+        "type": "integer"
+      },
       "reverse": {},
       "secret": {
         "type": "string"
@@ -1271,6 +1274,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "privateKey",
       "publicKey",
       "reset",
+      "resetDay",
       "reverse",
       "secret",
       "security",

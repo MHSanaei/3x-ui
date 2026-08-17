@@ -861,8 +861,8 @@
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} ignorados"
       },
-      "renewDay": "Renew on day",
-      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
+      "renewOnDay": "Renovar no dia",
+      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias."
     },
     "groups": {
       "name": "Nome",
@@ -1870,6 +1870,7 @@
         "descEXPIRE_UNIX": "Expiração como timestamp Unix (segundos)",
         "descCREATED_UNIX": "Data de criação como timestamp Unix (segundos)",
         "descRESET_DAYS": "Período de redefinição de tráfego em dias",
+        "descRESET_DAY": "Dia do mês em que é renovado",
         "descPROTOCOL": "Protocolo da entrada (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Rede de transporte (tcp, ws, grpc, …)",
         "descSECURITY": "Segurança do transporte (TLS, REALITY, NONE)"
