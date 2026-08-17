@@ -14,7 +14,6 @@ import (
 
 // ExternalLinkInput is one row from the client form's Links tab.
 type ExternalLinkInput struct {
-	Id         int    `json:"id"`
 	Kind       string `json:"kind"`
 	Value      string `json:"value"`
 	Remark     string `json:"remark"`
@@ -59,12 +58,14 @@ func normalizeExternalLinks(inputs []ExternalLinkInput) ([]model.ClientExternalL
 		default:
 			return nil, common.NewError("unknown external link kind: " + kind)
 		}
+		if in.ExpiryTime < 0 {
+			return nil, common.NewError("external link expiryTime must be 0 (never) or a future unix millisecond timestamp: " + value)
+		}
 		enable := true
 		if in.Enable != nil {
 			enable = *in.Enable
 		}
 		out = append(out, model.ClientExternalLink{
-			Id:         in.Id,
 			Kind:       kind,
 			Value:      value,
 			Remark:     strings.TrimSpace(in.Remark),
@@ -94,10 +95,8 @@ func (s *ClientService) SetExternalLinksForRecord(id int, inputs []ExternalLinkI
 		if err := tx.Where("client_id = ?", id).Find(&existing).Error; err != nil {
 			return err
 		}
-		byId := make(map[int]model.ClientExternalLink, len(existing))
 		byKindValue := make(map[string]model.ClientExternalLink, len(existing))
 		for _, row := range existing {
-			byId[row.Id] = row
 			key := row.Kind + "\x00" + row.Value
 			if _, ok := byKindValue[key]; !ok {
 				byKindValue[key] = row
@@ -107,14 +106,10 @@ func (s *ClientService) SetExternalLinksForRecord(id int, inputs []ExternalLinkI
 			return err
 		}
 		for i := range rows {
-			if old, ok := byId[rows[i].Id]; ok && old.Kind == rows[i].Kind && old.Value == rows[i].Value {
-				rows[i].LastFetchAt = old.LastFetchAt
-				rows[i].LastFetchError = old.LastFetchError
-			} else if old, ok := byKindValue[rows[i].Kind+"\x00"+rows[i].Value]; ok {
+			if old, ok := byKindValue[rows[i].Kind+"\x00"+rows[i].Value]; ok {
 				rows[i].LastFetchAt = old.LastFetchAt
 				rows[i].LastFetchError = old.LastFetchError
 			}
-			rows[i].Id = 0
 			rows[i].ClientId = id
 			if err := tx.Create(&rows[i]).Error; err != nil {
 				return err

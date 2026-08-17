@@ -36,7 +36,6 @@ import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
 export type ExternalLinkInput = {
-  id?: number;
   kind: 'link' | 'subscription';
   value: string;
   remark: string;

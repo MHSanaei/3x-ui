@@ -1012,9 +1012,9 @@ type ClientExternalLink struct {
 	Value          string `json:"value" gorm:"column:value"`
 	Remark         string `json:"remark" gorm:"column:remark"`
 	Enable         *bool  `json:"enable" gorm:"column:enable;default:true"`
-	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	ExpiryTime     int64  `json:"expiryTime" gorm:"column:expiry_time;default:0"`
 	NamePrefix     string `json:"namePrefix" gorm:"column:name_prefix"`
-	LastFetchAt    int64  `json:"lastFetchAt" gorm:"column:last_fetch_at"`
+	LastFetchAt    int64  `json:"lastFetchAt" gorm:"column:last_fetch_at;default:0"`
 	LastFetchError string `json:"lastFetchError" gorm:"column:last_fetch_error"`
 	SortIndex      int    `json:"sortIndex" gorm:"column:sort_index"`
 	CreatedAt      int64  `json:"createdAt" gorm:"autoCreateTime:milli"`

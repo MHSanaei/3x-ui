@@ -76,7 +76,7 @@ func TestSetExternalLinksPreservesFetchStatus(t *testing.T) {
 	}
 
 	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
-		{Id: row.Id, Kind: row.Kind, Value: row.Value, Remark: "new", Enable: externalLinkBool(true)},
+		{Kind: row.Kind, Value: row.Value, Remark: "new", Enable: externalLinkBool(true)},
 	}); err != nil {
 		t.Fatalf("set external links: %v", err)
 	}
@@ -93,5 +93,32 @@ func TestSetExternalLinksPreservesFetchStatus(t *testing.T) {
 	}
 	if rows[0].Remark != "new" {
 		t.Fatalf("editable fields not updated: %#v", rows[0])
+	}
+}
+
+func TestSetExternalLinksRejectsNegativeExpiry(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	svc := &ClientService{}
+
+	rec := model.ClientRecord{Email: "negative@example.com", SubID: "sub-negative", UUID: "uuid", Enable: true}
+	if err := db.Create(&rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+
+	err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
+		{Kind: model.ExternalLinkKindLink, Value: "trojan://pw@example.com:443#neg", ExpiryTime: -86400000},
+	})
+	want := "external link expiryTime must be 0 (never) or a future unix millisecond timestamp: trojan://pw@example.com:443#neg\n"
+	if err == nil || err.Error() != want {
+		t.Fatalf("err = %v, want %q", err, want)
+	}
+
+	rows, err := svc.GetExternalLinksForRecord(rec.Id)
+	if err != nil {
+		t.Fatalf("get external links: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("rows = %d, want the rejected save to persist nothing", len(rows))
 	}
 }

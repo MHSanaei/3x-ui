@@ -680,7 +680,6 @@
       "lastFetchAt": "最后拉取",
       "lastFetchError": "拉取失败",
       "neverFetched": "尚未拉取",
-      "leaveBlankToNeverExpire": "留空表示永不过期",
       "submitEdit": "保存更改",
       "clientCount": "客户端数量",
       "bulk": "批量添加",

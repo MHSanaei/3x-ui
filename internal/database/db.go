@@ -140,6 +140,9 @@ func initModels() error {
 	if err := normalizeClientExternalLinkEnable(); err != nil {
 		return err
 	}
+	if err := normalizeClientExternalLinkTimestamps(); err != nil {
+		return err
+	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
 		return err
 	}
@@ -959,6 +962,26 @@ func normalizeClientExternalLinkEnable() error {
 	}
 	if res.RowsAffected > 0 {
 		log.Printf("Normalized enable on %d client external link(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeClientExternalLinkTimestamps zeroes the NULLs an older build could
+// leave behind, so the sub-side expiry predicate never drops a legacy row.
+func normalizeClientExternalLinkTimestamps() error {
+	res := db.Exec("UPDATE client_external_links SET expiry_time = 0 WHERE expiry_time IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link expiry_time: %v", res.Error)
+		return res.Error
+	}
+	expiryRows := res.RowsAffected
+	res = db.Exec("UPDATE client_external_links SET last_fetch_at = 0 WHERE last_fetch_at IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link last_fetch_at: %v", res.Error)
+		return res.Error
+	}
+	if expiryRows+res.RowsAffected > 0 {
+		log.Printf("Normalized timestamps on %d client external link(s)", expiryRows+res.RowsAffected)
 	}
 	return nil
 }

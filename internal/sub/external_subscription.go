@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
 // External subscription fetching: a "subscription" external link is a remote
@@ -45,26 +46,34 @@ var subscriptionCache = struct {
 	inflight: make(map[string]*subscriptionFetch),
 }
 
+// subscriptionFetchResult reports whether this caller performed the network
+// fetch, so only it records status and cache hits stay read-only.
+type subscriptionFetchResult struct {
+	links   []string
+	fetched bool
+	err     error
+}
+
 // fetchSubscriptionLinks returns the share links contained in a remote
 // subscription URL, using a short-lived cache. On any failure it returns the
 // last cached value (if present) or nil — never an error, so the rest of the
 // client's subscription still renders.
-func fetchSubscriptionLinks(rowID int, rawURL string) []string {
+func fetchSubscriptionLinks(rawURL string) subscriptionFetchResult {
 	rawURL = strings.TrimSpace(rawURL)
 	if rawURL == "" {
-		return nil
+		return subscriptionFetchResult{}
 	}
 
 	subscriptionCache.Lock()
 	cached, ok := subscriptionCache.m[rawURL]
 	if ok && time.Since(cached.fetchedAt) < subscriptionCacheTTL {
 		subscriptionCache.Unlock()
-		return cached.links
+		return subscriptionFetchResult{links: cached.links}
 	}
 	if fetch, waiting := subscriptionCache.inflight[rawURL]; waiting {
 		subscriptionCache.Unlock()
 		<-fetch.done
-		return fetch.links
+		return subscriptionFetchResult{links: fetch.links}
 	}
 	fetch := &subscriptionFetch{done: make(chan struct{})}
 	subscriptionCache.inflight[rawURL] = fetch
@@ -78,21 +87,18 @@ func fetchSubscriptionLinks(rowID int, rawURL string) []string {
 
 	links, err := doFetchSubscriptionLinks(rawURL)
 	if err != nil {
-		updateExternalSubscriptionFetchState(rowID, time.Now(), err)
 		if ok {
 			fetch.links = cached.links
 		}
-		return fetch.links
+		return subscriptionFetchResult{links: fetch.links, fetched: true, err: err}
 	}
 
-	fetchedAt := time.Now()
-	updateExternalSubscriptionFetchState(rowID, fetchedAt, nil)
 	subscriptionCache.Lock()
-	subscriptionCache.m[rawURL] = subscriptionCacheEntry{links: links, fetchedAt: fetchedAt}
+	subscriptionCache.m[rawURL] = subscriptionCacheEntry{links: links, fetchedAt: time.Now()}
 	trimSubscriptionCacheLocked(rawURL)
 	subscriptionCache.Unlock()
 	fetch.links = links
-	return fetch.links
+	return subscriptionFetchResult{links: links, fetched: true}
 }
 
 func trimSubscriptionCacheLocked(keep string) {
@@ -115,21 +121,26 @@ func trimSubscriptionCacheLocked(keep string) {
 	}
 }
 
-func updateExternalSubscriptionFetchState(rowID int, at time.Time, fetchErr error) {
-	if rowID <= 0 {
+// recordExternalSubscriptionFetch stamps status on every row holding this URL,
+// keyed by value because row ids churn on save and the cache is per URL.
+func recordExternalSubscriptionFetch(rawURL string, fetchErr error) {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
 		return
 	}
 	lastFetchError := ""
 	if fetchErr != nil {
 		lastFetchError = fetchErr.Error()
 	}
-	_ = database.GetDB().
+	if err := database.GetDB().
 		Model(&model.ClientExternalLink{}).
-		Where("id = ?", rowID).
+		Where("kind = ? AND value = ?", model.ExternalLinkKindSubscription, rawURL).
 		Updates(map[string]any{
-			"last_fetch_at":    at.UnixMilli(),
+			"last_fetch_at":    time.Now().UnixMilli(),
 			"last_fetch_error": lastFetchError,
-		}).Error
+		}).Error; err != nil {
+		logger.Warningf("sub: recording fetch status for external subscription %q: %v", rawURL, err)
+	}
 }
 
 func doFetchSubscriptionLinks(rawURL string) ([]string, error) {

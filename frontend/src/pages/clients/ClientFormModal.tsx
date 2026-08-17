@@ -1036,7 +1036,7 @@ reset: Number(values.reset) || 0,
                                   <DateTimePicker
                                     value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
                                     onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                    placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
                                   />
                                 )}
                               />
@@ -1084,7 +1084,7 @@ reset: Number(values.reset) || 0,
                                   <DateTimePicker
                                     value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
                                     onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                    placeholder={t('pages.clients.leaveBlankToNeverExpire')}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
                                   />
                                 )}
                               />

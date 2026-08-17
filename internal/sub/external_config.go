@@ -17,7 +17,6 @@ import (
 // externalLinkEntry is one client × external-link row, resolved for a
 // subscription request. Email/Enable come from the owning client.
 type externalLinkEntry struct {
-	Id         int
 	Kind       string
 	Value      string
 	Remark     string
@@ -56,7 +55,7 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	now := time.Now().UnixMilli()
 	if err := db.Where("client_id IN ?", clientIds).
 		Where("(enable IS NULL OR enable = ?)", true).
-		Where("(expiry_time = 0 OR expiry_time > ?)", now).
+		Where("(expiry_time IS NULL OR expiry_time <= 0 OR expiry_time > ?)", now).
 		Order("client_id ASC, sort_index ASC, id ASC").
 		Find(&rows).Error; err != nil {
 		return nil, err
@@ -69,7 +68,6 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	for _, r := range rows {
 		rec := byId[r.ClientId]
 		out = append(out, externalLinkEntry{
-			Id:         r.Id,
 			Kind:       r.Kind,
 			Value:      r.Value,
 			Remark:     r.Remark,
@@ -81,16 +79,16 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	return out, nil
 }
 
-// expandEntry turns one entry into the concrete share links it contributes. A
-// "subscription" entry is fetched (cached) and its links keep their own names
-// (URL #fragment / vmess ps), optionally behind the row's name prefix. A "link"
-// entry uses the row remark when set, otherwise the link's original name —
-// never blank, so Clash/JSON do not fall back to the client email.
+// expandEntry turns one entry into the concrete share links it contributes.
+// Names are never blank, so Clash/JSON do not fall back to the client email.
 func expandEntry(e externalLinkEntry) []expandedLink {
 	if e.Kind == model.ExternalLinkKindSubscription {
-		links := fetchSubscriptionLinks(e.Id, e.Value)
-		out := make([]expandedLink, 0, len(links))
-		for _, l := range links {
+		res := fetchSubscriptionLinks(e.Value)
+		if res.fetched {
+			recordExternalSubscriptionFetch(e.Value, res.err)
+		}
+		out := make([]expandedLink, 0, len(res.links))
+		for _, l := range res.links {
 			out = append(out, expandedLink{Link: l, Name: prefixedLinkName(linkDisplayName(l), e.NamePrefix, e.Email)})
 		}
 		return out
@@ -137,14 +135,13 @@ func linkDisplayName(rawLink string) string {
 	return ""
 }
 
-// prefixedLinkName applies a row's name prefix to a link's own display name,
-// falling back to the client email when the link carries no name. Without a
-// prefix the link keeps whatever name it already had.
+// prefixedLinkName falls back to the client email so a prefixed row never
+// renders as the bare prefix when the link carries no name of its own.
 func prefixedLinkName(displayName, prefix, fallback string) string {
-	name := strings.TrimSpace(displayName)
 	if strings.TrimSpace(prefix) == "" {
-		return name
+		return displayName
 	}
+	name := displayName
 	if name == "" {
 		name = strings.TrimSpace(fallback)
 	}

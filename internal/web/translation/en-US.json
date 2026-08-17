@@ -680,7 +680,6 @@
       "lastFetchAt": "Last fetch",
       "lastFetchError": "Fetch error",
       "neverFetched": "Not fetched yet",
-      "leaveBlankToNeverExpire": "Leave blank to never expire",
       "submitEdit": "Save Changes",
       "clientCount": "Number of Clients",
       "bulk": "Add Bulk",
