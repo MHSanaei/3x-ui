@@ -15,10 +15,10 @@ import {
   type SubBalancerStrategy,
 } from '@/schemas/subBalancer';
  
-// The JSON subscription can only build proxy outbounds for these protocols —
-// the same filter the client form applies to its inbound picker.
+// The JSON subscription only builds proxy outbounds for these protocols;
+// mtproto has no proxy-outbound case, so it is excluded from balancer members.
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto',
+  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
 ]);
  
 const STRATEGY_LABEL_KEYS: Record<SubBalancerStrategy, string> = {
