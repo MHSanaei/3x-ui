@@ -363,6 +363,8 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		return nil
 	}
 
+	var clearDirtyAt int64
+	clearDirtyAfterTraffic := false
 	if n.ConfigDirty {
 		reconcileCtx, reconcileCancel := context.WithTimeout(context.Background(), nodeReconcileTimeout)
 		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n)
@@ -373,10 +375,10 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 			// whole node's traffic/online sync forever (#5685).
 			logger.Warningf("node traffic sync: reconcile for %s failed, continuing with traffic pull: %v", n.Name, reconcileErr)
 		} else {
-			if clearErr := j.nodeService.ClearNodeDirty(n.Id, n.ConfigDirtyAt); clearErr != nil {
-				logger.Warningf("node traffic sync: clear dirty for %s failed: %v", n.Name, clearErr)
-			}
-			j.structural.set()
+			// Keep dirty for this tick's traffic merge so lagging ClientStats
+			// cannot clobber the just-pushed master lifecycle (#6228).
+			clearDirtyAfterTraffic = true
+			clearDirtyAt = n.ConfigDirtyAt
 		}
 	}
 
@@ -410,6 +412,12 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if err != nil {
 		logger.Warningf("node traffic sync: merge for %s failed: %v", n.Name, err)
 		return nil
+	}
+	if clearDirtyAfterTraffic {
+		if clearErr := j.nodeService.ClearNodeDirty(n.Id, clearDirtyAt); clearErr != nil {
+			logger.Warningf("node traffic sync: clear dirty for %s failed: %v", n.Name, clearErr)
+		}
+		j.structural.set()
 	}
 	if changed {
 		j.structural.set()
