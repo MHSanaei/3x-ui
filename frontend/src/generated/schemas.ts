@@ -1147,9 +1147,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "security",
       "subId",
       "tgId",
-      "totalGB",
-      "trafficReset",
-      "trafficResetDay"
+      "totalGB"
     ],
     "type": "object"
   },

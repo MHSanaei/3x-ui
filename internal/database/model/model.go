@@ -895,8 +895,8 @@ type Client struct {
 	Comment      string         `json:"comment" form:"comment"`       // Client comment
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
 	// Per-client traffic reset cycle, independent of the inbound's own (#5497).
-	TrafficReset    string `json:"trafficReset" form:"trafficReset" validate:"omitempty,oneof=never hourly daily weekly monthly"`
-	TrafficResetDay int    `json:"trafficResetDay" form:"trafficResetDay" validate:"omitempty,gte=1,lte=31"`
+	TrafficReset    string `json:"trafficReset,omitempty" form:"trafficReset" validate:"omitempty,oneof=never hourly daily weekly monthly"`
+	TrafficResetDay int    `json:"trafficResetDay,omitempty" form:"trafficResetDay" validate:"omitempty,gte=1,lte=31"`
 	CreatedAt       int64  `json:"created_at,omitempty"` // Creation timestamp
 	UpdatedAt       int64  `json:"updated_at,omitempty"` // Last update timestamp
 }
@@ -1316,7 +1316,7 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		}
 	}
 	if existing.TrafficReset != incoming.TrafficReset && incoming.TrafficReset != "" {
-		if incomingNewer || existing.TrafficReset == "" || existing.TrafficReset == "never" {
+		if incomingNewer || existing.TrafficReset == "" {
 			keep("trafficReset", existing.TrafficReset, incoming.TrafficReset, incoming.TrafficReset)
 			existing.TrafficReset = incoming.TrafficReset
 		}

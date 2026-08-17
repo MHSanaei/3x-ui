@@ -1173,9 +1173,7 @@
           "security",
           "subId",
           "tgId",
-          "totalGB",
-          "trafficReset",
-          "trafficResetDay"
+          "totalGB"
         ],
         "type": "object"
       },

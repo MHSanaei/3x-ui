@@ -115,6 +115,10 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			skip(email, verr.Error())
 			continue
 		}
+		if verr := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
 
 		// An existing record (in the DB or just created from the attached set
 		// above) always wins — import never clobbers a live client.

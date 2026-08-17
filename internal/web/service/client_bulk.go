@@ -1148,6 +1148,10 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 			skip(email, verr.Error())
 			continue
 		}
+		if verr := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
 		if len(payloads[i].InboundIds) == 0 {
 			skip(email, "at least one inbound is required")
 			continue

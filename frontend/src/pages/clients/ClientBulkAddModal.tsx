@@ -8,7 +8,7 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { RandomUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
-import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
+import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { useClients, type InboundOption } from '@/hooks/useClients';
@@ -37,6 +37,8 @@ const EMPTY: ClientBulkAddFormValues = {
   totalGB: 0,
   expiryTime: 0,
   reset: 0,
+  trafficReset: 'never' as const,
+  trafficResetDay: 1,
   inboundIds: [],
 };
 
@@ -67,6 +69,7 @@ export default function ClientBulkAddModal({
   const expiryTime = useWatch({ control: methods.control, name: 'expiryTime' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
+  const trafficReset = useWatch({ control: methods.control, name: 'trafficReset' });
   const [delayedStart, setDelayedStart] = useState(false);
   const [saving, setSaving] = useState(false);
   const fail2ban = useFail2banStatusQuery();
@@ -176,6 +179,8 @@ export default function ClientBulkAddModal({
           totalGB: Math.round((current.totalGB || 0) * SizeFormatter.ONE_GB),
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
+          trafficReset: current.trafficReset || 'never',
+          trafficResetDay: Number(current.trafficResetDay) || 1,
           limitIp: Number(current.limitIp) || 0,
           limitHwid: Number(current.limitHwid) || 0,
           group: current.group,
@@ -374,6 +379,25 @@ export default function ClientBulkAddModal({
             >
               <InputNumber min={0} />
             </FormField>
+
+            <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
+              <Select
+                options={TRAFFIC_RESETS.map((r) => ({
+                  value: r,
+                  label: t(`pages.inbounds.periodicTrafficReset.${r}`),
+                }))}
+              />
+            </FormField>
+
+            {trafficReset === 'monthly' && (
+              <FormField
+                name="trafficResetDay"
+                label={t('pages.inbounds.periodicTrafficResetDay')}
+                transform={{ output: (v) => Number(v) || 1 }}
+              >
+                <InputNumber min={1} max={31} />
+              </FormField>
+            )}
           </Form>
         </FormProvider>
       </Modal>

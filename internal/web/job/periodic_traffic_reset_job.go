@@ -14,6 +14,7 @@ type Period string
 type PeriodicTrafficResetJob struct {
 	inboundService service.InboundService
 	clientService  service.ClientService
+	xrayService    service.XrayService
 	period         Period
 	location       *time.Location
 }
@@ -37,8 +38,11 @@ func monthlyResetDue(resetDay int, now time.Time) bool {
 // Run resets traffic statistics for all inbounds that match the configured reset
 // period, then for the clients carrying that period on their own (#5497).
 func (j *PeriodicTrafficResetJob) Run() {
-	defer j.resetClientsOnTheirOwnCycle()
+	j.resetInboundsOnSchedule()
+	j.resetClientsOnTheirOwnCycle()
+}
 
+func (j *PeriodicTrafficResetJob) resetInboundsOnSchedule() {
 	inbounds, err := j.inboundService.GetInboundsByTrafficReset(string(j.period))
 	if err != nil {
 		logger.Warning("Failed to get inbounds for traffic reset:", err)
@@ -85,34 +89,49 @@ func (j *PeriodicTrafficResetJob) Run() {
 // resetClientsOnTheirOwnCycle resets clients whose cycle is set individually. A
 // client inside an inbound on the same cycle is reset twice, which is harmless.
 func (j *PeriodicTrafficResetJob) resetClientsOnTheirOwnCycle() {
-	records, err := j.clientService.GetRecordsByTrafficReset(string(j.period))
+	cycles, err := j.clientService.GetClientsByTrafficReset(string(j.period))
 	if err != nil {
 		logger.Warning("Failed to get clients for traffic reset:", err)
 		return
 	}
 
-	if j.period == "monthly" {
-		now := time.Now().In(j.location)
-		due := records[:0]
-		for _, rec := range records {
-			if monthlyResetDue(rec.TrafficResetDay, now) {
-				due = append(due, rec)
-			}
-		}
-		records = due
-	}
-	if len(records) == 0 {
-		return
-	}
-	logger.Infof("Running periodic traffic reset job for period: %s (%d matching clients)", j.period, len(records))
-
-	resetCount := 0
-	for _, rec := range records {
-		if _, resetErr := j.clientService.ResetTrafficByEmail(&j.inboundService, rec.Email); resetErr != nil {
-			logger.Warning("Failed to reset traffic for client", rec.Email, ":", resetErr)
+	now := time.Now().In(j.location)
+	due := make([]service.ClientResetCycle, 0, len(cycles))
+	for _, c := range cycles {
+		// Monthly clients come due on their own day, the rule the inbound-level
+		// schedule already follows.
+		if j.period == "monthly" && !monthlyResetDue(c.TrafficResetDay, now) {
 			continue
 		}
+		// A reset re-enables, which is right for a client the quota switched off
+		// and wrong for one an operator switched off by hand.
+		if !c.Enable && !c.Depleted() {
+			continue
+		}
+		due = append(due, c)
+	}
+	if len(due) == 0 {
+		return
+	}
+	logger.Infof("Running periodic traffic reset job for period: %s (%d matching clients)", j.period, len(due))
+
+	resetCount := 0
+	needRestart := false
+	for _, c := range due {
+		// ResetTrafficByEmail rather than a bulk UPDATE: it is the path that also
+		// propagates to the client's node and clears the MTProto sidecar quota.
+		nr, resetErr := j.clientService.ResetTrafficByEmail(&j.inboundService, c.Email)
+		if resetErr != nil {
+			logger.Warning("Failed to reset traffic for client", c.Email, ":", resetErr)
+			continue
+		}
+		needRestart = needRestart || nr
 		resetCount++
+	}
+	// Dropping this leaves a re-enabled client absent from the running core until
+	// something unrelated restarts it.
+	if needRestart {
+		j.xrayService.SetToNeedRestart()
 	}
 
 	if resetCount > 0 {

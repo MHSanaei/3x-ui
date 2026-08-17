@@ -70,27 +70,85 @@ func TestClientEditKeepsTheTrafficResetCycle(t *testing.T) {
 	}
 }
 
+// The setting is useless if it can only be chosen once. This is the assertion
+// the earlier "survives an unrelated edit" test could not make: that one passed
+// precisely because nothing on the attached-inbound path ever wrote the column.
+func TestClientEditChangesTheTrafficResetCycle(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+
+	clients := []model.Client{
+		{
+			Email: "chg@x", ID: "77777777-7777-7777-7777-777777777777", Enable: true,
+			TrafficReset: "weekly", TrafficResetDay: 1,
+			ExpiryTime: time.Now().Add(24 * time.Hour).UnixMilli(),
+		},
+	}
+	ib := mkInbound(t, 30302, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+
+	rec, err := svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+
+	edited := rec.ToClient()
+	edited.TrafficReset = "monthly"
+	edited.TrafficResetDay = 9
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after edit: %v", err)
+	}
+	if rec.TrafficReset != "monthly" || rec.TrafficResetDay != 9 {
+		t.Fatalf("clients row holds %q/%d after the operator changed it to monthly/9: the job keeps applying the old cycle",
+			rec.TrafficReset, rec.TrafficResetDay)
+	}
+
+	// Turning it off has to work too, and "never" is not an empty value.
+	edited = rec.ToClient()
+	edited.TrafficReset = "never"
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update to never: %v", err)
+	}
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after disabling: %v", err)
+	}
+	if rec.TrafficReset != "never" {
+		t.Fatalf("clients row holds %q after the operator switched the cycle off", rec.TrafficReset)
+	}
+}
+
 // An unknown cycle would leave a field that reads as configured while no job
 // ever selects the client, so it is rejected instead of coerced.
 func TestClientTrafficResetValidation(t *testing.T) {
 	for _, tc := range []struct {
+		name   string
 		period string
 		day    int
 		ok     bool
 	}{
-		{"", 0, true},
-		{"never", 1, true},
-		{"monthly", 31, true},
-		{"fortnightly", 1, false},
-		{"monthly", 32, false},
-		{"monthly", -1, false},
+		{"unset", "", 0, true},
+		{"never", "never", 1, true},
+		{"monthly last day", "monthly", 31, true},
+		{"unknown period", "fortnightly", 1, false},
+		{"day past the month", "monthly", 32, false},
+		{"negative day", "monthly", -1, false},
 	} {
-		err := validateClientTrafficReset(tc.period, tc.day)
-		if tc.ok && err != nil {
-			t.Errorf("validateClientTrafficReset(%q, %d) = %v, want accepted", tc.period, tc.day, err)
-		}
-		if !tc.ok && err == nil {
-			t.Errorf("validateClientTrafficReset(%q, %d) accepted, want rejected", tc.period, tc.day)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateClientTrafficReset(tc.period, tc.day)
+			if tc.ok && err != nil {
+				t.Errorf("validateClientTrafficReset(%q, %d) = %v, want accepted", tc.period, tc.day, err)
+			}
+			if !tc.ok && err == nil {
+				t.Errorf("validateClientTrafficReset(%q, %d) accepted, want rejected", tc.period, tc.day)
+			}
+		})
 	}
 }

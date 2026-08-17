@@ -30,13 +30,11 @@ import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
-import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
+import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
-
-const CLIENT_TRAFFIC_RESETS = ['never', 'hourly', 'daily', 'weekly', 'monthly'] as const;
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
@@ -803,7 +801,7 @@ trafficResetDay: Number(values.trafficResetDay) || 1,
                             label={t('pages.inbounds.periodicTrafficResetTitle')}
                           >
                             <Select
-                              options={CLIENT_TRAFFIC_RESETS.map((r) => ({
+                              options={TRAFFIC_RESETS.map((r) => ({
                                 value: r,
                                 label: t(`pages.inbounds.periodicTrafficReset.${r}`),
                               }))}
