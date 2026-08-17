@@ -46,10 +46,8 @@ func findDocByRemarks(docs []map[string]any, remarks string) map[string]any {
 	return nil
 }
 
-// The balancer document mirrors the reference model: members retagged under a
-// per-balancer prefix, a balancer selecting that prefix, a burst observatory
-// probing it, and proxy rules pointed at the balancer — while the manual
-// documents keep their plain "proxy" routing untouched.
+// The balancer document retags members under a per-balancer prefix, points
+// proxy rules at the balancer, and probes it — manual docs keep plain "proxy".
 func TestSubJson_BalancerDocument(t *testing.T) {
 	seedSubDB(t)
 	tcp := seedSubInbound(t, "s1", "tcpin", 4701, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
@@ -92,6 +90,9 @@ func TestSubJson_BalancerDocument(t *testing.T) {
 	strategy, _ := balancer["strategy"].(map[string]any)
 	if strategy["type"] != "leastLoad" {
 		t.Fatalf("strategy = %v", strategy)
+	}
+	if balancer["fallbackTag"] != "bal-1-vless" {
+		t.Fatalf("fallbackTag = %v, want bal-1-vless (first member)", balancer["fallbackTag"])
 	}
 
 	ruleJSON, _ := json.Marshal(routing["rules"])
@@ -273,10 +274,8 @@ func TestSubJson_BalancerObservatoryConditional(t *testing.T) {
 	}
 }
 
-// A balancer selecting [A, B] where B is disabled (inbounds.enable=false) must
-// only carry A's member: getInboundsBySubId filters enable=true, so B never
-// reaches entries and cannot become a balancer member. Guards the access
-// guarantee that a balancer only surfaces inbounds the subscriber can see.
+// A balancer selecting [A, B] with B disabled must carry only A: getInboundsBySubId
+// filters enable=true, so B never reaches entries. Guards the access scoping.
 func TestSubJson_BalancerExcludesDisabledInbound(t *testing.T) {
 	seedSubDB(t)
 	a := seedSubInbound(t, "s1", "keep", 4751, 1, wsTLSStream)
@@ -335,4 +334,91 @@ func TestSubJson_BalancerSkippedWhenAllMembersDisabled(t *testing.T) {
 	if findDocByRemarks(docs, "empty") != nil {
 		t.Fatalf("balancer with no accessible members must not be emitted:\n%s", out)
 	}
+}
+
+// Connectivity defaults to empty (skip the direct pre-check); an explicit empty
+// value stays empty instead of restoring the old generate_204 default.
+func TestSubJson_BalancerObservatoryConnectivityDefaultEmpty(t *testing.T) {
+	seedSubDB(t)
+	inb := seedSubInbound(t, "s1", "lp", 4781, 1, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{inb.Id}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	ping := observatoryPingConfig(t, parseSubJsonDocs(t, out), "pinger")
+	if ping["connectivity"] != "" {
+		t.Fatalf("default connectivity = %v, want empty (skip)", ping["connectivity"])
+	}
+
+	js.SetObservatoryConfig(`{"connectivity":""}`)
+	out, _, err = js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	ping = observatoryPingConfig(t, parseSubJsonDocs(t, out), "pinger")
+	if ping["connectivity"] != "" {
+		t.Fatalf("explicit empty connectivity = %v, want empty", ping["connectivity"])
+	}
+
+	js.SetObservatoryConfig(`{"connectivity":"http://probe.example/204"}`)
+	out, _, err = js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	ping = observatoryPingConfig(t, parseSubJsonDocs(t, out), "pinger")
+	if ping["connectivity"] != "http://probe.example/204" {
+		t.Fatalf("custom connectivity = %v, want http://probe.example/204", ping["connectivity"])
+	}
+}
+
+// leastPing/leastLoad require a burst observatory (Xray refuses to start these
+// strategies without one), so it is always emitted; the balancer entry carries
+// fallbackTag for the probe-outage case. A stored {"enabled":false} is ignored —
+// the observatory is mandatory for these strategies, not an optional extra.
+func TestSubJson_BalancerObservatoryAlwaysEmittedForProbingStrategies(t *testing.T) {
+	seedSubDB(t)
+	a := seedSubInbound(t, "s1", "a", 4771, 1, wsTLSStream)
+	b := seedSubInbound(t, "s1", "b", 4772, 2, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", NewSubService(""))
+	js.SetObservatoryConfig(`{"enabled":false}`)
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	pinger := findDocByRemarks(parseSubJsonDocs(t, out), "pinger")
+	if pinger == nil {
+		t.Fatalf("balancer doc missing:\n%s", out)
+	}
+	if _, has := pinger["burstObservatory"]; !has {
+		t.Fatalf("leastPing must always emit burstObservatory (Xray requires it):\n%s", out)
+	}
+	routing, _ := pinger["routing"].(map[string]any)
+	balancers, _ := routing["balancers"].([]any)
+	balancer, _ := balancers[0].(map[string]any)
+	if balancer["fallbackTag"] != "bal-1-ws" {
+		t.Fatalf("fallbackTag = %v, want bal-1-ws (first member)", balancer["fallbackTag"])
+	}
+}
+
+func observatoryPingConfig(t *testing.T, docs []map[string]any, remarks string) map[string]any {
+	t.Helper()
+	doc := findDocByRemarks(docs, remarks)
+	if doc == nil {
+		t.Fatalf("balancer doc %q missing", remarks)
+	}
+	obs, _ := doc["burstObservatory"].(map[string]any)
+	if obs == nil {
+		t.Fatalf("balancer %q has no burstObservatory", remarks)
+	}
+	ping, _ := obs["pingConfig"].(map[string]any)
+	return ping
 }

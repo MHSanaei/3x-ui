@@ -1508,7 +1508,8 @@
           "sampling": "Sampling",
           "samplingDesc": "Number of consecutive probes averaged for stability.",
           "httpMethod": "HTTP method",
-          "httpMethodDesc": "Method used for probe requests."
+          "httpMethodDesc": "Method used for probe requests.",
+          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
       }
     },

@@ -1391,7 +1391,8 @@
           "sampling": "Lấy mẫu",
           "samplingDesc": "Số lần probe liên tiếp để trung bình độ ổn định.",
           "httpMethod": "Phương thức HTTP",
-          "httpMethodDesc": "Phương thức dùng cho yêu cầu probe."
+          "httpMethodDesc": "Phương thức dùng cho yêu cầu probe.",
+          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
       }
     },

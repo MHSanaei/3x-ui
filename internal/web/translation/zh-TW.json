@@ -1391,7 +1391,8 @@
           "sampling": "取樣",
           "samplingDesc": "用於穩定度平均的連續探活次數。",
           "httpMethod": "HTTP 方法",
-          "httpMethodDesc": "探活請求使用的 HTTP 方法。"
+          "httpMethodDesc": "探活請求使用的 HTTP 方法。",
+          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
       }
     },

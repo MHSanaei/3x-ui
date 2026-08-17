@@ -44,17 +44,17 @@ const STRATEGY_COLORS: Record<string, string> = {
 
 const DEFAULT_OBSERVATORY = {
   destination: 'http://www.google.com/generate_204',
-  connectivity: 'http://www.google.com/generate_204',
+  connectivity: '',
   interval: '1m',
   sampling: 3,
   timeout: '5s',
   httpMethod: 'HEAD',
 };
 
-function readJson<T>(raw: string, fallback: T): T {
+function readJson<T extends object>(raw: string, fallback: T): T {
   try {
     if (!raw) return fallback;
-    return JSON.parse(raw) as T;
+    return { ...fallback, ...(JSON.parse(raw) as Partial<T>) };
   } catch {
     return fallback;
   }
@@ -101,8 +101,8 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
 
   const observatoryEnabled = allSetting.subJsonObservatory !== '';
   const observatoryObj = useMemo(
-    () => (observatoryEnabled ? readJson<typeof DEFAULT_OBSERVATORY>(allSetting.subJsonObservatory, DEFAULT_OBSERVATORY) : DEFAULT_OBSERVATORY),
-    [allSetting.subJsonObservatory, observatoryEnabled],
+    () => readJson<typeof DEFAULT_OBSERVATORY>(allSetting.subJsonObservatory, DEFAULT_OBSERVATORY),
+    [allSetting.subJsonObservatory],
   );
 
   function setObservatoryEnabled(v: boolean) {
@@ -231,6 +231,12 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
 
   const observatoryTab = (
     <>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        title={t('pages.settings.subBalancers.observatory.note')}
+      />
       <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.title')} description={t('pages.settings.subBalancers.observatory.desc')}>
         <Switch checked={observatoryEnabled} onChange={setObservatoryEnabled} />
       </SettingListItem>
@@ -246,7 +252,7 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
           <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.connectivity')} description={t('pages.settings.subBalancers.observatory.connectivityDesc')}>
             <Input
               value={observatoryObj.connectivity}
-              placeholder="http://www.google.com/generate_204"
+              placeholder="http://connectivitycheck.platform.hicloud.com/generate_204"
               onChange={(e) => setObservatoryField('connectivity', e.target.value)}
             />
           </SettingListItem>

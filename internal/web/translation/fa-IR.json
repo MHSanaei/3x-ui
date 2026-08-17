@@ -1391,7 +1391,8 @@
           "sampling": "نمونه‌برداری",
           "samplingDesc": "تعداد probe متوالی برای میانگین پایداری.",
           "httpMethod": "متد HTTP",
-          "httpMethodDesc": "متد استفاده‌شده برای درخواست‌های probe."
+          "httpMethodDesc": "متد استفاده‌شده برای درخواست‌های probe.",
+          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
       }
     },

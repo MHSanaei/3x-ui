@@ -195,7 +195,7 @@ type subBalancerObservatoryConfig struct {
 func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
 	return subBalancerObservatoryConfig{
 		Destination:  subBalancerProbeURL,
-		Connectivity: subBalancerProbeURL,
+		Connectivity: "",
 		Interval:     "1m",
 		Sampling:     3,
 		Timeout:      "5s",
@@ -203,8 +203,8 @@ func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
 	}
 }
 
-// SetObservatoryConfig overrides defaults from the panel JSON setting; invalid
-// or empty fields keep the default so a partial config always works.
+// SetObservatoryConfig overrides defaults from the panel JSON setting. An
+// empty cfg keeps all defaults; empty connectivity skips the direct pre-check.
 func (s *SubJsonService) SetObservatoryConfig(cfg string) {
 	s.observatory = defaultSubBalancerObservatoryConfig()
 	if cfg == "" {
@@ -294,17 +294,17 @@ func balancerTransport(network string) string {
 	}
 }
 
-// buildBalancerConfig assembles the balancer profile: members retagged under
-// a per-balancer prefix, a routing.balancers entry selecting it, and (for
-// leastPing/leastLoad) a burst observatory probing it.
+// buildBalancerConfig assembles the balancer profile: members retagged under a
+// per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	var proxies []json_util.RawMessage
+	var firstTag string
 	// entries is the subscriber's accessible set (getInboundsBySubId filters
-	// inbounds.enable=true + a matching client), so members stay scoped to it.
+	// inbounds.enable=true + a matching client); kind!=0 skips balancer entries.
 	for _, entry := range entries {
-		if !slices.Contains(balancer.InboundIds, entry.id) {
+		if entry.kind != 0 || !slices.Contains(balancer.InboundIds, entry.id) {
 			continue
 		}
 		for _, config := range entry.configs {
@@ -329,6 +329,9 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			usedTags[tag] = true
 			outbound["tag"] = tag
 			if raw, err := json.MarshalIndent(outbound, "", "  "); err == nil {
+				if firstTag == "" {
+					firstTag = tag
+				}
 				proxies = append(proxies, raw)
 			}
 		}
@@ -361,21 +364,28 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 		rules = append(rules, ruleMap)
 	}
 	routing["rules"] = rules
-	routing["balancers"] = []any{map[string]any{
+	isObservatory := balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad"
+	balancerEntry := map[string]any{
 		"tag":      subBalancerTag,
 		"selector": []string{prefix},
 		"strategy": map[string]any{"type": balancer.Strategy},
-	}}
+	}
+	if isObservatory && firstTag != "" {
+		// With all probes failing, route to the first member instead of
+		// failing dispatch.
+		balancerEntry["fallbackTag"] = firstTag
+	}
+	routing["balancers"] = []any{balancerEntry}
 
 	newConfigJson := make(map[string]any, len(s.configJson)+2)
 	maps.Copy(newConfigJson, s.configJson)
 	newConfigJson["outbounds"] = outbounds
 	newConfigJson["remarks"] = balancer.Remark
 	newConfigJson["routing"] = routing
-	// random/roundRobin have no fallback, so an observatory would only make the
-	// client probe every outbound for nothing. Emit one for the strategies that
-	// actually consume probe results.
-	if balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad" {
+	// leastPing/leastLoad require a burst observatory (Xray refuses to start
+	// these strategies without one), so always emit it. fallbackTag above
+	// covers the probe-outage case.
+	if isObservatory {
 		newConfigJson["burstObservatory"] = s.balancerObservatory(prefix)
 	}
 
