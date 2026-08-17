@@ -430,6 +430,7 @@
         "scanRealityTargetError": "Gagal memindai target REALITY.",
         "scanRealityTargetFeasible": "Target layak — target dan SNI terisi.",
         "scanRealityTargetNotFeasible": "Target dapat dijangkau tetapi tidak layak untuk REALITY.",
+        "scanRealityTargetPrivate": "Target dapat dijangkau, tetapi berada di jaringan privat/lokal.",
         "invalidClientField": "Klien {client}: kolom {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} lainnya)"
@@ -601,6 +602,10 @@
         "scanCurve": "Pertukaran Kunci",
         "scanCert": "Sertifikat",
         "scanCertInvalid": "Tidak tepercaya",
+        "scanCertExpiry": "Sertifikat kedaluwarsa",
+        "scanPrivateNote": "Diperiksa melalui jaringan privat/lokal — alamat ini tidak dapat dijangkau dari internet.",
+        "scanPrivateConfirmTitle": "Target di jaringan lokal",
+        "scanPrivateConfirmContent": "\"{target}\" mengarah ke alamat privat atau loopback. Pemeriksaan akan melewati pelindung SSRF panel hanya untuk uji ini. Lanjutkan?",
         "scanLatency": "Latensi",
         "scanUse": "Gunakan",
         "scanRescan": "Pindai ulang",

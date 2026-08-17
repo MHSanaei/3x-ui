@@ -430,6 +430,7 @@
         "scanRealityTargetError": "Не вдалося просканувати ціль REALITY.",
         "scanRealityTargetFeasible": "Ціль підходить — поля target і SNI заповнено.",
         "scanRealityTargetNotFeasible": "Ціль доступна, але не підходить для REALITY.",
+        "scanRealityTargetPrivate": "Ціль працює, але розташована у приватній (локальній) мережі.",
         "invalidClientField": "Клієнт {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ще)"
@@ -601,6 +602,10 @@
         "scanCurve": "Обмін ключами",
         "scanCert": "Сертифікат",
         "scanCertInvalid": "Ненадійний",
+        "scanCertExpiry": "Сертифікат діє до",
+        "scanPrivateNote": "Перевірено у внутрішній (локальній) мережі — ця адреса недоступна з інтернету.",
+        "scanPrivateConfirmTitle": "Ціль у локальній мережі",
+        "scanPrivateConfirmContent": "«{target}» вказує на приватну або локальну адресу. Перевірка обійде SSRF-захист панелі лише для цього запиту. Продовжити?",
         "scanLatency": "Затримка",
         "scanUse": "Обрати",
         "scanRescan": "Пересканувати",

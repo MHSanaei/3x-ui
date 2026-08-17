@@ -669,6 +669,7 @@ export interface RealityScanResult {
   latencyMs: number;
   notAfter: string;
   port: number;
+  privateTarget: boolean;
   reason: string;
   serverNames: string[];
   target: string;

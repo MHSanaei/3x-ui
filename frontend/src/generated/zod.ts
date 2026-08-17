@@ -715,6 +715,7 @@ export const RealityScanResultSchema = z.object({
   latencyMs: z.number().int(),
   notAfter: z.string(),
   port: z.number().int(),
+  privateTarget: z.boolean(),
   reason: z.string(),
   serverNames: z.array(z.string()),
   target: z.string(),

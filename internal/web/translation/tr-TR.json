@@ -430,6 +430,7 @@
         "scanRealityTargetError": "REALITY hedefi taranamadı.",
         "scanRealityTargetFeasible": "Hedef uygun — hedef ve SNI dolduruldu.",
         "scanRealityTargetNotFeasible": "Hedefe ulaşılabiliyor ancak REALITY için uygun değil.",
+        "scanRealityTargetPrivate": "Hedef çalışıyor ancak özel/yerel bir ağda.",
         "invalidClientField": "Kullanıcı {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} tane daha)"
@@ -601,6 +602,10 @@
         "scanCurve": "Anahtar Değişimi",
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
+        "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
+        "scanPrivateConfirmTitle": "Hedef yerel ağda",
+        "scanPrivateConfirmContent": "\"{target}\" özel veya loopback bir adrese çözümleniyor. Kontrol, yalnızca bu deneme için panelin SSRF korumasını atlayacak. Devam edilsin mi?",
         "scanLatency": "Gecikme",
         "scanUse": "Kullan",
         "scanRescan": "Yeniden tara",
