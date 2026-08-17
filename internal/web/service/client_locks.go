@@ -234,10 +234,8 @@ func stripTombstonedClients(settings string) (string, bool) {
 	return string(b), true
 }
 
-// liftClientLifecycleInSettings applies mergeActivationExpiry / staleNodeDisable
-// to each client entry in a node settings blob before the master adopts it, so a
-// lagging snapshot cannot rewrite central inbound JSON with a pre-extension
-// deadline or enable=false (#6228).
+// liftClientLifecycleInSettings rewrites adopted settings from master traffic
+// so a lagging node blob cannot store pre-extension expiry/enable (#6228).
 func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*xray.ClientTraffic) (string, bool) {
 	if settings == "" || len(trafficByEmail) == 0 {
 		return settings, false
@@ -274,7 +272,7 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 			changed = true
 		}
 		nodeEnable, _ := cm["enable"].(bool)
-		if !nodeEnable && staleNodeDisable(tr, nodeExpiry) && tr.Enable {
+		if !nodeEnable && staleNodeDisable(tr, nodeExpiry, 0, 0) && tr.Enable {
 			cm["enable"] = true
 			changed = true
 		}
@@ -289,6 +287,34 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 		return settings, false
 	}
 	return string(b), true
+}
+
+// settingsClientAbsoluteExpiry returns a client's absolute expiryTime from
+// settings JSON when present (>0); otherwise ok is false.
+func settingsClientAbsoluteExpiry(settings, email string) (int64, bool) {
+	if settings == "" || email == "" {
+		return 0, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return 0, false
+	}
+	clients, _ := parsed["clients"].([]any)
+	for _, c := range clients {
+		cm, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		if e, _ := cm["email"].(string); e != email {
+			continue
+		}
+		exp, has := jsonClientInt64(cm["expiryTime"])
+		if !has || exp <= 0 {
+			return 0, false
+		}
+		return exp, true
+	}
+	return 0, false
 }
 
 func jsonClientInt64(v any) (int64, bool) {
