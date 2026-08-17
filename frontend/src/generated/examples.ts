@@ -696,6 +696,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "latencyMs": 180,
     "notAfter": "2026-08-01T00:00:00Z",
     "port": 443,
+    "privateTarget": false,
     "reason": "",
     "serverNames": [
       ""

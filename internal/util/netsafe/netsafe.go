@@ -2,12 +2,18 @@ package netsafe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
 	"strings"
 	"time"
 )
+
+// ErrPrivateAddressBlocked marks a dial the guard refused because every
+// resolved address was loopback/private/link-local, so a caller that offers an
+// explicit opt-in can tell it apart from an ordinary connection failure.
+var ErrPrivateAddressBlocked = errors.New("blocked private/internal address")
 
 func IsBlockedIP(ip net.IP) bool {
 	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
@@ -45,7 +51,7 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 	var lastErr error
 	for _, ipAddr := range ips {
 		if !allowPrivate && IsBlockedIP(ipAddr.IP) {
-			lastErr = fmt.Errorf("blocked private/internal address %s", ipAddr.IP)
+			lastErr = fmt.Errorf("%w %s", ErrPrivateAddressBlocked, ipAddr.IP)
 			continue
 		}
 		conn, derr := defaultDialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))

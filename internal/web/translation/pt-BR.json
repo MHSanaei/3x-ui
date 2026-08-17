@@ -430,6 +430,7 @@
         "scanRealityTargetError": "Falha ao escanear o alvo REALITY.",
         "scanRealityTargetFeasible": "O alvo é viável — alvo e SNI preenchidos.",
         "scanRealityTargetNotFeasible": "O alvo é acessível, mas não é viável para REALITY.",
+        "scanRealityTargetPrivate": "O destino funciona, mas está em uma rede privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} mais)"
@@ -622,6 +623,10 @@
         "scanCurve": "Troca de chaves",
         "scanCert": "Certificado",
         "scanCertInvalid": "Não confiável",
+        "scanCertExpiry": "Certificado expira",
+        "scanPrivateNote": "Verificado em uma rede privada/local — este endereço não é acessível pela internet.",
+        "scanPrivateConfirmTitle": "Destino em uma rede local",
+        "scanPrivateConfirmContent": "\"{target}\" resolve para um endereço privado ou de loopback. A verificação ignorará a proteção SSRF do painel apenas nesta sondagem. Continuar?",
         "scanLatency": "Latência",
         "scanUse": "Usar",
         "scanRescan": "Reescanear",

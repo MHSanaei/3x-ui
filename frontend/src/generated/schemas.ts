@@ -2917,6 +2917,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 443,
         "type": "integer"
       },
+      "privateTarget": {
+        "description": "PrivateTarget marks a target that resolves to a loopback/private/link-local\naddress: blocked before the probe unless the caller opted in, then flagged.",
+        "example": false,
+        "type": "boolean"
+      },
       "reason": {
         "type": "string"
       },
@@ -2956,6 +2961,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs",
       "notAfter",
       "port",
+      "privateTarget",
       "reason",
       "serverNames",
       "target",

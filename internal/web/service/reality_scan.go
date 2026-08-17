@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"slices"
@@ -38,24 +39,27 @@ var defaultRealityScanCandidates = []string{
 }
 
 type RealityScanResult struct {
-	Target      string   `json:"target" example:"www.cloudflare.com:443"`
-	Host        string   `json:"host" example:"www.cloudflare.com"`
-	IP          string   `json:"ip" example:"104.16.124.96"`
-	Port        int      `json:"port" example:"443"`
-	Feasible    bool     `json:"feasible" example:"true"`
-	TLS13       bool     `json:"tls13" example:"true"`
-	TLSVersion  string   `json:"tlsVersion" example:"1.3"`
-	H2          bool     `json:"h2" example:"true"`
-	ALPN        string   `json:"alpn" example:"h2"`
-	X25519      bool     `json:"x25519" example:"true"`
-	CurveID     string   `json:"curveID" example:"X25519"`
-	CertValid   bool     `json:"certValid" example:"true"`
-	CertSubject string   `json:"certSubject" example:"cloudflare.com"`
-	CertIssuer  string   `json:"certIssuer" example:"Google Trust Services"`
-	NotAfter    string   `json:"notAfter" example:"2026-08-01T00:00:00Z"`
-	ServerNames []string `json:"serverNames"`
-	LatencyMs   int      `json:"latencyMs" example:"180"`
-	Reason      string   `json:"reason" example:""`
+	Target   string `json:"target" example:"www.cloudflare.com:443"`
+	Host     string `json:"host" example:"www.cloudflare.com"`
+	IP       string `json:"ip" example:"104.16.124.96"`
+	Port     int    `json:"port" example:"443"`
+	Feasible bool   `json:"feasible" example:"true"`
+	// PrivateTarget marks a target that resolves to a loopback/private/link-local
+	// address: blocked before the probe unless the caller opted in, then flagged.
+	PrivateTarget bool     `json:"privateTarget" example:"false"`
+	TLS13         bool     `json:"tls13" example:"true"`
+	TLSVersion    string   `json:"tlsVersion" example:"1.3"`
+	H2            bool     `json:"h2" example:"true"`
+	ALPN          string   `json:"alpn" example:"h2"`
+	X25519        bool     `json:"x25519" example:"true"`
+	CurveID       string   `json:"curveID" example:"X25519"`
+	CertValid     bool     `json:"certValid" example:"true"`
+	CertSubject   string   `json:"certSubject" example:"cloudflare.com"`
+	CertIssuer    string   `json:"certIssuer" example:"Google Trust Services"`
+	NotAfter      string   `json:"notAfter" example:"2026-08-01T00:00:00Z"`
+	ServerNames   []string `json:"serverNames"`
+	LatencyMs     int      `json:"latencyMs" example:"180"`
+	Reason        string   `json:"reason" example:""`
 }
 
 type realityProbeTask struct {
@@ -170,7 +174,7 @@ func enumerateCIDR(cidr string, max int) ([]string, error) {
 	return ips, nil
 }
 
-func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, timeout time.Duration, xver int) *RealityScanResult {
+func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, timeout time.Duration, xver int, allowPrivate bool) *RealityScanResult {
 	addr := net.JoinHostPort(dialHost, strconv.Itoa(port))
 	res := &RealityScanResult{Port: port}
 	if net.ParseIP(dialHost) != nil {
@@ -184,16 +188,20 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 		res.Target = addr
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(context.Background(), allowPrivate), timeout)
 	defer cancel()
 
 	start := time.Now()
 	conn, err := netsafe.SSRFGuardedDialContext(ctx, "tcp", addr)
 	if err != nil {
+		res.PrivateTarget = errors.Is(err, netsafe.ErrPrivateAddressBlocked)
 		res.Reason = "connection failed: " + err.Error()
 		return res
 	}
 	defer conn.Close()
+	if remote, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+		res.PrivateTarget = netsafe.IsBlockedIP(remote.IP)
+	}
 	_ = conn.SetDeadline(time.Now().Add(timeout))
 
 	// A REALITY inbound with xver>=1 fronts a target that speaks the PROXY
@@ -283,16 +291,19 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	return res
 }
 
-func (s *ServerService) probeRealityTarget(host string, port int, xver int) *RealityScanResult {
-	return s.probeRealityAddr(host, port, host, realityScanTimeout, xver)
+func (s *ServerService) probeRealityTarget(host string, port int, xver int, allowPrivate bool) *RealityScanResult {
+	return s.probeRealityAddr(host, port, host, realityScanTimeout, xver, allowPrivate)
 }
 
-func (s *ServerService) ScanRealityTarget(target string, xver int) (*RealityScanResult, error) {
+// ScanRealityTarget probes one operator-supplied target. allowPrivate lifts the
+// SSRF guard for this probe only, after the panel confirmed the local-network
+// warning; the verdict then carries PrivateTarget so the UI keeps warning.
+func (s *ServerService) ScanRealityTarget(target string, xver int, allowPrivate bool) (*RealityScanResult, error) {
 	host, port, err := splitRealityTarget(target)
 	if err != nil {
 		return nil, err
 	}
-	return s.probeRealityTarget(host, port, xver), nil
+	return s.probeRealityTarget(host, port, xver, allowPrivate), nil
 }
 
 func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {
@@ -347,7 +358,10 @@ func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanRes
 		go func(idx int, tk realityProbeTask) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			r := s.probeRealityAddr(tk.dialHost, tk.port, tk.sni, tk.timeout, 0)
+			// The bulk/CIDR scanner is deliberately never allowed to reach
+			// private ranges: honouring the opt-in here would turn it into an
+			// internal network scanner.
+			r := s.probeRealityAddr(tk.dialHost, tk.port, tk.sni, tk.timeout, 0, false)
 			if tk.bulk && r.TLSVersion == "" {
 				return
 			}

@@ -430,6 +430,7 @@
         "scanRealityTargetError": "REALITY ターゲットのスキャンに失敗しました。",
         "scanRealityTargetFeasible": "ターゲットは利用可能です — ターゲットと SNI を入力しました。",
         "scanRealityTargetNotFeasible": "ターゲットには到達できますが、REALITY には利用できません。",
+        "scanRealityTargetPrivate": "ターゲットは利用可能ですが、プライベート/ローカルネットワーク上にあります。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
@@ -622,6 +623,10 @@
         "scanCurve": "鍵交換",
         "scanCert": "証明書",
         "scanCertInvalid": "信頼できません",
+        "scanCertExpiry": "証明書の有効期限",
+        "scanPrivateNote": "プライベート/ローカルネットワーク経由で確認しました。このアドレスはインターネットからは到達できません。",
+        "scanPrivateConfirmTitle": "ローカルネットワーク上のターゲット",
+        "scanPrivateConfirmContent": "「{target}」はプライベートまたはループバックアドレスに解決されます。このプローブに限りパネルの SSRF 保護をバイパスします。続行しますか？",
         "scanLatency": "レイテンシ",
         "scanUse": "使用",
         "scanRescan": "再スキャン",

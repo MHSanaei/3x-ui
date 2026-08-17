@@ -3,6 +3,9 @@ package service
 import (
 	"crypto/tls"
 	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -78,13 +81,13 @@ func TestSplitRealityTarget(t *testing.T) {
 }
 
 func TestScanRealityTargetInputValidation(t *testing.T) {
-	if _, err := (&ServerService{}).ScanRealityTarget("", 0); err == nil {
+	if _, err := (&ServerService{}).ScanRealityTarget("", 0, false); err == nil {
 		t.Error("ScanRealityTarget(empty) expected error, got nil")
 	}
 }
 
 func TestScanRealityTargetBlocksPrivate(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", 0)
+	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", 0, false)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(loopback) unexpected error: %v", err)
 	}
@@ -93,6 +96,48 @@ func TestScanRealityTargetBlocksPrivate(t *testing.T) {
 	}
 	if res.Reason == "" {
 		t.Error("ScanRealityTarget(loopback) should set a reason")
+	}
+	if !res.PrivateTarget {
+		t.Error("ScanRealityTarget(loopback) should flag privateTarget so the panel can offer the opt-in")
+	}
+}
+
+// A confirmed local-network probe must complete the handshake and report the
+// certificate it saw, while still flagging the target as private (#6082 follow-up).
+func TestScanRealityTargetAllowPrivateReportsCertificate(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	target := strings.TrimPrefix(srv.URL, "https://")
+
+	blocked, err := (&ServerService{}).ScanRealityTarget(target, 0, false)
+	if err != nil {
+		t.Fatalf("ScanRealityTarget(guard on) unexpected error: %v", err)
+	}
+	if blocked.TLSVersion != "" {
+		t.Errorf("guard on should not reach the target, got TLS %q", blocked.TLSVersion)
+	}
+	if !blocked.PrivateTarget {
+		t.Error("guard on should flag privateTarget")
+	}
+
+	res, err := (&ServerService{}).ScanRealityTarget(target, 0, true)
+	if err != nil {
+		t.Fatalf("ScanRealityTarget(allowPrivate) unexpected error: %v", err)
+	}
+	if !res.PrivateTarget {
+		t.Error("allowPrivate result should still flag privateTarget for the UI warning")
+	}
+	if res.TLSVersion == "" {
+		t.Fatalf("allowPrivate should complete the handshake, reason: %q", res.Reason)
+	}
+	if res.CertSubject == "" || res.CertIssuer == "" || res.NotAfter == "" {
+		t.Errorf("certificate details missing: subject=%q issuer=%q notAfter=%q", res.CertSubject, res.CertIssuer, res.NotAfter)
+	}
+	// The httptest cert is self-signed, so an honest verdict is "not trusted".
+	if res.CertValid || res.Feasible {
+		t.Errorf("self-signed target should not be trusted/feasible, got certValid=%v feasible=%v", res.CertValid, res.Feasible)
 	}
 }
 
