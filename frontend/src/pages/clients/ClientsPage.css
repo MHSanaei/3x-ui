@@ -16,6 +16,13 @@
   white-space: nowrap;
 }
 
+.client-email-more {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ant-color-border-secondary, rgba(128, 128, 128, 0.2));
+  opacity: 0.65;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -302,6 +309,17 @@
 .client-card.is-selected {
   border-color: var(--ant-color-primary);
   background: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+}
+
+.client-card-comment {
+  display: block;
+  margin-top: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  max-height: 4.5em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .client-card-speed {

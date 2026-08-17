@@ -154,6 +154,21 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 	return rows
 }
 
+// adoptedHostRows projects a node's host groups onto a freshly adopted central
+// inbound so TLS/SNI/fingerprint overrides survive the node-to-master import.
+func adoptedHostRows(groups []*entity.HostGroup, nodeInboundId, centralInboundId int) []*model.Host {
+	var rows []*model.Host
+	for _, g := range groups {
+		if g == nil || !slices.Contains(g.InboundIds, nodeInboundId) {
+			continue
+		}
+		scoped := *g
+		scoped.InboundIds = []int{centralInboundId}
+		rows = append(rows, buildHostRows(g.GroupId, &scoped)...)
+	}
+	return rows
+}
+
 func validateInboundsExist(tx *gorm.DB, inboundIds []int) error {
 	for _, inboundId := range inboundIds {
 		var count int64
@@ -198,11 +213,11 @@ func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 		return nil, err
 	}
 	if len(hosts) == 0 {
-		return nil, common.NewError("host group not found")
+		return nil, common.NewError("host not found")
 	}
 	grouped := groupHosts(hosts)
 	if len(grouped) == 0 {
-		return nil, common.NewError("host group not found")
+		return nil, common.NewError("host not found")
 	}
 	return grouped[0], nil
 }
@@ -238,7 +253,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 			return err
 		}
 		if count == 0 {
-			return common.NewError("host group not found")
+			return common.NewError("host not found")
 		}
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err

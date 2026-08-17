@@ -14,9 +14,13 @@ const DnsHostValueSchema = z.union([z.string(), z.array(z.string())]);
 export const DnsHostsSchema = z.record(z.string(), DnsHostValueSchema);
 export type DnsHosts = z.infer<typeof DnsHostsSchema>;
 
+export function isEncryptedDnsAddress(address: string): boolean {
+  return /^(https|https\+local|h2c|h2c\+local|quic\+local):\/\//i.test(address);
+}
+
 export const DnsServerObjectInnerSchema = z.object({
   address: z.string(),
-  port: PortSchema.default(53),
+  port: PortSchema.optional(),
   domains: z.array(z.string()).optional(),
   expectedIPs: z.array(z.string()).optional(),
   unexpectedIPs: z.array(z.string()).optional(),
@@ -41,7 +45,12 @@ export const DnsServerObjectSchema = z.preprocess(
     return val;
   },
   DnsServerObjectInnerSchema,
-);
+).transform((v) => {
+  if (v.port === undefined && !isEncryptedDnsAddress(v.address)) {
+    return { ...v, port: 53 };
+  }
+  return v;
+});
 export type DnsServerObject = z.infer<typeof DnsServerObjectSchema>;
 
 export const DnsServerEntrySchema = z.union([z.string(), DnsServerObjectSchema]);

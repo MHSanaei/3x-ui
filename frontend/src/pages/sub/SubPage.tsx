@@ -24,6 +24,7 @@ import {
   AppleOutlined,
   CopyOutlined,
   DownOutlined,
+  DownloadOutlined,
   MoonFilled,
   MoonOutlined,
   QrcodeOutlined,
@@ -37,6 +38,7 @@ import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { setMessageInstance } from '@/utils/messageBus';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import SubUsageSummary from './SubUsageSummary';
 import './SubPage.css';
 
@@ -64,6 +66,8 @@ const subEmail = [...new Set(linkEmails.filter(Boolean))].join(', ');
 const datepicker = subData.datepicker || 'gregorian';
 const announce = subData.announce || '';
 
+const appendRawView = (url: string) => `${url}${url.includes('?') ? '&' : '?'}view=raw`;
+
 const isUnlimited = totalByte <= 0 && expireMs === 0;
 const isActive = (() => {
   if (!enabled) return false;
@@ -81,15 +85,8 @@ export default function SubPage() {
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
   const [messageApi, messageContextHolder] = message.useMessage();
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
-
-  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth < 576);
+  const { isMobile } = useMediaQuery(576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 576);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const onLangChange = useCallback((next: string) => {
     setLang(next);
@@ -286,7 +283,7 @@ export default function SubPage() {
             <Col xs={24} sm={22} md={18} lg={14} xl={12}>
               <Card hoverable className="subscription-card" title={cardTitle} extra={cardExtra}>
                 {announce && (
-                  <Alert type="info" showIcon message={announce} style={{ marginBottom: 16 }} />
+                  <Alert type="info" showIcon title={announce} style={{ marginBottom: 16 }} />
                 )}
                 <Descriptions
                   bordered
@@ -354,6 +351,15 @@ export default function SubPage() {
                             {sId}
                           </a>
                           <div className="sub-link-actions">
+                            <Button
+                              size="small"
+                              href={appendRawView(subJsonUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              icon={<DownloadOutlined />}
+                              aria-label={t('download')}
+                              title={t('download')}
+                            />
                             <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subJsonUrl)} aria-label={t('copy')} title={t('copy')} />
                             <Popover
                               trigger="click"
@@ -386,6 +392,15 @@ export default function SubPage() {
                             {sId}
                           </a>
                           <div className="sub-link-actions">
+                            <Button
+                              size="small"
+                              href={appendRawView(subClashUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              icon={<DownloadOutlined />}
+                              aria-label={t('download')}
+                              title={t('download')}
+                            />
                             <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subClashUrl)} aria-label={t('copy')} title={t('copy')} />
                             <Popover
                               trigger="click"

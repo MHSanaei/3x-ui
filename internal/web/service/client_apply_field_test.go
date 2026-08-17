@@ -7,6 +7,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // TestResetClientExpiryTimeByEmail_MultiInbound reproduces #5039: a client
@@ -84,5 +85,67 @@ func TestResetClientExpiryTimeByEmail_MultiInbound(t *testing.T) {
 	}
 	if rec.ExpiryTime != newExpiry {
 		t.Errorf("client record expiry = %d, want %d", rec.ExpiryTime, newExpiry)
+	}
+}
+
+func TestSetClientEnableByEmail_MultiInbound(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	db := database.GetDB()
+
+	const email = "multienable@example.com"
+	const uid = "ce8d33df-3a64-4f10-8f9b-91c3a8e0c222"
+	clientJSON := `{"clients":[{"email":"` + email + `","id":"` + uid + `","enable":true,"subId":"sub-en-1"}]}`
+
+	first := &model.Inbound{
+		Tag: "vless-en-a", Enable: true, Port: 50011, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"reality"}`, Settings: clientJSON,
+	}
+	second := &model.Inbound{
+		Tag: "vless-en-b", Enable: true, Port: 50012, Protocol: model.VLESS,
+		StreamSettings: `{"network":"ws","security":"tls"}`, Settings: clientJSON,
+	}
+	for _, ib := range []*model.Inbound{first, second} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create inbound %s: %v", ib.Tag, err)
+		}
+	}
+
+	clientSvc := ClientService{}
+	inboundSvc := InboundService{}
+	for _, ib := range []*model.Inbound{first, second} {
+		clients, err := inboundSvc.GetClients(ib)
+		if err != nil {
+			t.Fatalf("GetClients(%s): %v", ib.Tag, err)
+		}
+		if err := clientSvc.SyncInbound(nil, ib.Id, clients); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", ib.Tag, err)
+		}
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: first.Id, Email: email, Enable: true}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	if _, _, err := clientSvc.SetClientEnableByEmail(&inboundSvc, email, false); err != nil {
+		t.Fatalf("SetClientEnableByEmail: %v", err)
+	}
+
+	for _, ib := range []*model.Inbound{first, second} {
+		fresh, err := inboundSvc.GetInbound(ib.Id)
+		if err != nil {
+			t.Fatalf("GetInbound(%s): %v", ib.Tag, err)
+		}
+		clients, err := inboundSvc.GetClients(fresh)
+		if err != nil {
+			t.Fatalf("GetClients(%s): %v", ib.Tag, err)
+		}
+		if len(clients) != 1 || clients[0].Enable {
+			t.Errorf("inbound %s: client still enabled after disable-by-email; a sibling inbound kept access", ib.Tag)
+		}
 	}
 }

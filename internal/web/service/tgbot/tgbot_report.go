@@ -48,8 +48,13 @@ func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
 	}
+	dbData, err := t.serverService.GetDb()
+	if err != nil {
+		logger.Error("Error in getting db backup: ", err)
+	}
+	dbFilename := t.serverService.BackupFilename("")
 	for i, adminId := range adminIds {
-		t.sendBackup(adminId)
+		t.sendBackupData(adminId, dbData, dbFilename)
 		// Add delay between sends to avoid Telegram rate limits
 		if i < len(adminIds)-1 {
 			time.Sleep(1 * time.Second)
@@ -105,7 +110,10 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 		t.lastStatus = t.serverService.GetStatus(t.lastStatus)
 		t.setCachedStatus(t.lastStatus)
 	}
-	onlines := service.XrayProcess().GetOnlineClients()
+	var onlines []string
+	if process := service.XrayProcess(); process != nil {
+		onlines = process.GetOnlineClients()
+	}
 
 	info += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 	info += t.I18nBot("tgbot.messages.version", "Version=="+config.GetPanelVersion())
@@ -361,11 +369,12 @@ func (t *Tgbot) notifyExhausted() {
 
 // onlineClients retrieves and sends information about online clients.
 func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
-	if !service.XrayProcess().IsRunning() {
+	process := service.XrayProcess()
+	if process == nil || !process.IsRunning() {
 		return
 	}
 
-	onlines := service.XrayProcess().GetOnlineClients()
+	onlines := process.GetOnlineClients()
 	onlinesCount := len(onlines)
 	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(onlinesCount))
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
@@ -400,26 +409,30 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 
 // sendBackup sends a backup of the database and configuration files.
 func (t *Tgbot) sendBackup(chatId int64) {
+	dbData, err := t.serverService.GetDb()
+	if err != nil {
+		logger.Error("Error in getting db backup: ", err)
+	}
+	t.sendBackupData(chatId, dbData, t.serverService.BackupFilename(""))
+}
+
+func (t *Tgbot) sendBackupData(chatId int64, dbData []byte, dbFilename string) {
 	output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 	output += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
 
 	// Send database backup (SQLite file, or a pg_dump archive on PostgreSQL)
-	dbData, err := t.serverService.GetDb()
-	if err == nil {
-		dbFilename := t.serverService.BackupFilename("")
+	if dbData != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		document := tu.Document(
 			tu.ID(chatId),
 			tu.FileFromBytes(dbData, dbFilename),
 		)
-		_, err = bot.SendDocument(ctx, document)
+		_, err := bot.SendDocument(ctx, document)
 		cancel()
 		if err != nil {
 			logger.Error("Error in uploading backup: ", err)
 		}
-	} else {
-		logger.Error("Error in getting db backup: ", err)
 	}
 
 	// Small delay between file sends

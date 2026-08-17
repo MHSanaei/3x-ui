@@ -9,21 +9,46 @@
         "maxSplit": "0"
       }
     },
-    { "type": "sudoku" },
+    {
+      "type": "sudoku"
+    },
     {
       "type": "header-custom",
       "settings": {
         "clients": [
           [
-            { "type": "str", "packet": ["GET / HTTP/1.1"], "delay": 0 }
+            {
+              "type": "str",
+              "packet": "GET / HTTP/1.1",
+              "delay": 0
+            }
           ]
         ],
         "servers": [
           [
-            { "type": "str", "packet": ["HTTP/1.1 200 OK"], "delay": 0 }
+            {
+              "type": "str",
+              "packet": "HTTP/1.1 200 OK",
+              "delay": 0
+            }
           ]
         ],
         "errors": []
+      }
+    },
+    {
+      "type": "xmc",
+      "settings": {
+        "hostname": "mc.example.com",
+        "password": "s3cr3t",
+        "profiles": [
+          {
+            "username": "Dream",
+            "uuid": "ec70bcaf-702f-4bb8-b48d-276fa52a780c",
+            "texturesValue": "eyJ0aW1lc3RhbXAiOjE3MDAwMDAwMDAwMDAsInByb2ZpbGVJZCI6ImVjNzBiY2FmNzAyZjRiYjhiNDhkMjc2ZmE1MmE3ODBjIn0=",
+            "texturesSignature": "Zm9yLWZpeHR1cmUtdXNlLW9ubHktbm90LWEtcmVhbC1tb2phbmctc2lnbmF0dXJl"
+          }
+        ]
       }
     }
   ]

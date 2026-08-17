@@ -12,6 +12,14 @@
   min-width: 0;
 }
 
+body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
+  color: #874d00;
+}
+
+body.light .config-block-text {
+  color: #595959;
+}
+
 .config-block .ant-collapse-extra {
   display: flex;
   align-items: center;
@@ -34,6 +42,7 @@
   word-break: break-all;
   white-space: pre-wrap;
   padding: 6px 8px;
+  color: var(--ant-color-text);
   background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
   user-select: all;

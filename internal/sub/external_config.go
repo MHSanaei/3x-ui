@@ -82,42 +82,35 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 }
 
 // expandEntry turns one entry into the concrete share links it contributes. A
-// "subscription" entry is fetched (cached) and its links are kept with their own
-// names; a "link" entry yields the single link with the row's remark.
+// "subscription" entry is fetched (cached) and its links keep their own names
+// (URL #fragment / vmess ps), optionally behind the row's name prefix. A "link"
+// entry uses the row remark when set, otherwise the link's original name —
+// never blank, so Clash/JSON do not fall back to the client email.
 func expandEntry(e externalLinkEntry) []expandedLink {
 	if e.Kind == model.ExternalLinkKindSubscription {
 		links := fetchSubscriptionLinks(e.Id, e.Value)
 		out := make([]expandedLink, 0, len(links))
 		for _, l := range links {
-			name := prefixedLinkName(l, e.NamePrefix, e.Email)
-			out = append(out, expandedLink{Link: l, Name: name})
+			out = append(out, expandedLink{Link: l, Name: prefixedLinkName(linkDisplayName(l), e.NamePrefix, e.Email)})
 		}
 		return out
 	}
-	return []expandedLink{{Link: e.Value, Name: e.Remark}}
+	name := strings.TrimSpace(e.Remark)
+	if name == "" {
+		name = linkDisplayName(e.Value)
+	}
+	return []expandedLink{{Link: e.Value, Name: name}}
 }
 
-func prefixedLinkName(rawLink, prefix, fallback string) string {
-	if strings.TrimSpace(prefix) == "" {
-		return ""
-	}
-	name := strings.TrimSpace(extractLinkRemark(rawLink))
-	if name == "" {
-		name = strings.TrimSpace(fallback)
-	}
-	if name == "" {
-		return prefix
-	}
-	return prefix + name
-}
-
-func extractLinkRemark(rawLink string) string {
+// linkDisplayName extracts the human-readable name already carried by a share
+// link: vmess JSON `ps`, or the URL #fragment for every other scheme.
+func linkDisplayName(rawLink string) string {
 	rawLink = strings.TrimSpace(rawLink)
 	if rawLink == "" {
 		return ""
 	}
-	if strings.HasPrefix(rawLink, "vmess://") {
-		b64 := strings.TrimPrefix(rawLink, "vmess://")
+	if after, ok := strings.CutPrefix(rawLink, "vmess://"); ok {
+		b64 := after
 		raw, err := base64.StdEncoding.DecodeString(padBase64Sub(b64))
 		if err != nil {
 			raw, err = base64.RawURLEncoding.DecodeString(strings.TrimRight(b64, "="))
@@ -129,18 +122,33 @@ func extractLinkRemark(rawLink string) string {
 		if err := json.Unmarshal(raw, &j); err != nil {
 			return ""
 		}
-		ps, _ := j["ps"].(string)
-		return strings.TrimSpace(ps)
-	}
-	u, err := url.Parse(rawLink)
-	if err != nil {
+		if ps, ok := j["ps"].(string); ok {
+			return strings.TrimSpace(ps)
+		}
 		return ""
 	}
-	frag, err := url.PathUnescape(u.Fragment)
-	if err != nil {
-		return strings.TrimSpace(u.Fragment)
+	if i := strings.IndexByte(rawLink, '#'); i >= 0 && i+1 < len(rawLink) {
+		frag := rawLink[i+1:]
+		if decoded, err := url.PathUnescape(frag); err == nil {
+			return strings.TrimSpace(decoded)
+		}
+		return strings.TrimSpace(frag)
 	}
-	return strings.TrimSpace(frag)
+	return ""
+}
+
+// prefixedLinkName applies a row's name prefix to a link's own display name,
+// falling back to the client email when the link carries no name. Without a
+// prefix the link keeps whatever name it already had.
+func prefixedLinkName(displayName, prefix, fallback string) string {
+	name := strings.TrimSpace(displayName)
+	if strings.TrimSpace(prefix) == "" {
+		return name
+	}
+	if name == "" {
+		name = strings.TrimSpace(fallback)
+	}
+	return prefix + name
 }
 
 // applyRemarkToLink rewrites a share link's display name to remark (when set),

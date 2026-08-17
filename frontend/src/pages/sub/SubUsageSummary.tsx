@@ -78,7 +78,7 @@ export default function SubUsageSummary({
           percent={pct}
           showInfo={false}
           strokeColor={{ '0%': stroke.from, '100%': stroke.to }}
-          trailColor="var(--ant-color-fill-secondary)"
+          railColor="var(--ant-color-fill-secondary)"
           strokeWidth={10}
           className="usage-summary-bar"
         />

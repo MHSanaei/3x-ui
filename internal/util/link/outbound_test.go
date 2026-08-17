@@ -1,6 +1,7 @@
 package link
 
 import (
+	"encoding/base64"
 	"net/url"
 	"strings"
 	"testing"
@@ -108,6 +109,282 @@ func TestSanitizeFinalMaskQuicParams_ClampsAndRejects(t *testing.T) {
 			}
 			if !exists || got != c.want {
 				t.Fatalf("%s: expected %v, got %v (%T)", c.key, c.want, got, got)
+			}
+		})
+	}
+}
+
+func salamanderPassword(t *testing.T, res *ParseResult) (string, bool) {
+	t.Helper()
+	stream, ok := res.Outbound["streamSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing streamSettings: %v", res.Outbound)
+	}
+	finalmask, ok := stream["finalmask"].(map[string]any)
+	if !ok {
+		return "", false
+	}
+	udp, ok := finalmask["udp"].([]any)
+	if !ok {
+		return "", false
+	}
+	for _, m := range udp {
+		mask, _ := m.(map[string]any)
+		if mask == nil || mask["type"] != "salamander" {
+			continue
+		}
+		settings, _ := mask["settings"].(map[string]any)
+		pw, _ := settings["password"].(string)
+		return pw, true
+	}
+	return "", false
+}
+
+func finalmaskUDP(t *testing.T, res *ParseResult) []any {
+	t.Helper()
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	return udp
+}
+
+func hopPorts(t *testing.T, res *ParseResult) (string, bool) {
+	t.Helper()
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	quicParams, _ := finalmask["quicParams"].(map[string]any)
+	udpHop, ok := quicParams["udpHop"].(map[string]any)
+	if !ok {
+		return "", false
+	}
+	ports, _ := udpHop["ports"].(string)
+	return ports, true
+}
+
+func TestParseHysteria2_Obfs(t *testing.T) {
+	cases := []struct {
+		name    string
+		query   string
+		wantPw  string
+		wantSet bool
+	}{
+		{"standard", "obfs=salamander&obfs-password=s3cr3t", "s3cr3t", true},
+		{"snake-case alias", "obfs=salamander&obfs_password=aliaspw", "aliaspw", true},
+		{"camel-case alias", "obfs=salamander&obfsPassword=camelpw", "camelpw", true},
+		{"case-insensitive type", "obfs=Salamander&obfs-password=mixed", "mixed", true},
+		{"no obfs", "sni=ex.com", "", false},
+		{"obfs without password", "obfs=salamander", "", false},
+		{"unknown obfs type", "obfs=random&obfs-password=x", "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&" + c.query + "#node")
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			if res.Outbound["protocol"] != "hysteria" {
+				t.Fatalf("bad protocol: %v", res.Outbound["protocol"])
+			}
+			pw, ok := salamanderPassword(t, res)
+			if ok != c.wantSet {
+				t.Fatalf("salamander mask present = %v, want %v (stream: %v)", ok, c.wantSet, res.Outbound["streamSettings"])
+			}
+			if pw != c.wantPw {
+				t.Errorf("salamander password: got %q, want %q", pw, c.wantPw)
+			}
+		})
+	}
+}
+
+func TestParseHysteria2_ObfsFinalMaskPrecedence(t *testing.T) {
+	cases := []struct {
+		name       string
+		fm         string
+		obfsPw     string
+		wantPw     string
+		wantUDPLen int
+	}{
+		{
+			name:       "fm password wins over obfs",
+			fm:         `{"udp":[{"type":"salamander","settings":{"password":"fromfm"}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromfm",
+			wantUDPLen: 1,
+		},
+		{
+			name:       "obfs fills password-less fm mask",
+			fm:         `{"udp":[{"type":"salamander","settings":{}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromobfs",
+			wantUDPLen: 1,
+		},
+		{
+			name:       "obfs appends alongside a non-salamander mask",
+			fm:         `{"udp":[{"type":"mkcp-legacy","settings":{"header":"srtp"}}]}`,
+			obfsPw:     "fromobfs",
+			wantPw:     "fromobfs",
+			wantUDPLen: 2,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			link := "hysteria2://auth@1.2.3.4:443?security=tls&fm=" + url.QueryEscape(c.fm) +
+				"&obfs=salamander&obfs-password=" + c.obfsPw + "#node"
+			res, err := ParseLink(link)
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			pw, ok := salamanderPassword(t, res)
+			if !ok {
+				t.Fatalf("salamander mask missing: %v", res.Outbound["streamSettings"])
+			}
+			if pw != c.wantPw {
+				t.Errorf("salamander password: got %q, want %q", pw, c.wantPw)
+			}
+			if udp := finalmaskUDP(t, res); len(udp) != c.wantUDPLen {
+				t.Errorf("udp mask count: got %d, want %d (%v)", len(udp), c.wantUDPLen, udp)
+			}
+		})
+	}
+}
+
+func TestParseHysteria2_Mport(t *testing.T) {
+	cases := []struct {
+		name      string
+		query     string
+		wantPorts string
+		wantHop   bool
+	}{
+		{"standard mport", "mport=20000-50000", "20000-50000", true},
+		{"no mport", "sni=ex.com", "", false},
+		{
+			name:      "fm udpHop wins over mport",
+			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
+			wantPorts: "30000-40000",
+			wantHop:   true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&" + c.query + "#node")
+			if err != nil {
+				t.Fatalf("parse hysteria2: %v", err)
+			}
+			ports, ok := hopPorts(t, res)
+			if ok != c.wantHop {
+				t.Fatalf("udpHop present = %v, want %v (stream: %v)", ok, c.wantHop, res.Outbound["streamSettings"])
+			}
+			if ports != c.wantPorts {
+				t.Errorf("hop ports: got %q, want %q", ports, c.wantPorts)
+			}
+		})
+	}
+}
+
+func TestParseShadowsocks(t *testing.T) {
+	modernUser := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
+	legacyBody := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass@1.2.3.4:8388"))
+	cases := []struct {
+		name   string
+		link   string
+		host   string
+		port   int
+		method string
+		pass   string
+	}{
+		{
+			name:   "modern",
+			link:   "ss://" + modernUser + "@1.2.3.4:8388#node",
+			host:   "1.2.3.4",
+			port:   8388,
+			method: "aes-256-gcm",
+			pass:   "secretpass",
+		},
+		{
+			name:   "modern with plugin query",
+			link:   "ss://" + modernUser + "@1.2.3.4:8388?plugin=v2ray-plugin#node",
+			host:   "1.2.3.4",
+			port:   8388,
+			method: "aes-256-gcm",
+			pass:   "secretpass",
+		},
+		{
+			name:   "modern sip002 slash query",
+			link:   "ss://" + modernUser + "@1.2.3.4:8388/?plugin=obfs-local%3Bobfs%3Dhttp#node",
+			host:   "1.2.3.4",
+			port:   8388,
+			method: "aes-256-gcm",
+			pass:   "secretpass",
+		},
+		{
+			name:   "legacy",
+			link:   "ss://" + legacyBody + "#node",
+			host:   "1.2.3.4",
+			port:   8388,
+			method: "aes-256-gcm",
+			pass:   "secretpass",
+		},
+		{
+			name:   "base64url userinfo with plugin and trailing slash",
+			link:   "ss://" + base64.RawURLEncoding.EncodeToString([]byte("aes-128-gcm:pa+ss/word")) + "@1.2.3.4:8388/?plugin=obfs-local%3Bobfs%3Dhttp#node",
+			host:   "1.2.3.4",
+			port:   8388,
+			method: "aes-128-gcm",
+			pass:   "pa+ss/word",
+		},
+		{
+			name:   "sip022 percent-encoded userinfo",
+			link:   "ss://2022-blake3-aes-256-gcm:YctPZ6U7xPPcU%2Bgp3u%2B0tx%2FtRizJN9K8y%2BuKlW2qjlI%3D@example.com:8888#Example3",
+			host:   "example.com",
+			port:   8888,
+			method: "2022-blake3-aes-256-gcm",
+			pass:   "YctPZ6U7xPPcU+gp3u+0tx/tRizJN9K8y+uKlW2qjlI=",
+		},
+		{
+			name:   "sip022 dual-key password with type query preserves inner colon",
+			link:   "ss://2022-blake3-aes-256-gcm:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB%3D@1.2.3.4:9999?type=tcp#node",
+			host:   "1.2.3.4",
+			port:   9999,
+			method: "2022-blake3-aes-256-gcm",
+			pass:   "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink(c.link)
+			if err != nil {
+				t.Fatalf("parse ss: %v", err)
+			}
+			if res.Outbound["protocol"] != "shadowsocks" {
+				t.Fatalf("protocol = %v, want shadowsocks", res.Outbound["protocol"])
+			}
+			srv := res.Outbound["settings"].(map[string]any)["servers"].([]any)[0].(map[string]any)
+			if srv["address"] != c.host {
+				t.Errorf("address = %v, want %v", srv["address"], c.host)
+			}
+			if srv["port"] != c.port {
+				t.Errorf("port = %v, want %v", srv["port"], c.port)
+			}
+			if srv["method"] != c.method {
+				t.Errorf("method = %v, want %v", srv["method"], c.method)
+			}
+			if srv["password"] != c.pass {
+				t.Errorf("password = %v, want %v", srv["password"], c.pass)
+			}
+		})
+	}
+}
+
+func TestParseShadowsocksBadPort(t *testing.T) {
+	user := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
+	cases := map[string]string{
+		"modern": "ss://" + user + "@1.2.3.4:notaport#node",
+		"legacy": "ss://" + base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass@1.2.3.4:notaport")) + "#node",
+	}
+	for name, link := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := ParseLink(link); err == nil {
+				t.Errorf("expected parse error for non-numeric port, got nil")
 			}
 		})
 	}

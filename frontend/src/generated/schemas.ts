@@ -83,6 +83,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "outboundDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "pageSize": {
         "maximum": 1000,
         "minimum": 0,
@@ -116,6 +121,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEncryptionType": {
         "type": "string"
       },
+      "smtpFrom": {
+        "type": "string"
+      },
+      "smtpFromName": {
+        "type": "string"
+      },
       "smtpHost": {
         "type": "string"
       },
@@ -144,6 +155,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subCertFile": {
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "type": "boolean"
+      },
       "subClashEnable": {
         "type": "boolean"
       },
@@ -157,6 +171,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subClashURI": {
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
         "type": "string"
       },
       "subDomain": {
@@ -180,6 +197,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -196,6 +219,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonURI": {
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
         "type": "string"
       },
       "subKeyFile": {
@@ -217,6 +243,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subRoutingRules": {
         "type": "string"
+      },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
       },
       "subSupportUrl": {
         "type": "string"
@@ -340,6 +369,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
       "remarkTemplate",
@@ -349,6 +379,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnable",
       "smtpEnabledEvents",
       "smtpEncryptionType",
+      "smtpFrom",
+      "smtpFromName",
       "smtpHost",
       "smtpMemory",
       "smtpPassword",
@@ -357,11 +389,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -369,18 +403,22 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -516,6 +554,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "outboundDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "pageSize": {
         "maximum": 1000,
         "minimum": 0,
@@ -549,6 +592,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEncryptionType": {
         "type": "string"
       },
+      "smtpFrom": {
+        "type": "string"
+      },
+      "smtpFromName": {
+        "type": "string"
+      },
       "smtpHost": {
         "type": "string"
       },
@@ -577,6 +626,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subCertFile": {
         "type": "string"
       },
+      "subClashAutoDetect": {
+        "type": "boolean"
+      },
       "subClashEnable": {
         "type": "boolean"
       },
@@ -590,6 +642,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subClashURI": {
+        "type": "string"
+      },
+      "subClashUserAgentRegex": {
         "type": "string"
       },
       "subDomain": {
@@ -613,6 +668,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subIncyRoutingRules": {
         "type": "string"
       },
+      "subJsonAlwaysArray": {
+        "type": "boolean"
+      },
+      "subJsonAutoDetect": {
+        "type": "boolean"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -629,6 +690,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonURI": {
+        "type": "string"
+      },
+      "subJsonUserAgentRegex": {
         "type": "string"
       },
       "subKeyFile": {
@@ -650,6 +714,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subRoutingRules": {
         "type": "string"
+      },
+      "subShowIdentityOnAllLinks": {
+        "type": "boolean"
       },
       "subSupportUrl": {
         "type": "string"
@@ -780,6 +847,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
       "remarkTemplate",
@@ -789,6 +857,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpEnable",
       "smtpEnabledEvents",
       "smtpEncryptionType",
+      "smtpFrom",
+      "smtpFromName",
       "smtpHost",
       "smtpMemory",
       "smtpPassword",
@@ -797,11 +867,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpUsername",
       "subAnnounce",
       "subCertFile",
+      "subClashAutoDetect",
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
       "subClashRules",
       "subClashURI",
+      "subClashUserAgentRegex",
       "subDomain",
       "subEnable",
       "subEnableRouting",
@@ -809,18 +881,22 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subJsonAlwaysArray",
+      "subJsonAutoDetect",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
+      "subJsonUserAgentRegex",
       "subKeyFile",
       "subListen",
       "subPath",
       "subPort",
       "subProfileUrl",
       "subRoutingRules",
+      "subShowIdentityOnAllLinks",
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
@@ -855,15 +931,23 @@ export const SCHEMAS: Record<string, unknown> = {
   "ApiToken": {
     "properties": {
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "enabled": {
         "type": "boolean"
       },
+      "expiresAt": {
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "type": "integer"
       },
       "name": {
+        "type": "string"
+      },
+      "scope": {
         "type": "string"
       },
       "token": {
@@ -874,8 +958,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
       "name",
+      "scope",
       "token"
     ],
     "type": "object"
@@ -884,11 +970,17 @@ export const SCHEMAS: Record<string, unknown> = {
     "properties": {
       "createdAt": {
         "example": 1736000000,
+        "format": "int64",
         "type": "integer"
       },
       "enabled": {
         "example": true,
         "type": "boolean"
+      },
+      "expiresAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
       },
       "id": {
         "example": 2,
@@ -896,6 +988,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "name": {
         "example": "central-panel-a",
+        "type": "string"
+      },
+      "scope": {
+        "example": "admin",
         "type": "string"
       },
       "token": {
@@ -906,8 +1002,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
-      "name"
+      "name",
+      "scope"
     ],
     "type": "object"
   },
@@ -934,6 +1032,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "created_at": {
         "description": "Creation timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -946,6 +1045,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "description": "Expiration timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "flow": {
@@ -1007,14 +1107,17 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "tgId": {
         "description": "Telegram user ID for notifications",
+        "format": "int64",
         "type": "integer"
       },
       "totalGB": {
         "description": "Total traffic limit in GB",
+        "format": "int64",
         "type": "integer"
       },
       "updated_at": {
         "description": "Last update timestamp",
+        "format": "int64",
         "type": "integer"
       }
     },
@@ -1038,6 +1141,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "flowOverride": {
@@ -1070,6 +1174,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -1079,6 +1184,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "expiryTime": {
+        "format": "int64",
         "type": "integer"
       },
       "flow": {
@@ -1091,6 +1197,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "keepAlive": {
+        "type": "integer"
+      },
+      "limitHwid": {
         "type": "integer"
       },
       "limitIp": {
@@ -1122,12 +1231,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "tgId": {
+        "format": "int64",
         "type": "integer"
       },
       "totalGB": {
+        "format": "int64",
         "type": "integer"
       },
       "updatedAt": {
+        "format": "int64",
         "type": "integer"
       },
       "uuid": {
@@ -1147,6 +1259,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitHwid",
       "limitIp",
       "password",
       "preSharedKey",
@@ -1180,6 +1293,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "properties": {
       "down": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "email": {
@@ -1192,6 +1306,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "example": 1735689600000,
+        "format": "int64",
         "type": "integer"
       },
       "id": {
@@ -1204,6 +1319,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastOnline": {
         "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
         "type": "integer"
       },
       "reset": {
@@ -1216,10 +1337,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "total": {
         "example": 10737418240,
+        "format": "int64",
         "type": "integer"
       },
       "up": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "uuid": {
@@ -1235,6 +1358,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "lastSubFetch",
       "reset",
       "subId",
       "total",
@@ -1255,6 +1379,157 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "masterId"
+    ],
+    "type": "object"
+  },
+  "GeoCategory": {
+    "description": "GeoCategory is one code inside a database, such as geosite's \"google\".",
+    "properties": {
+      "attributes": {
+        "example": [
+          "ads",
+          "cn"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "code": {
+        "example": "google",
+        "type": "string"
+      },
+      "entries": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "attributes",
+      "code",
+      "entries"
+    ],
+    "type": "object"
+  },
+  "GeoCategoryPage": {
+    "description": "GeoCategoryPage is one page of categories plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoCategory"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1043,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoEntry": {
+    "description": "GeoEntry is a single rule inside a category: a domain rule for geosite\ndatabases, a CIDR for geoip ones.",
+    "properties": {
+      "kind": {
+        "example": "domain",
+        "type": "string"
+      },
+      "value": {
+        "example": "google.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "type": "object"
+  },
+  "GeoEntryPage": {
+    "description": "GeoEntryPage is one page of category entries plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoEntry"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoFile": {
+    "description": "GeoFile describes one .dat database found in the asset directory.",
+    "properties": {
+      "categories": {
+        "example": 1043,
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      },
+      "kind": {
+        "example": "site",
+        "type": "string"
+      },
+      "modifiedAt": {
+        "example": 1769558400000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "name": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "size": {
+        "example": 1467392,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "categories",
+      "kind",
+      "modifiedAt",
+      "name",
+      "size"
+    ],
+    "type": "object"
+  },
+  "GeodataTokenIssue": {
+    "description": "GeodataTokenIssue reports a routing token the running core would reject,\nor would silently match nothing against.",
+    "properties": {
+      "code": {
+        "example": "blabla",
+        "type": "string"
+      },
+      "file": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "reason": {
+        "example": "categoryMissing",
+        "type": "string"
+      },
+      "token": {
+        "example": "geosite:blabla",
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason",
+      "token"
     ],
     "type": "object"
   },
@@ -1290,6 +1565,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "array"
       },
       "createdAt": {
+        "format": "int64",
         "type": "integer"
       },
       "echConfigList": {
@@ -1405,6 +1681,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "array"
       },
       "updatedAt": {
+        "format": "int64",
         "type": "integer"
       },
       "verifyPeerCertByName": {
@@ -1632,8 +1909,13 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "disableFlow": {
+        "example": false,
+        "type": "boolean"
+      },
       "down": {
         "description": "Download traffic in bytes",
+        "format": "int64",
         "type": "integer"
       },
       "enable": {
@@ -1643,6 +1925,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "expiryTime": {
         "description": "Expiration timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "fallbackParent": {
@@ -1661,6 +1944,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "lastTrafficResetTime": {
         "description": "Last traffic reset timestamp",
+        "format": "int64",
         "type": "integer"
       },
       "listen": {
@@ -1729,6 +2013,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "total": {
         "description": "Total traffic limit in bytes",
+        "format": "int64",
         "type": "integer"
       },
       "trafficReset": {
@@ -1742,13 +2027,22 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "trafficResetDay": {
+        "description": "Day of month for monthly traffic resets",
+        "example": 1,
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "up": {
         "description": "Upload traffic in bytes",
+        "format": "int64",
         "type": "integer"
       }
     },
     "required": [
       "clientStats",
+      "disableFlow",
       "down",
       "enable",
       "expiryTime",
@@ -1767,6 +2061,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tag",
       "total",
       "trafficReset",
+      "trafficResetDay",
       "up"
     ],
     "type": "object"
@@ -1939,10 +2234,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "allowPrivateAddress": {
         "type": "boolean"
       },
-      "apiToken": {
-        "example": "abcdef0123456789",
-        "type": "string"
-      },
       "basePath": {
         "example": "/",
         "type": "string"
@@ -1955,6 +2246,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "configDirtyAt": {
+        "format": "int64",
         "type": "integer"
       },
       "cpuPct": {
@@ -1963,6 +2255,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "createdAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "depletedCount": {
@@ -2008,6 +2301,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastHeartbeat": {
         "description": "unix seconds, 0 = never",
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "latencyMs": {
@@ -2024,10 +2318,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "netDown": {
         "example": 2097152,
+        "format": "int64",
         "type": "integer"
       },
       "netUp": {
         "example": 1048576,
+        "format": "int64",
         "type": "integer"
       },
       "onlineCount": {
@@ -2084,10 +2380,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "updatedAt": {
         "example": 1700000000,
+        "format": "int64",
         "type": "integer"
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {
@@ -2106,7 +2404,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "activeCount",
       "address",
       "allowPrivateAddress",
-      "apiToken",
       "basePath",
       "clientCount",
       "configDirty",
@@ -2145,10 +2442,320 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "NodeMutationRequest": {
+    "description": "NodeMutationRequest is the node write/probe contract. ApiToken is accepted\nonly as input. On update, nil means keep the stored token; replacement and\nclearing are explicit and mutually exclusive.",
+    "properties": {
+      "address": {
+        "type": "string"
+      },
+      "allowPrivateAddress": {
+        "type": "boolean"
+      },
+      "apiToken": {
+        "nullable": true,
+        "type": "string"
+      },
+      "basePath": {
+        "type": "string"
+      },
+      "clearApiToken": {
+        "type": "boolean"
+      },
+      "enable": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "integer"
+      },
+      "inboundSyncMode": {
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "type": "string"
+      },
+      "inboundTags": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "name": {
+        "type": "string"
+      },
+      "outboundTag": {
+        "type": "string"
+      },
+      "pinnedCertSha256": {
+        "type": "string"
+      },
+      "port": {
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "scheme": {
+        "enum": [
+          "http",
+          "https"
+        ],
+        "type": "string"
+      },
+      "tlsVerifyMode": {
+        "enum": [
+          "verify",
+          "skip",
+          "pin",
+          "mtls"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "address",
+      "allowPrivateAddress",
+      "basePath",
+      "enable",
+      "id",
+      "inboundSyncMode",
+      "inboundTags",
+      "name",
+      "outboundTag",
+      "pinnedCertSha256",
+      "port",
+      "remark",
+      "scheme",
+      "tlsVerifyMode"
+    ],
+    "type": "object"
+  },
+  "NodeView": {
+    "description": "NodeView is the browser/API read contract for nodes. Credentials are\nwrite-only: responses expose only whether a node has a token configured.",
+    "properties": {
+      "activeCount": {
+        "example": 20,
+        "type": "integer"
+      },
+      "address": {
+        "example": "node.example.com",
+        "type": "string"
+      },
+      "allowPrivateAddress": {
+        "example": false,
+        "type": "boolean"
+      },
+      "basePath": {
+        "example": "/",
+        "type": "string"
+      },
+      "clientCount": {
+        "example": 25,
+        "type": "integer"
+      },
+      "configDirty": {
+        "example": false,
+        "type": "boolean"
+      },
+      "configDirtyAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "cpuPct": {
+        "example": 12.5,
+        "type": "number"
+      },
+      "createdAt": {
+        "example": 1700000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "depletedCount": {
+        "example": 1,
+        "type": "integer"
+      },
+      "disabledCount": {
+        "example": 2,
+        "type": "integer"
+      },
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "guid": {
+        "example": "node-guid",
+        "type": "string"
+      },
+      "hasApiToken": {
+        "example": true,
+        "type": "boolean"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "inboundCount": {
+        "example": 3,
+        "type": "integer"
+      },
+      "inboundSyncMode": {
+        "example": "all",
+        "type": "string"
+      },
+      "inboundTags": {
+        "example": [
+          "in-443-tcp"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "lastError": {
+        "type": "string"
+      },
+      "lastHeartbeat": {
+        "example": 1700000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "latencyMs": {
+        "example": 42,
+        "type": "integer"
+      },
+      "memPct": {
+        "example": 45.2,
+        "type": "number"
+      },
+      "name": {
+        "example": "edge-1",
+        "type": "string"
+      },
+      "netDown": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "netUp": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "onlineCount": {
+        "example": 5,
+        "type": "integer"
+      },
+      "outboundTag": {
+        "example": "direct",
+        "type": "string"
+      },
+      "panelVersion": {
+        "example": "v3.x.x",
+        "type": "string"
+      },
+      "parentGuid": {
+        "type": "string"
+      },
+      "pinnedCertSha256": {
+        "type": "string"
+      },
+      "port": {
+        "example": 2053,
+        "type": "integer"
+      },
+      "remark": {
+        "example": "Primary edge",
+        "type": "string"
+      },
+      "scheme": {
+        "example": "https",
+        "type": "string"
+      },
+      "status": {
+        "example": "online",
+        "type": "string"
+      },
+      "tlsVerifyMode": {
+        "example": "verify",
+        "type": "string"
+      },
+      "transitive": {
+        "example": false,
+        "type": "boolean"
+      },
+      "updatedAt": {
+        "example": 1700003600,
+        "format": "int64",
+        "type": "integer"
+      },
+      "uptimeSecs": {
+        "example": 86400,
+        "format": "int64",
+        "type": "integer"
+      },
+      "xrayError": {
+        "type": "string"
+      },
+      "xrayState": {
+        "example": "running",
+        "type": "string"
+      },
+      "xrayVersion": {
+        "example": "25.10.31",
+        "type": "string"
+      }
+    },
+    "required": [
+      "activeCount",
+      "address",
+      "allowPrivateAddress",
+      "basePath",
+      "clientCount",
+      "configDirty",
+      "configDirtyAt",
+      "cpuPct",
+      "createdAt",
+      "depletedCount",
+      "disabledCount",
+      "enable",
+      "guid",
+      "hasApiToken",
+      "id",
+      "inboundCount",
+      "inboundSyncMode",
+      "inboundTags",
+      "lastError",
+      "lastHeartbeat",
+      "latencyMs",
+      "memPct",
+      "name",
+      "netDown",
+      "netUp",
+      "onlineCount",
+      "outboundTag",
+      "panelVersion",
+      "pinnedCertSha256",
+      "port",
+      "remark",
+      "scheme",
+      "status",
+      "tlsVerifyMode",
+      "updatedAt",
+      "uptimeSecs",
+      "xrayError",
+      "xrayState",
+      "xrayVersion"
+    ],
+    "type": "object"
+  },
   "OutboundTraffics": {
     "description": "OutboundTraffics tracks traffic statistics for Xray outbound connections.",
     "properties": {
       "down": {
+        "format": "int64",
         "type": "integer"
       },
       "id": {
@@ -2158,9 +2765,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "total": {
+        "format": "int64",
         "type": "integer"
       },
       "up": {
+        "format": "int64",
         "type": "integer"
       }
     },
@@ -2182,6 +2791,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "finishedAt": {
         "example": 1735689612,
+        "format": "int64",
         "type": "integer"
       },
       "runId": {
@@ -2228,6 +2838,7 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "uptimeSecs": {
         "example": 86400,
+        "format": "int64",
         "type": "integer"
       },
       "xrayError": {

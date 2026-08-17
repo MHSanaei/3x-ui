@@ -86,11 +86,12 @@ export function useSecurityActions({ methods, setSaving, messageApi, nodeId, set
       messageApi.warning(t('pages.inbounds.form.realityTargetRequired'));
       return;
     }
+    const xver = Number(getValues('streamSettings.realitySettings.xver')) || 0;
     setScanning(true);
     try {
       const msg = await HttpUtil.post<RealityScanResult>(
         '/panel/api/server/scanRealityTarget',
-        { target },
+        { target, xver },
         { silent: true },
       );
       if (!msg?.success || !msg.obj) {

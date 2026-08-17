@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -38,6 +39,10 @@ type updateSettingForm struct {
 	ClearSmtpPassword bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
 }
 
+type validateRegexForm struct {
+	Regex string `json:"regex" form:"regex"`
+}
+
 // SettingController handles settings and user management operations.
 type SettingController struct {
 	settingService  service.SettingService
@@ -60,7 +65,9 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/all", a.getAllSetting)
 	g.POST("/defaultSettings", a.getDefaultSettings)
+	g.POST("/factoryDefaults", a.getFactoryDefaults)
 	g.POST("/update", a.updateSetting)
+	g.POST("/validateRegex", a.validateRegex)
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
@@ -70,6 +77,19 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.POST("/testSmtp", a.testSmtp)
 	g.POST("/testTgBot", a.testTgBot)
+}
+
+func (a *SettingController) validateRegex(c *gin.Context) {
+	form := &validateRegexForm{}
+	if err := c.ShouldBind(form); err != nil {
+		pureJsonMsg(c, http.StatusOK, false, err.Error())
+		return
+	}
+	if err := service.ValidateRegex(form.Regex); err != nil {
+		pureJsonMsg(c, http.StatusOK, false, err.Error())
+		return
+	}
+	pureJsonMsg(c, http.StatusOK, true, "")
 }
 
 // getAllSetting retrieves all current settings as the browser-safe view:
@@ -91,6 +111,10 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 		return
 	}
 	jsonObj(c, result, nil)
+}
+
+func (a *SettingController) getFactoryDefaults(c *gin.Context) {
+	jsonObj(c, a.settingService.GetFactoryDefaults(), nil)
 }
 
 // updateSetting updates all settings with the provided data.
@@ -192,11 +216,18 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 }
 
 type apiTokenCreateForm struct {
-	Name string `json:"name" form:"name"`
+	Name      string `json:"name" form:"name"`
+	Scope     string `json:"scope" form:"scope"`
+	ExpiresAt int64  `json:"expiresAt" form:"expiresAt"`
 }
 
 type apiTokenEnabledForm struct {
-	Enabled bool `json:"enabled" form:"enabled"`
+	Enabled       bool   `json:"enabled" form:"enabled"`
+	ExpectedScope string `json:"expectedScope" form:"expectedScope"`
+}
+
+type apiTokenScopeForm struct {
+	ExpectedScope string `json:"expectedScope" form:"expectedScope"`
 }
 
 func (a *SettingController) listApiTokens(c *gin.Context) {
@@ -214,7 +245,7 @@ func (a *SettingController) createApiToken(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
-	row, err := a.apiTokenService.Create(form.Name)
+	row, err := a.apiTokenService.Create(form.Name, form.Scope, form.ExpiresAt)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
@@ -228,7 +259,12 @@ func (a *SettingController) deleteApiToken(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
-	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.apiTokenService.Delete(id))
+	form := &apiTokenScopeForm{}
+	if bindErr := c.ShouldBind(form); bindErr != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), bindErr)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.apiTokenService.DeleteExpectedScope(id, form.ExpectedScope))
 }
 
 func (a *SettingController) setApiTokenEnabled(c *gin.Context) {
@@ -242,7 +278,7 @@ func (a *SettingController) setApiTokenEnabled(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), bindErr)
 		return
 	}
-	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.apiTokenService.SetEnabled(id, form.Enabled))
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), a.apiTokenService.SetEnabledExpectedScope(id, form.ExpectedScope, form.Enabled))
 }
 
 func (a *SettingController) testSmtp(c *gin.Context) {

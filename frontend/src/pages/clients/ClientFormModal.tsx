@@ -36,7 +36,7 @@ import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
-const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305', 'none', 'zero'] as const;
+const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
 
 const MULTI_CLIENT_PROTOCOLS = new Set([
   'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard', 'mtproto',
@@ -60,6 +60,16 @@ interface ApiMsg<T = unknown> {
   success?: boolean;
   msg?: string;
   obj?: T;
+}
+
+interface ClientHwidInfo {
+  id: number;
+  firstSeen: number;
+  lastSeen: number;
+  userAgent: string;
+  deviceOs: string;
+  osVersion: string;
+  deviceModel: string;
 }
 
 type Mode = 'add' | 'edit';
@@ -102,6 +112,7 @@ interface ClientFormModalProps {
 
 type Values = ClientFormValues & {
   expiryDate: number;
+  limitHwid: number;
   externalLinks: ExternalLinkRow[];
   wgPrivateKey: string;
   wgPublicKey: string;
@@ -126,6 +137,7 @@ const EMPTY: Values = {
   delayedDays: 0,
   reset: 0,
   limitIp: 0,
+  limitHwid: 0,
   tgId: 0,
   group: '',
   comment: '',
@@ -158,9 +170,16 @@ function bytesToGB(bytes: number): number {
   return Math.round((bytes / (1024 * 1024 * 1024)) * 100) / 100;
 }
 
-function gbToBytes(gb: number): number {
+export function gbToBytes(gb: number): number {
   if (!gb || gb <= 0) return 0;
   return Math.round(gb * 1024 * 1024 * 1024);
+}
+
+export function resolveTotalBytes(originalBytes: number | null | undefined, displayedGB: number): number {
+  if (originalBytes != null && displayedGB === bytesToGB(originalBytes)) {
+    return originalBytes;
+  }
+  return gbToBytes(displayedGB);
 }
 
 export default function ClientFormModal({
@@ -192,6 +211,7 @@ export default function ClientFormModal({
   const uuid = useWatch({ control: methods.control, name: 'uuid' });
   const password = useWatch({ control: methods.control, name: 'password' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
+  const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
@@ -207,6 +227,10 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [clientHwids, setClientHwids] = useState<ClientHwidInfo[]>([]);
+  const [hwidsLoading, setHwidsLoading] = useState(false);
+  const [hwidsClearing, setHwidsClearing] = useState(false);
+  const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const fail2ban = useFail2banStatusQuery();
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
@@ -227,6 +251,7 @@ export default function ClientFormModal({
   useEffect(() => {
     if (!open) return;
     setIpsModalOpen(false);
+    setHwidsModalOpen(false);
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
@@ -238,11 +263,14 @@ export default function ClientFormModal({
         password: client.password || '',
         auth: client.auth || '',
         flow: client.flow || '',
-        security: client.security || 'auto',
+        security: !client.security || client.security === 'none' || client.security === 'zero'
+          ? 'auto'
+          : client.security,
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         limitIp: client.limitIp || 0,
+        limitHwid: client.limitHwid || 0,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -267,6 +295,7 @@ export default function ClientFormModal({
       }
       methods.reset(seed);
       void loadIps();
+      void loadHwids();
     } else {
       const wgKeypair = Wireguard.generateKeypair();
       methods.reset({
@@ -383,10 +412,15 @@ export default function ClientFormModal({
   }
 
   useEffect(() => {
-    if (!showFlow && flow) {
+    // Only clear the flow once we actually have inbound options to judge
+    // capability from. While the options list is momentarily empty (e.g. the
+    // options query is (re)loading and `inbounds` falls back to `[]`), showFlow
+    // is a false negative, so clearing here would silently drop a valid
+    // xtls-rprx-vision flow the user picked for a Reality/TLS inbound.
+    if (inbounds.length > 0 && !showFlow && flow) {
       methods.setValue('flow', '');
     }
-  }, [showFlow, flow, methods]);
+  }, [inbounds, showFlow, flow, methods]);
 
   useEffect(() => {
     if (!showReverseTag && reverseTag) {
@@ -460,6 +494,34 @@ export default function ClientFormModal({
     }
   }
 
+  async function loadHwids() {
+    if (!isEdit || !client?.email) return;
+    setHwidsLoading(true);
+    try {
+      const msg = await HttpUtil.post(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
+      if (!msg?.success || !Array.isArray(msg.obj)) { setClientHwids([]); return; }
+      setClientHwids(msg.obj.filter((x): x is ClientHwidInfo => !!x && typeof x === 'object' && typeof (x as ClientHwidInfo).id === 'number'));
+    } finally {
+      setHwidsLoading(false);
+    }
+  }
+
+  function openHwidsModal() {
+    setHwidsModalOpen(true);
+    if (clientHwids.length === 0) void loadHwids();
+  }
+
+  async function clearHwids() {
+    if (!isEdit || !client?.email) return;
+    setHwidsClearing(true);
+    try {
+      const msg = await HttpUtil.delete(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg;
+      if (msg?.success) setClientHwids([]);
+    } finally {
+      setHwidsClearing(false);
+    }
+  }
+
   function close() {
     onOpenChange(false);
   }
@@ -483,7 +545,7 @@ export default function ClientFormModal({
     const values = methods.getValues();
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
-      email: values.email,
+email: values.email,
       subId: values.subId,
       uuid: values.uuid,
       password: values.password,
@@ -496,6 +558,7 @@ export default function ClientFormModal({
       delayedDays: values.delayedDays,
       reset: values.reset,
       limitIp: values.limitIp,
+      limitHwid: values.limitHwid,
       tgId: values.tgId,
       group: values.group,
       comment: values.comment,
@@ -510,6 +573,7 @@ export default function ClientFormModal({
     const expiryTime = values.delayedStart
       ? -86400000 * (Number(values.delayedDays) || 0)
       : (values.expiryDate || 0);
+    const totalBytes = resolveTotalBytes(client ? (client.totalGB ?? 0) : null, values.totalGB);
     const clientPayload: Record<string, unknown> = {
       email: values.email.trim(),
       subId: values.subId,
@@ -518,10 +582,11 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: showFlow ? (values.flow || '') : '',
       security: showSecurity ? (values.security || 'auto') : 'auto',
-      totalGB: gbToBytes(values.totalGB),
+      totalGB: totalBytes,
       expiryTime,
-      reset: Number(values.reset) || 0,
+reset: Number(values.reset) || 0,
       limitIp: Number(values.limitIp) || 0,
+      limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
       group: values.group,
       comment: values.comment,
@@ -632,7 +697,7 @@ export default function ClientFormModal({
           </div>
         }
       >
-        <FormProvider {...methods}>
+<FormProvider {...methods}>
           <Form layout="vertical">
             <Tabs
               defaultActiveKey="basic"
@@ -686,6 +751,21 @@ export default function ClientFormModal({
                                 </Space.Compact>
                               </span>
                             </Tooltip>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <Form.Item label={t('pages.clients.limitHwid')} tooltip={t('pages.clients.limitHwidDesc')}>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <InputNumber value={limitHwid} min={0} style={{ flex: 1 }}
+                                onChange={(v) => methods.setValue('limitHwid', Number(v) || 0)} />
+                              {isEdit && (
+                                <Tooltip title={t('pages.clients.hwidLog')}>
+                                  <Button aria-label={t('pages.clients.hwidLog')} icon={<EyeOutlined />} loading={hwidsLoading} onClick={openHwidsModal}>
+                                    {clientHwids.length > 0 ? clientHwids.length : ''}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </Space.Compact>
                           </Form.Item>
                         </Col>
                       </Row>
@@ -947,7 +1027,7 @@ export default function ClientFormModal({
                             </div>
                             <div className="external-link-details two-cols">
                               <FormField name={`externalLinks.${index}.remark`} noStyle>
-                                <Input placeholder={t('remark')} />
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
                               </FormField>
                               <Controller
                                 control={methods.control}
@@ -992,10 +1072,10 @@ export default function ClientFormModal({
                             </div>
                             <div className="external-link-details three-cols">
                               <FormField name={`externalLinks.${index}.remark`} noStyle>
-                                <Input placeholder={t('remark')} />
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
                               </FormField>
                               <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
-                                <Input placeholder={t('pages.clients.namePrefix')} />
+                                <Input aria-label={t('pages.clients.namePrefix')} placeholder={t('pages.clients.namePrefix')} />
                               </FormField>
                               <Controller
                                 control={methods.control}
@@ -1070,6 +1150,55 @@ export default function ClientFormModal({
           </div>
         ) : (
           <Tag>{t('tgbot.noIpRecord')}</Tag>
+        )}
+      </Modal>
+
+      <Modal
+        open={hwidsModalOpen}
+        title={`${t('pages.clients.hwidLog')}${client?.email ? ` — ${client.email}` : ''}`}
+        width={520}
+        zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+        onCancel={() => setHwidsModalOpen(false)}
+        footer={[
+          <Button key="refresh" icon={<ReloadOutlined />} loading={hwidsLoading} onClick={loadHwids}>
+            {t('refresh')}
+          </Button>,
+          <Button key="clear" danger loading={hwidsClearing} disabled={clientHwids.length === 0} onClick={clearHwids}>
+            {t('pages.clients.clearAll')}
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setHwidsModalOpen(false)}>
+            {t('close')}
+          </Button>,
+        ]}
+      >
+        {clientHwids.length > 0 ? (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {clientHwids.map((entry) => (
+              <div key={entry.id} style={{ borderBottom: '1px solid var(--ant-color-border-secondary)', padding: '8px 0' }}>
+                <Typography.Text strong>{entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}</Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
+                </Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {t('pages.clients.firstSeen')}: {entry.firstSeen ? dayjs(entry.firstSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                </Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {t('pages.clients.lastSeen')}: {entry.lastSeen ? dayjs(entry.lastSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                </Typography.Text>
+                {entry.userAgent && (
+                  <>
+                    <br />
+                    <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>{entry.userAgent}</Typography.Text>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Tag>{t('pages.clients.noHwids')}</Tag>
         )}
       </Modal>
     </>

@@ -125,3 +125,37 @@ func TestAddInbound_ImportStatsMissingClientStillGetsTrafficRow(t *testing.T) {
 		t.Fatalf("erin Total = %d, want 2000 (quota taken from client settings)", erin.Total)
 	}
 }
+
+// TestAddInbound_ImportForcedEnableSurvivesDisabledSettingsClient covers a
+// regression the AddClientStat OnConflict fix (#5958) could otherwise
+// introduce: controller.importInbound forces every ClientStats row to
+// Enable=true (imports are meant to bring every client back enabled), but
+// Settings.clients[].enable is untouched and can still say false for a client
+// that was disabled at export time. AddInbound runs the ClientStats loop
+// first (plain insert, Enable=true) and then calls AddClientStat once per
+// Settings-derived client on the same email — that second call must not let
+// the stale, disabled Settings value win over the forced-enabled row.
+func TestAddInbound_ImportForcedEnableSurvivesDisabledSettingsClient(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	settings := `{"clients":[` +
+		`{"id":"66666666-6666-6666-6666-666666666666","email":"frank","subId":"s-frank","enable":false,"totalGB":5000}` +
+		`],"decryption":"none","encryption":"none"}`
+	// makeImportInbound forces Enable=true on every stats row, matching
+	// controller.importInbound's behavior regardless of what's passed here.
+	in := makeImportInbound("in-9104-tcp", 9104, settings, []xray.ClientTraffic{
+		{Email: "frank", Up: 10, Down: 20, Total: 5000},
+	})
+	if _, _, err := svc.AddInbound(in); err != nil {
+		t.Fatalf("import inbound: %v", err)
+	}
+
+	var frank xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", "frank").First(&frank).Error; err != nil {
+		t.Fatalf("frank row: %v", err)
+	}
+	if !frank.Enable {
+		t.Fatalf("frank.Enable = false, want true (import must force-enable even though Settings still says disabled)")
+	}
+}

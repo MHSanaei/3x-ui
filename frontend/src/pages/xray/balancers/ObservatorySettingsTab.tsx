@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Empty, Input, InputNumber, Select, Space, Switch, Tag } from 'antd';
 
+import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import {
   BurstObservatorySchema,
@@ -195,7 +196,7 @@ export default function ObservatorySettingsTab({
         <InputNumber
           min={1}
           value={burst.pingConfig.sampling}
-          onChange={(v) => patchPingConfig({ sampling: typeof v === 'number' ? v : burst.pingConfig.sampling })}
+          onChange={onNumber((v) => patchPingConfig({ sampling: v }))}
           style={{ width: '100%' }}
         />
       </SettingListItem>

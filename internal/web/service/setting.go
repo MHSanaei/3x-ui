@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,14 @@ import (
 //go:embed config.json
 var xrayTemplateConfig string
 
+const (
+	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
+	DefaultSubJsonUserAgentRegex  = ``
+	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
+	maxRegexLength                = 2048
+)
+
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
 	"webListen":          "",
@@ -50,14 +59,16 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsCaKeyPem":            "",
 	"nodeMtlsClientCertPem":       "",
 	"nodeMtlsClientKeyPem":        "",
+	"nodeMtlsClientCertSha256":    "",
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
+	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
-	"remarkTemplate":              "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D",
+	"remarkTemplate":              DefaultRemarkTemplate,
+	"subShowIdentityOnAllLinks":   "false",
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -73,6 +84,11 @@ var defaultValueMap = map[string]string{
 	"twoFactorToken":              "",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
+	"subJsonAutoDetect":           "false",
+	"subJsonAlwaysArray":          "false",
+	"subJsonUserAgentRegex":       "",
+	"subClashAutoDetect":          "false",
+	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
 	"subProfileUrl":               "",
@@ -142,12 +158,17 @@ var defaultValueMap = map[string]string{
 	"smtpCpu":           "80",
 	"smtpMemory":        "80",
 
+	// Consecutive failed observatory probes before an outbound.down event fires
+	"outboundDownThreshold": "3",
+
 	// Email (SMTP) notifications
 	"smtpEnable":         "false",
 	"smtpHost":           "",
 	"smtpPort":           "587",
 	"smtpUsername":       "",
 	"smtpPassword":       "",
+	"smtpFrom":           "",
+	"smtpFromName":       "",
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
 }
@@ -371,11 +392,17 @@ func (s *SettingService) setInt(key string, value int) error {
 }
 
 func (s *SettingService) GetWarpLastUpdate() (int64, error) {
-	val, err := s.getString("warpLastUpdate")
-	if err != nil || val == "" {
+	setting, err := s.getSetting("warpLastUpdate")
+	if database.IsNotFound(err) {
+		return 0, nil
+	}
+	if err != nil {
 		return 0, err
 	}
-	return strconv.ParseInt(val, 10, 64)
+	if setting.Value == "" {
+		return 0, nil
+	}
+	return strconv.ParseInt(setting.Value, 10, 64)
 }
 
 func (s *SettingService) SetWarpLastUpdate(val int64) error {
@@ -631,12 +658,19 @@ func (s *SettingService) GetRemarkTemplate() (string, error) {
 	return s.getString("remarkTemplate")
 }
 
+func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
+	return s.getBool("subShowIdentityOnAllLinks")
+}
+
 func (s *SettingService) GetSecret() ([]byte, error) {
 	secret, err := s.getString("secret")
-	if secret == defaultValueMap["secret"] {
-		err := s.saveSetting("secret", secret)
-		if err != nil {
-			logger.Warning("save secret failed:", err)
+	if secret == "" || secret == defaultValueMap["secret"] {
+		if secret == "" {
+			secret = defaultValueMap["secret"]
+		}
+		saveErr := s.saveSetting("secret", secret)
+		if saveErr != nil {
+			logger.Warning("save secret failed:", saveErr)
 		}
 	}
 	return []byte(secret), err
@@ -703,6 +737,26 @@ func (s *SettingService) GetSubEnable() (bool, error) {
 
 func (s *SettingService) GetSubJsonEnable() (bool, error) {
 	return s.getBool("subJsonEnable")
+}
+
+func (s *SettingService) GetSubJsonAutoDetect() (bool, error) {
+	return s.getBool("subJsonAutoDetect")
+}
+
+func (s *SettingService) GetSubJsonAlwaysArray() (bool, error) {
+	return s.getBool("subJsonAlwaysArray")
+}
+
+func (s *SettingService) GetSubJsonUserAgentRegex() (string, error) {
+	return s.getString("subJsonUserAgentRegex")
+}
+
+func (s *SettingService) GetSubClashAutoDetect() (bool, error) {
+	return s.getBool("subClashAutoDetect")
+}
+
+func (s *SettingService) GetSubClashUserAgentRegex() (string, error) {
+	return s.getString("subClashUserAgentRegex")
 }
 
 func (s *SettingService) GetSubTitle() (string, error) {
@@ -1045,6 +1099,22 @@ func (s *SettingService) SetSmtpUsername(value string) error {
 	return s.setString("smtpUsername", value)
 }
 
+func (s *SettingService) GetSmtpFrom() (string, error) {
+	return s.getString("smtpFrom")
+}
+
+func (s *SettingService) SetSmtpFrom(value string) error {
+	return s.setString("smtpFrom", value)
+}
+
+func (s *SettingService) GetSmtpFromName() (string, error) {
+	return s.getString("smtpFromName")
+}
+
+func (s *SettingService) SetSmtpFromName(value string) error {
+	return s.setString("smtpFromName", value)
+}
+
 func (s *SettingService) GetSmtpPassword() (string, error) {
 	return s.getString("smtpPassword")
 }
@@ -1085,6 +1155,17 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
+// GetOutboundDownThreshold returns how many consecutive failed observatory
+// probes an outbound must accumulate before an outbound.down notification is
+// emitted. 1 preserves the legacy "notify on the first failed probe" behaviour.
+func (s *SettingService) GetOutboundDownThreshold() (int, error) {
+	return s.getInt("outboundDownThreshold")
+}
+
+func (s *SettingService) SetOutboundDownThreshold(value int) error {
+	return s.setInt("outboundDownThreshold", value)
+}
+
 // SecretClears marks redacted secrets the user explicitly emptied. Without a
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
@@ -1099,6 +1180,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		return err
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
+		return err
+	}
+	if err := validateSubUserAgentRegexes(allSetting); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -1139,6 +1223,48 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		}
 		return nil
 	})
+}
+
+func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
+	jsonPattern, err := validateSubUserAgentRegex("Xray JSON", allSetting.SubJsonUserAgentRegex, DefaultSubJsonUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	clashPattern, err := validateSubUserAgentRegex("Clash/Mihomo", allSetting.SubClashUserAgentRegex, DefaultSubClashUserAgentRegex)
+	if err != nil {
+		return err
+	}
+	allSetting.SubJsonUserAgentRegex = jsonPattern
+	allSetting.SubClashUserAgentRegex = clashPattern
+	return nil
+}
+
+func validateSubUserAgentRegex(name, pattern, defaultPattern string) (string, error) {
+	pattern = strings.TrimSpace(pattern)
+	effectivePattern := pattern
+	if effectivePattern == "" {
+		effectivePattern = defaultPattern
+	}
+	if len(effectivePattern) > maxRegexLength {
+		return "", common.NewErrorf("%s User-Agent regex must not exceed %d characters", name, maxRegexLength)
+	}
+	if _, err := regexp.Compile(effectivePattern); err != nil {
+		return "", common.NewErrorf("%s User-Agent regex is invalid: %v", name, err)
+	}
+	// Return the original pattern (empty string if cleared) so the caller
+	// can distinguish "user explicitly set empty" from "user set a value".
+	// The empty value is stored in the DB and inherited as runtime default.
+	return pattern, nil
+}
+
+func ValidateRegex(pattern string) error {
+	if len(pattern) > maxRegexLength {
+		return common.NewErrorf("Regular expression must not exceed %d characters", maxRegexLength)
+	}
+	if _, err := regexp.Compile(pattern); err != nil {
+		return common.NewError("Regular expression is invalid:", err)
+	}
+	return nil
 }
 
 func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, clears SecretClears) error {
@@ -1329,4 +1455,34 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	}
 
 	return result, nil
+}
+
+var factoryDefaultSecretKeys = map[string]bool{
+	"tgBotToken":     true,
+	"twoFactorToken": true,
+	"ldapPassword":   true,
+	"smtpPassword":   true,
+}
+
+/*
+GetFactoryDefaults returns the shipped default value per setting, keyed by
+the AllSetting json field name. Unlike GetDefaultSettings (which reports
+current effective values), this is defaultValueMap projected through the
+AllSetting field set: only keys that exist as an AllSetting json tag are
+returned, minus the credential fields in factoryDefaultSecretKeys. Keys
+with no AllSetting field (secret, panelGuid, the node mTLS material,
+xrayTemplateConfig) are excluded structurally rather than by deny-list.
+*/
+func (s *SettingService) GetFactoryDefaults() map[string]string {
+	result := make(map[string]string)
+	for _, field := range reflect_util.GetFields(reflect.TypeFor[entity.AllSetting]()) {
+		key := field.Tag.Get("json")
+		if key == "" || factoryDefaultSecretKeys[key] {
+			continue
+		}
+		if value, ok := defaultValueMap[key]; ok {
+			result[key] = value
+		}
+	}
+	return result
 }

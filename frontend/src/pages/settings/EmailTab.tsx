@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, InputNumber, Select, Space, Switch, Tabs } from 'antd';
 import { MailOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
+import { onNumber } from '@/utils/onNumber';
 import type { AllSetting } from '@/models/setting';
-import { SettingListItem } from '@/components/ui';
+import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { EmailNotifications } from '@/components/ui/notifications/EmailNotifications';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
@@ -62,9 +63,9 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                 onChange={(e) => updateSetting({ smtpHost: e.target.value })} />
             </SettingListItem>
 
-            <SettingListItem paddings="small" title={t('pages.settings.smtpPort')} description={t('pages.settings.smtpPortDesc')}>
+            <SettingListItem paddings="small" title={t('pages.settings.smtpPort')} badge={<DefaultSettingTag settingKey="smtpPort" value={allSetting.smtpPort} />} description={t('pages.settings.smtpPortDesc')}>
               <InputNumber value={allSetting.smtpPort} min={1} max={65535} style={{ width: '100%' }}
-                onChange={(v) => updateSetting({ smtpPort: Number(v) || 587 })} />
+                onChange={onNumber((v) => updateSetting({ smtpPort: v }))} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpUsername')} description={t('pages.settings.smtpUsernameDesc')}>
@@ -80,6 +81,16 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                 placeholder={t('pages.settings.smtpPasswordPlaceholder')}
                 onChange={(v) => updateSetting({ smtpPassword: v })}
                 onClearArmedChange={(armed) => updateSetting({ clearSmtpPassword: armed })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.smtpFrom')} description={t('pages.settings.smtpFromDesc')}>
+              <Input value={allSetting.smtpFrom} placeholder="user@gmail.com"
+                onChange={(e) => updateSetting({ smtpFrom: e.target.value })} />
+            </SettingListItem>
+
+            <SettingListItem paddings="small" title={t('pages.settings.smtpFromName')} description={t('pages.settings.smtpFromNameDesc')}>
+              <Input value={allSetting.smtpFromName} placeholder="3x-ui"
+                onChange={(e) => updateSetting({ smtpFromName: e.target.value })} />
             </SettingListItem>
 
             <SettingListItem paddings="small" title={t('pages.settings.smtpTo')} description={t('pages.settings.smtpToDesc')}>
@@ -113,8 +124,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
                       : <span><b>{stageLabel[testResult.stage || ''] || testResult.stage}:</b> {t('pages.settings.' + testResult.msg)}</span>
                   }
                   showIcon
-                  closable
-                  onClose={() => setTestResult(null)}
+                  closable={{ onClose: () => setTestResult(null) }}
                 />
               )}
             </Space>

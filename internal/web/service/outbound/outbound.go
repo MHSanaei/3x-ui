@@ -22,24 +22,10 @@ import (
 type OutboundService struct{}
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
-	var err error
-	db := database.GetDB()
-	tx := db.Begin()
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
-	err = s.addOutboundTraffic(tx, traffics)
-	if err != nil {
-		return err, false
-	}
-
-	return nil, false
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		return s.addOutboundTraffic(tx, traffics)
+	})
+	return err, false
 }
 
 // saturatingAdd caps counters at database.TrafficMax: unlike the SQL paths,
@@ -142,6 +128,7 @@ type TestOutboundResult struct {
 	TTFBMs     int64 `json:"ttfbMs,omitempty"`
 
 	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
+	Egress    *TestEgressResult    `json:"egress,omitempty"`
 }
 
 // TestEndpointResult is one entry in a TCP-mode probe — the per-endpoint
@@ -151,6 +138,15 @@ type TestEndpointResult struct {
 	Success bool   `json:"success"`
 	Delay   int64  `json:"delay"`
 	Error   string `json:"error,omitempty"`
+}
+
+// TestEgressResult is populated by HTTP-mode probes from Cloudflare's trace
+// endpoint. It reports what an external service sees after the outbound chain.
+type TestEgressResult struct {
+	IPv4    string `json:"ipv4,omitempty"`
+	IPv6    string `json:"ipv6,omitempty"`
+	Country string `json:"country,omitempty"`
+	Warp    string `json:"warp,omitempty"`
 }
 
 func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundResult, error) {

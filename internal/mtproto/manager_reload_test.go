@@ -21,6 +21,16 @@ func TestMain(m *testing.M) {
 			fmt.Fprintf(f, "%d\n", os.Getpid())
 			f.Close()
 		}
+		if exitFile := os.Getenv("MTG_FAKE_EXIT_FILE"); exitFile != "" {
+			for {
+				if _, err := os.Stat(exitFile); err == nil {
+					os.Exit(1)
+				} else if !os.IsNotExist(err) {
+					os.Exit(2)
+				}
+				time.Sleep(time.Millisecond)
+			}
+		}
 		select {}
 	}
 	os.Exit(m.Run())

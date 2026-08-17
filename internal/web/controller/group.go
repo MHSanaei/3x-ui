@@ -148,7 +148,6 @@ func (a *GroupController) bulkAdd(c *gin.Context) {
 		return
 	}
 	jsonObj(c, gin.H{"affected": affected}, nil)
-	a.xrayService.SetToNeedRestart()
 	notifyClientsChanged()
 }
 

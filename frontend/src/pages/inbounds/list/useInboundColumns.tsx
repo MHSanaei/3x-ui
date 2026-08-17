@@ -10,6 +10,7 @@ import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { coerceInboundJsonField } from '@/models/dbinbound';
 
 import { RowActionsCell } from './RowActions';
+import { SPEED_COLUMN_WIDTH, SPEED_TAG_CLASS_NAME, SPEED_TAG_STYLE } from '@/components/utility/speedTagStyle';
 import { InboundSpeedTag, isActiveSpeed } from './InboundSpeedTag';
 import {
   readStreamHints,
@@ -324,14 +325,14 @@ export function useInboundColumns({
         title: t('pages.inbounds.speed'),
         key: 'speed',
         align: 'center',
-        width: 110,
+        width: SPEED_COLUMN_WIDTH,
         sorter: (a, b) => speedTotal(a) - speedTotal(b),
         render: (_, record) => {
           const speed = inboundSpeed[record.id];
           if (!isActiveSpeed(speed)) {
-            return <Tag color='default'>—</Tag>;
+            return <Tag color="default" className={SPEED_TAG_CLASS_NAME} style={SPEED_TAG_STYLE}>—</Tag>;
           }
-          return <InboundSpeedTag speed={speed} withTooltip />;
+          return <InboundSpeedTag speed={speed} withTooltip tableCell />;
         },
       },
       {

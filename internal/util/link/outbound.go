@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"net/url"
 	"regexp"
@@ -157,9 +158,8 @@ func parseVmess(link string) (*ParseResult, error) {
 	// Map known fields (best effort, matching frontend parser coverage)
 	switch network {
 	case "ws":
-		if host, ok := j["host"].(string); ok {
-			setWS(stream, host, getString(j, "path", "/"))
-		}
+		host, _ := j["host"].(string)
+		setWS(stream, host, getString(j, "path", "/"))
 	case "grpc":
 		svc := getString(j, "path", "")
 		if auth, ok := j["authority"].(string); ok && auth != "" {
@@ -208,6 +208,10 @@ func parseVmess(link string) (*ParseResult, error) {
 	}
 
 	port := num(j["port"])
+	scy := getString(j, "scy", "auto")
+	if scy == "none" || scy == "zero" {
+		scy = "auto"
+	}
 	ob := Outbound{
 		"protocol": "vmess",
 		"tag":      getString(j, "ps", ""),
@@ -219,7 +223,7 @@ func parseVmess(link string) (*ParseResult, error) {
 					"users": []any{
 						map[string]any{
 							"id":       getString(j, "id", ""),
-							"security": getString(j, "scy", "auto"),
+							"security": scy,
 						},
 					},
 				},
@@ -338,12 +342,15 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		remark, _ = url.QueryUnescape(link[i+1:])
 		link = link[:i]
 	}
+	if i := strings.Index(link, "?"); i >= 0 {
+		link = link[:i]
+	}
 	core := strings.TrimPrefix(link, "ss://")
 	at := strings.Index(core, "@")
 	if at >= 0 {
 		// modern
 		userB64 := core[:at]
-		hp := core[at+1:]
+		hp := strings.TrimRight(core[at+1:], "/")
 		userInfo, err := base64DecodeFlexible(userB64)
 		if err != nil {
 			// SIP022 (2022-blake3-*) userinfo is percent-encoded, not base64.
@@ -358,7 +365,10 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 			return nil, fmt.Errorf("bad ss host:port")
 		}
 		host := hp[:colon]
-		port, _ := strconv.Atoi(hp[colon+1:])
+		port, err := strconv.Atoi(hp[colon+1:])
+		if err != nil {
+			return nil, fmt.Errorf("bad ss port %q: %w", hp[colon+1:], err)
+		}
 		method, pass := splitMethodPass(userInfo)
 		identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
 		ob := Outbound{
@@ -388,7 +398,10 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		return nil, fmt.Errorf("bad legacy ss hp")
 	}
 	host := hp[:colon]
-	port, _ := strconv.Atoi(hp[colon+1:])
+	port, err := strconv.Atoi(hp[colon+1:])
+	if err != nil {
+		return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
+	}
 	method, pass := splitMethodPass(userInfo)
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
 	ob := Outbound{
@@ -439,11 +452,13 @@ func parseHysteria2(link string) (*ParseResult, error) {
 			"alpn":                 splitCommaOrDefault(params.Get("alpn"), []string{"h3"}),
 			"fingerprint":          params.Get("fp"),
 			"echConfigList":        params.Get("ech"),
-			"verifyPeerCertByName": "",
+			"verifyPeerCertByName": params.Get("vcn"),
 			"pinnedPeerCertSha256": params.Get("pinSHA256"),
 		},
 	}
 	applyFinalMask(stream, params)
+	applyHysteria2Obfs(stream, params)
+	applyHysteria2Hop(stream, params)
 
 	identity := "hysteria2:" + auth + "@" + host + ":" + strconv.Itoa(port) + "?" + canonicalQuery(params)
 
@@ -609,7 +624,15 @@ func applyTransport(stream map[string]any, p url.Values) {
 		if m := p.Get("mode"); m != "" {
 			xh["mode"] = m
 		}
-		// A few advanced xhttp fields that are commonly carried
+		if v := p.Get("x_padding_bytes"); v != "" {
+			xh["xPaddingBytes"] = v
+		}
+		if extra := p.Get("extra"); extra != "" {
+			var parsed map[string]any
+			if err := json.Unmarshal([]byte(extra), &parsed); err == nil {
+				maps.Copy(xh, parsed)
+			}
+		}
 		for _, k := range []string{"xPaddingBytes", "scMaxEachPostBytes", "scMinPostsIntervalMs", "uplinkChunkSize"} {
 			if v := p.Get(k); v != "" {
 				xh[k] = v
@@ -663,6 +686,69 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			stream["finalmask"] = parsed
 		}
 	}
+}
+
+// applyHysteria2Obfs rebuilds the salamander mask from the standard Hysteria2
+// obfs=salamander & obfs-password=<pw> pair (every non-3x-ui client, and this
+// panel's own generator, speak it instead of the private fm=<json> dump). A
+// salamander mask already carrying a password via fm= wins; a password-less one
+// is completed rather than left empty.
+func applyHysteria2Obfs(stream map[string]any, p url.Values) {
+	if !strings.EqualFold(p.Get("obfs"), "salamander") {
+		return
+	}
+	password := firstParam(p, "obfs-password", "obfs_password", "obfsPassword")
+	if password == "" {
+		return
+	}
+	finalmask := ensureChildMap(stream, "finalmask")
+	udp, _ := finalmask["udp"].([]any)
+	for _, m := range udp {
+		mask, ok := m.(map[string]any)
+		if !ok || mask["type"] != "salamander" {
+			continue
+		}
+		settings, ok := mask["settings"].(map[string]any)
+		if !ok {
+			settings = map[string]any{}
+			mask["settings"] = settings
+		}
+		if pw, _ := settings["password"].(string); pw == "" {
+			settings["password"] = password
+		}
+		return
+	}
+	finalmask["udp"] = append(udp, map[string]any{
+		"type":     "salamander",
+		"settings": map[string]any{"password": password},
+	})
+}
+
+// applyHysteria2Hop rebuilds the UDP port-hopping range from the standard mport
+// param, which the generator emits as finalmask.quicParams.udpHop.ports. A range
+// already supplied via fm= wins; the client-side interval falls back to the same
+// default the panel writes.
+func applyHysteria2Hop(stream map[string]any, p url.Values) {
+	ports := firstParam(p, "mport")
+	if ports == "" {
+		return
+	}
+	quicParams := ensureChildMap(ensureChildMap(stream, "finalmask"), "quicParams")
+	if udpHop, ok := quicParams["udpHop"].(map[string]any); ok {
+		if existing, _ := udpHop["ports"].(string); existing != "" {
+			return
+		}
+	}
+	quicParams["udpHop"] = map[string]any{"ports": ports, "interval": "5-10"}
+}
+
+func ensureChildMap(parent map[string]any, key string) map[string]any {
+	m, ok := parent[key].(map[string]any)
+	if !ok {
+		m = map[string]any{}
+		parent[key] = m
+	}
+	return m
 }
 
 // sanitizeFinalMaskQuicParams coerces the strictly numeric quicParams fields

@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -27,7 +28,8 @@ func TestJsonAndClashServeExternalLinkOnlySub(t *testing.T) {
 
 	base := NewSubService("")
 
-	jsonOut, _, err := NewSubJsonService("", "", "", base).GetJson("ext-only", "sub.example.com")
+	jsonService := NewSubJsonService("", "", "", base)
+	jsonOut, _, err := jsonService.GetJson("ext-only", "sub.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson err = %v", err)
 	}
@@ -36,6 +38,22 @@ func TestJsonAndClashServeExternalLinkOnlySub(t *testing.T) {
 	}
 	if !strings.Contains(jsonOut, "DE-Provider") {
 		t.Fatalf("GetJson missing external remark: %s", jsonOut)
+	}
+	var config map[string]any
+	if err := json.Unmarshal([]byte(jsonOut), &config); err != nil {
+		t.Fatalf("legacy GetJson must return an object for a single profile: %v; body=%s", err, jsonOut)
+	}
+
+	standardOut, _, err := jsonService.GetJson("ext-only", "sub.example.com", true)
+	if err != nil {
+		t.Fatalf("standards-compliant GetJson err = %v", err)
+	}
+	var configs []map[string]any
+	if err := json.Unmarshal([]byte(standardOut), &configs); err != nil {
+		t.Fatalf("standards-compliant GetJson must return an array for a single profile: %v; body=%s", err, standardOut)
+	}
+	if len(configs) != 1 {
+		t.Fatalf("standards-compliant GetJson profile count = %d, want 1", len(configs))
 	}
 
 	clashOut, _, err := NewSubClashService(false, "", base).GetClash("ext-only", "sub.example.com")

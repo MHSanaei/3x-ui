@@ -36,11 +36,13 @@ production-style links work without round-tripping through Go.
 | `npm run lint` | ESLint flat config (`@typescript-eslint` + `react-hooks`) |
 | `npm run test` | Vitest single run (schema fixtures, link parsers, …) |
 | `npm run test:watch` | Vitest watch mode |
+| `npm run storybook` | Storybook dev server on `:6006` (component workbench + autodocs) |
+| `npm run build-storybook` | Static Storybook build — CI compile-checks every story |
 | `npm run gen:api` | Build `public/openapi.json` from `pages/api-docs/endpoints.ts` |
 | `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
 
-CI runs `typecheck`, `lint`, `test`, and `build` on every PR
-(see `../.github/workflows/ci.yml`).
+CI runs `typecheck`, `lint`, `test`, `build`, and `build-storybook` on
+every PR (see `../.github/workflows/ci.yml`).
 
 ### One-off: scan for deprecated APIs
 
@@ -79,6 +81,7 @@ frontend/
 │                                         #   usages of APIs marked with JSDoc @deprecated
 ├── vitest.config.ts
 ├── vite.config.js
+├── .storybook/                           # Storybook config (main.ts, preview.tsx)
 ├── scripts/
 │   └── build-openapi.mjs                 # endpoints.ts → openapi.json
 └── src/
@@ -89,7 +92,7 @@ frontend/
     │   ├── index/, login/, inbounds/, clients/, xray/, nodes/,
     │   ├── settings/, api-docs/, sub/
     ├── layouts/         # AdminLayout (sidebar + header + outlet)
-    ├── components/      # Cross-page React components
+    ├── components/      # Cross-page React components (+ co-located *.stories.tsx)
     ├── hooks/           # useClients, useTheme, useWebSocket, …
     ├── api/             # fetch client + CSRF handling, TanStack Query bridge,
     │                    #   WebSocket client + queryClient.ts
@@ -186,6 +189,36 @@ npx vitest run -u
 
 Fixtures live in `src/test/golden/fixtures/` and are auto-discovered
 via `import.meta.glob`.
+
+## Storybook
+
+Reusable components in `src/components/` are developed and documented in
+**Storybook** (`@storybook/react-vite`). It is a component workbench, not part
+of the shipped panel — nothing here is embedded into the Go binary. The built
+Storybook is published with the docs site at
+[docs.sanaei.dev/storybook](https://docs.sanaei.dev/storybook/) by
+`.github/workflows/docs-deploy.yml`.
+
+```sh
+npm run storybook        # dev server on http://localhost:6006
+npm run build-storybook  # static build; CI runs this to compile-check every story
+```
+
+Addons: `@storybook/addon-docs` renders an autodocs page per component,
+`@storybook/addon-a11y` flags accessibility issues in the canvas, and
+`@storybook/addon-vitest` runs every story as a headless-browser test under
+`npm run test` (Playwright/Chromium — run `npx playwright install chromium` once
+locally). The `.storybook/preview.tsx` decorator wraps every story in the AntD
+`ConfigProvider` and adds a light/dark theme toggle to the toolbar.
+
+Conventions for a story:
+
+- Co-locate it with its component as `<Component>.stories.tsx`.
+- Set `tags: ['autodocs']` so it gets a generated docs page.
+- Document props via story metadata, not JSDoc (the repo bans `//` comments): a
+  component summary in `parameters.docs.description.component` and per-prop text
+  in `argTypes[prop].description`. `satisfies Meta<typeof Component>` keeps the
+  metadata type-checked.
 
 ## Adding a new page
 

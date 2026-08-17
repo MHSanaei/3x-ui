@@ -158,6 +158,39 @@ func TestRemoveInboundTagReferences_KeepsRuleWithOtherMatchers(t *testing.T) {
 	}
 }
 
+func TestRemoveInboundTagReferences_KeepsSourceScopedRule(t *testing.T) {
+	setupSettingTestDB(t)
+	seedXrayTemplate(t, `{
+		"routing": {
+			"rules": [
+				{
+					"type":"field",
+					"inboundTag":["in-443-tcp"],
+					"source":["10.0.0.0/8"],
+					"outboundTag":"blocked"
+				}
+			]
+		}
+	}`)
+
+	svc := &XraySettingService{}
+	if _, err := svc.RemoveInboundTagReferences("in-443-tcp"); err != nil {
+		t.Fatalf("RemoveInboundTagReferences: %v", err)
+	}
+
+	got, err := svc.GetXrayConfigTemplate()
+	if err != nil {
+		t.Fatalf("GetXrayConfigTemplate: %v", err)
+	}
+	rule := findRuleByOutbound(t, got, "blocked")
+	if _, ok := rule["inboundTag"]; ok {
+		t.Fatalf("inboundTag should be trimmed, rule = %#v", rule)
+	}
+	if src, _ := rule["source"].([]any); len(src) != 1 {
+		t.Fatalf("source-scoped rule was dropped instead of kept; rule = %#v", rule)
+	}
+}
+
 func TestRemoveInboundTagReferences_RemovesOneTagFromMultiInboundRule(t *testing.T) {
 	setupSettingTestDB(t)
 	seedXrayTemplate(t, `{

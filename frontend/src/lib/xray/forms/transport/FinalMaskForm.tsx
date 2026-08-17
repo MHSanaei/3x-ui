@@ -81,9 +81,42 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
       };
     case 'header-custom':
       return { clients: [], servers: [] };
+    case 'xmc':
+      return { hostname: '', profiles: [defaultXmcProfile()], password: RandomUtil.randomLowerAndNum(16) };
     default:
       return {};
   }
+}
+
+function defaultXmcProfile(): Record<string, unknown> {
+  return { username: '', uuid: '', texturesValue: '', texturesSignature: '' };
+}
+
+// xray-core #6487 replaced the xmc mask's `usernames` string list with
+// `profiles` objects carrying a Mojang-signed session profile, and dropped the
+// "default to Dream" fallback so at least one complete profile is now
+// mandatory. The signature can only come from Mojang's session server, so a
+// legacy username cannot be upgraded automatically — carry it into a profile
+// stub instead, which keeps the operator's player names visible and leaves the
+// per-field validators pointing at exactly what still has to be filled in.
+export function migrateXmcSettings(settings: Record<string, unknown>): { next: Record<string, unknown>; changed: boolean } {
+  const out: Record<string, unknown> = { ...settings };
+  let changed = false;
+  if (!Array.isArray(out.profiles) && Array.isArray(out.usernames)) {
+    out.profiles = out.usernames
+      .filter((name): name is string => typeof name === 'string' && name.trim() !== '')
+      .map((name) => ({ ...defaultXmcProfile(), username: name }));
+    changed = true;
+  }
+  if ('usernames' in out) {
+    delete out.usernames;
+    changed = true;
+  }
+  if (!Array.isArray(out.profiles)) {
+    out.profiles = [];
+    changed = true;
+  }
+  return { next: out, changed };
 }
 
 // xray-core #6334 replaced a fragment mask's single `length`/`delay` ranges
@@ -169,8 +202,8 @@ function defaultUdpHop(): Record<string, unknown> {
 export default function FinalMaskForm({ name, network, protocol, form, showAll = false }: FinalMaskFormProps) {
   const base = asPath(name);
 
-  // Migrate legacy single-range fragment masks to the per-segment arrays once
-  // on mount so configs saved before #6334 render in the list UI.
+  // Migrate legacy TCP mask shapes once on mount so configs saved before
+  // #6334 (fragment ranges) and #6487 (xmc profiles) render in the list UI.
   const migratedRef = useRef(false);
   useEffect(() => {
     if (migratedRef.current) return;
@@ -181,8 +214,12 @@ export default function FinalMaskForm({ name, network, protocol, form, showAll =
     const next = tcp.map((mask) => {
       if (!mask || typeof mask !== 'object') return mask;
       const m = mask as Record<string, unknown>;
-      if (m.type !== 'fragment' || !m.settings || typeof m.settings !== 'object') return mask;
-      const { next: migrated, changed } = migrateFragmentSettings(m.settings as Record<string, unknown>);
+      if (m.type !== 'fragment' && m.type !== 'xmc') return mask;
+      if (!m.settings || typeof m.settings !== 'object') return mask;
+      const settings = m.settings as Record<string, unknown>;
+      const { next: migrated, changed } = m.type === 'fragment'
+        ? migrateFragmentSettings(settings)
+        : migrateXmcSettings(settings);
       if (!changed) return mask;
       anyChanged = true;
       return { ...m, settings: migrated };
@@ -294,6 +331,7 @@ function TcpMaskItem({
             { value: 'fragment', label: 'Fragment' },
             { value: 'header-custom', label: 'Header Custom' },
             { value: 'sudoku', label: 'Sudoku' },
+            { value: 'xmc', label: 'XMC (Minecraft)' },
           ]}
         />
       </Form.Item>
@@ -369,6 +407,35 @@ function TcpMaskItem({
                 form={form}
                 absoluteSettingsPath={[...absolutePath, 'settings']}
               />
+            );
+          }
+          if (type === 'xmc') {
+            return (
+              <>
+                <Form.Item label="Hostname" name={[fieldName, 'settings', 'hostname']}>
+                  <Input placeholder="Server address mimicked in the handshake" />
+                </Form.Item>
+                <XmcProfilesList tcpFieldName={fieldName} />
+                <Form.Item label="Password" required>
+                  <Space.Compact block>
+                    <Form.Item
+                      name={[fieldName, 'settings', 'password']}
+                      noStyle
+                      rules={[{ required: true, message: 'Password is required' }]}
+                    >
+                      <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+                    </Form.Item>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      aria-label={t('regenerate')}
+                      onClick={() => form.setFieldValue(
+                        [...absolutePath, 'settings', 'password'],
+                        RandomUtil.randomLowerAndNum(16),
+                      )}
+                    />
+                  </Space.Compact>
+                </Form.Item>
+              </>
             );
           }
           return null;
@@ -488,6 +555,92 @@ function getDeep(obj: unknown, path: (string | number)[]): unknown {
     cur = (cur as Record<string | number, unknown>)[key];
   }
   return cur;
+}
+
+// Mojang hands the profile UUID back undashed from the session server and
+// dashed from most other endpoints; xray-core parses either, so accept both
+// rather than forcing the operator to reformat what they pasted.
+const XMC_UUID_PATTERN = /^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{32})$/;
+const XMC_USERNAME_PATTERN = /^[A-Za-z0-9_]{3,16}$/;
+
+function validateXmcUsername(_rule: unknown, value: unknown): Promise<void> {
+  if (typeof value === 'string' && XMC_USERNAME_PATTERN.test(value)) return Promise.resolve();
+  return Promise.reject(new Error('3-16 characters, letters/digits/underscore only'));
+}
+
+function validateXmcUuid(_rule: unknown, value: unknown): Promise<void> {
+  if (typeof value === 'string' && XMC_UUID_PATTERN.test(value.trim())) return Promise.resolve();
+  return Promise.reject(new Error('Enter the profile UUID (dashed or 32 hex characters)'));
+}
+
+// Each mask needs at least one fully signed profile since xray-core #6487 —
+// an empty or partial list makes the core reject the whole config, so the
+// panel blocks the save here rather than letting the backend drop the mask.
+function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
+  const { t } = useTranslation();
+  return (
+    <Form.List name={[tcpFieldName, 'settings', 'profiles']}>
+      {(profiles, { add, remove }) => (
+        <>
+          <Form.Item
+            label="Profiles"
+            extra="Signed Minecraft session profiles; resolve the UUID by username, then fetch the profile with unsigned=false."
+          >
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              aria-label={t('add')}
+              onClick={() => add(defaultXmcProfile())}
+            />
+          </Form.Item>
+          {profiles.map((profile, idx) => (
+            <div key={profile.key}>
+              <Divider style={{ margin: 0 }}>
+                Profile {idx + 1}
+                <DeleteOutlined
+                  className="danger-icon"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('remove')}
+                  onClick={() => remove(profile.name)}
+                  onKeyDown={activateOnKey(() => remove(profile.name))}
+                />
+              </Divider>
+              <Form.Item
+                label="Username"
+                name={[profile.name, 'username']}
+                rules={[{ validator: validateXmcUsername }]}
+              >
+                <Input placeholder="Notch" />
+              </Form.Item>
+              <Form.Item
+                label="UUID"
+                name={[profile.name, 'uuid']}
+                rules={[{ validator: validateXmcUuid }]}
+              >
+                <Input placeholder="069a79f4-44e9-4726-a5be-fca90e38aaf5" />
+              </Form.Item>
+              <Form.Item
+                label="Textures Value"
+                name={[profile.name, 'texturesValue']}
+                rules={[{ required: true, message: 'Textures value is required' }]}
+              >
+                <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} placeholder="Base64 value from the session profile" />
+              </Form.Item>
+              <Form.Item
+                label="Textures Signature"
+                name={[profile.name, 'texturesSignature']}
+                rules={[{ required: true, message: 'Textures signature is required' }]}
+              >
+                <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} placeholder="Base64 signature from the session profile" />
+              </Form.Item>
+            </div>
+          ))}
+        </>
+      )}
+    </Form.List>
+  );
 }
 
 function HeaderCustomGroups({
@@ -993,12 +1146,18 @@ function ItemEditor({
   onRemove?: () => void;
 }) {
   const { t } = useTranslation();
+  /**
+   * Switching to `array` clears the packet instead of emptying it to `[]`:
+   * that branch is rand-driven, and xray-core counts even an empty array as a
+   * packet, rejecting an item that carries both a packet and a rand. That
+   * error fails the whole config, so one such item keeps every inbound offline.
+   */
   const onTypeChange = (v: string) => {
     if (v === 'base64') {
       form.setFieldValue([...absoluteItemPath, 'packet'], RandomUtil.randomBase64());
     } else if (v === 'array') {
       form.setFieldValue([...absoluteItemPath, 'rand'], delayMode === 'string' ? '1-8192' : 0);
-      form.setFieldValue([...absoluteItemPath, 'packet'], []);
+      form.setFieldValue([...absoluteItemPath, 'packet'], undefined);
     } else {
       form.setFieldValue([...absoluteItemPath, 'packet'], '');
     }

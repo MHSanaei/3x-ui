@@ -1,44 +1,27 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 )
 
-func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error) {
+func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
-	needRestart := false
-
-	if p != nil {
-		var tags []string
-		err := tx.Table("inbounds").
-			Select("inbounds.tag").
-			Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
-			Scan(&tags).Error
-		if err != nil {
-			return false, 0, err
-		}
-		_ = s.xrayApi.Init(p.GetAPIPort())
-		for _, tag := range tags {
-			err1 := s.xrayApi.DelInbound(tag)
-			if err1 == nil {
-				logger.Debug("Inbound disabled by api:", tag)
-			} else {
-				logger.Debug("Error in disabling inbound by api:", err1)
-				needRestart = true
-			}
-		}
-		s.xrayApi.Close()
+	var inbounds []model.Inbound
+	if err := tx.Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ? and node_id IS NULL", now, true).
+		Find(&inbounds).Error; err != nil {
+		return false, 0, err
+	}
+	for i := range inbounds {
+		mutationBatch.localPlans = append(mutationBatch.localPlans, trafficLocalApplyPlan{
+			action: trafficDisableInbound, inbound: inbounds[i],
+		})
 	}
 
 	result := tx.Model(model.Inbound{}).
@@ -46,55 +29,67 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		Update("enable", false)
 	err := result.Error
 	count := result.RowsAffected
-	return needRestart, count, err
+	return false, count, err
+}
+
+const globalTrafficFreshWindow = 24 * time.Hour
+
+func globalTrafficFreshSince() int64 {
+	return time.Now().Add(-globalTrafficFreshWindow).UnixMilli()
 }
 
 // depletedClientsCond matches clients that exhausted their quota or expired.
 // Besides the local counters it also trips on the cross-panel usage a master
 // pushed into client_global_traffics — that's what lets a node cut a client
-// whose combined usage exceeds the quota even though the local share doesn't
-// (placeholders: now).
+// whose combined usage exceeds the quota even though the local share doesn't.
+// Only rows a master refreshed recently count (placeholders: now, freshSince).
 const depletedClientsCond = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?)
 	OR (total > 0 AND EXISTS (
 		SELECT 1 FROM client_global_traffics g
-		WHERE g.email = client_traffics.email AND g.up + g.down >= client_traffics.total
+		WHERE g.email = client_traffics.email
+			AND g.updated_at >= ?
+			AND g.up + g.down >= client_traffics.total
 	)))`
 
 // depletedClientsCondLocal is depletedClientsCond without the cross-panel
 // client_global_traffics check. The EXISTS branch is a correlated subquery that
 // turns every traffic poll into a full client_traffics scan; on a panel no
 // master pushes to (the common case) client_global_traffics is empty, so the
-// branch can never match and is pure CPU cost (#5392).
+// branch can never match and is pure CPU cost (#5392). Placeholders: now.
 const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
 
-// depletedCond returns the local-only predicate unless this panel actually
-// holds global-traffic rows, in which case the cross-panel EXISTS check is
-// needed to enforce combined quota. Both variants take the same single
-// expiry_time placeholder, so callers pass identical args either way.
-func depletedCond(tx *gorm.DB) string {
+// depletedCond returns the predicate matching depleted clients together with
+// the arguments it binds. The local-only variant is used unless this panel
+// holds a global-traffic row a master still refreshes, in which case the
+// cross-panel EXISTS check is needed to enforce combined quota.
+func depletedCond(tx *gorm.DB) (string, []any) {
+	now := time.Now().UnixMilli()
+	freshSince := globalTrafficFreshSince()
 	var probe int64
-	if err := tx.Model(&model.ClientGlobalTraffic{}).Limit(1).Count(&probe).Error; err == nil && probe > 0 {
-		return depletedClientsCond
+	err := tx.Model(&model.ClientGlobalTraffic{}).
+		Where("updated_at >= ?", freshSince).
+		Limit(1).Count(&probe).Error
+	if err == nil && probe > 0 {
+		return depletedClientsCond, []any{now, freshSince}
 	}
-	return depletedClientsCondLocal
+	return depletedClientsCondLocal, []any{now}
 }
 
-func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error) {
-	now := time.Now().Unix() * 1000
-	needRestart := false
-	cond := depletedCond(tx)
+func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
+	now := time.Now().UnixMilli()
+	cond, condArgs := depletedCond(tx)
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
-		Where(cond+" AND enable = ?", now, true).
+		Where(cond+" AND enable = ?", append(condArgs, true)...).
 		Find(&depletedRows).Error
 	if err != nil {
-		return false, 0, err
+		return false, 0, nil, err
 	}
 	if len(depletedRows) == 0 {
-		return false, 0, nil
+		return false, 0, nil, nil
 	}
 
 	depletedEmails := make([]string, 0, len(depletedRows))
@@ -122,47 +117,39 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			WHERE clients.email IN ?
 		`, depletedEmails).Scan(&targets).Error
 		if err != nil {
-			return false, 0, err
+			return false, 0, nil, err
 		}
 	}
 
-	var localTargets []target
-	localByInbound := make(map[int]map[string]struct{})
-	remoteByInbound := make(map[int][]target)
+	byInbound := make(map[int][]target)
 	for _, t := range targets {
-		if t.NodeID == nil {
-			localTargets = append(localTargets, t)
-			if localByInbound[t.InboundID] == nil {
-				localByInbound[t.InboundID] = make(map[string]struct{})
-			}
-			localByInbound[t.InboundID][t.Email] = struct{}{}
-		} else {
-			remoteByInbound[t.InboundID] = append(remoteByInbound[t.InboundID], t)
-		}
+		byInbound[t.InboundID] = append(byInbound[t.InboundID], t)
 	}
 
-	if p != nil && len(localTargets) > 0 {
-		_ = s.xrayApi.Init(p.GetAPIPort())
-		for _, t := range localTargets {
-			err1 := s.xrayApi.RemoveUser(t.Tag, t.Email)
-			if err1 == nil {
-				logger.Debug("Client disabled by api:", t.Email)
-			} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.Email)) {
-				logger.Debug("User is already disabled. Nothing to do more...")
-			} else {
-				logger.Debug("Error in disabling client by api:", err1)
-				needRestart = true
-			}
+	disabledNodeIDs := make(map[int]struct{})
+	for inboundID, group := range byInbound {
+		emails := make(map[string]struct{}, len(group))
+		for _, t := range group {
+			emails[t.Email] = struct{}{}
 		}
-		s.xrayApi.Close()
-	}
-
-	for inboundID, emails := range localByInbound {
-		if _, _, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails); mErr != nil {
-			logger.Warning("disableInvalidClients: settings.JSON sync failed for inbound", inboundID, ":", mErr)
+		oldInbound, inbound, mErr := s.markClientsDisabledInSettings(tx, inboundID, emails)
+		if mErr != nil {
+			return false, 0, nil, mErr
+		}
+		if inbound.NodeID != nil {
+			mutationBatch.remotePlans = append(mutationBatch.remotePlans, trafficInboundUpdatePlan{
+				oldInbound: *oldInbound, newInbound: *inbound,
+			})
+			mutationBatch.addNode(*inbound.NodeID)
+			disabledNodeIDs[*inbound.NodeID] = struct{}{}
+			continue
+		}
+		for email := range emails {
+			mutationBatch.localPlans = append(mutationBatch.localPlans, trafficLocalApplyPlan{
+				action: trafficRemoveUser, inbound: *inbound, email: email,
+			})
 		}
 	}
-
 	// Flip the rows already collected above by primary key instead of
 	// re-evaluating the depleted predicate, which was a second full scan of
 	// client_traffics on every poll. Sorted ids keep the lock order stable.
@@ -177,7 +164,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			Where("id IN ? AND enable = ?", batch, true).
 			Update("enable", false)
 		if result.Error != nil {
-			return needRestart, count, result.Error
+			return false, count, nil, result.Error
 		}
 		count += result.RowsAffected
 	}
@@ -186,22 +173,16 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		if err := tx.Model(&model.ClientRecord{}).
 			Where("email IN ?", depletedEmails).
 			Updates(map[string]any{"enable": false, "updated_at": now}).Error; err != nil {
-			logger.Warning("disableInvalidClients update clients.enable:", err)
+			return false, count, nil, err
 		}
 	}
 
-	for inboundID, group := range remoteByInbound {
-		emails := make(map[string]struct{}, len(group))
-		for _, t := range group {
-			emails[t.Email] = struct{}{}
-		}
-		if pushErr := s.disableRemoteClients(tx, inboundID, emails); pushErr != nil {
-			logger.Warning("disableInvalidClients: push to remote failed for inbound", inboundID, ":", pushErr)
-			needRestart = true
-		}
+	nodeIDs := make([]int, 0, len(disabledNodeIDs))
+	for nodeID := range disabledNodeIDs {
+		nodeIDs = append(nodeIDs, nodeID)
 	}
 
-	return needRestart, count, nil
+	return false, count, nodeIDs, nil
 }
 
 // markClientsDisabledInSettings flips client.enable=false in the inbound's
@@ -252,24 +233,4 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 		return nil, nil, err
 	}
 	return &snapshot, &ib, nil
-}
-
-// disableRemoteClients flips the clients off in the inbound's stored settings
-// and pushes the updated inbound to its node, which applies it to its own
-// running Xray. That push is the whole reconcile — restarting the node's Xray
-// afterwards would drop every live connection on the node for nothing (#5740).
-func (s *InboundService) disableRemoteClients(tx *gorm.DB, inboundID int, emails map[string]struct{}) error {
-	oldSnapshot, ib, err := s.markClientsDisabledInSettings(tx, inboundID, emails)
-	if err != nil {
-		return err
-	}
-
-	rt, err := s.runtimeFor(ib)
-	if err != nil {
-		return err
-	}
-	if err := rt.UpdateInbound(context.Background(), oldSnapshot, ib); err != nil {
-		return err
-	}
-	return nil
 }

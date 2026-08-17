@@ -69,3 +69,9 @@
 .jdp-ultra .jdp-clear:hover {
   color: rgba(255, 255, 255, 0.45);
 }
+
+/* With no value the library still paints today's date into its readOnly input;
+   hide it so an empty (or just-cleared) expiry actually looks empty. */
+.jdp-wrap.jdp-empty input {
+  color: transparent !important;
+}

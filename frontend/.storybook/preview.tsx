@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import type { Decorator, Preview } from '@storybook/react-vite';
-import { ConfigProvider, theme as antdTheme } from 'antd';
+import { ConfigProvider } from 'antd';
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { buildAntdThemeConfig } from '@/hooks/useTheme';
 import enUS from '../../internal/web/translation/en-US.json';
 
 if (!i18next.isInitialized) {
@@ -16,13 +17,15 @@ if (!i18next.isInitialized) {
   });
 }
 
-const withTheme: Decorator = (Story, context) => {
+export const withTheme: Decorator = (Story, context) => {
   const dark = context.globals.theme === 'dark';
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  useLayoutEffect(() => {
+    document.body.classList.remove('dark', 'light');
+    document.body.classList.add(dark ? 'dark' : 'light');
+    document.documentElement.removeAttribute('data-theme');
   }, [dark]);
   return (
-    <ConfigProvider theme={{ algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}>
+    <ConfigProvider theme={buildAntdThemeConfig(dark, false)}>
       <div style={{ padding: 24, minWidth: 320 }}>
         <Story />
       </div>
@@ -49,10 +52,15 @@ const preview: Preview = {
   },
   parameters: {
     controls: {
+      expanded: true,
+      sort: 'requiredFirst',
       matchers: {
         color: /(background|color)$/i,
         date: /Date$/i,
       },
+    },
+    a11y: {
+      test: 'error',
     },
   },
 };

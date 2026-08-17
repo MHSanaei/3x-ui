@@ -60,6 +60,8 @@ const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.TROJAN,
   Protocols.SHADOWSOCKS,
   Protocols.HYSTERIA,
+  Protocols.WIREGUARD,
+  Protocols.MTPROTO,
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
@@ -259,10 +261,6 @@ export function useInbounds() {
           const stats = statsByEmail.get(client.email.toLowerCase());
           const exhausted = stats != null && stats.total > 0 && stats.up + stats.down >= stats.total;
           const expired = stats != null && stats.expiryTime > 0 && stats.expiryTime <= now;
-          // Depleted wins over disabled (same priority as computeClientsSummary):
-          // the auto-disable job also flips client.enable off in settings when a
-          // client ends, so checking enable first would file every ended client
-          // under "Disabled".
           if (expired || exhausted) {
             depleted.push(client.email);
             continue;

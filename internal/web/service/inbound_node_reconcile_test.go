@@ -87,6 +87,7 @@ func reconcileTestNode(t *testing.T, ts *httptest.Server, name, mode string, tag
 		Status:              "online",
 		InboundSyncMode:     mode,
 		InboundTags:         tags,
+		InboundsAdoptedAt:   1,
 	}
 	if err := database.GetDB().Create(n).Error; err != nil {
 		t.Fatalf("create node: %v", err)
@@ -140,6 +141,31 @@ func TestReconcileNode_AllModeDeletesUndesiredRemoteInbounds(t *testing.T) {
 	got := deletedIDs()
 	if len(got) != 2 || got[0] != 2 || got[1] != 3 {
 		t.Fatalf("deleted remote ids = %v, want [2 3]", got)
+	}
+}
+
+// A node whose pre-existing inbounds were never adopted into the central DB
+// has zero local rows for legitimate reasons: reconcile before that first
+// adoption must not sweep — it would delete every real inbound on the node
+// right after onboarding (add node, save it again, watch it get wiped).
+func TestReconcileNode_SkipsSweepBeforeFirstAdoption(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{
+		"real-a": 1,
+		"real-b": 2,
+		"real-c": 3,
+	})
+	node := reconcileTestNode(t, ts, "fresh-node", "all", nil)
+	node.InboundsAdoptedAt = 0
+
+	svc := InboundService{}
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
+		t.Fatalf("ReconcileNode: %v", err)
+	}
+
+	if got := deletedIDs(); len(got) != 0 {
+		t.Fatalf("deleted remote ids = %v, want none before first adoption", got)
 	}
 }
 
@@ -222,6 +248,107 @@ func TestReconcileNode_ContinuesPastFailedInbound(t *testing.T) {
 	sort.Ints(gotDeleted)
 	if len(gotDeleted) != 1 || gotDeleted[0] != tagToID["gone"] {
 		t.Fatalf("deleted remote ids = %v, want [%d] (sweep must still run past the failure)", gotDeleted, tagToID["gone"])
+	}
+}
+
+func TestReconcileNode_AdoptsCompatibleOriginInboundWithoutRemoteMutation(t *testing.T) {
+	setupConflictDB(t)
+
+	var mu sync.Mutex
+	mutations := 0
+	writeOK := func(w http.ResponseWriter, obj any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "msg": "", "obj": obj})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panel/api/inbounds/list", func(w http.ResponseWriter, _ *http.Request) {
+		writeOK(w, []map[string]any{{"id": 41, "tag": "already-deployed", "listen": "", "port": 8443, "protocol": "vless"}})
+	})
+	mux.HandleFunc("/panel/api/inbounds/", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		mutations++
+		mu.Unlock()
+		writeOK(w, nil)
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	node := reconcileTestNode(t, ts, "adopt-node", "all", nil)
+	node.Guid = "origin-guid"
+	if err := database.GetDB().Model(node).Update("guid", node.Guid).Error; err != nil {
+		t.Fatalf("update node guid: %v", err)
+	}
+	seedInboundConflictNode(t, "desired-name", "", 8443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	svc := InboundService{}
+	rt := runtime.NewRemote(node, nil)
+	if err := svc.ReconcileNode(context.Background(), rt, node); err != nil {
+		t.Fatalf("first ReconcileNode: %v", err)
+	}
+	if err := svc.ReconcileNode(context.Background(), rt, node); err != nil {
+		t.Fatalf("second ReconcileNode: %v", err)
+	}
+	mu.Lock()
+	got := mutations
+	mu.Unlock()
+	if got != 0 {
+		t.Fatalf("remote mutations = %d, want 0 while adopting compatible deployed inbound", got)
+	}
+}
+
+func TestReconcileNode_AmbiguousCompatibleInboundsAreNotSwept(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{"alias-a": 51, "alias-b": 52})
+	node := reconcileTestNode(t, ts, "ambiguous-node", "all", nil)
+	node.Guid = "origin-guid"
+	if err := database.GetDB().Model(node).Update("guid", node.Guid).Error; err != nil {
+		t.Fatalf("update node guid: %v", err)
+	}
+	seedInboundConflictNode(t, "desired-name", "", 0, model.Protocol(""), `{}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	err := (&InboundService{}).ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node)
+	if err == nil || !strings.Contains(err.Error(), "ambiguous compatible remote inbounds") {
+		t.Fatalf("ReconcileNode error = %v, want ambiguity error", err)
+	}
+	if got := deletedIDs(); len(got) != 0 {
+		t.Fatalf("deleted ambiguous candidates = %v, want none", got)
+	}
+}
+
+func TestReconcileNode_IncompatiblePortOccupantRemainsLoud(t *testing.T) {
+	setupConflictDB(t)
+
+	writeOK := func(w http.ResponseWriter, obj any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "msg": "", "obj": obj})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panel/api/inbounds/list", func(w http.ResponseWriter, _ *http.Request) {
+		writeOK(w, []map[string]any{{"id": 42, "tag": "port-owner", "listen": "", "port": 9443, "protocol": "trojan"}})
+	})
+	mux.HandleFunc("/panel/api/inbounds/add", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "msg": "port already occupied", "obj": nil})
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	node := reconcileTestNode(t, ts, "drift-node", "all", nil)
+	node.Guid = "origin-guid"
+	seedInboundConflictNode(t, "desired-name", "", 9443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "desired-name").Update("origin_node_guid", node.Guid).Error; err != nil {
+		t.Fatalf("set origin guid: %v", err)
+	}
+
+	err := (&InboundService{}).ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node)
+	if err == nil || !strings.Contains(err.Error(), "port already occupied") {
+		t.Fatalf("ReconcileNode error = %v, want loud incompatible-port error", err)
 	}
 }
 

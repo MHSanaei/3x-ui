@@ -4,6 +4,7 @@ import { Button, Form, Input, Modal, Select, Space, Switch, Tooltip } from 'antd
 import { PlusOutlined, MinusOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { InputAddon } from '@/components/ui';
+import { GeoTokenInput } from '@/components/geodata';
 import { FormField } from '@/components/form/rhf';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
@@ -126,7 +127,13 @@ export default function RuleFormModal({
       outboundTag: v.outboundTag === '' ? undefined : v.outboundTag,
       balancerTag: v.balancerTag === '' ? undefined : v.balancerTag,
     };
+    const managedKeys = new Set(Object.keys(built));
     const out: Record<string, unknown> = {};
+    if (rule) {
+      for (const [key, value] of Object.entries(rule)) {
+        if (!managedKeys.has(key) && value !== undefined) out[key] = value;
+      }
+    }
     for (const [k, v] of Object.entries(built)) {
       if (v == null) continue;
       if (Array.isArray(v) && v.length === 0) continue;
@@ -167,7 +174,7 @@ export default function RuleFormModal({
               </Tooltip>
             }
           >
-            <Input placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <GeoTokenInput kind="ip" placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -247,7 +254,7 @@ export default function RuleFormModal({
               </Tooltip>
             }
           >
-            <Input placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
+            <GeoTokenInput kind="ip" placeholder="0.0.0.0/8, fc00::/7, geoip:ir" />
           </FormField>
 
           <FormField
@@ -258,7 +265,7 @@ export default function RuleFormModal({
               </Tooltip>
             }
           >
-            <Input placeholder="google.com, geosite:cn" />
+            <GeoTokenInput kind="domain" placeholder="google.com, geosite:cn" />
           </FormField>
 
           <FormField

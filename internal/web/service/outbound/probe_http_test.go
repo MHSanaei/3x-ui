@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -133,6 +134,13 @@ func withStubProcess(t *testing.T, factory func(cfg *xray.Config, configPath str
 	orig := newBatchProcess
 	newBatchProcess = factory
 	t.Cleanup(func() { newBatchProcess = orig })
+}
+
+func withEgressTraceProbe(t *testing.T, probe func(*url.URL) *TestEgressResult) {
+	t.Helper()
+	orig := egressTraceProbe
+	egressTraceProbe = probe
+	t.Cleanup(func() { egressTraceProbe = orig })
 }
 
 func mustJSON(t *testing.T, v any) string {
@@ -417,6 +425,9 @@ func TestTestOutboundsHTTPBatchThroughStubSocks(t *testing.T) {
 		proc = &stubProcess{cfg: cfg, serveSocks: true}
 		return proc
 	})
+	withEgressTraceProbe(t, func(*url.URL) *TestEgressResult {
+		return &TestEgressResult{IPv4: "198.51.100.1", Country: "ZZ", Warp: "off"}
+	})
 
 	batch := mustJSON(t, []any{
 		map[string]any{"tag": "a", "protocol": "vless"},
@@ -444,6 +455,9 @@ func TestTestOutboundsHTTPBatchThroughStubSocks(t *testing.T) {
 		}
 		if r.Mode != "http" {
 			t.Errorf("result %d mode = %q", i, r.Mode)
+		}
+		if r.Egress == nil || r.Egress.IPv4 != "198.51.100.1" {
+			t.Errorf("result %d egress = %+v", i, r.Egress)
 		}
 	}
 	if proc.IsRunning() {
@@ -525,6 +539,9 @@ func TestTestOutboundsTCPModeForcesUDPToHTTPProbe(t *testing.T) {
 	withStubProcess(t, func(cfg *xray.Config, configPath string) batchProcess {
 		return &stubProcess{cfg: cfg, serveSocks: true}
 	})
+	withEgressTraceProbe(t, func(*url.URL) *TestEgressResult {
+		return &TestEgressResult{IPv4: "198.51.100.2", Country: "ZZ", Warp: "off"}
+	})
 
 	batch := mustJSON(t, []any{map[string]any{"tag": "wg", "protocol": "wireguard"}})
 	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp")
@@ -534,6 +551,9 @@ func TestTestOutboundsTCPModeForcesUDPToHTTPProbe(t *testing.T) {
 	r := results[0]
 	if !r.Success || r.Mode != "http" {
 		t.Errorf("UDP outbound in tcp mode = %+v, want success with mode %q", r, "http")
+	}
+	if r.Egress == nil || r.Egress.IPv4 != "198.51.100.2" {
+		t.Errorf("UDP outbound egress = %+v", r.Egress)
 	}
 }
 

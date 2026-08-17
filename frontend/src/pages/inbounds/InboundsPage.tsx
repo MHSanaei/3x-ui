@@ -23,8 +23,9 @@ import {
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
-import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
-import { genInboundLinks, preferPublicHost } from '@/lib/xray/inbound-link';
+import { buildClonePayload } from '@/lib/xray/inbound-clone';
+import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
+import { genInboundLinks, genWireguardLinks, preferPublicHost } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
@@ -33,12 +34,14 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import AppSidebar from '@/layouts/AppSidebar';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
+import type { TextModalTab } from '@/components/feedback/TextModal';
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 
 import { useInbounds } from './useInbounds';
 import { InboundList } from './list';
 import { LazyMount } from '@/components/utility';
 const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
+const CloneInboundModal = lazy(() => import('./CloneInboundModal'));
 const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
 const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
@@ -117,6 +120,20 @@ export default function InboundsPage() {
   );
   const showNodeInfo = hasNodeAttachedInbound || hasActiveNode;
 
+  // Ports already bound per clone target (0 = local panel, matching the
+  // clients page node-filter sentinel), for the clone dialog's client-side
+  // conflict pre-check.
+  const clonePortsInUse = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    for (const ib of dbInbounds || []) {
+      const key = ib.nodeId ?? 0;
+      const ports = map.get(key) ?? new Set<number>();
+      ports.add(ib.port);
+      map.set(key, ports);
+    }
+    return map;
+  }, [dbInbounds]);
+
   useWebSocket({
     traffic: applyTrafficEvent,
     client_stats: applyClientStatsEvent,
@@ -143,11 +160,15 @@ export default function InboundsPage() {
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
 
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneSource, setCloneSource] = useState<DBInbound | null>(null);
+
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
   const [textContent, setTextContent] = useState('');
   const [textFileName, setTextFileName] = useState('');
   const [textJson, setTextJson] = useState(false);
+  const [textTabs, setTextTabs] = useState<TextModalTab[] | undefined>(undefined);
 
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptTitle, setPromptTitle] = useState('');
@@ -166,11 +187,12 @@ export default function InboundsPage() {
   const infoNodeAddress = useMemo(() => hostOverrideFor(infoDbInbound), [infoDbInbound, hostOverrideFor]);
   const qrNodeAddress = useMemo(() => hostOverrideFor(qrDbInbound), [qrDbInbound, hostOverrideFor]);
 
-  const openText = useCallback((opts: { title: string; content: string; fileName?: string; json?: boolean }) => {
+  const openText = useCallback((opts: { title: string; content: string; fileName?: string; json?: boolean; tabs?: TextModalTab[] }) => {
     setTextTitle(opts.title);
     setTextContent(opts.content);
     setTextFileName(opts.fileName || '');
     setTextJson(opts.json || false);
+    setTextTabs(opts.tabs);
     setTextOpen(true);
   }, []);
 
@@ -259,15 +281,24 @@ export default function InboundsPage() {
 
   const exportInboundLinks = useCallback((dbInbound: DBInbound) => {
     const projected = checkFallback(dbInbound);
+    const genInput = {
+      inbound: inboundFromDb(projected),
+      remark: projected.remark,
+      hostOverride: hostOverrideFor(dbInbound),
+      fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
+    };
+    const content = genInboundLinks(genInput);
+    const tabs: TextModalTab[] | undefined = projected.isWireguard
+      ? [
+        { key: 'config', label: t('pages.clients.config'), content },
+        { key: 'links', label: t('pages.clients.tabLinks'), content: genWireguardLinks(genInput) },
+      ]
+      : undefined;
     openText({
       title: t('pages.inbounds.exportLinksTitle'),
-      content: genInboundLinks({
-        inbound: inboundFromDb(projected),
-        remark: projected.remark,
-        hostOverride: hostOverrideFor(dbInbound),
-        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
-      }),
+      content,
       fileName: projected.remark || 'inbound',
+      tabs,
     });
   }, [checkFallback, hostOverrideFor, subSettings.publicHost, openText, t]);
 
@@ -417,48 +448,27 @@ export default function InboundsPage() {
   }, [modal, refresh, t, clientCount]);
 
   const confirmClone = useCallback((dbInbound: DBInbound) => {
+    // Node-eligible protocol with at least one deployable node → open the
+    // target picker; anything else keeps the original one-click local clone.
+    if (NODE_ELIGIBLE_PROTOCOLS[dbInbound.protocol] && (nodesList || []).some((n) => n.enable && n.status === 'online')) {
+      setCloneSource(dbInbound);
+      setCloneOpen(true);
+      return;
+    }
     modal.confirm({
       title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
       content: t('pages.inbounds.cloneConfirmContent'),
       okText: t('pages.inbounds.clone'),
       cancelText: t('cancel'),
       onOk: async () => {
-        let clonedSettings: string;
-        try {
-          const raw = coerceInboundJsonField(dbInbound.settings);
-          raw.clients = [];
-          clonedSettings = JSON.stringify(raw);
-        } catch {
-          const fallback = createDefaultInboundSettings(dbInbound.protocol);
-          clonedSettings = fallback ? JSON.stringify(fallback, null, 2) : '{}';
-        }
-        const streamSettingsString = typeof dbInbound.streamSettings === 'string'
-          ? dbInbound.streamSettings
-          : JSON.stringify(dbInbound.streamSettings ?? {});
-        const sniffingString = typeof dbInbound.sniffing === 'string'
-          ? dbInbound.sniffing
-          : JSON.stringify(dbInbound.sniffing ?? {});
-        const data = {
-          up: 0,
-          down: 0,
-          total: 0,
-          remark: `${dbInbound.remark} (clone)`,
-          enable: false,
-          expiryTime: 0,
-          listen: '',
-          port: RandomUtil.randomInteger(10000, 60000),
-          protocol: dbInbound.protocol,
-          settings: clonedSettings,
-          streamSettings: streamSettingsString,
-          sniffing: sniffingString,
-          shareAddrStrategy: dbInbound.shareAddrStrategy,
-          shareAddr: dbInbound.shareAddr,
-        };
-        const msg = await HttpUtil.post('/panel/api/inbounds/add', data);
+        const msg = await HttpUtil.post(
+          '/panel/api/inbounds/add',
+          buildClonePayload(dbInbound, RandomUtil.randomInteger(10000, 60000), null),
+        );
         if (msg?.success) await refresh();
       },
     });
-  }, [modal, refresh, t]);
+  }, [modal, nodesList, refresh, t]);
 
   const onGeneralAction = useCallback((key: GeneralAction) => {
     switch (key) {
@@ -697,6 +707,16 @@ export default function InboundsPage() {
             source={groupSource}
           />
         </LazyMount>
+        <LazyMount when={cloneOpen}>
+          <CloneInboundModal
+            open={cloneOpen}
+            onClose={() => setCloneOpen(false)}
+            onCloned={refresh}
+            dbInbound={cloneSource}
+            nodes={nodesList || []}
+            portsInUse={clonePortsInUse}
+          />
+        </LazyMount>
 
         <LazyMount when={textOpen}>
           <TextModal
@@ -706,6 +726,7 @@ export default function InboundsPage() {
             content={textContent}
             fileName={textFileName}
             json={textJson}
+            tabs={textTabs}
           />
         </LazyMount>
         <LazyMount when={promptOpen}>

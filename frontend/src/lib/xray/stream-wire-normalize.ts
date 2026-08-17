@@ -46,7 +46,7 @@ function hasMeaningfulHeaders(headers: unknown): boolean {
 // Upper bound of an xray-core Int32Range value: "16-32" -> 32, "4" -> 4,
 // 4 -> 4, "" / null -> 0. xmux fields are ranges, and xray-core keys its
 // mutual-exclusivity check on the `.To` (upper) side.
-function int32RangeUpper(v: unknown): number {
+export function int32RangeUpper(v: unknown): number {
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   if (typeof v !== 'string') return 0;
   const trimmed = v.trim();
@@ -57,13 +57,9 @@ function int32RangeUpper(v: unknown): number {
 }
 
 // xray-core's XmuxConfig rejects a config that sets BOTH maxConnections
-// and maxConcurrency ("maxConnections cannot be specified together with
-// maxConcurrency"). The panel pre-fills maxConcurrency ("16-32") whenever
-// XMUX is enabled, so any explicit maxConnections would otherwise always
-// collide and make xray refuse the config. maxConnections defaults to 0
-// (off), so a positive value is an explicit opt-in to connection-pool
-// mode — honor it and drop the leftover default maxConcurrency, matching
-// core's "one strategy at a time" semantics.
+// and maxConcurrency. A positive maxConnections is an explicit opt-in to
+// connection-pool mode — honor it and drop the leftover maxConcurrency
+// default that load-time hydration backfills onto older saved configs.
 function resolveXmuxExclusivity(xmux: Record<string, unknown>): Record<string, unknown> {
   if (int32RangeUpper(xmux.maxConnections) > 0 && int32RangeUpper(xmux.maxConcurrency) > 0) {
     const out = { ...xmux };
@@ -104,6 +100,63 @@ export function validateRealityTarget(target: string): string | undefined {
   const port = Number(portPart);
   if (port < 1 || port > 65535) {
     return 'pages.inbounds.form.realityTargetInvalidPort';
+  }
+  return undefined;
+}
+
+/**
+ * Parses a REALITY client-version string the way xray-core's config loader
+ * does: one to three dot-separated numeric parts, each 0-255. Returns the
+ * parts padded to three entries, or undefined when the string is not a valid
+ * version.
+ */
+export function parseRealityClientVer(value: string): [number, number, number] | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parts = trimmed.split('.');
+  if (parts.length > 3) return undefined;
+  const nums: number[] = [];
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) return undefined;
+    const n = Number(part);
+    if (n > 255) return undefined;
+    nums.push(n);
+  }
+  while (nums.length < 3) nums.push(0);
+  return nums as [number, number, number];
+}
+
+/**
+ * Validates a REALITY client-version field; empty means "not set" and is
+ * valid. The value is saved exactly as typed and xray-core's part parser
+ * accepts no surrounding whitespace, so a value that differs from its
+ * trimmed form is rejected rather than silently passed to the wire.
+ */
+export function validateRealityClientVer(value: string): string | undefined {
+  if (!value) return undefined;
+  if (value !== value.trim() || !parseRealityClientVer(value)) {
+    return 'pages.inbounds.form.clientVerInvalid';
+  }
+  return undefined;
+}
+
+/**
+ * Validates the max client-version field: format first, then that a non-empty
+ * max is not below a non-empty min (an inverted range rejects every client).
+ * An empty or malformed min is left to the min field's own validation.
+ */
+export function validateRealityMaxClientVer(max: string, min: string): string | undefined {
+  const formatError = validateRealityClientVer(max);
+  if (formatError) return formatError;
+  const maxParts = parseRealityClientVer(max);
+  const minParts = parseRealityClientVer(min);
+  if (!maxParts || !minParts) return undefined;
+  for (let i = 0; i < 3; i++) {
+    if (maxParts[i] !== minParts[i]) {
+      return maxParts[i] < minParts[i]
+        ? 'pages.inbounds.form.maxClientVerBelowMin'
+        : undefined;
+    }
   }
   return undefined;
 }

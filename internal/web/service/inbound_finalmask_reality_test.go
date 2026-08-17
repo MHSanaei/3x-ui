@@ -91,6 +91,64 @@ func TestAddInbound_RejectsFinalMaskRealityCombo(t *testing.T) {
 	}
 }
 
+func TestAddInbound_IgnoresBoundIdAndCreatesNewRow(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	first := &model.Inbound{Tag: "in-45100-tcp", Enable: true, Listen: "0.0.0.0", Port: 45100, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	created, _, err := svc.AddInbound(first)
+	if err != nil {
+		t.Fatalf("AddInbound first: %v", err)
+	}
+
+	second := &model.Inbound{Id: created.Id, Tag: "in-45101-tcp", Enable: true, Listen: "0.0.0.0", Port: 45101, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if _, _, err := svc.AddInbound(second); err != nil {
+		t.Fatalf("AddInbound second: %v", err)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 inbound rows, got %d: a bound id overwrote the first row instead of creating a new one", count)
+	}
+
+	var reloaded model.Inbound
+	if err := database.GetDB().First(&reloaded, created.Id).Error; err != nil {
+		t.Fatalf("reload first: %v", err)
+	}
+	if reloaded.Port != 45100 {
+		t.Fatalf("first inbound port = %d, want 45100 (the second add overwrote it)", reloaded.Port)
+	}
+}
+
+func TestAddInbound_AcceptsWireguardClientWithKey(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	settings := `{"secretKey":"` + wgTestSecretKey() + `","mtu":1420,"clients":[{"email":"wgimp@x","enable":true,"privateKey":"keep-priv","publicKey":"keep-pub","allowedIPs":["10.0.0.50/32"]}]}`
+	in := &model.Inbound{
+		Tag:      "in-45200-wg",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     45200,
+		Protocol: model.WireGuard,
+		Settings: settings,
+	}
+	if _, _, err := svc.AddInbound(in); err != nil {
+		t.Fatalf("AddInbound rejected a keyed WireGuard client: %v", err)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "in-45200-wg").Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("WireGuard inbound with a keyed client was not created, row count = %d", count)
+	}
+}
+
 // end-to-end: same guard on the update path, on a row that was valid before
 // the edit — the rejected StreamSettings must not overwrite the stored row.
 func TestUpdateInbound_RejectsFinalMaskRealityCombo(t *testing.T) {

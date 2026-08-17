@@ -28,12 +28,12 @@ var (
 
 func lockInbound(inboundId int) *sync.Mutex {
 	inboundMutationLocksMu.Lock()
-	defer inboundMutationLocksMu.Unlock()
 	m, ok := inboundMutationLocks[inboundId]
 	if !ok {
 		m = &sync.Mutex{}
 		inboundMutationLocks[inboundId] = m
 	}
+	inboundMutationLocksMu.Unlock()
 	m.Lock()
 	return m
 }
@@ -101,6 +101,19 @@ func tombstoneClientEmail(email string) {
 	for e, ts := range recentlyDeleted {
 		if ts.Before(cutoff) {
 			delete(recentlyDeleted, e)
+		}
+	}
+}
+
+func withdrawClientTombstones(emails ...string) {
+	if len(emails) == 0 {
+		return
+	}
+	recentlyDeletedMu.Lock()
+	defer recentlyDeletedMu.Unlock()
+	for _, email := range emails {
+		if email != "" {
+			delete(recentlyDeleted, email)
 		}
 	}
 }

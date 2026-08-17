@@ -118,15 +118,54 @@ func TestGetLocalActiveInboundsTracksGraceWindow(t *testing.T) {
 	}
 }
 
+func TestMergedActiveInboundTreesScopesPerGuid(t *testing.T) {
+	p := newOnlineTestProcess()
+	p.SetNodeActiveInboundTree(1, map[string][]string{
+		"guid-a": {"in-a", "in-a"},
+		"guid-b": {"in-b"},
+	})
+	p.SetNodeActiveInboundTree(2, map[string][]string{
+		"guid-a": {"in-c"},
+		"guid-c": {},
+	})
+
+	merged := p.GetMergedActiveInboundTrees()
+	assertSameSet(t, "guid-a", merged["guid-a"], []string{"in-a", "in-c"})
+	assertSameSet(t, "guid-b", merged["guid-b"], []string{"in-b"})
+	if _, ok := merged["guid-c"]; ok {
+		t.Errorf("empty active-inbound GUID set should be omitted: %v", merged)
+	}
+}
+
 // TestClearNodeOnlineClientsDropsNode mirrors a failed node probe: the node's
 // whole subtree contribution disappears immediately.
 func TestClearNodeOnlineClientsDropsNode(t *testing.T) {
 	p := newOnlineTestProcess()
 	p.SetNodeOnlineTree(3, map[string][]string{"guid-a": {"user1"}})
+	p.SetNodeActiveInboundTree(3, map[string][]string{"guid-a": {"in-a"}})
 	p.ClearNodeOnlineClients(3)
 
 	if _, ok := p.GetMergedNodeTrees()["guid-a"]; ok {
 		t.Errorf("node 3's subtree should be absent after ClearNodeOnlineClients")
+	}
+	if _, ok := p.GetMergedActiveInboundTrees()["guid-a"]; ok {
+		t.Errorf("node 3's active-inbound subtree should be absent after ClearNodeOnlineClients")
+	}
+}
+
+func TestSetNodeTreesEmptyInputDropsNode(t *testing.T) {
+	p := newOnlineTestProcess()
+	p.SetNodeOnlineTree(3, map[string][]string{"guid-a": {"user1"}})
+	p.SetNodeActiveInboundTree(3, map[string][]string{"guid-a": {"in-a"}})
+
+	p.SetNodeOnlineTree(3, nil)
+	p.SetNodeActiveInboundTree(3, nil)
+
+	if _, ok := p.GetMergedNodeTrees()["guid-a"]; ok {
+		t.Errorf("empty online tree should remove node 3's subtree")
+	}
+	if _, ok := p.GetMergedActiveInboundTrees()["guid-a"]; ok {
+		t.Errorf("empty active-inbound tree should remove node 3's subtree")
 	}
 }
 

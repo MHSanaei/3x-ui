@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -64,6 +65,29 @@ func TestUpdateInbound_NodeTagKeepsPrefixWhenNodeIdOmitted(t *testing.T) {
 	got, _, _ := svc.UpdateInbound(&update)
 	if got.Tag != "n1-in-8443-tcp" {
 		t.Fatalf("node prefix must survive a port change, got %q", got.Tag)
+	}
+}
+
+// A node inbound sharing a port with a local inbound must stay editable: the
+// port-conflict check is scoped to the inbound's stored NodeID, not the body's.
+func TestUpdateInbound_NodeInboundNotBlockedByLocalSamePort(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "in-10000-tcp", "0.0.0.0", 10000, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`)
+	seedInboundConflictNode(t, "n1-in-10000-tcp", "0.0.0.0", 10000, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, new(1))
+
+	var nodeInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "n1-in-10000-tcp").First(&nodeInbound).Error; err != nil {
+		t.Fatalf("read seeded node row: %v", err)
+	}
+
+	svc := &InboundService{}
+	update := nodeInbound
+	update.Listen = "10.0.0.5"
+	update.NodeID = nil
+	_, _, err := svc.UpdateInbound(&update)
+
+	if err != nil && strings.Contains(err.Error(), "already used") {
+		t.Fatalf("node inbound edit wrongly rejected as a port conflict: %v", err)
 	}
 }
 

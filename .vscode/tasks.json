@@ -8,9 +8,17 @@
       "args": [
         "build",
         "-o",
-        "bin/3x-ui.exe",
+        "bin/3x-ui",
         "./main.go"
       ],
+      "windows": {
+        "args": [
+          "build",
+          "-o",
+          "bin/3x-ui.exe",
+          "./main.go"
+        ]
+      },
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -96,6 +104,22 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
       "problemMatcher": [
         "$go"
       ]
@@ -111,6 +135,22 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
       "problemMatcher": [
         "$go"
       ]
@@ -124,6 +164,22 @@
       ],
       "options": {
         "cwd": "${workspaceFolder}"
+      },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
       },
       "problemMatcher": [
         "$go"
@@ -140,9 +196,92 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
       "problemMatcher": [
         "$go"
       ]
+    },
+    {
+      "label": "go: install golangci-lint",
+      "type": "shell",
+      "command": "go",
+      "args": [
+        "install",
+        "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "go: install modernize",
+      "type": "shell",
+      "command": "go",
+      "args": [
+        "install",
+        "golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "linux": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "${userHome}/go/bin:/usr/local/go/bin:${env:PATH}"
+          }
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "go: install tools",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "go: install golangci-lint",
+        "go: install modernize"
+      ],
+      "problemMatcher": []
     },
     {
       "label": "frontend: ncu -u",

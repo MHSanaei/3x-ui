@@ -10,6 +10,7 @@ import {
   DnsQueryStrategySchema,
   DnsServerObjectInnerSchema,
   DnsServerObjectSchema,
+  isEncryptedDnsAddress,
   type DnsServerObject,
 } from '@/schemas/dns';
 
@@ -109,7 +110,6 @@ function valuesToWire(values: DnsServerForm): DnsServerValue {
 
   const out: Record<string, unknown> = {
     address: values.address,
-    port: values.port,
     domains: values.domains.filter(Boolean),
     expectedIPs: values.expectedIPs.filter(Boolean),
     unexpectedIPs: values.unexpectedIPs.filter(Boolean),
@@ -121,6 +121,7 @@ function valuesToWire(values: DnsServerForm): DnsServerValue {
     serveExpiredTTL: values.serveExpiredTTL,
     timeoutMs: values.timeoutMs,
   };
+  if (!isEncryptedDnsAddress(values.address)) out.port = values.port;
   if (values.tag) out.tag = values.tag;
   if (values.clientIP) out.clientIP = values.clientIP;
   return out as DnsServerValue;

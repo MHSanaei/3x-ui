@@ -1,26 +1,11 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { WebSocketClient } from '@/api/websocket';
+import { getSharedWebSocketClient } from '@/api/websocket';
 import { keys } from '@/api/queryKeys';
 import { isRecentLocalInvalidate } from '@/api/invalidationTracker';
 
 type Handler = (payload: unknown) => void;
-
-interface SharedClient {
-  connect(): void;
-  on(event: string, fn: Handler): void;
-  off(event: string, fn: Handler): void;
-}
-
-let sharedClient: SharedClient | null = null;
-
-function getSharedClient(): SharedClient {
-  if (sharedClient) return sharedClient;
-  const basePath = (typeof window !== 'undefined' && window.X_UI_BASE_PATH) || '';
-  sharedClient = new WebSocketClient(basePath) as SharedClient;
-  return sharedClient;
-}
 
 let invalidateTimer: number | null = null;
 
@@ -28,7 +13,7 @@ export function useWebSocketBridge() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const client = getSharedClient();
+    const client = getSharedWebSocketClient();
 
     const onInvalidate: Handler = (payload) => {
       const p = payload as { type?: string } | undefined;
@@ -46,6 +31,7 @@ export function useWebSocketBridge() {
     };
 
     const onOutbounds: Handler = (payload) => {
+      if (!Array.isArray(payload)) return;
       queryClient.setQueryData(keys.xray.outboundsTraffic(), payload);
     };
 

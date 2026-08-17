@@ -2,6 +2,7 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -70,11 +71,11 @@ func TestDepletedCond_ProbeGuard(t *testing.T) {
 
 	// No global rows: the cross-panel EXISTS branch is skipped (#5392), but a
 	// client over its local quota is still disabled.
-	if got := depletedCond(db); got != depletedClientsCondLocal {
+	if got, _ := depletedCond(db); got != depletedClientsCondLocal {
 		t.Fatalf("empty globals must use the local-only predicate")
 	}
 	seedClientRow(t, "local-cap", 1, 600, 600, 1000)
-	if _, count, err := svc.disableInvalidClients(db); err != nil {
+	if _, count, _, err := svc.disableInvalidClients(db, newTrafficMutationBatch()); err != nil {
 		t.Fatalf("disableInvalidClients: %v", err)
 	} else if count != 1 {
 		t.Fatalf("local over-quota client must be disabled, disabled %d", count)
@@ -85,9 +86,75 @@ func TestDepletedCond_ProbeGuard(t *testing.T) {
 	if err := svc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: "local-cap", Up: 1, Down: 1}}); err != nil {
 		t.Fatalf("AcceptGlobalTraffic: %v", err)
 	}
-	if got := depletedCond(db); got != depletedClientsCond {
+	if got, _ := depletedCond(db); got != depletedClientsCond {
 		t.Fatalf("with globals present the cross-panel predicate must be used")
 	}
+}
+
+func TestStaleGlobalTraffic_Ignored(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+
+	staleAt := time.Now().Add(-globalTrafficFreshWindow - time.Hour).UnixMilli()
+	seedStaleGlobal := func(t *testing.T, guid, email string, up, down int64) {
+		t.Helper()
+		if err := svc.AcceptGlobalTraffic(guid, []*xray.ClientTraffic{{Email: email, Up: up, Down: down}}); err != nil {
+			t.Fatalf("AcceptGlobalTraffic(%s): %v", guid, err)
+		}
+		if err := db.Model(&model.ClientGlobalTraffic{}).
+			Where("master_guid = ? AND email = ?", guid, email).
+			Update("updated_at", staleAt).Error; err != nil {
+			t.Fatalf("age row: %v", err)
+		}
+	}
+
+	t.Run("stale row alone neither enforces nor selects the cross-panel predicate", func(t *testing.T) {
+		seedClientRow(t, "cap", 1, 100, 100, 1000)
+		seedStaleGlobal(t, "dead-master", "cap", 1000, 900)
+
+		if got, _ := depletedCond(db); got != depletedClientsCondLocal {
+			t.Fatalf("only stale globals must fall back to the local-only predicate")
+		}
+		if _, count, _, err := svc.disableInvalidClients(db, newTrafficMutationBatch()); err != nil {
+			t.Fatalf("disableInvalidClients: %v", err)
+		} else if count != 0 {
+			t.Fatalf("stale global usage must not disable a client, disabled %d", count)
+		}
+		if got := readTraffic(t, db, "cap"); !got.Enable {
+			t.Error("client within its local quota must stay enabled")
+		}
+	})
+
+	t.Run("stale row does not inflate the displayed total", func(t *testing.T) {
+		rows := []*xray.ClientTraffic{{Email: "cap", Up: 100, Down: 100}}
+		overlayGlobalTraffic(db, rows)
+		if rows[0].Up != 100 || rows[0].Down != 100 {
+			t.Errorf("stale global must not overlay display counters, got up=%d down=%d", rows[0].Up, rows[0].Down)
+		}
+	})
+
+	t.Run("a live master still enforces alongside the stale row", func(t *testing.T) {
+		if err := svc.AcceptGlobalTraffic("live-master", []*xray.ClientTraffic{{Email: "cap", Up: 1, Down: 1}}); err != nil {
+			t.Fatalf("AcceptGlobalTraffic: %v", err)
+		}
+		if got, _ := depletedCond(db); got != depletedClientsCond {
+			t.Fatalf("a fresh global row must select the cross-panel predicate")
+		}
+		if _, count, _, err := svc.disableInvalidClients(db, newTrafficMutationBatch()); err != nil {
+			t.Fatalf("disableInvalidClients: %v", err)
+		} else if count != 0 {
+			t.Fatalf("the live master reports usage well under quota, disabled %d", count)
+		}
+
+		if err := svc.AcceptGlobalTraffic("live-master", []*xray.ClientTraffic{{Email: "cap", Up: 600, Down: 500}}); err != nil {
+			t.Fatalf("AcceptGlobalTraffic: %v", err)
+		}
+		if _, count, _, err := svc.disableInvalidClients(db, newTrafficMutationBatch()); err != nil {
+			t.Fatalf("disableInvalidClients: %v", err)
+		} else if count != 1 {
+			t.Fatalf("fresh cross-panel depletion must disable the client, disabled %d", count)
+		}
+	})
 }
 
 func TestGlobalUsage_DisablesClient(t *testing.T) {
@@ -100,7 +167,7 @@ func TestGlobalUsage_DisablesClient(t *testing.T) {
 		t.Fatalf("AcceptGlobalTraffic: %v", err)
 	}
 
-	if _, count, err := svc.disableInvalidClients(db); err != nil {
+	if _, count, _, err := svc.disableInvalidClients(db, newTrafficMutationBatch()); err != nil {
 		t.Fatalf("disableInvalidClients: %v", err)
 	} else if count != 1 {
 		t.Fatalf("expected 1 client disabled, got %d", count)

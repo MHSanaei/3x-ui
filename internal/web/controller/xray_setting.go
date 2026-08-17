@@ -26,6 +26,7 @@ type XraySettingController struct {
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService
 	OutboundSubscriptionService service.OutboundSubscriptionService
+	GeodataService              service.GeodataService
 }
 
 // NewXraySettingController creates a new XraySettingController and initializes its routes.
@@ -52,6 +53,11 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/balancerStatus", a.balancerStatus)
 	g.POST("/balancerOverride", a.balancerOverride)
 	g.POST("/routeTest", a.routeTest)
+
+	g.GET("/geodata/files", a.geodataFiles)
+	g.GET("/geodata/categories", a.geodataCategories)
+	g.GET("/geodata/entries", a.geodataEntries)
+	g.POST("/geodata/validate", a.geodataValidate)
 
 	// Outbound subscription (remote outbound lists)
 	g.GET("/outbound-subs", a.listOutboundSubs)
@@ -190,7 +196,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 			a.XrayService.SetToNeedRestart()
 			// Restart the auto-update clock so a scheduled rotation
 			// doesn't fire right after this manual one.
-			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
+			err = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
 		}
 	case "license":
 		license := c.PostForm("license")
@@ -202,7 +208,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		} else if err = a.SettingService.SetWarpUpdateInterval(interval); err == nil && interval > 0 {
 			// Count the interval from now rather than from epoch 0,
 			// otherwise the job would rotate on its next tick.
-			_ = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
+			err = a.SettingService.SetWarpLastUpdate(time.Now().Unix())
 		}
 	}
 
@@ -391,6 +397,73 @@ func (a *XraySettingController) routeTest(c *gin.Context) {
 	jsonObj(c, result, nil)
 }
 
+// maxGeodataTokens bounds one validation request; a routing rule listing more
+// categories than this is not something the panel needs to answer for.
+const maxGeodataTokens = 500
+
+// geodataFiles lists the geo databases Xray resolves geosite:/geoip: tokens
+// against, including ones that failed to parse.
+func (a *XraySettingController) geodataFiles(c *gin.Context) {
+	files, err := a.GeodataService.Files()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, files, nil)
+}
+
+// geodataCategories returns one page of a database's categories.
+func (a *XraySettingController) geodataCategories(c *gin.Context) {
+	offset, limit := geodataPaging(c)
+	page, err := a.GeodataService.Categories(c.Query("file"), c.Query("q"), offset, limit)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, page, nil)
+}
+
+// geodataEntries returns one page of the domains or CIDRs inside a category.
+func (a *XraySettingController) geodataEntries(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("code is required"))
+		return
+	}
+	offset, limit := geodataPaging(c)
+	page, err := a.GeodataService.Entries(c.Query("file"), code, c.Query("q"), offset, limit)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, page, nil)
+}
+
+// geodataValidate reports which routing tokens do not resolve against the
+// databases on disk.
+func (a *XraySettingController) geodataValidate(c *gin.Context) {
+	// Split with a bound rather than splitting first: a 10 MB body of commas
+	// would otherwise allocate millions of strings before the limit is checked.
+	tokens := strings.SplitN(c.PostForm("tokens"), ",", maxGeodataTokens+1)
+	if len(tokens) > maxGeodataTokens {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewErrorf("too many tokens: over %d", maxGeodataTokens))
+		return
+	}
+	jsonObj(c, a.GeodataService.Validate(c.PostForm("kind") == "ip", tokens), nil)
+}
+
+func geodataPaging(c *gin.Context) (int, int) {
+	offset, err := strconv.Atoi(c.Query("offset"))
+	if err != nil {
+		offset = 0
+	}
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil {
+		limit = 0
+	}
+	return offset, limit
+}
+
 // --- Outbound Subscription handlers ---
 
 func (a *XraySettingController) listOutboundSubs(c *gin.Context) {
@@ -408,6 +481,7 @@ func (a *XraySettingController) createOutboundSub(c *gin.Context) {
 	prefix := c.PostForm("tagPrefix")
 	enabled := c.PostForm("enabled") != "false"
 	allowPrivate := c.PostForm("allowPrivate") == "true"
+	allowInsecure := c.PostForm("allowInsecure") == "true"
 	prepend := c.PostForm("prepend") == "true"
 	intervalStr := c.PostForm("updateInterval")
 	interval := 600
@@ -416,7 +490,7 @@ func (a *XraySettingController) createOutboundSub(c *gin.Context) {
 			interval = v
 		}
 	}
-	sub, err := a.OutboundSubscriptionService.Create(remark, rawURL, prefix, enabled, interval, allowPrivate, prepend)
+	sub, err := a.OutboundSubscriptionService.Create(remark, rawURL, prefix, enabled, interval, allowPrivate, prepend, allowInsecure)
 	if err != nil {
 		jsonMsg(c, "Failed to create outbound subscription", err)
 		return
@@ -436,6 +510,7 @@ func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
 	prefix := c.PostForm("tagPrefix")
 	enabled := c.PostForm("enabled") != "false"
 	allowPrivate := c.PostForm("allowPrivate") == "true"
+	allowInsecure := c.PostForm("allowInsecure") == "true"
 	prepend := c.PostForm("prepend") == "true"
 	intervalStr := c.PostForm("updateInterval")
 	interval := 600
@@ -444,7 +519,7 @@ func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
 			interval = v
 		}
 	}
-	if err := a.OutboundSubscriptionService.Update(subID, remark, rawURL, prefix, enabled, interval, allowPrivate, prepend); err != nil {
+	if err := a.OutboundSubscriptionService.Update(subID, remark, rawURL, prefix, enabled, interval, allowPrivate, prepend, allowInsecure); err != nil {
 		jsonMsg(c, "Failed to update outbound subscription", err)
 		return
 	}
@@ -511,12 +586,13 @@ func (a *XraySettingController) parseOutboundSubURL(c *gin.Context) {
 		return
 	}
 	allowPrivate := c.PostForm("allowPrivate") == "true"
+	allowInsecure := c.PostForm("allowInsecure") == "true"
 	// Use a throw-away service instance; it only needs the settingService for proxy.
 	svc := service.OutboundSubscriptionService{}
 	// We don't have a direct "fetch once" that returns without storing, so we
 	// temporarily create a disabled row, refresh it, then delete. Cleaner would
 	// be to expose a pure ParseURL on the service, but this keeps the surface small.
-	tmp, err := svc.Create("preview", rawURL, "", false, 600, allowPrivate, false)
+	tmp, err := svc.Create("preview", rawURL, "", false, 600, allowPrivate, false, allowInsecure)
 	if err != nil {
 		jsonMsg(c, "Failed to preview subscription", err)
 		return

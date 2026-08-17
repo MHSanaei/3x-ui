@@ -45,6 +45,7 @@ function defaultValues(): NodeFormValues {
     port: 2053,
     basePath: '/',
     apiToken: '',
+    hasStoredToken: false,
     enable: true,
     allowPrivateAddress: false,
     tlsVerifyMode: 'verify',
@@ -107,6 +108,8 @@ export default function NodeFormModal({
         scheme: (node.scheme as 'http' | 'https') || base.scheme,
         inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
         inboundTags: node.inboundTags ?? [],
+        apiToken: '',
+        hasStoredToken: node.hasApiToken ?? false,
       }
       : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
@@ -120,8 +123,11 @@ export default function NodeFormModal({
     [mode, t],
   );
 
+  const editingWithToken = mode === 'edit' && Boolean(node?.hasApiToken);
+
   function buildPayload(values: NodeFormValues): Partial<NodeRecord> {
-    return {
+    const token = values.apiToken.trim();
+    const payload: Partial<NodeRecord> = {
       id: values.id || 0,
       name: values.name.trim(),
       remark: values.remark?.trim() || '',
@@ -129,7 +135,6 @@ export default function NodeFormModal({
       address: values.address.trim(),
       port: values.port,
       basePath: values.basePath.trim() || '/',
-      apiToken: values.apiToken.trim(),
       enable: values.enable,
       allowPrivateAddress: values.allowPrivateAddress,
       tlsVerifyMode: values.tlsVerifyMode,
@@ -138,10 +143,12 @@ export default function NodeFormModal({
       inboundTags: values.inboundSyncMode === 'selected' ? values.inboundTags : [],
       outboundTag: values.outboundTag || '',
     };
+    if (token) payload.apiToken = token;
+    return payload;
   }
 
   async function onTest() {
-    if (!(await methods.trigger(['address', 'port']))) return;
+    if (!(await methods.trigger(['name', 'address', 'port']))) return;
     setTesting(true);
     setTestResult(null);
     try {
@@ -158,7 +165,7 @@ export default function NodeFormModal({
   }
 
   async function onFetchPin() {
-    if (!(await methods.trigger(['address', 'port']))) return;
+    if (!(await methods.trigger(['name', 'address', 'port']))) return;
     setFetchingPin(true);
     try {
       const payload = buildPayload(methods.getValues());
@@ -369,8 +376,11 @@ export default function NodeFormModal({
               name="apiToken"
               rules={{ validate: rhfZodValidate(NodeFormSchema.shape.apiToken) }}
               tooltip={t('pages.nodes.apiTokenHint')}
+              extra={editingWithToken ? t('pages.nodes.apiTokenKeepHint') : undefined}
             >
-              <Input.Password placeholder={t('pages.nodes.apiTokenPlaceholder')} />
+              <Input.Password
+                placeholder={editingWithToken ? t('pages.nodes.apiTokenKeepHint') : t('pages.nodes.apiTokenPlaceholder')}
+              />
             </FormField>
 
             <FormField

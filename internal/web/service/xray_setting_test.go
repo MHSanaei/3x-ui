@@ -2,9 +2,57 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 )
+
+func TestShouldSkipLegacyUnencryptedOutboundRejection(t *testing.T) {
+	prohibited := errors.New("vless without TLS or other encryption is prohibited unless the server address is a private IP or domain")
+
+	tests := []struct {
+		name    string
+		version string
+		err     error
+		want    bool
+	}{
+		{name: "older core", version: "26.4.25", err: prohibited, want: true},
+		{name: "boundary version", version: "26.7.11", err: prohibited, want: false},
+		{name: "newer core", version: "26.10.0", err: prohibited, want: false},
+		{name: "unknown version", version: "Unknown", err: prohibited, want: false},
+		{name: "unparseable version", version: "26.7", err: prohibited, want: false},
+		{name: "empty version", version: "", err: prohibited, want: false},
+		{name: "unrelated validation error", version: "26.4.25", err: errors.New("invalid outbound"), want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldSkipLegacyUnencryptedOutboundRejection(tt.version, tt.err); got != tt.want {
+				t.Fatalf("shouldSkipLegacyUnencryptedOutboundRejection(%q, %v) = %v, want %v", tt.version, tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareXrayCoreVersions(t *testing.T) {
+	tests := []struct {
+		a, b string
+		want int
+		ok   bool
+	}{
+		{a: "26.7.11", b: "26.7.11", want: 0, ok: true},
+		{a: "26.10.0", b: "26.7.11", want: 1, ok: true},
+		{a: "v26.4.25", b: "26.7.11", want: -1, ok: true},
+		{a: "Unknown", b: "26.7.11", want: 0, ok: false},
+	}
+
+	for _, tt := range tests {
+		got, ok := compareXrayCoreVersions(tt.a, tt.b)
+		if got != tt.want || ok != tt.ok {
+			t.Errorf("compareXrayCoreVersions(%q, %q) = (%d, %v), want (%d, %v)", tt.a, tt.b, got, ok, tt.want, tt.ok)
+		}
+	}
+}
 
 func TestUnwrapXrayTemplateConfig(t *testing.T) {
 	real := `{"log":{},"inbounds":[],"outbounds":[],"routing":{}}`
