@@ -134,6 +134,7 @@ func TestSubBalancerServiceValidation(t *testing.T) {
 		{"empty remark", model.SubBalancer{Strategy: "random", InboundIds: []int{1}}, "remark is required"},
 		{"bad strategy", model.SubBalancer{Remark: "x", Strategy: "fastest", InboundIds: []int{1}}, "invalid balancer strategy"},
 		{"no inbounds", model.SubBalancer{Remark: "x", Strategy: "random"}, "at least one inbound"},
+		{"long remark", model.SubBalancer{Remark: strings.Repeat("x", 257), Strategy: "random", InboundIds: []int{1}}, "max 256"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

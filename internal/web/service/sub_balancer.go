@@ -24,6 +24,9 @@ func (s *SubBalancerService) validate(b *model.SubBalancer) error {
 	if b.Remark == "" {
 		return common.NewError("balancer remark is required")
 	}
+	if len(b.Remark) > 256 {
+		return common.NewError("balancer remark too long (max 256)")
+	}
 	if b.Strategy == "" {
 		b.Strategy = "random"
 	}
