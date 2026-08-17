@@ -63,6 +63,7 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	}
 	row.Comment = incoming.Comment
 	row.Reset = incoming.Reset
+	row.ResetMax = incoming.ResetMax
 	if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 		row.CreatedAt = incoming.CreatedAt
 	}

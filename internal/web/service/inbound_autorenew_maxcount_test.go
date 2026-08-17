@@ -231,3 +231,57 @@ func TestAutoRenewClients_TruncatedCatchUpLeavesTheClientDisabled(t *testing.T) 
 		t.Fatalf("counters zeroed for periods the client can never use: up=%d down=%d", row.Up, row.Down)
 	}
 }
+
+// The cap is useless if it can only be chosen once. The test above passes even
+// without the record write, because nothing overwrites the value it checks.
+func TestClientEditChangesTheRenewalCap(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+
+	clients := []model.Client{
+		{
+			Email: "chg@x", ID: "77777777-7777-7777-7777-777777777777", Enable: true, Reset: 30, ResetMax: 3,
+			ExpiryTime: time.Now().Add(24 * time.Hour).UnixMilli(),
+		},
+	}
+	ib := mkInbound(t, 30106, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	mkTraffic(t, ib.Id, "chg@x", 0, 0, 0, 0, true)
+
+	rec, err := svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+
+	// The customer buys another block of periods, which is the whole point of
+	// the field being editable.
+	edited := rec.ToClient()
+	edited.ResetMax = 6
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after edit: %v", err)
+	}
+	if rec.ResetMax != 6 {
+		t.Fatalf("clients.reset_max = %d after the operator raised the cap to 6", rec.ResetMax)
+	}
+
+	// Lifting the cap entirely has to work too.
+	edited = rec.ToClient()
+	edited.ResetMax = 0
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update to uncapped: %v", err)
+	}
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after lifting the cap: %v", err)
+	}
+	if rec.ResetMax != 0 {
+		t.Fatalf("clients.reset_max = %d after the operator lifted the cap", rec.ResetMax)
+	}
+}
