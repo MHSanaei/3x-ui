@@ -301,6 +301,8 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	var proxies []json_util.RawMessage
+	// entries is the subscriber's accessible set (getInboundsBySubId filters
+	// inbounds.enable=true + a matching client), so members stay scoped to it.
 	for _, entry := range entries {
 		if !slices.Contains(balancer.InboundIds, entry.id) {
 			continue

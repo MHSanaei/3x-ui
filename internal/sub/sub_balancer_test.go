@@ -272,3 +272,67 @@ func TestSubJson_BalancerObservatoryConditional(t *testing.T) {
 		t.Fatalf("interval = %v, want default 1m", ping["interval"])
 	}
 }
+
+// A balancer selecting [A, B] where B is disabled (inbounds.enable=false) must
+// only carry A's member: getInboundsBySubId filters enable=true, so B never
+// reaches entries and cannot become a balancer member. Guards the access
+// guarantee that a balancer only surfaces inbounds the subscriber can see.
+func TestSubJson_BalancerExcludesDisabledInbound(t *testing.T) {
+	seedSubDB(t)
+	a := seedSubInbound(t, "s1", "keep", 4751, 1, wsTLSStream)
+	b := seedSubInbound(t, "s1", "drop", 4752, 2, wsTLSStream)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", b.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("disable inbound B: %v", err)
+	}
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "bal", Strategy: "random", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs := parseSubJsonDocs(t, out)
+	balancerDoc := findDocByRemarks(docs, "bal")
+	if balancerDoc == nil {
+		t.Fatalf("balancer doc missing (A is still enabled, balancer must emit):\n%s", out)
+	}
+	tags := docOutboundTags(balancerDoc)
+	joined := strings.Join(tags, ",")
+	if !strings.Contains(joined, "bal-1-ws") {
+		t.Fatalf("enabled inbound A must be a balancer member: %v", tags)
+	}
+	// B's address must not surface anywhere in the balancer doc — not as an
+	// outbound tag, not as a connection target a client could dial.
+	balJSON, _ := json.Marshal(balancerDoc)
+	if strings.Contains(string(balJSON), "203.0.113.5:4752") {
+		t.Fatalf("disabled inbound B leaked into balancer doc: %s", balJSON)
+	}
+}
+
+// A balancer whose only selected inbound is disabled for this subscriber is
+// skipped entirely — never emitted as an empty balancer with zero members.
+func TestSubJson_BalancerSkippedWhenAllMembersDisabled(t *testing.T) {
+	seedSubDB(t)
+	only := seedSubInbound(t, "s1", "onlydisabled", 4761, 1, wsTLSStream)
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", only.Id).Update("enable", false).Error; err != nil {
+		t.Fatalf("disable only inbound: %v", err)
+	}
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "empty", Strategy: "random", InboundIds: []int{only.Id}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if strings.TrimSpace(out) == "" {
+		return
+	}
+	docs := parseSubJsonDocs(t, out)
+	if findDocByRemarks(docs, "empty") != nil {
+		t.Fatalf("balancer with no accessible members must not be emitted:\n%s", out)
+	}
+}
