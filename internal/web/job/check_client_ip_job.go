@@ -122,6 +122,13 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 // normalized clients table (limit_ip is synced there by SyncInbound and the
 // legacy seeder), replacing the old `settings LIKE '%limitIp%'` scan that
 // loaded and JSON-parsed every inbound's settings blob on each 10s run.
+func (j *CheckClientIpJob) hasLimitIp() bool {
+	db := database.GetDB()
+	var probe int64
+	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
+	return err == nil && probe > 0
+}
+
 // loadAllowlist reads the operator's trusted addresses once per scan; a bad
 // read leaves the list empty, which enforces the limit as before rather than
 // silently exempting everyone.
@@ -132,13 +139,6 @@ func (j *CheckClientIpJob) loadAllowlist() ipLimitAllowlist {
 		return ipLimitAllowlist{}
 	}
 	return parseIpLimitAllowlist(raw)
-}
-
-func (j *CheckClientIpJob) hasLimitIp() bool {
-	db := database.GetDB()
-	var probe int64
-	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
-	return err == nil && probe > 0
 }
 
 const ipScanChunk = 400

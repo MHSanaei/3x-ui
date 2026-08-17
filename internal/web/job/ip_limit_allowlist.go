@@ -14,15 +14,17 @@ type ipLimitAllowlist struct {
 	addrs    []netip.Addr
 }
 
-// parseIpLimitAllowlist accepts the same shape as trustedProxyCIDRs: entries
-// separated by commas, semicolons, whitespace or newlines, each either a CIDR
-// or a bare address. Unparsable entries are skipped rather than failing the
-// scan — a typo must not disable the limit for everybody.
+// parseIpLimitAllowlist reads the comma-separated form the settings validator
+// enforces, each entry either a CIDR or a bare address. Entries that do not
+// parse are skipped rather than failing the scan: the validator rejects them on
+// save, so anything reaching here is either valid or a hand-edited database.
 func parseIpLimitAllowlist(raw string) ipLimitAllowlist {
 	var list ipLimitAllowlist
-	for _, field := range strings.FieldsFunc(raw, func(r rune) bool {
-		return r == ',' || r == ';' || r == '\n' || r == '\r' || r == ' ' || r == '\t'
-	}) {
+	for _, field := range strings.Split(raw, ",") {
+		field = strings.TrimSpace(field)
+		if field == "" {
+			continue
+		}
 		if prefix, err := netip.ParsePrefix(field); err == nil {
 			list.prefixes = append(list.prefixes, prefix.Masked())
 			continue

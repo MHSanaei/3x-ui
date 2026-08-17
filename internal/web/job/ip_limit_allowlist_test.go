@@ -5,7 +5,7 @@ import "testing"
 // Addresses in the examples below come from the documentation ranges reserved
 // by RFC 5737 and RFC 3849.
 func TestIpLimitAllowlistMatchesAddressesAndNetworks(t *testing.T) {
-	list := parseIpLimitAllowlist("203.0.113.10, 198.51.100.0/24\n2001:db8::/32 ; not-an-ip")
+	list := parseIpLimitAllowlist("203.0.113.10, 198.51.100.0/24 , 2001:db8::/32, not-an-ip")
 
 	for _, ip := range []string{"203.0.113.10", "198.51.100.7", "2001:db8::1"} {
 		if !list.contains(ip) {
