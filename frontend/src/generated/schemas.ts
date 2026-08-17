@@ -2994,7 +2994,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "type": "object"
   },
   "ServerSettings": {
-    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings JSON.\nThe listen port lives on the inbound row itself, like every other protocol.",
+    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {
       "contentPaddingAddition": {
         "type": "string"
@@ -3003,7 +3003,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "externalInterface": {
-        "description": "ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.\nEmpty means auto-detect.",
+        "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
         "type": "string"
       },
       "h1": {
@@ -3019,6 +3019,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "headerProtectionKey": {
+        "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above -- deliberately NOT part of Obfuscation20/\nObfuscation() below, matching Instance's own separation.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be \u003e= 12 -- ValidateHeaderProtection\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar as H1-H4 but capped at uint16 max.",
         "type": "string"
       },
       "i1": {
@@ -3037,7 +3038,6 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "ipv6Enabled": {
-        "description": "IPv6Enabled allocates each client an IPv6 host address from IPv6Subnet and\nproxies NDP for it, so upstream routers see it as directly reachable\n(no NAT66). IPv6ExternalInterface overrides ExternalInterface for those.",
         "type": "boolean"
       },
       "ipv6ExternalInterface": {
@@ -3047,7 +3047,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "jc": {
-        "description": "Obfuscation31's fields repeated flat, not embedded: encoding/json would\ninline an embedded struct but tools/openapigen emits a nested object,\nwhich would silently diverge from the real wire JSON.",
+        "description": "Obfuscation20's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation20 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation20` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
         "type": "integer"
       },
       "jmax": {
@@ -3066,7 +3066,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "primaryDns": {
-        "description": "PrimaryDNS/SecondaryDNS seed downloadable client configs only; the\nserver's own interface never sets a DNS line.",
+        "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
         "type": "string"
       },
       "privateKey": {
@@ -3076,19 +3076,20 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "randomTrailers": {
+        "description": "RandomTrailers/DisableCookies mirror Instance's identically named\nAmneziaWG 3.1 fields -- see that type's own doc comment for the real\nprotocol/interop details. Both real bool fields (not omitempty):\nbuildUAPIConfig always emits both lines explicitly so the\nreconfigure-in-place diff correctly notices a true-\u003efalse edit, not\njust false-\u003etrue.",
         "type": "boolean"
       },
       "rejectAfterTime": {
         "type": "string"
       },
       "rekeyAfterTime": {
+        "description": "RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/\nMaxHandshakeAttempts mirror Instance's identically named fields --\nsee that type's own doc comment for the grammar/width/real-default\ndetails. Flat and top-level for the same tools/openapigen reason as\nthe rest of this struct.",
         "type": "string"
       },
       "rekeyTimeout": {
         "type": "string"
       },
       "routeThroughXray": {
-        "description": "RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see\nInstance.RouteThroughXray for what that means. Off by default.",
         "type": "boolean"
       },
       "s1": {
@@ -3114,6 +3115,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "disableCookies",
       "h1",
       "h2",
       "h3",
@@ -3123,6 +3125,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "jmin",
       "privateKey",
       "publicKey",
+      "randomTrailers",
       "s1",
       "s2",
       "s3",

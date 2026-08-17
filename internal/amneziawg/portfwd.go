@@ -2,7 +2,7 @@ package amneziawg
 
 import (
 	"fmt"
-	"hash/fnv"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -13,27 +13,10 @@ type portSpec struct {
 	end   int
 }
 
-func (p portSpec) isRange() bool { return p.end > p.start }
-
-// dportArg returns the iptables --dport argument: "N" or "N:M".
-func (p portSpec) dportArg() string {
-	if p.isRange() {
-		return fmt.Sprintf("%d:%d", p.start, p.end)
-	}
-	return strconv.Itoa(p.start)
-}
-
-// dnatTarget returns the DNAT target: "ip:N" or "ip:N-M".
-func (p portSpec) dnatTarget(clientIP string) string {
-	if p.isRange() {
-		return fmt.Sprintf("%s:%d-%d", clientIP, p.start, p.end)
-	}
-	return fmt.Sprintf("%s:%d", clientIP, p.start)
-}
-
-// parseForwardedPorts splits a free-form "80, 443; 8000-8100" into specs,
-// silently dropping invalid tokens. Every returned bound is an integer in
-// [1, 65535], so callers may embed them in a shell-executed line unescaped.
+// parseForwardedPorts splits a user-supplied string ("80, 443; 8000-8100")
+// into validated port specs. Tokens are separated by comma or semicolon;
+// whitespace is ignored. Invalid tokens are silently dropped — the input is
+// a free-form text field and validation is best-effort by design.
 func parseForwardedPorts(input string) []portSpec {
 	if input == "" {
 		return nil
@@ -86,9 +69,19 @@ func parsePortNumber(s string) (int, bool) {
 	return n, true
 }
 
-// ForwardedPortsInclude reports whether port is covered by a raw
-// ForwardedPorts string. portForwardLines has no -d restriction, so save-time
-// callers use this to reject a spec that would hijack a port already in use.
+// ForwardedPortsInclude reports whether port is covered by any spec in a raw
+// ForwardedPorts string (a single port or an inclusive range). Used for
+// save-time validation that a client isn't about to hijack the panel's own
+// port or another inbound's port -- see
+// internal/web/service/inbound_amneziawg.go's port-conflict checks.
+//
+// Per-client port-forwarding is implemented by internal/amneziawgnet's
+// listener supervisor (PortForwardSet), which dials directly into the
+// embedded gVisor netstack toward the peer's tunnel-internal address --
+// the retired kernel-module architecture used PostUp/PostDown iptables DNAT
+// rules instead, which had no equivalent path once that architecture was
+// cut over; ExpandForwardedPorts below is what the supervisor uses to turn
+// a raw spec into the concrete ports it listens on.
 func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	for _, spec := range parseForwardedPorts(forwardedPorts) {
 		if port >= spec.start && port <= spec.end {
@@ -98,55 +91,36 @@ func ForwardedPortsInclude(forwardedPorts string, port int) bool {
 	return false
 }
 
-// portForwardComment tags one peer's forwarded-port rules so PostDown removes
-// exactly what PostUp added. Hashed for the same reason routeEgressComment is.
-func portForwardComment(email string) string {
-	if email == "" {
-		return "awg-fwd"
-	}
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(email))
-	return fmt.Sprintf("awg-fwd-%08x", h.Sum32())
-}
+// MaxForwardedPorts caps how many unique ports a single client's
+// ForwardedPorts spec can expand to. internal/amneziawgnet's listener
+// supervisor opens up to two real sockets (TCP+UDP) per port, so this bounds
+// worst-case file descriptor usage to a fixed, sane amount regardless of how
+// large a stored spec claims to be -- a legacy or hand-edited "1-65535"
+// costs exactly the same as "1-100" once expansion stops at the cap.
+const MaxForwardedPorts = 100
 
-// portForwardLines returns the PostUp ("-A") or PostDown ("-D") DNAT + FORWARD
-// rules for one peer's forwarded ports, tcp and udp alike (games and P2P need
-// UDP). Returns nil when the spec has no valid entry or clientIP is empty.
-func portForwardLines(action, extIface, tunIface, clientIP, email, forwardedPorts string) []string {
-	specs := parseForwardedPorts(forwardedPorts)
-	if len(specs) == 0 {
-		return nil
-	}
-	clientIP = stripCIDRMask(clientIP)
-	if clientIP == "" {
-		return nil
-	}
-	comment := portForwardComment(email)
-
-	lines := make([]string, 0, len(specs)*4)
-	for _, spec := range specs {
-		dport := spec.dportArg()
-		target := spec.dnatTarget(clientIP)
-		for _, proto := range []string{"tcp", "udp"} {
-			nat := fmt.Sprintf("iptables -t nat %s PREROUTING -p %s", action, proto)
-			if extIface != "" {
-				nat += fmt.Sprintf(" -i %s", extIface)
+// ExpandForwardedPorts parses forwardedPorts the same way
+// ForwardedPortsInclude does and returns every unique port it covers, in
+// ascending order, capped at MaxForwardedPorts. Expansion stops the instant
+// the cap is reached rather than expanding fully and truncating afterward,
+// so this is safe to call unconditionally against arbitrary -- including
+// pre-existing, pre-cap -- stored data.
+func ExpandForwardedPorts(forwardedPorts string) []int {
+	seen := make(map[int]struct{}, MaxForwardedPorts)
+	ports := make([]int, 0, MaxForwardedPorts)
+outer:
+	for _, spec := range parseForwardedPorts(forwardedPorts) {
+		for p := spec.start; p <= spec.end; p++ {
+			if len(ports) >= MaxForwardedPorts {
+				break outer
 			}
-			nat += fmt.Sprintf(" --dport %s -m comment --comment %s -j DNAT --to-destination %s", dport, comment, target)
-			lines = append(lines, nat)
-
-			fwd := fmt.Sprintf("iptables %s FORWARD -d %s -p %s -o %s --dport %s -m comment --comment %s -j ACCEPT",
-				action, clientIP, proto, tunIface, dport, comment)
-			lines = append(lines, fwd)
+			if _, dup := seen[p]; dup {
+				continue
+			}
+			seen[p] = struct{}{}
+			ports = append(ports, p)
 		}
 	}
-	return lines
-}
-
-// stripCIDRMask removes a "/N" suffix if present.
-func stripCIDRMask(addr string) string {
-	if idx := strings.IndexByte(addr, '/'); idx >= 0 {
-		return addr[:idx]
-	}
-	return addr
+	sort.Ints(ports)
+	return ports
 }

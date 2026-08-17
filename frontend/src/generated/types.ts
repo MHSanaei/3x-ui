@@ -4,7 +4,6 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
-export type ensureAction = number;
 export type staticEgressResolver = string;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
@@ -684,7 +683,7 @@ export interface RealityScanResult {
 
 export interface ServerSettings {
   contentPaddingAddition?: string;
-  disableCookies?: boolean;
+  disableCookies: boolean;
   externalInterface?: string;
   h1: string;
   h2: string;
@@ -708,7 +707,7 @@ export interface ServerSettings {
   primaryDns?: string;
   privateKey: string;
   publicKey: string;
-  randomTrailers?: boolean;
+  randomTrailers: boolean;
   rejectAfterTime?: string;
   rekeyAfterTime?: string;
   rekeyTimeout?: string;

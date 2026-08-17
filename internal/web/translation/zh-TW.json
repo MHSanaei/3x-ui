@@ -1707,8 +1707,6 @@
         "ipv6SubnetHint": "例如 fd86:ea04:1115::/64。啟用 IPv6 時必填。",
         "ipv6ExternalInterface": "IPv6 外部網路介面",
         "ipv6ExternalInterfaceHint": "用於 NDP 代理項目的主機網路介面。留空則使用外部網路介面。",
-        "routeThroughXray": "透過 Xray 路由",
-        "routeThroughXrayHint": "預設關閉：通道完全不依賴 Xray。啟用後，每個客戶端的流量都會被重新導向到該入站自己的 Xray 橋接，實際的出站則和其他協定一樣，在路由頁面中選擇。",
         "obfuscation": "混淆參數",
         "regenerateObfuscation": "重新產生",
         "jc": "Jc（垃圾封包數量）",

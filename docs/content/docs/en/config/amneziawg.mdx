@@ -10,17 +10,15 @@ look like WireGuard to deep-packet inspection. It's a popular choice where
 plain WireGuard is blocked but a WireGuard-shaped tunnel with a different
 fingerprint gets through.
 
-<Callout type="warn">
-  AmneziaWG is **not run by Xray**. Like MTProto, it's a separate process —
-  the panel manages a native `awg-quick`/`awg` interface as a host-level
-  sidecar, the same reconciler pattern the MTProto (`mtg`) sidecar already
-  uses. This means: it needs the **AmneziaWG kernel module** (DKMS) installed
-  on the host, and it is **not usable from inside the project's Docker
-  image** — Docker doesn't give the container the host network/kernel access
-  `awg-quick` needs. `install.sh` prompts to install the kernel module on
-  supported distros (answer `y`, or set `XUI_INSTALL_AMNEZIAWG=true` for a
-  non-interactive install) — it does **not** install it automatically; see
-  [Installation](/docs/guide/installation).
+<Callout type="info">
+  AmneziaWG runs **embedded in the panel process** — `amneziawg-go` over a
+  userspace (gVisor) network stack, not a kernel module. There is no DKMS
+  build, no Secure Boot conflict, and no host network/kernel access
+  requirement, so it works the same way inside a container as on bare
+  metal. Each peer's decapsulated traffic relays into its own loopback Xray
+  SOCKS5 inbound, so a peer's routing, sniffing, and per-client stats all
+  come from Xray's own machinery — the same as any other protocol's
+  inbound, not a separate code path.
 </Callout>
 
 ## Key settings
@@ -32,7 +30,7 @@ fingerprint gets through.
 | **Subnet**                | The tunnel's IPv4 subnet (e.g. `10.8.1.0/24`); each client gets an address from it. |
 | **MTU**                   | Interface MTU. Leave at the default unless you have a reason to change it. |
 | **DNS (primary/secondary)** | Seeded into downloadable client configs; the server's own interface doesn't need one. |
-| **External interface**    | The host NIC PostUp/PostDown NAT rules attach to. Leave blank to auto-detect. |
+| **External interface**    | The host NIC a peer's IPv6 address gets aliased onto when IPv6 is enabled (see below). Leave blank to auto-detect. |
 
 ### Obfuscation (AmneziaWG 3.1)
 
@@ -45,7 +43,7 @@ value defeats the point, since DPI can fingerprint it over time.
 | ------------ | ---------------------------------------------------------------------------- |
 | **Jc**       | Number of junk packets sent before the handshake.                            |
 | **Jmin/Jmax** | Size range (bytes) for those junk packets. `Jmin` must not exceed `Jmax`.     |
-| **S1/S2**    | Padding added to the handshake init/response packets. `S1 + 56` must not equal `S2` — the kernel rejects a value that would make both packets the same size. |
+| **S1/S2**    | Padding added to the handshake init/response packets. `S1 + 56` must not equal `S2` — amneziawg-go rejects a value that would make both packets the same size. |
 | **S3**       | Cookie-reply padding, `0`-`64`.                                               |
 | **S4**       | Transport (data) packet padding, `0`-`32`.                                    |
 | **H1-H4**    | Magic header values that replace WireGuard's standard message-type bytes. Each is a single integer or a `low-high` range; `1`-`4` are reserved (real WireGuard message types) and must not be used. |
@@ -59,18 +57,16 @@ value defeats the point, since DPI can fingerprint it over time.
 <Callout type="info">
   If you enter obfuscation values by hand instead of using the generated
   defaults, keep `H1`-`H4` **non-overlapping** and above `4`, and double-check
-  `S1 + 56 != S2` — a bad value here can keep the interface from coming up at
-  all (`awg-quick up` fails).
+  `S1 + 56 != S2` — a bad value here keeps the embedded interface from
+  coming up at all.
 </Callout>
 
 <Callout type="warn">
-  The 3.1 parameters need **amneziawg-tools `v3.1.20260812`+** and the kernel
-  module (or `amneziawg-go`) at **`v3.1.20260814`+** on the host — earlier
-  tools reject the config outright, and the earlier 3.1 module can panic when
-  `RandomTrailers` is on. The 3.x kernel module also requires **Linux 6.7+**
-  (Ubuntu 24.04 is fine; 22.04's 5.15 kernel is not). Clients must run a
+  The 3.1 parameters need a **3.1-capable client**. Clients must run a
   3.1-capable Amnezia app; blanking the 3.1 fields renders a config older
-  clients still understand.
+  clients still understand. There is no host-side version requirement —
+  the panel ships its own pinned `amneziawg-go`, not whatever happens to be
+  installed on the system.
 </Callout>
 
 ## Set it up in the panel
@@ -104,29 +100,29 @@ AmneziaWG/AmneziaVPN apps) from the client list.
 ### Optional: enable IPv6
 
 Turning on IPv6 allocates an IPv6 address alongside each client's IPv4 one
-from the configured IPv6 subnet, and the server proxies NDP for it — clients
-are directly reachable over IPv6 with **no NAT66** needed.
+from the configured IPv6 subnet. The panel aliases that address onto the
+external interface's host NIC so outbound connections carry the peer's own
+distinct public IPv6 identity — no NAT66 needed.
 </Step>
 
 <Step>
 ### Optional: forward ports to a client
 
-Set a client's forwarded ports (e.g. `80, 443, 8000-8100`) to DNAT that
-traffic from the host straight to the client's tunnel address — useful for a
-client that needs to expose a service through the server.
-</Step>
-
-<Step>
-### Optional: route a client's traffic through Xray
-
-Turning on **RouteThroughXray** for the inbound TPROXYs every peer's traffic
-into a loopback bridge tagged with that inbound's own tag — it then shows up
-as a normal source on the [Routing](/docs/operations/outbounds-routing) page,
-exactly like any other protocol's inbound. Nothing else changes: a plain
-AmneziaWG tunnel with this off never depends on Xray being up at all.
+Set a client's forwarded ports (e.g. `80, 443, 8000-8100`) to open a real
+listener on the host that relays that traffic straight to the client's
+tunnel address — useful for a client that needs to expose a service through
+the server.
 </Step>
 
 </Steps>
+
+Every AmneziaWG inbound's traffic already goes through Xray — each peer
+relays into its own loopback SOCKS5 inbound, tagged with the AmneziaWG
+inbound's own tag, so it shows up as a normal source on the
+[Routing](/docs/operations/outbounds-routing) page like any other protocol's
+inbound. There is no separate toggle for this: unlike a kernel tunnel,
+there's no other way for a peer's traffic to reach the internet once it's
+decapsulated.
 
 ## What the configuration looks like
 
@@ -172,7 +168,6 @@ PersistentKeepalive = 25
 
 <Callout type="info">
 
-- **Docker** — not applicable; see the callout above.
 - **Multi-node (sub-nodes)** and **Telegram bot** — AmneziaWG inbounds haven't
   been exercised through those paths yet. They likely work (the reconciler
   runs the same way regardless of how the panel itself is deployed), but

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -75,28 +76,6 @@ func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, erro
 		instances = append(instances, inst)
 	}
 	return instances, nil
-}
-
-// AmneziaWGBridgeTags returns the tags of the Xray bridges injectAmneziawgEgress
-// creates. Those bridges reuse their AmneziaWG inbound's own tag so the stock
-// Routing page can target them, which also means Xray reports their bytes under
-// that tag -- bytes AmneziaWGJob already reports from `awg show dump`. The
-// traffic job drops the Xray side using this set; see dropAmneziawgBridgeTraffic.
-func (s *InboundService) AmneziaWGBridgeTags() (map[string]struct{}, error) {
-	var inbounds []*model.Inbound
-	err := database.GetDB().Model(model.Inbound{}).
-		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
-		Find(&inbounds).Error
-	if err != nil {
-		return nil, err
-	}
-	tags := make(map[string]struct{}, len(inbounds))
-	for _, ib := range inbounds {
-		if ib.Tag != "" && amneziawgWantsEgressBridge(ib) {
-			tags[ib.Tag] = struct{}{}
-		}
-	}
-	return tags, nil
 }
 
 // applyLocalAmneziaWG pushes a single local AmneziaWG inbound's current peer
@@ -321,28 +300,67 @@ func (s *InboundService) loadPortConflictContext() (portConflictContext, error) 
 }
 
 // checkForwardedPortsConflict reports whether a client's ForwardedPorts spec
-// covers the panel's own web port or any of this host's own enabled inbound
-// listen ports. portForwardLines has no destination restriction and nothing
-// else checks this, so a collision here would silently DNAT traffic meant
-// for the panel or another protocol straight to the tunnel client instead.
+// exceeds the cap, covers the panel's own web port, one of this host's own
+// enabled inbound listen ports, or an AmneziaWG inbound's own phantom SOCKS5
+// relay port (SOCKSPortForInbound -- never a real inbounds row, so the loop
+// below can't see it any other way). A collision on the SOCKS5 port would
+// let a port-forward listener race Xray's own relay for the bind and, if it
+// wins, take down that inbound's entire relay rather than just one forward.
 // Returns a human-readable description of the first collision found, or ""
 // when there is none.
 func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, forwardedPorts string) string {
 	if forwardedPorts == "" {
 		return ""
 	}
+	if len(amneziawg.ExpandForwardedPorts(forwardedPorts)) >= amneziawg.MaxForwardedPorts {
+		return fmt.Sprintf("more than %d forwarded ports", amneziawg.MaxForwardedPorts)
+	}
 	if ctx.webPort > 0 && amneziawg.ForwardedPortsInclude(forwardedPorts, ctx.webPort) {
 		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
 	for _, ib := range ctx.inbounds {
-		if !amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+		if amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+			name := ib.Remark
+			if name == "" {
+				name = ib.Tag
+			}
+			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
+		}
+		if ib.Protocol != model.AmneziaWG {
 			continue
 		}
-		name := ib.Remark
-		if name == "" {
-			name = ib.Tag
+		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
+		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
+			name := ib.Remark
+			if name == "" {
+				name = ib.Tag
+			}
+			return fmt.Sprintf("inbound '%s' (#%d)'s own SOCKS5 relay port (%d)", name, ib.Id, socksPort)
 		}
-		return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 	}
 	return ""
+}
+
+// GetAmneziaWGDiagnostics returns a live diagnostics snapshot for inbound
+// id: interface up/down, listen port, and per-client handshake/traffic
+// state, read entirely from data amneziawgnet.Manager already tracks --
+// gathering it can never itself change anything. Returns an error only
+// when id doesn't name an AmneziaWG inbound at all; an inbound that simply
+// isn't running right now (disabled, no enabled clients, or reconcile
+// hasn't caught up yet) comes back as amneziawgnet.Diagnostics{}
+// (Running=false), not an error, since that's a normal state an admin
+// might specifically be checking for.
+func (s *InboundService) GetAmneziaWGDiagnostics(id int) (amneziawgnet.Diagnostics, error) {
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return amneziawgnet.Diagnostics{}, err
+	}
+	if inbound.Protocol != model.AmneziaWG {
+		return amneziawgnet.Diagnostics{}, fmt.Errorf("inbound %d is not an AmneziaWG inbound", id)
+	}
+	inst, ok := amneziawg.InstanceFromInbound(inbound)
+	if !ok {
+		return amneziawgnet.Diagnostics{}, nil
+	}
+	return amneziawgnet.Diagnose(inst.Id, inst.Peers), nil
 }

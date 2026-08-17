@@ -54,28 +54,6 @@ func splitMovedClientTraffics(clientTraffics []*xray.ClientTraffic) ([]*xray.Cli
 	return moved, emails, active
 }
 
-// dropAmneziawgBridgeTraffic removes the inbound rows Xray reports for an
-// AmneziaWG bridge. The bridge reuses its inbound's own tag, so its bytes would
-// be added on top of the same bytes AmneziaWGJob already reports from `awg show
-// dump` -- and the awg counters are the complete measure (every peer, whether
-// or not TPROXY routed it), so the Xray side is the duplicate to drop.
-// Outbound rows keep their tags: only inbound stats collide.
-func dropAmneziawgBridgeTraffic(traffics []*xray.Traffic, bridgeTags map[string]struct{}) []*xray.Traffic {
-	if len(bridgeTags) == 0 {
-		return traffics
-	}
-	kept := make([]*xray.Traffic, 0, len(traffics))
-	for _, tr := range traffics {
-		if tr != nil && tr.IsInbound {
-			if _, isBridge := bridgeTags[tr.Tag]; isBridge {
-				continue
-			}
-		}
-		kept = append(kept, tr)
-	}
-	return kept
-}
-
 const externalInformTimeout = 3 * time.Second
 
 var externalInformClient = &fasthttp.Client{
@@ -100,13 +78,6 @@ func (j *XrayTrafficJob) Run() {
 	traffics, clientTraffics, err := j.xrayService.GetXrayTraffic()
 	if err != nil {
 		return
-	}
-	// Filtered before every consumer below, so the DB totals, the external
-	// inform and the dashboard's live speed all agree on one source per inbound.
-	if bridgeTags, tagErr := j.inboundService.AmneziaWGBridgeTags(); tagErr != nil {
-		logger.Warning("get amneziawg bridge tags failed:", tagErr)
-	} else {
-		traffics = dropAmneziawgBridgeTraffic(traffics, bridgeTags)
 	}
 	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {

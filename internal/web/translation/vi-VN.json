@@ -1707,8 +1707,6 @@
         "ipv6SubnetHint": "vd. fd86:ea04:1115::/64. Bắt buộc khi bật IPv6.",
         "ipv6ExternalInterface": "Card mạng ngoài IPv6",
         "ipv6ExternalInterfaceHint": "Card mạng của host dùng cho các mục NDP proxy. Để trống để dùng lại Card mạng ngoài.",
-        "routeThroughXray": "Định tuyến qua Xray",
-        "routeThroughXrayHint": "Mặc định tắt: tunnel hoàn toàn không phụ thuộc vào Xray. Khi bật, lưu lượng của mỗi client sẽ được chuyển hướng vào cầu nối Xray riêng của inbound này, và outbound thực tế được chọn từ trang Định tuyến giống như mọi giao thức khác.",
         "obfuscation": "Tham số làm rối (obfuscation)",
         "regenerateObfuscation": "Tạo lại",
         "jc": "Jc (số lượng gói rác)",

@@ -15,9 +15,6 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const SubLinkProviderSchema = z.unknown();
 export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
-export const ensureActionSchema = z.number().int();
-export type ensureAction = z.infer<typeof ensureActionSchema>;
-
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
@@ -733,7 +730,7 @@ export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const ServerSettingsSchema = z.object({
   contentPaddingAddition: z.string().optional(),
-  disableCookies: z.boolean().optional(),
+  disableCookies: z.boolean(),
   externalInterface: z.string().optional(),
   h1: z.string(),
   h2: z.string(),
@@ -757,7 +754,7 @@ export const ServerSettingsSchema = z.object({
   primaryDns: z.string().optional(),
   privateKey: z.string(),
   publicKey: z.string(),
-  randomTrailers: z.boolean().optional(),
+  randomTrailers: z.boolean(),
   rejectAfterTime: z.string().optional(),
   rekeyAfterTime: z.string().optional(),
   rekeyTimeout: z.string().optional(),

@@ -3,6 +3,7 @@ module github.com/mhsanaei/3x-ui/v3
 go 1.26.6
 
 require (
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-contrib/sessions v1.1.0
 	github.com/gin-gonic/gin v1.12.0
@@ -110,6 +111,6 @@ require (
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260810153831-ec0a7760b754 // indirect
 	google.golang.org/protobuf v1.36.12
-	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
+	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0
 	lukechampine.com/blake3 v1.4.1 // indirect
 )

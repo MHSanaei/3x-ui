@@ -1707,8 +1707,6 @@
         "ipv6SubnetHint": "例如 fd86:ea04:1115::/64。启用 IPv6 时必填。",
         "ipv6ExternalInterface": "IPv6 外部网卡",
         "ipv6ExternalInterfaceHint": "用于 NDP 代理条目的主机网卡。留空则使用外部网卡。",
-        "routeThroughXray": "通过 Xray 路由",
-        "routeThroughXrayHint": "默认关闭：隧道完全不依赖 Xray。开启后，每个客户端的流量都会被重定向到该入站自己的 Xray 网桥，实际的出站则和其他协议一样，在路由页面中选择。",
         "obfuscation": "混淆参数",
         "regenerateObfuscation": "重新生成",
         "jc": "Jc（垃圾包数量）",

@@ -3,13 +3,14 @@ package service
 import (
 	"encoding/base64"
 	"encoding/json"
-	"maps"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/op/go-logging"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -305,45 +306,40 @@ func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
 	}
 }
 
-// The traffic job drops the Xray-side rows for these tags, so this set has to
-// name exactly the bridges injectAmneziawgEgress creates: name one too few and
-// the inbound's traffic doubles again, one too many and real traffic vanishes.
-func TestAmneziaWGBridgeTags_MatchesTheBridgesInjectAmneziawgEgressCreates(t *testing.T) {
+func TestCheckForwardedPortsConflict_RejectsSpecOverCap(t *testing.T) {
 	setupConflictDB(t)
-
-	peer := []model.Client{{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}}}
-	routed := amneziawgInbound(1, "awg-routed", peer)
-	unrouted := amneziawgInbound(2, "awg-unrouted", peer)
-	unrouted.Settings = strings.Replace(unrouted.Settings, `"routeThroughXray":true`, `"routeThroughXray":false`, 1)
-	noPeers := amneziawgInbound(3, "awg-nopeers", nil)
-	disabled := amneziawgInbound(4, "awg-disabled", peer)
-	disabled.Enable = false
-
-	all := []*model.Inbound{routed, unrouted, noPeers, disabled}
-	for _, ib := range all {
-		if err := database.GetDB().Create(ib).Error; err != nil {
-			t.Fatalf("seed %s: %v", ib.Tag, err)
-		}
-	}
-
-	got, err := (&InboundService{}).AmneziaWGBridgeTags()
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
 	if err != nil {
-		t.Fatalf("AmneziaWGBridgeTags: %v", err)
+		t.Fatalf("loadPortConflictContext: %v", err)
 	}
+	spec := fmt.Sprintf("20000-%d", 20000+amneziawg.MaxForwardedPorts)
+	hit := svc.checkForwardedPortsConflict(ctx, spec)
+	if !strings.Contains(hit, fmt.Sprintf("%d", amneziawg.MaxForwardedPorts)) {
+		t.Fatalf("expected a collision naming the %d-port cap, got %q", amneziawg.MaxForwardedPorts, hit)
+	}
+}
 
-	cfg := egressTestConfig()
-	injectAmneziawgEgress(cfg, all)
-	want := make(map[string]struct{})
-	for _, ib := range cfg.InboundConfigs {
-		if ib.Protocol == "dokodemo-door" {
-			want[ib.Tag] = struct{}{}
-		}
-	}
+// The SOCKS5 relay port an enabled AmneziaWG inbound gets (SOCKSPortForInbound)
+// is a phantom, non-DB-row port -- ctx.inbounds alone can't see it, so
+// checkForwardedPortsConflict must check it explicitly.
+func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
 
-	if len(want) != 1 {
-		t.Fatalf("expected exactly the routed inbound to get a bridge, got %v", want)
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
 	}
-	if !maps.Equal(got, want) {
-		t.Fatalf("bridge tags = %v, but injectAmneziawgEgress created %v", got, want)
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	hit := svc.checkForwardedPortsConflict(ctx, fmt.Sprintf("%d", relayPort))
+	if !strings.Contains(hit, "SOCKS5") {
+		t.Fatalf("expected a collision naming the AmneziaWG inbound's SOCKS5 relay port, got %q", hit)
 	}
 }

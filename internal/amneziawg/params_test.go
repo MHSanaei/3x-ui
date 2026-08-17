@@ -1,15 +1,14 @@
 package amneziawg
 
 import (
-	"encoding/base64"
 	"strconv"
 	"strings"
 	"testing"
 )
 
-func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
+func TestGenerateObfuscation20DefaultRanges(t *testing.T) {
 	for i := 0; i < 200; i++ {
-		o := GenerateObfuscation31()
+		o := GenerateObfuscation20("default")
 		if o.Jc < 3 || o.Jc > 6 {
 			t.Fatalf("Jc = %d, want [3,6]", o.Jc)
 		}
@@ -35,59 +34,38 @@ func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
 			t.Fatalf("S4 = %d, want [4,27]", o.S4)
 		}
 		for name, h := range map[string]string{"H1": o.H1, "H2": o.H2, "H3": o.H3, "H4": o.H4} {
-			if err := validateUintRange(h, 0); err != nil {
+			if err := validateHValue(h); err != nil {
 				t.Fatalf("%s = %q invalid: %v", name, h, err)
 			}
 			if h == "" {
 				t.Fatalf("%s is empty, want a generated range", name)
 			}
 		}
-		if !strings.HasPrefix(o.I1, "<r ") || !strings.HasSuffix(o.I1, ">") {
-			t.Fatalf("I1 = %q, want \"<r N>\" form", o.I1)
-		}
-		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(o.I1, "<r "), ">"))
-		if err != nil || n < 32 || n > 256 {
-			t.Fatalf("I1 = %q, embedded N must be an integer in [32,256]", o.I1)
-		}
-		for name, v := range map[string]string{"I2": o.I2, "I3": o.I3, "I4": o.I4, "I5": o.I5} {
-			if v != "" {
-				t.Fatalf("%s = %q, generated sets must leave I2-I5 empty", name, v)
+		for name, i := range map[string]string{"I1": o.I1, "I2": o.I2, "I3": o.I3, "I4": o.I4, "I5": o.I5} {
+			if !strings.HasPrefix(i, "<r ") || !strings.HasSuffix(i, ">") {
+				t.Fatalf("%s = %q, want \"<r N>\" form", name, i)
 			}
-		}
-		key, err := base64.StdEncoding.DecodeString(o.HeaderProtectionKey)
-		if err != nil || len(key) != 32 {
-			t.Fatalf("HeaderProtectionKey = %q, must be base64 of 32 bytes (err=%v)", o.HeaderProtectionKey, err)
-		}
-		assertRangeWithin(t, "ContentPaddingAddition", o.ContentPaddingAddition, 8, 64)
-		rkLo, rkHi := assertRangeWithin(t, "RekeyAfterTime", o.RekeyAfterTime, 100, 160)
-		if rkHi-rkLo < 10 || rkHi-rkLo > 40 {
-			t.Fatalf("RekeyAfterTime = %q, width must be in [10,40]", o.RekeyAfterTime)
-		}
-		rjLo, _ := assertRangeWithin(t, "RejectAfterTime", o.RejectAfterTime, 130, 310)
-		if rjLo < rkHi+30 {
-			t.Fatalf("RejectAfterTime = %q must start >= 30s above RekeyAfterTime max %d", o.RejectAfterTime, rkHi)
-		}
-		assertRangeWithin(t, "RekeyTimeout", o.RekeyTimeout, 3, 10)
-		assertRangeWithin(t, "KeepaliveTimeout", o.KeepaliveTimeout, 8, 20)
-		assertRangeWithin(t, "MaxHandshakeAttempts", o.MaxHandshakeAttempts, 15, 50)
-		if !o.RandomTrailers || !o.DisableCookies {
-			t.Fatalf("RandomTrailers/DisableCookies = %v/%v, generated sets default both on", o.RandomTrailers, o.DisableCookies)
+			n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(i, "<r "), ">"))
+			if err != nil || n < 32 || n > 256 {
+				t.Fatalf("%s = %q, embedded N must be an integer in [32,256]", name, i)
+			}
 		}
 	}
 }
 
-// assertRangeWithin parses a "lo-hi" value and fails unless
-// min <= lo <= hi <= max, returning the parsed bounds.
-func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int64) {
-	t.Helper()
-	lo, hi, ok := parseUintRange(v)
-	if !ok || !strings.Contains(v, "-") {
-		t.Fatalf("%s = %q, want a lo-hi range", name, v)
+func TestGenerateObfuscation20MobilePreset(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		o := GenerateObfuscation20("mobile")
+		if o.Jc != 3 {
+			t.Fatalf("mobile preset: Jc = %d, want 3", o.Jc)
+		}
+		if o.Jmin < 30 || o.Jmin > 50 {
+			t.Fatalf("mobile preset: Jmin = %d, want [30,50]", o.Jmin)
+		}
+		if o.Jmax < o.Jmin+20 || o.Jmax > o.Jmin+80 {
+			t.Fatalf("mobile preset: Jmax = %d, want [Jmin+20, Jmin+80] (Jmin=%d)", o.Jmax, o.Jmin)
+		}
 	}
-	if lo < min || hi > max || lo > hi {
-		t.Fatalf("%s = %q, want %d <= lo <= hi <= %d", name, v, min, max)
-	}
-	return lo, hi
 }
 
 func TestGenerateHRangesNonOverlapping(t *testing.T) {
@@ -112,8 +90,8 @@ func TestGenerateHRangesNonOverlapping(t *testing.T) {
 	}
 }
 
-func validObfuscation() Obfuscation31 {
-	return GenerateObfuscation31()
+func validObfuscation() Obfuscation20 {
+	return GenerateObfuscation20("default")
 }
 
 func TestValidateObfuscationAcceptsGenerated(t *testing.T) {
@@ -178,102 +156,62 @@ func TestValidateObfuscationRejectsBadH(t *testing.T) {
 	}
 }
 
-func TestValidateObfuscationAcceptsEmpty31Fields(t *testing.T) {
-	o := validObfuscation()
-	o.HeaderProtectionKey = ""
-	o.ContentPaddingAddition = ""
-	o.RekeyAfterTime, o.RekeyTimeout, o.RejectAfterTime = "", "", ""
-	o.KeepaliveTimeout, o.MaxHandshakeAttempts = "", ""
-	o.RandomTrailers, o.DisableCookies = false, false
-	if err := ValidateObfuscation(o); err != nil {
-		t.Fatalf("all-empty 3.1 fields must be accepted (features off): %v", err)
+func TestValidateHeaderProtectionAllowsEmptyKeyRegardlessOfS1S4(t *testing.T) {
+	o := Obfuscation20{S1: 0, S2: 0, S3: 0, S4: 0}
+	if err := ValidateHeaderProtection("", o); err != nil {
+		t.Fatalf("an empty key must never be rejected, even with S1-S4 all 0: %v", err)
 	}
 }
 
-func TestValidateObfuscationRejectsBadTimingRanges(t *testing.T) {
+func TestValidateHeaderProtectionRequiresS1ThroughS4AtLeast12(t *testing.T) {
+	base := Obfuscation20{S1: 20, S2: 20, S3: 20, S4: 20}
 	cases := []struct {
-		name   string
-		mutate func(o *Obfuscation31)
+		name    string
+		mutate  func(*Obfuscation20)
+		wantNum int
 	}{
-		{"zero rekeyTimeout", func(o *Obfuscation31) { o.RekeyTimeout = "0" }},
-		{"zero-low range", func(o *Obfuscation31) { o.KeepaliveTimeout = "0-10" }},
-		{"inverted range", func(o *Obfuscation31) { o.RekeyAfterTime = "160-100" }},
-		{"non-numeric", func(o *Obfuscation31) { o.MaxHandshakeAttempts = "many" }},
-		{"trailing dash", func(o *Obfuscation31) { o.RejectAfterTime = "200-" }},
-		{"rekey max not below reject min", func(o *Obfuscation31) {
-			o.RekeyAfterTime = "100-200"
-			o.RejectAfterTime = "200-300"
-		}},
-		{"single rekey value at reject min", func(o *Obfuscation31) {
-			o.RekeyAfterTime = "180"
-			o.RejectAfterTime = "180-300"
-		}},
-		{"embedded newline splits the config line", func(o *Obfuscation31) {
-			o.RekeyAfterTime = "110\n-140"
-			o.RejectAfterTime = "190-250"
-		}},
-		{"reject alone below the 120s default rekey", func(o *Obfuscation31) {
-			o.RekeyAfterTime = ""
-			o.RejectAfterTime = "30-60"
-		}},
-		{"rekey alone above the 180s default reject", func(o *Obfuscation31) {
-			o.RekeyAfterTime = "200-300"
-			o.RejectAfterTime = ""
-		}},
+		{"S1 too low", func(o *Obfuscation20) { o.S1 = 11 }, 1},
+		{"S2 too low", func(o *Obfuscation20) { o.S2 = 11 }, 2},
+		{"S3 too low", func(o *Obfuscation20) { o.S3 = 11 }, 3},
+		{"S4 too low", func(o *Obfuscation20) { o.S4 = 0 }, 4},
 	}
 	for _, c := range cases {
-		o := validObfuscation()
-		c.mutate(&o)
-		if err := ValidateObfuscation(o); err == nil {
-			t.Errorf("%s must be rejected", c.name)
+		t.Run(c.name, func(t *testing.T) {
+			o := base
+			c.mutate(&o)
+			err := ValidateHeaderProtection("some-key", o)
+			if err == nil {
+				t.Fatalf("expected an error for %s", c.name)
+			}
+			want := "S" + strconv.Itoa(c.wantNum)
+			if !strings.Contains(err.Error(), want) {
+				t.Fatalf("error %q does not name the offending field %q", err.Error(), want)
+			}
+		})
+	}
+}
+
+func TestValidateHeaderProtectionAcceptsExactly12(t *testing.T) {
+	o := Obfuscation20{S1: 12, S2: 12, S3: 12, S4: 12}
+	if err := ValidateHeaderProtection("some-key", o); err != nil {
+		t.Fatalf("S1-S4 all exactly 12 must be accepted: %v", err)
+	}
+}
+
+func TestValidateContentPaddingAdditionAcceptsSameGrammarAsH(t *testing.T) {
+	for _, v := range []string{"", "0", "65535", "50-100", "0-65535"} {
+		if err := ValidateContentPaddingAddition(v); err != nil {
+			t.Errorf("ValidateContentPaddingAddition(%q) rejected a valid value: %v", v, err)
 		}
 	}
 }
 
-func TestValidateObfuscationRejectsBadHeaderProtectionKey(t *testing.T) {
-	cases := []struct {
-		name string
-		key  string
-	}{
-		{"not base64", "not!!!base64"},
-		{"16-byte key", base64.StdEncoding.EncodeToString(make([]byte, 16))},
-		{"33-byte key", base64.StdEncoding.EncodeToString(make([]byte, 33))},
-		{"control characters", "AAAA\nBBBB"},
-		// DecodeString IGNORES \r\n, so this decodes to a valid 32 bytes —
-		// only the explicit control-character check can catch the line wrap.
-		{"line-wrapped but decodable key", "MCPfRGcDGotJ6Tcn\r\nIdDqsemj2cMIiGHnPUHM5ivXN18="},
-	}
-	for _, c := range cases {
-		o := validObfuscation()
-		o.HeaderProtectionKey = c.key
-		if err := ValidateObfuscation(o); err == nil {
-			t.Errorf("headerProtectionKey %s (%q) must be rejected", c.name, c.key)
+func TestValidateContentPaddingAdditionRejectsBadValues(t *testing.T) {
+	cases := []string{"not-a-number", "10-", "-10", "100-50", "65536", "0-65536", "-1"}
+	for _, v := range cases {
+		if err := ValidateContentPaddingAddition(v); err == nil {
+			t.Errorf("ValidateContentPaddingAddition(%q) must be rejected", v)
 		}
-	}
-}
-
-func TestCanonicalizeUintRange(t *testing.T) {
-	cases := []struct{ in, want string }{
-		{"110 - 140", "110-140"},
-		{"  120  ", "120"},
-		{"   ", ""},
-		{"", ""},
-		{"110-140", "110-140"},
-	}
-	for _, c := range cases {
-		if got := CanonicalizeUintRange(c.in); got != c.want {
-			t.Errorf("CanonicalizeUintRange(%q) = %q, want %q", c.in, got, c.want)
-		}
-	}
-}
-
-func TestValidateObfuscationAcceptsSingleValueRanges(t *testing.T) {
-	o := validObfuscation()
-	o.ContentPaddingAddition = "32"
-	o.RekeyAfterTime = "120"
-	o.RejectAfterTime = "180"
-	if err := ValidateObfuscation(o); err != nil {
-		t.Fatalf("single-integer values must be accepted like the awg parser does: %v", err)
 	}
 }
 
@@ -354,14 +292,5 @@ func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
 		if err := ValidateConfigValue("email", v); err == nil {
 			t.Errorf("ValidateConfigValue(%q) must be rejected", v)
 		}
-	}
-}
-
-func TestSanitizeConfigValueStripsControlCharactersOnly(t *testing.T) {
-	if got := sanitizeConfigValue("a@x\nPostUp = evil\r\n"); got != "a@xPostUp = evil" {
-		t.Errorf("sanitizeConfigValue must drop newlines/CR without altering the rest, got %q", got)
-	}
-	if got := sanitizeConfigValue("plain-value_123"); got != "plain-value_123" {
-		t.Errorf("sanitizeConfigValue must not touch an already-clean value, got %q", got)
 	}
 }

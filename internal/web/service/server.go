@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -91,8 +93,8 @@ type Status struct {
 		Version  string       `json:"version"`
 	} `json:"xray"`
 	// AmneziaWG gates the overview's AmneziaWG log view: Configured stays true
-	// while an inbound exists but its interface is down, which is exactly when
-	// that view's event lines are worth reading.
+	// while an inbound exists but its embedded interface isn't up yet, which
+	// is exactly when that view's event lines are worth reading.
 	AmneziaWG struct {
 		Configured bool `json:"configured"`
 		Running    bool `json:"running"`
@@ -627,7 +629,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("count amneziawg inbounds failed:", err)
 	}
 	status.AmneziaWG.Configured = amneziawgCount > 0
-	status.AmneziaWG.Running = amneziawg.GetManager().HasRunning()
+	status.AmneziaWG.Running = amneziawgnet.GetManager().HasRunning()
 
 	status.PanelVersion = config.GetPanelVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
@@ -1212,19 +1214,98 @@ func amneziawgEmailIndex(inbounds []*model.Inbound) map[string]string {
 	return index
 }
 
+// PeerActivity is one peer's live embedded-Device-reported state, the
+// counterpart of an Xray access-log entry: a tunnel logs no requests, only
+// handshakes and bytes.
+type PeerActivity struct {
+	Interface  string `json:"interface"`
+	Tag        string `json:"tag"`
+	InboundId  int    `json:"inboundId"`
+	Email      string `json:"email"`
+	Endpoint   string `json:"endpoint"`
+	AllowedIPs string `json:"allowedIPs"`
+	// Handshake is unix milliseconds, 0 when the peer has never connected.
+	Handshake int64 `json:"handshake"`
+	Up        int64 `json:"up"`
+	Down      int64 `json:"down"`
+	Online    bool  `json:"online"`
+}
+
+// amneziawgOnlineWindow mirrors the standard WireGuard convention (and this
+// fork's own prior kernel-module behavior): a handshake this recent counts
+// as online.
+const amneziawgOnlineWindow = 180 * time.Second
+
 // AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live
-// per-peer activity of every running interface, plus the panel's own recent
-// AmneziaWG lifecycle log lines (interface up/down, awg-quick failures) that
-// explain a peer being absent from Peers at all.
+// per-peer activity of every running embedded interface, plus the panel's
+// own recent AmneziaWG lifecycle log lines that explain a peer being absent
+// from Peers at all.
 type AmneziaWGLogs struct {
-	Peers   []amneziawg.PeerActivity `json:"peers"`
-	Events  []string                 `json:"events"`
-	Running bool                     `json:"running"`
+	Peers   []PeerActivity `json:"peers"`
+	Events  []string       `json:"events"`
+	Running bool           `json:"running"`
 }
 
 // amneziawgEventMarker selects the panel's own AmneziaWG log lines: every
-// logger call in internal/amneziawg and its jobs prefixes its message with it.
+// logger call in internal/amneziawg, internal/amneziawgnet and their jobs
+// prefixes its message with it.
 const amneziawgEventMarker = "amneziawg"
+
+// amneziawgLogActivity gathers live PeerActivity rows across every enabled,
+// non-node-hosted AmneziaWG inbound, newest handshake first. An inbound
+// amneziawgnet has no running Device for yet (not reconciled, disabled,
+// errored) contributes no rows -- not reported as an error, since the
+// caller (GetAmneziaWGLogs) already has a device-agnostic Running flag from
+// amneziawgnet.GetManager().HasRunning() for that.
+func amneziawgLogActivity() []PeerActivity {
+	var inbounds []*model.Inbound
+	if err := database.GetDB().
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Find(&inbounds).Error; err != nil {
+		logger.Warning("amneziawg logs: list inbounds failed:", err)
+		return nil
+	}
+
+	now := time.Now()
+	var out []PeerActivity
+	for _, inbound := range inbounds {
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
+			continue
+		}
+		diag := amneziawgnet.Diagnose(inbound.Id, inst.Peers)
+		if !diag.Running {
+			continue
+		}
+		for _, cd := range diag.Clients {
+			var handshakeMs int64
+			online := false
+			if !cd.LastHandshake.IsZero() {
+				handshakeMs = cd.LastHandshake.UnixMilli()
+				online = now.Sub(cd.LastHandshake) < amneziawgOnlineWindow
+			}
+			out = append(out, PeerActivity{
+				Interface:  inst.InterfaceName,
+				Tag:        inbound.Tag,
+				InboundId:  inbound.Id,
+				Email:      cd.Email,
+				Endpoint:   cd.Endpoint,
+				AllowedIPs: cd.AllowedIPs,
+				Handshake:  handshakeMs,
+				Up:         int64(cd.RxBytes),
+				Down:       int64(cd.TxBytes),
+				Online:     online,
+			})
+		}
+	}
+	slices.SortFunc(out, func(a, b PeerActivity) int {
+		if a.Handshake != b.Handshake {
+			return cmp.Compare(b.Handshake, a.Handshake)
+		}
+		return strings.Compare(a.Email, b.Email)
+	})
+	return out
+}
 
 // GetAmneziaWGLogs returns at most count peer rows and count event lines,
 // optionally narrowed to rows whose text contains filter (case-insensitive),
@@ -1236,10 +1317,9 @@ func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWG
 	}
 	needle := strings.ToLower(strings.TrimSpace(filter))
 
-	manager := amneziawg.GetManager()
-	logs := &AmneziaWGLogs{Peers: []amneziawg.PeerActivity{}, Events: []string{}, Running: manager.HasRunning()}
+	logs := &AmneziaWGLogs{Peers: []PeerActivity{}, Events: []string{}, Running: amneziawgnet.GetManager().HasRunning()}
 
-	for _, peer := range manager.Activity() {
+	for _, peer := range amneziawgLogActivity() {
 		if len(logs.Peers) >= limit {
 			break
 		}
