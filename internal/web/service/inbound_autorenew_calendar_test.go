@@ -287,3 +287,56 @@ func TestClientEditKeepsTheBillingDay(t *testing.T) {
 		t.Fatalf("client_traffics.reset_day = %d after an unrelated edit, want 20", row.ResetDay)
 	}
 }
+
+// The billing day is useless if it can only be chosen once. The test above
+// passes even without the record write, because nothing overwrites the value
+// it checks; this one fails without it.
+func TestClientEditChangesTheBillingDay(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+
+	clients := []model.Client{
+		{
+			Email: "chg@x", ID: "77777777-7777-7777-7777-777777777777", Enable: true, ResetDay: 20,
+			ExpiryTime: time.Now().Add(24 * time.Hour).UnixMilli(),
+		},
+	}
+	ib := mkInbound(t, 30206, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	mkTraffic(t, ib.Id, "chg@x", 0, 0, 0, 0, true)
+
+	rec, err := svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	edited := rec.ToClient()
+	edited.ResetDay = 5
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after edit: %v", err)
+	}
+	if rec.ResetDay != 5 {
+		t.Fatalf("clients.reset_day = %d after the operator moved the billing day to the 5th", rec.ResetDay)
+	}
+
+	// Turning calendar mode off has to work too.
+	edited = rec.ToClient()
+	edited.ResetDay = 0
+	edited.Reset = 30
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update back to interval mode: %v", err)
+	}
+	rec, err = svc.clientService.GetRecordByEmail(nil, "chg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after switching mode: %v", err)
+	}
+	if rec.ResetDay != 0 {
+		t.Fatalf("clients.reset_day = %d after the operator switched back to interval mode", rec.ResetDay)
+	}
+}
