@@ -861,8 +861,9 @@
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "حداکثر تعداد تمدید",
+      "renewMaxDesc": "تمدید خودکار حداکثر چند بار اجرا شود پیش از آنکه کلاینت منقضی بماند. مقدار ۰ یعنی بدون محدودیت. جبران چند دورهٔ ازدست‌رفته، برای هر دوره یک تمدید مصرف می‌کند.",
+      "renewsUsed": "تمدیدهای استفاده‌شده"
     },
     "groups": {
       "name": "نام",

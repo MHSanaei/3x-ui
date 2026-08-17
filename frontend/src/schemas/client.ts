@@ -11,6 +11,8 @@ export const ClientTrafficSchema = z.object({
   enable: z.boolean().optional(),
   lastOnline: z.number().optional(),
   lastSubFetch: z.number().optional(),
+  resetMax: z.number().optional(),
+  resetCount: z.number().optional(),
 });
 
 export const ClientRecordSchema = z.object({

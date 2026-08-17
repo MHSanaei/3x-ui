@@ -861,8 +861,9 @@
         "imported": "{count} kullanıcı içe aktarıldı",
         "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "En fazla yenileme",
+      "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
+      "renewsUsed": "Kullanılan yenileme"
     },
     "groups": {
       "name": "İsim",

@@ -861,8 +861,9 @@
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "最大續期次數",
+      "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
+      "renewsUsed": "已用續期次數"
     },
     "groups": {
       "name": "名稱",

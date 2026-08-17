@@ -291,6 +291,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "privateKey": "",
     "publicKey": "",
     "reset": 0,
+    "resetMax": 0,
     "reverse": null,
     "secret": "",
     "security": "",

@@ -376,6 +376,15 @@ export default function ClientBulkAddModal({
             >
               <InputNumber min={0} />
             </FormField>
+
+            <FormField
+              name="resetMax"
+              label={t('pages.clients.renewMax')}
+              tooltip={t('pages.clients.renewMaxDesc')}
+              transform={{ output: (v) => Number(v) || 0 }}
+            >
+              <InputNumber min={0} />
+            </FormField>
           </Form>
         </FormProvider>
       </Modal>

@@ -336,7 +336,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
 		// A prepaid plan stops itself: once as many renewals have fired as the
 		// operator allowed, the client is left to expire like any other.
-		Where("reset_max = 0 or reset_count < reset_max").
+		Where("reset_max <= 0 or reset_count < reset_max").
 		Where("email IN (?)", tx.Table("client_inbounds ci").
 			Select("c.email").
 			Joins("JOIN clients c ON c.id = ci.client_id").
@@ -414,9 +414,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if !ok {
 				continue
 			}
-			// Catching up several missed periods at once still spends one
-			// allowance per period: a client that was away for three cycles must
-			// not receive three of them free of a prepaid cap.
+			// One allowance per period, not per tick: a client away for three
+			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime := traffic.ExpiryTime
 			renewals := 0
 			for newExpiryTime < now {
@@ -432,6 +431,12 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			c["expiryTime"] = newExpiryTime
 			traffic.ExpiryTime = newExpiryTime
 			traffic.ResetCount += renewals
+			if newExpiryTime <= now {
+				// Cap ran out mid-catch-up and the client is still expired: enabling it
+				// for disableInvalidClients to undo adds and removes an xray user for nothing.
+				clients[client_index] = any(c)
+				continue
+			}
 			traffic.Down = 0
 			traffic.Up = 0
 			if !traffic.Enable {

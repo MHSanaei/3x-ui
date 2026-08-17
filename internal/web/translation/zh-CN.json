@@ -861,8 +861,9 @@
         "imported": "已导入 {count} 个客户端",
         "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "最大续期次数",
+      "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
+      "renewsUsed": "已用续期次数"
     },
     "groups": {
       "name": "名称",

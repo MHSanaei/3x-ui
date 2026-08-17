@@ -861,8 +861,9 @@
         "imported": "{count} klien diimpor",
         "importedMixed": "{ok} diimpor, {failed} dilewati"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "Maksimum perpanjangan",
+      "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
+      "renewsUsed": "Perpanjangan terpakai"
     },
     "groups": {
       "name": "Nama",

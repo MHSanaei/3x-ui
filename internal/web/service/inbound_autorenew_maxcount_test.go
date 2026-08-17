@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -128,5 +129,105 @@ func TestAutoRenewClients_NoCapRenewsAsBefore(t *testing.T) {
 		t.Fatalf("autoRenewClients: %v", err)
 	} else if count != 1 {
 		t.Fatalf("renewed count = %d, want 1: a client without a cap keeps renewing", count)
+	}
+}
+
+// The cap has to survive the clients table, not just the settings JSON: an
+// ordinary edit rebuilds the client from the record and writes it back (#5804).
+func TestClientEditKeepsTheRenewalCap(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+
+	clients := []model.Client{
+		{Email: "cap@x", ID: "44444444-4444-4444-4444-444444444444", Enable: true, Reset: 30, ResetMax: 3, ExpiryTime: time.Now().Add(24 * time.Hour).UnixMilli()},
+	}
+	ib := mkInbound(t, 30104, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	mkTraffic(t, ib.Id, "cap@x", 10, 20, 0, 0, true)
+
+	rec, err := svc.clientService.GetRecordByEmail(nil, "cap@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.ResetMax != 3 {
+		t.Fatalf("clients.reset_max = %d, want the 3 the client was created with", rec.ResetMax)
+	}
+
+	// What the edit dialog does: hydrate the record, change something else, save.
+	edited := rec.ToClient()
+	edited.Comment = "renamed"
+	if _, err := svc.clientService.Update(svc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	var stored model.Inbound
+	if err := db.Where("id = ?", ib.Id).First(&stored).Error; err != nil {
+		t.Fatal(err)
+	}
+	var settings struct {
+		Clients []model.Client `json:"clients"`
+	}
+	if err := json.Unmarshal([]byte(stored.Settings), &settings); err != nil {
+		t.Fatalf("parse inbound settings: %v", err)
+	}
+	if len(settings.Clients) != 1 {
+		t.Fatalf("inbound holds %d clients, want 1", len(settings.Clients))
+	}
+	if settings.Clients[0].ResetMax != 3 {
+		t.Fatalf("inbound settings resetMax = %d after an unrelated edit, want 3: the cap was silently lifted", settings.Clients[0].ResetMax)
+	}
+
+	rec, err = svc.clientService.GetRecordByEmail(nil, "cap@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail after edit: %v", err)
+	}
+	if rec.ResetMax != 3 {
+		t.Fatalf("clients.reset_max = %d after an unrelated edit, want 3", rec.ResetMax)
+	}
+}
+
+// A cap that runs out mid-catch-up leaves the client expired, so the renewal
+// side effects must not fire: disableInvalidClients would undo them at once.
+func TestAutoRenewClients_TruncatedCatchUpLeavesTheClientDisabled(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+
+	// Five periods behind with one allowance left: one 30-day step cannot reach
+	// the present, so the client stays expired.
+	past := time.Now().Add(-150 * 24 * time.Hour).UnixMilli()
+	clients := []model.Client{
+		{Email: "short@x", ID: "55555555-5555-5555-5555-555555555555", Enable: false, Reset: 30, ResetMax: 3, ExpiryTime: past},
+	}
+	ib := mkInbound(t, 30105, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: "short@x", Enable: false, Reset: 30, ResetMax: 3, ResetCount: 2,
+		Up: 111, Down: 222, ExpiryTime: past,
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	if _, _, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "short@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	if row.ExpiryTime >= time.Now().UnixMilli() {
+		t.Fatalf("expiry %d reached the present: the cap did not truncate the catch-up", row.ExpiryTime)
+	}
+	if row.Enable {
+		t.Fatal("a client still expired after a truncated catch-up was enabled: xray gains a user only to lose it again")
+	}
+	if row.Up != 111 || row.Down != 222 {
+		t.Fatalf("counters zeroed for periods the client can never use: up=%d down=%d", row.Up, row.Down)
 	}
 }

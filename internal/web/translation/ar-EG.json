@@ -861,8 +861,9 @@
         "imported": "تم استيراد {count} عميل",
         "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "الحد الأقصى للتجديدات",
+      "renewMaxDesc": "عدد المرات التي يمكن أن يعمل فيها التجديد التلقائي قبل ترك العميل ينتهي. القيمة 0 تعني بلا حد. تعويض عدة فترات فائتة يستهلك تجديدًا واحدًا لكل فترة.",
+      "renewsUsed": "التجديدات المستخدمة"
     },
     "groups": {
       "name": "الاسم",

@@ -862,7 +862,8 @@
         "importedMixed": "{ok} imported, {failed} skipped"
       },
       "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
+      "renewsUsed": "Renewals used"
     },
     "groups": {
       "name": "Name",

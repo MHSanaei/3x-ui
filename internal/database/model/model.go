@@ -925,6 +925,7 @@ type ClientRecord struct {
 	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
 	Comment      string `json:"comment"`
 	Reset        int    `json:"reset" gorm:"default:0"`
+	ResetMax     int    `json:"resetMax" gorm:"column:reset_max;default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
@@ -1106,6 +1107,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		Group:      c.Group,
 		Comment:    c.Comment,
 		Reset:      c.Reset,
+		ResetMax:   c.ResetMax,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 
@@ -1159,6 +1161,7 @@ func (r *ClientRecord) ToClient() *Client {
 		Group:      r.Group,
 		Comment:    r.Comment,
 		Reset:      r.Reset,
+		ResetMax:   r.ResetMax,
 		CreatedAt:  r.CreatedAt,
 		UpdatedAt:  r.UpdatedAt,
 
@@ -1305,6 +1308,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.ResetMax != incoming.ResetMax && incoming.ResetMax != 0 {
+		if incomingNewer || existing.ResetMax == 0 {
+			keep("resetMax", existing.ResetMax, incoming.ResetMax, incoming.ResetMax)
+			existing.ResetMax = incoming.ResetMax
 		}
 	}
 	if existing.Reverse != incoming.Reverse && incoming.Reverse != "" {

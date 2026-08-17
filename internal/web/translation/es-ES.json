@@ -861,8 +861,9 @@
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} omitidos"
       },
-      "renewMax": "Max renewals",
-      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period."
+      "renewMax": "Renovaciones máximas",
+      "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
+      "renewsUsed": "Renovaciones usadas"
     },
     "groups": {
       "name": "Nombre",
