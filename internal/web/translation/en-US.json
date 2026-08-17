@@ -615,6 +615,7 @@
         "scanCert": "Certificate",
         "scanCertInvalid": "Not trusted",
         "scanCertExpiry": "Certificate expires",
+        "scanSniUsed": "SNI used",
         "scanPrivateNote": "Checked over a private/local network — this address is not reachable from the internet.",
         "scanPrivateConfirmTitle": "Target on a local network",
         "scanPrivateConfirmContent": "\"{target}\" resolves to a private or loopback address. The check will bypass the panel SSRF guard for this probe only. Continue?",

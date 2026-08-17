@@ -2873,6 +2873,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "h2",
         "type": "string"
       },
+      "certChainValid": {
+        "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+        "example": true,
+        "type": "boolean"
+      },
       "certIssuer": {
         "example": "Google Trust Services",
         "type": "string"
@@ -2950,6 +2955,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "alpn",
+      "certChainValid",
       "certIssuer",
       "certSubject",
       "certValid",

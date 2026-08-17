@@ -603,6 +603,7 @@
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
         "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanSniUsed": "Kullanılan SNI",
         "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
         "scanPrivateConfirmTitle": "Hedef yerel ağda",
         "scanPrivateConfirmContent": "\"{target}\" özel veya loopback bir adrese çözümleniyor. Kontrol, yalnızca bu deneme için panelin SSRF korumasını atlayacak. Devam edilsin mi?",

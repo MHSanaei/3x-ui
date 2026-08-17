@@ -21,7 +21,7 @@ interface RealityFormProps {
   scanResult: RealityScanResult | null;
   scanRealityTarget: (allowPrivate?: boolean) => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
-  applyRealityScanResult: (result: RealityScanResult) => void;
+  applyRealityScanResult: (result: RealityScanResult, replaceServerNames?: boolean) => void;
   randomizeShortIds: () => void;
   randomizeSpiderX: () => void;
   genRealityKeypair: () => void;
@@ -125,7 +125,9 @@ export default function RealityForm({
                   <div style={{ marginBottom: 8 }}>{t('pages.inbounds.form.scanPrivateNote')}</div>
                 )}
                 <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="SNI">{scanResult.host || '—'}</Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanSniUsed')}>
+                    {scanResult.host || '—'}
+                  </Descriptions.Item>
                   <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
                   <Descriptions.Item label="ALPN">{scanResult.alpn || '—'}</Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
@@ -301,7 +303,7 @@ export default function RealityForm({
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
-        onPick={applyRealityScanResult}
+        onPick={(r) => applyRealityScanResult(r, true)}
       />
     </>
   );

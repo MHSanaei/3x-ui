@@ -685,6 +685,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "RealityScanResult": {
     "alpn": "h2",
+    "certChainValid": true,
     "certIssuer": "Google Trust Services",
     "certSubject": "cloudflare.com",
     "certValid": true,

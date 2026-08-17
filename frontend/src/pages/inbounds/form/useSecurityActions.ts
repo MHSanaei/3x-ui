@@ -74,15 +74,21 @@ export function useSecurityActions({ methods, setSaving, messageApi, modal, node
     setValue('streamSettings.realitySettings.settings.mldsa65Verify', '');
   };
 
-  const applyRealityScanResult = (r: RealityScanResult) => {
+  /*
+   * replaceServerNames is for picking a target wholesale: keeping the previous
+   * target's SNI would leave a REALITY config that cannot work.
+   */
+  const applyRealityScanResult = (r: RealityScanResult, replaceServerNames = false) => {
     setScanResult(r);
     setValue('streamSettings.realitySettings.target', r.target);
     /*
-     * Only a verified certificate's names are usable as SNI — the names on a
-     * proxy's default certificate would otherwise land in the field and become
-     * the SNI of the next check.
+     * Names off an untrusted chain are not usable as SNI; names off a trusted
+     * one are, even when the SNI sent did not match them, which is how a stale
+     * SNI recovers instead of failing every rescan.
      */
-    if (r.certValid && r.serverNames?.length) {
+    if (replaceServerNames) {
+      setValue('streamSettings.realitySettings.serverNames', r.serverNames ?? []);
+    } else if ((r.certValid || r.certChainValid) && r.serverNames?.length) {
       setValue('streamSettings.realitySettings.serverNames', r.serverNames);
     }
   };

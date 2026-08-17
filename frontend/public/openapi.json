@@ -2899,6 +2899,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainValid": {
+            "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+            "example": true,
+            "type": "boolean"
+          },
           "certIssuer": {
             "example": "Google Trust Services",
             "type": "string"
@@ -2976,6 +2981,7 @@
         },
         "required": [
           "alpn",
+          "certChainValid",
           "certIssuer",
           "certSubject",
           "certValid",
@@ -5708,6 +5714,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
                     "certValid": true,
@@ -5780,6 +5787,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
                       "certValid": true,

@@ -658,6 +658,7 @@ export interface ProbeResultUI {
 
 export interface RealityScanResult {
   alpn: string;
+  certChainValid: boolean;
   certIssuer: string;
   certSubject: string;
   certValid: boolean;

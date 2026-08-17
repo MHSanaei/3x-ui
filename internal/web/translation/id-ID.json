@@ -603,6 +603,7 @@
         "scanCert": "Sertifikat",
         "scanCertInvalid": "Tidak tepercaya",
         "scanCertExpiry": "Sertifikat kedaluwarsa",
+        "scanSniUsed": "SNI yang dipakai",
         "scanPrivateNote": "Diperiksa melalui jaringan privat/lokal — alamat ini tidak dapat dijangkau dari internet.",
         "scanPrivateConfirmTitle": "Target di jaringan lokal",
         "scanPrivateConfirmContent": "\"{target}\" mengarah ke alamat privat atau loopback. Pemeriksaan akan melewati pelindung SSRF panel hanya untuk uji ini. Lanjutkan?",

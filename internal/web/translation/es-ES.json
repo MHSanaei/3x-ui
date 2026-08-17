@@ -624,6 +624,7 @@
         "scanCert": "Certificado",
         "scanCertInvalid": "No confiable",
         "scanCertExpiry": "El certificado caduca",
+        "scanSniUsed": "SNI utilizado",
         "scanPrivateNote": "Comprobado en una red privada/local: esta dirección no es accesible desde internet.",
         "scanPrivateConfirmTitle": "Destino en una red local",
         "scanPrivateConfirmContent": "\"{target}\" apunta a una dirección privada o de loopback. La comprobación omitirá la protección SSRF del panel solo para esta prueba. ¿Continuar?",

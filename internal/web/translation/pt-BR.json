@@ -624,6 +624,7 @@
         "scanCert": "Certificado",
         "scanCertInvalid": "Não confiável",
         "scanCertExpiry": "Certificado expira",
+        "scanSniUsed": "SNI utilizado",
         "scanPrivateNote": "Verificado em uma rede privada/local — este endereço não é acessível pela internet.",
         "scanPrivateConfirmTitle": "Destino em uma rede local",
         "scanPrivateConfirmContent": "\"{target}\" resolve para um endereço privado ou de loopback. A verificação ignorará a proteção SSRF do painel apenas nesta sondagem. Continuar?",

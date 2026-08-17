@@ -615,6 +615,7 @@
         "scanCert": "گواهی",
         "scanCertInvalid": "نامعتبر",
         "scanCertExpiry": "انقضای گواهی",
+        "scanSniUsed": "SNI استفاده‌شده",
         "scanPrivateNote": "بررسی از طریق شبکهٔ خصوصی/محلی انجام شد — این نشانی از اینترنت قابل دسترسی نیست.",
         "scanPrivateConfirmTitle": "هدف در شبکهٔ محلی",
         "scanPrivateConfirmContent": "«{target}» به یک نشانی خصوصی یا loopback اشاره می‌کند. بررسی تنها برای همین کاوش، محافظت SSRF پنل را نادیده می‌گیرد. ادامه می‌دهید؟",

@@ -704,6 +704,7 @@ export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
 
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),
+  certChainValid: z.boolean(),
   certIssuer: z.string(),
   certSubject: z.string(),
   certValid: z.boolean(),

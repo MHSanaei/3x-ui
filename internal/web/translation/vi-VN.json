@@ -624,6 +624,7 @@
         "scanCert": "Chứng chỉ",
         "scanCertInvalid": "Không tin cậy",
         "scanCertExpiry": "Chứng chỉ hết hạn",
+        "scanSniUsed": "SNI đã dùng",
         "scanPrivateNote": "Đã kiểm tra qua mạng riêng/nội bộ — địa chỉ này không truy cập được từ internet.",
         "scanPrivateConfirmTitle": "Đích trong mạng nội bộ",
         "scanPrivateConfirmContent": "\"{target}\" trỏ tới địa chỉ riêng hoặc loopback. Việc kiểm tra sẽ bỏ qua bảo vệ SSRF của panel chỉ cho lần thăm dò này. Tiếp tục?",
