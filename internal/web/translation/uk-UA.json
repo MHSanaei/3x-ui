@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "Вкажіть примітку",
         "errInboundsRequired": "Виберіть хоча б один інбаунд",
         "errSortOrder": "Порядок — ціле число ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Балансери",
         "tabObservatory": "Обсерваторія",
         "observatory": {

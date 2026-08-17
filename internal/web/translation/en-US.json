@@ -1492,6 +1492,13 @@
         "errRemarkRequired": "Remark is required",
         "errInboundsRequired": "Select at least one inbound",
         "errSortOrder": "Order must be a whole number ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Balancers",
         "tabObservatory": "Observatory",
         "observatory": {

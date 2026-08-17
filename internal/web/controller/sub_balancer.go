@@ -54,9 +54,9 @@ func parseSubBalancerForm(c *gin.Context) (*model.SubBalancer, error) {
 }
 
 func (a *SubBalancerController) parseID(c *gin.Context) (int, error) {
-	var id int
-	if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
-		return 0, err
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id < 1 {
+		return 0, fmt.Errorf("invalid id %q", c.Param("id"))
 	}
 	return id, nil
 }
@@ -64,7 +64,7 @@ func (a *SubBalancerController) parseID(c *gin.Context) (int, error) {
 func (a *SubBalancerController) list(c *gin.Context) {
 	balancers, err := a.SubBalancerService.List()
 	if err != nil {
-		jsonMsg(c, "Failed to list subscription balancers", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.list"), err)
 		return
 	}
 	jsonObj(c, balancers, nil)
@@ -73,12 +73,12 @@ func (a *SubBalancerController) list(c *gin.Context) {
 func (a *SubBalancerController) create(c *gin.Context) {
 	balancer, err := parseSubBalancerForm(c)
 	if err != nil {
-		jsonMsg(c, "Failed to create subscription balancer", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.create"), err)
 		return
 	}
 	created, err := a.SubBalancerService.Create(balancer)
 	if err != nil {
-		jsonMsg(c, "Failed to create subscription balancer", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.create"), err)
 		return
 	}
 	jsonObj(c, created, nil)
@@ -87,17 +87,17 @@ func (a *SubBalancerController) create(c *gin.Context) {
 func (a *SubBalancerController) update(c *gin.Context) {
 	id, err := a.parseID(c)
 	if err != nil {
-		jsonMsg(c, "Invalid id", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.invalidId"), err)
 		return
 	}
 	balancer, err := parseSubBalancerForm(c)
 	if err != nil {
-		jsonMsg(c, "Failed to update subscription balancer", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.update"), err)
 		return
 	}
 	updated, err := a.SubBalancerService.Update(id, balancer)
 	if err != nil {
-		jsonMsg(c, "Failed to update subscription balancer", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.update"), err)
 		return
 	}
 	jsonObj(c, updated, nil)
@@ -106,11 +106,11 @@ func (a *SubBalancerController) update(c *gin.Context) {
 func (a *SubBalancerController) del(c *gin.Context) {
 	id, err := a.parseID(c)
 	if err != nil {
-		jsonMsg(c, "Invalid id", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.invalidId"), err)
 		return
 	}
 	if err := a.SubBalancerService.Delete(id); err != nil {
-		jsonMsg(c, "Failed to delete subscription balancer", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.delete"), err)
 		return
 	}
 	jsonObj(c, "", nil)

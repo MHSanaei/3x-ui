@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "A descrição é obrigatória",
         "errInboundsRequired": "Selecione ao menos um inbound",
         "errSortOrder": "A ordem deve ser um inteiro ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Balanceadores",
         "tabObservatory": "Observatório",
         "observatory": {

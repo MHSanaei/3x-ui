@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "请填写备注",
         "errInboundsRequired": "请至少选择一个入站",
         "errSortOrder": "顺序必须为不小于 1 的整数",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "负载均衡",
         "tabObservatory": "观测器",
         "observatory": {

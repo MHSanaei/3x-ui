@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "توضیح الزامی است",
         "errInboundsRequired": "حداقل یک اینباند انتخاب کنید",
         "errSortOrder": "ترتیب باید عدد صحیح ≥ ۱ باشد",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "بالانسرها",
         "tabObservatory": "رصدخانه",
         "observatory": {

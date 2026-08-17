@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "備考を入力してください",
         "errInboundsRequired": "インバウンドを1つ以上選択してください",
         "errSortOrder": "順序は1以上の整数にしてください",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "負荷分散",
         "tabObservatory": "オブザーバトリ",
         "observatory": {

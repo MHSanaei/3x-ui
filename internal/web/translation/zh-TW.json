@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "請填寫備註",
         "errInboundsRequired": "請至少選擇一個入站",
         "errSortOrder": "順序必須為不小於 1 的整數",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "負載均衡",
         "tabObservatory": "觀測器",
         "observatory": {

@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "Cần nhập ghi chú",
         "errInboundsRequired": "Chọn ít nhất một inbound",
         "errSortOrder": "Thứ tự phải là số nguyên ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Cân bằng",
         "tabObservatory": "Observatory",
         "observatory": {

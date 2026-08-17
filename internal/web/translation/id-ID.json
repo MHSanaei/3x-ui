@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "Keterangan wajib diisi",
         "errInboundsRequired": "Pilih minimal satu inbound",
         "errSortOrder": "Urutan harus bilangan bulat ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Penyeimbang",
         "tabObservatory": "Observatory",
         "observatory": {

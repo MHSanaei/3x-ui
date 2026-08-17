@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "الملاحظة مطلوبة",
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
         "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "موازنات التحميل",
         "tabObservatory": "المرصد",
         "observatory": {

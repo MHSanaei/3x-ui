@@ -1375,6 +1375,13 @@
         "errRemarkRequired": "Açıklama zorunludur",
         "errInboundsRequired": "En az bir inbound seçin",
         "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
         "tabBalancers": "Dengeleyiciler",
         "tabObservatory": "Gözlemci",
         "observatory": {
