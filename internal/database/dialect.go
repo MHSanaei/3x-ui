@@ -37,41 +37,30 @@ func GreatestExpr(a, b string) string {
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
 
-// ClientTrafficEnableMergeExpr merges a node-reported enable into
-// client_traffics.enable. Placeholders (in order): nodeEnable, nodeExpiry,
-// nodeExpiry. Mirrors staleNodeDisable / #4917 / #6228.
-//
-// A disable with an older absolute expiry is ignored only when the master row
-// is not already over quota (total <= 0 OR up+down < total), so a genuine
-// quota latch still wins even if the node's expiry lags the merged max.
+// ClientTrafficEnableMergeExpr: placeholders nodeEnable, nodeExpiry, nodeExpiry,
+// deltaUp, deltaDown. Quota check includes this statement's deltas (#6228/#4917).
 func ClientTrafficEnableMergeExpr() string {
 	if IsPostgres() {
 		return `CASE
 			WHEN ?::boolean THEN enable::boolean
 			WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT)
-				AND (total <= 0 OR up + down < total) THEN enable::boolean
+				AND (total <= 0 OR up + ? + down + ? < total) THEN enable::boolean
 			ELSE false
 		END`
 	}
 	return `CASE
 		WHEN ? THEN enable
 		WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT)
-			AND (total <= 0 OR up + down < total) THEN enable
+			AND (total <= 0 OR up + ? + down + ? < total) THEN enable
 		ELSE 0
 	END`
 }
 
-// ClientTrafficExpiryMergeExpr merges a node-reported expiry into
-// client_traffics.expiry_time. Placeholders (in order): nodeExpiry, nodeExpiry,
-// nodeExpiry. Mirrors mergeActivationExpiry.
-//
-// CAST(? AS BIGINT) is required on Postgres: without it the `<= 0` / `<`
-// comparisons infer int4 from the literal and overflow on real millisecond
-// timestamps. The casts are kept on SQLite too so both dialects share one
-// expression.
+// ClientTrafficExpiryMergeExpr: placeholder nodeExpiry once. Master absolute is
+// kept; CAST avoids Postgres int4 inference on ms timestamps.
 func ClientTrafficExpiryMergeExpr() string {
 	return `CASE
-		WHEN expiry_time > 0 AND (CAST(? AS BIGINT) <= 0 OR CAST(? AS BIGINT) < expiry_time) THEN expiry_time
+		WHEN expiry_time > 0 THEN expiry_time
 		ELSE CAST(? AS BIGINT)
 	END`
 }
