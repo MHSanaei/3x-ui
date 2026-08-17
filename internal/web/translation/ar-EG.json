@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "الملاحظة مطلوبة",
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
         "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
+        "tabBalancers": "موازنات التحميل",
+        "tabObservatory": "المرصد",
         "observatory": {
           "title": "مرصد الموزّع",
           "desc": "معاملات probe لـ burstObservatory المُضمَّن في كل ملف leastPing/leastLoad. random/roundRobin بلا مرصد. يُحفظ كإعداد شامل لاشتراك JSON.",

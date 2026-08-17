@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "El comentario es obligatorio",
         "errInboundsRequired": "Selecciona al menos un inbound",
         "errSortOrder": "El orden debe ser un número entero ≥ 1",
+        "tabBalancers": "Equilibradores",
+        "tabObservatory": "Observatorio",
         "observatory": {
           "title": "Observatorio del balanceador",
           "desc": "Parámetros de probe para el burstObservatory incluido en cada perfil leastPing/leastLoad. random/roundRobin no generan observatorio. Se guarda como ajuste global de la suscripción JSON.",

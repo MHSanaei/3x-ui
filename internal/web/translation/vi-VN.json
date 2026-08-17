@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "Cần nhập ghi chú",
         "errInboundsRequired": "Chọn ít nhất một inbound",
         "errSortOrder": "Thứ tự phải là số nguyên ≥ 1",
+        "tabBalancers": "Cân bằng",
+        "tabObservatory": "Observatory",
         "observatory": {
           "title": "Đài quan sát bộ cân bằng",
           "desc": "Tham số probe cho burstObservatory nhúng vào mỗi hồ sơ leastPing/leastLoad. random/roundRobin không có đài quan sát. Lưu thành cài đặt chung của đăng ký JSON.",

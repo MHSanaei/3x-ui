@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "Укажите примечание",
         "errInboundsRequired": "Выберите хотя бы один инбаунд",
         "errSortOrder": "Порядок — целое число ≥ 1",
+        "tabBalancers": "Балансировщик",
+        "tabObservatory": "Обсерватория",
         "observatory": {
           "title": "Обсерватория балансировщика",
           "desc": "Параметры probe-запросов для burstObservatory, добавляемого в профили leastPing/leastLoad. random/roundRobin обходятся без обсерватории. Хранится как общая настройка JSON-подписки.",

@@ -1491,6 +1491,8 @@
         "errRemarkRequired": "Remark is required",
         "errInboundsRequired": "Select at least one inbound",
         "errSortOrder": "Order must be a whole number ≥ 1",
+        "tabBalancers": "Balancers",
+        "tabObservatory": "Observatory",
         "observatory": {
           "title": "Balancer observatory",
           "desc": "Probe parameters for the burst observatory emitted into each leastPing/leastLoad balancer profile. random/roundRobin balancers get no observatory. Stored as a panel-wide JSON-sub setting.",

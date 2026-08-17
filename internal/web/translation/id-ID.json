@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "Keterangan wajib diisi",
         "errInboundsRequired": "Pilih minimal satu inbound",
         "errSortOrder": "Urutan harus bilangan bulat ≥ 1",
+        "tabBalancers": "Penyeimbang",
+        "tabObservatory": "Observatory",
         "observatory": {
           "title": "Observatorium penyeimbang",
           "desc": "Parameter probe untuk burstObservatory yang disisipkan ke setiap profil leastPing/leastLoad. random/roundRobin tanpa observatorium. Disimpan sebagai pengaturan langganan JSON tingkat panel.",

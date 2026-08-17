@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "請填寫備註",
         "errInboundsRequired": "請至少選擇一個入站",
         "errSortOrder": "順序必須為不小於 1 的整數",
+        "tabBalancers": "負載均衡",
+        "tabObservatory": "觀測器",
         "observatory": {
           "title": "平衡器探活",
           "desc": "寫入每個 leastPing/leastLoad 平衡器設定檔的 burstObservatory 探活參數。random/roundRobin 不產生探活。以面板級 JSON 訂閱設定儲存。",

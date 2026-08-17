@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "请填写备注",
         "errInboundsRequired": "请至少选择一个入站",
         "errSortOrder": "顺序必须为不小于 1 的整数",
+        "tabBalancers": "负载均衡",
+        "tabObservatory": "观测器",
         "observatory": {
           "title": "均衡器探活",
           "desc": "写入每个 leastPing/leastLoad 均衡器配置的 burstObservatory 探活参数。random/roundRobin 不生成探活。作为面板级 JSON 订阅设置保存。",

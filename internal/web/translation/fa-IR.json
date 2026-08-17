@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "توضیح الزامی است",
         "errInboundsRequired": "حداقل یک اینباند انتخاب کنید",
         "errSortOrder": "ترتیب باید عدد صحیح ≥ ۱ باشد",
+        "tabBalancers": "بالانسرها",
+        "tabObservatory": "رصدخانه",
         "observatory": {
           "title": "رصدگر موزان‌کننده",
           "desc": "پارامترهای probe برای burstObservatory که در هر پروفایل leastPing/leastLoad نوشته می‌شود. random/roundRobin رصدگر ندارند. به‌صورت تنظیم سراسری اشتراک JSON ذخیره می‌شود.",

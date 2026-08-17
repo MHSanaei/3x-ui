@@ -1374,6 +1374,8 @@
         "errRemarkRequired": "Açıklama zorunludur",
         "errInboundsRequired": "En az bir inbound seçin",
         "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı",
+        "tabBalancers": "Dengeleyiciler",
+        "tabObservatory": "Gözlemci",
         "observatory": {
           "title": "Dengeleyici gözlemi",
           "desc": "Her leastPing/leastLoad dengeleyici profiline gömülen burstObservatory probe parametreleri. random/roundRobin için gözlem eklenmez. Paneller arası JSON abonelik ayarı olarak saklanır.",

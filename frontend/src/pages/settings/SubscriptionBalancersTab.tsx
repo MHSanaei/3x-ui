@@ -1,30 +1,79 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Popconfirm, Space, Switch, Table, Tag, Tooltip } from 'antd';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
- 
+import {
+  Alert,
+  Button,
+  Input,
+  InputNumber,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+} from 'antd';
+import {
+  DeleteOutlined,
+  DeploymentUnitOutlined,
+  EditOutlined,
+  PlusOutlined,
+  RadarChartOutlined,
+} from '@ant-design/icons';
+
 import { useSubBalancersQuery } from '@/api/queries/useSubBalancersQuery';
 import { useSubBalancerMutations } from '@/api/queries/useSubBalancerMutations';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import type { AllSetting } from '@/models/setting';
+import { onNumber } from '@/utils/onNumber';
+import { SettingListItem } from '@/components/ui';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { SubBalancer, SubBalancerFormValues } from '@/schemas/subBalancer';
 import SubBalancerFormModal from './SubBalancerFormModal';
- 
+import { catTabLabel } from './catTabLabel';
+import './SubscriptionFormatsTab.css';
+
 const STRATEGY_COLORS: Record<string, string> = {
   leastLoad: 'geekblue',
   leastPing: 'green',
   random: 'orange',
   roundRobin: 'purple',
 };
- 
-export default function SubscriptionBalancersTab() {
+
+const DEFAULT_OBSERVATORY = {
+  destination: 'http://www.google.com/generate_204',
+  connectivity: 'http://www.google.com/generate_204',
+  interval: '1m',
+  sampling: 3,
+  timeout: '5s',
+  httpMethod: 'HEAD',
+};
+
+function readJson<T>(raw: string, fallback: T): T {
+  try {
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+interface SubscriptionBalancersTabProps {
+  allSetting: AllSetting;
+  updateSetting: (patch: Partial<AllSetting>) => void;
+}
+
+export default function SubscriptionBalancersTab({ allSetting, updateSetting }: SubscriptionBalancersTabProps) {
   const { t } = useTranslation();
+  const { isMobile } = useMediaQuery();
   const { balancers, loading, fetched, fetchError, refetch } = useSubBalancersQuery();
   const { create, update, remove } = useSubBalancerMutations();
   const { data: inboundOptionsRaw } = useInboundOptions();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SubBalancer | null>(null);
- 
+
   const inboundLabels = useMemo(() => {
     const map = new Map<number, string>();
     for (const ib of inboundOptionsRaw ?? []) {
@@ -32,14 +81,14 @@ export default function SubscriptionBalancersTab() {
     }
     return map;
   }, [inboundOptionsRaw]);
- 
+
   async function onConfirm(values: SubBalancerFormValues) {
     const msg = editing
       ? await update(editing.id, values)
       : await create(values);
     if (msg?.success) setModalOpen(false);
   }
- 
+
   async function toggleEnabled(balancer: SubBalancer) {
     await update(balancer.id, {
       remark: balancer.remark,
@@ -49,7 +98,22 @@ export default function SubscriptionBalancersTab() {
       enabled: !balancer.enabled,
     });
   }
- 
+
+  const observatoryEnabled = allSetting.subJsonObservatory !== '';
+  const observatoryObj = useMemo(
+    () => (observatoryEnabled ? readJson<typeof DEFAULT_OBSERVATORY>(allSetting.subJsonObservatory, DEFAULT_OBSERVATORY) : DEFAULT_OBSERVATORY),
+    [allSetting.subJsonObservatory, observatoryEnabled],
+  );
+
+  function setObservatoryEnabled(v: boolean) {
+    updateSetting({ subJsonObservatory: v ? JSON.stringify(DEFAULT_OBSERVATORY) : '' });
+  }
+
+  function setObservatoryField<K extends keyof typeof DEFAULT_OBSERVATORY>(key: K, value: typeof DEFAULT_OBSERVATORY[K]) {
+    const next = { ...observatoryObj, [key]: value };
+    updateSetting({ subJsonObservatory: JSON.stringify(next) });
+  }
+
   const columns = [
     {
       title: t('pages.settings.subBalancers.sortOrder'),
@@ -122,8 +186,8 @@ export default function SubscriptionBalancersTab() {
       ),
     },
   ];
- 
-  return (
+
+  const balancersTab = (
     <div>
       <Alert
         type="info"
@@ -162,12 +226,84 @@ export default function SubscriptionBalancersTab() {
         locale={{ emptyText: t('pages.settings.subBalancers.empty') }}
         columns={columns}
       />
+    </div>
+  );
+
+  const observatoryTab = (
+    <>
+      <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.title')} description={t('pages.settings.subBalancers.observatory.desc')}>
+        <Switch checked={observatoryEnabled} onChange={setObservatoryEnabled} />
+      </SettingListItem>
+      {observatoryEnabled && (
+        <div className="format-settings">
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.destination')} description={t('pages.settings.subBalancers.observatory.destinationDesc')}>
+            <Input
+              value={observatoryObj.destination}
+              placeholder="http://www.google.com/generate_204"
+              onChange={(e) => setObservatoryField('destination', e.target.value)}
+            />
+          </SettingListItem>
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.connectivity')} description={t('pages.settings.subBalancers.observatory.connectivityDesc')}>
+            <Input
+              value={observatoryObj.connectivity}
+              placeholder="http://www.google.com/generate_204"
+              onChange={(e) => setObservatoryField('connectivity', e.target.value)}
+            />
+          </SettingListItem>
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.interval')} description={t('pages.settings.subBalancers.observatory.intervalDesc')}>
+            <Input
+              value={observatoryObj.interval}
+              placeholder="1m"
+              onChange={(e) => setObservatoryField('interval', e.target.value)}
+            />
+          </SettingListItem>
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.timeout')} description={t('pages.settings.subBalancers.observatory.timeoutDesc')}>
+            <Input
+              value={observatoryObj.timeout}
+              placeholder="5s"
+              onChange={(e) => setObservatoryField('timeout', e.target.value)}
+            />
+          </SettingListItem>
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.sampling')} description={t('pages.settings.subBalancers.observatory.samplingDesc')}>
+            <InputNumber value={observatoryObj.sampling} min={1} style={{ width: '100%' }}
+              onChange={onNumber((v) => setObservatoryField('sampling', v))} />
+          </SettingListItem>
+          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.httpMethod')} description={t('pages.settings.subBalancers.observatory.httpMethodDesc')}>
+            <Select
+              value={observatoryObj.httpMethod}
+              style={{ width: '100%' }}
+              onChange={(v) => setObservatoryField('httpMethod', v)}
+              options={['HEAD', 'GET'].map((m) => ({ value: m, label: m }))}
+            />
+          </SettingListItem>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <Tabs
+        defaultActiveKey="balancers"
+        items={[
+          {
+            key: 'balancers',
+            label: catTabLabel(<DeploymentUnitOutlined />, t('pages.settings.subBalancers.tabBalancers'), isMobile),
+            children: balancersTab,
+          },
+          {
+            key: 'observatory',
+            label: catTabLabel(<RadarChartOutlined />, t('pages.settings.subBalancers.tabObservatory'), isMobile),
+            children: observatoryTab,
+          },
+        ]}
+      />
       <SubBalancerFormModal
         open={modalOpen}
         balancer={editing}
         onClose={() => setModalOpen(false)}
         onConfirm={onConfirm}
       />
-    </div>
+    </>
   );
 }
