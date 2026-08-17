@@ -1368,6 +1368,7 @@
         "sortOrder": "Sıra",
         "sortOrderHelp": "Abonelik listesindeki konumu, inbound sırası ile iç içe yerleşir; eşit numarada dengeleyici inbound'dan sonra gelir.",
         "inbounds": "Inbound'lar",
+        "inboundsCount": "{count} Inbound'lar",
         "enabled": "Etkin",
         "empty": "Henüz dengeleyici yok",
         "deleteConfirm": "Bu dengeleyici silinsin mi?",

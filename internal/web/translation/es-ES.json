@@ -1368,6 +1368,7 @@
         "sortOrder": "Orden",
         "sortOrderHelp": "Posición en la lista de la suscripción, intercalada con el orden de los inbounds; con el mismo número, el balanceador va después del inbound.",
         "inbounds": "Inbounds",
+        "inboundsCount": "{count} Inbounds",
         "enabled": "Activado",
         "empty": "Aún no hay balanceadores",
         "deleteConfirm": "¿Eliminar este balanceador?",

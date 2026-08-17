@@ -1368,6 +1368,7 @@
         "sortOrder": "順序",
         "sortOrderHelp": "在訂閱列表中的位置，與入站順序交錯排列；序號相同時排在入站之後。",
         "inbounds": "入站",
+        "inboundsCount": "{count} 入站",
         "enabled": "啟用",
         "empty": "尚無平衡器",
         "deleteConfirm": "確定刪除此平衡器？",

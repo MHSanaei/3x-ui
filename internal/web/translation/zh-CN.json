@@ -1368,6 +1368,7 @@
         "sortOrder": "顺序",
         "sortOrderHelp": "在订阅列表中的位置，与入站顺序交错排列；序号相同时排在入站之后。",
         "inbounds": "入站",
+        "inboundsCount": "{count} 入站",
         "enabled": "启用",
         "empty": "暂无均衡器",
         "deleteConfirm": "确定删除此均衡器？",

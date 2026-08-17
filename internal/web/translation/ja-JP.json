@@ -1368,6 +1368,7 @@
         "sortOrder": "順序",
         "sortOrderHelp": "サブスクリプション一覧内の位置。インバウンドの順序と交互に並び、同番号の場合はインバウンドの後ろになります。",
         "inbounds": "インバウンド",
+        "inboundsCount": "{count} インバウンド",
         "enabled": "有効",
         "empty": "バランサーはまだありません",
         "deleteConfirm": "このバランサーを削除しますか？",

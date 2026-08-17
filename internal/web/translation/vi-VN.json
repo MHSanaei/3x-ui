@@ -1368,6 +1368,7 @@
         "sortOrder": "Thứ tự",
         "sortOrderHelp": "Vị trí trong danh sách đăng ký, xen kẽ với thứ tự inbound; khi cùng số, bộ cân bằng đứng sau inbound.",
         "inbounds": "Inbound",
+        "inboundsCount": "{count} Inbound",
         "enabled": "Đã bật",
         "empty": "Chưa có bộ cân bằng nào",
         "deleteConfirm": "Xóa bộ cân bằng này?",

@@ -1485,6 +1485,7 @@
         "sortOrder": "Order",
         "sortOrderHelp": "Position in the subscription list, interleaved with the inbounds' own order; on equal numbers the balancer comes after the inbound.",
         "inbounds": "Inbounds",
+        "inboundsCount": "{count} Inbounds",
         "enabled": "Enabled",
         "empty": "No balancers yet",
         "deleteConfirm": "Delete this balancer?",
