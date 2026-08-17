@@ -1205,9 +1205,8 @@ type OutboundSubscription struct {
 	OutboundCount        int    `json:"outboundCount" gorm:"-"`
 }
 
-// SubBalancer is one extra config document in the JSON subscription whose
-// members are the selected inbounds' proxy outbounds. SortOrder shares
-// Inbound.SubSortIndex semantics; ties put the balancer after the inbound.
+// SubBalancer is one extra JSON-subscription config document whose members are
+// the selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.
 type SubBalancer struct {
 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Remark     string `json:"remark" form:"remark" validate:"required,max=256"`
