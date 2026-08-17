@@ -37,6 +37,7 @@ const EMPTY: ClientBulkAddFormValues = {
   totalGB: 0,
   expiryTime: 0,
   reset: 0,
+  resetDay: 0,
   inboundIds: [],
 };
 
@@ -176,6 +177,7 @@ export default function ClientBulkAddModal({
           totalGB: Math.round((current.totalGB || 0) * SizeFormatter.ONE_GB),
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
+          resetDay: Number(current.resetDay) || 0,
           limitIp: Number(current.limitIp) || 0,
           limitHwid: Number(current.limitHwid) || 0,
           group: current.group,

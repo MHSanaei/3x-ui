@@ -333,7 +333,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// attached to, so it could be a node inbound even when the client also has
 	// local inbounds. The email-based join through client_inbounds is authoritative.
 	err = tx.Model(xray.ClientTraffic{}).
-		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
+		Where("(reset > 0 or reset_day > 0) and expiry_time > 0 and expiry_time <= ?", now).
 		Where("email IN (?)", tx.Table("client_inbounds ci").
 			Select("c.email").
 			Joins("JOIN clients c ON c.id = ci.client_id").
@@ -346,6 +346,14 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// return if there is no client to renew
 	if len(traffics) == 0 {
 		return false, 0, nil
+	}
+
+	renewLocation, locErr := (&SettingService{}).GetTimeLocation()
+	if locErr != nil || renewLocation == nil {
+		// Falling back to UTC keeps renewals happening; the alternative is
+		// skipping them entirely because a setting could not be read.
+		logger.Warning("autoRenewClients: could not read the panel time zone, using UTC:", locErr)
+		renewLocation = time.UTC
 	}
 
 	var inbound_ids []int
@@ -412,8 +420,23 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				continue
 			}
 			newExpiryTime := traffic.ExpiryTime
-			for newExpiryTime < now {
-				newExpiryTime += (int64(traffic.Reset) * 86400000)
+			if traffic.ResetDay > 0 {
+				// Calendar mode: step whole months in the panel's zone, so the
+				// renewal date does not drift the way a fixed 30-day step does.
+				at := time.UnixMilli(newExpiryTime)
+				for newExpiryTime < now {
+					at = nextCalendarRenewal(at, traffic.ResetDay, renewLocation)
+					newExpiryTime = at.UnixMilli()
+				}
+			} else if traffic.Reset > 0 {
+				for newExpiryTime < now {
+					newExpiryTime += (int64(traffic.Reset) * 86400000)
+				}
+			} else {
+				// Unreachable while the selection filter holds, and kept anyway:
+				// a zero interval in the loop above would spin forever on the
+				// single traffic writer and take the whole panel with it.
+				continue
 			}
 			c["expiryTime"] = newExpiryTime
 			traffic.ExpiryTime = newExpiryTime
@@ -508,10 +531,11 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 		ExpiryTime: client.ExpiryTime,
 		Enable:     client.Enable,
 		Reset:      client.Reset,
+		ResetDay:   client.ResetDay,
 	}
 	return tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
-		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset"}),
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset", "reset_day"}),
 	}).Create(&clientTraffic).Error
 }
 
@@ -524,6 +548,7 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset,
+			"reset_day":   client.ResetDay,
 		})
 	err := result.Error
 	return err

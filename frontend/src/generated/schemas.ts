@@ -1084,6 +1084,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Reset period in days",
         "type": "integer"
       },
+      "resetDay": {
+        "description": "Calendar renewal day 1-31, 0 = interval mode",
+        "type": "integer"
+      },
       "reverse": {
         "allOf": [
           {
@@ -1128,6 +1132,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expiryTime",
       "limitIp",
       "reset",
+      "resetDay",
       "security",
       "subId",
       "tgId",
@@ -1331,6 +1336,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 0,
         "type": "integer"
       },
+      "resetDay": {
+        "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+        "example": 0,
+        "type": "integer"
+      },
       "subId": {
         "example": "i7tvdpeffi0hvvf1",
         "type": "string"
@@ -1360,6 +1370,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastOnline",
       "lastSubFetch",
       "reset",
+      "resetDay",
       "subId",
       "total",
       "up",

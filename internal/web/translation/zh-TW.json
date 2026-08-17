@@ -860,7 +860,9 @@
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
-      }
+      },
+      "renewDay": "Renew on day",
+      "renewDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode."
     },
     "groups": {
       "name": "名稱",
