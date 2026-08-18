@@ -9,6 +9,7 @@ export class AllSetting {
   webBasePath = '/';
   sessionMaxAge = 360;
   trustedProxyCIDRs = '127.0.0.1/32,::1/128';
+  ipLimitAllowlist = '';
   panelOutbound = '';
   pageSize = 25;
   expireDiff = 0;

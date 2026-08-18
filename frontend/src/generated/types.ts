@@ -13,6 +13,7 @@ export interface AllSetting {
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -126,6 +127,7 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -267,6 +269,7 @@ export interface Client {
   publicKey?: string;
   reset: number;
   resetDay: number;
+  resetMax: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
@@ -304,6 +307,7 @@ export interface ClientRecord {
   publicKey: string;
   reset: number;
   resetDay: number;
+  resetMax: number;
   reverse: unknown;
   secret: string;
   security: string;
@@ -328,7 +332,9 @@ export interface ClientTraffic {
   lastOnline: number;
   lastSubFetch: number;
   reset: number;
+  resetCount: number;
   resetDay: number;
+  resetMax: number;
   subId: string;
   total: number;
   up: number;

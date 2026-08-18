@@ -112,7 +112,8 @@
     "docs": "Dokumentasi",
     "openMenu": "Buka menu",
     "pinSidebar": "Sematkan bilah sisi",
-    "unpinSidebar": "Lepas sematan bilah sisi"
+    "unpinSidebar": "Lepas sematan bilah sisi",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — kritis",
       "panel": "Panel",
       "threads": "Thread",
-      "uptime": "Waktu aktif"
+      "uptime": "Waktu aktif",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Pertahankan pengaturan mesin ini",
+      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah."
     },
     "inbounds": {
       "totalDownUp": "Total Terkirim/Diterima",
@@ -861,8 +872,11 @@
         "imported": "{count} klien diimpor",
         "importedMixed": "{ok} diimpor, {failed} dilewati"
       },
+      "renewMax": "Maksimum perpanjangan",
+      "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
       "renewOnDay": "Perpanjang pada tanggal",
-      "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari."
+      "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
+      "renewsUsed": "Perpanjangan terpakai"
     },
     "groups": {
       "name": "Nama",
@@ -1354,7 +1368,11 @@
         "pathLeadingSlash": "Path harus diawali dengan /"
       },
       "secretClear": "Hapus",
-      "secretClearUndo": "Batalkan hapus"
+      "secretClearUndo": "Batalkan hapus",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Daftar izin batas IP",
+      "ipLimitAllowlistDesc": "Alamat dan jaringan yang tidak pernah dihitung maupun diblokir oleh batas IP, sehingga alamat kantor atau kampus bersama tidak menghabiskan batas klien. IP/CIDR (dipisahkan koma)."
     },
     "xray": {
       "save": "Simpan",

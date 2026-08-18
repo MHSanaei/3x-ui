@@ -15,6 +15,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformURI": {
         "type": "string"
       },
+      "ipLimitAllowlist": {
+        "type": "string"
+      },
       "ldapAutoCreate": {
         "type": "boolean"
       },
@@ -348,6 +351,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -485,6 +489,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "hasWarpSecret": {
         "type": "boolean"
+      },
+      "ipLimitAllowlist": {
+        "type": "string"
       },
       "ldapAutoCreate": {
         "type": "boolean"
@@ -826,6 +833,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -1088,6 +1096,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Calendar renewal day 1-31, 0 = interval mode",
         "type": "integer"
       },
+      "resetMax": {
+        "description": "Max auto-renew count, 0 = unlimited",
+        "type": "integer"
+      },
       "reverse": {
         "allOf": [
           {
@@ -1133,6 +1145,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "limitIp",
       "reset",
       "resetDay",
+      "resetMax",
       "security",
       "subId",
       "tgId",
@@ -1228,6 +1241,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "resetDay": {
         "type": "integer"
       },
+      "resetMax": {
+        "type": "integer"
+      },
       "reverse": {},
       "secret": {
         "type": "string"
@@ -1275,6 +1291,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "publicKey",
       "reset",
       "resetDay",
+      "resetMax",
       "reverse",
       "secret",
       "security",
@@ -1340,8 +1357,18 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 0,
         "type": "integer"
       },
+      "resetCount": {
+        "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+        "example": 0,
+        "type": "integer"
+      },
       "resetDay": {
         "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetMax": {
+        "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
         "example": 0,
         "type": "integer"
       },
@@ -1374,7 +1401,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastOnline",
       "lastSubFetch",
       "reset",
+      "resetCount",
       "resetDay",
+      "resetMax",
       "subId",
       "total",
       "up",

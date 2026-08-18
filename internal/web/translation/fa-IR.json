@@ -112,7 +112,8 @@
     "docs": "مستندات",
     "openMenu": "باز کردن منو",
     "pinSidebar": "ثابت کردن نوار کناری",
-    "unpinSidebar": "برداشتن تثبیت نوار کناری"
+    "unpinSidebar": "برداشتن تثبیت نوار کناری",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — بحرانی",
       "panel": "پنل",
       "threads": "نخ‌ها",
-      "uptime": "مدت کارکرد"
+      "uptime": "مدت کارکرد",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "حفظ تنظیمات این دستگاه",
+      "importKeepHostSettingsDesc": "آدرس‌ها و پورت‌های شنود، مسیر پایه، گواهی‌ها و هویت نودِ همین پنل را نگه می‌دارد و آن‌ها را از فایل بارگذاری‌شده نمی‌گیرد."
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",
@@ -861,8 +872,11 @@
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
       },
+      "renewMax": "حداکثر تعداد تمدید",
+      "renewMaxDesc": "تمدید خودکار حداکثر چند بار اجرا شود پیش از آنکه کلاینت منقضی بماند. مقدار ۰ یعنی بدون محدودیت. جبران چند دورهٔ ازدست‌رفته، برای هر دوره یک تمدید مصرف می‌کند.",
       "renewOnDay": "روز تمدید",
-      "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند."
+      "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند.",
+      "renewsUsed": "تمدیدهای استفاده‌شده"
     },
     "groups": {
       "name": "نام",
@@ -1354,7 +1368,11 @@
         "pathLeadingSlash": "مسیر باید با / شروع شود"
       },
       "secretClear": "پاک کردن",
-      "secretClearUndo": "لغو پاک کردن"
+      "secretClearUndo": "لغو پاک کردن",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "فهرست مجاز محدودیت IP",
+      "ipLimitAllowlistDesc": "نشانی‌ها و شبکه‌هایی که محدودیت IP هرگز آن‌ها را نمی‌شمارد و مسدود نمی‌کند، تا نشانی مشترک یک اداره یا دانشگاه محدودیت کاربر را مصرف نکند. IPها/CIDRها (با کاما)."
     },
     "xray": {
       "save": "ذخیره",

@@ -714,6 +714,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if dirty {
 			continue
 		}
+		// Disabled inbounds are intentionally absent from the node's runtime
+		// snapshot. Their absence is not evidence of deletion; retain the row,
+		// client history and port reservation until an explicit delete occurs.
+		if !c.Enable {
+			continue
+		}
 		if len(snapTags) == 0 {
 			// A node mid-restart or with a transient DB error can return an empty
 			// inbound list with success=true. Treat "zero inbounds reported" as

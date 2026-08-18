@@ -340,3 +340,52 @@ func TestClientEditChangesTheBillingDay(t *testing.T) {
 		t.Fatalf("clients.reset_day = %d after the operator switched back to interval mode", rec.ResetDay)
 	}
 }
+
+// The two renewal features meet here: a calendar client is capped like an
+// interval one, spending one allowance per month rather than per tick.
+func TestAutoRenewClients_CalendarModeSpendsOneAllowancePerMonth(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+	zone := pinPanelZone(t, "UTC")
+
+	// Three calendar months behind with one allowance left: a single month step
+	// cannot reach the present, so the client stays expired on its billing day.
+	past := time.Now().In(zone).AddDate(0, -3, 0)
+	past = time.Date(past.Year(), past.Month(), 10, 0, 0, 0, 0, zone)
+	clients := []model.Client{
+		{Email: "calcap@x", ID: "22222222-2222-2222-2222-222222222222", Enable: false, ResetDay: 10, ResetMax: 3, ExpiryTime: past.UnixMilli()},
+	}
+	ib := mkInbound(t, 30205, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: "calcap@x", Enable: false, ResetDay: 10, ResetMax: 3, ResetCount: 2,
+		Up: 111, Down: 222, ExpiryTime: past.UnixMilli(),
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	if _, _, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "calcap@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	got := time.UnixMilli(row.ExpiryTime).In(zone)
+	if want := past.AddDate(0, 1, 0); !got.Equal(want) {
+		t.Fatalf("renewed to %s, want exactly one month on to %s", got.Format(time.RFC3339), want.Format(time.RFC3339))
+	}
+	if row.ResetCount != 3 {
+		t.Fatalf("resetCount = %d, want 3: one allowance per month stepped", row.ResetCount)
+	}
+	if row.Enable {
+		t.Fatal("a client still expired after a truncated catch-up was enabled")
+	}
+	if row.Up != 111 || row.Down != 222 {
+		t.Fatalf("counters zeroed for a month the client can never use: up=%d down=%d", row.Up, row.Down)
+	}
+}

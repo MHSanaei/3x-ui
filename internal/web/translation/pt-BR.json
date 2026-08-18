@@ -112,7 +112,8 @@
     "docs": "Documentação",
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
-    "unpinSidebar": "Desafixar barra lateral"
+    "unpinSidebar": "Desafixar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — crítico",
       "panel": "Painel",
       "threads": "Threads",
-      "uptime": "Tempo ativo"
+      "uptime": "Tempo ativo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Manter as configurações desta máquina",
+      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado."
     },
     "inbounds": {
       "totalDownUp": "Total Enviado/Recebido",
@@ -861,8 +872,11 @@
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} ignorados"
       },
+      "renewMax": "Renovações máximas",
+      "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
       "renewOnDay": "Renovar no dia",
-      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias."
+      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
+      "renewsUsed": "Renovações usadas"
     },
     "groups": {
       "name": "Nome",
@@ -1354,7 +1368,11 @@
         "pathLeadingSlash": "O caminho deve começar com /"
       },
       "secretClear": "Limpar",
-      "secretClearUndo": "Desfazer limpeza"
+      "secretClearUndo": "Desfazer limpeza",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Lista de permissões do limite de IP",
+      "ipLimitAllowlistDesc": "Endereços e redes que o limite de IP nunca conta nem bane, para que um endereço compartilhado de escritório ou campus não esgote o limite de um cliente. IPs/CIDRs separados por vírgula."
     },
     "xray": {
       "importRules": "Importar regras",

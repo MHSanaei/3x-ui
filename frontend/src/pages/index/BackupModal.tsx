@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal } from 'antd';
+import { Button, Checkbox, Modal } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
@@ -20,6 +21,7 @@ interface BackupModalProps {
 export default function BackupModal({ open, basePath: _basePath, onClose, onBusy }: BackupModalProps) {
   const { t } = useTranslation();
   const isPostgres = window.X_UI_DB_TYPE === 'postgres';
+  const [keepHostSettings, setKeepHostSettings] = useState(true);
 
   function exportDb() {
     window.location.href = (window.X_UI_BASE_PATH || '') + 'panel/api/server/getDb';
@@ -39,6 +41,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
 
       const formData = new FormData();
       formData.append('db', dbFile);
+      formData.append('keepHostSettings', String(keepHostSettings));
 
       onClose();
       onBusy({ busy: true, tip: `${t('pages.index.importDatabase')}…` });
@@ -104,6 +107,15 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
             </div>
           </div>
           <Button type="primary" aria-label={t('pages.index.importDatabase')} onClick={importDb} icon={<UploadOutlined />} />
+        </div>
+
+        <div className="backup-item">
+          <div className="backup-meta">
+            <Checkbox checked={keepHostSettings} onChange={(e) => setKeepHostSettings(e.target.checked)}>
+              {t('pages.index.importKeepHostSettings')}
+            </Checkbox>
+            <div className="backup-description">{t('pages.index.importKeepHostSettingsDesc')}</div>
+          </div>
         </div>
       </div>
     </Modal>

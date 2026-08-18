@@ -27,6 +27,7 @@ type ClientSlim struct {
 	LimitHwid  int                 `json:"limitHwid"`
 	Reset      int                 `json:"reset"`
 	ResetDay   int                 `json:"resetDay"`
+	ResetMax   int                 `json:"resetMax"`
 	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
 	InboundIds []int               `json:"inboundIds"`
@@ -607,6 +608,7 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		LimitHwid:  c.LimitHwid,
 		Reset:      c.Reset,
 		ResetDay:   c.ResetDay,
+		ResetMax:   c.ResetMax,
 		Group:      c.Group,
 		Comment:    c.Comment,
 		InboundIds: c.InboundIds,
