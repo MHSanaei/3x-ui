@@ -1488,23 +1488,35 @@ func restoreHostBoundSettings(snap hostBoundSnapshot) {
 	if db == nil {
 		return
 	}
+	settingSvc := &SettingService{}
 	for _, key := range hostBoundSettingKeys {
 		if _, had := snap.present[key]; !had {
-			// No row here before the import, so the default applied. Drop the
-			// imported row rather than inherit the source machine's value.
+			// Absent because it is minted on demand, not because a default applied:
+			// the imported copy is the only one that exists, so keep it (#6227).
+			if lazilyMintedSettingKeys[key] {
+				continue
+			}
 			if err := db.Where("key = ?", key).Delete(&model.Setting{}).Error; err != nil {
 				logger.Warningf("Import: could not drop imported setting %q: %v", key, err)
 			}
 			continue
 		}
-		// The imported row may or may not exist; settings are key-value, so an
-		// upsert keyed on the name is the only safe write here.
-		if err := db.Where(model.Setting{Key: key}).
-			Assign(model.Setting{Value: snap.values[key]}).
-			FirstOrCreate(&model.Setting{}).Error; err != nil {
+		// saveSetting rather than Assign(struct): GORM drops zero-valued fields from
+		// the assignment map, so an empty local value never overwrote the import.
+		if err := settingSvc.saveSetting(key, snap.values[key]); err != nil {
 			logger.Warningf("Import: could not restore setting %q for this machine: %v", key, err)
 		}
 	}
+}
+
+// Minted on demand, so a fresh install has no row: dropping the imported copy
+// would destroy the only one that exists, CA private key included.
+var lazilyMintedSettingKeys = map[string]bool{
+	"nodeMtlsCaCertPem":     true,
+	"nodeMtlsCaKeyPem":      true,
+	"nodeMtlsClientCertPem": true,
+	"nodeMtlsClientKeyPem":  true,
+	"nodeMtlsClientCAPem":   true,
 }
 
 func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) error {

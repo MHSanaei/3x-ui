@@ -70,16 +70,15 @@ func TestImportKeepsHostBoundSettings(t *testing.T) {
 	}
 }
 
-// The destination usually has no row at all for the certificate paths and the
-// node identity — the built-in default applies. The imported row must go, or
-// the panel quietly adopts the source machine's certificate path.
+// A certificate path this machine never set must not be inherited from the
+// source. Lazily minted material is the opposite case and is covered below.
 func TestImportDropsHostBoundSettingsThisMachineNeverHad(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
 
 	kept := captureHostBoundSettings()
 
-	for _, key := range []string{"webCertFile", "subCertFile", "nodeMtlsClientCertPem"} {
+	for _, key := range []string{"webCertFile", "subCertFile"} {
 		if err := db.Create(&model.Setting{Key: key, Value: "from-imported-file"}).Error; err != nil {
 			t.Fatalf("seed imported %s: %v", key, err)
 		}
@@ -87,7 +86,7 @@ func TestImportDropsHostBoundSettingsThisMachineNeverHad(t *testing.T) {
 
 	restoreHostBoundSettings(kept)
 
-	for _, key := range []string{"webCertFile", "subCertFile", "nodeMtlsClientCertPem"} {
+	for _, key := range []string{"webCertFile", "subCertFile"} {
 		var count int64
 		if err := db.Model(&model.Setting{}).Where("key = ?", key).Count(&count).Error; err != nil {
 			t.Fatal(err)
@@ -95,5 +94,56 @@ func TestImportDropsHostBoundSettingsThisMachineNeverHad(t *testing.T) {
 		if count != 0 {
 			t.Fatalf("imported %s survived although this machine had no row for it", key)
 		}
+	}
+}
+
+// Node mTLS material is minted on demand, so a fresh install has no row and the
+// imported copy is the only one there is — including the CA private key (#6227).
+func TestImportKeepsLazilyMintedMaterialThisMachineNeverHad(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	kept := captureHostBoundSettings()
+
+	for _, key := range []string{"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem", "nodeMtlsClientKeyPem", "nodeMtlsClientCAPem"} {
+		if err := db.Create(&model.Setting{Key: key, Value: "from-imported-file"}).Error; err != nil {
+			t.Fatalf("seed imported %s: %v", key, err)
+		}
+	}
+
+	restoreHostBoundSettings(kept)
+
+	for _, key := range []string{"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem", "nodeMtlsClientKeyPem", "nodeMtlsClientCAPem"} {
+		var got model.Setting
+		if err := db.Where("key = ?", key).First(&got).Error; err != nil {
+			t.Fatalf("%s was dropped; restoring a backup onto a reinstalled panel would lose it: %v", key, err)
+		}
+	}
+}
+
+// An empty local value is the normal state once Panel Settings has been saved:
+// GORM's Assign(struct) dropped it, so the source machine's path survived.
+func TestImportRestoresEmptyLocalValueOverImported(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	if err := db.Create(&model.Setting{Key: "webCertFile", Value: ""}).Error; err != nil {
+		t.Fatalf("seed local empty: %v", err)
+	}
+	kept := captureHostBoundSettings()
+
+	if err := db.Model(&model.Setting{}).Where("key = ?", "webCertFile").
+		Update("value", "/etc/ssl/source-host.pem").Error; err != nil {
+		t.Fatalf("seed imported: %v", err)
+	}
+
+	restoreHostBoundSettings(kept)
+
+	var got model.Setting
+	if err := db.Where("key = ?", "webCertFile").First(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Value != "" {
+		t.Fatalf("webCertFile = %q, want the empty local value back: the panel still points at the source machine's certificate", got.Value)
 	}
 }
