@@ -37,6 +37,8 @@ const EMPTY: ClientBulkAddFormValues = {
   totalGB: 0,
   expiryTime: 0,
   reset: 0,
+  resetDay: 0,
+  resetMax: 0,
   trafficReset: 'never' as const,
   trafficResetDay: 1,
   inboundIds: [],
@@ -179,6 +181,8 @@ export default function ClientBulkAddModal({
           totalGB: Math.round((current.totalGB || 0) * SizeFormatter.ONE_GB),
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
+          resetDay: Number(current.resetDay) || 0,
+          resetMax: Number(current.resetMax) || 0,
           trafficReset: current.trafficReset || 'never',
           trafficResetDay: Number(current.trafficResetDay) || 1,
           limitIp: Number(current.limitIp) || 0,
@@ -375,6 +379,24 @@ export default function ClientBulkAddModal({
               name="reset"
               label={t('pages.clients.renew')}
               tooltip={t('pages.clients.renewDesc')}
+              transform={{ output: (v) => Number(v) || 0 }}
+            >
+              <InputNumber min={0} />
+            </FormField>
+
+            <FormField
+              name="resetDay"
+              label={t('pages.clients.renewOnDay')}
+              tooltip={t('pages.clients.renewOnDayDesc')}
+              transform={{ output: (v) => Number(v) || 0 }}
+            >
+              <InputNumber min={0} max={31} />
+            </FormField>
+
+            <FormField
+              name="resetMax"
+              label={t('pages.clients.renewMax')}
+              tooltip={t('pages.clients.renewMaxDesc')}
               transform={{ output: (v) => Number(v) || 0 }}
             >
               <InputNumber min={0} />

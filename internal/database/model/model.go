@@ -894,6 +894,8 @@ type Client struct {
 	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment      string         `json:"comment" form:"comment"`       // Client comment
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
+	ResetDay     int            `json:"resetDay" form:"resetDay"`     // Calendar renewal day 1-31, 0 = interval mode
+	ResetMax     int            `json:"resetMax" form:"resetMax"`     // Max auto-renew count, 0 = unlimited
 	// Per-client traffic reset cycle, independent of the inbound's own (#5497).
 	TrafficReset    string `json:"trafficReset,omitempty" form:"trafficReset" validate:"omitempty,oneof=never hourly daily weekly monthly"`
 	TrafficResetDay int    `json:"trafficResetDay,omitempty" form:"trafficResetDay" validate:"omitempty,gte=1,lte=31"`
@@ -927,6 +929,8 @@ type ClientRecord struct {
 	Group           string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
 	Comment         string `json:"comment"`
 	Reset           int    `json:"reset" gorm:"default:0"`
+	ResetDay        int    `json:"resetDay" gorm:"column:reset_day;default:0"`
+	ResetMax        int    `json:"resetMax" gorm:"column:reset_max;default:0"`
 	TrafficReset    string `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
 	TrafficResetDay int    `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
 	CreatedAt       int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
@@ -1110,6 +1114,8 @@ func (c *Client) ToRecord() *ClientRecord {
 		Group:           c.Group,
 		Comment:         c.Comment,
 		Reset:           c.Reset,
+		ResetDay:        c.ResetDay,
+		ResetMax:        c.ResetMax,
 		TrafficReset:    c.TrafficReset,
 		TrafficResetDay: c.TrafficResetDay,
 		CreatedAt:       c.CreatedAt,
@@ -1165,6 +1171,8 @@ func (r *ClientRecord) ToClient() *Client {
 		Group:           r.Group,
 		Comment:         r.Comment,
 		Reset:           r.Reset,
+		ResetDay:        r.ResetDay,
+		ResetMax:        r.ResetMax,
 		TrafficReset:    r.TrafficReset,
 		TrafficResetDay: r.TrafficResetDay,
 		CreatedAt:       r.CreatedAt,
@@ -1313,6 +1321,18 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.ResetDay != incoming.ResetDay && incoming.ResetDay != 0 {
+		if incomingNewer || existing.ResetDay == 0 {
+			keep("resetDay", existing.ResetDay, incoming.ResetDay, incoming.ResetDay)
+			existing.ResetDay = incoming.ResetDay
+		}
+	}
+	if existing.ResetMax != incoming.ResetMax && incoming.ResetMax != 0 {
+		if incomingNewer || existing.ResetMax == 0 {
+			keep("resetMax", existing.ResetMax, incoming.ResetMax, incoming.ResetMax)
+			existing.ResetMax = incoming.ResetMax
 		}
 	}
 	if existing.TrafficReset != incoming.TrafficReset && incoming.TrafficReset != "" {

@@ -318,8 +318,6 @@ func rebuildInboundsWithoutInlineUniquePort() error {
 	})
 }
 
-// AutoMigrate adds the column; this only backfills the NULLs an older SQLite
-// ALTER TABLE leaves behind, so the reaper's predicate never compares to NULL.
 // AutoMigrate adds the columns; an older SQLite ALTER TABLE leaves them NULL,
 // and a NULL traffic_reset fails every ClientRecord scan, not just the new query.
 func migrateClientTrafficResetColumns() error {
@@ -336,6 +334,8 @@ func migrateClientTrafficResetColumns() error {
 	return nil
 }
 
+// AutoMigrate adds the column; this only backfills the NULLs an older SQLite
+// ALTER TABLE leaves behind, so the reaper's predicate never compares to NULL.
 func migrateSyncOrphanColumns() error {
 	if !db.Migrator().HasColumn(&model.ClientRecord{}, "sync_orphaned_at") {
 		return nil

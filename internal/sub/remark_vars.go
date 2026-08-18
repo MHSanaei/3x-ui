@@ -263,6 +263,11 @@ func remarkVarValue(token string, ctx remarkContext) string {
 			return strconv.Itoa(c.Reset)
 		}
 		return ""
+	case "RESET_DAY":
+		if c.ResetDay > 0 {
+			return strconv.Itoa(c.ResetDay)
+		}
+		return ""
 	case "STATUS_EMOJI":
 		return statusEmoji(st)
 	case "USAGE_PERCENTAGE":

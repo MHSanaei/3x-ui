@@ -132,6 +132,8 @@ const EMPTY: Values = {
   delayedStart: false,
   delayedDays: 0,
   reset: 0,
+  resetDay: 0,
+  resetMax: 0,
   trafficReset: 'never' as const,
   trafficResetDay: 1,
   limitIp: 0,
@@ -254,6 +256,8 @@ export default function ClientFormModal({
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
+        resetDay: Number(client.resetDay) || 0,
+        resetMax: Number(client.resetMax) || 0,
         trafficReset: (client.trafficReset as ClientFormValues['trafficReset']) || 'never',
         trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
@@ -544,6 +548,8 @@ email: values.email,
       delayedStart: values.delayedStart,
       delayedDays: values.delayedDays,
       reset: values.reset,
+      resetDay: values.resetDay,
+      resetMax: values.resetMax,
       trafficReset: values.trafficReset,
       trafficResetDay: values.trafficResetDay,
       limitIp: values.limitIp,
@@ -574,8 +580,10 @@ email: values.email,
       totalGB: totalBytes,
       expiryTime,
 reset: Number(values.reset) || 0,
-trafficReset: values.trafficReset || 'never',
-trafficResetDay: Number(values.trafficResetDay) || 1,
+      resetDay: Number(values.resetDay) || 0,
+      resetMax: Number(values.resetMax) || 0,
+      trafficReset: values.trafficReset || 'never',
+      trafficResetDay: Number(values.trafficResetDay) || 1,
       limitIp: Number(values.limitIp) || 0,
       limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
@@ -790,6 +798,26 @@ trafficResetDay: Number(values.trafficResetDay) || 1,
                             name="reset"
                             label={t('pages.clients.renewDays')}
                             tooltip={t('pages.clients.renewDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetDay"
+                            label={t('pages.clients.renewOnDay')}
+                            tooltip={t('pages.clients.renewOnDayDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} max={31} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetMax"
+                            label={t('pages.clients.renewMax')}
+                            tooltip={t('pages.clients.renewMaxDesc')}
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} style={{ width: '100%' }} />
