@@ -20,6 +20,11 @@ type ClientDiagnostic struct {
 	LastHandshake time.Time
 	RxBytes       uint64
 	TxBytes       uint64
+	Endpoint      string
+	// AllowedIPs is comma-joined, from the running Device's own UAPI dump
+	// when it has ever handshaked (so a re-IP is reflected immediately);
+	// falls back to the peer's configured AllowedIPs otherwise.
+	AllowedIPs string
 }
 
 // Connected reports whether this client has ever completed a handshake.
@@ -67,9 +72,14 @@ func diagnoseDevice(dev *Device, peers []amneziawg.Peer) Diagnostics {
 			continue
 		}
 		st := states[hexKey]
-		cd := ClientDiagnostic{Email: p.Email, RxBytes: st.rxBytes, TxBytes: st.txBytes}
+		cd := ClientDiagnostic{Email: p.Email, RxBytes: st.rxBytes, TxBytes: st.txBytes, Endpoint: st.endpoint}
 		if st.lastHandshakeSec > 0 {
 			cd.LastHandshake = time.Unix(st.lastHandshakeSec, 0)
+		}
+		if len(st.allowedIPs) > 0 {
+			cd.AllowedIPs = strings.Join(st.allowedIPs, ", ")
+		} else {
+			cd.AllowedIPs = strings.Join(p.AllowedIPs, ", ")
 		}
 		diag.Clients = append(diag.Clients, cd)
 	}
@@ -79,6 +89,8 @@ func diagnoseDevice(dev *Device, peers []amneziawg.Peer) Diagnostics {
 type peerUAPIState struct {
 	lastHandshakeSec int64
 	rxBytes, txBytes uint64
+	endpoint         string
+	allowedIPs       []string
 }
 
 // parseUAPIDump reads a Device.IpcGet() text dump: device-level keys first
@@ -113,6 +125,14 @@ func parseUAPIDump(dump string) (listenPort int, states map[string]peerUAPIState
 		case "tx_bytes":
 			st := states[current]
 			st.txBytes, _ = strconv.ParseUint(value, 10, 64)
+			states[current] = st
+		case "endpoint":
+			st := states[current]
+			st.endpoint = value
+			states[current] = st
+		case "allowed_ip":
+			st := states[current]
+			st.allowedIPs = append(st.allowedIPs, value)
 			states[current] = st
 		}
 	}
