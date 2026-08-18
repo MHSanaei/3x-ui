@@ -869,7 +869,10 @@
         "delOrphans": "{count} clientes sem inbound excluídos",
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} ignorados"
-      }
+      },
+      "renewMax": "Renovações máximas",
+      "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
+      "renewsUsed": "Renovações usadas"
     },
     "groups": {
       "name": "Nome",

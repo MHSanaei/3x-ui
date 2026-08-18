@@ -1110,6 +1110,10 @@
             "description": "Reset period in days",
             "type": "integer"
           },
+          "resetMax": {
+            "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
           "reverse": {
             "allOf": [
               {
@@ -1154,6 +1158,7 @@
           "expiryTime",
           "limitIp",
           "reset",
+          "resetMax",
           "security",
           "subId",
           "tgId",
@@ -1246,6 +1251,9 @@
           "reset": {
             "type": "integer"
           },
+          "resetMax": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1292,6 +1300,7 @@
           "privateKey",
           "publicKey",
           "reset",
+          "resetMax",
           "reverse",
           "secret",
           "security",
@@ -1357,6 +1366,16 @@
             "example": 0,
             "type": "integer"
           },
+          "resetCount": {
+            "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetMax": {
+            "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "i7tvdpeffi0hvvf1",
             "type": "string"
@@ -1386,6 +1405,8 @@
           "lastOnline",
           "lastSubFetch",
           "reset",
+          "resetCount",
+          "resetMax",
           "subId",
           "total",
           "up",
@@ -3327,6 +3348,8 @@
                           "lastOnline": 1735680000000,
                           "lastSubFetch": 1735680000000,
                           "reset": 0,
+                          "resetCount": 0,
+                          "resetMax": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -8130,6 +8153,8 @@
                     "lastOnline": 1735680000000,
                     "lastSubFetch": 1735680000000,
                     "reset": 0,
+                    "resetCount": 0,
+                    "resetMax": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,

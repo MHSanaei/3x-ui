@@ -869,7 +869,10 @@
         "delOrphans": "{count} klien tanpa inbound dihapus",
         "imported": "{count} klien diimpor",
         "importedMixed": "{ok} diimpor, {failed} dilewati"
-      }
+      },
+      "renewMax": "Maksimum perpanjangan",
+      "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
+      "renewsUsed": "Perpanjangan terpakai"
     },
     "groups": {
       "name": "Nama",
