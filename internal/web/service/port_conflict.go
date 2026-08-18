@@ -194,7 +194,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// port silently fails at the next Xray start, taking every other
 	// protocol down with it, not just AmneziaWG.
 	if inbound.NodeID == nil && listenOverlaps("127.0.0.1", inbound.Listen) {
-		conflict, err := s.checkAmneziawgnetSocksConflict(inbound, ignoreId, newBits)
+		conflict, err := checkAmneziawgnetSocksConflict(db, inbound, ignoreId, newBits)
 		if err != nil {
 			return nil, err
 		}
@@ -244,9 +244,11 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 // relay inbound (see injectAmneziawgnetSocks). ignoreId excludes one inbound
 // id from the AmneziaWG candidates, the same way the general DB-backed
 // conflict query above excludes the inbound being edited from matching
-// itself.
-func (s *InboundService) checkAmneziawgnetSocksConflict(inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
-	db := database.GetDB()
+// itself. Takes db rather than fetching its own handle so it runs inside the
+// same serialized transaction as the rest of checkPortConflictTx (#6225) --
+// otherwise two concurrent AmneziaWG creates could both pass this check
+// before either row commits.
+func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
 	var candidates []*model.Inbound
 	q := db.Model(model.Inbound{}).Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true)
 	if ignoreId > 0 {
