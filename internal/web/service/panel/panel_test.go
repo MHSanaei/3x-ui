@@ -51,6 +51,24 @@ func TestShellQuote(t *testing.T) {
 	}
 }
 
+// TestUpdateProxyEnvVarsPrefersAmbientProxy covers the bug this function
+// fixes: an ambient proxy env var must reach update.sh's own downloads too,
+// not just the panel's own outbound requests. Clears all 6 candidate names
+// first so the result doesn't depend on whatever happens to be set in the
+// environment actually running this test.
+func TestUpdateProxyEnvVarsPrefersAmbientProxy(t *testing.T) {
+	for _, key := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("https_proxy", "socks5://127.0.0.1:10808")
+
+	got := updateProxyEnvVars()
+	want := []string{"https_proxy=socks5://127.0.0.1:10808", "all_proxy=socks5://127.0.0.1:10808"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("updateProxyEnvVars() = %v, want %v", got, want)
+	}
+}
+
 func TestExtractReleaseCommit(t *testing.T) {
 	full := "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 	cases := []struct {
