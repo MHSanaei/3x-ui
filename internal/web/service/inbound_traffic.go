@@ -21,6 +21,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// A client with a renewal day set auto-renews too, so it must not read as
+// depleted — otherwise the operator's purge deletes it between cycles (#6239).
+const depletedClientsClause = "reset = 0 and reset_day = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
 	var disabledNodeIDs []int
 	err = submitTrafficWrite(func() error {
@@ -835,7 +839,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		// Collect depleted emails globally — a shared-email row owned by one
 		// inbound depletes every sibling that lists the email.
 		now := time.Now().Unix() * 1000
-		depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+		depletedClause := depletedClientsClause
 		var depletedRows []xray.ClientTraffic
 		if err := tx.Model(xray.ClientTraffic{}).
 			Where(depletedClause, now).

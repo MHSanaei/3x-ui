@@ -5,19 +5,15 @@ import (
 	"strings"
 )
 
-// ipLimitAllowlist holds the operator's trusted addresses and networks. An IP
-// that matches is neither counted towards a client's IP limit nor banned:
-// counting it would still cut the office or campus NAT the entry exists to
-// protect, which is the whole point of the setting (#5378).
+// An address that matches is neither counted towards a client's IP limit nor
+// banned: counting it would still cut the shared network it protects (#5378).
 type ipLimitAllowlist struct {
 	prefixes []netip.Prefix
 	addrs    []netip.Addr
 }
 
-// parseIpLimitAllowlist reads the comma-separated form the settings validator
-// enforces, each entry either a CIDR or a bare address. Entries that do not
-// parse are skipped rather than failing the scan: the validator rejects them on
-// save, so anything reaching here is either valid or a hand-edited database.
+// Comma-separated, each entry a CIDR or a bare address. Unparseable entries are
+// skipped: the validator uses these same rules, so only a hand-edited DB differs.
 func parseIpLimitAllowlist(raw string) ipLimitAllowlist {
 	var list ipLimitAllowlist
 	for _, field := range strings.Split(raw, ",") {
@@ -26,6 +22,13 @@ func parseIpLimitAllowlist(raw string) ipLimitAllowlist {
 			continue
 		}
 		if prefix, err := netip.ParsePrefix(field); err == nil {
+			// Unmapped: contains() unmaps the queried address, and Prefix.Contains
+			// is false whenever the bit lengths disagree.
+			if addr := prefix.Addr(); addr.Is4In6() {
+				if p4, perr := addr.Unmap().Prefix(prefix.Bits() - 96); perr == nil {
+					prefix = p4
+				}
+			}
 			list.prefixes = append(list.prefixes, prefix.Masked())
 			continue
 		}

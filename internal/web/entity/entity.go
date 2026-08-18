@@ -5,6 +5,7 @@ import (
 	"math"
 	"net"
 	"net/mail"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -153,6 +154,24 @@ func pathHasForbiddenChar(s string) bool {
 	return false
 }
 
+// CheckNetipAddrOrPrefixList mirrors parseIpLimitAllowlist exactly: net and netip
+// disagree (net accepts "/024", netip does not), so save and scan must share rules.
+func CheckNetipAddrOrPrefixList(list, message string) error {
+	for entry := range strings.SplitSeq(list, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if _, err := netip.ParseAddr(entry); err == nil {
+			continue
+		}
+		if _, err := netip.ParsePrefix(entry); err != nil {
+			return common.NewError(message, entry)
+		}
+	}
+	return nil
+}
+
 // checkIPOrCIDRList rejects the first comma-separated entry that is neither a
 // bare address nor a CIDR, naming it with the caller's message.
 func checkIPOrCIDRList(list, message string) error {
@@ -259,7 +278,7 @@ func (s *AllSetting) CheckValid() error {
 
 	// Rejected here rather than skipped at scan time: a typo in an allowlist
 	// entry silently leaves the address unprotected until a trusted network gets banned.
-	if err := checkIPOrCIDRList(s.IpLimitAllowlist, "IP limit allowlist entry is not valid:"); err != nil {
+	if err := CheckNetipAddrOrPrefixList(s.IpLimitAllowlist, "IP limit allowlist entry is not valid:"); err != nil {
 		return err
 	}
 

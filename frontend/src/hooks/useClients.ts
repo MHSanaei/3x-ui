@@ -539,6 +539,8 @@ export function useClients(options: UseClientsOptions = {}) {
       limitHwid: base.limitHwid || 0,
       tgId: Number(base.tgId) || 0,
       reset: Number(base.reset) || 0,
+      resetDay: Number(base.resetDay) || 0,
+      resetMax: Number(base.resetMax) || 0,
       group: base.group || '',
       comment: base.comment || '',
       enable: !!enable,
