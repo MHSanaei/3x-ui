@@ -267,8 +267,8 @@
       "accessDirect": "DIRECT",
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
-      "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettings": "このマシンの設定を保持する",
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",

@@ -267,8 +267,8 @@
       "accessDirect": "DIRECT",
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
-      "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettings": "保留本机设置",
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。"
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",

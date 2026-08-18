@@ -267,8 +267,8 @@
       "accessDirect": "DIRECT",
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
-      "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettings": "الاحتفاظ بإعدادات هذا الجهاز",
+      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع."
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",

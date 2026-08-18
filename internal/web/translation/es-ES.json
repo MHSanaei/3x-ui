@@ -267,8 +267,8 @@
       "accessDirect": "DIRECT",
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
-      "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettings": "Mantener la configuración de esta máquina",
+      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido."
     },
     "inbounds": {
       "totalDownUp": "Subidas/Descargas Totales",
