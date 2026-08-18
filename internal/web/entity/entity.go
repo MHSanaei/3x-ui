@@ -153,6 +153,24 @@ func pathHasForbiddenChar(s string) bool {
 	return false
 }
 
+// checkIPOrCIDRList rejects the first comma-separated entry that is neither a
+// bare address nor a CIDR, naming it with the caller's message.
+func checkIPOrCIDRList(list, message string) error {
+	for entry := range strings.SplitSeq(list, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if ip := net.ParseIP(entry); ip != nil {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(entry); err != nil {
+			return common.NewError(message, entry)
+		}
+	}
+	return nil
+}
+
 func (s *AllSetting) CheckValid() error {
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
@@ -235,33 +253,14 @@ func (s *AllSetting) CheckValid() error {
 		s.SubClashPath += "/"
 	}
 
-	for cidr := range strings.SplitSeq(s.TrustedProxyCIDRs, ",") {
-		cidr = strings.TrimSpace(cidr)
-		if cidr == "" {
-			continue
-		}
-		if ip := net.ParseIP(cidr); ip != nil {
-			continue
-		}
-		if _, _, err := net.ParseCIDR(cidr); err != nil {
-			return common.NewError("trusted proxy CIDR is not valid:", cidr)
-		}
+	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {
+		return err
 	}
 
 	// Rejected here rather than skipped at scan time: a typo in an allowlist
-	// entry silently leaves the address unprotected, and the operator would
-	// only find out when a trusted network gets banned.
-	for entry := range strings.SplitSeq(s.IpLimitAllowlist, ",") {
-		entry = strings.TrimSpace(entry)
-		if entry == "" {
-			continue
-		}
-		if ip := net.ParseIP(entry); ip != nil {
-			continue
-		}
-		if _, _, err := net.ParseCIDR(entry); err != nil {
-			return common.NewError("IP limit allowlist entry is not valid:", entry)
-		}
+	// entry silently leaves the address unprotected until a trusted network gets banned.
+	if err := checkIPOrCIDRList(s.IpLimitAllowlist, "IP limit allowlist entry is not valid:"); err != nil {
+		return err
 	}
 
 	_, err := time.LoadLocation(s.TimeLocation)

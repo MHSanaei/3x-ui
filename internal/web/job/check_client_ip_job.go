@@ -63,14 +63,18 @@ func (j *CheckClientIpJob) Run() {
 		return
 	}
 
-	j.allowlist = j.loadAllowlist()
-
 	hasLimit := j.hasLimitIp()
 	f2bInstalled := false
 	if hasLimit {
 		f2bInstalled = j.checkFail2BanInstalled()
 	}
-	j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
+	// Read only when the limit is actually applied: this runs every 10s and
+	// most panels carry no IP limit at all.
+	enforce := j.resolveEnforce(hasLimit, f2bInstalled)
+	if enforce {
+		j.allowlist = j.loadAllowlist()
+	}
+	j.processObserved(observed, enforce, true)
 }
 
 // resolveEnforce decides whether limits can actually be enforced this run.
