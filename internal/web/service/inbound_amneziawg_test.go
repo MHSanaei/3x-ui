@@ -52,7 +52,7 @@ func TestCheckForwardedPortsConflict_CollidesWithEnabledInboundPort(t *testing.T
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
-	hit := svc.checkForwardedPortsConflict(ctx, "8000-8100")
+	hit := svc.checkForwardedPortsConflict(ctx, "8075-8085")
 	if !strings.Contains(hit, "vless-8080") {
 		t.Fatalf("expected a collision naming the colliding inbound, got %q", hit)
 	}
@@ -84,7 +84,7 @@ func TestCheckForwardedPortsConflict_NoCollisionWhenPortsDontOverlap(t *testing.
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
-	if hit := svc.checkForwardedPortsConflict(ctx, "9000-9100"); hit != "" {
+	if hit := svc.checkForwardedPortsConflict(ctx, "9075-9085"); hit != "" {
 		t.Fatalf("unrelated ports must not conflict; got hit=%q", hit)
 	}
 }
