@@ -248,18 +248,23 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
 	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
 	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
+	proxyEnv := updateProxyEnvVars()
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
 		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
-		cmd := exec.CommandContext(context.Background(), systemdRun,
+		args := []string{
 			"--unit", unitName,
-			"--setenv", "XUI_MAIN_FOLDER="+mainFolder,
-			"--setenv", "XUI_SERVICE="+serviceFolder,
-			"--setenv", "XUI_UPDATE_TAG="+updateTag,
+			"--setenv", "XUI_MAIN_FOLDER=" + mainFolder,
+			"--setenv", "XUI_SERVICE=" + serviceFolder,
+			"--setenv", "XUI_UPDATE_TAG=" + updateTag,
 			"--setenv", runIDEnv,
 			"--setenv", statusFileEnv,
-			bash, "-lc", updateScript,
-		)
+		}
+		for _, kv := range proxyEnv {
+			args = append(args, "--setenv", kv)
+		}
+		args = append(args, bash, "-lc", updateScript)
+		cmd := exec.CommandContext(context.Background(), systemdRun, args...)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			output := strings.TrimSpace(string(out))
@@ -284,6 +289,7 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 		runIDEnv,
 		statusFileEnv,
 	)
+	cmd.Env = append(cmd.Env, proxyEnv...)
 	setDetachedProcess(cmd)
 	if err := cmd.Start(); err != nil {
 		_ = os.Remove(scriptPath)
@@ -296,6 +302,46 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	recordUpdatePID(cmd.Process.Pid)
 	launched = true
 	return runID, nil
+}
+
+// updateProxyEnvVars resolves the proxy update.sh's own curl calls should
+// use, as "key=value" strings ready for cmd.Env or a --setenv flag. This is
+// a separate hop from downloadPanelUpdater's NewProxiedHTTPClient call just
+// above it in this file -- that fetches update.sh itself, already proxy-aware;
+// this covers update.sh's *own* subsequent downloads once it's running as
+// its own detached process. curl already honors https_proxy/all_proxy
+// natively, so no changes to update.sh itself are needed.
+//
+// An already-set ambient proxy (any of the standard lower/upper-case
+// env-var spellings curl itself checks) always wins -- an admin's own proxy
+// config should never be silently overridden. Only when none is set does
+// this fall back to the panel's own configured panel outbound, if any.
+// Returns nil (no override) when neither applies, so both call sites stay
+// no-ops on an ordinary direct-connection install.
+//
+// The two launch paths need this differently: the bash -lc fallback already
+// inherits the ambient environment via os.Environ(), so it only strictly
+// needs the panel-outbound-derived fallback appended; systemd-run does NOT
+// inherit the caller's environment at all (only --setenv passes through),
+// so without this, a systemd host with a real ambient proxy would silently
+// lose it for this one hop even without a panel outbound in the picture.
+// Returning the resolved value unconditionally keeps both call sites
+// identical rather than needing to special-case which path is asking.
+func updateProxyEnvVars() []string {
+	var proxyURL string
+	for _, key := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY"} {
+		if v := os.Getenv(key); v != "" {
+			proxyURL = v
+			break
+		}
+	}
+	if proxyURL == "" {
+		proxyURL = (&service.SettingService{}).PanelEgressProxyURL()
+	}
+	if proxyURL == "" {
+		return nil
+	}
+	return []string{"https_proxy=" + proxyURL, "all_proxy=" + proxyURL}
 }
 
 // acquireUpdateSlot claims the single in-flight-update slot for runID. It
