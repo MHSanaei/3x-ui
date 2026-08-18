@@ -112,7 +112,8 @@
     "docs": "مستندات",
     "openMenu": "باز کردن منو",
     "pinSidebar": "ثابت کردن نوار کناری",
-    "unpinSidebar": "برداشتن تثبیت نوار کناری"
+    "unpinSidebar": "برداشتن تثبیت نوار کناری",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — بحرانی",
       "panel": "پنل",
       "threads": "نخ‌ها",
-      "uptime": "مدت کارکرد"
+      "uptime": "مدت کارکرد",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",
@@ -860,7 +871,10 @@
         "delOrphans": "{count} کلاینت بدون اینباند حذف شد",
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
-      }
+      },
+      "renewMax": "حداکثر تعداد تمدید",
+      "renewMaxDesc": "تمدید خودکار حداکثر چند بار اجرا شود پیش از آنکه کلاینت منقضی بماند. مقدار ۰ یعنی بدون محدودیت. جبران چند دورهٔ ازدست‌رفته، برای هر دوره یک تمدید مصرف می‌کند.",
+      "renewsUsed": "تمدیدهای استفاده‌شده"
     },
     "groups": {
       "name": "نام",
@@ -1353,6 +1367,8 @@
       },
       "secretClear": "پاک کردن",
       "secretClearUndo": "لغو پاک کردن",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },

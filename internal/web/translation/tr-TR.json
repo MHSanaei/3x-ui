@@ -112,7 +112,8 @@
     "docs": "Belgeler",
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
-    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır"
+    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — kritik",
       "panel": "Panel",
       "threads": "İş parçacıkları",
-      "uptime": "Çalışma süresi"
+      "uptime": "Çalışma süresi",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "Toplam Gönderilen/Alınan",
@@ -860,7 +871,10 @@
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
         "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
-      }
+      },
+      "renewMax": "En fazla yenileme",
+      "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
+      "renewsUsed": "Kullanılan yenileme"
     },
     "groups": {
       "name": "İsim",
@@ -1353,6 +1367,8 @@
       },
       "secretClear": "Temizle",
       "secretClearUndo": "Temizlemeyi geri al",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },

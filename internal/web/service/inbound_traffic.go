@@ -334,6 +334,9 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// local inbounds. The email-based join through client_inbounds is authoritative.
 	err = tx.Model(xray.ClientTraffic{}).
 		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
+		// A prepaid plan stops itself: once as many renewals have fired as the
+		// operator allowed, the client is left to expire like any other.
+		Where("reset_max <= 0 or reset_count < reset_max").
 		Where("email IN (?)", tx.Table("client_inbounds ci").
 			Select("c.email").
 			Joins("JOIN clients c ON c.id = ci.client_id").
@@ -411,12 +414,29 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if !ok {
 				continue
 			}
+			// One allowance per period, not per tick: a client away for three
+			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime := traffic.ExpiryTime
+			renewals := 0
 			for newExpiryTime < now {
+				if traffic.ResetMax > 0 && traffic.ResetCount+renewals >= traffic.ResetMax {
+					break
+				}
 				newExpiryTime += (int64(traffic.Reset) * 86400000)
+				renewals++
+			}
+			if renewals == 0 {
+				continue
 			}
 			c["expiryTime"] = newExpiryTime
 			traffic.ExpiryTime = newExpiryTime
+			traffic.ResetCount += renewals
+			if newExpiryTime <= now {
+				// Cap ran out mid-catch-up and the client is still expired: enabling it
+				// for disableInvalidClients to undo adds and removes an xray user for nothing.
+				clients[client_index] = any(c)
+				continue
+			}
 			traffic.Down = 0
 			traffic.Up = 0
 			if !traffic.Enable {
@@ -508,10 +528,11 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 		ExpiryTime: client.ExpiryTime,
 		Enable:     client.Enable,
 		Reset:      client.Reset,
+		ResetMax:   client.ResetMax,
 	}
 	return tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
-		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset"}),
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset", "reset_max"}),
 	}).Create(&clientTraffic).Error
 }
 
@@ -524,6 +545,7 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset,
+			"reset_max":   client.ResetMax,
 		})
 	err := result.Error
 	return err

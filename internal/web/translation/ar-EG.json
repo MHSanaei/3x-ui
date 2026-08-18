@@ -112,7 +112,8 @@
     "docs": "التوثيق",
     "openMenu": "فتح القائمة",
     "pinSidebar": "تثبيت الشريط الجانبي",
-    "unpinSidebar": "إلغاء تثبيت الشريط الجانبي"
+    "unpinSidebar": "إلغاء تثبيت الشريط الجانبي",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — حرج",
       "panel": "اللوحة",
       "threads": "الخيوط",
-      "uptime": "مدة التشغيل"
+      "uptime": "مدة التشغيل",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",
@@ -860,7 +871,10 @@
         "delOrphans": "تم حذف {count} عميل غير مرتبط",
         "imported": "تم استيراد {count} عميل",
         "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
-      }
+      },
+      "renewMax": "الحد الأقصى للتجديدات",
+      "renewMaxDesc": "عدد المرات التي يمكن أن يعمل فيها التجديد التلقائي قبل ترك العميل ينتهي. القيمة 0 تعني بلا حد. تعويض عدة فترات فائتة يستهلك تجديدًا واحدًا لكل فترة.",
+      "renewsUsed": "التجديدات المستخدمة"
     },
     "groups": {
       "name": "الاسم",
@@ -1353,6 +1367,8 @@
       },
       "secretClear": "مسح",
       "secretClearUndo": "تراجع عن المسح",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },

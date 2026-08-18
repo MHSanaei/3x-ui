@@ -112,7 +112,8 @@
     "docs": "Documentation",
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
-    "unpinSidebar": "Unpin sidebar"
+    "unpinSidebar": "Unpin sidebar",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — critical",
       "panel": "Panel",
       "threads": "Threads",
-      "uptime": "Uptime"
+      "uptime": "Uptime",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "Total Sent/Received",
@@ -860,7 +871,10 @@
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
         "importedMixed": "{ok} imported, {failed} skipped"
-      }
+      },
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
+      "renewsUsed": "Renewals used"
     },
     "groups": {
       "name": "Name",
@@ -1470,6 +1484,8 @@
       },
       "secretClear": "Clear",
       "secretClearUndo": "Undo clear",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },

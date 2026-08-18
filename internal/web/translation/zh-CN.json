@@ -112,7 +112,8 @@
     "docs": "文档",
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
-    "unpinSidebar": "取消固定侧边栏"
+    "unpinSidebar": "取消固定侧边栏",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — 危险",
       "panel": "面板",
       "threads": "线程",
-      "uptime": "运行时间"
+      "uptime": "运行时间",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",
@@ -860,7 +871,10 @@
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
         "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
-      }
+      },
+      "renewMax": "最大续期次数",
+      "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
+      "renewsUsed": "已用续期次数"
     },
     "groups": {
       "name": "名称",
@@ -1353,6 +1367,8 @@
       },
       "secretClear": "清除",
       "secretClearUndo": "撤销清除",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },

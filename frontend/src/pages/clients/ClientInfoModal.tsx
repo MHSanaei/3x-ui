@@ -325,6 +325,16 @@ export default function ClientInfoModal({
                     </Button>
                   </td>
                 </tr>
+                {(traffic?.resetMax ?? 0) > 0 && (
+                  <tr>
+                    <td>{t('pages.clients.renewsUsed')}</td>
+                    <td>
+                      <Tag color={(traffic?.resetCount ?? 0) >= (traffic?.resetMax ?? 0) ? 'red' : 'blue'}>
+                        {traffic?.resetCount ?? 0} / {traffic?.resetMax}
+                      </Tag>
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td>{t('pages.inbounds.createdAt')}</td>
                   <td><Tag>{dateLabel(client.createdAt)}</Tag></td>

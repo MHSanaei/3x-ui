@@ -34,10 +34,6 @@ interface GeneralTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-const DATEPICKER_LIST: { name: string; value: 'gregorian' | 'jalalian' }[] = [
-  { name: 'Gregorian (Standard)', value: 'gregorian' },
-  { name: 'Jalalian (شمسی)', value: 'jalalian' },
-];
 
 export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProps) {
   const { t } = useTranslation();
@@ -302,7 +298,10 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 value={allSetting.datepicker || 'gregorian'}
                 onChange={(v) => updateSetting({ datepicker: v as 'gregorian' | 'jalalian' })}
                 style={{ width: '100%' }}
-                options={DATEPICKER_LIST.map((d) => ({ value: d.value, label: d.name }))}
+                options={[
+                  { value: 'gregorian', label: t('pages.settings.calendarGregorian') },
+                  { value: 'jalalian', label: t('pages.settings.calendarJalalian') },
+                ]}
               />
             </SettingListItem>
           </>
