@@ -894,6 +894,7 @@ type Client struct {
 	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
 	Comment      string         `json:"comment" form:"comment"`       // Client comment
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
+	ResetDay     int            `json:"resetDay" form:"resetDay"`     // Calendar renewal day 1-31, 0 = interval mode
 	ResetMax     int            `json:"resetMax" form:"resetMax"`     // Max auto-renew count, 0 = unlimited
 	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
@@ -925,6 +926,7 @@ type ClientRecord struct {
 	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
 	Comment      string `json:"comment"`
 	Reset        int    `json:"reset" gorm:"default:0"`
+	ResetDay     int    `json:"resetDay" gorm:"column:reset_day;default:0"`
 	ResetMax     int    `json:"resetMax" gorm:"column:reset_max;default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
@@ -1107,6 +1109,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		Group:      c.Group,
 		Comment:    c.Comment,
 		Reset:      c.Reset,
+		ResetDay:   c.ResetDay,
 		ResetMax:   c.ResetMax,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
@@ -1161,6 +1164,7 @@ func (r *ClientRecord) ToClient() *Client {
 		Group:      r.Group,
 		Comment:    r.Comment,
 		Reset:      r.Reset,
+		ResetDay:   r.ResetDay,
 		ResetMax:   r.ResetMax,
 		CreatedAt:  r.CreatedAt,
 		UpdatedAt:  r.UpdatedAt,
@@ -1308,6 +1312,12 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Reset == 0 {
 			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
 			existing.Reset = incoming.Reset
+		}
+	}
+	if existing.ResetDay != incoming.ResetDay && incoming.ResetDay != 0 {
+		if incomingNewer || existing.ResetDay == 0 {
+			keep("resetDay", existing.ResetDay, incoming.ResetDay, incoming.ResetDay)
+			existing.ResetDay = incoming.ResetDay
 		}
 	}
 	if existing.ResetMax != incoming.ResetMax && incoming.ResetMax != 0 {

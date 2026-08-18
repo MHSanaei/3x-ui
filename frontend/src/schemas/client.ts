@@ -33,6 +33,7 @@ export const ClientRecordSchema = z.object({
   comment: z.string().optional(),
   enable: z.boolean().optional(),
   reset: z.number().optional(),
+  resetDay: z.number().optional(),
   resetMax: z.number().optional(),
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
@@ -208,6 +209,7 @@ export const ClientFormSchema = z.object({
   delayedStart: z.boolean(),
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
+  resetDay: z.number().int().min(0).max(31),
   resetMax: z.number().int().min(0),
   limitIp: z.number().int().min(0),
   limitHwid: z.number().int().min(0),
@@ -248,6 +250,7 @@ export const ClientBulkAddFormSchema = z.object({
   totalGB: z.number().min(0),
   expiryTime: z.number(),
   reset: z.number().int().min(0),
+  resetDay: z.number().int().min(0).max(31),
   resetMax: z.number().int().min(0),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });

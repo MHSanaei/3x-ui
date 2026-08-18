@@ -43,6 +43,15 @@ func validateClientSubID(subID string) error {
 	return nil
 }
 
+// Rejected rather than clamped: nextCalendarRenewal would silently move an
+// out-of-range day, and a negative one drops out of the renewal query entirely.
+func validateClientResetDay(day int) error {
+	if day < 0 || day > 31 {
+		return common.NewError("client resetDay must be between 0 and 31, got:", day)
+	}
+	return nil
+}
+
 // Rejected rather than coerced: a negative cap reads as "unlimited" to a caller
 // but selects nothing, so the client would silently stop renewing.
 func validateClientResetMax(resetMax int) error {
@@ -64,6 +73,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	if err := validateClientSubID(client.SubID); err != nil {
+		return false, err
+	}
+	if err := validateClientResetDay(client.ResetDay); err != nil {
 		return false, err
 	}
 	if err := validateClientResetMax(client.ResetMax); err != nil {
@@ -356,6 +368,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
+	if err := validateClientResetDay(updated.ResetDay); err != nil {
+		return false, err
+	}
 	if err := validateClientResetMax(updated.ResetMax); err != nil {
 		return false, err
 	}
@@ -481,6 +496,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"tg_id":             merged.TgID,
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
+				"reset_day":         merged.ResetDay,
 				"reset_max":         merged.ResetMax,
 			}).Error; err != nil {
 			return needRestart, err

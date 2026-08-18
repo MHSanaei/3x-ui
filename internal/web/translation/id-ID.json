@@ -874,6 +874,8 @@
       },
       "renewMax": "Maksimum perpanjangan",
       "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
+      "renewOnDay": "Perpanjang pada tanggal",
+      "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
       "renewsUsed": "Perpanjangan terpakai"
     },
     "groups": {
@@ -1886,6 +1888,7 @@
         "descEXPIRE_UNIX": "Kedaluwarsa sebagai timestamp Unix (detik)",
         "descCREATED_UNIX": "Waktu pembuatan sebagai timestamp Unix (detik)",
         "descRESET_DAYS": "Periode reset trafik dalam hari",
+        "descRESET_DAY": "Tanggal perpanjangan setiap bulan",
         "descPROTOCOL": "Protokol inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Jaringan transport (tcp, ws, grpc, …)",
         "descSECURITY": "Keamanan transport (TLS, REALITY, NONE)"

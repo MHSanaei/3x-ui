@@ -874,6 +874,8 @@
       },
       "renewMax": "最大更新回数",
       "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
+      "renewOnDay": "更新する日",
+      "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
       "renewsUsed": "使用済み更新回数"
     },
     "groups": {
@@ -1886,6 +1888,7 @@
         "descEXPIRE_UNIX": "有効期限の Unix タイムスタンプ（秒）",
         "descCREATED_UNIX": "作成時刻の Unix タイムスタンプ（秒）",
         "descRESET_DAYS": "トラフィックリセット周期（日数）",
+        "descRESET_DAY": "毎月の更新日",
         "descPROTOCOL": "インバウンドのプロトコル（VLESS、VMess、Trojan など）",
         "descTRANSPORT": "トランスポートネットワーク（tcp、ws、grpc など）",
         "descSECURITY": "トランスポートのセキュリティ（TLS、REALITY、NONE）"

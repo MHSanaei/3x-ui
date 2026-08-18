@@ -874,6 +874,8 @@
       },
       "renewMax": "En fazla yenileme",
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
+      "renewOnDay": "Yenileme günü",
+      "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
       "renewsUsed": "Kullanılan yenileme"
     },
     "groups": {
@@ -1886,6 +1888,7 @@
         "descEXPIRE_UNIX": "Son kullanma Unix zaman damgası olarak (saniye)",
         "descCREATED_UNIX": "Oluşturulma zamanı Unix zaman damgası olarak (saniye)",
         "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)",
+        "descRESET_DAY": "Takvime göre yenileme günü",
         "descPROTOCOL": "Gelen bağlantı protokolü (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Taşıma ağı (tcp, ws, grpc, …)",
         "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)"

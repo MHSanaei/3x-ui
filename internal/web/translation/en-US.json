@@ -874,6 +874,8 @@
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
+      "renewOnDay": "Renew on day",
+      "renewOnDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode.",
       "renewsUsed": "Renewals used"
     },
     "groups": {
@@ -1020,6 +1022,7 @@
         "descEXPIRE_UNIX": "Expiry as a Unix timestamp (seconds)",
         "descCREATED_UNIX": "Creation time as a Unix timestamp (seconds)",
         "descRESET_DAYS": "Traffic reset period in days",
+        "descRESET_DAY": "Calendar renewal day of the month",
         "descPROTOCOL": "Inbound protocol (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Transport network (tcp, ws, grpc, …)",
         "descSECURITY": "Transport security (TLS, REALITY, NONE)"

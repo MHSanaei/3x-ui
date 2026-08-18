@@ -268,6 +268,7 @@ export interface Client {
   privateKey?: string;
   publicKey?: string;
   reset: number;
+  resetDay: number;
   resetMax: number;
   reverse?: ClientReverse | null;
   secret?: string;
@@ -305,6 +306,7 @@ export interface ClientRecord {
   privateKey: string;
   publicKey: string;
   reset: number;
+  resetDay: number;
   resetMax: number;
   reverse: unknown;
   secret: string;
@@ -331,6 +333,7 @@ export interface ClientTraffic {
   lastSubFetch: number;
   reset: number;
   resetCount: number;
+  resetDay: number;
   resetMax: number;
   subId: string;
   total: number;

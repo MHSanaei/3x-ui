@@ -237,7 +237,7 @@ func mergeActivationExpiry(existing, node int64) int64 {
 // nodeClientRenewed reports a node-side auto-renew: an absolute deadline moved
 // forward while the node's cumulative counter fell below the stored baseline.
 func nodeClientRenewed(existing *xray.ClientTraffic, cs xray.ClientTraffic, canon, base nodeTrafficCounter) bool {
-	if cs.Reset <= 0 || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
+	if (cs.Reset <= 0 && cs.ResetDay <= 0) || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
 		return false
 	}
 	if cs.ExpiryTime <= existing.ExpiryTime {
@@ -844,6 +844,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					Total:      cs.Total,
 					ExpiryTime: cs.ExpiryTime,
 					Reset:      cs.Reset,
+					ResetDay:   cs.ResetDay,
 					Up:         seedUp,
 					Down:       seedDown,
 					LastOnline: cs.LastOnline,
@@ -879,12 +880,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = ?, down = ?, enable = ?, total = ?,
-						     expiry_time = ?, reset = ?, last_online = %s
+						     expiry_time = ?, reset = ?, reset_day = ?, last_online = %s
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
 					),
 					canon.Up, canon.Down, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.Reset,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
@@ -906,7 +907,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						`UPDATE client_traffics
 						 SET up = %s, down = %s, enable = %s, total = ?,
 						     expiry_time = CASE WHEN expiry_time > 0 AND CAST(? AS BIGINT) <= 0 THEN expiry_time ELSE CAST(? AS BIGINT) END,
-						     reset = ?, last_online = %s
+						     reset = ?, reset_day = ?, last_online = %s
 						 WHERE email = ?`,
 						database.ClampedAddExpr("up"),
 						database.ClampedAddExpr("down"),
@@ -914,7 +915,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						database.GreatestExpr("last_online", "?"),
 					),
 					deltaUp, deltaDown, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
+					cs.ExpiryTime, cs.ExpiryTime, cs.Reset, cs.ResetDay,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
