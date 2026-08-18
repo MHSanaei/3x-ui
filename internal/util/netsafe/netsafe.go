@@ -64,7 +64,7 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 	// refusal is reported alongside instead of being lost to the last failure.
 	if blockedErr != nil {
 		if lastErr != nil {
-			return nil, fmt.Errorf("%w; %v", blockedErr, lastErr)
+			return nil, fmt.Errorf("%w; %w", blockedErr, lastErr)
 		}
 		return nil, blockedErr
 	}
