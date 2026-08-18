@@ -822,21 +822,8 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	return nil
 }
 
-// Remote Clash sources are intentionally stricter than the legacy inline
-// editor. They may update only the route graph and must never replace the
-// subscription's panel-generated proxy nodes or client-local DNS/listener/TUN
-// settings. Some standalone templates also contain manual proxy providers;
-// those are deliberately ignored in generated subscriptions.
-func mergeRemoteClashRulesYAML(base map[string]any, raw string) error {
-	var remote map[string]any
-	if err := yaml.Unmarshal([]byte(strings.TrimSpace(raw)), &remote); err != nil {
-		return err
-	}
-	return mergeRemoteClashRules(base, remote)
-}
-
-// mergeRemoteClashRules treats remote as immutable. Cached documents can
-// therefore be reused concurrently without reparsing YAML on every request.
+// mergeRemoteClashRules lets remote update only the route graph (see
+// remoteClashAllowedKey) and never mutates remote: cached documents are shared.
 func mergeRemoteClashRules(base map[string]any, remote map[string]any) error {
 	if len(remote) == 0 {
 		return fmt.Errorf("remote Clash routing source must be a YAML map")
@@ -1016,7 +1003,8 @@ func validateClashRouteGraph(config map[string]any) error {
 			}
 		}
 		targetIndex := len(parts) - 1
-		if strings.EqualFold(parts[targetIndex], "no-resolve") {
+		// Mihomo IP rules may carry trailing no-resolve / src option flags.
+		for targetIndex >= 1 && (strings.EqualFold(parts[targetIndex], "no-resolve") || strings.EqualFold(parts[targetIndex], "src")) {
 			targetIndex--
 		}
 		if targetIndex < 1 {

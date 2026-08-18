@@ -14,9 +14,18 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	yaml "github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 )
+
+func mergeRemoteClashRulesYAML(base map[string]any, raw string) error {
+	var remote map[string]any
+	if err := yaml.Unmarshal([]byte(strings.TrimSpace(raw)), &remote); err != nil {
+		return err
+	}
+	return mergeRemoteClashRules(base, remote)
+}
 
 type remoteRoutingRoundTripper func(*http.Request) (*http.Response, error)
 
@@ -80,31 +89,6 @@ func primeRemoteRouting(t *testing.T, resolver *remoteRoutingResolver, kind remo
 		t.Fatalf("primed resolve got=%q remote=%v err=%v", value, remote, err)
 	}
 	return value
-}
-
-func TestParseRemoteRoutingURLKeepsInlineCompatibility(t *testing.T) {
-	tests := []struct {
-		name       string
-		input      string
-		wantSource string
-		wantRemote bool
-		wantErr    bool
-	}{
-		{name: "deeplink stays inline", input: "happ://routing/onadd/abc"},
-		{name: "plain HTTP stays inline", input: "http://example.com/rules"},
-		{name: "multiline stays inline", input: "https://example.com/rules\nMATCH,PROXY"},
-		{name: "HTTPS source", input: "  https://example.com/rules#ignored  ", wantSource: "https://example.com/rules", wantRemote: true},
-		{name: "credentials rejected", input: "https://user:pass@example.com/rules", wantRemote: true, wantErr: true},
-		{name: "missing host rejected", input: "https:///rules", wantRemote: true, wantErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, remote, err := parseRemoteRoutingURL(tt.input)
-			if got != tt.wantSource || remote != tt.wantRemote || (err != nil) != tt.wantErr {
-				t.Fatalf("got=%q remote=%v err=%v", got, remote, err)
-			}
-		})
-	}
 }
 
 func TestNormalizeHappRoutingAcceptsJSONAndDeeplink(t *testing.T) {
@@ -594,6 +578,19 @@ func TestRemoteRoutingRejectsOversizedHappValues(t *testing.T) {
 	}
 }
 
+func TestRemoteRoutingRefreshTurnsPanicsIntoErrors(t *testing.T) {
+	client := remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		panic("transport exploded")
+	})
+	resolver := newRemoteRoutingResolver(client, false)
+	err := resolver.refreshSource(remoteRoutingHapp, "https://example.com/rules")
+	if err == nil || !strings.Contains(err.Error(), "panicked") {
+		t.Fatalf("err=%v, want the panic converted into an error", err)
+	}
+	// The inflight slot must be released so later refreshes are not wedged.
+	waitRemoteRoutingIdle(t, resolver)
+}
+
 func TestRemoteRoutingHTTPClientRejectsLoopback(t *testing.T) {
 	resolver := newRemoteRoutingResolver(newRemoteRoutingHTTPClient(), false)
 	startedAt := time.Now()
@@ -721,6 +718,7 @@ rules:
   - RULE-SET,video,Video
   - AND,((NETWORK,TCP),(DST-PORT,443)),Video
   - GEOIP,private,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve,src
   - MATCH,Auto
 `
 	var requests atomic.Int32

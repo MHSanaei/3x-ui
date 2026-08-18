@@ -19,13 +19,12 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
 
-// Remote routing sources intentionally reuse the existing settings fields:
-// one absolute HTTPS URL means "load this remotely", while every other value
-// keeps the original inline behaviour. This avoids a second mode toggle that
-// could disagree with the field contents and keeps old databases compatible.
+// Remote sources reuse the existing settings fields (one HTTPS URL = remote,
+// else inline) so no second mode toggle can disagree with the field contents.
 
 type remoteRoutingKind string
 
@@ -92,10 +91,8 @@ func newRemoteRoutingResolver(client *http.Client, persist bool) *remoteRoutingR
 
 var routingSourceResolver = newRemoteRoutingResolver(newRemoteRoutingHTTPClient(), true)
 
-// resolveRoutingSource returns inline values unchanged. A single HTTPS URL is
-// served only from the validated cache; a cold or stale value starts one
-// background refresh without delaying the subscription response. The bool
-// reports whether the input was recognized as a remote source.
+// resolveRoutingSource serves a remote source from the validated cache without
+// ever blocking on network; inline values pass through (bool reports remote).
 func resolveRoutingSource(kind remoteRoutingKind, raw string) (string, bool, error) {
 	return routingSourceResolver.resolve(kind, raw)
 }
@@ -117,7 +114,7 @@ func resolveClashRoutingSource(raw string) (string, map[string]any, bool, error)
 }
 
 func (r *remoteRoutingResolver) resolveEntry(kind remoteRoutingKind, raw string) (remoteRoutingCacheEntry, bool, error) {
-	source, remote, err := parseRemoteRoutingURL(raw)
+	source, remote, err := common.ParseRemoteRoutingURL(raw)
 	if err != nil {
 		return remoteRoutingCacheEntry{}, true, err
 	}
@@ -157,23 +154,21 @@ func (r *remoteRoutingResolver) resolveEntry(kind remoteRoutingKind, raw string)
 	r.inflight[key] = fetch
 	r.mu.Unlock()
 
-	go r.refresh(key, cached, hasCached, fetch)
+	common.GoRecover("remote-routing-refresh", func() { r.refresh(key, cached, hasCached, fetch) })
 	if hasCached {
 		return cached, true, nil
 	}
 	return remoteRoutingCacheEntry{}, true, errRemoteRoutingUnavailable
 }
 
-// RefreshRemoteRoutingSources is used by the panel's background job to warm
-// and periodically refresh configured remote sources. It is safe to call while
-// subscription requests are reading the same resolver; in-flight work is
-// coalesced per source.
+// RefreshRemoteRoutingSources warms and refreshes configured remote sources
+// from the cron job. Concurrent resolver reads are safe; fetches coalesce.
 func RefreshRemoteRoutingSources(happ, clash string) {
 	for kind, raw := range map[remoteRoutingKind]string{
 		remoteRoutingHapp:  happ,
 		remoteRoutingClash: clash,
 	} {
-		_, remote, parseErr := parseRemoteRoutingURL(raw)
+		_, remote, parseErr := common.ParseRemoteRoutingURL(raw)
 		if parseErr != nil {
 			logger.Warningf("Remote %s routing source is invalid", kind)
 			continue
@@ -185,7 +180,7 @@ func RefreshRemoteRoutingSources(happ, clash string) {
 }
 
 func (r *remoteRoutingResolver) refreshSource(kind remoteRoutingKind, raw string) error {
-	source, remote, err := parseRemoteRoutingURL(raw)
+	source, remote, err := common.ParseRemoteRoutingURL(raw)
 	if err != nil || !remote {
 		return err
 	}
@@ -244,7 +239,15 @@ func (r *remoteRoutingResolver) refresh(key remoteRoutingKey, previous remoteRou
 	}
 }
 
-func (r *remoteRoutingResolver) fetch(key remoteRoutingKey, previous remoteRoutingCacheEntry, hasPrevious bool) (remoteRoutingCacheEntry, error) {
+func (r *remoteRoutingResolver) fetch(key remoteRoutingKey, previous remoteRoutingCacheEntry, hasPrevious bool) (entry remoteRoutingCacheEntry, err error) {
+	// Remote bytes reach the YAML/JSON parsers below; a parser panic must
+	// degrade to a failed refresh (keeping last-good), not crash the panel.
+	defer func() {
+		if panicValue := recover(); panicValue != nil {
+			entry, err = remoteRoutingCacheEntry{}, fmt.Errorf("remote routing fetch panicked: %v", panicValue)
+		}
+	}()
+
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, key.source, nil)
 	if err != nil {
 		return remoteRoutingCacheEntry{}, err
@@ -334,27 +337,6 @@ func isRemoteHappRedirect(status int) bool {
 	default:
 		return false
 	}
-}
-
-func parseRemoteRoutingURL(raw string) (string, bool, error) {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" || strings.ContainsAny(trimmed, "\r\n") {
-		return "", false, nil
-	}
-	lower := strings.ToLower(trimmed)
-	if !strings.HasPrefix(lower, "https://") {
-		return "", false, nil
-	}
-	u, err := url.Parse(trimmed)
-	if err != nil || u.Host == "" || u.Hostname() == "" {
-		return "", true, errors.New("remote routing source must be an absolute HTTPS URL")
-	}
-	if u.User != nil {
-		return "", true, errors.New("remote routing source must not contain URL credentials")
-	}
-	u.Scheme = "https"
-	u.Fragment = ""
-	return u.String(), true, nil
 }
 
 func normalizeRemoteRoutingContent(kind remoteRoutingKind, body []byte) (string, map[string]any, error) {
@@ -472,7 +454,7 @@ func normalizeClashRouting(body []byte) (string, map[string]any, error) {
 }
 
 func resolveIncyRoutingSource(raw string) (string, bool, error) {
-	source, remote, err := parseRemoteRoutingURL(raw)
+	source, remote, err := common.ParseRemoteRoutingURL(raw)
 	if err != nil || !remote {
 		return raw, remote, err
 	}
@@ -500,9 +482,8 @@ func checkRemoteRoutingRedirect(req *http.Request, via []*http.Request) error {
 		return errors.New("stopped after 5 redirects")
 	}
 	if strings.EqualFold(req.URL.Scheme, "happ") {
-		// Services such as routing.help publish their deeplink as the final
-		// Location value. Return the 3xx response to fetch(), which validates
-		// the deeplink without attempting a network request for the happ scheme.
+		// routing.help-style services publish the deeplink as the final Location;
+		// hand the 3xx back to fetch(), which validates it without a request.
 		return http.ErrUseLastResponse
 	}
 	if !strings.EqualFold(req.URL.Scheme, "https") || req.URL.Hostname() == "" || req.URL.User != nil {
@@ -558,9 +539,8 @@ func (r *remoteRoutingResolver) ensurePersistedLoaded() {
 	r.mu.Unlock()
 }
 
-// triggerPersistedLoad keeps SQLite work out of the subscription request path.
-// The startup job uses ensurePersistedLoaded synchronously before refreshing;
-// requests only schedule at most one best-effort background load.
+// triggerPersistedLoad keeps SQLite off the subscription request path: requests
+// schedule at most one background load; the startup job loads synchronously.
 func (r *remoteRoutingResolver) triggerPersistedLoad() {
 	if !r.persist {
 		return
@@ -573,14 +553,14 @@ func (r *remoteRoutingResolver) triggerPersistedLoad() {
 	r.loadInFlight = true
 	r.mu.Unlock()
 
-	go func() {
+	common.GoRecover("remote-routing-cache-load", func() {
 		defer func() {
 			r.mu.Lock()
 			r.loadInFlight = false
 			r.mu.Unlock()
 		}()
 		r.ensurePersistedLoaded()
-	}()
+	})
 }
 
 func (r *remoteRoutingResolver) loadPersisted() {
@@ -595,7 +575,7 @@ func (r *remoteRoutingResolver) loadPersisted() {
 		if json.Unmarshal([]byte(setting.Value), &entry) != nil || entry.Source == "" || entry.Content == "" || entry.FetchedAt <= 0 {
 			continue
 		}
-		if _, remote, err := parseRemoteRoutingURL(entry.Source); err != nil || !remote {
+		if _, remote, err := common.ParseRemoteRoutingURL(entry.Source); err != nil || !remote {
 			continue
 		}
 		normalized, clash, err := normalizeRemoteRoutingContent(kind, []byte(entry.Content))

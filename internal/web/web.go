@@ -348,7 +348,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	// latency-sensitive subscription request path.
 	remoteRoutingJob := job.NewRemoteRoutingJob()
 	_, _ = s.cron.AddJob(cadenceRemoteRouting, remoteRoutingJob)
-	go remoteRoutingJob.Run()
+	common.GoRecover("remote-routing-warm", remoteRoutingJob.Run)
 
 	// check client ips from log file every day
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())

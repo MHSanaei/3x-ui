@@ -831,9 +831,8 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ). Keep the stock headers independent: a saved routing value
-	// is still emitted when the global enable flag is off. Remote values are read
-	// only from the validated cache and never delay this response.
+	// Advanced (Happ). Routing stays independent of the enable flag; remote
+	// values come only from the validated cache and never delay this response.
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")

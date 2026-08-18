@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"reflect"
 	"regexp"
@@ -1341,20 +1340,13 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 }
 
 func validateRemoteRoutingURLSetting(name string, value *string) error {
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" || strings.ContainsAny(trimmed, "\r\n") || !strings.HasPrefix(strings.ToLower(trimmed), "https://") {
-		return nil
+	canonical, remote, err := common.ParseRemoteRoutingURL(*value)
+	if err != nil {
+		return common.NewError(name, err.Error())
 	}
-	u, err := url.Parse(trimmed)
-	if err != nil || u.Host == "" || u.Hostname() == "" {
-		return common.NewError(name, "must be an absolute HTTPS URL")
+	if remote {
+		*value = canonical
 	}
-	if u.User != nil {
-		return common.NewError(name, "must not contain URL credentials")
-	}
-	u.Scheme = "https"
-	u.Fragment = ""
-	*value = u.String()
 	return nil
 }
 
