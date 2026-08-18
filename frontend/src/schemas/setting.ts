@@ -13,6 +13,7 @@ export const AllSettingSchema = z.object({
   webBasePath: absolutePath.optional(),
   sessionMaxAge: z.number().int().min(1).max(525600).optional(),
   trustedProxyCIDRs: z.string().optional(),
+  ipLimitAllowlist: z.string().optional(),
   panelOutbound: z.string().optional(),
   pageSize: z.number().int().min(0).max(1000).optional(),
   expireDiff: nonNegativeInt.optional(),

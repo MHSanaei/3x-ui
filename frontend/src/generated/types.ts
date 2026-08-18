@@ -13,6 +13,7 @@ export interface AllSetting {
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -127,6 +128,7 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -268,12 +270,16 @@ export interface Client {
   privateKey?: string;
   publicKey?: string;
   reset: number;
+  resetDay: number;
+  resetMax: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset?: string;
+  trafficResetDay?: number;
   updated_at?: number;
 }
 
@@ -304,12 +310,16 @@ export interface ClientRecord {
   privateKey: string;
   publicKey: string;
   reset: number;
+  resetDay: number;
+  resetMax: number;
   reverse: unknown;
   secret: string;
   security: string;
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset: string;
+  trafficResetDay: number;
   updatedAt: number;
   uuid: string;
 }
@@ -328,6 +338,9 @@ export interface ClientTraffic {
   lastOnline: number;
   lastSubFetch: number;
   reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
   subId: string;
   total: number;
   up: number;
@@ -660,6 +673,7 @@ export interface ProbeResultUI {
 
 export interface RealityScanResult {
   alpn: string;
+  certChainValid: boolean;
   certIssuer: string;
   certSubject: string;
   certValid: boolean;
@@ -671,6 +685,7 @@ export interface RealityScanResult {
   latencyMs: number;
   notAfter: string;
   port: number;
+  privateTarget: boolean;
   reason: string;
   serverNames: string[];
   target: string;

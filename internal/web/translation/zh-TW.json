@@ -112,7 +112,8 @@
     "docs": "文件",
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
-    "unpinSidebar": "取消固定側邊欄"
+    "unpinSidebar": "取消固定側邊欄",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — 危險",
       "panel": "面板",
       "threads": "執行緒",
-      "uptime": "執行時間"
+      "uptime": "執行時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "保留本機設定",
+      "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。"
     },
     "inbounds": {
       "totalDownUp": "總上傳 / 下載",
@@ -430,6 +441,7 @@
         "scanRealityTargetError": "掃描 REALITY 目標失敗。",
         "scanRealityTargetFeasible": "目標可用 — 已填入目標與 SNI。",
         "scanRealityTargetNotFeasible": "目標可達，但不適用於 REALITY。",
+        "scanRealityTargetPrivate": "目標可用，但位於內網/本機網路中。",
         "invalidClientField": "用戶端 {client}：欄位 {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (另有 {count} 項)"
@@ -601,6 +613,11 @@
         "scanCurve": "金鑰交換",
         "scanCert": "憑證",
         "scanCertInvalid": "不受信任",
+        "scanCertExpiry": "憑證有效期限",
+        "scanSniUsed": "使用的 SNI",
+        "scanPrivateNote": "已透過內網/本機網路檢測 — 此位址無法從網際網路存取。",
+        "scanPrivateConfirmTitle": "目標位於本機網路",
+        "scanPrivateConfirmContent": "「{target}」解析到內網或回環位址。本次檢測將僅為此探測略過面板的 SSRF 防護。是否繼續？",
         "scanLatency": "延遲",
         "scanUse": "使用",
         "scanRescan": "重新掃描",
@@ -676,6 +693,10 @@
       "addExternalSubscription": "新增外部訂閱",
       "noExternalLinks": "尚無外部連結。",
       "noExternalSubscriptions": "尚無外部訂閱。",
+      "namePrefix": "名稱前綴",
+      "lastFetchAt": "最後拉取",
+      "lastFetchError": "拉取失敗",
+      "neverFetched": "尚未拉取",
       "submitEdit": "儲存變更",
       "clientCount": "客戶端數量",
       "bulk": "批次新增",
@@ -860,7 +881,12 @@
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
-      }
+      },
+      "renewMax": "最大續期次數",
+      "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
+      "renewOnDay": "按日期續期",
+      "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。",
+      "renewsUsed": "已用續期次數"
     },
     "groups": {
       "name": "名稱",
@@ -1132,17 +1158,17 @@
       "subEnableRouting": "啟用路由",
       "subEnableRoutingDesc": "在 VPN 用戶端中啟用路由的全域設定。（僅限 Happ）",
       "subRoutingRules": "路由規則",
-      "subRoutingRulesDesc": "VPN 用戶端的全域路由規則。（僅限 Happ）",
+      "subRoutingRulesDesc": "貼上現成的 happ:// 深層連結或一個固定 HTTPS URL。面板會在背景更新遠端規則並保留最後一個有效值，因此訂閱請求不需等待遠端來源。（僅限 Happ）",
       "subHideSettings": "隱藏伺服器設定",
       "subHideSettingsDesc": "在 VPN 用戶端中隱藏查看和編輯伺服器配置的功能。（僅限 Happ）",
       "subIncyEnableRouting": "啟用路由",
       "subIncyEnableRoutingDesc": "為 Incy 用戶端將路由設定檔注入訂閱內容中。（僅限 Incy）",
       "subIncyRoutingRules": "路由規則",
-      "subIncyRoutingRulesDesc": "加入訂閱內容的 Incy 路由深層連結，例如 incy://routing/onadd/<base64>。（僅限 Incy）",
+      "subIncyRoutingRulesDesc": "貼上現成的 incy:// 深層連結或指向 JSON 的固定 HTTPS URL。Incy 會建立 autorouting 設定並自動更新。（僅限 Incy）",
       "subClashEnableRouting": "啟用路由",
       "subClashEnableRoutingDesc": "在產生的 YAML 訂閱中包含 Clash/Mihomo 全域路由規則。",
       "subClashRoutingRules": "全域路由規則",
-      "subClashRoutingRulesDesc": "加入到每個 YAML 訂閱開頭、MATCH,PROXY 之前的 Clash/Mihomo 規則。",
+      "subClashRoutingRulesDesc": "貼上規則/YAML 或一個固定 HTTPS URL。面板會在背景更新，只匯入代理群組、規則提供者與規則，並保留面板產生的 VPN 節點及最後一個有效值。",
       "subListen": "監聽 IP",
       "subListenDesc": "訂閱服務監聽的 IP 地址（留空表示監聽所有 IP）",
       "subPort": "監聽埠",
@@ -1353,6 +1379,10 @@
       },
       "secretClear": "清除",
       "secretClearUndo": "復原清除",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 限制白名單",
+      "ipLimitAllowlistDesc": "IP 限制永遠不會計入也不會封鎖的位址與網段，避免辦公室或校園的共用位址耗盡客戶端的額度。IP/CIDR(逗號分隔)。",
       "subBalancers": {
         "menu": "訂閱平衡器",
         "title": "訂閱平衡器",
@@ -1917,6 +1947,7 @@
         "descEXPIRE_UNIX": "到期時間（Unix 時間戳記，秒）",
         "descCREATED_UNIX": "建立時間（Unix 時間戳記，秒）",
         "descRESET_DAYS": "流量重置週期（天）",
+        "descRESET_DAY": "按月續期的日期",
         "descPROTOCOL": "入站協定（VLESS、VMess、Trojan…）",
         "descTRANSPORT": "傳輸網路（tcp、ws、grpc…）",
         "descSECURITY": "傳輸安全（TLS、REALITY、NONE）"

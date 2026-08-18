@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 
@@ -94,6 +95,31 @@ func TestDecodeSubscriptionBodyPlainSkipsComments(t *testing.T) {
 func TestExpandEntryLinkAppliesRemark(t *testing.T) {
 	got := expandEntry(externalLinkEntry{Kind: model.ExternalLinkKindLink, Value: "trojan://pw@b.com:8443#orig", Remark: "DE"})
 	if len(got) != 1 || got[0].Name != "DE" {
+		t.Fatalf("expandEntry = %#v", got)
+	}
+}
+
+func TestExpandEntrySubscriptionAppliesNamePrefix(t *testing.T) {
+	const subURL = "https://provider.example/sub-prefix"
+	subscriptionCache.Lock()
+	subscriptionCache.m[subURL] = subscriptionCacheEntry{
+		links:     []string{"trojan://pw@b.com:8443#HK-01"},
+		fetchedAt: time.Now(),
+	}
+	subscriptionCache.Unlock()
+	t.Cleanup(func() {
+		subscriptionCache.Lock()
+		delete(subscriptionCache.m, subURL)
+		subscriptionCache.Unlock()
+	})
+
+	got := expandEntry(externalLinkEntry{
+		Kind:       model.ExternalLinkKindSubscription,
+		Value:      subURL,
+		NamePrefix: "[zjh] ",
+		Email:      "zjh",
+	})
+	if len(got) != 1 || got[0].Name != "[zjh] HK-01" {
 		t.Fatalf("expandEntry = %#v", got)
 	}
 }

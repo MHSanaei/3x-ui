@@ -35,7 +35,14 @@ import { DefaultsPayloadSchema } from '@/schemas/defaults';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
 
 // One row sent to POST /clients/:email/externalLinks.
-export type ExternalLinkInput = { kind: 'link' | 'subscription'; value: string; remark: string };
+export type ExternalLinkInput = {
+  kind: 'link' | 'subscription';
+  value: string;
+  remark: string;
+  enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+};
 
 export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, ExternalLink };
 
@@ -532,6 +539,8 @@ export function useClients(options: UseClientsOptions = {}) {
       limitHwid: base.limitHwid || 0,
       tgId: Number(base.tgId) || 0,
       reset: Number(base.reset) || 0,
+      resetDay: Number(base.resetDay) || 0,
+      resetMax: Number(base.resetMax) || 0,
       group: base.group || '',
       comment: base.comment || '',
       enable: !!enable,

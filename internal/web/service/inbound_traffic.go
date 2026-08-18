@@ -21,6 +21,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// A client with a renewal day set auto-renews too, so it must not read as
+// depleted — otherwise the operator's purge deletes it between cycles (#6239).
+const depletedClientsClause = "reset = 0 and reset_day = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
 	var disabledNodeIDs []int
 	err = submitTrafficWrite(func() error {
@@ -333,7 +337,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// attached to, so it could be a node inbound even when the client also has
 	// local inbounds. The email-based join through client_inbounds is authoritative.
 	err = tx.Model(xray.ClientTraffic{}).
-		Where("reset > 0 and expiry_time > 0 and expiry_time <= ?", now).
+		Where("(reset > 0 or reset_day > 0) and expiry_time > 0 and expiry_time <= ?", now).
+		// A prepaid plan stops itself: once as many renewals have fired as the
+		// operator allowed, the client is left to expire like any other.
+		Where("reset_max <= 0 or reset_count < reset_max").
 		Where("email IN (?)", tx.Table("client_inbounds ci").
 			Select("c.email").
 			Joins("JOIN clients c ON c.id = ci.client_id").
@@ -346,6 +353,14 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// return if there is no client to renew
 	if len(traffics) == 0 {
 		return false, 0, nil
+	}
+
+	renewLocation, locErr := (&SettingService{}).GetTimeLocation()
+	if locErr != nil || renewLocation == nil {
+		// Falling back to UTC keeps renewals happening; the alternative is
+		// skipping them entirely because a setting could not be read.
+		logger.Warning("autoRenewClients: could not read the panel time zone, using UTC:", locErr)
+		renewLocation = time.UTC
 	}
 
 	var inbound_ids []int
@@ -411,12 +426,42 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if !ok {
 				continue
 			}
+			// One allowance per period, not per tick: a client away for three
+			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime := traffic.ExpiryTime
+			if traffic.ResetDay <= 0 && traffic.Reset <= 0 {
+				// Unreachable while the selection filter holds: a zero step below
+				// would spin forever on the single traffic writer and hang the panel.
+				continue
+			}
+			at := time.UnixMilli(newExpiryTime)
+			renewals := 0
 			for newExpiryTime < now {
-				newExpiryTime += (int64(traffic.Reset) * 86400000)
+				if traffic.ResetMax > 0 && traffic.ResetCount+renewals >= traffic.ResetMax {
+					break
+				}
+				if traffic.ResetDay > 0 {
+					// Calendar mode: step whole months in the panel's zone, so the
+					// renewal date does not drift the way a fixed 30-day step does.
+					at = nextCalendarRenewal(at, traffic.ResetDay, renewLocation)
+					newExpiryTime = at.UnixMilli()
+				} else {
+					newExpiryTime += (int64(traffic.Reset) * 86400000)
+				}
+				renewals++
+			}
+			if renewals == 0 {
+				continue
 			}
 			c["expiryTime"] = newExpiryTime
 			traffic.ExpiryTime = newExpiryTime
+			traffic.ResetCount += renewals
+			if newExpiryTime <= now {
+				// Cap ran out mid-catch-up and the client is still expired: enabling it
+				// for disableInvalidClients to undo adds and removes an xray user for nothing.
+				clients[client_index] = any(c)
+				continue
+			}
 			traffic.Down = 0
 			traffic.Up = 0
 			if !traffic.Enable {
@@ -508,10 +553,12 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 		ExpiryTime: client.ExpiryTime,
 		Enable:     client.Enable,
 		Reset:      client.Reset,
+		ResetDay:   client.ResetDay,
+		ResetMax:   client.ResetMax,
 	}
 	return tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
-		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset"}),
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id", "total", "expiry_time", "enable", "reset", "reset_day", "reset_max"}),
 	}).Create(&clientTraffic).Error
 }
 
@@ -524,6 +571,8 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset,
+			"reset_day":   client.ResetDay,
+			"reset_max":   client.ResetMax,
 		})
 	err := result.Error
 	return err
@@ -790,7 +839,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		// Collect depleted emails globally — a shared-email row owned by one
 		// inbound depletes every sibling that lists the email.
 		now := time.Now().Unix() * 1000
-		depletedClause := "reset = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
+		depletedClause := depletedClientsClause
 		var depletedRows []xray.ClientTraffic
 		if err := tx.Model(xray.ClientTraffic{}).
 			Where(depletedClause, now).

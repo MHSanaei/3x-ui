@@ -45,6 +45,7 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'EXPIRE_UNIX', group: 'time', sample: '1788300000' },
   { token: 'CREATED_UNIX', group: 'time', sample: '1700000000' },
   { token: 'RESET_DAYS', group: 'time', sample: '30' },
+  { token: 'RESET_DAY', group: 'time', sample: '15' },
   // Connection (inbound config descriptors)
   { token: 'PROTOCOL', group: 'connection', sample: 'VLESS' },
   { token: 'TRANSPORT', group: 'connection', sample: 'ws' },

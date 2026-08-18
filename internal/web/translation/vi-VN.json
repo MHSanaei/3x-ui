@@ -112,7 +112,8 @@
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
-    "unpinSidebar": "Bỏ ghim thanh bên"
+    "unpinSidebar": "Bỏ ghim thanh bên",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — nguy cấp",
       "panel": "Panel",
       "threads": "Luồng",
-      "uptime": "Thời gian chạy"
+      "uptime": "Thời gian chạy",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Giữ cài đặt của máy này",
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên."
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",
@@ -430,6 +441,7 @@
         "scanRealityTargetError": "Quét mục tiêu REALITY thất bại.",
         "scanRealityTargetFeasible": "Mục tiêu khả dụng — đã điền mục tiêu và SNI.",
         "scanRealityTargetNotFeasible": "Mục tiêu có thể truy cập nhưng không khả dụng cho REALITY.",
+        "scanRealityTargetPrivate": "Đích hoạt động nhưng nằm trong mạng riêng/nội bộ.",
         "invalidClientField": "Khách hàng {client}: trường {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} lỗi khác)"
@@ -622,6 +634,11 @@
         "scanCurve": "Trao đổi khóa",
         "scanCert": "Chứng chỉ",
         "scanCertInvalid": "Không tin cậy",
+        "scanCertExpiry": "Chứng chỉ hết hạn",
+        "scanSniUsed": "SNI đã dùng",
+        "scanPrivateNote": "Đã kiểm tra qua mạng riêng/nội bộ — địa chỉ này không truy cập được từ internet.",
+        "scanPrivateConfirmTitle": "Đích trong mạng nội bộ",
+        "scanPrivateConfirmContent": "\"{target}\" trỏ tới địa chỉ riêng hoặc loopback. Việc kiểm tra sẽ bỏ qua bảo vệ SSRF của panel chỉ cho lần thăm dò này. Tiếp tục?",
         "scanLatency": "Độ trễ",
         "scanUse": "Dùng",
         "scanRescan": "Quét lại",
@@ -676,6 +693,10 @@
       "addExternalSubscription": "Thêm đăng ký ngoài",
       "noExternalLinks": "Chưa có liên kết ngoài.",
       "noExternalSubscriptions": "Chưa có đăng ký ngoài.",
+      "namePrefix": "Tiền tố tên",
+      "lastFetchAt": "Lần tải gần nhất",
+      "lastFetchError": "Lỗi tải",
+      "neverFetched": "Chưa tải",
       "submitEdit": "Lưu thay đổi",
       "clientCount": "Số lượng khách hàng",
       "bulk": "Thêm hàng loạt",
@@ -860,7 +881,12 @@
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
         "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
-      }
+      },
+      "renewMax": "Số lần gia hạn tối đa",
+      "renewMaxDesc": "Gia hạn tự động được phép chạy bao nhiêu lần trước khi để khách hàng hết hạn. 0 nghĩa là không giới hạn. Bù lại nhiều kỳ đã bỏ lỡ sẽ tiêu tốn một lần gia hạn cho mỗi kỳ.",
+      "renewOnDay": "Gia hạn vào ngày",
+      "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
+      "renewsUsed": "Số lần gia hạn đã dùng"
     },
     "groups": {
       "name": "Tên",
@@ -1132,17 +1158,17 @@
       "subEnableRouting": "Bật định tuyến",
       "subEnableRoutingDesc": "Cài đặt toàn cục để bật định tuyến trong ứng dụng khách VPN. (Chỉ dành cho Happ)",
       "subRoutingRules": "Quy tắc định tuyến",
-      "subRoutingRulesDesc": "Quy tắc định tuyến toàn cầu cho client VPN. (Chỉ dành cho Happ)",
+      "subRoutingRulesDesc": "Dán deeplink happ:// có sẵn hoặc một URL HTTPS cố định. Bảng điều khiển cập nhật quy tắc từ xa trong nền và giữ giá trị hợp lệ gần nhất, nên yêu cầu đăng ký không phải chờ nguồn. (Chỉ dành cho Happ)",
       "subHideSettings": "Ẩn cài đặt máy chủ",
       "subHideSettingsDesc": "Ẩn khả năng xem và chỉnh sửa cấu hình máy chủ trong ứng dụng khách VPN. (Chỉ dành cho Happ)",
       "subIncyEnableRouting": "Bật định tuyến",
       "subIncyEnableRoutingDesc": "Chèn hồ sơ định tuyến vào nội dung đăng ký cho ứng dụng Incy. (Chỉ dành cho Incy)",
       "subIncyRoutingRules": "Quy tắc định tuyến",
-      "subIncyRoutingRulesDesc": "Liên kết định tuyến Incy được thêm vào nội dung đăng ký, ví dụ incy://routing/onadd/<base64>. (Chỉ dành cho Incy)",
+      "subIncyRoutingRulesDesc": "Dán deeplink incy:// có sẵn hoặc URL HTTPS cố định tới JSON. Incy tạo hồ sơ autorouting và tự động cập nhật. (Chỉ dành cho Incy)",
       "subClashEnableRouting": "Bật định tuyến",
       "subClashEnableRoutingDesc": "Bao gồm quy tắc định tuyến Clash/Mihomo toàn cầu trong các đăng ký YAML được tạo.",
       "subClashRoutingRules": "Quy tắc định tuyến toàn cầu",
-      "subClashRoutingRulesDesc": "Quy tắc Clash/Mihomo được thêm vào đầu mỗi đăng ký YAML trước MATCH,PROXY.",
+      "subClashRoutingRulesDesc": "Dán quy tắc/YAML hoặc một URL HTTPS cố định. Bảng điều khiển cập nhật trong nền, chỉ nhập nhóm, nhà cung cấp quy tắc và quy tắc, đồng thời giữ các nút VPN đã tạo và giá trị hợp lệ gần nhất.",
       "subListen": "Listening IP",
       "subListenDesc": "Mặc định để trống để nghe tất cả các IP",
       "subPort": "Cổng gói đăng ký",
@@ -1353,6 +1379,10 @@
       },
       "secretClear": "Xóa",
       "secretClearUndo": "Hoàn tác xóa",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Danh sách cho phép của giới hạn IP",
+      "ipLimitAllowlistDesc": "Các địa chỉ và mạng mà giới hạn IP không bao giờ tính và không bao giờ chặn, để một địa chỉ dùng chung của văn phòng hoặc trường học không dùng hết giới hạn của người dùng. IPs/CIDRs cách nhau bằng dấu phẩy.",
       "subBalancers": {
         "menu": "Bộ cân bằng đăng ký",
         "title": "Bộ cân bằng đăng ký",
@@ -1917,6 +1947,7 @@
         "descEXPIRE_UNIX": "Hết hạn dạng dấu thời gian Unix (giây)",
         "descCREATED_UNIX": "Thời điểm tạo dạng dấu thời gian Unix (giây)",
         "descRESET_DAYS": "Chu kỳ đặt lại lưu lượng tính theo ngày",
+        "descRESET_DAY": "Ngày trong tháng để gia hạn",
         "descPROTOCOL": "Giao thức inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Mạng truyền tải (tcp, ws, grpc, …)",
         "descSECURITY": "Bảo mật truyền tải (TLS, REALITY, NONE)"

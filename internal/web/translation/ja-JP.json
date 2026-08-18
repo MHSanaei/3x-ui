@@ -112,7 +112,8 @@
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
-    "unpinSidebar": "サイドバーの固定を解除"
+    "unpinSidebar": "サイドバーの固定を解除",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — 危険水準",
       "panel": "パネル",
       "threads": "スレッド",
-      "uptime": "稼働時間"
+      "uptime": "稼働時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "このマシンの設定を保持する",
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",
@@ -430,6 +441,7 @@
         "scanRealityTargetError": "REALITY ターゲットのスキャンに失敗しました。",
         "scanRealityTargetFeasible": "ターゲットは利用可能です — ターゲットと SNI を入力しました。",
         "scanRealityTargetNotFeasible": "ターゲットには到達できますが、REALITY には利用できません。",
+        "scanRealityTargetPrivate": "ターゲットは利用可能ですが、プライベート/ローカルネットワーク上にあります。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
@@ -622,6 +634,11 @@
         "scanCurve": "鍵交換",
         "scanCert": "証明書",
         "scanCertInvalid": "信頼できません",
+        "scanCertExpiry": "証明書の有効期限",
+        "scanSniUsed": "使用した SNI",
+        "scanPrivateNote": "プライベート/ローカルネットワーク経由で確認しました。このアドレスはインターネットからは到達できません。",
+        "scanPrivateConfirmTitle": "ローカルネットワーク上のターゲット",
+        "scanPrivateConfirmContent": "「{target}」はプライベートまたはループバックアドレスに解決されます。このプローブに限りパネルの SSRF 保護をバイパスします。続行しますか？",
         "scanLatency": "レイテンシ",
         "scanUse": "使用",
         "scanRescan": "再スキャン",
@@ -676,6 +693,10 @@
       "addExternalSubscription": "外部サブスクリプションを追加",
       "noExternalLinks": "外部リンクはまだありません。",
       "noExternalSubscriptions": "外部サブスクリプションはまだありません。",
+      "namePrefix": "名前の接頭辞",
+      "lastFetchAt": "最終取得",
+      "lastFetchError": "取得エラー",
+      "neverFetched": "未取得",
       "submitEdit": "変更を保存",
       "clientCount": "クライアント数",
       "bulk": "一括追加",
@@ -860,7 +881,12 @@
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
         "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
-      }
+      },
+      "renewMax": "最大更新回数",
+      "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
+      "renewOnDay": "更新する日",
+      "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
+      "renewsUsed": "使用済み更新回数"
     },
     "groups": {
       "name": "名前",
@@ -1132,17 +1158,17 @@
       "subEnableRouting": "ルーティングを有効化",
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",
-      "subRoutingRulesDesc": "VPNクライアントのグローバルルーティングルール。(Happのみ)",
+      "subRoutingRulesDesc": "完成した happ:// ディープリンク、または永続的な HTTPS URL を入力します。パネルはリモートルールをバックグラウンドで更新し、最後の有効値を保持するため、サブスクリプション要求は取得を待ちません。(Happのみ)",
       "subHideSettings": "サーバー設定を非表示",
       "subHideSettingsDesc": "VPNクライアントでサーバー設定の表示・編集機能を非表示にします。(Happのみ)",
       "subIncyEnableRouting": "ルーティングを有効化",
       "subIncyEnableRoutingDesc": "Incyクライアント用に、サブスクリプション本文へルーティングプロファイルを挿入します。(Incyのみ)",
       "subIncyRoutingRules": "ルーティングルール",
-      "subIncyRoutingRulesDesc": "サブスクリプション本文に追加するIncyルーティングのディープリンク。例: incy://routing/onadd/<base64>。(Incyのみ)",
+      "subIncyRoutingRulesDesc": "完成した incy:// ディープリンク、または JSON への永続的な HTTPS URL を入力します。Incy は autorouting プロファイルを作成し、自動更新します。(Incyのみ)",
       "subClashEnableRouting": "ルーティングを有効化",
       "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
       "subClashRoutingRules": "グローバルルーティングルール",
-      "subClashRoutingRulesDesc": "各YAMLサブスクリプションのMATCH,PROXYより前に追加されるClash/Mihomoルール。",
+      "subClashRoutingRulesDesc": "ルール/YAML、または永続的な HTTPS URL を入力します。パネルはバックグラウンドで更新し、グループ・ルールプロバイダー・ルールのみを取り込み、生成済み VPN ノードと最後の有効値を保持します。",
       "subListen": "監視IP",
       "subListenDesc": "サブスクリプションサービスが監視するIPアドレス（空白にするとすべてのIPを監視）",
       "subPort": "監視ポート",
@@ -1353,6 +1379,10 @@
       },
       "secretClear": "クリア",
       "secretClearUndo": "クリアを取り消す",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 制限の許可リスト",
+      "ipLimitAllowlistDesc": "IP 制限がカウントもブロックもしないアドレスとネットワーク。オフィスや学内の共有アドレスがクライアントの上限を使い切らないようにします。IP/CIDR (カンマ区切り)。",
       "subBalancers": {
         "menu": "サブスクリプションバランサー",
         "title": "サブスクリプションバランサー",
@@ -1917,6 +1947,7 @@
         "descEXPIRE_UNIX": "有効期限の Unix タイムスタンプ（秒）",
         "descCREATED_UNIX": "作成時刻の Unix タイムスタンプ（秒）",
         "descRESET_DAYS": "トラフィックリセット周期（日数）",
+        "descRESET_DAY": "毎月の更新日",
         "descPROTOCOL": "インバウンドのプロトコル（VLESS、VMess、Trojan など）",
         "descTRANSPORT": "トランスポートネットワーク（tcp、ws、grpc など）",
         "descSECURITY": "トランスポートのセキュリティ（TLS、REALITY、NONE）"
