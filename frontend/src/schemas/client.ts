@@ -35,6 +35,8 @@ export const ClientRecordSchema = z.object({
   reset: z.number().optional(),
   resetDay: z.number().optional(),
   resetMax: z.number().optional(),
+  trafficReset: z.string().optional(),
+  trafficResetDay: z.number().optional(),
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
@@ -211,6 +213,8 @@ export const ClientFormSchema = z.object({
   reset: z.number().int().min(0),
   resetDay: z.number().int().min(0).max(31),
   resetMax: z.number().int().min(0),
+  trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+  trafficResetDay: z.number().int().min(1).max(31),
   limitIp: z.number().int().min(0),
   limitHwid: z.number().int().min(0),
   tgId: z.number().int().min(0),
@@ -252,6 +256,8 @@ export const ClientBulkAddFormSchema = z.object({
   reset: z.number().int().min(0),
   resetDay: z.number().int().min(0).max(31),
   resetMax: z.number().int().min(0),
+  trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']).optional(),
+  trafficResetDay: z.number().int().min(1).max(31).optional(),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 

@@ -43,6 +43,20 @@ func validateClientSubID(subID string) error {
 	return nil
 }
 
+// Rejected rather than coerced: an unknown cycle would leave the operator with
+// a field that reads as configured while no job ever selects the client.
+func validateClientTrafficReset(period string, day int) error {
+	switch period {
+	case "", "never", "hourly", "daily", "weekly", "monthly":
+	default:
+		return common.NewError("client trafficReset must be never, hourly, daily, weekly or monthly, got:", period)
+	}
+	if day < 0 || day > 31 {
+		return common.NewError("client trafficResetDay must be between 0 and 31, got:", day)
+	}
+	return nil
+}
+
 // Rejected rather than clamped: nextCalendarRenewal would silently move an
 // out-of-range day, and a negative one drops out of the renewal query entirely.
 func validateClientResetDay(day int) error {
@@ -59,6 +73,46 @@ func validateClientResetMax(resetMax int) error {
 		return common.NewError("client resetMax must not be negative, got:", resetMax)
 	}
 	return nil
+}
+
+// normalizeClientTrafficReset stores what the inbound path would store, so the
+// day never reaches the DB as a 0 that three layers downstream each clamp to 1.
+func normalizeClientTrafficReset(c *model.Client) {
+	if c.TrafficReset == "" {
+		c.TrafficReset = "never"
+	}
+	c.TrafficResetDay = normalizeTrafficResetDay(c.TrafficResetDay)
+}
+
+// ClientResetCycle is the slice of a client the reset job needs: enough to know
+// whether it is due, and whether its disable is the quota's doing or the operator's.
+type ClientResetCycle struct {
+	Email           string
+	TrafficResetDay int
+	Enable          bool
+	Total           int64
+	Used            int64
+}
+
+// Depleted reports a client the quota switched off. A reset restores that one;
+// a client disabled below its quota was switched off by hand and stays off.
+func (c ClientResetCycle) Depleted() bool {
+	return c.Total > 0 && c.Used >= c.Total
+}
+
+// GetClientsByTrafficReset returns the clients whose own reset cycle matches the
+// period, independent of the cycle configured on the inbounds they belong to.
+func (s *ClientService) GetClientsByTrafficReset(period string) ([]ClientResetCycle, error) {
+	var cycles []ClientResetCycle
+	err := database.GetDB().Table("clients c").
+		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Where("c.traffic_reset = ?", period).
+		Scan(&cycles).Error
+	if err != nil {
+		return nil, err
+	}
+	return cycles, nil
 }
 
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
@@ -81,6 +135,10 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if err := validateClientResetMax(client.ResetMax); err != nil {
 		return false, err
 	}
+	if err := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); err != nil {
+		return false, err
+	}
+	normalizeClientTrafficReset(&client)
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
 	}
@@ -374,6 +432,10 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientResetMax(updated.ResetMax); err != nil {
 		return false, err
 	}
+	if err := validateClientTrafficReset(updated.TrafficReset, updated.TrafficResetDay); err != nil {
+		return false, err
+	}
+	normalizeClientTrafficReset(&updated)
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -498,6 +560,8 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"reset":             merged.Reset,
 				"reset_day":         merged.ResetDay,
 				"reset_max":         merged.ResetMax,
+				"traffic_reset":     merged.TrafficReset,
+				"traffic_reset_day": merged.TrafficResetDay,
 			}).Error; err != nil {
 			return needRestart, err
 		}

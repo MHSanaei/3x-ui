@@ -155,6 +155,9 @@ func initModels() error {
 	if err := migrateTgIDIndex(); err != nil {
 		return err
 	}
+	if err := migrateClientTrafficResetColumns(); err != nil {
+		return err
+	}
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
@@ -313,6 +316,22 @@ func rebuildInboundsWithoutInlineUniquePort() error {
 		}
 		return tx.Exec(`DROP TABLE inbounds_legacy_rebuild`).Error
 	})
+}
+
+// AutoMigrate adds the columns; an older SQLite ALTER TABLE leaves them NULL,
+// and a NULL traffic_reset fails every ClientRecord scan, not just the new query.
+func migrateClientTrafficResetColumns() error {
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset") {
+		if err := db.Exec("UPDATE clients SET traffic_reset = 'never' WHERE traffic_reset IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset_day") {
+		if err := db.Exec("UPDATE clients SET traffic_reset_day = 1 WHERE traffic_reset_day IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AutoMigrate adds the column; this only backfills the NULLs an older SQLite

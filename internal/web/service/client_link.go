@@ -65,6 +65,14 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.Reset = incoming.Reset
 	row.ResetDay = incoming.ResetDay
 	row.ResetMax = incoming.ResetMax
+	// Guarded like Group and AdTag: a node snapshot rebuilt from settings that
+	// predate the cycle would otherwise silently erase it.
+	if incoming.TrafficReset != "" {
+		row.TrafficReset = incoming.TrafficReset
+	}
+	if incoming.TrafficResetDay > 0 {
+		row.TrafficResetDay = incoming.TrafficResetDay
+	}
 	if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 		row.CreatedAt = incoming.CreatedAt
 	}
