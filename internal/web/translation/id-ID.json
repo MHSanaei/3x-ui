@@ -1369,8 +1369,8 @@
       "secretClearUndo": "Batalkan hapus",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "Daftar izin batas IP",
+      "ipLimitAllowlistDesc": "Alamat dan jaringan yang tidak pernah dihitung maupun diblokir oleh batas IP, sehingga alamat kantor atau kampus bersama tidak menghabiskan batas klien. IP/CIDR (dipisahkan koma)."
     },
     "xray": {
       "save": "Simpan",

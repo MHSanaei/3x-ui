@@ -1369,8 +1369,8 @@
       "secretClearUndo": "Temizlemeyi geri al",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "IP limiti izin listesi",
+      "ipLimitAllowlistDesc": "IP limitinin asla saymadığı ve engellemediği adresler ve ağlar; böylece ortak bir ofis veya kampüs adresi kullanıcının limitini tüketmez. IP'ler/CIDR'ler (virgülle ayrılmış)."
     },
     "xray": {
       "save": "Kaydet",

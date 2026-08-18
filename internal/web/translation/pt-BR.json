@@ -1369,8 +1369,8 @@
       "secretClearUndo": "Desfazer limpeza",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "Lista de permissões do limite de IP",
+      "ipLimitAllowlistDesc": "Endereços e redes que o limite de IP nunca conta nem bane, para que um endereço compartilhado de escritório ou campus não esgote o limite de um cliente. IPs/CIDRs separados por vírgula."
     },
     "xray": {
       "importRules": "Importar regras",

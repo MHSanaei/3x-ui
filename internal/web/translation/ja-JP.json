@@ -1369,8 +1369,8 @@
       "secretClearUndo": "クリアを取り消す",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "IP 制限の許可リスト",
+      "ipLimitAllowlistDesc": "IP 制限がカウントもブロックもしないアドレスとネットワーク。オフィスや学内の共有アドレスがクライアントの上限を使い切らないようにします。IP/CIDR (カンマ区切り)。"
     },
     "xray": {
       "importRules": "ルールをインポート",

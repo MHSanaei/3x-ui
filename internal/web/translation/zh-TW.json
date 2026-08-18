@@ -1369,8 +1369,8 @@
       "secretClearUndo": "復原清除",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "IP 限制白名單",
+      "ipLimitAllowlistDesc": "IP 限制永遠不會計入也不會封鎖的位址與網段，避免辦公室或校園的共用位址耗盡客戶端的額度。IP/CIDR(逗號分隔)。"
     },
     "xray": {
       "save": "儲存",

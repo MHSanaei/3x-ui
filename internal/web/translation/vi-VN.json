@@ -1369,8 +1369,8 @@
       "secretClearUndo": "Hoàn tác xóa",
       "calendarGregorian": "Gregorian (Standard)",
       "calendarJalalian": "Jalalian (شمسی)",
-      "ipLimitAllowlist": "IP limit allowlist",
-      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
+      "ipLimitAllowlist": "Danh sách cho phép của giới hạn IP",
+      "ipLimitAllowlistDesc": "Các địa chỉ và mạng mà giới hạn IP không bao giờ tính và không bao giờ chặn, để một địa chỉ dùng chung của văn phòng hoặc trường học không dùng hết giới hạn của người dùng. IPs/CIDRs cách nhau bằng dấu phẩy."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
