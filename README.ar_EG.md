@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md) | [کوردی](/README.ckb_IQ.md)
 
 <p align="center">
   <picture>
@@ -36,7 +36,7 @@
 - **روبوت تيليجرام** للمراقبة والإدارة عن بُعد.
 - **واجهة RESTful API** مع توثيق Swagger داخل اللوحة.
 - **تخزين مرن** — SQLite (افتراضي) أو PostgreSQL.
-- **13 لغة لواجهة المستخدم** مع سمات داكنة وفاتحة.
+- **14 لغة لواجهة المستخدم** مع سمات داكنة وفاتحة.
 - **تكامل مع Fail2ban** لفرض حدود IP لكل عميل.
 
 ## لقطات الشاشة
@@ -165,9 +165,9 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ## اللغات المدعومة
 
-تتوفر واجهة اللوحة بـ 13 لغة:
+تتوفر واجهة اللوحة بـ 14 لغة:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · کوردی
 
 ## المساهمة
 

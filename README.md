@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md) | [کوردی](/README.ckb_IQ.md)
 
 <p align="center">
   <picture>
@@ -36,7 +36,7 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 - **Telegram bot** for remote monitoring and management.
 - **RESTful API** with in-panel Swagger documentation.
 - **Flexible storage** — SQLite (default) or PostgreSQL.
-- **13 UI languages** with dark and light themes.
+- **14 UI languages** with dark and light themes.
 - **Fail2ban integration** for enforcing per-client IP limits.
 
 ## Screenshots
@@ -165,9 +165,9 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ## Supported Languages
 
-The panel UI is available in 13 languages:
+The panel UI is available in 14 languages:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · کوردی
 
 ## Contributing
 

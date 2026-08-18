@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md) | [کوردی](/README.ckb_IQ.md)
 
 <p align="center">
   <picture>
@@ -36,7 +36,7 @@
 - **ربات تلگرام** برای نظارت و مدیریت از راه دور.
 - **‏RESTful API** همراه با مستندات Swagger درون‌پنل.
 - **ذخیره‌سازی منعطف** — SQLite (پیش‌فرض) یا PostgreSQL.
-- **‏۱۳ زبان رابط کاربری** با تم‌های تیره و روشن.
+- **‏۱۴ زبان رابط کاربری** با تم‌های تیره و روشن.
 - **یکپارچگی با Fail2ban** برای اعمال محدودیت IP به‌ازای هر کلاینت.
 
 ## اسکرین‌شات‌ها
@@ -165,9 +165,9 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ## زبان‌های پشتیبانی‌شده
 
-رابط کاربری پنل به ۱۳ زبان در دسترس است:
+رابط کاربری پنل به ۱۴ زبان در دسترس است:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · کوردی
 
 ## مشارکت
 
