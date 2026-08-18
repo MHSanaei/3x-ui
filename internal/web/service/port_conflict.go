@@ -8,6 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+
+	"gorm.io/gorm"
 )
 
 type transportBits uint8
@@ -158,7 +160,13 @@ func reservedAPIPort() int {
 	return defaultXrayAPIPort
 }
 
+// checkPortConflict reads outside any transaction; callers that must not race a
+// concurrent create use checkPortConflictTx inside their own transaction.
 func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
+	return checkPortConflictTx(database.GetDB(), inbound, ignoreId)
+}
+
+func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
 
 	// The internal Xray API inbound (tag "api", loopback TCP) isn't a DB row,
@@ -174,8 +182,6 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 			Transports: transportTCP,
 		}, nil
 	}
-
-	db := database.GetDB()
 
 	var candidates []*model.Inbound
 	q := db.Model(model.Inbound{}).Where("port = ?", inbound.Port)

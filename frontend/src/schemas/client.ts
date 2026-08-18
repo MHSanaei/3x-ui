@@ -11,6 +11,8 @@ export const ClientTrafficSchema = z.object({
   enable: z.boolean().optional(),
   lastOnline: z.number().optional(),
   lastSubFetch: z.number().optional(),
+  resetMax: z.number().optional(),
+  resetCount: z.number().optional(),
 });
 
 export const ClientRecordSchema = z.object({
@@ -31,6 +33,7 @@ export const ClientRecordSchema = z.object({
   comment: z.string().optional(),
   enable: z.boolean().optional(),
   reset: z.number().optional(),
+  resetMax: z.number().optional(),
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
@@ -205,6 +208,7 @@ export const ClientFormSchema = z.object({
   delayedStart: z.boolean(),
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
+  resetMax: z.number().int().min(0),
   limitIp: z.number().int().min(0),
   limitHwid: z.number().int().min(0),
   tgId: z.number().int().min(0),
@@ -244,6 +248,7 @@ export const ClientBulkAddFormSchema = z.object({
   totalGB: z.number().min(0),
   expiryTime: z.number(),
   reset: z.number().int().min(0),
+  resetMax: z.number().int().min(0),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 

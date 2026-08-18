@@ -112,7 +112,8 @@
     "docs": "Documentación",
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
-    "unpinSidebar": "Desfijar barra lateral"
+    "unpinSidebar": "Desfijar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -258,6 +259,14 @@
       "panel": "Panel",
       "threads": "Hilos",
       "uptime": "Tiempo activo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
       "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
@@ -862,7 +871,10 @@
         "delOrphans": "{count} clientes sin entrante eliminados",
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} omitidos"
-      }
+      },
+      "renewMax": "Renovaciones máximas",
+      "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
+      "renewsUsed": "Renovaciones usadas"
     },
     "groups": {
       "name": "Nombre",
@@ -1354,7 +1366,9 @@
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
       "secretClear": "Borrar",
-      "secretClearUndo": "Deshacer borrado"
+      "secretClearUndo": "Deshacer borrado",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "Guardar configuración",

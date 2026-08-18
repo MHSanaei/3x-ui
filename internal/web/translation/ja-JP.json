@@ -112,7 +112,8 @@
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
-    "unpinSidebar": "サイドバーの固定を解除"
+    "unpinSidebar": "サイドバーの固定を解除",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -258,6 +259,14 @@
       "panel": "パネル",
       "threads": "スレッド",
       "uptime": "稼働時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
       "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
@@ -862,7 +871,10 @@
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
         "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
-      }
+      },
+      "renewMax": "最大更新回数",
+      "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
+      "renewsUsed": "使用済み更新回数"
     },
     "groups": {
       "name": "名前",
@@ -1354,7 +1366,9 @@
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },
       "secretClear": "クリア",
-      "secretClearUndo": "クリアを取り消す"
+      "secretClearUndo": "クリアを取り消す",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "importRules": "ルールをインポート",

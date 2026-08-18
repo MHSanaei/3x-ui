@@ -112,7 +112,8 @@
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
-    "unpinSidebar": "Bỏ ghim thanh bên"
+    "unpinSidebar": "Bỏ ghim thanh bên",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -258,6 +259,14 @@
       "panel": "Panel",
       "threads": "Luồng",
       "uptime": "Thời gian chạy",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
       "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
@@ -862,7 +871,10 @@
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
         "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
-      }
+      },
+      "renewMax": "Số lần gia hạn tối đa",
+      "renewMaxDesc": "Gia hạn tự động được phép chạy bao nhiêu lần trước khi để khách hàng hết hạn. 0 nghĩa là không giới hạn. Bù lại nhiều kỳ đã bỏ lỡ sẽ tiêu tốn một lần gia hạn cho mỗi kỳ.",
+      "renewsUsed": "Số lần gia hạn đã dùng"
     },
     "groups": {
       "name": "Tên",
@@ -1354,7 +1366,9 @@
         "pathLeadingSlash": "Đường dẫn phải bắt đầu bằng /"
       },
       "secretClear": "Xóa",
-      "secretClearUndo": "Hoàn tác xóa"
+      "secretClearUndo": "Hoàn tác xóa",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "importRules": "Nhập quy tắc",

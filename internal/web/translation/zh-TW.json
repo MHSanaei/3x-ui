@@ -112,7 +112,8 @@
     "docs": "文件",
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
-    "unpinSidebar": "取消固定側邊欄"
+    "unpinSidebar": "取消固定側邊欄",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -258,6 +259,14 @@
       "panel": "面板",
       "threads": "執行緒",
       "uptime": "執行時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
       "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
@@ -862,7 +871,10 @@
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
         "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
-      }
+      },
+      "renewMax": "最大續期次數",
+      "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
+      "renewsUsed": "已用續期次數"
     },
     "groups": {
       "name": "名稱",
@@ -1354,7 +1366,9 @@
         "pathLeadingSlash": "路徑必須以 / 開頭"
       },
       "secretClear": "清除",
-      "secretClearUndo": "復原清除"
+      "secretClearUndo": "復原清除",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "儲存",

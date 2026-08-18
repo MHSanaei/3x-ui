@@ -131,6 +131,7 @@ const EMPTY: Values = {
   delayedStart: false,
   delayedDays: 0,
   reset: 0,
+  resetMax: 0,
   limitIp: 0,
   limitHwid: 0,
   tgId: 0,
@@ -250,6 +251,7 @@ export default function ClientFormModal({
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
+        resetMax: Number(client.resetMax) || 0,
         limitIp: client.limitIp || 0,
         limitHwid: client.limitHwid || 0,
         tgId: Number(client.tgId) || 0,
@@ -538,6 +540,7 @@ email: values.email,
       delayedStart: values.delayedStart,
       delayedDays: values.delayedDays,
       reset: values.reset,
+      resetMax: values.resetMax,
       limitIp: values.limitIp,
       limitHwid: values.limitHwid,
       tgId: values.tgId,
@@ -566,6 +569,7 @@ email: values.email,
       totalGB: totalBytes,
       expiryTime,
 reset: Number(values.reset) || 0,
+      resetMax: Number(values.resetMax) || 0,
       limitIp: Number(values.limitIp) || 0,
       limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
@@ -780,6 +784,16 @@ reset: Number(values.reset) || 0,
                             name="reset"
                             label={t('pages.clients.renewDays')}
                             tooltip={t('pages.clients.renewDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetMax"
+                            label={t('pages.clients.renewMax')}
+                            tooltip={t('pages.clients.renewMaxDesc')}
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} style={{ width: '100%' }} />

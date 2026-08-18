@@ -43,6 +43,15 @@ func validateClientSubID(subID string) error {
 	return nil
 }
 
+// Rejected rather than coerced: a negative cap reads as "unlimited" to a caller
+// but selects nothing, so the client would silently stop renewing.
+func validateClientResetMax(resetMax int) error {
+	if resetMax < 0 {
+		return common.NewError("client resetMax must not be negative, got:", resetMax)
+	}
+	return nil
+}
+
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -55,6 +64,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	if err := validateClientSubID(client.SubID); err != nil {
+		return false, err
+	}
+	if err := validateClientResetMax(client.ResetMax); err != nil {
 		return false, err
 	}
 	if len(payload.InboundIds) == 0 {
@@ -344,6 +356,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
+	if err := validateClientResetMax(updated.ResetMax); err != nil {
+		return false, err
+	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -466,6 +481,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"tg_id":             merged.TgID,
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
+				"reset_max":         merged.ResetMax,
 			}).Error; err != nil {
 			return needRestart, err
 		}
