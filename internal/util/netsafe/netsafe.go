@@ -2,12 +2,18 @@ package netsafe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
 	"strings"
 	"time"
 )
+
+// ErrPrivateAddressBlocked marks a failed dial where the guard refused at least
+// one resolved address, so a caller offering an opt-in can tell it apart from an
+// ordinary connection failure.
+var ErrPrivateAddressBlocked = errors.New("blocked private/internal address")
 
 func IsBlockedIP(ip net.IP) bool {
 	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
@@ -42,10 +48,10 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 			return nil, err
 		}
 	}
-	var lastErr error
+	var lastErr, blockedErr error
 	for _, ipAddr := range ips {
 		if !allowPrivate && IsBlockedIP(ipAddr.IP) {
-			lastErr = fmt.Errorf("blocked private/internal address %s", ipAddr.IP)
+			blockedErr = fmt.Errorf("%w %s", ErrPrivateAddressBlocked, ipAddr.IP)
 			continue
 		}
 		conn, derr := defaultDialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
@@ -53,6 +59,14 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 			return conn, nil
 		}
 		lastErr = derr
+	}
+	// A dual-stack name can mix refused and merely unreachable addresses, so the
+	// refusal is reported alongside instead of being lost to the last failure.
+	if blockedErr != nil {
+		if lastErr != nil {
+			return nil, fmt.Errorf("%w; %v", blockedErr, lastErr)
+		}
+		return nil, blockedErr
 	}
 	if lastErr == nil {
 		lastErr = fmt.Errorf("no usable address for %s", host)

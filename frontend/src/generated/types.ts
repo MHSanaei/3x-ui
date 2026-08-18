@@ -671,6 +671,7 @@ export interface ProbeResultUI {
 
 export interface RealityScanResult {
   alpn: string;
+  certChainValid: boolean;
   certIssuer: string;
   certSubject: string;
   certValid: boolean;
@@ -682,6 +683,7 @@ export interface RealityScanResult {
   latencyMs: number;
   notAfter: string;
   port: number;
+  privateTarget: boolean;
   reason: string;
   serverNames: string[];
   target: string;
