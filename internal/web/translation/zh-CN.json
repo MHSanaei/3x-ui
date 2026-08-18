@@ -1368,7 +1368,9 @@
       "secretClear": "清除",
       "secretClearUndo": "撤销清除",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 限制白名单",
+      "ipLimitAllowlistDesc": "IP 限制永远不会计入也不会封禁的地址和网段，避免办公室或校园的共享地址耗尽客户端的限额。IP/CIDR(逗号分隔)。"
     },
     "xray": {
       "importRules": "导入规则",

@@ -1368,7 +1368,9 @@
       "secretClear": "پاک کردن",
       "secretClearUndo": "لغو پاک کردن",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "فهرست مجاز محدودیت IP",
+      "ipLimitAllowlistDesc": "نشانی‌ها و شبکه‌هایی که محدودیت IP هرگز آن‌ها را نمی‌شمارد و مسدود نمی‌کند، تا نشانی مشترک یک اداره یا دانشگاه محدودیت کاربر را مصرف نکند. IPها/CIDRها (با کاما)."
     },
     "xray": {
       "save": "ذخیره",

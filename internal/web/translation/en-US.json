@@ -1485,7 +1485,9 @@
       "secretClear": "Clear",
       "secretClearUndo": "Undo clear",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR."
     },
     "xray": {
       "save": "Save",

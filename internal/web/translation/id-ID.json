@@ -1368,7 +1368,9 @@
       "secretClear": "Hapus",
       "secretClearUndo": "Batalkan hapus",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Daftar izin batas IP",
+      "ipLimitAllowlistDesc": "Alamat dan jaringan yang tidak pernah dihitung maupun diblokir oleh batas IP, sehingga alamat kantor atau kampus bersama tidak menghabiskan batas klien. IP/CIDR (dipisahkan koma)."
     },
     "xray": {
       "save": "Simpan",

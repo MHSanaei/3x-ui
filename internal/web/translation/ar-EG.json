@@ -1368,7 +1368,9 @@
       "secretClear": "مسح",
       "secretClearUndo": "تراجع عن المسح",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "قائمة سماح حد IP",
+      "ipLimitAllowlistDesc": "عناوين وشبكات لا يحسبها حد IP ولا يحظرها، حتى لا يستهلك عنوان مكتب أو حرم جامعي مشترك حد العميل. IPs/CIDRs مفصولة بفواصل."
     },
     "xray": {
       "save": "احفظ",

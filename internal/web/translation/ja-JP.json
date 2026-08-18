@@ -1368,7 +1368,9 @@
       "secretClear": "クリア",
       "secretClearUndo": "クリアを取り消す",
       "calendarGregorian": "Gregorian (Standard)",
-      "calendarJalalian": "Jalalian (شمسی)"
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 制限の許可リスト",
+      "ipLimitAllowlistDesc": "IP 制限がカウントもブロックもしないアドレスとネットワーク。オフィスや学内の共有アドレスがクライアントの上限を使い切らないようにします。IP/CIDR (カンマ区切り)。"
     },
     "xray": {
       "importRules": "ルールをインポート",

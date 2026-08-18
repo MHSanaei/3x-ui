@@ -419,3 +419,52 @@ func TestHasLimitIp_ProbesClientRecords(t *testing.T) {
 		t.Fatal("hasLimitIp = false with a limit_ip=2 client present")
 	}
 }
+
+// The mirror of TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned: with the
+// older address on the operator's allowlist nothing may be banned, it must not
+// consume the limit, and no fail2ban line may be written for it (#5378).
+func TestUpdateInboundClientIps_AllowlistedIpIsNeitherCountedNorBanned(t *testing.T) {
+	setupIntegrationDB(t)
+
+	const email = "issue5378-office"
+	seedInboundWithClient(t, "inbound-issue5378", email, 1)
+
+	now := time.Now().Unix()
+	row := seedClientIps(t, email, []IPWithTimestamp{
+		{IP: "203.0.113.10", Timestamp: now - 60},
+	})
+
+	j := NewCheckClientIpJob()
+	j.allowlist = parseIpLimitAllowlist("203.0.113.0/24")
+
+	live := []IPWithTimestamp{
+		{IP: "203.0.113.10", Timestamp: now - 5},
+		{IP: "192.0.2.9", Timestamp: now},
+	}
+
+	inbound, err := j.getInboundByEmail(email)
+	if err != nil {
+		t.Fatalf("getInboundByEmail: %v", err)
+	}
+	_, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, false)
+
+	if banned {
+		t.Fatal("an allowlisted address pushed the client over its limit and something was banned")
+	}
+	if len(j.disAllowedIps) != 0 {
+		t.Fatalf("disAllowedIps = %v, want none", j.disAllowedIps)
+	}
+
+	persisted := ipSet(readClientIps(t, email))
+	for _, ip := range []string{"203.0.113.10", "192.0.2.9"} {
+		if _, ok := persisted[ip]; !ok {
+			t.Errorf("%s must still be persisted; got %v", ip, persisted)
+		}
+	}
+
+	if body, err := os.ReadFile(readIpLimitLogPath()); err == nil {
+		if contains(string(body), "203.0.113.10") {
+			t.Fatalf("an allowlisted address reached the fail2ban log:\n%s", body)
+		}
+	}
+}
