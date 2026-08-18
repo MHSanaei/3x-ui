@@ -112,7 +112,8 @@
     "docs": "Documentación",
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
-    "unpinSidebar": "Desfijar barra lateral"
+    "unpinSidebar": "Desfijar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — crítico",
       "panel": "Panel",
       "threads": "Hilos",
-      "uptime": "Tiempo activo"
+      "uptime": "Tiempo activo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "Subidas/Descargas Totales",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
       "secretClear": "Borrar",
-      "secretClearUndo": "Deshacer borrado"
+      "secretClearUndo": "Deshacer borrado",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "Guardar configuración",

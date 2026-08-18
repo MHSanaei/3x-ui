@@ -112,7 +112,8 @@
     "docs": "Документація",
     "openMenu": "Відкрити меню",
     "pinSidebar": "Закріпити бічну панель",
-    "unpinSidebar": "Відкріпити бічну панель"
+    "unpinSidebar": "Відкріпити бічну панель",
+    "subFormats": "Формати підписки"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — критичний рівень",
       "panel": "Панель",
       "threads": "Потоки",
-      "uptime": "Час роботи"
+      "uptime": "Час роботи",
+      "logLevelDebug": "Налагодження",
+      "logLevelInfo": "Інформація",
+      "logLevelNotice": "Сповіщення",
+      "logLevelWarning": "Попередження",
+      "logLevelError": "Помилка",
+      "accessDirect": "НАПРЯМУ",
+      "accessBlocked": "ЗАБЛОКОВАНО",
+      "accessProxy": "ЧЕРЕЗ ПРОКСІ"
     },
     "inbounds": {
       "totalDownUp": "Всього надісланих/отриманих",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "Шлях має починатися з /"
       },
       "secretClear": "Очистити",
-      "secretClearUndo": "Скасувати очищення"
+      "secretClearUndo": "Скасувати очищення",
+      "calendarGregorian": "Григоріанський (звичайний)",
+      "calendarJalalian": "Джалалі (شمسی)"
     },
     "xray": {
       "save": "Зберегти",

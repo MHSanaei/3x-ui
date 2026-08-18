@@ -112,7 +112,8 @@
     "docs": "Belgeler",
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
-    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır"
+    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — kritik",
       "panel": "Panel",
       "threads": "İş parçacıkları",
-      "uptime": "Çalışma süresi"
+      "uptime": "Çalışma süresi",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "Toplam Gönderilen/Alınan",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "Yol / ile başlamalıdır"
       },
       "secretClear": "Temizle",
-      "secretClearUndo": "Temizlemeyi geri al"
+      "secretClearUndo": "Temizlemeyi geri al",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "Kaydet",

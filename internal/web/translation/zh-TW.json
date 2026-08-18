@@ -112,7 +112,8 @@
     "docs": "文件",
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
-    "unpinSidebar": "取消固定側邊欄"
+    "unpinSidebar": "取消固定側邊欄",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — 危險",
       "panel": "面板",
       "threads": "執行緒",
-      "uptime": "執行時間"
+      "uptime": "執行時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "總上傳 / 下載",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "路徑必須以 / 開頭"
       },
       "secretClear": "清除",
-      "secretClearUndo": "復原清除"
+      "secretClearUndo": "復原清除",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "save": "儲存",

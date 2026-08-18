@@ -112,7 +112,8 @@
     "docs": "Документация",
     "openMenu": "Открыть меню",
     "pinSidebar": "Закрепить боковую панель",
-    "unpinSidebar": "Открепить боковую панель"
+    "unpinSidebar": "Открепить боковую панель",
+    "subFormats": "Форматы подписки"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — критический уровень",
       "panel": "Панель",
       "threads": "Потоки",
-      "uptime": "Время работы"
+      "uptime": "Время работы",
+      "logLevelDebug": "Отладка",
+      "logLevelInfo": "Информация",
+      "logLevelNotice": "Уведомление",
+      "logLevelWarning": "Предупреждение",
+      "logLevelError": "Ошибка",
+      "accessDirect": "НАПРЯМУЮ",
+      "accessBlocked": "ЗАБЛОКИРОВАНО",
+      "accessProxy": "ЧЕРЕЗ ПРОКСИ"
     },
     "inbounds": {
       "totalDownUp": "Отправлено/получено",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "Путь должен начинаться с /"
       },
       "secretClear": "Очистить",
-      "secretClearUndo": "Отменить очистку"
+      "secretClearUndo": "Отменить очистку",
+      "calendarGregorian": "Григорианский (обычный)",
+      "calendarJalalian": "Джалали (شمسی)"
     },
     "xray": {
       "importRules": "Импорт правил",

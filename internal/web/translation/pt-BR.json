@@ -112,7 +112,8 @@
     "docs": "Documentação",
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
-    "unpinSidebar": "Desafixar barra lateral"
+    "unpinSidebar": "Desafixar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,15 @@
       "healthCritical": "{list} — crítico",
       "panel": "Painel",
       "threads": "Threads",
-      "uptime": "Tempo ativo"
+      "uptime": "Tempo ativo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY"
     },
     "inbounds": {
       "totalDownUp": "Total Enviado/Recebido",
@@ -1358,7 +1367,9 @@
         "pathLeadingSlash": "O caminho deve começar com /"
       },
       "secretClear": "Limpar",
-      "secretClearUndo": "Desfazer limpeza"
+      "secretClearUndo": "Desfazer limpeza",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)"
     },
     "xray": {
       "importRules": "Importar regras",
