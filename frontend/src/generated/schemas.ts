@@ -15,6 +15,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformURI": {
         "type": "string"
       },
+      "ipLimitAllowlist": {
+        "type": "string"
+      },
       "ldapAutoCreate": {
         "type": "boolean"
       },
@@ -348,6 +351,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -485,6 +489,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "hasWarpSecret": {
         "type": "boolean"
+      },
+      "ipLimitAllowlist": {
+        "type": "string"
       },
       "ldapAutoCreate": {
         "type": "boolean"
@@ -826,6 +833,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -937,10 +945,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "enabled": {
         "type": "boolean"
       },
+      "expiresAt": {
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "type": "integer"
       },
       "name": {
+        "type": "string"
+      },
+      "scope": {
         "type": "string"
       },
       "token": {
@@ -951,8 +966,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
       "name",
+      "scope",
       "token"
     ],
     "type": "object"
@@ -968,12 +985,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "expiresAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
       "id": {
         "example": 2,
         "type": "integer"
       },
       "name": {
         "example": "central-panel-a",
+        "type": "string"
+      },
+      "scope": {
+        "example": "admin",
         "type": "string"
       },
       "token": {
@@ -984,8 +1010,10 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "createdAt",
       "enabled",
+      "expiresAt",
       "id",
-      "name"
+      "name",
+      "scope"
     ],
     "type": "object"
   },
@@ -1064,6 +1092,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Reset period in days",
         "type": "integer"
       },
+      "resetDay": {
+        "description": "Calendar renewal day 1-31, 0 = interval mode",
+        "type": "integer"
+      },
+      "resetMax": {
+        "description": "Max auto-renew count, 0 = unlimited",
+        "type": "integer"
+      },
       "reverse": {
         "allOf": [
           {
@@ -1095,6 +1131,22 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficReset": {
+        "description": "Per-client traffic reset cycle, independent of the inbound's own (#5497).",
+        "enum": [
+          "never",
+          "hourly",
+          "daily",
+          "weekly",
+          "monthly"
+        ],
+        "type": "string"
+      },
+      "trafficResetDay": {
+        "maximum": 31,
+        "minimum": 1,
+        "type": "integer"
+      },
       "updated_at": {
         "description": "Last update timestamp",
         "format": "int64",
@@ -1108,6 +1160,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "expiryTime",
       "limitIp",
       "reset",
+      "resetDay",
+      "resetMax",
       "security",
       "subId",
       "tgId",
@@ -1179,6 +1233,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepAlive": {
         "type": "integer"
       },
+      "limitHwid": {
+        "type": "integer"
+      },
       "limitIp": {
         "type": "integer"
       },
@@ -1197,6 +1254,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "reset": {
         "type": "integer"
       },
+      "resetDay": {
+        "type": "integer"
+      },
+      "resetMax": {
+        "type": "integer"
+      },
       "reverse": {},
       "secret": {
         "type": "string"
@@ -1213,6 +1276,12 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "totalGB": {
         "format": "int64",
+        "type": "integer"
+      },
+      "trafficReset": {
+        "type": "string"
+      },
+      "trafficResetDay": {
         "type": "integer"
       },
       "updatedAt": {
@@ -1236,18 +1305,23 @@ export const SCHEMAS: Record<string, unknown> = {
       "group",
       "id",
       "keepAlive",
+      "limitHwid",
       "limitIp",
       "password",
       "preSharedKey",
       "privateKey",
       "publicKey",
       "reset",
+      "resetDay",
+      "resetMax",
       "reverse",
       "secret",
       "security",
       "subId",
       "tgId",
       "totalGB",
+      "trafficReset",
+      "trafficResetDay",
       "updatedAt",
       "uuid"
     ],
@@ -1298,7 +1372,27 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
       "reset": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetCount": {
+        "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetDay": {
+        "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetMax": {
+        "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
         "example": 0,
         "type": "integer"
       },
@@ -1329,7 +1423,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "lastSubFetch",
       "reset",
+      "resetCount",
+      "resetDay",
+      "resetMax",
       "subId",
       "total",
       "up",
@@ -1349,6 +1447,157 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "masterId"
+    ],
+    "type": "object"
+  },
+  "GeoCategory": {
+    "description": "GeoCategory is one code inside a database, such as geosite's \"google\".",
+    "properties": {
+      "attributes": {
+        "example": [
+          "ads",
+          "cn"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "code": {
+        "example": "google",
+        "type": "string"
+      },
+      "entries": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "attributes",
+      "code",
+      "entries"
+    ],
+    "type": "object"
+  },
+  "GeoCategoryPage": {
+    "description": "GeoCategoryPage is one page of categories plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoCategory"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1043,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoEntry": {
+    "description": "GeoEntry is a single rule inside a category: a domain rule for geosite\ndatabases, a CIDR for geoip ones.",
+    "properties": {
+      "kind": {
+        "example": "domain",
+        "type": "string"
+      },
+      "value": {
+        "example": "google.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "type": "object"
+  },
+  "GeoEntryPage": {
+    "description": "GeoEntryPage is one page of category entries plus the unpaged total.",
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/GeoEntry"
+        },
+        "type": "array"
+      },
+      "total": {
+        "example": 1284,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "GeoFile": {
+    "description": "GeoFile describes one .dat database found in the asset directory.",
+    "properties": {
+      "categories": {
+        "example": 1043,
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      },
+      "kind": {
+        "example": "site",
+        "type": "string"
+      },
+      "modifiedAt": {
+        "example": 1769558400000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "name": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "size": {
+        "example": 1467392,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "categories",
+      "kind",
+      "modifiedAt",
+      "name",
+      "size"
+    ],
+    "type": "object"
+  },
+  "GeodataTokenIssue": {
+    "description": "GeodataTokenIssue reports a routing token the running core would reject,\nor would silently match nothing against.",
+    "properties": {
+      "code": {
+        "example": "blabla",
+        "type": "string"
+      },
+      "file": {
+        "example": "geosite.dat",
+        "type": "string"
+      },
+      "reason": {
+        "example": "categoryMissing",
+        "type": "string"
+      },
+      "token": {
+        "example": "geosite:blabla",
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason",
+      "token"
     ],
     "type": "object"
   },
@@ -1728,6 +1977,10 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "disableFlow": {
+        "example": false,
+        "type": "boolean"
+      },
       "down": {
         "description": "Download traffic in bytes",
         "format": "int64",
@@ -1857,6 +2110,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "clientStats",
+      "disableFlow",
       "down",
       "enable",
       "expiryTime",
@@ -2687,6 +2941,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "h2",
         "type": "string"
       },
+      "certChainValid": {
+        "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+        "example": true,
+        "type": "boolean"
+      },
       "certIssuer": {
         "example": "Google Trust Services",
         "type": "string"
@@ -2731,6 +2990,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 443,
         "type": "integer"
       },
+      "privateTarget": {
+        "description": "PrivateTarget marks a target that resolves to a loopback/private/link-local\naddress: blocked before the probe unless the caller opted in, then flagged.",
+        "example": false,
+        "type": "boolean"
+      },
       "reason": {
         "type": "string"
       },
@@ -2759,6 +3023,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "alpn",
+      "certChainValid",
       "certIssuer",
       "certSubject",
       "certValid",
@@ -2770,6 +3035,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs",
       "notAfter",
       "port",
+      "privateTarget",
       "reason",
       "serverNames",
       "target",

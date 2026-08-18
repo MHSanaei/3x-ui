@@ -66,6 +66,7 @@
   "comment": "Коментар",
   "success": "Успішно",
   "lastOnline": "Був(ла) онлайн",
+  "lastSubFetch": "Останнє отримання підписки",
   "getVersion": "Отримати версію",
   "install": "Встановити",
   "clients": "Клієнти",
@@ -111,7 +112,8 @@
     "docs": "Документація",
     "openMenu": "Відкрити меню",
     "pinSidebar": "Закріпити бічну панель",
-    "unpinSidebar": "Відкріпити бічну панель"
+    "unpinSidebar": "Відкріпити бічну панель",
+    "subFormats": "Формати підписки"
   },
   "pages": {
     "login": {
@@ -256,7 +258,17 @@
       "healthCritical": "{list} — критичний рівень",
       "panel": "Панель",
       "threads": "Потоки",
-      "uptime": "Час роботи"
+      "uptime": "Час роботи",
+      "logLevelDebug": "Налагодження",
+      "logLevelInfo": "Інформація",
+      "logLevelNotice": "Сповіщення",
+      "logLevelWarning": "Попередження",
+      "logLevelError": "Помилка",
+      "accessDirect": "НАПРЯМУ",
+      "accessBlocked": "ЗАБЛОКОВАНО",
+      "accessProxy": "ЧЕРЕЗ ПРОКСІ",
+      "importKeepHostSettings": "Зберегти налаштування цієї машини",
+      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі."
     },
     "inbounds": {
       "totalDownUp": "Всього надісланих/отриманих",
@@ -411,6 +423,8 @@
         "inboundCreateSuccess": "Вхідне підключення успішно створено",
         "bulkDeleted": "Видалено підключень: {count}",
         "bulkDeletedMixed": "Видалено: {ok}, не вдалось: {failed}",
+        "clonedMany": "Скопійовано підключень: {count}",
+        "clonedMixed": "Скопійовано: {ok}, не вдалось: {failed}",
         "inboundDeleteSuccess": "Вхідне підключення успішно видалено",
         "inboundClientAddSuccess": "Клієнт(и) вхідного підключення додано",
         "inboundClientDeleteSuccess": "Клієнта вхідного підключення видалено",
@@ -427,6 +441,7 @@
         "scanRealityTargetError": "Не вдалося просканувати ціль REALITY.",
         "scanRealityTargetFeasible": "Ціль підходить — поля target і SNI заповнено.",
         "scanRealityTargetNotFeasible": "Ціль доступна, але не підходить для REALITY.",
+        "scanRealityTargetPrivate": "Ціль працює, але розташована у приватній (локальній) мережі.",
         "invalidClientField": "Клієнт {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ще)"
@@ -598,6 +613,11 @@
         "scanCurve": "Обмін ключами",
         "scanCert": "Сертифікат",
         "scanCertInvalid": "Ненадійний",
+        "scanCertExpiry": "Сертифікат діє до",
+        "scanSniUsed": "Використаний SNI",
+        "scanPrivateNote": "Перевірено у внутрішній (локальній) мережі — ця адреса недоступна з інтернету.",
+        "scanPrivateConfirmTitle": "Ціль у локальній мережі",
+        "scanPrivateConfirmContent": "«{target}» вказує на приватну або локальну адресу. Перевірка обійде SSRF-захист панелі лише для цього запиту. Продовжити?",
         "scanLatency": "Затримка",
         "scanUse": "Обрати",
         "scanRescan": "Пересканувати",
@@ -614,6 +634,8 @@
         "shareAddrHelp": "Використовується лише коли стратегія адреси поширення — користувацька. Введіть хост або IP без схеми та порту.",
         "subSortIndex": "Порядок у підписці",
         "subSortIndexHelp": "Позиція посилань цього вхідного у виводі підписки (сторінка підписки та клієнтські застосунки). Менші значення йдуть першими; за однакових значень зберігається порядок створення. Не впливає на список вхідних у панелі.",
+        "disableFlow": "Вимкнути потік XTLS",
+        "disableFlowHelp": "Виключити цей inbound з автоматичного додавання xtls-rprx-vision, навіть якщо його транспорт підтримує flow (наприклад, тунельований XHTTP inbound із шифруванням VLESS). Клієнти зберігають Vision на інших сумісних inbound у тій самій підписці. Лише VLESS.",
         "echSockopt": "ECH Sockopt",
         "echSockoptTip": "Параметри сокета для з'єднання, яке Xray використовує для отримання списку конфігурацій ECH (наприклад, спрямувати запит через вихідний dialerProxy). Залиште вимкненим, щоб використовувати типові значення.",
         "curvePreferences": "Налаштування кривих",
@@ -671,6 +693,10 @@
       "addExternalSubscription": "Додати зовнішню підписку",
       "noExternalLinks": "Зовнішніх посилань ще немає.",
       "noExternalSubscriptions": "Зовнішніх підписок ще немає.",
+      "namePrefix": "Префікс імені",
+      "lastFetchAt": "Останнє оновлення",
+      "lastFetchError": "Помилка оновлення",
+      "neverFetched": "Ще не завантажено",
       "submitEdit": "Зберегти зміни",
       "clientCount": "Кількість клієнтів",
       "bulk": "Масове додавання",
@@ -713,6 +739,13 @@
       "addClients": "Додати клієнтів",
       "limitIp": "Ліміт IP",
       "limitIpDesc": "Максимум одночасних IP-адрес. 0 = без обмежень.",
+      "limitHwid": "Ліміт HWID",
+      "limitHwidDesc": "Максимум зареєстрованих пристроїв для запитів підписки. 0 = без обмежень.",
+      "hwidLog": "Пристрої HWID",
+      "hwidDevice": "Зареєстрований пристрій",
+      "noHwids": "Пристроїв HWID ще немає",
+      "firstSeen": "Перша поява",
+      "lastSeen": "Остання поява",
       "limitIpFail2banMissing": "Fail2ban не встановлено, тому обмеження за IP не може бути застосоване. Встановіть Fail2ban із bash-меню x-ui, щоб увімкнути цю опцію.",
       "limitIpFail2banWindows": "Fail2ban недоступний у Windows, тому обмеження за IP не може бути застосоване.",
       "limitIpDisabled": "Функцію обмеження за IP вимкнено на цьому сервері.",
@@ -848,7 +881,12 @@
         "delOrphans": "Видалено клієнтів без вхідного: {count}",
         "imported": "Імпортовано клієнтів: {count}",
         "importedMixed": "Імпортовано: {ok}, пропущено: {failed}"
-      }
+      },
+      "renewMax": "Ліміт подовжень",
+      "renewMaxDesc": "Скільки разів автоподовження може спрацювати, перш ніж клієнта буде залишено спливати. 0 — без обмеження. Надолуження кількох пропущених періодів витрачає по одному подовженню на період.",
+      "renewOnDay": "Подовжувати числа",
+      "renewOnDayDesc": "Подовжувати цього числа кожного місяця, опівночі за часовим поясом панелі, замість інтервалу в днях. Якщо в місяці такого числа немає, подовження припаде на останній день. 0 — залишити режим інтервалу.",
+      "renewsUsed": "Подовжень витрачено"
     },
     "groups": {
       "name": "Назва",
@@ -973,7 +1011,8 @@
         "updateStarted": "Оновлення панелі розпочато",
         "updateResult": "Оновлення запущено на {ok} вузлах, {failed} не вдалося",
         "updateNoneEligible": "Виберіть принаймні один увімкнений вузол у мережі",
-        "saveMtls": "Зберегти mTLS вузла"
+        "saveMtls": "Зберегти mTLS вузла",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Перевірка TLS",
       "tlsVerifyModeHint": "Як панель перевіряє HTTPS-сертифікат вузла. Закріплення або Пропуск — для самопідписаних сертифікатів (лише https-вузли).",
@@ -1106,13 +1145,13 @@
       "subClashUserAgentRegex": "Регулярний вираз User-Agent Clash/Mihomo",
       "subClashUserAgentRegexDesc": "Регулярний вираз Go RE2, який зіставляється з User-Agent клієнта для розпізнавання клієнтів Clash/Mihomo на стандартній URL-адресі підписки. Залиште поле порожнім для стандартного шаблону. Після зміни перезапустіть панель.",
       "subTitle": "Назва Підписки",
-      "subTitleDesc": "Назва, яка відображається у VPN-клієнті",
+      "subTitleDesc": "Назва, яка відображається у VPN-клієнті. Підтримує токени ідентифікації клієнта: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "URL підтримки",
-      "subSupportUrlDesc": "Посилання на технічну підтримку, що відображається у VPN-клієнті",
+      "subSupportUrlDesc": "Посилання на технічну підтримку, що відображається у VPN-клієнті. Підтримує токени ідентифікації клієнта: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subProfileUrl": "URL профілю",
-      "subProfileUrlDesc": "Посилання на ваш вебсайт, що відображається у VPN-клієнті",
+      "subProfileUrlDesc": "Посилання на ваш вебсайт, що відображається у VPN-клієнті. Підтримує токени ідентифікації клієнта: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subAnnounce": "Оголошення",
-      "subAnnounceDesc": "Текст оголошення, що відображається у VPN-клієнті",
+      "subAnnounceDesc": "Текст оголошення, що відображається у VPN-клієнті. Підтримує токени ідентифікації клієнта: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "Каталог теми підписки",
       "subThemeDirDesc": "Абсолютний шлях до теки з користувацьким шаблоном (index.html/sub.html) для сторінки підписки (наприклад, /etc/3x-ui/sub_templates/my-theme/). Залиште порожнім, щоб використовувати сторінку за замовчуванням.",
       "subThemeDirDocs": "Посібник із шаблонів ↗",
@@ -1339,7 +1378,11 @@
         "pathLeadingSlash": "Шлях має починатися з /"
       },
       "secretClear": "Очистити",
-      "secretClearUndo": "Скасувати очищення"
+      "secretClearUndo": "Скасувати очищення",
+      "calendarGregorian": "Григоріанський (звичайний)",
+      "calendarJalalian": "Джалалі (شمسی)",
+      "ipLimitAllowlist": "Довірені адреси для ліміту",
+      "ipLimitAllowlistDesc": "Адреси та підмережі, які ліміт не рахує і не банить: спільна офісна чи студентська адреса не витратить ліміт клієнта. Через кому, адреса або підмережа."
     },
     "xray": {
       "save": "Зберегти",
@@ -1436,6 +1479,35 @@
       },
       "routing": {
         "dragToReorder": "Перетягніть для зміни порядку"
+      },
+      "geoBrowser": {
+        "title": "Категорії geo-баз",
+        "openTooltip": "Відкрити браузер geo-категорій",
+        "database": "База",
+        "searchCategory": "Пошук категорії",
+        "searchEntries": "Фільтр усередині категорії",
+        "selectFound": "Позначити знайдені",
+        "selected": "Вибрано {count}",
+        "clearAll": "Зняти все",
+        "apply": "Застосувати",
+        "emptySelection": "Позначте категорії — вони стануть токенами правила",
+        "pickCategory": "Виберіть категорію ліворуч, щоб переглянути її вміст",
+        "noMatches": "Нічого не знайдено",
+        "noFiles": "У теці Xray немає geo-баз",
+        "noFilesHint": "Вони з’являться після того, як Xray завантажить geosite.dat і geoip.dat",
+        "fileMeta": "{count} категорій · {size} · оновлено {date}",
+        "entriesCount": "{count} записів",
+        "subnetsCount": "{count} підмереж",
+        "shownRange": "Показано {from}–{to} з {total}",
+        "loadFailed": "Не вдалося завантажити geo-бази",
+        "checkFailed": "Не вдалося перевірити ці значення за geo-базами",
+        "parseFailed": "Файл пошкоджено або це не база geosite/geoip",
+        "tooLarge": "Завеликий файл для перегляду",
+        "unknownCategories": "Немає в базі: {tokens}",
+        "missingDatabase": "Файлу бази немає: {tokens} — додайте її в розділі Geodata",
+        "unknownAttribute": "Атрибут не знайдено, правило ні з чим не збігатиметься: {tokens}",
+        "invalidToken": "Xray не прийме такий запис: {tokens}",
+        "wrongKind": "База не того типу для цього поля: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IP джерела",
@@ -1826,6 +1898,7 @@
         "descEXPIRE_UNIX": "Закінчення як мітка часу Unix (секунди)",
         "descCREATED_UNIX": "Час створення як мітка часу Unix (секунди)",
         "descRESET_DAYS": "Період скидання трафіку в днях",
+        "descRESET_DAY": "Число місяця, у яке подовжується доступ",
         "descPROTOCOL": "Протокол вхідного (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Транспортна мережа (tcp, ws, grpc, …)",
         "descSECURITY": "Безпека транспорту (TLS, REALITY, NONE)"

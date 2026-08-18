@@ -1,6 +1,17 @@
 package panel
 
-import "testing"
+import (
+	"errors"
+	"testing"
+
+	"gorm.io/gorm"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+)
+
+var errInjectedTokenCreate = errors.New("injected token create failure")
 
 func TestApiTokenCreatedAtSeconds(t *testing.T) {
 	tests := []struct {
@@ -19,5 +30,69 @@ func TestApiTokenCreatedAtSeconds(t *testing.T) {
 				t.Fatalf("apiTokenCreatedAtSeconds(%d) = %d, want %d", tt.in, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRecreateByNamePreservesTokenWhenReplacementFails(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	if err := database.InitDB(config.GetDBPath()); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	svc := ApiTokenService{}
+	first, err := svc.RecreateByName("cli-fallback")
+	if err != nil {
+		t.Fatalf("first recreate: %v", err)
+	}
+	db := database.GetDB()
+	const callback = "test:fail-token-replacement"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if token, ok := tx.Statement.Dest.(*model.ApiToken); ok && token.Name == "cli-fallback" {
+			tx.AddError(errInjectedTokenCreate)
+		}
+	}); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Create().Remove(callback) })
+
+	if _, err := svc.RecreateByName("cli-fallback"); !errors.Is(err, errInjectedTokenCreate) {
+		t.Fatalf("recreate error = %v, want %v", err, errInjectedTokenCreate)
+	}
+	var row model.ApiToken
+	if err := db.Where("name = ?", "cli-fallback").First(&row).Error; err != nil {
+		t.Fatalf("load preserved token: %v", err)
+	}
+	if !svc.Match(first.Token) {
+		t.Fatal("original token was revoked after replacement failure")
+	}
+}
+
+func TestRecreateByNameKeepsOneToken(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	if err := database.InitDB(config.GetDBPath()); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	svc := ApiTokenService{}
+	first, err := svc.RecreateByName("cli-fallback")
+	if err != nil {
+		t.Fatalf("first recreate: %v", err)
+	}
+	second, err := svc.RecreateByName("cli-fallback")
+	if err != nil {
+		t.Fatalf("second recreate: %v", err)
+	}
+	if first.Token == second.Token {
+		t.Fatal("second call returned the same plaintext, want a rotated token")
+	}
+
+	var count int64
+	if err := database.GetDB().Model(model.ApiToken{}).Where("name = ?", "cli-fallback").Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("token rows = %d, want 1", count)
 	}
 }

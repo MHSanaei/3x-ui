@@ -238,6 +238,9 @@ export default function WarpModal({
             onResetOutbound({ index: warpOutboundIndex, outbound: merged });
           }
         }
+        if (parsed.warning) {
+          messageApi.warning(parsed.warning);
+        }
         messageApi.success(t('pages.xray.warp.changeIpSuccess', 'WARP IP changed successfully!'));
       }
     } finally {

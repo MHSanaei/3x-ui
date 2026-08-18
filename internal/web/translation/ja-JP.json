@@ -66,6 +66,7 @@
   "comment": "コメント",
   "success": "成功",
   "lastOnline": "最終オンライン",
+  "lastSubFetch": "最終サブスクリプション取得",
   "getVersion": "バージョン取得",
   "install": "インストール",
   "clients": "クライアント",
@@ -111,7 +112,8 @@
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
-    "unpinSidebar": "サイドバーの固定を解除"
+    "unpinSidebar": "サイドバーの固定を解除",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -256,7 +258,17 @@
       "healthCritical": "{list} — 危険水準",
       "panel": "パネル",
       "threads": "スレッド",
-      "uptime": "稼働時間"
+      "uptime": "稼働時間",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "このマシンの設定を保持する",
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",
@@ -411,6 +423,8 @@
         "inboundCreateSuccess": "インバウンドが正常に作成されました",
         "bulkDeleted": "{count} 件のインバウンドを削除しました",
         "bulkDeletedMixed": "{ok} 件削除、{failed} 件失敗",
+        "clonedMany": "{count} 件のインバウンドを複製しました",
+        "clonedMixed": "{ok} 件複製、{failed} 件失敗",
         "inboundDeleteSuccess": "インバウンドが正常に削除されました",
         "inboundClientAddSuccess": "インバウンドクライアントが追加されました",
         "inboundClientDeleteSuccess": "インバウンドクライアントが削除されました",
@@ -427,6 +441,7 @@
         "scanRealityTargetError": "REALITY ターゲットのスキャンに失敗しました。",
         "scanRealityTargetFeasible": "ターゲットは利用可能です — ターゲットと SNI を入力しました。",
         "scanRealityTargetNotFeasible": "ターゲットには到達できますが、REALITY には利用できません。",
+        "scanRealityTargetPrivate": "ターゲットは利用可能ですが、プライベート/ローカルネットワーク上にあります。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
@@ -619,6 +634,11 @@
         "scanCurve": "鍵交換",
         "scanCert": "証明書",
         "scanCertInvalid": "信頼できません",
+        "scanCertExpiry": "証明書の有効期限",
+        "scanSniUsed": "使用した SNI",
+        "scanPrivateNote": "プライベート/ローカルネットワーク経由で確認しました。このアドレスはインターネットからは到達できません。",
+        "scanPrivateConfirmTitle": "ローカルネットワーク上のターゲット",
+        "scanPrivateConfirmContent": "「{target}」はプライベートまたはループバックアドレスに解決されます。このプローブに限りパネルの SSRF 保護をバイパスします。続行しますか？",
         "scanLatency": "レイテンシ",
         "scanUse": "使用",
         "scanRescan": "再スキャン",
@@ -635,6 +655,8 @@
         "shareAddrHelp": "共有アドレス戦略がカスタムの場合のみ使用されます。スキームやポートを含めずにホスト名またはIPを入力してください。",
         "subSortIndex": "サブスクリプションでの並び順",
         "subSortIndexHelp": "サブスクリプション出力（サブスクリプションページおよびクライアントアプリ）におけるこのインバウンドのリンクの位置。値が小さいほど先頭に表示され、同じ値の場合は作成順が維持されます。パネルのインバウンド一覧には影響しません。",
+        "disableFlow": "XTLS フローを無効化",
+        "disableFlowHelp": "トランスポートが flow に対応している場合でも（例: VLESS 暗号化付きのトンネル化された XHTTP インバウンド）、このインバウンドを xtls-rprx-vision の自動付与から除外します。クライアントは同じサブスクリプション内の他の対応インバウンドでは Vision を維持します。VLESS のみ。",
         "shareAddrStrategyOptions": {
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
@@ -671,6 +693,10 @@
       "addExternalSubscription": "外部サブスクリプションを追加",
       "noExternalLinks": "外部リンクはまだありません。",
       "noExternalSubscriptions": "外部サブスクリプションはまだありません。",
+      "namePrefix": "名前の接頭辞",
+      "lastFetchAt": "最終取得",
+      "lastFetchError": "取得エラー",
+      "neverFetched": "未取得",
       "submitEdit": "変更を保存",
       "clientCount": "クライアント数",
       "bulk": "一括追加",
@@ -713,6 +739,13 @@
       "addClients": "クライアントを追加",
       "limitIp": "IP 制限",
       "limitIpDesc": "同時接続 IP の最大数。0 = 無制限。",
+      "limitHwid": "HWID 制限",
+      "limitHwidDesc": "サブスクリプション要求で登録できる最大デバイス数。0 = 無制限。",
+      "hwidLog": "HWID デバイス",
+      "hwidDevice": "登録済みデバイス",
+      "noHwids": "HWID デバイスはまだありません",
+      "firstSeen": "初回確認",
+      "lastSeen": "最終確認",
       "limitIpFail2banMissing": "Fail2ban がインストールされていないため、IP 制限を適用できません。このオプションを有効にするには、x-ui の bash メニューから Fail2ban をインストールしてください。",
       "limitIpFail2banWindows": "Windows では Fail2ban を利用できないため、IP 制限を適用できません。",
       "limitIpDisabled": "このサーバーでは IP 制限機能が無効になっています。",
@@ -848,7 +881,12 @@
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
         "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
-      }
+      },
+      "renewMax": "最大更新回数",
+      "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
+      "renewOnDay": "更新する日",
+      "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
+      "renewsUsed": "使用済み更新回数"
     },
     "groups": {
       "name": "名前",
@@ -973,7 +1011,8 @@
         "updateStarted": "パネルの更新を開始しました",
         "updateResult": "{ok} 個のノードで更新を開始、{failed} 個失敗",
         "updateNoneEligible": "オンラインで有効なノードを少なくとも1つ選択してください",
-        "saveMtls": "ノード mTLS を保存"
+        "saveMtls": "ノード mTLS を保存",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "TLS 検証",
       "tlsVerifyModeHint": "パネルがノードの HTTPS 証明書を検証する方法。ピン留めやスキップは自己署名証明書向け（https ノードのみ）。",
@@ -1106,13 +1145,13 @@
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正規表現",
       "subClashUserAgentRegexDesc": "標準サブスクリプション URL で Clash/Mihomo クライアントを識別するため、クライアントの User-Agent と照合する Go RE2 正規表現です。空欄の場合は既定のパターンを使用します。変更後にパネルを再起動してください。",
       "subTitle": "サブスクリプションタイトル",
-      "subTitleDesc": "VPNクライアントに表示されるタイトル",
+      "subTitleDesc": "VPNクライアントに表示されるタイトル。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subSupportUrl": "サポートURL",
-      "subSupportUrlDesc": "VPNクライアントに表示されるテクニカルサポートへのリンク",
+      "subSupportUrlDesc": "VPNクライアントに表示されるテクニカルサポートへのリンク。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subProfileUrl": "プロフィールURL",
-      "subProfileUrlDesc": "VPNクライアントに表示されるWebサイトへのリンク",
+      "subProfileUrlDesc": "VPNクライアントに表示されるWebサイトへのリンク。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subAnnounce": "お知らせ",
-      "subAnnounceDesc": "VPNクライアントに表示されるお知らせのテキスト",
+      "subAnnounceDesc": "VPNクライアントに表示されるお知らせのテキスト。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subThemeDir": "サブスクリプションテーマディレクトリ",
       "subThemeDirDesc": "サブスクリプションページのカスタムテンプレート (index.html/sub.html) を含むフォルダーの絶対パス（例: /etc/3x-ui/sub_templates/my-theme/）。空欄の場合はデフォルトのページを使用します。",
       "subThemeDirDocs": "テンプレートガイド ↗",
@@ -1339,7 +1378,11 @@
         "pathLeadingSlash": "パスは / で始まる必要があります"
       },
       "secretClear": "クリア",
-      "secretClearUndo": "クリアを取り消す"
+      "secretClearUndo": "クリアを取り消す",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 制限の許可リスト",
+      "ipLimitAllowlistDesc": "IP 制限がカウントもブロックもしないアドレスとネットワーク。オフィスや学内の共有アドレスがクライアントの上限を使い切らないようにします。IP/CIDR (カンマ区切り)。"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -1436,6 +1479,35 @@
       },
       "routing": {
         "dragToReorder": "ドラッグして並べ替え"
+      },
+      "geoBrowser": {
+        "title": "geo カテゴリ",
+        "openTooltip": "geo カテゴリを参照",
+        "database": "データベース",
+        "searchCategory": "カテゴリを検索",
+        "searchEntries": "カテゴリ内を絞り込み",
+        "selectFound": "検索結果を選択",
+        "selected": "選択中 {count} 件",
+        "clearAll": "すべてクリア",
+        "apply": "適用",
+        "emptySelection": "カテゴリにチェックを入れると、ルールのトークンになります",
+        "pickCategory": "左のカテゴリを選ぶと内容が表示されます",
+        "noMatches": "見つかりませんでした",
+        "noFiles": "Xray フォルダーに geo データベースがありません",
+        "noFilesHint": "Xray が geosite.dat と geoip.dat をダウンロードすると表示されます",
+        "fileMeta": "{count} カテゴリ · {size} · 更新 {date}",
+        "entriesCount": "{count} 件",
+        "subnetsCount": "{count} サブネット",
+        "shownRange": "{total} 件中 {from}–{to} を表示",
+        "loadFailed": "geo データベースを読み込めませんでした",
+        "checkFailed": "これらの値を geo データベースと照合できませんでした",
+        "parseFailed": "ファイルが破損しているか、geosite/geoip データベースではありません",
+        "tooLarge": "サイズが大きすぎて参照できません",
+        "unknownCategories": "データベースに存在しません: {tokens}",
+        "missingDatabase": "データベースファイルが見つかりません: {tokens} — Geodata から追加してください",
+        "unknownAttribute": "属性が見つからないため、ルールは何にも一致しません: {tokens}",
+        "invalidToken": "Xray はこの記述を受け付けません: {tokens}",
+        "wrongKind": "このフィールドには合わないデータベース種別です: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "送信元 IP",
@@ -1826,6 +1898,7 @@
         "descEXPIRE_UNIX": "有効期限の Unix タイムスタンプ（秒）",
         "descCREATED_UNIX": "作成時刻の Unix タイムスタンプ（秒）",
         "descRESET_DAYS": "トラフィックリセット周期（日数）",
+        "descRESET_DAY": "毎月の更新日",
         "descPROTOCOL": "インバウンドのプロトコル（VLESS、VMess、Trojan など）",
         "descTRANSPORT": "トランスポートネットワーク（tcp、ws、grpc など）",
         "descSECURITY": "トランスポートのセキュリティ（TLS、REALITY、NONE）"

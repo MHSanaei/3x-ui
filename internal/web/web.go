@@ -244,6 +244,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	controller.SetDistFS(distFS)
 
 	g := engine.Group(basePath)
+	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	g.GET("/pwa-register.js", controller.ServePWARegister)
+	g.GET("/service-worker.js", controller.ServePWAServiceWorker)
+	g.GET("/icons/:name", controller.ServePWAIcon)
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
@@ -598,9 +602,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	go func() {
-		_ = s.httpServer.Serve(listener)
-	}()
+	go network.ServeHTTP(s.httpServer, listener, "Web server")
 
 	// Create event bus before startTask so jobs can use it
 	s.bus = eventbus.New(eventbus.DefaultBufferSize)

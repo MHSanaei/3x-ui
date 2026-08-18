@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Form, Input, Modal, Select, Tag } from 'antd';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
@@ -24,11 +25,24 @@ interface XrayLogEntry {
   Event?: number;
 }
 
-const EVENT_LABELS: Record<number, string> = { 0: 'DIRECT', 1: 'BLOCKED', 2: 'PROXY' };
+// The downloaded log is a data format people grep, so it keeps the stable
+// tokens; only what is rendered on screen follows the panel language.
+const EVENT_TOKENS: Record<number, string> = { 0: 'DIRECT', 1: 'BLOCKED', 2: 'PROXY' };
+
+const EVENT_KEYS: Record<number, string> = {
+  0: 'pages.index.accessDirect',
+  1: 'pages.index.accessBlocked',
+  2: 'pages.index.accessProxy',
+};
 const EVENT_COLORS: Record<number, string> = { 0: 'green', 1: 'red', 2: 'blue' };
 
-function eventLabel(ev?: number): string {
-  return EVENT_LABELS[ev ?? -1] ?? String(ev ?? '');
+function eventToken(ev?: number): string {
+  return EVENT_TOKENS[ev ?? -1] ?? String(ev ?? '');
+}
+
+function eventLabel(t: TFunction, ev?: number): string {
+  const key = EVENT_KEYS[ev ?? -1];
+  return key ? t(key) : String(ev ?? '');
 }
 
 function eventColor(ev?: number): string {
@@ -112,7 +126,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       try {
         const dt = l.DateTime ? new Date(l.DateTime) : null;
         const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
-        const eventText = eventLabel(l.Event);
+        const eventText = eventToken(l.Event);
         const emailPart = l.Email ? ` Email=${l.Email}` : '';
         return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
       } catch {
@@ -193,7 +207,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
                   {shortTime(log.DateTime)}
                 </span>
                 <Tag color={eventColor(log.Event)} className="log-event-tag">
-                  {eventLabel(log.Event)}
+                  {eventLabel(t, log.Event)}
                 </Tag>
               </div>
               <div className="log-route">

@@ -66,6 +66,7 @@
   "comment": "Комментарий",
   "success": "Успешно",
   "lastOnline": "Был(а) в сети",
+  "lastSubFetch": "Последнее получение подписки",
   "getVersion": "Узнать версию",
   "install": "Установка",
   "clients": "Клиенты",
@@ -111,7 +112,8 @@
     "docs": "Документация",
     "openMenu": "Открыть меню",
     "pinSidebar": "Закрепить боковую панель",
-    "unpinSidebar": "Открепить боковую панель"
+    "unpinSidebar": "Открепить боковую панель",
+    "subFormats": "Форматы подписки"
   },
   "pages": {
     "login": {
@@ -256,7 +258,17 @@
       "healthCritical": "{list} — критический уровень",
       "panel": "Панель",
       "threads": "Потоки",
-      "uptime": "Время работы"
+      "uptime": "Время работы",
+      "logLevelDebug": "Отладка",
+      "logLevelInfo": "Информация",
+      "logLevelNotice": "Уведомление",
+      "logLevelWarning": "Предупреждение",
+      "logLevelError": "Ошибка",
+      "accessDirect": "НАПРЯМУЮ",
+      "accessBlocked": "ЗАБЛОКИРОВАНО",
+      "accessProxy": "ЧЕРЕЗ ПРОКСИ",
+      "importKeepHostSettings": "Сохранить настройки этой машины",
+      "importKeepHostSettingsDesc": "Оставляет адреса и порты этой панели, базовый путь, сертификаты и удостоверение для узлов вместо тех, что в загруженном файле."
     },
     "inbounds": {
       "totalDownUp": "Отправлено/получено",
@@ -411,6 +423,8 @@
         "inboundCreateSuccess": "Подключение успешно создано",
         "bulkDeleted": "Удалено подключений: {count}",
         "bulkDeletedMixed": "Удалено: {ok}, не удалось: {failed}",
+        "clonedMany": "Скопировано подключений: {count}",
+        "clonedMixed": "Скопировано: {ok}, не удалось: {failed}",
         "inboundDeleteSuccess": "Подключение успешно удалено",
         "inboundClientAddSuccess": "Клиент(ы) подключения добавлен(ы)",
         "inboundClientDeleteSuccess": "Клиент подключения удалён",
@@ -427,6 +441,7 @@
         "scanRealityTargetError": "Не удалось просканировать цель REALITY.",
         "scanRealityTargetFeasible": "Цель подходит — поля target и SNI заполнены.",
         "scanRealityTargetNotFeasible": "Цель доступна, но не подходит для REALITY.",
+        "scanRealityTargetPrivate": "Цель работает, но находится в приватной (локальной) сети.",
         "invalidClientField": "Клиент {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ещё)"
@@ -619,6 +634,11 @@
         "scanCurve": "Обмен ключами",
         "scanCert": "Сертификат",
         "scanCertInvalid": "Не доверенный",
+        "scanCertExpiry": "Сертификат истекает",
+        "scanSniUsed": "Использованный SNI",
+        "scanPrivateNote": "Проверено во внутренней (локальной) сети — этот адрес недоступен из интернета.",
+        "scanPrivateConfirmTitle": "Цель в локальной сети",
+        "scanPrivateConfirmContent": "«{target}» указывает на приватный или локальный адрес. Проверка обойдёт SSRF-защиту панели только для этого запроса. Продолжить?",
         "scanLatency": "Задержка",
         "scanUse": "Выбрать",
         "scanRescan": "Пересканировать",
@@ -635,6 +655,8 @@
         "shareAddrHelp": "Используется только когда стратегия адреса для ссылок — пользовательская. Укажите хост или IP без схемы и порта.",
         "subSortIndex": "Порядок в подписке",
         "subSortIndexHelp": "Позиция ссылок этого входящего в выдаче подписки (страница подписки и клиентские приложения). Меньшие значения идут первыми; при равных значениях сохраняется порядок создания. Не влияет на список входящих в панели.",
+        "disableFlow": "Отключить поток XTLS",
+        "disableFlowHelp": "Исключить этот inbound из автоматического добавления xtls-rprx-vision, даже если его транспорт поддерживает flow (например, туннелированный XHTTP inbound с шифрованием VLESS). Клиенты сохраняют Vision на других подходящих inbound в той же подписке. Только VLESS.",
         "shareAddrStrategyOptions": {
           "node": "Адрес узла",
           "listen": "Адрес прослушивания inbound",
@@ -671,6 +693,10 @@
       "addExternalSubscription": "Добавить внешнюю подписку",
       "noExternalLinks": "Пока нет внешних ссылок.",
       "noExternalSubscriptions": "Пока нет внешних подписок.",
+      "namePrefix": "Префикс имени",
+      "lastFetchAt": "Последнее обновление",
+      "lastFetchError": "Ошибка обновления",
+      "neverFetched": "Ещё не загружено",
       "submitEdit": "Сохранить изменения",
       "clientCount": "Количество клиентов",
       "bulk": "Массовое добавление",
@@ -713,6 +739,13 @@
       "addClients": "Добавить клиентов",
       "limitIp": "Лимит IP",
       "limitIpDesc": "Максимум одновременных IP-адресов. 0 = без ограничений.",
+      "limitHwid": "Лимит HWID",
+      "limitHwidDesc": "Максимум зарегистрированных устройств для запросов подписки. 0 = без ограничений.",
+      "hwidLog": "Устройства HWID",
+      "hwidDevice": "Зарегистрированное устройство",
+      "noHwids": "Устройств HWID пока нет",
+      "firstSeen": "Первое появление",
+      "lastSeen": "Последнее появление",
       "limitIpFail2banMissing": "Fail2ban не установлен, поэтому ограничение по IP не может быть применено. Установите Fail2ban из bash-меню x-ui, чтобы включить эту опцию.",
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
@@ -848,7 +881,12 @@
         "delOrphans": "Удалено клиентов без входящего: {count}",
         "imported": "Импортировано клиентов: {count}",
         "importedMixed": "Импортировано: {ok}, пропущено: {failed}"
-      }
+      },
+      "renewMax": "Лимит продлений",
+      "renewMaxDesc": "Сколько раз автопродление может сработать, прежде чем клиент будет оставлен истекать. 0 — без ограничения. Догон нескольких пропущенных периодов расходует по одному продлению на период.",
+      "renewOnDay": "Продлевать числа",
+      "renewOnDayDesc": "Продлевать этого числа каждого месяца, в полночь по часовому поясу панели, вместо интервала в днях. Если в месяце такого числа нет, продление придётся на последний день. 0 — оставить режим интервала.",
+      "renewsUsed": "Продлений израсходовано"
     },
     "groups": {
       "name": "Имя",
@@ -973,7 +1011,8 @@
         "updateStarted": "Обновление панели запущено",
         "updateResult": "Обновление запущено на {ok} узлах, {failed} не удалось",
         "updateNoneEligible": "Выберите хотя бы один включённый узел в сети",
-        "saveMtls": "Сохранить mTLS узла"
+        "saveMtls": "Сохранить mTLS узла",
+        "reloadMtls": "Reload master mTLS credential"
       },
       "tlsVerifyMode": "Проверка TLS",
       "tlsVerifyModeHint": "Как панель проверяет HTTPS-сертификат узла. Закрепление или Пропуск — для самоподписанных сертификатов (только https-узлы).",
@@ -1106,13 +1145,13 @@
       "subClashUserAgentRegex": "Регулярное выражение User-Agent Clash/Mihomo",
       "subClashUserAgentRegexDesc": "Регулярное выражение Go RE2, сопоставляемое с User-Agent клиента для распознавания клиентов Clash/Mihomo на стандартном URL подписки. Оставьте поле пустым, чтобы использовать шаблон по умолчанию. После изменения перезапустите панель.",
       "subTitle": "Заголовок подписки",
-      "subTitleDesc": "Название подписки, которое видит клиент в VPN-клиенте",
+      "subTitleDesc": "Название подписки, которое видит клиент в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "URL поддержки",
-      "subSupportUrlDesc": "Ссылка на техническую поддержку, отображаемая в VPN-клиенте",
+      "subSupportUrlDesc": "Ссылка на техническую поддержку, отображаемая в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subProfileUrl": "URL профиля",
-      "subProfileUrlDesc": "Ссылка на ваш сайт, отображаемая в VPN-клиенте",
+      "subProfileUrlDesc": "Ссылка на ваш сайт, отображаемая в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subAnnounce": "Объявление",
-      "subAnnounceDesc": "Текст объявления, отображаемый в VPN-клиенте",
+      "subAnnounceDesc": "Текст объявления, отображаемый в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "Каталог темы подписки",
       "subThemeDirDesc": "Абсолютный путь к папке с пользовательским шаблоном (index.html/sub.html) для страницы подписки (например, /etc/3x-ui/sub_templates/my-theme/). Оставьте пустым, чтобы использовать страницу по умолчанию.",
       "subThemeDirDocs": "Руководство по шаблонам ↗",
@@ -1339,7 +1378,11 @@
         "pathLeadingSlash": "Путь должен начинаться с /"
       },
       "secretClear": "Очистить",
-      "secretClearUndo": "Отменить очистку"
+      "secretClearUndo": "Отменить очистку",
+      "calendarGregorian": "Григорианский (обычный)",
+      "calendarJalalian": "Джалали (شمسی)",
+      "ipLimitAllowlist": "Доверенные адреса для лимита",
+      "ipLimitAllowlistDesc": "Адреса и подсети, которые лимит не считает и не банит: общий офисный или студенческий адрес не израсходует лимит клиента. Через запятую, адрес или подсеть."
     },
     "xray": {
       "importRules": "Импорт правил",
@@ -1436,6 +1479,35 @@
       },
       "routing": {
         "dragToReorder": "Перетащите для изменения порядка"
+      },
+      "geoBrowser": {
+        "title": "Категории geo-баз",
+        "openTooltip": "Открыть браузер geo-категорий",
+        "database": "База",
+        "searchCategory": "Поиск категории",
+        "searchEntries": "Фильтр внутри категории",
+        "selectFound": "Отметить найденные",
+        "selected": "Выбрано {count}",
+        "clearAll": "Снять всё",
+        "apply": "Применить",
+        "emptySelection": "Отметьте категории — они станут токенами правила",
+        "pickCategory": "Выберите категорию слева, чтобы посмотреть её содержимое",
+        "noMatches": "Ничего не найдено",
+        "noFiles": "В каталоге Xray нет geo-баз",
+        "noFilesHint": "Они появятся после того, как Xray скачает geosite.dat и geoip.dat",
+        "fileMeta": "{count} категорий · {size} · обновлено {date}",
+        "entriesCount": "{count} записей",
+        "subnetsCount": "{count} подсетей",
+        "shownRange": "Показано {from}–{to} из {total}",
+        "loadFailed": "Не удалось загрузить geo-базы",
+        "checkFailed": "Не удалось проверить эти значения по geo-базам",
+        "parseFailed": "Файл повреждён или это не база geosite/geoip",
+        "tooLarge": "Слишком большой файл для просмотра",
+        "unknownCategories": "Нет в базе: {tokens}",
+        "missingDatabase": "Файла базы нет: {tokens} — добавьте её в разделе Geodata",
+        "unknownAttribute": "Атрибут не найден, правило ничего не сматчит: {tokens}",
+        "invalidToken": "Xray не примет такую запись: {tokens}",
+        "wrongKind": "База не того типа для этого поля: {tokens}"
       },
       "ruleForm": {
         "sourceIps": "IP источника",
@@ -1826,6 +1898,7 @@
         "descEXPIRE_UNIX": "Окончание в виде Unix-метки времени (секунды)",
         "descCREATED_UNIX": "Время создания в виде Unix-метки времени (секунды)",
         "descRESET_DAYS": "Период сброса трафика в днях",
+        "descRESET_DAY": "Число месяца, в которое продлевается доступ",
         "descPROTOCOL": "Протокол входящего (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Транспортная сеть (tcp, ws, grpc, …)",
         "descSECURITY": "Безопасность транспорта (TLS, REALITY, NONE)"

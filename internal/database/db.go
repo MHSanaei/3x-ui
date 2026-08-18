@@ -75,6 +75,7 @@ func allModels() []any {
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
+		&model.ClientHwid{},
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
@@ -86,7 +87,18 @@ func allModels() []any {
 	}
 }
 
+func migrateClientTrafficLastSubFetchColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&xray.ClientTraffic{}) || migrator.HasColumn(&xray.ClientTraffic{}, "last_sub_fetch") {
+		return nil
+	}
+	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
+}
+
 func initModels() error {
+	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
 	models := allModels()
 	for _, mdl := range models {
 		if IsPostgres() && postgresModelSettled(mdl) {
@@ -110,6 +122,9 @@ func initModels() error {
 	if err := normalizeApiTokenCreatedAtSeconds(); err != nil {
 		return err
 	}
+	if err := migrateApiTokenScopeAndExpiry(); err != nil {
+		return err
+	}
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
@@ -120,6 +135,12 @@ func initModels() error {
 		return err
 	}
 	if err := normalizeInboundSubSortIndex(); err != nil {
+		return err
+	}
+	if err := normalizeClientExternalLinkEnable(); err != nil {
+		return err
+	}
+	if err := normalizeClientExternalLinkTimestamps(); err != nil {
 		return err
 	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
@@ -138,6 +159,9 @@ func initModels() error {
 		return err
 	}
 	if err := migrateTgIDIndex(); err != nil {
+		return err
+	}
+	if err := migrateClientTrafficResetColumns(); err != nil {
 		return err
 	}
 	if err := migrateSyncOrphanColumns(); err != nil {
@@ -298,6 +322,22 @@ func rebuildInboundsWithoutInlineUniquePort() error {
 		}
 		return tx.Exec(`DROP TABLE inbounds_legacy_rebuild`).Error
 	})
+}
+
+// AutoMigrate adds the columns; an older SQLite ALTER TABLE leaves them NULL,
+// and a NULL traffic_reset fails every ClientRecord scan, not just the new query.
+func migrateClientTrafficResetColumns() error {
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset") {
+		if err := db.Exec("UPDATE clients SET traffic_reset = 'never' WHERE traffic_reset IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset_day") {
+		if err := db.Exec("UPDATE clients SET traffic_reset_day = 1 WHERE traffic_reset_day IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AutoMigrate adds the column; this only backfills the NULLs an older SQLite
@@ -931,6 +971,40 @@ func normalizeInboundSubSortIndex() error {
 	return nil
 }
 
+// normalizeClientExternalLinkEnable keeps external-link rows written before the
+// enable column existed enabled; disabled rows from newer builds stay false.
+func normalizeClientExternalLinkEnable() error {
+	res := db.Exec("UPDATE client_external_links SET enable = ? WHERE enable IS NULL", true)
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link enable: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized enable on %d client external link(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeClientExternalLinkTimestamps zeroes the NULLs an older build could
+// leave behind, so the sub-side expiry predicate never drops a legacy row.
+func normalizeClientExternalLinkTimestamps() error {
+	res := db.Exec("UPDATE client_external_links SET expiry_time = 0 WHERE expiry_time IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link expiry_time: %v", res.Error)
+		return res.Error
+	}
+	expiryRows := res.RowsAffected
+	res = db.Exec("UPDATE client_external_links SET last_fetch_at = 0 WHERE last_fetch_at IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link last_fetch_at: %v", res.Error)
+		return res.Error
+	}
+	if expiryRows+res.RowsAffected > 0 {
+		log.Printf("Normalized timestamps on %d client external link(s)", expiryRows+res.RowsAffected)
+	}
+	return nil
+}
+
 // repairOverflowedTrafficCounters heals traffic counters that historic
 // compounding bugs pushed past int64: on SQLite an overflowing INTEGER is
 // silently promoted to REAL, after which the column no longer scans into the
@@ -1278,8 +1352,13 @@ func resetIpLimitsWithoutFail2ban() error {
 		return nil
 	}
 
-	if fail2banCanEnforce() {
+	state, probeErr := fail2banEnforcementState()
+	if state == fail2banEnforcing {
 		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	}
+	if state == fail2banUnknown {
+		log.Printf("ResetIpLimitNoFail2ban: fail2ban-client present but not runnable (%v); keeping configured IP limits, will retry next start", probeErr)
+		return nil
 	}
 
 	var inbounds []model.Inbound
@@ -1340,14 +1419,30 @@ func resetIpLimitsWithoutFail2ban() error {
 	})
 }
 
-func fail2banCanEnforce() bool {
+type fail2banState int
+
+const (
+	fail2banEnforcing fail2banState = iota
+	fail2banAbsent
+	fail2banUnknown
+)
+
+// fail2banEnforcementState separates "fail2ban is not installed" from "the probe
+// itself failed", so a transient failure never drives an irreversible cleanup.
+func fail2banEnforcementState() (fail2banState, error) {
 	if v, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); ok && v != "true" {
-		return false
+		return fail2banAbsent, nil
 	}
 	if runtime.GOOS == "windows" {
-		return false
+		return fail2banAbsent, nil
 	}
-	return exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run() == nil
+	if _, err := exec.LookPath("fail2ban-client"); err != nil {
+		return fail2banAbsent, nil
+	}
+	if err := exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run(); err != nil {
+		return fail2banUnknown, err
+	}
+	return fail2banEnforcing, nil
 }
 
 func clearLegacyProxySettings() error {
@@ -1628,6 +1723,14 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	return true
 }
 
+func isUnrestrictedFreedomFinalRules(v any, present bool) bool {
+	if !present || v == nil {
+		return true
+	}
+	rules, ok := v.([]any)
+	return ok && len(rules) == 0
+}
+
 func hardenFreedomFinalRules() error {
 	var setting model.Setting
 	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
@@ -1680,7 +1783,10 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if !isAllowOnlyFinalRules(settings["finalRules"]) && !isLegacyPrivateOnlyFinalRules(settings["finalRules"]) {
+		finalRules, present := settings["finalRules"]
+		if !isUnrestrictedFreedomFinalRules(finalRules, present) &&
+			!isAllowOnlyFinalRules(finalRules) &&
+			!isLegacyPrivateOnlyFinalRules(finalRules) {
 			continue
 		}
 		settings["finalRules"] = []any{
@@ -2030,6 +2136,22 @@ func normalizeApiTokenCreatedAtSeconds() error {
 	return db.Model(&model.ApiToken{}).
 		Where("created_at >= ?", model.ApiTokenUnixMillisecondsThreshold).
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
+}
+
+func migrateApiTokenScopeAndExpiry() error {
+	m := db.Migrator()
+	if !m.HasColumn(&model.ApiToken{}, "Scope") {
+		if err := m.AddColumn(&model.ApiToken{}, "Scope"); err != nil {
+			return err
+		}
+	}
+	if !m.HasColumn(&model.ApiToken{}, "ExpiresAt") {
+		if err := m.AddColumn(&model.ApiToken{}, "ExpiresAt"); err != nil {
+			return err
+		}
+	}
+	return db.Model(&model.ApiToken{}).Where("scope IS NULL OR TRIM(scope) = ''").
+		Updates(map[string]any{"scope": model.ApiScopeAdmin, "expires_at": 0}).Error
 }
 
 // openPostgresWithRetry retries the initial PostgreSQL connection with

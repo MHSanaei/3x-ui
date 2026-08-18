@@ -14,5 +14,13 @@ type ClientTraffic struct {
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime" gorm:"index:idx_client_traffics_renew,priority:1" example:"1735689600000"`
 	Total      int64  `json:"total" form:"total" example:"10737418240"`
 	Reset      int    `json:"reset" form:"reset" gorm:"default:0;index:idx_client_traffics_renew,priority:2" example:"0"`
-	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
+	// ResetDay renews on that day of each calendar month instead of every
+	// Reset days; 0 keeps the interval behaviour.
+	ResetDay int `json:"resetDay" form:"resetDay" gorm:"default:0" example:"0"`
+	// ResetMax caps how many times auto-renew may fire; 0 means no cap.
+	ResetMax int `json:"resetMax" form:"resetMax" gorm:"default:0" example:"0"`
+	// ResetCount is how many have fired, so a prepaid plan stops on its own.
+	ResetCount   int   `json:"resetCount" form:"resetCount" gorm:"default:0" example:"0"`
+	LastOnline   int64 `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
+	LastSubFetch int64 `json:"lastSubFetch" form:"lastSubFetch" gorm:"default:0" example:"1735680000000"`
 }

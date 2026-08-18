@@ -40,12 +40,22 @@ function extractPathParams(openApiPath) {
 
 function mapType(t) {
   const v = String(t || '').toLowerCase();
+  if (v.endsWith('[]')) return 'array';
   if (v === 'number' || v === 'integer' || v === 'int') return 'integer';
   if (v === 'float' || v === 'double') return 'number';
   if (v === 'boolean' || v === 'bool') return 'boolean';
   if (v === 'array') return 'array';
   if (v === 'object') return 'object';
   return 'string';
+}
+
+function schemaFromType(t) {
+  const v = String(t || '').toLowerCase();
+  if (v.endsWith('[]')) {
+    const itemType = v.slice(0, -2);
+    return { type: 'array', items: { type: mapType(itemType) } };
+  }
+  return { type: mapType(v) };
 }
 
 function tryParseJson(raw) {
@@ -63,7 +73,7 @@ function paramToOpenApi(p) {
     in: p.in,
     required: p.in === 'path' ? true : !p.optional,
     description: p.desc || '',
-    schema: { type: mapType(p.type) },
+    schema: schemaFromType(p.type),
   };
   if (p.defaultValue !== undefined) out.schema.default = p.defaultValue;
   return out;
@@ -109,7 +119,7 @@ function buildOperation(ep, tag) {
     const required = [];
     for (const bp of bodyParams) {
       properties[bp.name] = {
-        type: mapType(bp.type),
+        ...schemaFromType(bp.type),
         description: bp.desc || '',
       };
       if (!bp.optional) required.push(bp.name);

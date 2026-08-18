@@ -219,7 +219,7 @@ export default function AppSidebar() {
       { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
     ];
     if (showSubFormats) {
-      children.push({ key: '/settings#subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });
+      children.push({ key: '/settings#subscription-formats', icon: <CodeOutlined />, label: t('menu.subFormats') });
     }
     return children;
   }, [t, showSubFormats]);
