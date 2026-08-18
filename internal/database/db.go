@@ -109,6 +109,10 @@ func initModels() error {
 				log.Printf("Ignoring duplicate column during auto migration for %T: %v", mdl, err)
 				continue
 			}
+			if isIgnorableTableExistsErr(db, err, mdl) {
+				log.Printf("Ignoring already-exists table during auto migration for %T: %v", mdl, err)
+				continue
+			}
 			log.Printf("Error auto migrating model: %v", err)
 			return err
 		}
@@ -1073,6 +1077,27 @@ func isIgnorableDuplicateColumnErr(gdb *gorm.DB, err error, mdl any) bool {
 		}
 	}
 	return false
+}
+
+// isIgnorableTableExistsErr reports whether err is a raw "table already
+// exists" from AutoMigrate attempting a CREATE TABLE on a table that's
+// already there with the right shape -- observed in production on
+// *model.ClientHwid (#5802): GORM's SQLite migrator can decide to redo the
+// composite-uniqueIndex table on a re-run even though nothing actually
+// changed, and re-issues a bare CREATE TABLE instead of its usual
+// copy-and-rename dance. Verifying HasTable (rather than trusting the error
+// text alone) keeps this narrow: a table collision against something
+// genuinely wrong would still need HasTable to agree before being waved
+// through.
+func isIgnorableTableExistsErr(gdb *gorm.DB, err error, mdl any) bool {
+	if err == nil || gdb == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	if !strings.Contains(errMsg, "already exists") || strings.Contains(errMsg, "column ") {
+		return false
+	}
+	return strings.Contains(errMsg, "table ") && gdb.Migrator().HasTable(mdl)
 }
 
 func initUser() error {

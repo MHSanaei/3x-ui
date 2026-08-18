@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,6 +40,38 @@ func TestClientHwidSchemaSQLite(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = CloseDB() })
 	assertClientHwidSchema(t, GetDB())
+}
+
+// TestIsIgnorableTableExistsErr covers the real production incident (#5802
+// follow-up): AutoMigrate re-issuing a bare CREATE TABLE for *model.ClientHwid
+// against a database that already has it, correctly shaped, from an earlier
+// run -- previously fatal (crashed the panel on every subsequent start until
+// the table was manually dropped), now tolerated the same way a duplicate
+// column already is.
+func TestIsIgnorableTableExistsErr(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	gdb := GetDB()
+
+	if !isIgnorableTableExistsErr(gdb, errors.New("table `client_hwids` already exists"), &model.ClientHwid{}) {
+		t.Fatal("want true: client_hwids really exists (InitDB just created it) and the error names a table, not a column")
+	}
+	if isIgnorableTableExistsErr(gdb, errors.New("table `no_such_table` already exists"), &model.ClientHwid{}) {
+		t.Fatal("want false: HasTable must be checked against the model actually passed in, not assumed from the error text alone")
+	}
+	if isIgnorableTableExistsErr(gdb, nil, &model.ClientHwid{}) {
+		t.Fatal("want false: nil error")
+	}
+	if isIgnorableTableExistsErr(gdb, errors.New(`duplicate column name: sub_id`), &model.ClientHwid{}) {
+		t.Fatal("want false: column-shaped errors are isIgnorableDuplicateColumnErr's job, not this one's")
+	}
+	if isIgnorableTableExistsErr(gdb, errors.New(`column "sub_id" of relation "client_hwids" already exists`), &model.ClientHwid{}) {
+		t.Fatal("want false: Postgres column-already-exists text also isn't this function's job")
+	}
 }
 
 func TestClientHwidSchemaPostgres(t *testing.T) {

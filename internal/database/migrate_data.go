@@ -338,7 +338,7 @@ func PrepareSQLiteForMigration(dbPath string) error {
 		}
 	}
 	for _, m := range migrationModels() {
-		if err := gdb.AutoMigrate(m); err != nil && !isIgnorableDuplicateColumnErr(gdb, err, m) {
+		if err := gdb.AutoMigrate(m); err != nil && !isIgnorableDuplicateColumnErr(gdb, err, m) && !isIgnorableTableExistsErr(gdb, err, m) {
 			return fmt.Errorf("upgrade panel schema for %T: %w", m, err)
 		}
 	}
