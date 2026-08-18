@@ -11,6 +11,8 @@ export const ClientTrafficSchema = z.object({
   enable: z.boolean().optional(),
   lastOnline: z.number().optional(),
   lastSubFetch: z.number().optional(),
+  resetMax: z.number().optional(),
+  resetCount: z.number().optional(),
 });
 
 export const ClientRecordSchema = z.object({
@@ -31,6 +33,10 @@ export const ClientRecordSchema = z.object({
   comment: z.string().optional(),
   enable: z.boolean().optional(),
   reset: z.number().optional(),
+  resetDay: z.number().optional(),
+  resetMax: z.number().optional(),
+  trafficReset: z.string().optional(),
+  trafficResetDay: z.number().optional(),
   inboundIds: nullableNumberArray.optional(),
   traffic: ClientTrafficSchema.nullable().optional(),
   reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
@@ -100,9 +106,15 @@ export const ClientPageResponseSchema = z.object({
 // A per-client external link surfaced in the client's subscription:
 // kind=link is a single share link, kind=subscription is a remote sub URL.
 export const ExternalLinkSchema = z.object({
+  id: z.number().int().optional().default(0),
   kind: z.enum(['link', 'subscription']).default('link'),
   value: z.string(),
   remark: z.string().optional().default(''),
+  enable: z.preprocess((v) => (v == null ? true : v), z.boolean()).default(true),
+  expiryTime: z.number().int().optional().default(0),
+  namePrefix: z.string().optional().default(''),
+  lastFetchAt: z.number().int().optional().default(0),
+  lastFetchError: z.string().optional().default(''),
 }).loose();
 
 export const ExternalLinkListSchema = z.array(ExternalLinkSchema).nullable().transform((v) => v ?? []);
@@ -205,6 +217,10 @@ export const ClientFormSchema = z.object({
   delayedStart: z.boolean(),
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
+  resetDay: z.number().int().min(0).max(31),
+  resetMax: z.number().int().min(0),
+  trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
+  trafficResetDay: z.number().int().min(1).max(31),
   limitIp: z.number().int().min(0),
   limitHwid: z.number().int().min(0),
   tgId: z.number().int().min(0),
@@ -244,6 +260,10 @@ export const ClientBulkAddFormSchema = z.object({
   totalGB: z.number().min(0),
   expiryTime: z.number(),
   reset: z.number().int().min(0),
+  resetDay: z.number().int().min(0).max(31),
+  resetMax: z.number().int().min(0),
+  trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']).optional(),
+  trafficResetDay: z.number().int().min(1).max(31).optional(),
   inboundIds: z.array(z.number()).min(1, 'pages.clients.selectInbound'),
 });
 

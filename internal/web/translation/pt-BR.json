@@ -112,7 +112,8 @@
     "docs": "Documentação",
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
-    "unpinSidebar": "Desafixar barra lateral"
+    "unpinSidebar": "Desafixar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — crítico",
       "panel": "Painel",
       "threads": "Threads",
-      "uptime": "Tempo ativo"
+      "uptime": "Tempo ativo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Manter as configurações desta máquina",
+      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado."
     },
     "inbounds": {
       "totalDownUp": "Total Enviado/Recebido",
@@ -430,6 +441,7 @@
         "scanRealityTargetError": "Falha ao escanear o alvo REALITY.",
         "scanRealityTargetFeasible": "O alvo é viável — alvo e SNI preenchidos.",
         "scanRealityTargetNotFeasible": "O alvo é acessível, mas não é viável para REALITY.",
+        "scanRealityTargetPrivate": "O destino funciona, mas está em uma rede privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} mais)"
@@ -622,6 +634,11 @@
         "scanCurve": "Troca de chaves",
         "scanCert": "Certificado",
         "scanCertInvalid": "Não confiável",
+        "scanCertExpiry": "Certificado expira",
+        "scanSniUsed": "SNI utilizado",
+        "scanPrivateNote": "Verificado em uma rede privada/local — este endereço não é acessível pela internet.",
+        "scanPrivateConfirmTitle": "Destino em uma rede local",
+        "scanPrivateConfirmContent": "\"{target}\" resolve para um endereço privado ou de loopback. A verificação ignorará a proteção SSRF do painel apenas nesta sondagem. Continuar?",
         "scanLatency": "Latência",
         "scanUse": "Usar",
         "scanRescan": "Reescanear",
@@ -676,6 +693,10 @@
       "addExternalSubscription": "Adicionar assinatura externa",
       "noExternalLinks": "Ainda não há links externos.",
       "noExternalSubscriptions": "Ainda não há assinaturas externas.",
+      "namePrefix": "Prefixo do nome",
+      "lastFetchAt": "Última busca",
+      "lastFetchError": "Erro na busca",
+      "neverFetched": "Ainda não buscado",
       "submitEdit": "Salvar alterações",
       "clientCount": "Número de clientes",
       "bulk": "Adicionar em lote",
@@ -860,7 +881,12 @@
         "delOrphans": "{count} clientes sem inbound excluídos",
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} ignorados"
-      }
+      },
+      "renewMax": "Renovações máximas",
+      "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
+      "renewOnDay": "Renovar no dia",
+      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
+      "renewsUsed": "Renovações usadas"
     },
     "groups": {
       "name": "Nome",
@@ -1132,17 +1158,17 @@
       "subEnableRouting": "Ativar roteamento",
       "subEnableRoutingDesc": "Configuração global para habilitar o roteamento no cliente VPN. (Apenas para Happ)",
       "subRoutingRules": "Regras de roteamento",
-      "subRoutingRulesDesc": "Regras de roteamento globais para o cliente VPN. (Apenas para Happ)",
+      "subRoutingRulesDesc": "Cole um deeplink happ:// pronto ou uma URL HTTPS permanente. O painel atualiza as regras remotas em segundo plano e mantém o último valor válido, sem atrasar as solicitações de assinatura. (Apenas para Happ)",
       "subHideSettings": "Ocultar configurações do servidor",
       "subHideSettingsDesc": "Ocultar a capacidade de visualizar e editar as configurações do servidor no cliente VPN. (Apenas para Happ)",
       "subIncyEnableRouting": "Ativar roteamento",
       "subIncyEnableRoutingDesc": "Injetar um perfil de roteamento no corpo da assinatura para o cliente Incy. (Apenas para Incy)",
       "subIncyRoutingRules": "Regras de roteamento",
-      "subIncyRoutingRulesDesc": "Link de roteamento do Incy adicionado ao corpo da assinatura, ex. incy://routing/onadd/<base64>. (Apenas para Incy)",
+      "subIncyRoutingRulesDesc": "Cole um deeplink incy:// pronto ou uma URL HTTPS permanente para JSON. O Incy cria um perfil de autorouting e o atualiza automaticamente. (Apenas para Incy)",
       "subClashEnableRouting": "Ativar roteamento",
       "subClashEnableRoutingDesc": "Incluir regras globais de roteamento Clash/Mihomo nas assinaturas YAML geradas.",
       "subClashRoutingRules": "Regras globais de roteamento",
-      "subClashRoutingRulesDesc": "Regras Clash/Mihomo adicionadas ao início de cada assinatura YAML antes de MATCH,PROXY.",
+      "subClashRoutingRulesDesc": "Cole regras/YAML ou uma URL HTTPS permanente. O painel a atualiza em segundo plano, importa apenas grupos, provedores de regras e regras, e preserva os nós VPN gerados e o último valor válido.",
       "subListen": "IP de Escuta",
       "subListenDesc": "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)",
       "subPort": "Porta de Escuta",
@@ -1352,7 +1378,11 @@
         "pathLeadingSlash": "O caminho deve começar com /"
       },
       "secretClear": "Limpar",
-      "secretClearUndo": "Desfazer limpeza"
+      "secretClearUndo": "Desfazer limpeza",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Lista de permissões do limite de IP",
+      "ipLimitAllowlistDesc": "Endereços e redes que o limite de IP nunca conta nem bane, para que um endereço compartilhado de escritório ou campus não esgote o limite de um cliente. IPs/CIDRs separados por vírgula."
     },
     "xray": {
       "importRules": "Importar regras",
@@ -1868,6 +1898,7 @@
         "descEXPIRE_UNIX": "Expiração como timestamp Unix (segundos)",
         "descCREATED_UNIX": "Data de criação como timestamp Unix (segundos)",
         "descRESET_DAYS": "Período de redefinição de tráfego em dias",
+        "descRESET_DAY": "Dia do mês em que é renovado",
         "descPROTOCOL": "Protocolo da entrada (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Rede de transporte (tcp, ws, grpc, …)",
         "descSECURITY": "Segurança do transporte (TLS, REALITY, NONE)"

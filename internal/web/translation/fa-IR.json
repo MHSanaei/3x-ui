@@ -112,7 +112,8 @@
     "docs": "مستندات",
     "openMenu": "باز کردن منو",
     "pinSidebar": "ثابت کردن نوار کناری",
-    "unpinSidebar": "برداشتن تثبیت نوار کناری"
+    "unpinSidebar": "برداشتن تثبیت نوار کناری",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -257,7 +258,17 @@
       "healthCritical": "{list} — بحرانی",
       "panel": "پنل",
       "threads": "نخ‌ها",
-      "uptime": "مدت کارکرد"
+      "uptime": "مدت کارکرد",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "حفظ تنظیمات این دستگاه",
+      "importKeepHostSettingsDesc": "آدرس‌ها و پورت‌های شنود، مسیر پایه، گواهی‌ها و هویت نودِ همین پنل را نگه می‌دارد و آن‌ها را از فایل بارگذاری‌شده نمی‌گیرد."
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",
@@ -430,6 +441,7 @@
         "scanRealityTargetError": "اسکن هدف REALITY ناموفق بود.",
         "scanRealityTargetFeasible": "هدف مناسب است — هدف و SNI پر شد.",
         "scanRealityTargetNotFeasible": "هدف در دسترس است اما برای REALITY مناسب نیست.",
+        "scanRealityTargetPrivate": "هدف کار می‌کند اما در شبکهٔ خصوصی/محلی قرار دارد.",
         "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} مورد دیگر)"
@@ -613,6 +625,11 @@
         "scanCurve": "تبادل کلید",
         "scanCert": "گواهی",
         "scanCertInvalid": "نامعتبر",
+        "scanCertExpiry": "انقضای گواهی",
+        "scanSniUsed": "SNI استفاده‌شده",
+        "scanPrivateNote": "بررسی از طریق شبکهٔ خصوصی/محلی انجام شد — این نشانی از اینترنت قابل دسترسی نیست.",
+        "scanPrivateConfirmTitle": "هدف در شبکهٔ محلی",
+        "scanPrivateConfirmContent": "«{target}» به یک نشانی خصوصی یا loopback اشاره می‌کند. بررسی تنها برای همین کاوش، محافظت SSRF پنل را نادیده می‌گیرد. ادامه می‌دهید؟",
         "scanLatency": "تأخیر",
         "scanUse": "استفاده",
         "scanRescan": "اسکن مجدد",
@@ -676,6 +693,10 @@
       "addExternalSubscription": "افزودن سابسکریپشن خارجی",
       "noExternalLinks": "هنوز لینک خارجی‌ای اضافه نشده.",
       "noExternalSubscriptions": "هنوز سابسکریپشن خارجی‌ای اضافه نشده.",
+      "namePrefix": "پیشوند نام",
+      "lastFetchAt": "آخرین دریافت",
+      "lastFetchError": "خطای دریافت",
+      "neverFetched": "هنوز دریافت نشده",
       "submitEdit": "ذخیره تغییرات",
       "clientCount": "تعداد کلاینت‌ها",
       "bulk": "افزودن گروهی",
@@ -860,7 +881,12 @@
         "delOrphans": "{count} کلاینت بدون اینباند حذف شد",
         "imported": "{count} کلاینت وارد شد",
         "importedMixed": "{ok} وارد شد، {failed} رد شد"
-      }
+      },
+      "renewMax": "حداکثر تعداد تمدید",
+      "renewMaxDesc": "تمدید خودکار حداکثر چند بار اجرا شود پیش از آنکه کلاینت منقضی بماند. مقدار ۰ یعنی بدون محدودیت. جبران چند دورهٔ ازدست‌رفته، برای هر دوره یک تمدید مصرف می‌کند.",
+      "renewOnDay": "روز تمدید",
+      "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند.",
+      "renewsUsed": "تمدیدهای استفاده‌شده"
     },
     "groups": {
       "name": "نام",
@@ -1136,17 +1162,17 @@
       "subEnableRouting": "فعال‌سازی مسیریابی",
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",
-      "subRoutingRulesDesc": "قوانین مسیریابی سراسری برای کلاینت VPN. (فقط برای Happ)",
+      "subRoutingRulesDesc": "یک پیوند آماده happ:// یا یک نشانی دائمی HTTPS وارد کنید. پنل قوانین راه‌دور را در پس‌زمینه به‌روزرسانی و آخرین مقدار معتبر را نگه می‌دارد، بنابراین درخواست اشتراک منتظر منبع نمی‌ماند. (فقط برای Happ)",
       "subHideSettings": "پنهان کردن تنظیمات سرور",
       "subHideSettingsDesc": "پنهان کردن توانایی مشاهده و ویرایش پیکربندی سرور در کلاینت VPN. (فقط برای Happ)",
       "subIncyEnableRouting": "فعال‌سازی مسیریابی",
       "subIncyEnableRoutingDesc": "تزریق پروفایل مسیریابی به بدنه اشتراک برای کلاینت Incy. (فقط برای Incy)",
       "subIncyRoutingRules": "قوانین مسیریابی",
-      "subIncyRoutingRulesDesc": "لینک مسیریابی Incy که به بدنه اشتراک افزوده می‌شود، مثلاً incy://routing/onadd/<base64>. (فقط برای Incy)",
+      "subIncyRoutingRulesDesc": "یک پیوند آماده incy:// یا یک نشانی دائمی HTTPS برای JSON وارد کنید. Incy یک نمایه autorouting می‌سازد و آن را خودکار به‌روزرسانی می‌کند. (فقط برای Incy)",
       "subClashEnableRouting": "فعال‌سازی مسیریابی",
       "subClashEnableRoutingDesc": "قوانین مسیریابی سراسری Clash/Mihomo را در اشتراک‌های YAML تولیدشده وارد کن.",
       "subClashRoutingRules": "قوانین مسیریابی سراسری",
-      "subClashRoutingRulesDesc": "قوانین Clash/Mihomo که پیش از MATCH,PROXY به ابتدای هر اشتراک YAML افزوده می‌شوند.",
+      "subClashRoutingRulesDesc": "قوانین/YAML یا یک نشانی دائمی HTTPS وارد کنید. پنل آن را در پس‌زمینه به‌روزرسانی می‌کند، فقط گروه‌ها، ارائه‌دهندگان قانون و قوانین را وارد می‌کند و گره‌های VPN ساخته‌شده و آخرین مقدار معتبر را حفظ می‌کند.",
       "subListen": "آدرس آی‌پی",
       "subListenDesc": "آدرس آی‌پی برای سرویس سابسکریپشن. برای گوش دادن به‌تمام آی‌پی‌ها خالی‌بگذارید",
       "subPort": "پورت",
@@ -1352,7 +1378,11 @@
         "pathLeadingSlash": "مسیر باید با / شروع شود"
       },
       "secretClear": "پاک کردن",
-      "secretClearUndo": "لغو پاک کردن"
+      "secretClearUndo": "لغو پاک کردن",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "فهرست مجاز محدودیت IP",
+      "ipLimitAllowlistDesc": "نشانی‌ها و شبکه‌هایی که محدودیت IP هرگز آن‌ها را نمی‌شمارد و مسدود نمی‌کند، تا نشانی مشترک یک اداره یا دانشگاه محدودیت کاربر را مصرف نکند. IPها/CIDRها (با کاما)."
     },
     "xray": {
       "save": "ذخیره",
@@ -1868,6 +1898,7 @@
         "descEXPIRE_UNIX": "انقضا به‌صورت مهر زمانی Unix (ثانیه)",
         "descCREATED_UNIX": "زمان ایجاد به‌صورت مهر زمانی Unix (ثانیه)",
         "descRESET_DAYS": "دورهٔ بازنشانی ترافیک به روز",
+        "descRESET_DAY": "روز ماه برای تمدید تقویمی",
         "descPROTOCOL": "پروتکل اینباند (VLESS، VMess، Trojan، …)",
         "descTRANSPORT": "شبکهٔ انتقال (tcp، ws، grpc، …)",
         "descSECURITY": "امنیت انتقال (TLS، REALITY، NONE)"

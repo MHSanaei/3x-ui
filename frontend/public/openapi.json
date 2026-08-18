@@ -41,6 +41,9 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "ipLimitAllowlist": {
+            "type": "string"
+          },
           "ldapAutoCreate": {
             "type": "boolean"
           },
@@ -374,6 +377,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -511,6 +515,9 @@
           },
           "hasWarpSecret": {
             "type": "boolean"
+          },
+          "ipLimitAllowlist": {
+            "type": "string"
           },
           "ldapAutoCreate": {
             "type": "boolean"
@@ -852,6 +859,7 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -1110,6 +1118,14 @@
             "description": "Reset period in days",
             "type": "integer"
           },
+          "resetDay": {
+            "description": "Calendar renewal day 1-31, 0 = interval mode",
+            "type": "integer"
+          },
+          "resetMax": {
+            "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
           "reverse": {
             "allOf": [
               {
@@ -1141,6 +1157,22 @@
             "format": "int64",
             "type": "integer"
           },
+          "trafficReset": {
+            "description": "Per-client traffic reset cycle, independent of the inbound's own (#5497).",
+            "enum": [
+              "never",
+              "hourly",
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "type": "string"
+          },
+          "trafficResetDay": {
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
           "updated_at": {
             "description": "Last update timestamp",
             "format": "int64",
@@ -1154,6 +1186,8 @@
           "expiryTime",
           "limitIp",
           "reset",
+          "resetDay",
+          "resetMax",
           "security",
           "subId",
           "tgId",
@@ -1246,6 +1280,12 @@
           "reset": {
             "type": "integer"
           },
+          "resetDay": {
+            "type": "integer"
+          },
+          "resetMax": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1262,6 +1302,12 @@
           },
           "totalGB": {
             "format": "int64",
+            "type": "integer"
+          },
+          "trafficReset": {
+            "type": "string"
+          },
+          "trafficResetDay": {
             "type": "integer"
           },
           "updatedAt": {
@@ -1292,12 +1338,16 @@
           "privateKey",
           "publicKey",
           "reset",
+          "resetDay",
+          "resetMax",
           "reverse",
           "secret",
           "security",
           "subId",
           "tgId",
           "totalGB",
+          "trafficReset",
+          "trafficResetDay",
           "updatedAt",
           "uuid"
         ],
@@ -1357,6 +1407,21 @@
             "example": 0,
             "type": "integer"
           },
+          "resetCount": {
+            "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetMax": {
+            "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "i7tvdpeffi0hvvf1",
             "type": "string"
@@ -1386,6 +1451,9 @@
           "lastOnline",
           "lastSubFetch",
           "reset",
+          "resetCount",
+          "resetDay",
+          "resetMax",
           "subId",
           "total",
           "up",
@@ -2899,6 +2967,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainValid": {
+            "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+            "example": true,
+            "type": "boolean"
+          },
           "certIssuer": {
             "example": "Google Trust Services",
             "type": "string"
@@ -2943,6 +3016,11 @@
             "example": 443,
             "type": "integer"
           },
+          "privateTarget": {
+            "description": "PrivateTarget marks a target that resolves to a loopback/private/link-local\naddress: blocked before the probe unless the caller opted in, then flagged.",
+            "example": false,
+            "type": "boolean"
+          },
           "reason": {
             "type": "string"
           },
@@ -2971,6 +3049,7 @@
         },
         "required": [
           "alpn",
+          "certChainValid",
           "certIssuer",
           "certSubject",
           "certValid",
@@ -2982,6 +3061,7 @@
           "latencyMs",
           "notAfter",
           "port",
+          "privateTarget",
           "reason",
           "serverNames",
           "target",
@@ -3327,6 +3407,9 @@
                           "lastOnline": 1735680000000,
                           "lastSubFetch": 1735680000000,
                           "reset": 0,
+                          "resetCount": 0,
+                          "resetDay": 0,
+                          "resetMax": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -5667,7 +5750,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names.",
+        "summary": "Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.",
         "operationId": "post_panel_api_server_scanRealityTarget",
         "requestBody": {
           "required": true,
@@ -5702,6 +5785,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
                     "certValid": true,
@@ -5713,6 +5797,7 @@
                     "latencyMs": 180,
                     "notAfter": "2026-08-01T00:00:00Z",
                     "port": 443,
+                    "privateTarget": false,
                     "reason": "",
                     "serverNames": [
                       ""
@@ -5773,6 +5858,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
                       "certValid": true,
@@ -5784,6 +5870,7 @@
                       "latencyMs": 180,
                       "notAfter": "2026-08-01T00:00:00Z",
                       "port": 443,
+                      "privateTarget": false,
                       "reason": "",
                       "serverNames": [
                         ""
@@ -6453,7 +6540,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Replace a client's external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.",
+        "summary": "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
         "operationId": "post_panel_api_clients_email_externalLinks",
         "parameters": [
           {
@@ -6471,19 +6558,36 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means never expire; a negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET."
+                  }
+                },
+                "required": [
+                  "externalLinks"
+                ]
               },
               "example": {
                 "externalLinks": [
                   {
                     "kind": "link",
                     "value": "vless://uuid@host:443?...#srv",
-                    "remark": "DE"
+                    "remark": "DE",
+                    "enable": true,
+                    "expiryTime": 0
                   },
                   {
                     "kind": "subscription",
                     "value": "https://provider.example/sub/abc",
-                    "remark": "Provider"
+                    "remark": "Provider",
+                    "enable": false,
+                    "expiryTime": 1767225600000,
+                    "namePrefix": "[zjh] "
                   }
                 ]
               }
@@ -8130,6 +8234,9 @@
                     "lastOnline": 1735680000000,
                     "lastSubFetch": 1735680000000,
                     "reset": 0,
+                    "resetCount": 0,
+                    "resetDay": 0,
+                    "resetMax": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,

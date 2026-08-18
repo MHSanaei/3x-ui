@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UseFormReturn } from 'react-hook-form';
 import type { MessageInstance } from 'antd/es/message/interface';
+import type { HookAPI as ModalHookAPI } from 'antd/es/modal/useModal';
 
 import { HttpUtil, RandomUtil } from '@/utils';
 import { createTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
@@ -13,6 +14,7 @@ interface UseSecurityActionsArgs {
   methods: UseFormReturn<InboundFormValues>;
   setSaving: Dispatch<SetStateAction<boolean>>;
   messageApi: MessageInstance;
+  modal: ModalHookAPI;
   /*
    * Node the inbound is deployed to (null = central panel). "Set Cert from
    * Panel" must read the node's own cert paths for a node-assigned inbound —
@@ -29,7 +31,7 @@ interface UseSecurityActionsArgs {
  * writes the result back into the form. Lifted out of InboundFormModal so
  * the modal body stays focused on orchestration.
  */
-export function useSecurityActions({ methods, setSaving, messageApi, nodeId, setScanResult, setScanning }: UseSecurityActionsArgs) {
+export function useSecurityActions({ methods, setSaving, messageApi, modal, nodeId, setScanResult, setScanning }: UseSecurityActionsArgs) {
   const { t } = useTranslation();
   const setValue = methods.setValue as unknown as (name: string, value: unknown) => void;
   const getValues = methods.getValues as unknown as (name?: string) => unknown;
@@ -72,26 +74,44 @@ export function useSecurityActions({ methods, setSaving, messageApi, nodeId, set
     setValue('streamSettings.realitySettings.settings.mldsa65Verify', '');
   };
 
-  const applyRealityScanResult = (r: RealityScanResult) => {
+  /*
+   * replaceServerNames is for picking a target wholesale: keeping the previous
+   * target's SNI would leave a REALITY config that cannot work.
+   */
+  const applyRealityScanResult = (r: RealityScanResult, replaceServerNames = false) => {
     setScanResult(r);
     setValue('streamSettings.realitySettings.target', r.target);
-    if (r.serverNames?.length) {
+    /*
+     * Names off an untrusted chain are not usable as SNI; names off a trusted
+     * one are, even when the SNI sent did not match them, which is how a stale
+     * SNI recovers instead of failing every rescan.
+     */
+    if (replaceServerNames) {
+      setValue('streamSettings.realitySettings.serverNames', r.serverNames ?? []);
+    } else if ((r.certValid || r.certChainValid) && r.serverNames?.length) {
       setValue('streamSettings.realitySettings.serverNames', r.serverNames);
     }
   };
 
-  const scanRealityTarget = async () => {
+  const scanRealityTarget = async (allowPrivate = false) => {
     const target = ((getValues('streamSettings.realitySettings.target') as string | undefined) ?? '').trim();
     if (!target) {
       messageApi.warning(t('pages.inbounds.form.realityTargetRequired'));
       return;
     }
     const xver = Number(getValues('streamSettings.realitySettings.xver')) || 0;
+    /*
+     * Clients dial the target but send an SNI from serverNames, so the probe
+     * must too — a fronting proxy answers a bare target name with its default
+     * certificate, which then reads as an untrusted target.
+     */
+    const serverNames = (getValues('streamSettings.realitySettings.serverNames') as string[] | undefined) ?? [];
+    const sni = (serverNames.find((n) => typeof n === 'string' && n.trim() !== '') ?? '').trim();
     setScanning(true);
     try {
       const msg = await HttpUtil.post<RealityScanResult>(
         '/panel/api/server/scanRealityTarget',
-        { target, xver },
+        { target, sni, xver, allowPrivate },
         { silent: true },
       );
       if (!msg?.success || !msg.obj) {
@@ -101,10 +121,26 @@ export function useSecurityActions({ methods, setSaving, messageApi, nodeId, set
       }
       const r = msg.obj;
       applyRealityScanResult(r);
-      if (r.feasible) {
-        messageApi.success(t('pages.inbounds.toasts.scanRealityTargetFeasible'));
-      } else {
+      /*
+       * The SSRF guard refuses a LAN/Docker target until the operator confirms
+       * it; the retry carries the opt-in for this one probe.
+       */
+      if (r.privateTarget && !allowPrivate) {
+        modal.confirm({
+          title: t('pages.inbounds.form.scanPrivateConfirmTitle'),
+          content: t('pages.inbounds.form.scanPrivateConfirmContent', { target: r.target || target }),
+          okText: t('confirm'),
+          cancelText: t('cancel'),
+          onOk: () => scanRealityTarget(true),
+        });
+        return;
+      }
+      if (!r.feasible) {
         messageApi.warning(r.reason || t('pages.inbounds.toasts.scanRealityTargetNotFeasible'));
+      } else if (r.privateTarget) {
+        messageApi.warning(t('pages.inbounds.toasts.scanRealityTargetPrivate'));
+      } else {
+        messageApi.success(t('pages.inbounds.toasts.scanRealityTargetFeasible'));
       }
     } finally {
       setScanning(false);

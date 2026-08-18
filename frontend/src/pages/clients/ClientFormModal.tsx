@@ -22,7 +22,7 @@ import {
 import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { Controller, FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
 
 import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -30,10 +30,11 @@ import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
-import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
+import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
+
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
@@ -49,6 +50,11 @@ interface ExternalLinkRow {
   kind: 'link' | 'subscription';
   value: string;
   remark: string;
+  enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+  lastFetchAt: number;
+  lastFetchError: string;
 }
 
 interface ApiMsg<T = unknown> {
@@ -131,6 +137,10 @@ const EMPTY: Values = {
   delayedStart: false,
   delayedDays: 0,
   reset: 0,
+  resetDay: 0,
+  resetMax: 0,
+  trafficReset: 'never' as const,
+  trafficResetDay: 1,
   limitIp: 0,
   limitHwid: 0,
   tgId: 0,
@@ -152,6 +162,11 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
     remark: l.remark || '',
+    enable: l.enable !== false,
+    expiryTime: Number(l.expiryTime) || 0,
+    namePrefix: l.namePrefix || '',
+    lastFetchAt: Number(l.lastFetchAt) || 0,
+    lastFetchError: l.lastFetchError || '',
   }));
 }
 
@@ -199,6 +214,7 @@ export default function ClientFormModal({
   const secret = useWatch({ control: methods.control, name: 'secret' });
   const email = useWatch({ control: methods.control, name: 'email' });
   const uuid = useWatch({ control: methods.control, name: 'uuid' });
+  const trafficReset = useWatch({ control: methods.control, name: 'trafficReset' });
   const password = useWatch({ control: methods.control, name: 'password' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
   const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
@@ -226,7 +242,16 @@ export default function ClientFormModal({
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
   function addExternalLinkRow(kind: 'link' | 'subscription') {
-    appendExternalLink({ kind, value: '', remark: '' });
+    appendExternalLink({
+      kind,
+      value: '',
+      remark: '',
+      enable: true,
+      expiryTime: 0,
+      namePrefix: '',
+      lastFetchAt: 0,
+      lastFetchError: '',
+    });
   }
 
   useEffect(() => {
@@ -250,6 +275,10 @@ export default function ClientFormModal({
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
+        resetDay: Number(client.resetDay) || 0,
+        resetMax: Number(client.resetMax) || 0,
+        trafficReset: (client.trafficReset as ClientFormValues['trafficReset']) || 'never',
+        trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
         limitHwid: client.limitHwid || 0,
         tgId: Number(client.tgId) || 0,
@@ -538,6 +567,10 @@ email: values.email,
       delayedStart: values.delayedStart,
       delayedDays: values.delayedDays,
       reset: values.reset,
+      resetDay: values.resetDay,
+      resetMax: values.resetMax,
+      trafficReset: values.trafficReset,
+      trafficResetDay: values.trafficResetDay,
       limitIp: values.limitIp,
       limitHwid: values.limitHwid,
       tgId: values.tgId,
@@ -566,6 +599,10 @@ email: values.email,
       totalGB: totalBytes,
       expiryTime,
 reset: Number(values.reset) || 0,
+      resetDay: Number(values.resetDay) || 0,
+      resetMax: Number(values.resetMax) || 0,
+      trafficReset: values.trafficReset || 'never',
+      trafficResetDay: Number(values.trafficResetDay) || 1,
       limitIp: Number(values.limitIp) || 0,
       limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
@@ -604,7 +641,14 @@ reset: Number(values.reset) || 0,
     }
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: (r.remark || '').trim() }))
+      .map((r) => ({
+        kind: r.kind,
+        value: r.value.trim(),
+        remark: (r.remark || '').trim(),
+        enable: r.enable !== false,
+        expiryTime: Number(r.expiryTime) || 0,
+        namePrefix: (r.namePrefix || '').trim(),
+      }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -785,6 +829,50 @@ reset: Number(values.reset) || 0,
                             <InputNumber min={0} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetDay"
+                            label={t('pages.clients.renewOnDay')}
+                            tooltip={t('pages.clients.renewOnDayDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} max={31} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetMax"
+                            label={t('pages.clients.renewMax')}
+                            tooltip={t('pages.clients.renewMaxDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="trafficReset"
+                            label={t('pages.inbounds.periodicTrafficResetTitle')}
+                          >
+                            <Select
+                              options={TRAFFIC_RESETS.map((r) => ({
+                                value: r,
+                                label: t(`pages.inbounds.periodicTrafficReset.${r}`),
+                              }))}
+                            />
+                          </FormField>
+                        </Col>
+                        {trafficReset === 'monthly' && (
+                          <Col xs={12} md={6}>
+                            <FormField
+                              name="trafficResetDay"
+                              label={t('pages.inbounds.periodicTrafficResetDay')}
+                              transform={{ output: (v) => Number(v) || 1 }}
+                            >
+                              <InputNumber min={1} max={31} style={{ width: '100%' }} />
+                            </FormField>
+                          </Col>
+                        )}
                       </Row>
 
                       <Row gutter={16}>
@@ -981,24 +1069,40 @@ reset: Number(values.reset) || 0,
                         {linkRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
                         ) : linkRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                                placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                  placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details two-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <FormField name={`externalLinks.${index}.remark`} noStyle>
-                              <Input
-                                style={{ width: 140 }}
-                                aria-label={t('remark')}
-                                placeholder={t('remark')}
-                              />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1010,17 +1114,50 @@ reset: Number(values.reset) || 0,
                         {subscriptionRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
                         ) : subscriptionRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="https://provider.example/sub/…"
-                                placeholder="https://provider.example/sub/…"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="https://provider.example/sub/…"
+                                  placeholder="https://provider.example/sub/…"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details three-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
+                              </FormField>
+                              <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
+                                <Input aria-label={t('pages.clients.namePrefix')} placeholder={t('pages.clients.namePrefix')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
+                            <Typography.Text type={field.lastFetchError ? 'danger' : 'secondary'} className="external-link-fetch-status">
+                              {field.lastFetchError
+                                ? `${t('pages.clients.lastFetchError')}: ${field.lastFetchError}`
+                                : field.lastFetchAt > 0
+                                  ? `${t('pages.clients.lastFetchAt')}: ${dayjs(field.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
+                                  : t('pages.clients.neverFetched')}
+                            </Typography.Text>
                           </div>
                         ))}
                       </div>
