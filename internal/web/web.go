@@ -244,6 +244,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	controller.SetDistFS(distFS)
 
 	g := engine.Group(basePath)
+	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	g.GET("/pwa-register.js", controller.ServePWARegister)
+	g.GET("/service-worker.js", controller.ServePWAServiceWorker)
+	g.GET("/icons/:name", controller.ServePWAIcon)
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)

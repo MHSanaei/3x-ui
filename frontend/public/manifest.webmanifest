@@ -1,0 +1,41 @@
+{
+  "name": "3x-ui",
+  "short_name": "3x-ui",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1677ff",
+  "icons": [
+    {
+      "src": "icons/3x-ui-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/3x-ui-24.png",
+      "sizes": "24x24",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/3x-ui-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/3x-ui-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/3x-ui-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/3x-ui-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
