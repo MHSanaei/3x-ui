@@ -7,11 +7,12 @@ package amneziawg
 
 import "github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
-// Obfuscation20 is an AmneziaWG 2.0 obfuscation parameter set (junk packets,
-// padding, magic headers, the I1 signature packet). The same values must be
-// applied on both ends of a tunnel, so the server stores them and every
-// client config inherits them verbatim.
-type Obfuscation20 struct {
+// Obfuscation31 is an AmneziaWG 3.1 obfuscation parameter set (junk packets,
+// padding, magic headers, the five CPS signature-packet slots, and the 3.x
+// header-protection/content-padding/timing/boolean fields). The same values
+// must be applied on both ends of a tunnel, so the server stores them and
+// every client config inherits them verbatim.
+type Obfuscation31 struct {
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
 	Jmax int    `json:"jmax"`
@@ -26,14 +27,24 @@ type Obfuscation20 struct {
 	// I1-I5 are the real protocol's five CPS signature-packet slots
 	// (confirmed against amneziawg-go v3.0.3's device/uapi.go: "i1"
 	// through "i5" are five independent UAPI setters, device.ipackets[0..4],
-	// all parsed via the identical newObfChain grammar) -- I1 shipped
-	// first (Phase 3.8); I2-I5 are the same grammar, just the remaining
-	// four slots.
+	// all parsed via the identical newObfChain grammar).
 	I1 string `json:"i1,omitempty"`
 	I2 string `json:"i2,omitempty"`
 	I3 string `json:"i3,omitempty"`
 	I4 string `json:"i4,omitempty"`
 	I5 string `json:"i5,omitempty"`
+
+	// HeaderProtectionKey is a base64 32-byte key shared by both ends; the
+	// ranges/booleans below are 3.x-only and optional.
+	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
+	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
+	RekeyAfterTime         string `json:"rekeyAfterTime,omitempty"`
+	RekeyTimeout           string `json:"rekeyTimeout,omitempty"`
+	RejectAfterTime        string `json:"rejectAfterTime,omitempty"`
+	KeepaliveTimeout       string `json:"keepaliveTimeout,omitempty"`
+	MaxHandshakeAttempts   string `json:"maxHandshakeAttempts,omitempty"`
+	RandomTrailers         bool   `json:"randomTrailers,omitempty"`
+	DisableCookies         bool   `json:"disableCookies,omitempty"`
 }
 
 // Peer is one desired AmneziaWG peer: a client device the interface accepts.
@@ -66,60 +77,12 @@ type Instance struct {
 	Address []string
 	MTU     int
 
-	Obfuscation Obfuscation20
-
-	// HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0's
-	// device-wide obfuscation fields. Deliberately not part of
-	// Obfuscation20 (2.0-only, see its own doc comment) --
-	// InstanceFromInbound copies them from ServerSettings' identically
-	// named flat fields below, and amneziawgnet.DeviceOptions is what
-	// actually consumes them (see that type's own doc comment for why
-	// they live outside this shared schema). HeaderProtectionKey empty
-	// (the default) disables AWG 3.0 header protection entirely; unlike
-	// every other obfuscation field here, it is never auto-generated --
-	// turning it on is a compatibility-breaking, opt-in decision an admin
-	// must make explicitly (see GenerateObfuscation20's own doc comment).
-	HeaderProtectionKey    string
-	ContentPaddingAddition string
-
-	// RekeyAfterTime, RekeyTimeout, RejectAfterTime, KeepaliveTimeout, and
-	// MaxHandshakeAttempts are AmneziaWG 3.0's five device-wide session-
-	// timing fields -- each a "low-high" range or bare integer (identical
-	// grammar/width to H1-H4 and ContentPaddingAddition above; confirmed
-	// against amneziawg-go v3.0.3's device/uapi.go, which parses all of
-	// these through the same UintRange.FromString), left empty (the
-	// default) to keep amneziawg-go's own real-protocol defaults: 120s,
-	// 5s, 180s, 10s, and 18 attempts respectively (device/constants.go).
-	// Like HeaderProtectionKey, these are opt-in tuning knobs, never
-	// auto-generated as part of the classic obfuscation set.
-	RekeyAfterTime       string
-	RekeyTimeout         string
-	RejectAfterTime      string
-	KeepaliveTimeout     string
-	MaxHandshakeAttempts string
-
-	// RandomTrailers and DisableCookies are AmneziaWG 3.1's two new
-	// device-wide boolean toggles (confirmed against amneziawg-go
-	// v3.1.20260814's device/uapi.go: "random_trailers"/"disable_cookies",
-	// both strconv.ParseBool). Both default to false (amneziawg-go's own
-	// zero value) and are never auto-generated, same "opt-in, explicit"
-	// posture as HeaderProtectionKey above.
-	//
-	// RandomTrailers appends a random amount of padding after each real
-	// packet, up to the peer's UDP window. Confirmed via amneziawg-go's
-	// receive.go: a receiver only accepts an oversized packet when ITS OWN
-	// RandomTrailers is also true (size == expectedSize, or
-	// randomTrailers && size > expectedSize) -- so this is not purely
-	// local/cosmetic, both ends need it enabled together or the side
-	// without it starts silently dropping the other's packets.
-	//
-	// DisableCookies stops this device from ever sending WireGuard's
-	// handshake-flood DoS-protection cookie replies. Purely local --
-	// no peer-side coordination needed -- but a real security trade-off,
-	// not a free obfuscation win: it removes a real DoS mitigation in
-	// exchange for one less distinctive packet shape during a flood.
-	RandomTrailers bool
-	DisableCookies bool
+	// Obfuscation carries the full AmneziaWG 3.1 parameter set, including
+	// the 3.x header-protection/content-padding/timing/boolean fields (see
+	// Obfuscation31's own doc comment) -- amneziawgnet.DeviceOptions is
+	// what actually consumes it when building the embedded Device's UAPI
+	// config.
+	Obfuscation Obfuscation31
 
 	Peers []Peer
 
@@ -189,11 +152,11 @@ type ServerSettings struct {
 
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
-	// Obfuscation20's fields, repeated flat (not embedded) rather than
+	// Obfuscation31's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an
-	// embedded Obfuscation20 the same way, but the frontend's Go->Zod/TS
+	// embedded Obfuscation31 the same way, but the frontend's Go->Zod/TS
 	// generator (tools/openapigen) does not — it emits a genuinely nested
-	// `obfuscation20` object, which would silently diverge from the real
+	// `obfuscation31` object, which would silently diverge from the real
 	// wire JSON. See Obfuscation() below for the manager-facing conversion.
 	Jc   int    `json:"jc"`
 	Jmin int    `json:"jmin"`
@@ -214,11 +177,11 @@ type ServerSettings struct {
 
 	// HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0
 	// fields, flat and top-level for the same tools/openapigen reason as
-	// the block above -- deliberately NOT part of Obfuscation20/
-	// Obfuscation() below, matching Instance's own separation.
+	// the block above; Obfuscation() below folds them back into
+	// Obfuscation31's own identically named fields.
 	// HeaderProtectionKey is a base64 32-byte key; empty (the default)
 	// disables AWG 3.0 header protection. A non-empty value requires
-	// every one of S1-S4 above to be >= 12 -- ValidateHeaderProtection
+	// every one of S1-S4 above to be >= 12 -- ValidateObfuscation
 	// enforces this at save time, not just at IpcSet time.
 	// ContentPaddingAddition is a "low-high" range or bare integer, the
 	// same grammar as H1-H4 but capped at uint16 max.
@@ -246,15 +209,24 @@ type ServerSettings struct {
 	DisableCookies bool `json:"disableCookies"`
 }
 
-// Obfuscation extracts the Obfuscation20 parameter set from a ServerSettings
+// Obfuscation extracts the Obfuscation31 parameter set from a ServerSettings
 // block, for callers (the Manager, ValidateObfuscation) that want the
 // grouped type rather than the flat wire fields.
-func (s ServerSettings) Obfuscation() Obfuscation20 {
-	return Obfuscation20{
+func (s ServerSettings) Obfuscation() Obfuscation31 {
+	return Obfuscation31{
 		Jc: s.Jc, Jmin: s.Jmin, Jmax: s.Jmax,
 		S1: s.S1, S2: s.S2, S3: s.S3, S4: s.S4,
 		H1: s.H1, H2: s.H2, H3: s.H3, H4: s.H4,
 		I1: s.I1, I2: s.I2, I3: s.I3, I4: s.I4, I5: s.I5,
+		HeaderProtectionKey:    s.HeaderProtectionKey,
+		ContentPaddingAddition: s.ContentPaddingAddition,
+		RekeyAfterTime:         s.RekeyAfterTime,
+		RekeyTimeout:           s.RekeyTimeout,
+		RejectAfterTime:        s.RejectAfterTime,
+		KeepaliveTimeout:       s.KeepaliveTimeout,
+		MaxHandshakeAttempts:   s.MaxHandshakeAttempts,
+		RandomTrailers:         s.RandomTrailers,
+		DisableCookies:         s.DisableCookies,
 	}
 }
 

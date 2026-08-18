@@ -39,15 +39,15 @@ func (j *AmneziaWGJob) Run() {
 		wanted = append(wanted, amneziawgnet.Desired{
 			Instance: inst,
 			Options: amneziawgnet.DeviceOptions{
-				HeaderProtectionKey:    inst.HeaderProtectionKey,
-				ContentPaddingAddition: inst.ContentPaddingAddition,
-				RekeyAfterTime:         inst.RekeyAfterTime,
-				RekeyTimeout:           inst.RekeyTimeout,
-				RejectAfterTime:        inst.RejectAfterTime,
-				KeepaliveTimeout:       inst.KeepaliveTimeout,
-				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
-				RandomTrailers:         inst.RandomTrailers,
-				DisableCookies:         inst.DisableCookies,
+				HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
+				ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
+				RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
+				RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
+				RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
+				KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
+				MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
+				RandomTrailers:         inst.Obfuscation.RandomTrailers,
+				DisableCookies:         inst.Obfuscation.DisableCookies,
 			},
 		})
 	}

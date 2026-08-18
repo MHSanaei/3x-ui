@@ -883,7 +883,7 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 		return
 	}
 
-	merged := make([]any, 0, len(existingOutbounds)+len(newOutbounds))
+	merged := make([]any, 0, len(existingOutbounds))
 	merged = append(merged, existingOutbounds...)
 	merged = append(merged, newOutbounds...)
 	combined, err := json.MarshalIndent(merged, "", "  ")

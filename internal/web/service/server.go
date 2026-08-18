@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	stdnet "net"
 	"net/http"
@@ -1257,6 +1258,18 @@ const amneziawgEventMarker = "amneziawg"
 // errored) contributes no rows -- not reported as an error, since the
 // caller (GetAmneziaWGLogs) already has a device-agnostic Running flag from
 // amneziawgnet.GetManager().HasRunning() for that.
+// clampUint64ToInt64 saturates at math.MaxInt64 instead of wrapping negative,
+// for a live uint64 byte counter (amneziawgnet's own UAPI-dump snapshot, not
+// a DB-accumulated total) going into an int64 API field -- unreachable in
+// practice at real traffic volumes, but a silent negative value would be
+// worse than a saturated one if it were ever hit.
+func clampUint64ToInt64(v uint64) int64 {
+	if v > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(v)
+}
+
 func amneziawgLogActivity() []PeerActivity {
 	var inbounds []*model.Inbound
 	if err := database.GetDB().
@@ -1292,8 +1305,8 @@ func amneziawgLogActivity() []PeerActivity {
 				Endpoint:   cd.Endpoint,
 				AllowedIPs: cd.AllowedIPs,
 				Handshake:  handshakeMs,
-				Up:         int64(cd.RxBytes),
-				Down:       int64(cd.TxBytes),
+				Up:         clampUint64ToInt64(cd.RxBytes),
+				Down:       clampUint64ToInt64(cd.TxBytes),
 				Online:     online,
 			})
 		}

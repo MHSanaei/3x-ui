@@ -30,7 +30,7 @@ const defaultMTU = 1420
 type DeviceOptions struct {
 	// HeaderProtectionKey is a base64 32-byte key. Empty disables AWG 3.0
 	// header protection entirely. Non-empty requires every one of
-	// Obfuscation20.S1-S4 to be >= 12 (amneziawg-go's own HeaderCipherNonceSize
+	// Obfuscation31.S1-S4 to be >= 12 (amneziawg-go's own HeaderCipherNonceSize
 	// requirement) -- IpcSet will reject the config otherwise.
 	HeaderProtectionKey string
 	// ContentPaddingAddition, RekeyAfterTime, RekeyTimeout, RejectAfterTime,

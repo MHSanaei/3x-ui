@@ -2,6 +2,7 @@ package amneziawg
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"net/netip"
@@ -10,10 +11,8 @@ import (
 	"strings"
 )
 
-// awgHMax is the upper bound for generated H values: 2^31-1. The AmneziaWG
-// spec allows the full uint32, but the amneziawg-windows-client config editor
-// rejects values above 2^31-1, so generation stays in the safe half for
-// cross-client compatibility.
+// awgHMax caps generated H values at 2^31-1: the spec allows the full uint32,
+// but the amneziawg-windows-client config editor rejects anything above.
 const awgHMax = 2147483647
 
 // hMinWidth is the minimum width of each generated H1-H4 range.
@@ -22,20 +21,6 @@ const hMinWidth = 1000
 // hMaxValid is the largest value ValidateObfuscation accepts for an H
 // parameter: uint32 max, the kernel's own limit.
 const hMaxValid int64 = 4294967295
-
-// headerProtectionMinPadding is amneziawg-go's own HeaderCipherNonceSize:
-// every one of S1-S4 must be at least this large for AmneziaWG 3.0 header
-// protection to work at all -- confirmed directly against amneziawg-go
-// v3.0.3's device/uapi.go, which rejects the whole config otherwise (with a
-// confusingly 0-indexed "S0 must be more then 12" error). ValidateHeaderProtection
-// exists so this is caught here, at save time with a clear 1-indexed
-// message, not as that raw IpcSet error at the next apply.
-const headerProtectionMinPadding = 12
-
-// cpaMaxValid is the largest value ValidateContentPaddingAddition accepts:
-// uint16 max, matching amneziawg-go's own content_padding_addition width
-// (unlike H1-H4's uint32 width above).
-const cpaMaxValid int64 = 65535
 
 // randInt returns a uniform random int in [min, max] using crypto/rand. Falls
 // back to min on the (practically impossible) RNG error.
@@ -50,30 +35,19 @@ func randInt(min, max int) int {
 	return min + int(n.Int64())
 }
 
-// GenerateObfuscation20 produces a randomized AmneziaWG 2.0 parameter set.
-// preset "mobile" tunes junk packets for restrictive mobile carriers; any
-// other value uses the balanced "default" preset. Values are randomized per
-// call so each server gets a unique fingerprint — a static value gets
-// profiled by DPI, defeating the point of the obfuscation.
-func GenerateObfuscation20(preset string) Obfuscation20 {
-	var o Obfuscation20
+// GenerateObfuscation31 produces a randomized AmneziaWG 3.1 parameter set: a
+// static value gets profiled by DPI, defeating the point.
+func GenerateObfuscation31() Obfuscation31 {
+	var o Obfuscation31
 
-	switch preset {
-	case "mobile":
-		// Jc=3 and a narrow Jmax survive carriers like Tele2/Yota/Megafon.
-		o.Jc = 3
-		o.Jmin = randInt(30, 50)
-		o.Jmax = o.Jmin + randInt(20, 80)
-	default:
-		o.Jc = randInt(3, 6)
-		o.Jmin = randInt(40, 89)
-		o.Jmax = o.Jmin + randInt(50, 250)
-	}
+	o.Jc = randInt(3, 6)
+	o.Jmin = randInt(40, 89)
+	o.Jmax = o.Jmin + randInt(50, 250)
 
 	o.S1 = randInt(15, 150)
 	o.S2 = randInt(15, 150)
-	// Kernel constraint: S1+56 must not equal S2 (else init and response
-	// handshake packets end up the same size after padding).
+	// Kernel constraint: S1+56 != S2, else init and response handshake
+	// packets end up the same size after padding.
 	for o.S1+56 == o.S2 {
 		o.S2 = randInt(15, 150)
 	}
@@ -83,24 +57,59 @@ func GenerateObfuscation20(preset string) Obfuscation20 {
 	h := generateHRanges()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
-	// CPS signature packets: N random bytes prepended before each handshake
-	// message. Each of the 5 slots is randomized independently, same as
-	// H1-H4 above.
+	// CPS signature packet, N random bytes before each handshake. I2-I5 stay
+	// empty, matching Amnezia's own generator.
 	o.I1 = fmt.Sprintf("<r %d>", randInt(32, 256))
-	o.I2 = fmt.Sprintf("<r %d>", randInt(32, 256))
-	o.I3 = fmt.Sprintf("<r %d>", randInt(32, 256))
-	o.I4 = fmt.Sprintf("<r %d>", randInt(32, 256))
-	o.I5 = fmt.Sprintf("<r %d>", randInt(32, 256))
+
+	o.HeaderProtectionKey = generateHeaderProtectionKey()
+
+	// Total padding stays <= 64: it rides on full-size transport packets, the
+	// same MTU headroom that caps S4 at 32.
+	cpLo := randInt(8, 24)
+	o.ContentPaddingAddition = fmt.Sprintf("%d-%d", cpLo, cpLo+randInt(8, 40))
+
+	// Timing windows bracket WireGuard's own constants (rekey 120s, reject
+	// 180s) so sessions still renew before expiry.
+	rkLo := randInt(100, 120)
+	rkHi := rkLo + randInt(10, 40)
+	o.RekeyAfterTime = fmt.Sprintf("%d-%d", rkLo, rkHi)
+
+	// Every reject value exceeds every rekey value by >= 30s by construction.
+	rjLo := rkHi + randInt(30, 60)
+	o.RejectAfterTime = fmt.Sprintf("%d-%d", rjLo, rjLo+randInt(30, 90))
+
+	rtLo := randInt(3, 6)
+	o.RekeyTimeout = fmt.Sprintf("%d-%d", rtLo, rtLo+randInt(1, 4))
+
+	// Max 20s: under clients' typical 25s PersistentKeepalive and ~30s NAT UDP
+	// timeouts, or idle links lose their NAT mapping.
+	kaLo := randInt(8, 12)
+	o.KeepaliveTimeout = fmt.Sprintf("%d-%d", kaLo, kaLo+randInt(2, 8))
+
+	haLo := randInt(15, 25)
+	o.MaxHandshakeAttempts = fmt.Sprintf("%d-%d", haLo, haLo+randInt(5, 25))
+
+	o.RandomTrailers = true
+	// Cookie replies are DPI-fingerprintable; this stealth default trades away
+	// WG's handshake-flood mitigation and is toggleable per inbound.
+	o.DisableCookies = true
 
 	return o
 }
 
-// generateHRanges returns four non-overlapping "low-high" ranges for H1-H4.
-// Each is at least hMinWidth wide, the lowest bound is >= 5 (values 1-4 are
-// reserved for vanilla WireGuard message types) and the highest is <=
-// 2^31-1. The space is split into four bands and a random sub-range is taken
-// from each, which guarantees non-overlap (with a gap) and a valid width
-// without retries.
+// generateHeaderProtectionKey returns base64 of 32 crypto/rand bytes, the
+// format amneziawg-tools' HeaderProtectionKey parser expects.
+func generateHeaderProtectionKey() string {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+// generateHRanges returns four non-overlapping "low-high" ranges for H1-H4,
+// one per band of the space so non-overlap needs no retries. The low bound is
+// >= 5: values 1-4 are reserved for vanilla WireGuard message types.
 func generateHRanges() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4
@@ -115,12 +124,10 @@ func generateHRanges() [4]string {
 	return out
 }
 
-// ValidateObfuscation rejects malformed obfuscation parameters before they
-// are saved and applied, so a bad manual entry can't bring the interface
-// down on `awg-quick up`. Empty H values are allowed (they fall back to a
-// default when the config is generated). Each H value accepts either a
-// single integer ("1") or a range ("100-800").
-func ValidateObfuscation(o Obfuscation20) error {
+// ValidateObfuscation rejects malformed parameters before they are saved, so a
+// bad manual entry can't fail `awg-quick up`. Blank H values are allowed (they
+// fall back to a default); each accepts an integer or a "100-800" range.
+func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
 	}
@@ -134,16 +141,74 @@ func ValidateObfuscation(o Obfuscation20) error {
 		return fmt.Errorf("invalid S1/S2: S1+56 must not equal S2 (%d+56 == %d)", o.S1, o.S2)
 	}
 	for i, h := range []string{o.H1, o.H2, o.H3, o.H4} {
-		if err := validateHValue(h); err != nil {
+		if err := validateUintRange(h, 0); err != nil {
 			return fmt.Errorf("invalid H%d: %w", i+1, err)
+		}
+	}
+	if err := validateHeaderProtectionKey(o.HeaderProtectionKey); err != nil {
+		return err
+	}
+	if err := validateUintRange(o.ContentPaddingAddition, 0); err != nil {
+		return fmt.Errorf("invalid contentPaddingAddition: %w", err)
+	}
+	timing := []struct{ field, v string }{
+		{"rekeyAfterTime", o.RekeyAfterTime},
+		{"rekeyTimeout", o.RekeyTimeout},
+		{"rejectAfterTime", o.RejectAfterTime},
+		{"keepaliveTimeout", o.KeepaliveTimeout},
+		{"maxHandshakeAttempts", o.MaxHandshakeAttempts},
+	}
+	for _, tf := range timing {
+		// Zero would disable the timer or retry loop outright, so min is 1.
+		if err := validateUintRange(tf.v, 1); err != nil {
+			return fmt.Errorf("invalid %s: %w", tf.field, err)
+		}
+	}
+	// Sessions must renew before hard expiry, so every possible rekey fires
+	// before the earliest reject. A blank side means WireGuard's own default.
+	if o.RekeyAfterTime != "" || o.RejectAfterTime != "" {
+		rekeyHi, rejectLo := int64(120), int64(180)
+		if o.RekeyAfterTime != "" {
+			_, rekeyHi, _ = parseUintRange(o.RekeyAfterTime)
+		}
+		if o.RejectAfterTime != "" {
+			rejectLo, _, _ = parseUintRange(o.RejectAfterTime)
+		}
+		if rekeyHi >= rejectLo {
+			return fmt.Errorf("invalid rekeyAfterTime/rejectAfterTime: max rekey %d must be below min reject %d", rekeyHi, rejectLo)
 		}
 	}
 	return nil
 }
 
-// ValidateIPv6Subnet rejects a malformed IPv6 subnet before it's saved, so a
-// bad manual entry can't bring the interface down on `awg-quick up`. A blank
-// subnet is only valid when IPv6 itself is disabled.
+// CanonicalizeUintRange stores a pasted "110 - 140" as "110-140", and
+// collapses a whitespace-only value back to "feature off".
+func CanonicalizeUintRange(v string) string {
+	return strings.ReplaceAll(strings.TrimSpace(v), " ", "")
+}
+
+// validateHeaderProtectionKey accepts blank (feature off) or a base64 32-byte
+// key. Control chars are rejected up front: DecodeString silently ignores
+// \r\n, so a line-wrapped pasted key would pass and then split client configs.
+func validateHeaderProtectionKey(v string) error {
+	if v == "" {
+		return nil
+	}
+	if err := ValidateConfigValue("headerProtectionKey", v); err != nil {
+		return err
+	}
+	key, err := base64.StdEncoding.DecodeString(v)
+	if err != nil {
+		return fmt.Errorf("invalid headerProtectionKey: not base64: %w", err)
+	}
+	if len(key) != 32 {
+		return fmt.Errorf("invalid headerProtectionKey: got %d bytes, want 32", len(key))
+	}
+	return nil
+}
+
+// ValidateIPv6Subnet rejects a malformed subnet before it's saved. A blank
+// value is only valid when IPv6 itself is disabled.
 func ValidateIPv6Subnet(enabled bool, subnet string) error {
 	if !enabled {
 		return nil
@@ -161,21 +226,13 @@ func ValidateIPv6Subnet(enabled bool, subnet string) error {
 	return nil
 }
 
-// interfaceNamePattern matches a plausible Linux network interface name:
-// letters, digits, and the handful of separators seen in real device names
-// (eth0, wg0, br-lan, eno1.100, eth0:0), capped at 15 bytes (IFNAMSIZ-1).
+// interfaceNamePattern matches a plausible Linux device name (eth0, br-lan,
+// eno1.100, eth0:0), capped at 15 bytes (IFNAMSIZ-1).
 var interfaceNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.@:-]{1,15}$`)
 
-// ValidateInterfaceName rejects a value that isn't a plausible network
-// interface name before it's saved. ExternalInterface and
-// IPv6ExternalInterface are vestigial as of the hard cutover to the
-// embedded path (see types.go's ServerSettings), but this validation stays:
-// Phase 3.5's planned real-IPv6-address-alias mechanism will shell out to
-// `ip -6 addr add ... dev <ext6>`, and an unvalidated value here could carry
-// a shell metacharacter straight into that root-executed command, the same
-// risk the retired kernel-module PostUp/PostDown generator had. A blank
-// value is allowed: it means "auto-detect" for ExternalInterface, or "reuse
-// ExternalInterface" for IPv6ExternalInterface.
+// ValidateInterfaceName guards the NIC names generateServerConfig interpolates
+// unescaped into a root-executed PostUp/PostDown line. Blank is allowed and
+// means auto-detect (or, for IPv6ExternalInterface, reuse the IPv4 one).
 func ValidateInterfaceName(name string) error {
 	if name == "" {
 		return nil
@@ -186,12 +243,9 @@ func ValidateInterfaceName(name string) error {
 	return nil
 }
 
-// ValidateSubnetIPv4 rejects a malformed IPv4 tunnel subnet before it's
-// saved: subnetIP is interpolated into the PostUp/PostDown MASQUERADE rule
-// the same way ExternalInterface is (see ValidateInterfaceName), so it needs
-// the same protection against a value that isn't really an address at all.
-// subnetCIDR <= 0 is treated as unset, mirroring serverAddress's own
-// default-to-/24 leniency.
+// ValidateSubnetIPv4 guards subnetIP, which lands in the MASQUERADE rule the
+// same way ExternalInterface does. subnetCIDR <= 0 means unset, mirroring
+// serverAddress's own default-to-/24 leniency.
 func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
 	cidr := subnetCIDR
 	if cidr <= 0 {
@@ -210,16 +264,9 @@ func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
 	return nil
 }
 
-// ValidateConfigValue rejects a value containing a newline, carriage return,
-// or other control character before it's saved. PrivateKey/PublicKey/I1 on
-// the server block, and Email/PublicKey/PreSharedKey per client, all get
-// interpolated verbatim into the generated .conf by generateServerConfig; a
-// newline in any of them lets a later line re-open a new [Interface]/[Peer]
-// section, and awg-quick's parser collects a following "PostUp = ..." line
-// into a hook it executes as root on the next apply — the same class this
-// package already closes for ExternalInterface/IPv6ExternalInterface (see
-// ValidateInterfaceName) and SubnetIP (see ValidateSubnetIPv4). field names
-// the value in the returned error, e.g. "email" or "publicKey".
+// ValidateConfigValue rejects control characters in any value interpolated
+// verbatim into the generated .conf: a newline re-opens an [Interface] section
+// whose "PostUp = ..." awg-quick then executes as root. field names the value.
 func ValidateConfigValue(field, v string) error {
 	for _, r := range v {
 		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {
@@ -229,69 +276,45 @@ func ValidateConfigValue(field, v string) error {
 	return nil
 }
 
-// validateRangeValue checks one "low-high"/bare-integer parameter: empty, a
-// single non-negative integer <= max, or "low-high" with
-// 0 <= low <= high <= max. Shared by H1-H4 (max=hMaxValid, via
-// validateHValue) and ContentPaddingAddition (max=cpaMaxValid, via
-// ValidateContentPaddingAddition) -- same grammar, different width.
-func validateRangeValue(v string, max int64) error {
+// validateUintRange checks a uint32-range parameter (H1-H4, the 3.x padding
+// and timing fields): blank, an integer, or "low-high" within the bounds.
+func validateUintRange(v string, minAllowed int64) error {
+	if strings.TrimSpace(v) == "" {
+		return nil
+	}
+	// parseUintRange trims each half, so "110\n-140" would otherwise pass and
+	// then split a rendered config line in two.
+	if err := ValidateConfigValue("range", v); err != nil {
+		return fmt.Errorf("value %q must not contain control characters", v)
+	}
+	lo, hi, ok := parseUintRange(v)
+	if !ok {
+		return fmt.Errorf("value %q must be an integer or a low-high range", v)
+	}
+	if lo < minAllowed || hi > hMaxValid || lo > hi {
+		return fmt.Errorf("range %q must satisfy %d <= low <= high <= %d", v, minAllowed, hMaxValid)
+	}
+	return nil
+}
+
+// parseUintRange parses "N" (lo == hi) or "low-high"; ok is false when blank
+// or non-numeric. Bounds are NOT checked here.
+func parseUintRange(v string) (lo, hi int64, ok bool) {
 	v = strings.TrimSpace(v)
 	if v == "" {
-		return nil
+		return 0, 0, false
 	}
-	if lo, hi, isRange := strings.Cut(v, "-"); isRange {
-		l, err1 := strconv.ParseInt(strings.TrimSpace(lo), 10, 64)
-		h, err2 := strconv.ParseInt(strings.TrimSpace(hi), 10, 64)
+	if loS, hiS, isRange := strings.Cut(v, "-"); isRange {
+		l, err1 := strconv.ParseInt(strings.TrimSpace(loS), 10, 64)
+		h, err2 := strconv.ParseInt(strings.TrimSpace(hiS), 10, 64)
 		if err1 != nil || err2 != nil {
-			return fmt.Errorf("range %q must be two integers", v)
+			return 0, 0, false
 		}
-		if l < 0 || h > max || l > h {
-			return fmt.Errorf("range %q must satisfy 0 <= low <= high <= %d", v, max)
-		}
-		return nil
+		return l, h, true
 	}
 	n, err := strconv.ParseInt(v, 10, 64)
-	if err != nil || n < 0 || n > max {
-		return fmt.Errorf("value %q must be an integer in 0..%d or a low-high range", v, max)
+	if err != nil {
+		return 0, 0, false
 	}
-	return nil
-}
-
-// validateHValue checks one H parameter: empty, a single uint32, or
-// "low-high" with 0 <= low <= high <= uint32 max.
-func validateHValue(v string) error {
-	return validateRangeValue(v, hMaxValid)
-}
-
-// ValidateContentPaddingAddition rejects a malformed AmneziaWG 3.0
-// ContentPaddingAddition value before it's saved: same "low-high"/
-// bare-integer grammar as an H parameter, just capped at uint16 max.
-func ValidateContentPaddingAddition(v string) error {
-	if err := validateRangeValue(v, cpaMaxValid); err != nil {
-		return fmt.Errorf("invalid contentPaddingAddition: %w", err)
-	}
-	return nil
-}
-
-// ValidateHeaderProtection rejects enabling AmneziaWG 3.0 header protection
-// against an obfuscation set whose S1-S4 aren't all wide enough for it.
-// headerProtectionKey empty (disabled, the default) is always valid --
-// header protection is strictly opt-in and never auto-enabled (see
-// GenerateObfuscation20's own doc comment: S3's/S4's generated ranges can
-// land below headerProtectionMinPadding, since nothing before this feature
-// ever required otherwise). A non-empty key requires every one of S1-S4 to
-// be >= headerProtectionMinPadding, checked in a fixed S1->S4 order so the
-// error always names the first offending field, not whichever one a map
-// iteration happened to visit first.
-func ValidateHeaderProtection(headerProtectionKey string, o Obfuscation20) error {
-	if headerProtectionKey == "" {
-		return nil
-	}
-	values := [4]int{o.S1, o.S2, o.S3, o.S4}
-	for i, v := range values {
-		if v < headerProtectionMinPadding {
-			return fmt.Errorf("S%d = %d is too low: AmneziaWG 3.0 header protection requires S1-S4 to all be >= %d -- raise it first, or leave headerProtectionKey empty", i+1, v, headerProtectionMinPadding)
-		}
-	}
-	return nil
+	return n, n, true
 }
