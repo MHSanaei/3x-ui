@@ -68,7 +68,7 @@ export default function AmneziawgFields({
       <Form.Item label={t('pages.xray.amneziawg.publicKey')}>
         <Input value={awgPubKey} disabled />
       </Form.Item>
-      <Form.Item label={t('pages.xray.amneziawg.diagnostics')} extra={t('pages.xray.amneziawg.diagnosticsHint')}>
+      <Form.Item label={t('pages.xray.amneziawg.diagnostics')} tooltip={t('pages.xray.amneziawg.diagnosticsHint')}>
         <Button icon={<ToolOutlined />} disabled={!inboundId} onClick={() => setDiagnosticsOpen(true)}>
           {t('pages.xray.amneziawg.diagnosticsOpen')}
         </Button>
@@ -98,7 +98,7 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'externalInterface']}
         label={t('pages.xray.amneziawg.externalInterface')}
-        extra={t('pages.xray.amneziawg.externalInterfaceHint')}
+        tooltip={t('pages.xray.amneziawg.externalInterfaceHint')}
       >
         <Input placeholder="eth0" />
       </FormField>
@@ -112,18 +112,18 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'ipv6Subnet']}
         label={t('pages.xray.amneziawg.ipv6Subnet')}
-        extra={t('pages.xray.amneziawg.ipv6SubnetHint')}
+        tooltip={t('pages.xray.amneziawg.ipv6SubnetHint')}
       >
         <Input placeholder="fd86:ea04:1115::/64" />
       </FormField>
       <FormField
         name={['settings', 'server', 'ipv6ExternalInterface']}
         label={t('pages.xray.amneziawg.ipv6ExternalInterface')}
-        extra={t('pages.xray.amneziawg.ipv6ExternalInterfaceHint')}
+        tooltip={t('pages.xray.amneziawg.ipv6ExternalInterfaceHint')}
       >
         <Input placeholder="eth0" />
       </FormField>
-      <Form.Item label={t('pages.xray.amneziawg.obfuscation')} extra={t('pages.xray.amneziawg.obfuscationHint')}>
+      <Form.Item label={t('pages.xray.amneziawg.obfuscation')} tooltip={t('pages.xray.amneziawg.obfuscationHint')}>
         <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}
         </Button>
@@ -152,7 +152,7 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'h1']}
         label={t('pages.xray.amneziawg.h1')}
-        extra={t('pages.xray.amneziawg.hHint')}
+        tooltip={t('pages.xray.amneziawg.hHint')}
       >
         <Input placeholder="1 or 100-800" />
       </FormField>
@@ -165,7 +165,7 @@ export default function AmneziawgFields({
       <FormField name={['settings', 'server', 'h4']} label={t('pages.xray.amneziawg.h4')}>
         <Input placeholder="4 or 100-800" />
       </FormField>
-      <Form.Item label={t('pages.xray.amneziawg.quicCapture')} extra={t('pages.xray.amneziawg.quicCaptureHint')}>
+      <Form.Item label={t('pages.xray.amneziawg.quicCapture')} tooltip={t('pages.xray.amneziawg.quicCaptureHint')}>
         <Space direction="vertical" style={{ width: '100%' }} size={8}>
           <Input
             value={quicCaptureHost}
@@ -207,7 +207,7 @@ export default function AmneziawgFields({
           // where the profile Select first appears), the last slot closes
           // the group with the "AmneziaWG 2.0 only" compatibility note --
           // I2-I4 repeat neither, same "explain once" convention as H1-H4.
-          extra={
+          tooltip={
             index === 0
               ? t('pages.xray.amneziawg.i1ProfileGuidance')
               : index === CPS_SLOTS.length - 1
@@ -237,7 +237,7 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'awgVersion']}
         label={t('pages.xray.amneziawg.awgVersion')}
-        extra={t('pages.xray.amneziawg.awgVersionHint')}
+        tooltip={t('pages.xray.amneziawg.awgVersionHint')}
         onAfterChange={(value) => onAwgVersionChange(value as string)}
       >
         <Select
@@ -249,7 +249,7 @@ export default function AmneziawgFields({
       </FormField>
       <Form.Item
         label={t('pages.xray.amneziawg.headerProtectionKey')}
-        extra={t('pages.xray.amneziawg.headerProtectionKeyHint')}
+        tooltip={t('pages.xray.amneziawg.headerProtectionKeyHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'headerProtectionKey']} noStyle>
@@ -260,7 +260,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.contentPaddingAddition')}
-        extra={t('pages.xray.amneziawg.contentPaddingAdditionHint')}
+        tooltip={t('pages.xray.amneziawg.contentPaddingAdditionHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'contentPaddingAddition']} noStyle>
@@ -271,7 +271,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.rekeyAfterTime')}
-        extra={t('pages.xray.amneziawg.rekeyAfterTimeHint')}
+        tooltip={t('pages.xray.amneziawg.rekeyAfterTimeHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'rekeyAfterTime']} noStyle>
@@ -282,7 +282,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.rekeyTimeout')}
-        extra={t('pages.xray.amneziawg.rekeyTimeoutHint')}
+        tooltip={t('pages.xray.amneziawg.rekeyTimeoutHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'rekeyTimeout']} noStyle>
@@ -293,7 +293,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.rejectAfterTime')}
-        extra={t('pages.xray.amneziawg.rejectAfterTimeHint')}
+        tooltip={t('pages.xray.amneziawg.rejectAfterTimeHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'rejectAfterTime']} noStyle>
@@ -304,7 +304,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.keepaliveTimeout')}
-        extra={t('pages.xray.amneziawg.keepaliveTimeoutHint')}
+        tooltip={t('pages.xray.amneziawg.keepaliveTimeoutHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'keepaliveTimeout']} noStyle>
@@ -315,7 +315,7 @@ export default function AmneziawgFields({
       </Form.Item>
       <Form.Item
         label={t('pages.xray.amneziawg.maxHandshakeAttempts')}
-        extra={t('pages.xray.amneziawg.maxHandshakeAttemptsHint')}
+        tooltip={t('pages.xray.amneziawg.maxHandshakeAttemptsHint')}
       >
         <Space.Compact block>
           <FormField name={['settings', 'server', 'maxHandshakeAttempts']} noStyle>
@@ -327,7 +327,7 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'randomTrailers']}
         label={t('pages.xray.amneziawg.randomTrailers')}
-        extra={t('pages.xray.amneziawg.randomTrailersHint')}
+        tooltip={t('pages.xray.amneziawg.randomTrailersHint')}
         valueProp="checked"
       >
         <Switch />
@@ -335,7 +335,7 @@ export default function AmneziawgFields({
       <FormField
         name={['settings', 'server', 'disableCookies']}
         label={t('pages.xray.amneziawg.disableCookies')}
-        extra={t('pages.xray.amneziawg.disableCookiesHint')}
+        tooltip={t('pages.xray.amneziawg.disableCookiesHint')}
         valueProp="checked"
       >
         <Switch />
