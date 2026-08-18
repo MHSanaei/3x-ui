@@ -717,6 +717,7 @@ export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
 
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),
+  certChainValid: z.boolean(),
   certIssuer: z.string(),
   certSubject: z.string(),
   certValid: z.boolean(),
@@ -728,6 +729,7 @@ export const RealityScanResultSchema = z.object({
   latencyMs: z.number().int(),
   notAfter: z.string(),
   port: z.number().int(),
+  privateTarget: z.boolean(),
   reason: z.string(),
   serverNames: z.array(z.string()),
   target: z.string(),

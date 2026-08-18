@@ -2941,6 +2941,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "h2",
         "type": "string"
       },
+      "certChainValid": {
+        "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+        "example": true,
+        "type": "boolean"
+      },
       "certIssuer": {
         "example": "Google Trust Services",
         "type": "string"
@@ -2985,6 +2990,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 443,
         "type": "integer"
       },
+      "privateTarget": {
+        "description": "PrivateTarget marks a target that resolves to a loopback/private/link-local\naddress: blocked before the probe unless the caller opted in, then flagged.",
+        "example": false,
+        "type": "boolean"
+      },
       "reason": {
         "type": "string"
       },
@@ -3013,6 +3023,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "alpn",
+      "certChainValid",
       "certIssuer",
       "certSubject",
       "certValid",
@@ -3024,6 +3035,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs",
       "notAfter",
       "port",
+      "privateTarget",
       "reason",
       "serverNames",
       "target",

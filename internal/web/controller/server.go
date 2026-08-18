@@ -464,11 +464,12 @@ func (a *ServerController) getRemoteCertHash(c *gin.Context) {
 	jsonObj(c, hashes, nil)
 }
 
-// scanRealityTarget runs a live TLS 1.3 probe against the candidate REALITY
-// target and returns a structured feasibility verdict plus the cert SAN names.
+// scanRealityTarget probes the candidate REALITY target with the given sni and
+// returns a feasibility verdict; allowPrivate is the panel's confirmed opt-in.
 func (a *ServerController) scanRealityTarget(c *gin.Context) {
 	xver, _ := strconv.Atoi(c.PostForm("xver"))
-	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"), xver)
+	allowPrivate := c.PostForm("allowPrivate") == "true"
+	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"), c.PostForm("sni"), xver, allowPrivate)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
 		return
