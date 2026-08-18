@@ -70,6 +70,15 @@ react-query into separate vendor bundles to keep the per-page
 initial JS small. The Go binary embeds this directory at compile
 time and `internal/web/controller/dist.go` serves the per-page HTML.
 
+### PWA mode
+
+The login and panel pages expose a minimal network-only Progressive Web App.
+The manifest, service worker, registration script, and icons are embedded with
+the frontend and served under the runtime `webBasePath`. The service worker
+does not use Cache Storage, does not intercept requests, and does not provide
+offline access; panel authentication, API calls, and WebSocket traffic remain
+normal network requests.
+
 ## Layout
 
 ```

@@ -71,6 +71,28 @@ func withServerBasePath(spec []byte, basePath string) ([]byte, error) {
 	return json.Marshal(doc)
 }
 
+func normalizeWebBasePath(basePath string) string {
+	if basePath == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(basePath, "/") {
+		basePath = "/" + basePath
+	}
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+	return basePath
+}
+
+func pwaHeadInjection(basePath, pageName string) []byte {
+	if pageName != "index.html" && pageName != "login.html" {
+		return nil
+	}
+
+	basePath = normalizeWebBasePath(basePath)
+	return []byte(`<link rel="manifest" href="` + htmlpkg.EscapeString(basePath+"manifest.webmanifest") + `"><script data-cfasync="false" defer src="` + htmlpkg.EscapeString(basePath+"pwa-register.js") + `"></script>`)
+}
+
 func serveDistPage(c *gin.Context, name string) {
 	body, err := fs.ReadFile(distFS, "dist/"+name)
 	if err != nil {
@@ -120,6 +142,7 @@ func serveDistPage(c *gin.Context, name string) {
 	inject := []byte(script)
 	inject = append(inject, csrfMeta...)
 	inject = append(inject, basePathMeta...)
+	inject = append(inject, pwaHeadInjection(basePath, name)...)
 	inject = append(inject, []byte(`</head>`)...)
 	out := bytes.Replace(body, []byte("</head>"), inject, 1)
 
