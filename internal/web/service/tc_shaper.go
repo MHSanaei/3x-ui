@@ -16,6 +16,16 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
+// tc parses class ids as hex, so the catch-all minor "9999" the root qdisc is
+// created with is 0x9999 — reserving decimal 9999 would guard the wrong id and
+// leave the real one free to collide.
+const defaultClassMinor = uint16(0x9999)
+
+// A u32 filter handle is htid:hash:nodeid with a 12-bit node id, so tc rejects
+// anything past 0xfff. Handles are therefore recycled rather than counted up
+// forever, which used to kill every filter once the panel had installed 4096.
+const maxFilterHandle = uint32(0xfff)
+
 type ClientSpeed struct {
 	IPs      []string
 	DownMbps int
@@ -79,10 +89,10 @@ func (s *TcShaper) Init() error {
 	defer s.mu.Unlock()
 
 	_ = s.runTC("qdisc", "del", "dev", s.iface, "root")
-	if err := s.runTC("qdisc", "add", "dev", s.iface, "root", "handle", "1:", "htb", "default", "9999"); err != nil {
+	if err := s.runTC("qdisc", "add", "dev", s.iface, "root", "handle", "1:", "htb", "default", fmt.Sprintf("%x", defaultClassMinor)); err != nil {
 		return fmt.Errorf("tc init on %s: %w", s.iface, err)
 	}
-	if err := s.runTC("class", "add", "dev", s.iface, "parent", "1:", "classid", "1:9999", "htb", "rate", "100gbit"); err != nil {
+	if err := s.runTC("class", "add", "dev", s.iface, "parent", "1:", "classid", fmt.Sprintf("1:%x", defaultClassMinor), "htb", "rate", "100gbit"); err != nil {
 		_ = s.runTC("qdisc", "del", "dev", s.iface, "root")
 		return fmt.Errorf("tc default class on %s: %w", s.iface, err)
 	}
@@ -148,6 +158,7 @@ func (s *TcShaper) addClientLocked(email string, speed ClientSpeed) {
 		downH: make(map[string]uint32),
 		upH:   make(map[string]uint32),
 	}
+	s.applied[email] = st
 	if speed.DownMbps > 0 {
 		_ = s.ensureDownClassLocked(email, st, speed.DownMbps)
 	}
@@ -163,7 +174,6 @@ func (s *TcShaper) addClientLocked(email string, speed ClientSpeed) {
 			s.addUpFilterLocked(st, ip)
 		}
 	}
-	s.applied[email] = st
 }
 
 func (s *TcShaper) updateClientLocked(email string, st *appliedClient, speed ClientSpeed) {
@@ -272,7 +282,7 @@ func (s *TcShaper) ensureUpPoliceLocked(email string, st *appliedClient, upMbps 
 		return false
 	}
 	idx := strconv.FormatUint(uint64(idxNum), 10)
-	if err := s.runTC("actions", "add", "action", "police", "rate", rate, "burst", burst, "conform-exceed", "drop", "index", idx); err != nil {
+	if err := s.runTC("actions", "replace", "action", "police", "rate", rate, "burst", burst, "conform-exceed", "drop", "index", idx); err != nil {
 		logger.Warningf("[tc] police for %s: %v", email, err)
 		return false
 	}
@@ -306,10 +316,10 @@ func (s *TcShaper) allocClassLocked() (uint16, error) {
 	for tried := 0; tried < 0xfffe; tried++ {
 		id := s.nextClass
 		s.nextClass++
-		if s.nextClass == 0 || s.nextClass == 9999 {
+		if s.nextClass == 0 || s.nextClass == defaultClassMinor {
 			s.nextClass = 1
 		}
-		if id == 0 || id == 9999 {
+		if id == 0 || id == defaultClassMinor {
 			continue
 		}
 		used := false
@@ -350,13 +360,47 @@ func (s *TcShaper) allocPoliceLocked() (uint32, error) {
 	return 0, fmt.Errorf("no free police action index")
 }
 
+func (s *TcShaper) allocFilterLocked() (uint32, error) {
+	for tried := uint32(0); tried < maxFilterHandle; tried++ {
+		h := s.nextFilter
+		s.nextFilter++
+		if s.nextFilter > maxFilterHandle {
+			s.nextFilter = 1
+		}
+		if h == 0 || s.filterHandleUsedLocked(h) {
+			continue
+		}
+		return h, nil
+	}
+	return 0, fmt.Errorf("no free u32 filter handle")
+}
+
+func (s *TcShaper) filterHandleUsedLocked(h uint32) bool {
+	for _, st := range s.applied {
+		for _, used := range st.downH {
+			if used == h {
+				return true
+			}
+		}
+		for _, used := range st.upH {
+			if used == h {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (s *TcShaper) addDownFilterLocked(st *appliedClient, ip string) {
 	proto, matchFamily, matchDir, prefix := ipMatch(ip, "dst")
 	if proto == "" {
 		return
 	}
-	h := s.nextFilter
-	s.nextFilter++
+	h, err := s.allocFilterLocked()
+	if err != nil {
+		logger.Warningf("[tc] down filter %s: %v", ip, err)
+		return
+	}
 	handle := fmt.Sprintf("800::%x", h)
 	args := []string{
 		"filter", "add", "dev", s.iface, "protocol", proto, "parent", "1:",
@@ -375,8 +419,11 @@ func (s *TcShaper) addUpFilterLocked(st *appliedClient, ip string) {
 	if proto == "" {
 		return
 	}
-	h := s.nextFilter
-	s.nextFilter++
+	h, err := s.allocFilterLocked()
+	if err != nil {
+		logger.Warningf("[tc] up filter %s: %v", ip, err)
+		return
+	}
 	handle := fmt.Sprintf("800::%x", h)
 	idx := strconv.FormatUint(uint64(st.policeIdx), 10)
 	args := []string{

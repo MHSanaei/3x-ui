@@ -553,6 +553,8 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"wg_pre_shared_key": merged.PreSharedKey,
 				"wg_keep_alive":     merged.KeepAlive,
 				"limit_ip":          merged.LimitIP,
+				"speed_down":        merged.SpeedDown,
+				"speed_up":          merged.SpeedUp,
 				"total_gb":          merged.TotalGB,
 				"expiry_time":       merged.ExpiryTime,
 				"tg_id":             merged.TgID,

@@ -711,6 +711,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if s.tcShaper != nil {
 		s.tcShaper.Cleanup()
+		s.tcShaper = nil
 	}
 	if s.cron != nil {
 		s.cron.Stop()

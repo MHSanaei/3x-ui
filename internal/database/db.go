@@ -164,6 +164,9 @@ func initModels() error {
 	if err := migrateClientTrafficResetColumns(); err != nil {
 		return err
 	}
+	if err := migrateClientSpeedLimitColumns(); err != nil {
+		return err
+	}
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
@@ -334,6 +337,21 @@ func migrateClientTrafficResetColumns() error {
 	}
 	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset_day") {
 		if err := db.Exec("UPDATE clients SET traffic_reset_day = 1 WHERE traffic_reset_day IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AutoMigrate adds the columns; an older SQLite ALTER TABLE leaves them NULL,
+// and a NULL speed_down fails every ClientRecord scan, not just the shaper's
+// own probe.
+func migrateClientSpeedLimitColumns() error {
+	for _, column := range []string{"speed_down", "speed_up"} {
+		if !db.Migrator().HasColumn(&model.ClientRecord{}, column) {
+			continue
+		}
+		if err := db.Exec("UPDATE clients SET " + column + " = 0 WHERE " + column + " IS NULL").Error; err != nil {
 			return err
 		}
 	}

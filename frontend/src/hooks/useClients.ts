@@ -538,6 +538,8 @@ export function useClients(options: UseClientsOptions = {}) {
       expiryTime: base.expiryTime || 0,
       limitIp: base.limitIp || 0,
       limitHwid: base.limitHwid || 0,
+      speedDown: base.speedDown || 0,
+      speedUp: base.speedUp || 0,
       tgId: Number(base.tgId) || 0,
       reset: Number(base.reset) || 0,
       resetDay: Number(base.resetDay) || 0,

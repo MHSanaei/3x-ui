@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -64,12 +66,12 @@ func TestTcShaperSyncDiff(t *testing.T) {
 	}
 
 	joined := joinCalls(calls)
-	if !strings.Contains(joined, "actions add action police") {
+	if !strings.Contains(joined, "actions replace action police") {
 		t.Fatalf("expected shared police action create, calls:\n%s", joined)
 	}
 	policeAdds := 0
 	for _, c := range calls {
-		if len(c) >= 3 && c[0] == "actions" && c[1] == "add" {
+		if len(c) >= 3 && c[0] == "actions" && c[1] == "replace" {
 			policeAdds++
 		}
 	}
@@ -138,7 +140,7 @@ func TestTcShaperSharedUploadAcrossIPs(t *testing.T) {
 
 	idx := ""
 	for _, c := range calls {
-		if len(c) >= 3 && c[0] == "actions" && c[1] == "add" {
+		if len(c) >= 3 && c[0] == "actions" && c[1] == "replace" {
 			for i := 0; i < len(c)-1; i++ {
 				if c[i] == "index" {
 					idx = c[i+1]
@@ -147,7 +149,7 @@ func TestTcShaperSharedUploadAcrossIPs(t *testing.T) {
 		}
 	}
 	if idx == "" {
-		t.Fatal("police index not found in actions add")
+		t.Fatal("police index not found in actions replace")
 	}
 	refs := 0
 	for _, c := range calls {
@@ -162,6 +164,55 @@ func TestTcShaperSharedUploadAcrossIPs(t *testing.T) {
 	}
 	if refs != 3 {
 		t.Fatalf("filters referencing shared police index %s: %d want 3", idx, refs)
+	}
+}
+
+func TestTcShaperRecyclesFilterHandles(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("tc shaper is a no-op on windows")
+	}
+	t.Parallel()
+
+	var handles []string
+	s := NewTcShaper("eth0")
+	s.runner = func(args ...string) error {
+		if len(args) < 2 || args[0] != "filter" || args[1] != "add" {
+			return nil
+		}
+		for i := 0; i < len(args)-1; i++ {
+			if args[i] == "handle" {
+				handles = append(handles, args[i+1])
+			}
+		}
+		return nil
+	}
+	s.ready = true
+	s.ownIngress = true
+
+	const rounds = 3000
+	for i := 0; i < rounds; i++ {
+		ip := fmt.Sprintf("10.0.%d.%d", (i/256)%256, i%256)
+		s.Sync(map[string]ClientSpeed{
+			"churn@test": {IPs: []string{ip}, DownMbps: 10, UpMbps: 5},
+		})
+	}
+
+	if len(handles) != rounds*2 {
+		t.Fatalf("filter adds=%d want %d (one down + one up per round)", len(handles), rounds*2)
+	}
+	for _, h := range handles {
+		node, err := strconv.ParseUint(strings.TrimPrefix(h, "800::"), 16, 32)
+		if err != nil {
+			t.Fatalf("unparseable filter handle %q: %v", h, err)
+		}
+		if node == 0 || node > 0xfff {
+			t.Fatalf("filter handle %q is outside the 12-bit u32 node id range tc accepts", h)
+		}
+	}
+
+	st := s.applied["churn@test"]
+	if len(st.downH) != 1 || len(st.upH) != 1 {
+		t.Fatalf("after churn down=%d up=%d want 1/1", len(st.downH), len(st.upH))
 	}
 }
 
