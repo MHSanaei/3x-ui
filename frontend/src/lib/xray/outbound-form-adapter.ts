@@ -13,6 +13,7 @@ import type {
   HttpOutboundFormSettings,
   HysteriaOutboundFormSettings,
   LoopbackOutboundFormSettings,
+  NaiveOutboundFormSettings,
   MuxForm,
   OutboundFormSettings,
   OutboundFormValues,
@@ -364,6 +365,60 @@ function loopbackFromWire(raw: Raw): LoopbackOutboundFormSettings {
   };
 }
 
+function decodeUrlCredential(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function optionalNumberFromWire(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = asNumber(value, Number.NaN);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function stripNaiveHostBrackets(value: string): string {
+  const host = value.trim();
+  return host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+}
+
+function normalizeNaiveHost(value: string): string {
+  const host = stripNaiveHostBrackets(value);
+  return host.includes(':') ? `[${host}]` : host;
+}
+
+function naiveFromWire(raw: Raw): NaiveOutboundFormSettings {
+  const proxy = asString(raw.proxy);
+  const parsed = (() => {
+    try {
+      return new URL(proxy);
+    } catch {
+      return null;
+    }
+  })();
+  const rawScheme = parsed?.protocol.replace(':', '');
+  const scheme: NaiveOutboundFormSettings['scheme'] = rawScheme === 'http' || rawScheme === 'quic'
+    ? rawScheme
+    : 'https';
+  const defaultPort = scheme === 'http' ? 80 : 443;
+  return {
+    scheme,
+    user: decodeUrlCredential(parsed?.username ?? ''),
+    pass: decodeUrlCredential(parsed?.password ?? ''),
+    host: stripNaiveHostBrackets(parsed?.hostname ?? ''),
+    port: parsed?.port ? Number(parsed.port) : defaultPort,
+    insecureConcurrency: optionalNumberFromWire(raw.insecureConcurrency),
+    tunnelTimeout: optionalNumberFromWire(raw.tunnelTimeout),
+    idleTimeout: optionalNumberFromWire(raw.idleTimeout),
+    extraHeaders: asString(raw.extraHeaders) || undefined,
+    hostResolverRules: asString(raw.hostResolverRules) || undefined,
+    resolverRange: asString(raw.resolverRange) || undefined,
+    noPostQuantum: asBool(raw.noPostQuantum) || undefined,
+  };
+}
+
 function muxFromWire(raw: unknown): MuxForm {
   const m = asObject(raw);
   return {
@@ -436,6 +491,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'blackhole':   typed = { protocol: 'blackhole',   settings: blackholeFromWire(settings) }; break;
     case 'dns':         typed = { protocol: 'dns',         settings: dnsFromWire(settings) }; break;
     case 'loopback':    typed = { protocol: 'loopback',    settings: loopbackFromWire(settings) }; break;
+    case 'naive':       typed = { protocol: 'naive',       settings: naiveFromWire(settings) }; break;
     default:            typed = { protocol: 'vless',       settings: vlessFromWire(settings) };
   }
 
@@ -625,6 +681,20 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
   return result;
 }
 
+function naiveToWire(s: NaiveOutboundFormSettings) {
+  const result: Raw = {
+    proxy: `${s.scheme}://${encodeURIComponent(s.user)}:${encodeURIComponent(s.pass)}@${normalizeNaiveHost(s.host)}:${s.port}`,
+  };
+  if (s.insecureConcurrency) result.insecureConcurrency = s.insecureConcurrency;
+  if (s.tunnelTimeout !== undefined) result.tunnelTimeout = s.tunnelTimeout;
+  if (s.idleTimeout !== undefined) result.idleTimeout = s.idleTimeout;
+  if (s.extraHeaders) result.extraHeaders = s.extraHeaders;
+  if (s.hostResolverRules) result.hostResolverRules = s.hostResolverRules;
+  if (s.resolverRange) result.resolverRange = s.resolverRange;
+  if (s.noPostQuantum) result.noPostQuantum = s.noPostQuantum;
+  return result;
+}
+
 // canEnableMux mirrors the legacy Outbound.canEnableMux().
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
 const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
@@ -681,6 +751,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     case 'blackhole':   settings = blackholeToWire(values.settings); break;
     case 'dns':         settings = dnsToWire(values.settings); break;
     case 'loopback':    settings = loopbackToWire(values.settings); break;
+    case 'naive':       settings = naiveToWire(values.settings); break;
   }
 
   const result: Raw = {
@@ -688,11 +759,11 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     settings,
   };
   if (values.tag) result.tag = values.tag;
-  if (values.targetStrategy) result.targetStrategy = values.targetStrategy;
+  if (values.protocol !== 'naive' && values.targetStrategy) result.targetStrategy = values.targetStrategy;
 
   // streamSettings emission gates on canEnableStream — non-stream protocols
   // still emit just `sockopt` if that key is present (legacy behavior).
-  if (values.streamSettings) {
+  if (values.protocol !== 'naive' && values.streamSettings) {
     if (STREAM_PROTOCOLS.has(values.protocol)) {
       result.streamSettings = stripUiOnlyStreamFields(values.streamSettings);
     } else {
@@ -701,7 +772,7 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     }
   }
 
-  if (values.sendThrough) result.sendThrough = values.sendThrough;
+  if (values.protocol !== 'naive' && values.sendThrough) result.sendThrough = values.sendThrough;
   // mux may be absent when the modal didn't render the Mux switch (non-
   // stream protocols or when isMuxAllowed gated it out). validateFields()
   // only returns registered fields, so values.mux can be undefined.

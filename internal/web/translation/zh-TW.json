@@ -1593,6 +1593,28 @@
         "allCities": "所有城市",
         "moveToTop": "移到頂部"
       },
+      "naiveForm": {
+        "advancedOptions": "進階選項",
+        "tunnelTimeoutHint": "隧道連線存活達到此秒數後停止承載新流。可緩解長連線卡住，但可能中斷 SSH 等長時間 TCP 工作階段。預設：1800；Android：600。",
+        "httpWarning": "HTTP 傳輸未加密。僅建議用於測試或受信任網路。",
+        "insecureConcurrencyHint": "在網路狀況較差時使用多個隧道連線，但會讓流量更容易被辨識。建議先嘗試 2，不建議超過 4。",
+        "idleTimeoutHint": "隧道流閒置達到此秒數後強制關閉，以便及時清理已退役連線。預設：600；Android：300。",
+        "extraHeadersHint": "向代理請求附加額外標頭。多個標頭使用 CRLF 換行分隔。",
+        "hostResolverRulesHint": "將網域名稱靜態解析到指定 IP，例如：MAP proxy.example.com 1.2.3.4。",
+        "resolverRangeHint": "內建解析器用於人工位址的 CIDR 範圍。預設：100.64.0.0/10。",
+        "noPostQuantumHint": "關閉預設啟用的後量子金鑰協商。"
+      },
+      "naive": {
+        "notInstalled": "未安裝",
+        "install": "安裝",
+        "uninstall": "解除安裝",
+        "restartAll": "全部重啟",
+        "instances": "實例數：{count}",
+        "uninstallConfirm": "這將停止所有 naive 出站。是否繼續？",
+        "stop": "停止",
+        "sectionTitle": "Naive",
+        "versionWarning": "重要：舊版本可能與目前設定不相容。"
+      },
       "outboundSub": {
         "manage": "訂閱",
         "title": "出站訂閱",

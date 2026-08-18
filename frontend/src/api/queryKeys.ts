@@ -46,4 +46,9 @@ export const keys = {
         ['xray', 'geodata', 'entries', file, code, query, offset, limit] as const,
     },
   },
+  naive: {
+    status: () => ['naive', 'status'] as const,
+    releases: () => ['naive', 'releases'] as const,
+    logs: (tag: string, rows: number) => ['naive', 'logs', tag, rows] as const,
+  },
 } as const;

@@ -1593,6 +1593,28 @@
         "allCities": "Tất cả thành phố",
         "moveToTop": "Chuyển lên đầu"
       },
+      "naiveForm": {
+        "advancedOptions": "Tùy chọn nâng cao",
+        "tunnelTimeoutHint": "Ngừng dùng một kết nối đường hầm sau số giây này. Hữu ích khi kết nối dài bị treo, nhưng có thể làm gián đoạn phiên TCP dài như SSH. Mặc định: 1800; Android: 600.",
+        "httpWarning": "Giao thức truyền HTTP không được mã hóa. Chỉ dùng để thử nghiệm hoặc trong mạng tin cậy.",
+        "insecureConcurrencyHint": "Dùng nhiều kết nối đường hầm cho mạng kém ổn định, nhưng khiến lưu lượng dễ bị phát hiện hơn. Hãy thử 2 trước; tránh dùng quá 4.",
+        "idleTimeoutHint": "Buộc đóng luồng đường hầm sau số giây không hoạt động này để dọn các kết nối đã ngừng dùng. Mặc định: 600; Android: 300.",
+        "extraHeadersHint": "Thêm header bổ sung vào yêu cầu proxy. Phân tách nhiều header bằng xuống dòng CRLF.",
+        "hostResolverRulesHint": "Ánh xạ tĩnh tên miền sang địa chỉ IP, ví dụ: MAP proxy.example.com 1.2.3.4.",
+        "resolverRangeHint": "Dải CIDR được bộ phân giải tích hợp dùng cho địa chỉ nhân tạo. Mặc định: 100.64.0.0/10.",
+        "noPostQuantumHint": "Tắt cơ chế thỏa thuận khóa hậu lượng tử mặc định."
+      },
+      "naive": {
+        "notInstalled": "Chưa cài đặt",
+        "install": "Cài đặt",
+        "uninstall": "Gỡ cài đặt",
+        "restartAll": "Khởi động lại tất cả",
+        "instances": "{count} phiên bản",
+        "uninstallConfirm": "Thao tác này sẽ dừng tất cả outbound naive. Tiếp tục?",
+        "stop": "Dừng",
+        "sectionTitle": "Naive",
+        "versionWarning": "Quan trọng: các phiên bản cũ có thể không tương thích với cấu hình hiện tại."
+      },
       "outboundSub": {
         "manage": "Đăng ký",
         "title": "Đăng ký Outbound",

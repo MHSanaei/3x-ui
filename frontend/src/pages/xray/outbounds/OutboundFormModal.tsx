@@ -53,6 +53,7 @@ import {
   FreedomFields,
   HttpFields,
   LoopbackFields,
+  NaiveFields,
   ServerTarget,
   ShadowsocksFields,
   SocksFields,
@@ -110,6 +111,7 @@ export default function OutboundFormModal({
 
   const tag = (useWatch({ control: methods.control, name: 'tag' }) ?? '') as string;
   const protocol = (useWatch({ control: methods.control, name: 'protocol' }) ?? 'vless') as string;
+  const isNaive = protocol === 'naive';
   const network = (useWatch({ control: methods.control, name: 'streamSettings.network' }) ?? '') as string;
   const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ?? 'none') as string;
   const flow = (useWatch({ control: methods.control, name: 'settings.flow' }) ?? '') as string;
@@ -410,17 +412,21 @@ export default function OutboundFormModal({
                         }}
                       />
 
-                      <FormField label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
-                        <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
-                      </FormField>
+                      {!isNaive && (
+                        <>
+                          <FormField label={t('pages.xray.outbound.sendThrough')} name="sendThrough">
+                            <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
+                          </FormField>
 
-                      <FormField
-                        label={t('pages.xray.outbound.targetStrategy')}
-                        name="targetStrategy"
-                        tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
-                      >
-                        <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
-                      </FormField>
+                          <FormField
+                            label={t('pages.xray.outbound.targetStrategy')}
+                            name="targetStrategy"
+                            tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
+                          >
+                            <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
+                          </FormField>
+                        </>
+                      )}
 
                       {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
                       {protocol === 'vmess' && <VmessFields />}
@@ -433,6 +439,7 @@ export default function OutboundFormModal({
                       {protocol === 'loopback' && <LoopbackFields />}
                       {protocol === 'blackhole' && <BlackholeFields />}
                       {protocol === 'dns' && <DnsFields />}
+                      {protocol === 'naive' && <NaiveFields />}
 
                       {protocol === 'freedom' && <FreedomFields />}
 
@@ -529,25 +536,27 @@ export default function OutboundFormModal({
 
                       {security === 'reality' && realityAllowed && <RealityForm />}
 
-                      {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
+                      {!isNaive && ((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
                         <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
                       )}
 
-                      <Controller
-                        control={methods.control}
-                        name="streamSettings.finalmask"
-                        render={({ field }) => (
-                          <FinalMaskField
-                            key={`${protocol}:${network}`}
-                            value={field.value}
-                            onChange={field.onChange}
-                            network={network}
-                            protocol={protocol}
-                          />
-                        )}
-                      />
+                      {!isNaive && (
+                        <Controller
+                          control={methods.control}
+                          name="streamSettings.finalmask"
+                          render={({ field }) => (
+                            <FinalMaskField
+                              key={`${protocol}:${network}`}
+                              value={field.value}
+                              onChange={field.onChange}
+                              network={network}
+                              protocol={protocol}
+                            />
+                          )}
+                        />
+                      )}
 
-                      <MuxForm protocol={protocol} network={network} />
+                      {!isNaive && <MuxForm protocol={protocol} network={network} />}
                     </>
                   ),
                 },

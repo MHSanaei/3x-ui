@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/naive"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
@@ -331,6 +332,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	mtJob := job.NewMtprotoJob()
 	_, _ = s.cron.AddJob(cadenceMtproto, mtJob)
 	go mtJob.Run()
+	_ = naive.GetManager().StartAll()
 
 	// check client ips from log file every 10 sec
 	_, _ = s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
@@ -691,6 +693,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	if stopXray {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
+		if err := naive.GetManager().StopAll(); err != nil {
+			logger.Warning("stop Naive outbounds failed:", err)
+		}
 	}
 	if s.cron != nil {
 		s.cron.Stop()
