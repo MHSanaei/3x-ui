@@ -130,7 +130,7 @@ export default function IndexPage() {
 
   async function copyConfig() {
     const ok = await ClipboardManager.copyText(configText || '');
-    if (ok) messageApi.success('Copied');
+    if (ok) messageApi.success(t('copied'));
   }
 
   function downloadConfig() {

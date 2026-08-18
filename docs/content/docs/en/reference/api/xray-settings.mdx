@@ -63,6 +63,25 @@ _openapi:
         connection (RoutingService.TestRoute). No traffic is sent.
       url: '#ask-the-running-core-which-outbound-its-router-would-pick-for-a-synthetic-connection-routingservicetestroute-no-traffic-is-sent'
     - depth: 2
+      title: List the geo databases (.dat files) in the Xray asset folder, with the
+        layout detected from their contents, size, modification time and
+        category count. A database that fails to parse is still listed, with the
+        reason in "error".
+      url: '#list-the-geo-databases-dat-files-in-the-xray-asset-folder-with-the-layout-detected-from-their-contents-size-modification-time-and-category-count-a-database-that-fails-to-parse-is-still-listed-with-the-reason-in-error'
+    - depth: 2
+      title: One page of a database's categories, each with its entry count and the
+        attributes its domains carry (e.g. "ads", "cn").
+      url: '#one-page-of-a-databases-categories-each-with-its-entry-count-and-the-attributes-its-domains-carry-eg-ads-cn'
+    - depth: 2
+      title: One page of the rules inside a category — domain rules typed as
+        domain/full/keyword/regexp for geosite databases, CIDRs for geoip ones.
+      url: '#one-page-of-the-rules-inside-a-category--domain-rules-typed-as-domainfullkeywordregexp-for-geosite-databases-cidrs-for-geoip-ones'
+    - depth: 2
+      title: 'Check routing tokens against the databases on disk and return only the
+        ones that do not resolve. Plain domains and CIDRs are ignored. Each
+        issue carries a reason: syntax, fileMissing or categoryMissing.'
+      url: '#check-routing-tokens-against-the-databases-on-disk-and-return-only-the-ones-that-do-not-resolve-plain-domains-and-cidrs-are-ignored-each-issue-carries-a-reason-syntax-filemissing-or-categorymissing'
+    - depth: 2
       title: List all outbound subscriptions (remote URLs that supply additional
         outbounds), newest first.
       url: '#list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first'
@@ -139,6 +158,22 @@ _openapi:
       - content: Ask the running core which outbound its router would pick for a
           synthetic connection (RoutingService.TestRoute). No traffic is sent.
         id: ask-the-running-core-which-outbound-its-router-would-pick-for-a-synthetic-connection-routingservicetestroute-no-traffic-is-sent
+      - content: List the geo databases (.dat files) in the Xray asset folder, with the
+          layout detected from their contents, size, modification time and
+          category count. A database that fails to parse is still listed, with
+          the reason in "error".
+        id: list-the-geo-databases-dat-files-in-the-xray-asset-folder-with-the-layout-detected-from-their-contents-size-modification-time-and-category-count-a-database-that-fails-to-parse-is-still-listed-with-the-reason-in-error
+      - content: One page of a database's categories, each with its entry count and the
+          attributes its domains carry (e.g. "ads", "cn").
+        id: one-page-of-a-databases-categories-each-with-its-entry-count-and-the-attributes-its-domains-carry-eg-ads-cn
+      - content: One page of the rules inside a category — domain rules typed as
+          domain/full/keyword/regexp for geosite databases, CIDRs for geoip
+          ones.
+        id: one-page-of-the-rules-inside-a-category--domain-rules-typed-as-domainfullkeywordregexp-for-geosite-databases-cidrs-for-geoip-ones
+      - content: 'Check routing tokens against the databases on disk and return only the
+          ones that do not resolve. Plain domains and CIDRs are ignored. Each
+          issue carries a reason: syntax, fileMissing or categoryMissing.'
+        id: check-routing-tokens-against-the-databases-on-disk-and-return-only-the-ones-that-do-not-resolve-plain-domains-and-cidrs-are-ignored-each-issue-carries-a-reason-syntax-filemissing-or-categorymissing
       - content: List all outbound subscriptions (remote URLs that supply additional
           outbounds), newest first.
         id: list-all-outbound-subscriptions-remote-urls-that-supply-additional-outbounds-newest-first
@@ -175,7 +210,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/xray/","method":"post"},{"path":"/panel/api/xray/getDefaultJsonConfig","method":"get"},{"path":"/panel/api/xray/getOutboundsTraffic","method":"get"},{"path":"/panel/api/xray/getXrayResult","method":"get"},{"path":"/panel/api/xray/update","method":"post"},{"path":"/panel/api/xray/warp/{action}","method":"post"},{"path":"/panel/api/xray/nord/{action}","method":"post"},{"path":"/panel/api/xray/resetOutboundsTraffic","method":"post"},{"path":"/panel/api/xray/testOutbound","method":"post"},{"path":"/panel/api/xray/testOutbounds","method":"post"},{"path":"/panel/api/xray/balancerStatus","method":"post"},{"path":"/panel/api/xray/balancerOverride","method":"post"},{"path":"/panel/api/xray/routeTest","method":"post"},{"path":"/panel/api/xray/outbound-subs","method":"get"},{"path":"/panel/api/xray/outbound-subs","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"delete"},{"path":"/panel/api/xray/outbound-subs/{id}/del","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/refresh","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/move","method":"post"},{"path":"/panel/api/xray/outbound-subs/parse","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/xray/","method":"post"},{"path":"/panel/api/xray/getDefaultJsonConfig","method":"get"},{"path":"/panel/api/xray/getOutboundsTraffic","method":"get"},{"path":"/panel/api/xray/getXrayResult","method":"get"},{"path":"/panel/api/xray/update","method":"post"},{"path":"/panel/api/xray/warp/{action}","method":"post"},{"path":"/panel/api/xray/nord/{action}","method":"post"},{"path":"/panel/api/xray/resetOutboundsTraffic","method":"post"},{"path":"/panel/api/xray/testOutbound","method":"post"},{"path":"/panel/api/xray/testOutbounds","method":"post"},{"path":"/panel/api/xray/balancerStatus","method":"post"},{"path":"/panel/api/xray/balancerOverride","method":"post"},{"path":"/panel/api/xray/routeTest","method":"post"},{"path":"/panel/api/xray/geodata/files","method":"get"},{"path":"/panel/api/xray/geodata/categories","method":"get"},{"path":"/panel/api/xray/geodata/entries","method":"get"},{"path":"/panel/api/xray/geodata/validate","method":"post"},{"path":"/panel/api/xray/outbound-subs","method":"get"},{"path":"/panel/api/xray/outbound-subs","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}","method":"delete"},{"path":"/panel/api/xray/outbound-subs/{id}/del","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/refresh","method":"post"},{"path":"/panel/api/xray/outbound-subs/{id}/move","method":"post"},{"path":"/panel/api/xray/outbound-subs/parse","method":"post"}]} showTitle />
     </>
   );
 }

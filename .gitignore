@@ -20,9 +20,6 @@ bin/
 x-ui
 x-ui/
 dist/
-!internal/web/dist/
-internal/web/dist/*
-!internal/web/dist/.gitkeep
 release/
 node_modules/
 

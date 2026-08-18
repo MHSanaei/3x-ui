@@ -32,6 +32,8 @@ interface ApiTokenRow {
   name: string;
   enabled: boolean;
   createdAt: number;
+  scope: 'admin' | 'monitor' | 'node-sync';
+  expiresAt: number;
 }
 
 interface SecurityTabProps {
@@ -187,7 +189,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
       cancelText: t('cancel'),
       okType: 'danger',
       onOk: async () => {
-        const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/delete/${row.id}`) as ApiMsg;
+        const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/delete/${row.id}`, { expectedScope: row.scope }) as ApiMsg;
         if (msg?.success) await loadApiTokens();
       },
     });
@@ -195,7 +197,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
 
   async function toggleTokenEnabled(row: ApiTokenRow) {
     const target = !row.enabled;
-    const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/setEnabled/${row.id}`, { enabled: target }) as ApiMsg;
+    const msg = await HttpUtil.post(`/panel/api/setting/apiTokens/setEnabled/${row.id}`, { enabled: target, expectedScope: row.scope }) as ApiMsg;
     if (msg?.success) {
       setApiTokens((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: target } : r)));
     }

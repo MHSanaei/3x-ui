@@ -185,6 +185,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/:id/subSortIndex',
+        summary: 'Set only the subscription sort order. Reads the stored inbound, so a reorder cannot carry a stale client list over a concurrent edit.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
+        ],
+        body: '{\n  "subSortIndex": 2\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/:id/resetTraffic',
         summary: 'Zero out upload + download counters for a single inbound. Does not touch per-client counters.',
         params: [
@@ -512,9 +521,12 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/scanRealityTarget',
-        summary: 'Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names.',
+        summary: 'Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.',
         params: [
           { name: 'target', in: 'body (form)', type: 'string', desc: 'Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443.' },
+          { name: 'sni', in: 'body (form)', type: 'string', optional: true, desc: 'SNI the handshake sends and the certificate is verified against (the inbound serverNames). Defaults to the target host, which a fronting proxy answers with its default certificate.' },
+          { name: 'xver', in: 'body (form)', type: 'number', optional: true, desc: 'PROXY protocol version the target expects (matches the inbound xver). 0 = none.' },
+          { name: 'allowPrivate', in: 'body (form)', type: 'boolean', optional: true, desc: 'Probe a private/internal/loopback target (LAN, Docker service name). Default false (SSRF guard blocks it and the response sets privateTarget=true).' },
         ],
         body: 'target=www.cloudflare.com:443',
         responseSchema: 'RealityScanResult',
@@ -628,7 +640,7 @@ export const sections: readonly Section[] = [
           { name: 'order', in: 'query', type: 'string', desc: 'ascend or descend.' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "items": [\n      {\n        "email": "alice@example.com",\n        "subId": "abcd1234",\n        "enable": true,\n        "totalGB": 53687091200,\n        "expiryTime": 1735689600000,\n        "limitIp": 0,\n        "reset": 0,\n        "inboundIds": [3, 5],\n        "traffic": { "up": 1024, "down": 4096, "enable": true },\n        "createdAt": 1735000000000,\n        "updatedAt": 1735100000000\n      }\n    ],\n    "total": 2000,\n    "filtered": 47,\n    "page": 1,\n    "pageSize": 25,\n    "summary": {\n      "total": 2000,\n      "active": 1850,\n      "onlineCount": 1,\n      "depletedCount": 0,\n      "expiringCount": 0,\n      "deactiveCount": 150,\n      "online": ["alice@example.com"],\n      "depleted": [],\n      "expiring": [],\n      "deactive": ["bob@example.com"]\n    }\n  }\n}',
+'{\n  "success": true,\n  "obj": {\n    "items": [\n      {\n        "email": "alice@example.com",\n        "subId": "abcd1234",\n        "enable": true,\n        "totalGB": 53687091200,\n        "expiryTime": 1735689600000,\n        "limitIp": 0,\n        "limitHwid": 0,\n        "reset": 0,\n        "inboundIds": [3, 5],\n        "traffic": { "up": 1024, "down": 4096, "enable": true },\n        "createdAt": 1735000000000,\n        "updatedAt": 1735100000000\n      }\n    ],\n    "total": 2000,\n    "filtered": 47,\n    "page": 1,\n    "pageSize": 25,\n    "summary": {\n      "total": 2000,\n      "active": 1850,\n      "onlineCount": 1,\n      "depletedCount": 0,\n      "expiringCount": 0,\n      "deactiveCount": 150,\n      "online": ["alice@example.com"],\n      "depleted": [],\n      "expiring": [],\n      "deactive": ["bob@example.com"]\n    }\n  }\n}',
       },
       {
         method: 'GET',
@@ -638,7 +650,7 @@ export const sections: readonly Section[] = [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [{ "kind": "link", "value": "vless://...", "remark": "DE" }]\n  }\n}',
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
       },
       {
         method: 'GET',
@@ -655,10 +667,10 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/add',
         summary: 'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.',
         params: [
-          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
+          { name: 'client', in: 'body (json)', type: 'object', desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, limitHwid, tgId (numeric Telegram user ID, 0 = none), comment, enable.' },
           { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to attach the client to. At least one required.' },
         ],
-        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
+        body: '{\n  "client": {\n    "email": "alice@example.com",\n    "totalGB": 53687091200,\n    "expiryTime": 1735689600000,\n    "tgId": 0,\n    "limitIp": 0,\n    "limitHwid": 0,\n    "enable": true\n  },\n  "inboundIds": [3, 5]\n}',
         response: '{\n  "success": true,\n  "msg": "Client added"\n}',
       },
       {
@@ -668,7 +680,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Current client email (unique identifier).' },
         ],
-        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "tgId": 123456789,\n  "enable": true\n}',
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "limitHwid": 2,\n  "tgId": 123456789,\n  "enable": true\n}',
         response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
       },
       {
@@ -706,12 +718,12 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/:email/externalLinks',
-        summary: 'Replace a client\'s external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.',
+        summary: 'Replace a client\'s external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
-          { name: 'externalLinks', in: 'body (json)', type: 'object[]', desc: 'Rows of { kind: "link" | "subscription", value, remark }. kind=link must be a share link; kind=subscription must be an http(s) URL.' },
+          { name: 'externalLinks', in: 'body', type: 'object[]', desc: 'Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means never expire; a negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.' },
         ],
-        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE" },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider" }\n  ]\n}',
+        body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true, "expiryTime": 0 },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] " }\n  ]\n}',
         response: '{\n  "success": true\n}',
       },
       {
@@ -729,14 +741,14 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/delOrphans',
-        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
+        summary: 'Delete every client that is not attached to any inbound, along with its traffic record, IP log, HWID devices, and external links. Useful for clearing clients left unattached after their inbounds were removed. Returns the deleted count. Cannot be undone.',
         response: '{\n  "success": true,\n  "obj": {\n    "deleted": 0\n  }\n}',
       },
       {
         method: 'GET',
         path: '/panel/api/clients/export',
         summary: 'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
-        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
       },
       {
         method: 'POST',
@@ -777,7 +789,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkCreate',
         summary: 'Create many clients in one call. Body is a JSON array of {client, inboundIds} payloads — the same shape /add accepts. Items are processed sequentially; per-email skip reasons are returned for items that fail (e.g., duplicate email). Triggers a single Xray restart at the end if any inbound was running.',
-        body: '[\n  {\n    "client": {\n      "email": "alice@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7]\n  },\n  {\n    "client": {\n      "email": "bob@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7, 9]\n  }\n]',
+        body: '[\n  {\n    "client": {\n      "email": "alice@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "limitHwid": 2,\n      "enable": true\n    },\n    "inboundIds": [7]\n  },\n  {\n    "client": {\n      "email": "bob@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "limitHwid": 0,\n      "enable": true\n    },\n    "inboundIds": [7, 9]\n  }\n]',
         response: '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use" }\n    ]\n  }\n}',
       },
       {
@@ -901,6 +913,23 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/hwids/:email',
+        summary: 'List registered HWID devices for a client. Hashes are not exposed.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9"\n    }\n  ]\n}',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/clients/hwids/:email',
+        summary: 'Clear all registered HWID devices for a client so new devices can register again.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/onlines',
         summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
         response: '{\n  "success": true,\n  "obj": ["user1", "user2"]\n}',
@@ -987,6 +1016,11 @@ export const sections: readonly Section[] = [
         path: '/panel/api/nodes/mtls/trustCA',
         summary: "Set the CA certificate this panel trusts for incoming node-API client certificates (this panel acting as a node). Paste the managing panel's CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty value must be a PEM certificate. Applied on the next panel restart.",
         body: '{\n  "caCert": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----\\n"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/mtls/reloadClient',
+        summary: 'Validate the stored master mTLS client credential and invalidate cached transports. Each transport closes its old idle pool and rebuilds with the rotated certificate before its next request.',
       },
       {
         method: 'GET',
@@ -1281,7 +1315,7 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage Bearer tokens used for programmatic auth (bots, central panels acting on this node, CI). Each token has a unique name and an enabled flag — disable to revoke without deleting, delete to revoke permanently. Tokens are stored as SHA-256 hashes and the plaintext is returned only once, in the create response — it cannot be retrieved afterwards, so copy it then. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any /panel/api/* request — the token is a full-admin credential.',
+      'Manage scoped Bearer tokens for programmatic auth. Tokens grant admin, monitor, or node-sync access, may expire, and are stored as SHA-256 hashes. The plaintext is returned only once at creation.',
     endpoints: [
       {
         method: 'GET',
@@ -1292,11 +1326,13 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/setting/apiTokens/create',
-        summary: 'Mint a new API token. Name must be unique and 1-64 characters; the token string is server-generated and returned only in this response — it is stored hashed and cannot be retrieved later.',
+        summary: 'Mint a scoped API token. The server-generated plaintext is returned only once and stored as a hash.',
         params: [
           { name: 'name', in: 'body', type: 'string', desc: 'Human-readable label, e.g. "central-panel-a".' },
+          { name: 'scope', in: 'body', type: 'string', desc: 'admin (default), monitor, or node-sync.' },
+          { name: 'expiresAt', in: 'body', type: 'number', desc: 'Future Unix milliseconds, or 0 for no expiry.' },
         ],
-        body: '{\n  "name": "central-panel-a"\n}',
+        body: '{\n  "name": "central-panel-a",\n  "scope": "node-sync",\n  "expiresAt": 1798761600000\n}',
         responseSchema: 'ApiTokenView',
         errorResponse: '{\n  "success": false,\n  "msg": "a token with that name already exists"\n}',
       },
@@ -1306,7 +1342,9 @@ export const sections: readonly Section[] = [
         summary: 'Permanently delete a token. Any caller using it stops authenticating immediately.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
+          { name: 'expectedScope', in: 'body', type: 'string', desc: 'Stored scope expected by the operator.' },
         ],
+        body: '{\n  "expectedScope": "node-sync"\n}',
         response: '{\n  "success": true\n}',
       },
       {
@@ -1316,8 +1354,9 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Token row ID.' },
           { name: 'enabled', in: 'body', type: 'boolean', desc: 'New enabled state.' },
+          { name: 'expectedScope', in: 'body', type: 'string', desc: 'Stored scope expected by the operator.' },
         ],
-        body: '{\n  "enabled": false\n}',
+        body: '{\n  "enabled": false,\n  "expectedScope": "node-sync"\n}',
         response: '{\n  "success": true\n}',
       },
     ],
@@ -1445,6 +1484,44 @@ export const sections: readonly Section[] = [
           { name: 'email', in: 'body (form)', type: 'string', desc: 'User attribution for user-based rules (optional).' },
         ],
         body: 'domain=example.com&port=443&network=tcp',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/geodata/files',
+        summary: 'List the geo databases (.dat files) in the Xray asset folder, with the layout detected from their contents, size, modification time and category count. A database that fails to parse is still listed, with the reason in "error".',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/geodata/categories',
+        summary: 'One page of a database\'s categories, each with its entry count and the attributes its domains carry (e.g. "ads", "cn").',
+        params: [
+          { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder, e.g. geosite.dat (required).' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the category code.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Omit it to return every category — the index is small and the panel filters it client-side.' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/geodata/entries',
+        summary: 'One page of the rules inside a category — domain rules typed as domain/full/keyword/regexp for geosite databases, CIDRs for geoip ones.',
+        params: [
+          { name: 'file', in: 'query', type: 'string', desc: 'Database file name inside the asset folder (required).' },
+          { name: 'code', in: 'query', type: 'string', desc: 'Category code, case-insensitive, e.g. google (required).' },
+          { name: 'q', in: 'query', type: 'string', optional: true, desc: 'Case-insensitive substring filter on the rule value.' },
+          { name: 'offset', in: 'query', type: 'integer', optional: true, desc: 'Rows to skip. Defaults to 0.' },
+          { name: 'limit', in: 'query', type: 'integer', optional: true, desc: 'Rows to return, capped at 500. Defaults to the cap.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/geodata/validate',
+        summary: 'Check routing tokens against the databases on disk and return only the ones that do not resolve. Plain domains and CIDRs are ignored. Each issue carries a reason: syntax, fileMissing or categoryMissing.',
+        params: [
+          { name: 'tokens', in: 'body (form)', type: 'string', desc: 'Comma-separated routing tokens, e.g. "geosite:google,geosite:blabla". Max 500 per request.' },
+          { name: 'kind', in: 'body (form)', type: 'string', desc: '"ip" to parse the tokens as IP rules (geoip:, ext-ip:, leading !). Anything else parses them as domain rules (geosite:, ext-site:).' },
+        ],
+        body: 'kind=domain&tokens=geosite:google,geosite:blabla',
       },
       {
         method: 'GET',

@@ -23,6 +23,11 @@ _openapi:
         must be a PEM certificate. Applied on the next panel restart.
       url: '#set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart'
     - depth: 2
+      title: Validate the stored master mTLS client credential and invalidate cached
+        transports. Each transport closes its old idle pool and rebuilds with
+        the rotated certificate before its next request.
+      url: '#validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request'
+    - depth: 2
       title: Fetch a single node by ID.
       url: '#fetch-a-single-node-by-id'
     - depth: 2
@@ -89,6 +94,10 @@ _openapi:
           CA (from nodes/mtls/ca). An empty caCert disables it. A non-empty
           value must be a PEM certificate. Applied on the next panel restart.
         id: set-the-ca-certificate-this-panel-trusts-for-incoming-node-api-client-certificates-this-panel-acting-as-a-node-paste-the-managing-panels-ca-from-nodesmtlsca-an-empty-cacert-disables-it-a-non-empty-value-must-be-a-pem-certificate-applied-on-the-next-panel-restart
+      - content: Validate the stored master mTLS client credential and invalidate cached
+          transports. Each transport closes its old idle pool and rebuilds with
+          the rotated certificate before its next request.
+        id: validate-the-stored-master-mtls-client-credential-and-invalidate-cached-transports-each-transport-closes-its-old-idle-pool-and-rebuilds-with-the-rotated-certificate-before-its-next-request
       - content: Fetch a single node by ID.
         id: fetch-a-single-node-by-id
       - content: Fetch a node's own web TLS certificate/key file paths (proxied to the
@@ -142,7 +151,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/mtls/reloadClient","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"}]} showTitle />
     </>
   );
 }

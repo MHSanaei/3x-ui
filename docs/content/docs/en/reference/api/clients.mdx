@@ -55,10 +55,10 @@ _openapi:
       title: Detach a client from one or more inbounds without deleting the client.
       url: '#detach-a-client-from-one-or-more-inbounds-without-deleting-the-client'
     - depth: 2
-      title: Replace a client's external links (per-client share links and remote
-        subscription URLs surfaced in their subscription). Sends the full set;
-        the server replaces all rows.
-      url: '#replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows'
+      title: Replace a client's external links and external subscriptions. Sends the
+        full set; the server replaces all rows. Disabled rows stay saved for
+        editing but are not emitted in generated subscriptions.
+      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions'
     - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
@@ -71,10 +71,10 @@ _openapi:
       url: '#delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound'
     - depth: 2
       title: Delete every client that is not attached to any inbound, along with its
-        traffic record, IP log, and external links. Useful for clearing clients
-        left unattached after their inbounds were removed. Returns the deleted
-        count. Cannot be undone.
-      url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
+        traffic record, IP log, HWID devices, and external links. Useful for
+        clearing clients left unattached after their inbounds were removed.
+        Returns the deleted count. Cannot be undone.
+      url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
     - depth: 2
       title: Return every client as a {client, inboundIds} array — the same shape
         /bulkCreate and /import accept — so the payload round-trips straight
@@ -223,6 +223,13 @@ _openapi:
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
     - depth: 2
+      title: List registered HWID devices for a client. Hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-hashes-are-not-exposed'
+    - depth: 2
+      title: Clear all registered HWID devices for a client so new devices can
+        register again.
+      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
+    - depth: 2
       title: List the emails of currently connected clients (last seen within the
         heartbeat window), deduped across every node.
       url: '#list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node'
@@ -307,10 +314,10 @@ _openapi:
         id: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
       - content: Detach a client from one or more inbounds without deleting the client.
         id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
-      - content: Replace a client's external links (per-client share links and remote
-          subscription URLs surfaced in their subscription). Sends the full set;
-          the server replaces all rows.
-        id: replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+      - content: Replace a client's external links and external subscriptions. Sends the
+          full set; the server replaces all rows. Disabled rows stay saved for
+          editing but are not emitted in generated subscriptions.
+        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
@@ -321,10 +328,10 @@ _openapi:
           running inbound.
         id: delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
       - content: Delete every client that is not attached to any inbound, along with its
-          traffic record, IP log, and external links. Useful for clearing
-          clients left unattached after their inbounds were removed. Returns the
-          deleted count. Cannot be undone.
-        id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+          traffic record, IP log, HWID devices, and external links. Useful for
+          clearing clients left unattached after their inbounds were removed.
+          Returns the deleted count. Cannot be undone.
+        id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
       - content: Return every client as a {client, inboundIds} array — the same shape
           /bulkCreate and /import accept — so the payload round-trips straight
           back through /import. Clients with no inbound attachment are included
@@ -454,6 +461,11 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
+      - content: List registered HWID devices for a client. Hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-hashes-are-not-exposed
+      - content: Clear all registered HWID devices for a client so new devices can
+          register again.
+        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
       - content: List the emails of currently connected clients (last seen within the
           heartbeat window), deduped across every node.
         id: list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
@@ -503,7 +515,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }
