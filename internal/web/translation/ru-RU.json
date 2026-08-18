@@ -266,7 +266,9 @@
       "logLevelError": "Ошибка",
       "accessDirect": "НАПРЯМУЮ",
       "accessBlocked": "ЗАБЛОКИРОВАНО",
-      "accessProxy": "ЧЕРЕЗ ПРОКСИ"
+      "accessProxy": "ЧЕРЕЗ ПРОКСИ",
+      "importKeepHostSettings": "Сохранить настройки этой машины",
+      "importKeepHostSettingsDesc": "Оставляет адреса и порты этой панели, базовый путь, сертификаты и удостоверение для узлов вместо тех, что в загруженном файле."
     },
     "inbounds": {
       "totalDownUp": "Отправлено/получено",
