@@ -25,12 +25,16 @@ The built binary must serve these paths beneath the configured `webBasePath`:
 - `manifest.webmanifest`
 - `pwa-register.js`
 - `service-worker.js`
-- `icons/3x-ui-192.svg`
-- `icons/3x-ui-512.svg`
+- `icons/3x-ui-16.png`
+- `icons/3x-ui-24.png`
+- `icons/3x-ui-32.png`
+- `icons/3x-ui-64.png`
+- `icons/3x-ui-192.png`
+- `icons/3x-ui-512.png`
 
 The login and panel HTML must contain a manifest link and registration script
 whose URLs begin with the same runtime base path. The manifest must contain
-`display: "standalone"`, relative `start_url` and `scope`, and both icon
+`display: "standalone"`, relative `start_url` and `scope`, and all six icon
 entries.
 
 ## Live rollout checks
@@ -44,7 +48,7 @@ After the restart, verify:
 
 1. `x-ui` is active and its child Xray process is running.
 2. The existing panel URL serves HTML with the PWA manifest link.
-3. The manifest, registration script, worker, and both icons return `200`.
+3. The manifest, registration script, worker, and all six icons return `200`.
 4. Login, authenticated API requests, panel navigation, logout, and the panel
    WebSocket all work.
 5. At least one VPN client can complete a fresh connection cycle.

@@ -15,8 +15,8 @@ func TestServePWAAssets(t *testing.T) {
 		"dist/manifest.webmanifest": &fstest.MapFile{Data: []byte(`{"name":"3x-ui"}`)},
 		"dist/pwa-register.js":      &fstest.MapFile{Data: []byte("register")},
 		"dist/service-worker.js":    &fstest.MapFile{Data: []byte("worker")},
-		"dist/icons/3x-ui-192.svg":  &fstest.MapFile{Data: []byte("icon-192")},
-		"dist/icons/3x-ui-512.svg":  &fstest.MapFile{Data: []byte("icon-512")},
+		"dist/icons/3x-ui-192.png":  &fstest.MapFile{Data: []byte("icon-192")},
+		"dist/icons/3x-ui-512.png":  &fstest.MapFile{Data: []byte("icon-512")},
 	}
 	t.Cleanup(func() { distFS = oldDistFS })
 
@@ -51,6 +51,30 @@ func TestServePWAAssets(t *testing.T) {
 				t.Errorf("body = %q, want %q", response.Body.String(), test.body)
 			}
 		})
+	}
+}
+
+func TestServePWAIconServesPNG(t *testing.T) {
+	oldDistFS := distFS
+	distFS = fstest.MapFS{
+		"dist/icons/3x-ui-192.png": &fstest.MapFile{Data: []byte("icon-192")},
+	}
+	t.Cleanup(func() { distFS = oldDistFS })
+
+	gin.SetMode(gin.TestMode)
+	response := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(response)
+	context.Params = gin.Params{{Key: "name", Value: "3x-ui-192.png"}}
+	ServePWAIcon(context)
+
+	if response.Code != 200 {
+		t.Fatalf("status = %d, want 200", response.Code)
+	}
+	if got := response.Header().Get("Content-Type"); got != "image/png" {
+		t.Errorf("content type = %q, want %q", got, "image/png")
+	}
+	if response.Body.String() != "icon-192" {
+		t.Errorf("body = %q, want %q", response.Body.String(), "icon-192")
 	}
 }
 

@@ -16,8 +16,12 @@ var pwaAssets = map[string]pwaAsset{
 	"manifest.webmanifest": {path: "dist/manifest.webmanifest", contentType: "application/manifest+json; charset=utf-8"},
 	"pwa-register.js":      {path: "dist/pwa-register.js", contentType: "application/javascript; charset=utf-8"},
 	"service-worker.js":    {path: "dist/service-worker.js", contentType: "application/javascript; charset=utf-8"},
-	"icons/3x-ui-192.svg":  {path: "dist/icons/3x-ui-192.svg", contentType: "image/svg+xml"},
-	"icons/3x-ui-512.svg":  {path: "dist/icons/3x-ui-512.svg", contentType: "image/svg+xml"},
+	"icons/3x-ui-16.png":   {path: "dist/icons/3x-ui-16.png", contentType: "image/png"},
+	"icons/3x-ui-24.png":   {path: "dist/icons/3x-ui-24.png", contentType: "image/png"},
+	"icons/3x-ui-32.png":   {path: "dist/icons/3x-ui-32.png", contentType: "image/png"},
+	"icons/3x-ui-64.png":   {path: "dist/icons/3x-ui-64.png", contentType: "image/png"},
+	"icons/3x-ui-192.png":  {path: "dist/icons/3x-ui-192.png", contentType: "image/png"},
+	"icons/3x-ui-512.png":  {path: "dist/icons/3x-ui-512.png", contentType: "image/png"},
 }
 
 func servePWAAsset(c *gin.Context, assetName string) {
