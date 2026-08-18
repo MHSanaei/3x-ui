@@ -115,6 +115,14 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			skip(email, verr.Error())
 			continue
 		}
+		if verr := validateClientResetDay(client.ResetDay); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
+		if verr := validateClientResetMax(client.ResetMax); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
 		if verr := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); verr != nil {
 			skip(email, verr.Error())
 			continue
