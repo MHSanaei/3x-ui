@@ -64,6 +64,7 @@ var defaultValueMap = map[string]string{
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
+	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
@@ -648,6 +649,12 @@ func (s *SettingService) GetTrafficDiff() (int, error) {
 
 func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
+}
+
+// GetIpLimitAllowlist returns the operator's trusted addresses and networks,
+// which the IP limit neither counts nor bans.
+func (s *SettingService) GetIpLimitAllowlist() (string, error) {
+	return s.getString("ipLimitAllowlist")
 }
 
 func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {

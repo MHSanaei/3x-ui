@@ -26,6 +26,8 @@ type ClientSlim struct {
 	LimitIP    int                 `json:"limitIp"`
 	LimitHwid  int                 `json:"limitHwid"`
 	Reset      int                 `json:"reset"`
+	ResetDay   int                 `json:"resetDay"`
+	ResetMax   int                 `json:"resetMax"`
 	Group      string              `json:"group,omitempty"`
 	Comment    string              `json:"comment,omitempty"`
 	InboundIds []int               `json:"inboundIds"`
@@ -245,9 +247,9 @@ func (q clientQuery) applyParams(tx *gorm.DB, params ClientPageParams, onlines [
 	}
 	switch strings.ToLower(strings.TrimSpace(params.AutoRenew)) {
 	case "on":
-		where("COALESCE(c.reset, 0) > 0")
+		where("(COALESCE(c.reset, 0) > 0 OR COALESCE(c.reset_day, 0) > 0)")
 	case "off":
-		where("COALESCE(c.reset, 0) <= 0")
+		where("(COALESCE(c.reset, 0) <= 0 AND COALESCE(c.reset_day, 0) <= 0)")
 	}
 	switch strings.ToLower(strings.TrimSpace(params.HasTgID)) {
 	case "yes":
@@ -605,6 +607,8 @@ func toClientSlim(c ClientWithAttachments) ClientSlim {
 		LimitIP:    c.LimitIP,
 		LimitHwid:  c.LimitHwid,
 		Reset:      c.Reset,
+		ResetDay:   c.ResetDay,
+		ResetMax:   c.ResetMax,
 		Group:      c.Group,
 		Comment:    c.Comment,
 		InboundIds: c.InboundIds,

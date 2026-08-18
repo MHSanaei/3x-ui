@@ -1638,9 +1638,93 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	return data, "x-ui.dump", nil
 }
 
-func (s *ServerService) ImportDB(file multipart.File) error {
+// hostBoundSettingKeys are the settings that describe *this* machine rather
+// than the configuration being carried: where the panel and the subscription
+// service listen, the certificates they present, and the identity this panel
+// uses towards its nodes. An import that overwrites them leaves the
+// destination unreachable on its own address, or impersonating the source.
+var hostBoundSettingKeys = []string{
+	"webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webBasePath",
+	"subListen", "subDomain", "subPort", "subCertFile", "subKeyFile", "subURI", "subJsonURI",
+	"secret", "panelGuid",
+	"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem",
+	"nodeMtlsClientKeyPem", "nodeMtlsClientCertSha256", "nodeMtlsClientCAPem",
+}
+
+// hostBoundSnapshot records this machine's values, and just as importantly
+// which keys it had no row for: an absent row means the built-in default is in
+// force, and leaving the imported row in place would silently adopt the source
+// machine's certificate path or listen address.
+type hostBoundSnapshot struct {
+	values  map[string]string
+	present map[string]struct{}
+	taken   bool
+}
+
+func captureHostBoundSettings() hostBoundSnapshot {
+	db := database.GetDB()
+	if db == nil {
+		return hostBoundSnapshot{}
+	}
+	var rows []model.Setting
+	if err := db.Model(&model.Setting{}).Where("key IN ?", hostBoundSettingKeys).Find(&rows).Error; err != nil {
+		logger.Warningf("Import: could not read this machine's settings, they will come from the uploaded file: %v", err)
+		return hostBoundSnapshot{}
+	}
+	snap := hostBoundSnapshot{
+		values:  make(map[string]string, len(rows)),
+		present: make(map[string]struct{}, len(rows)),
+		taken:   true,
+	}
+	for _, row := range rows {
+		snap.values[row.Key] = row.Value
+		snap.present[row.Key] = struct{}{}
+	}
+	return snap
+}
+
+func restoreHostBoundSettings(snap hostBoundSnapshot) {
+	if !snap.taken {
+		return
+	}
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	settingSvc := &SettingService{}
+	for _, key := range hostBoundSettingKeys {
+		if _, had := snap.present[key]; !had {
+			// Absent because it is minted on demand, not because a default applied:
+			// the imported copy is the only one that exists, so keep it (#6227).
+			if lazilyMintedSettingKeys[key] {
+				continue
+			}
+			if err := db.Where("key = ?", key).Delete(&model.Setting{}).Error; err != nil {
+				logger.Warningf("Import: could not drop imported setting %q: %v", key, err)
+			}
+			continue
+		}
+		// saveSetting rather than Assign(struct): GORM drops zero-valued fields from
+		// the assignment map, so an empty local value never overwrote the import.
+		if err := settingSvc.saveSetting(key, snap.values[key]); err != nil {
+			logger.Warningf("Import: could not restore setting %q for this machine: %v", key, err)
+		}
+	}
+}
+
+// Minted on demand, so a fresh install has no row: dropping the imported copy
+// would destroy the only one that exists, CA private key included.
+var lazilyMintedSettingKeys = map[string]bool{
+	"nodeMtlsCaCertPem":     true,
+	"nodeMtlsCaKeyPem":      true,
+	"nodeMtlsClientCertPem": true,
+	"nodeMtlsClientKeyPem":  true,
+	"nodeMtlsClientCAPem":   true,
+}
+
+func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) error {
 	if database.IsPostgres() {
-		return s.importPostgresDB(file)
+		return s.importPostgresDB(file, keepHostSettings)
 	}
 	kind, err := sniffUploadKind(file)
 	if err != nil {
@@ -1690,6 +1774,11 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	}()
 	if errStop := s.StopXrayService(); errStop != nil {
 		logger.Warningf("Failed to stop Xray before DB import: %v", errStop)
+	}
+
+	var keptSettings hostBoundSnapshot
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
 	}
 
 	if errClose := database.CloseDB(); errClose != nil {
@@ -1746,6 +1835,8 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
 	dbReopened = true
+
+	restoreHostBoundSettings(keptSettings)
 
 	s.inboundService.MigrateDB()
 
@@ -1901,14 +1992,14 @@ func sniffUploadKind(file multipart.File) (int, error) {
 	return sniffImportKind(header[:n]), nil
 }
 
-func (s *ServerService) importPostgresDB(file multipart.File) error {
+func (s *ServerService) importPostgresDB(file multipart.File, keepHostSettings bool) error {
 	kind, err := sniffUploadKind(file)
 	if err != nil {
 		return common.NewErrorf("Error reading uploaded file: %v", err)
 	}
 	switch kind {
 	case importKindPgDump:
-		return s.restorePostgresDump(file)
+		return s.restorePostgresDump(file, keepHostSettings)
 	case importKindSQLiteDB:
 		return s.migrateSQLiteIntoPostgres(file, false)
 	case importKindSQLiteDump:
@@ -1918,7 +2009,7 @@ func (s *ServerService) importPostgresDB(file multipart.File) error {
 	}
 }
 
-func (s *ServerService) restorePostgresDump(file multipart.File) error {
+func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSettings bool) error {
 	bin, err := exec.LookPath("pg_restore")
 	if err != nil {
 		return common.NewError("pg_restore not found on the server; install the postgresql-client package to restore a PostgreSQL database")
@@ -1958,6 +2049,11 @@ func (s *ServerService) restorePostgresDump(file multipart.File) error {
 		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
 	}
 
+	var keptSettings hostBoundSnapshot
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
+	}
+
 	if errClose := database.CloseDB(); errClose != nil {
 		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
 	}
@@ -1974,6 +2070,8 @@ func (s *ServerService) restorePostgresDump(file multipart.File) error {
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
 	}
+	restoreHostBoundSettings(keptSettings)
+
 	s.inboundService.MigrateDB()
 
 	if runErr != nil {

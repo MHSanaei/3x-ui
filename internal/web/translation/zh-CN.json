@@ -112,7 +112,8 @@
     "docs": "文档",
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
-    "unpinSidebar": "取消固定侧边栏"
+    "unpinSidebar": "取消固定侧边栏",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -266,7 +267,17 @@
       "healthCritical": "{list} — 危险",
       "panel": "面板",
       "threads": "线程",
-      "uptime": "运行时间"
+      "uptime": "运行时间",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "保留本机设置",
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。"
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",
@@ -439,6 +450,7 @@
         "scanRealityTargetError": "扫描 REALITY 目标失败。",
         "scanRealityTargetFeasible": "目标可用 — 已填入目标和 SNI。",
         "scanRealityTargetNotFeasible": "目标可达，但不适用于 REALITY。",
+        "scanRealityTargetPrivate": "目标可用，但位于内网/本地网络中。",
         "invalidClientField": "客户端 {client}：字段 {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (另有 {count} 项)"
@@ -630,6 +642,11 @@
         "scanCurve": "密钥交换",
         "scanCert": "证书",
         "scanCertInvalid": "不受信任",
+        "scanCertExpiry": "证书有效期至",
+        "scanSniUsed": "使用的 SNI",
+        "scanPrivateNote": "已通过内网/本地网络检测 — 该地址无法从互联网访问。",
+        "scanPrivateConfirmTitle": "目标位于本地网络",
+        "scanPrivateConfirmContent": "“{target}”解析到内网或回环地址。本次检测将仅为此探测跳过面板的 SSRF 防护。是否继续？",
         "scanLatency": "延迟",
         "scanUse": "使用",
         "scanRescan": "重新扫描",
@@ -685,6 +702,10 @@
       "addExternalSubscription": "添加外部订阅",
       "noExternalLinks": "暂无外部链接。",
       "noExternalSubscriptions": "暂无外部订阅。",
+      "namePrefix": "名称前缀",
+      "lastFetchAt": "最后拉取",
+      "lastFetchError": "拉取失败",
+      "neverFetched": "尚未拉取",
       "submitEdit": "保存更改",
       "clientCount": "客户端数量",
       "bulk": "批量添加",
@@ -877,7 +898,12 @@
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
         "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
-      }
+      },
+      "renewMax": "最大续期次数",
+      "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
+      "renewOnDay": "按日期续期",
+      "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
+      "renewsUsed": "已用续期次数"
     },
     "groups": {
       "name": "名称",
@@ -1369,7 +1395,11 @@
         "pathLeadingSlash": "路径必须以 / 开头"
       },
       "secretClear": "清除",
-      "secretClearUndo": "撤销清除"
+      "secretClearUndo": "撤销清除",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP 限制白名单",
+      "ipLimitAllowlistDesc": "IP 限制永远不会计入也不会封禁的地址和网段，避免办公室或校园的共享地址耗尽客户端的限额。IP/CIDR(逗号分隔)。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -1938,6 +1968,7 @@
         "descEXPIRE_UNIX": "到期时间的 Unix 时间戳（秒）",
         "descCREATED_UNIX": "创建时间的 Unix 时间戳（秒）",
         "descRESET_DAYS": "流量重置周期（天）",
+        "descRESET_DAY": "按月续期的日期",
         "descPROTOCOL": "入站协议（VLESS、VMess、Trojan……）",
         "descTRANSPORT": "传输网络（tcp、ws、grpc……）",
         "descSECURITY": "传输安全（TLS、REALITY、NONE）"

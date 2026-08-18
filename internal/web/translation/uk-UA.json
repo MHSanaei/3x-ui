@@ -112,7 +112,8 @@
     "docs": "Документація",
     "openMenu": "Відкрити меню",
     "pinSidebar": "Закріпити бічну панель",
-    "unpinSidebar": "Відкріпити бічну панель"
+    "unpinSidebar": "Відкріпити бічну панель",
+    "subFormats": "Формати підписки"
   },
   "pages": {
     "login": {
@@ -266,7 +267,17 @@
       "healthCritical": "{list} — критичний рівень",
       "panel": "Панель",
       "threads": "Потоки",
-      "uptime": "Час роботи"
+      "uptime": "Час роботи",
+      "logLevelDebug": "Налагодження",
+      "logLevelInfo": "Інформація",
+      "logLevelNotice": "Сповіщення",
+      "logLevelWarning": "Попередження",
+      "logLevelError": "Помилка",
+      "accessDirect": "НАПРЯМУ",
+      "accessBlocked": "ЗАБЛОКОВАНО",
+      "accessProxy": "ЧЕРЕЗ ПРОКСІ",
+      "importKeepHostSettings": "Зберегти налаштування цієї машини",
+      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі."
     },
     "inbounds": {
       "totalDownUp": "Всього надісланих/отриманих",
@@ -439,6 +450,7 @@
         "scanRealityTargetError": "Не вдалося просканувати ціль REALITY.",
         "scanRealityTargetFeasible": "Ціль підходить — поля target і SNI заповнено.",
         "scanRealityTargetNotFeasible": "Ціль доступна, але не підходить для REALITY.",
+        "scanRealityTargetPrivate": "Ціль працює, але розташована у приватній (локальній) мережі.",
         "invalidClientField": "Клієнт {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} ще)"
@@ -610,6 +622,11 @@
         "scanCurve": "Обмін ключами",
         "scanCert": "Сертифікат",
         "scanCertInvalid": "Ненадійний",
+        "scanCertExpiry": "Сертифікат діє до",
+        "scanSniUsed": "Використаний SNI",
+        "scanPrivateNote": "Перевірено у внутрішній (локальній) мережі — ця адреса недоступна з інтернету.",
+        "scanPrivateConfirmTitle": "Ціль у локальній мережі",
+        "scanPrivateConfirmContent": "«{target}» вказує на приватну або локальну адресу. Перевірка обійде SSRF-захист панелі лише для цього запиту. Продовжити?",
         "scanLatency": "Затримка",
         "scanUse": "Обрати",
         "scanRescan": "Пересканувати",
@@ -685,6 +702,10 @@
       "addExternalSubscription": "Додати зовнішню підписку",
       "noExternalLinks": "Зовнішніх посилань ще немає.",
       "noExternalSubscriptions": "Зовнішніх підписок ще немає.",
+      "namePrefix": "Префікс імені",
+      "lastFetchAt": "Останнє оновлення",
+      "lastFetchError": "Помилка оновлення",
+      "neverFetched": "Ще не завантажено",
       "submitEdit": "Зберегти зміни",
       "clientCount": "Кількість клієнтів",
       "bulk": "Масове додавання",
@@ -877,7 +898,12 @@
         "delOrphans": "Видалено клієнтів без вхідного: {count}",
         "imported": "Імпортовано клієнтів: {count}",
         "importedMixed": "Імпортовано: {ok}, пропущено: {failed}"
-      }
+      },
+      "renewMax": "Ліміт подовжень",
+      "renewMaxDesc": "Скільки разів автоподовження може спрацювати, перш ніж клієнта буде залишено спливати. 0 — без обмеження. Надолуження кількох пропущених періодів витрачає по одному подовженню на період.",
+      "renewOnDay": "Подовжувати числа",
+      "renewOnDayDesc": "Подовжувати цього числа кожного місяця, опівночі за часовим поясом панелі, замість інтервалу в днях. Якщо в місяці такого числа немає, подовження припаде на останній день. 0 — залишити режим інтервалу.",
+      "renewsUsed": "Подовжень витрачено"
     },
     "groups": {
       "name": "Назва",
@@ -1369,7 +1395,11 @@
         "pathLeadingSlash": "Шлях має починатися з /"
       },
       "secretClear": "Очистити",
-      "secretClearUndo": "Скасувати очищення"
+      "secretClearUndo": "Скасувати очищення",
+      "calendarGregorian": "Григоріанський (звичайний)",
+      "calendarJalalian": "Джалалі (شمسی)",
+      "ipLimitAllowlist": "Довірені адреси для ліміту",
+      "ipLimitAllowlistDesc": "Адреси та підмережі, які ліміт не рахує і не банить: спільна офісна чи студентська адреса не витратить ліміт клієнта. Через кому, адреса або підмережа."
     },
     "xray": {
       "save": "Зберегти",
@@ -1938,6 +1968,7 @@
         "descEXPIRE_UNIX": "Закінчення як мітка часу Unix (секунди)",
         "descCREATED_UNIX": "Час створення як мітка часу Unix (секунди)",
         "descRESET_DAYS": "Період скидання трафіку в днях",
+        "descRESET_DAY": "Число місяця, у яке подовжується доступ",
         "descPROTOCOL": "Протокол вхідного (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Транспортна мережа (tcp, ws, grpc, …)",
         "descSECURITY": "Безпека транспорту (TLS, REALITY, NONE)"

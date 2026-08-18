@@ -112,7 +112,8 @@
     "docs": "Documentación",
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
-    "unpinSidebar": "Desfijar barra lateral"
+    "unpinSidebar": "Desfijar barra lateral",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -266,7 +267,17 @@
       "healthCritical": "{list} — crítico",
       "panel": "Panel",
       "threads": "Hilos",
-      "uptime": "Tiempo activo"
+      "uptime": "Tiempo activo",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Mantener la configuración de esta máquina",
+      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido."
     },
     "inbounds": {
       "totalDownUp": "Subidas/Descargas Totales",
@@ -439,6 +450,7 @@
         "scanRealityTargetError": "No se pudo escanear el objetivo REALITY.",
         "scanRealityTargetFeasible": "El objetivo es apto: se rellenaron el objetivo y el SNI.",
         "scanRealityTargetNotFeasible": "El objetivo es accesible pero no apto para REALITY.",
+        "scanRealityTargetPrivate": "El destino funciona, pero está en una red privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} más)"
@@ -631,6 +643,11 @@
         "scanCurve": "Intercambio de claves",
         "scanCert": "Certificado",
         "scanCertInvalid": "No confiable",
+        "scanCertExpiry": "El certificado caduca",
+        "scanSniUsed": "SNI utilizado",
+        "scanPrivateNote": "Comprobado en una red privada/local: esta dirección no es accesible desde internet.",
+        "scanPrivateConfirmTitle": "Destino en una red local",
+        "scanPrivateConfirmContent": "\"{target}\" apunta a una dirección privada o de loopback. La comprobación omitirá la protección SSRF del panel solo para esta prueba. ¿Continuar?",
         "scanLatency": "Latencia",
         "scanUse": "Usar",
         "scanRescan": "Reescanear",
@@ -685,6 +702,10 @@
       "addExternalSubscription": "Añadir suscripción externa",
       "noExternalLinks": "Aún no hay enlaces externos.",
       "noExternalSubscriptions": "Aún no hay suscripciones externas.",
+      "namePrefix": "Prefijo de nombre",
+      "lastFetchAt": "Última obtención",
+      "lastFetchError": "Error de obtención",
+      "neverFetched": "Aún no obtenido",
       "submitEdit": "Guardar cambios",
       "clientCount": "Número de clientes",
       "bulk": "Añadir en lote",
@@ -877,7 +898,12 @@
         "delOrphans": "{count} clientes sin entrante eliminados",
         "imported": "{count} clientes importados",
         "importedMixed": "{ok} importados, {failed} omitidos"
-      }
+      },
+      "renewMax": "Renovaciones máximas",
+      "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
+      "renewOnDay": "Renovar el día",
+      "renewOnDayDesc": "Renueva este día de cada mes natural, a medianoche en la zona horaria del panel, en lugar de cada N días. Si el mes es demasiado corto para el día elegido, renueva su último día. 0 mantiene el modo de intervalo en días.",
+      "renewsUsed": "Renovaciones usadas"
     },
     "groups": {
       "name": "Nombre",
@@ -1369,7 +1395,11 @@
         "pathLeadingSlash": "La ruta debe comenzar con /"
       },
       "secretClear": "Borrar",
-      "secretClearUndo": "Deshacer borrado"
+      "secretClearUndo": "Deshacer borrado",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "Lista de permitidos del límite de IP",
+      "ipLimitAllowlistDesc": "Direcciones y redes que el límite de IP nunca cuenta ni banea, para que una dirección compartida de oficina o campus no agote el límite de un cliente. IP/CIDR separados por coma."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -1938,6 +1968,7 @@
         "descEXPIRE_UNIX": "Expiración como marca de tiempo Unix (segundos)",
         "descCREATED_UNIX": "Hora de creación como marca de tiempo Unix (segundos)",
         "descRESET_DAYS": "Periodo de reinicio de tráfico en días",
+        "descRESET_DAY": "Día del mes en que se renueva",
         "descPROTOCOL": "Protocolo del inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Red de transporte (tcp, ws, grpc, …)",
         "descSECURITY": "Seguridad del transporte (TLS, REALITY, NONE)"

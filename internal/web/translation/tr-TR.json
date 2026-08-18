@@ -112,7 +112,8 @@
     "docs": "Belgeler",
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
-    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır"
+    "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -266,7 +267,17 @@
       "healthCritical": "{list} — kritik",
       "panel": "Panel",
       "threads": "İş parçacıkları",
-      "uptime": "Çalışma süresi"
+      "uptime": "Çalışma süresi",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Bu makinenin ayarlarını koru",
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur."
     },
     "inbounds": {
       "totalDownUp": "Toplam Gönderilen/Alınan",
@@ -439,6 +450,7 @@
         "scanRealityTargetError": "REALITY hedefi taranamadı.",
         "scanRealityTargetFeasible": "Hedef uygun — hedef ve SNI dolduruldu.",
         "scanRealityTargetNotFeasible": "Hedefe ulaşılabiliyor ancak REALITY için uygun değil.",
+        "scanRealityTargetPrivate": "Hedef çalışıyor ancak özel/yerel bir ağda.",
         "invalidClientField": "Kullanıcı {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "moreIssues": "{message}  (+{count} tane daha)"
@@ -610,6 +622,11 @@
         "scanCurve": "Anahtar Değişimi",
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
+        "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanSniUsed": "Kullanılan SNI",
+        "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
+        "scanPrivateConfirmTitle": "Hedef yerel ağda",
+        "scanPrivateConfirmContent": "\"{target}\" özel veya loopback bir adrese çözümleniyor. Kontrol, yalnızca bu deneme için panelin SSRF korumasını atlayacak. Devam edilsin mi?",
         "scanLatency": "Gecikme",
         "scanUse": "Kullan",
         "scanRescan": "Yeniden tara",
@@ -685,6 +702,10 @@
       "addExternalSubscription": "Harici Abonelik Ekle",
       "noExternalLinks": "Henüz harici bağlantı yok.",
       "noExternalSubscriptions": "Henüz harici abonelik yok.",
+      "namePrefix": "Ad öneki",
+      "lastFetchAt": "Son çekme",
+      "lastFetchError": "Çekme hatası",
+      "neverFetched": "Henüz çekilmedi",
       "submitEdit": "Değişiklikleri Kaydet",
       "clientCount": "Kullanıcı Sayısı",
       "bulk": "Toplu Ekle",
@@ -877,7 +898,12 @@
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
         "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
-      }
+      },
+      "renewMax": "En fazla yenileme",
+      "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
+      "renewOnDay": "Yenileme günü",
+      "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
+      "renewsUsed": "Kullanılan yenileme"
     },
     "groups": {
       "name": "İsim",
@@ -1369,7 +1395,11 @@
         "pathLeadingSlash": "Yol / ile başlamalıdır"
       },
       "secretClear": "Temizle",
-      "secretClearUndo": "Temizlemeyi geri al"
+      "secretClearUndo": "Temizlemeyi geri al",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP limiti izin listesi",
+      "ipLimitAllowlistDesc": "IP limitinin asla saymadığı ve engellemediği adresler ve ağlar; böylece ortak bir ofis veya kampüs adresi kullanıcının limitini tüketmez. IP'ler/CIDR'ler (virgülle ayrılmış)."
     },
     "xray": {
       "save": "Kaydet",
@@ -1938,6 +1968,7 @@
         "descEXPIRE_UNIX": "Son kullanma Unix zaman damgası olarak (saniye)",
         "descCREATED_UNIX": "Oluşturulma zamanı Unix zaman damgası olarak (saniye)",
         "descRESET_DAYS": "Trafik sıfırlama periyodu (gün)",
+        "descRESET_DAY": "Takvime göre yenileme günü",
         "descPROTOCOL": "Gelen bağlantı protokolü (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Taşıma ağı (tcp, ws, grpc, …)",
         "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)"
