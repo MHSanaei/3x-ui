@@ -85,7 +85,7 @@ func getLogPath(key string) (string, error) {
 			return logPath, nil
 		}
 	}
-	return "", err
+	return "", nil
 }
 
 // GetAccessLogPath reads the Xray config and returns the access log file path.
@@ -93,7 +93,6 @@ func GetAccessLogPath() (string, error) {
 	return getLogPath("access")
 }
 
-// GetErrorLogPath reads the Xray config and returns the error log file path.
 // GetErrorLogPath reads the Xray config and returns the error log file path.
 func GetErrorLogPath() (string, error) {
 	return getLogPath("error")
@@ -126,8 +125,9 @@ func NewTestProcess(xrayConfig *Config, configPath string) *Process {
 }
 
 type process struct {
-	// mu guards the process lifecycle fields (cmd, done, exitErr) plus version and
-	// apiPort, which are written by Start/startCommand/refreshVersion/refreshAPIPort
+	// mu guards the process lifecycle fields (cmd, done, exitErr) plus version,
+	// apiPort, and config, which are written by Start/startCommand/refreshVersion/
+	// refreshAPIPort/SetConfig
 	// while being read concurrently by IsRunning/GetErr/GetResult/GetXrayVersion/
 	// GetAPIPort/Stop from other goroutines (status endpoint, check-xray-running
 	// and traffic jobs). Snapshot under the lock, then do any blocking syscall
@@ -176,7 +176,12 @@ type process struct {
 	// mutex guards this map, onlineClients, and localLastOnline above so the
 	// online getters never see a torn read.
 	nodeOnlineTrees map[int]map[string][]string
-	onlineMu        sync.RWMutex
+	// nodeActiveInboundTrees mirrors nodeOnlineTrees for active inbound tags:
+	// each direct node reports a GUID-keyed subtree of inbound tags that carried
+	// traffic within its own grace window. The inbounds page combines this with
+	// nodeOnlineTrees so a multi-inbound client is not shown on an idle inbound.
+	nodeActiveInboundTrees map[int]map[string][]string
+	onlineMu               sync.RWMutex
 
 	// onlineAPISupport caches whether the running core implements the
 	// online-stats RPCs (GetUsersStats). A new process is created on every
@@ -219,6 +224,7 @@ func (p *process) SetOnlineAPISupport(v OnlineAPISupport) {
 var (
 	xrayGracefulStopTimeout = 5 * time.Second
 	xrayForceStopTimeout    = 2 * time.Second
+	xrayVersionTimeout      = 5 * time.Second
 	// OnCrash is called when xray crashes unexpectedly. Set from web layer.
 	OnCrash func(err error)
 )
@@ -296,6 +302,8 @@ func (p *Process) GetAPIPort() int {
 
 // GetConfig returns the configuration used by the Xray process.
 func (p *Process) GetConfig() *Config {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return p.config
 }
 
@@ -303,6 +311,8 @@ func (p *Process) GetConfig() *Config {
 // process has been reconciled with it through the gRPC API (hot apply), so
 // later change detection compares against what is actually running.
 func (p *Process) SetConfig(config *Config) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.config = config
 }
 
@@ -393,10 +403,9 @@ func (p *Process) GetMergedNodeTrees() map[string][]string {
 }
 
 // GetLocalActiveInbounds returns a copy of THIS panel's inbound tags that
-// carried traffic within the grace window. Only the local xray reports
-// per-inbound activity; remote-node snapshots don't carry it, so the service
-// layer keys these under the panel's own GUID and a node missing from the
-// active-inbounds map means "don't gate" (fall back to the email-only signal).
+// carried traffic within the grace window. The service layer keys these under
+// the panel's own GUID before merging them with remote-node active-inbound
+// subtrees.
 func (p *Process) GetLocalActiveInbounds() []string {
 	p.onlineMu.RLock()
 	defer p.onlineMu.RUnlock()
@@ -405,6 +414,43 @@ func (p *Process) GetLocalActiveInbounds() []string {
 	}
 	out := make([]string, len(p.localActiveInbounds))
 	copy(out, p.localActiveInbounds)
+	return out
+}
+
+// GetMergedActiveInboundTrees returns the union of every direct node's reported
+// active-inbound subtree, keyed by the panelGuid of the node that physically
+// hosts each inbound. Duplicate tags reported through multiple paths are
+// deduped per GUID.
+func (p *Process) GetMergedActiveInboundTrees() map[string][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+	if len(p.nodeActiveInboundTrees) == 0 {
+		return map[string][]string{}
+	}
+	out := make(map[string][]string)
+	seen := make(map[string]map[string]struct{})
+	for _, tree := range p.nodeActiveInboundTrees {
+		for guid, tags := range tree {
+			if guid == "" || len(tags) == 0 {
+				continue
+			}
+			dedup := seen[guid]
+			if dedup == nil {
+				dedup = make(map[string]struct{}, len(tags))
+				seen[guid] = dedup
+			}
+			for _, tag := range tags {
+				if tag == "" {
+					continue
+				}
+				if _, ok := dedup[tag]; ok {
+					continue
+				}
+				dedup[tag] = struct{}{}
+				out[guid] = append(out[guid], tag)
+			}
+		}
+	}
 	return out
 }
 
@@ -457,10 +503,29 @@ func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, n
 func (p *Process) SetNodeOnlineTree(nodeID int, tree map[string][]string) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
+	if len(tree) == 0 {
+		delete(p.nodeOnlineTrees, nodeID)
+		return
+	}
 	if p.nodeOnlineTrees == nil {
 		p.nodeOnlineTrees = map[int]map[string][]string{}
 	}
 	p.nodeOnlineTrees[nodeID] = tree
+}
+
+// SetNodeActiveInboundTree records the GUID-keyed active-inbound subtree one
+// direct remote node reported. Replaces any previous entry for that node.
+func (p *Process) SetNodeActiveInboundTree(nodeID int, tree map[string][]string) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	if len(tree) == 0 {
+		delete(p.nodeActiveInboundTrees, nodeID)
+		return
+	}
+	if p.nodeActiveInboundTrees == nil {
+		p.nodeActiveInboundTrees = map[int]map[string][]string{}
+	}
+	p.nodeActiveInboundTrees[nodeID] = tree
 }
 
 // ClearNodeOnlineClients drops a direct node's whole subtree contribution.
@@ -470,6 +535,7 @@ func (p *Process) ClearNodeOnlineClients(nodeID int) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
 	delete(p.nodeOnlineTrees, nodeID)
+	delete(p.nodeActiveInboundTrees, nodeID)
 }
 
 // GetUptime returns the uptime of the Xray process in seconds.
@@ -494,7 +560,9 @@ func (p *process) refreshAPIPort() {
 // refreshVersion updates the version string by running the Xray binary with -version.
 func (p *process) refreshVersion() {
 	version := "Unknown"
-	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-version")
+	ctx, cancel := context.WithTimeout(context.Background(), xrayVersionTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, GetBinaryPath(), "-version")
 	if data, err := cmd.Output(); err == nil {
 		if datas := bytes.Split(data, []byte(" ")); len(datas) > 1 {
 			version = string(datas[1])

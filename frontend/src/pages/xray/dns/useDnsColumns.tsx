@@ -4,6 +4,8 @@ import { Button, Dropdown, Input, InputNumber, Space } from 'antd';
 import { MoreOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
+import { onNumber } from '@/utils/onNumber';
+
 import { addrFor, domainsFor, expectedIPsFor } from './helpers';
 import type { DnsServerValue } from './DnsServerModal';
 
@@ -113,7 +115,7 @@ export function useFakednsColumns({
             aria-label={t('pages.xray.fakedns.poolSize')}
             min={1}
             size="small"
-            onChange={(v) => updateFakednsField(index, 'poolSize', Number(v) || 0)}
+            onChange={onNumber((v) => updateFakednsField(index, 'poolSize', v))}
           />
         ),
       },

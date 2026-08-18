@@ -9,8 +9,10 @@ import (
 	"net"
 	"net/url"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+var salamanderWarningSeen sync.Map
+
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
@@ -37,9 +41,8 @@ type SubService struct {
 	// other context — the sub info page, the panel's link/QR displays — renders
 	// the name-only template, like Remnawave.
 	subscriptionBody bool
-	// usageShown tracks, per client email, whether the info part of the template
-	// has already been emitted this request, so it appears on the first body
-	// link only. Per-request state; reset in PrepareForRequest.
+	// usageShown emits info once per subscription identity, including twins.
+	// PrepareForRequest resets this per-request state.
 	usageShown             map[string]bool
 	showIdentityOnAllLinks bool
 	inboundService         service.InboundService
@@ -272,6 +275,16 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 	}
 	s.primeLinkClients(inbound.Id, out, false)
 	return out
+}
+
+// RecordSubscriptionFetch records a successful subscription response for all clients sharing subId.
+func (s *SubService) RecordSubscriptionFetch(subId string) error {
+	if strings.TrimSpace(subId) == "" {
+		return nil
+	}
+	return database.GetDB().Model(&xray.ClientTraffic{}).
+		Where("email IN (SELECT email FROM clients WHERE sub_id = ?)", subId).
+		Update("last_sub_fetch", time.Now().UnixMilli()).Error
 }
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
@@ -809,7 +822,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	default:
 		params["security"] = "none"
 	}
-	if len(client.Flow) > 0 && vlessFlowAllowed(streamNetwork, security, settings) {
+	if len(client.Flow) > 0 && !inbound.DisableFlow && vlessFlowAllowed(streamNetwork, security, settings) {
 		params["flow"] = client.Flow
 	}
 
@@ -859,7 +872,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		applyShareTLSParams(stream, params)
 	case "reality":
 		applyShareRealityParams(stream, params, subKey(client))
-		if streamNetwork == "tcp" && len(client.Flow) > 0 {
+		if streamNetwork == "tcp" && len(client.Flow) > 0 && !inbound.DisableFlow {
 			params["flow"] = client.Flow
 		}
 	default:
@@ -1042,6 +1055,12 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 				}
 				settings, _ := mask["settings"].(map[string]any)
 				if pw, ok := settings["password"].(string); ok && pw != "" {
+					if extra := extraSalamanderKeys(settings); len(extra) > 0 {
+						warningKey := fmt.Sprintf("%d:%v", inbound.Id, extra)
+						if _, loaded := salamanderWarningSeen.LoadOrStore(warningKey, struct{}{}); !loaded {
+							logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
+						}
+					}
 					params["obfs"] = "salamander"
 					params["obfs-password"] = pw
 					break
@@ -2479,6 +2498,7 @@ type PageData struct {
 	SubClashUrl   string
 	SubTitle      string
 	SubSupportUrl string
+	SubAnnounce   string
 	Result        []string
 	Emails        []string
 }
@@ -2486,18 +2506,29 @@ type PageData struct {
 // ResolveRequest extracts scheme and host info from request/headers consistently.
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
+	trusted := s.forwardedHeadersTrusted(c)
+	if !trusted {
+		warnSuppressedForwardedHeaders(c)
+	}
+	forwarded := func(name string) string {
+		if !trusted {
+			return ""
+		}
+		return c.GetHeader(name)
+	}
+
 	// scheme
 	scheme = "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+	if c.Request.TLS != nil || strings.EqualFold(forwarded("X-Forwarded-Proto"), "https") {
 		scheme = "https"
 	}
 
 	// base host (no port)
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil && h != "" {
+	if h, err := getHostFromXFH(forwarded("X-Forwarded-Host")); err == nil && h != "" {
 		host = h
 	}
 	if host == "" {
-		host = c.GetHeader("X-Real-IP")
+		host = forwarded("X-Real-IP")
 	}
 	if host == "" {
 		var err error
@@ -2508,7 +2539,7 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 	}
 
 	// host:port for URLs
-	hostWithPort = c.GetHeader("X-Forwarded-Host")
+	hostWithPort = forwarded("X-Forwarded-Host")
 	if hostWithPort == "" {
 		hostWithPort = c.Request.Host
 	}
@@ -2517,9 +2548,9 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 	}
 
 	// header display host
-	hostHeader = c.GetHeader("X-Forwarded-Host")
+	hostHeader = forwarded("X-Forwarded-Host")
 	if hostHeader == "" {
-		hostHeader = c.GetHeader("X-Real-IP")
+		hostHeader = forwarded("X-Real-IP")
 	}
 	if hostHeader == "" {
 		hostHeader = host
@@ -2674,4 +2705,17 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
+}
+
+// extraSalamanderKeys lists salamander settings the hysteria2 URI cannot carry.
+// A server using them rejects every client built from the emitted link.
+func extraSalamanderKeys(settings map[string]any) []string {
+	var extra []string
+	for k := range settings {
+		if k != "password" {
+			extra = append(extra, k)
+		}
+	}
+	sort.Strings(extra)
+	return extra
 }

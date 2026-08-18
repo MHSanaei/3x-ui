@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
@@ -24,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -31,6 +34,8 @@ import (
 )
 
 var db *gorm.DB
+
+var backupSQLiteTimeout = 2 * time.Minute
 
 const (
 	DialectSQLite   = "sqlite"
@@ -52,8 +57,9 @@ func Dialect() string {
 }
 
 const (
-	defaultUsername = "admin"
-	defaultPassword = "admin"
+	defaultUsername       = "admin"
+	defaultPassword       = "admin"
+	sqliteBackupDirPrefix = ".x-ui-backup-"
 )
 
 func allModels() []any {
@@ -69,6 +75,7 @@ func allModels() []any {
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
+		&model.ClientHwid{},
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
@@ -80,7 +87,18 @@ func allModels() []any {
 	}
 }
 
+func migrateClientTrafficLastSubFetchColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&xray.ClientTraffic{}) || migrator.HasColumn(&xray.ClientTraffic{}, "last_sub_fetch") {
+		return nil
+	}
+	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
+}
+
 func initModels() error {
+	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
 	models := allModels()
 	for _, mdl := range models {
 		if IsPostgres() && postgresModelSettled(mdl) {
@@ -104,6 +122,9 @@ func initModels() error {
 	if err := normalizeApiTokenCreatedAtSeconds(); err != nil {
 		return err
 	}
+	if err := migrateApiTokenScopeAndExpiry(); err != nil {
+		return err
+	}
 	if err := dropLegacyForeignKeys(); err != nil {
 		return err
 	}
@@ -114,6 +135,12 @@ func initModels() error {
 		return err
 	}
 	if err := normalizeInboundSubSortIndex(); err != nil {
+		return err
+	}
+	if err := normalizeClientExternalLinkEnable(); err != nil {
+		return err
+	}
+	if err := normalizeClientExternalLinkTimestamps(); err != nil {
 		return err
 	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
@@ -132,6 +159,12 @@ func initModels() error {
 		return err
 	}
 	if err := migrateTgIDIndex(); err != nil {
+		return err
+	}
+	if err := migrateClientTrafficResetColumns(); err != nil {
+		return err
+	}
+	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
 	if IsPostgres() {
@@ -289,6 +322,31 @@ func rebuildInboundsWithoutInlineUniquePort() error {
 		}
 		return tx.Exec(`DROP TABLE inbounds_legacy_rebuild`).Error
 	})
+}
+
+// AutoMigrate adds the columns; an older SQLite ALTER TABLE leaves them NULL,
+// and a NULL traffic_reset fails every ClientRecord scan, not just the new query.
+func migrateClientTrafficResetColumns() error {
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset") {
+		if err := db.Exec("UPDATE clients SET traffic_reset = 'never' WHERE traffic_reset IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset_day") {
+		if err := db.Exec("UPDATE clients SET traffic_reset_day = 1 WHERE traffic_reset_day IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AutoMigrate adds the column; this only backfills the NULLs an older SQLite
+// ALTER TABLE leaves behind, so the reaper's predicate never compares to NULL.
+func migrateSyncOrphanColumns() error {
+	if !db.Migrator().HasColumn(&model.ClientRecord{}, "sync_orphaned_at") {
+		return nil
+	}
+	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
@@ -913,6 +971,40 @@ func normalizeInboundSubSortIndex() error {
 	return nil
 }
 
+// normalizeClientExternalLinkEnable keeps external-link rows written before the
+// enable column existed enabled; disabled rows from newer builds stay false.
+func normalizeClientExternalLinkEnable() error {
+	res := db.Exec("UPDATE client_external_links SET enable = ? WHERE enable IS NULL", true)
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link enable: %v", res.Error)
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		log.Printf("Normalized enable on %d client external link(s)", res.RowsAffected)
+	}
+	return nil
+}
+
+// normalizeClientExternalLinkTimestamps zeroes the NULLs an older build could
+// leave behind, so the sub-side expiry predicate never drops a legacy row.
+func normalizeClientExternalLinkTimestamps() error {
+	res := db.Exec("UPDATE client_external_links SET expiry_time = 0 WHERE expiry_time IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link expiry_time: %v", res.Error)
+		return res.Error
+	}
+	expiryRows := res.RowsAffected
+	res = db.Exec("UPDATE client_external_links SET last_fetch_at = 0 WHERE last_fetch_at IS NULL")
+	if res.Error != nil {
+		log.Printf("Error normalizing client external link last_fetch_at: %v", res.Error)
+		return res.Error
+	}
+	if expiryRows+res.RowsAffected > 0 {
+		log.Printf("Normalized timestamps on %d client external link(s)", expiryRows+res.RowsAffected)
+	}
+	return nil
+}
+
 // repairOverflowedTrafficCounters heals traffic counters that historic
 // compounding bugs pushed past int64: on SQLite an overflowing INTEGER is
 // silently promoted to REAL, after which the column no longer scans into the
@@ -1260,8 +1352,13 @@ func resetIpLimitsWithoutFail2ban() error {
 		return nil
 	}
 
-	if fail2banCanEnforce() {
+	state, probeErr := fail2banEnforcementState()
+	if state == fail2banEnforcing {
 		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	}
+	if state == fail2banUnknown {
+		log.Printf("ResetIpLimitNoFail2ban: fail2ban-client present but not runnable (%v); keeping configured IP limits, will retry next start", probeErr)
+		return nil
 	}
 
 	var inbounds []model.Inbound
@@ -1322,14 +1419,30 @@ func resetIpLimitsWithoutFail2ban() error {
 	})
 }
 
-func fail2banCanEnforce() bool {
+type fail2banState int
+
+const (
+	fail2banEnforcing fail2banState = iota
+	fail2banAbsent
+	fail2banUnknown
+)
+
+// fail2banEnforcementState separates "fail2ban is not installed" from "the probe
+// itself failed", so a transient failure never drives an irreversible cleanup.
+func fail2banEnforcementState() (fail2banState, error) {
 	if v, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); ok && v != "true" {
-		return false
+		return fail2banAbsent, nil
 	}
 	if runtime.GOOS == "windows" {
-		return false
+		return fail2banAbsent, nil
 	}
-	return exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run() == nil
+	if _, err := exec.LookPath("fail2ban-client"); err != nil {
+		return fail2banAbsent, nil
+	}
+	if err := exec.CommandContext(context.Background(), "fail2ban-client", "-h").Run(); err != nil {
+		return fail2banUnknown, err
+	}
+	return fail2banEnforcing, nil
 }
 
 func clearLegacyProxySettings() error {
@@ -1610,6 +1723,14 @@ func isLegacyPrivateOnlyFinalRules(v any) bool {
 	return true
 }
 
+func isUnrestrictedFreedomFinalRules(v any, present bool) bool {
+	if !present || v == nil {
+		return true
+	}
+	rules, ok := v.([]any)
+	return ok && len(rules) == 0
+}
+
 func hardenFreedomFinalRules() error {
 	var setting model.Setting
 	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
@@ -1662,7 +1783,10 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if !isAllowOnlyFinalRules(settings["finalRules"]) && !isLegacyPrivateOnlyFinalRules(settings["finalRules"]) {
+		finalRules, present := settings["finalRules"]
+		if !isUnrestrictedFreedomFinalRules(finalRules, present) &&
+			!isAllowOnlyFinalRules(finalRules) &&
+			!isLegacyPrivateOnlyFinalRules(finalRules) {
 			continue
 		}
 		settings["finalRules"] = []any{
@@ -1944,6 +2068,9 @@ func InitDB(dbPath string) error {
 		if err = os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
+		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
+			log.Printf("clean SQLite backup directories: %v", err)
+		}
 
 		sync := sqliteSynchronous()
 		journal := sqliteJournalMode()
@@ -2011,6 +2138,22 @@ func normalizeApiTokenCreatedAtSeconds() error {
 		UpdateColumn("created_at", gorm.Expr("created_at / ?", 1000)).Error
 }
 
+func migrateApiTokenScopeAndExpiry() error {
+	m := db.Migrator()
+	if !m.HasColumn(&model.ApiToken{}, "Scope") {
+		if err := m.AddColumn(&model.ApiToken{}, "Scope"); err != nil {
+			return err
+		}
+	}
+	if !m.HasColumn(&model.ApiToken{}, "ExpiresAt") {
+		if err := m.AddColumn(&model.ApiToken{}, "ExpiresAt"); err != nil {
+			return err
+		}
+	}
+	return db.Model(&model.ApiToken{}).Where("scope IS NULL OR TRIM(scope) = ''").
+		Updates(map[string]any{"scope": model.ApiScopeAdmin, "expires_at": 0}).Error
+}
+
 // openPostgresWithRetry retries the initial PostgreSQL connection with
 // backoff so a database that starts slower than the panel (or drops out
 // briefly) does not immediately kill the process and trip systemd's
@@ -2043,6 +2186,31 @@ func sqliteJournalMode() string {
 	default:
 		return "WAL"
 	}
+}
+
+func backupSQLiteStepPages() int {
+	if sqliteJournalMode() == "DELETE" {
+		return 128
+	}
+	return -1
+}
+
+func cleanupSQLiteBackupDirs(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), sqliteBackupDirPrefix) {
+			if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func sqliteSynchronous() string {
@@ -2099,11 +2267,85 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-func Checkpoint() error {
+func BackupSQLite(dstPath string) (err error) {
 	if IsPostgres() {
-		return nil
+		return errors.New("sqlite backup is unavailable for PostgreSQL")
 	}
-	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
+	if db == nil {
+		return errors.New("database is not initialized")
+	}
+	if _, err := os.Lstat(dstPath); err == nil {
+		return fmt.Errorf("sqlite backup destination already exists: %s", dstPath)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.Remove(dstPath)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), backupSQLiteTimeout)
+	defer cancel()
+
+	sourceDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	sourceConn, err := sourceDB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer sourceConn.Close()
+
+	destinationDB, err := sql.Open("sqlite3", dstPath)
+	if err != nil {
+		return err
+	}
+	defer destinationDB.Close()
+	destinationConn, err := destinationDB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer destinationConn.Close()
+
+	return sourceConn.Raw(func(sourceDriver any) error {
+		source, ok := sourceDriver.(*sqlite3.SQLiteConn)
+		if !ok {
+			return fmt.Errorf("unexpected SQLite source connection type %T", sourceDriver)
+		}
+		return destinationConn.Raw(func(destinationDriver any) error {
+			destination, ok := destinationDriver.(*sqlite3.SQLiteConn)
+			if !ok {
+				return fmt.Errorf("unexpected SQLite destination connection type %T", destinationDriver)
+			}
+			backup, err := destination.Backup("main", source, "main")
+			if err != nil {
+				return err
+			}
+			finished := false
+			defer func() {
+				if !finished {
+					_ = backup.Finish()
+				}
+			}()
+			for {
+				done, err := backup.Step(backupSQLiteStepPages())
+				if err != nil {
+					return err
+				}
+				if done {
+					finished = true
+					return backup.Finish()
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(10 * time.Millisecond):
+				}
+			}
+		})
+	})
 }
 
 func ValidateSQLiteDB(dbPath string) error {

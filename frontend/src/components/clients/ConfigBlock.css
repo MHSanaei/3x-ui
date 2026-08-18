@@ -16,6 +16,10 @@ body.light .config-block .ant-tag.ant-tag-filled.ant-tag-gold {
   color: #874d00;
 }
 
+body.light .config-block-text {
+  color: #595959;
+}
+
 .config-block .ant-collapse-extra {
   display: flex;
   align-items: center;

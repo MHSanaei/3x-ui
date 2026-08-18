@@ -1,7 +1,7 @@
 name: Bug report
 description: Report something that is broken or behaving unexpectedly
 title: "[Bug]: "
-labels: ["bug", "needs triage"]
+labels: ["bug"]
 
 body:
   - type: markdown
@@ -64,7 +64,10 @@ body:
     id: screenshots
     attributes:
       label: Screenshots
-      description: Drag images directly into this field. Redact any sensitive data.
+      description: |
+        Drag images directly into this field. Redact any sensitive data.
+        Images cannot be searched or machine-read — always paste the exact
+        error text or log lines as text in the fields above as well.
     validations:
       required: false
 

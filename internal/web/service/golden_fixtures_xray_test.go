@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"maps"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -256,9 +257,7 @@ func TestGoldenStreamFixturesBuildInXray(t *testing.T) {
 				case "stream":
 					stream = fixture
 				case "security":
-					for key, value := range fixture {
-						stream[key] = value
-					}
+					maps.Copy(stream, fixture)
 				case "sockopt":
 					stream["sockopt"] = fixture
 				case "finalmask":

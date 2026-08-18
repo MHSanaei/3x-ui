@@ -9,6 +9,7 @@ export class AllSetting {
   webBasePath = '/';
   sessionMaxAge = 360;
   trustedProxyCIDRs = '127.0.0.1/32,::1/128';
+  ipLimitAllowlist = '';
   panelOutbound = '';
   pageSize = 25;
   expireDiff = 0;
@@ -92,7 +93,7 @@ export class AllSetting {
   ldapDefaultTotalGB = 0;
   ldapDefaultExpiryDays = 0;
   ldapDefaultLimitIP = 0;
-  tgEnabledEvents = '';
+  tgEnabledEvents = 'login.attempt,cpu.high';
   smtpEnable = false;
   smtpHost = '';
   smtpPort = 587;
@@ -102,7 +103,7 @@ export class AllSetting {
   smtpFromName = '';
   smtpTo = '';
   smtpEncryptionType = 'starttls';
-  smtpEnabledEvents = '';
+  smtpEnabledEvents = 'login.attempt,cpu.high';
   smtpCpu = 80;
   smtpMemory = 80;
   outboundDownThreshold = 3;

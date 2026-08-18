@@ -17,6 +17,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
+import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { GoRegexInput } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -279,11 +280,11 @@ export default function SubscriptionFormatsTab({ allSetting, updateSetting }: Su
               <div className="format-settings">
                 <SettingListItem paddings="small" title={t('pages.settings.subFormats.concurrency')}>
                   <InputNumber value={muxObj.concurrency} min={-1} max={1024} style={{ width: '100%' }}
-                    onChange={(v) => setMuxField('concurrency', Number(v) || 0)} />
+                    onChange={onNumber((v) => setMuxField('concurrency', v))} />
                 </SettingListItem>
                 <SettingListItem paddings="small" title={t('pages.settings.subFormats.xudpConcurrency')}>
                   <InputNumber value={muxObj.xudpConcurrency} min={-1} max={1024} style={{ width: '100%' }}
-                    onChange={(v) => setMuxField('xudpConcurrency', Number(v) || 0)} />
+                    onChange={onNumber((v) => setMuxField('xudpConcurrency', v))} />
                 </SettingListItem>
                 <SettingListItem paddings="small" title={t('pages.settings.subFormats.xudpUdp443')}>
                   <Select

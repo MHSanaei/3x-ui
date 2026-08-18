@@ -37,6 +37,7 @@ const (
 	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
 	DefaultSubJsonUserAgentRegex  = ``
 	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
 	maxRegexLength                = 2048
 )
 
@@ -58,10 +59,12 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsCaKeyPem":            "",
 	"nodeMtlsClientCertPem":       "",
 	"nodeMtlsClientKeyPem":        "",
+	"nodeMtlsClientCertSha256":    "",
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
-	"trustedProxyCIDRs":           "127.0.0.1/32,::1/128",
+	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
+	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
@@ -391,11 +394,17 @@ func (s *SettingService) setInt(key string, value int) error {
 }
 
 func (s *SettingService) GetWarpLastUpdate() (int64, error) {
-	val, err := s.getString("warpLastUpdate")
-	if err != nil || val == "" {
+	setting, err := s.getSetting("warpLastUpdate")
+	if database.IsNotFound(err) {
+		return 0, nil
+	}
+	if err != nil {
 		return 0, err
 	}
-	return strconv.ParseInt(val, 10, 64)
+	if setting.Value == "" {
+		return 0, nil
+	}
+	return strconv.ParseInt(setting.Value, 10, 64)
 }
 
 func (s *SettingService) SetWarpLastUpdate(val int64) error {
@@ -643,6 +652,12 @@ func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
 }
 
+// GetIpLimitAllowlist returns the operator's trusted addresses and networks,
+// which the IP limit neither counts nor bans.
+func (s *SettingService) GetIpLimitAllowlist() (string, error) {
+	return s.getString("ipLimitAllowlist")
+}
+
 func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
 }
@@ -657,10 +672,13 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSecret() ([]byte, error) {
 	secret, err := s.getString("secret")
-	if secret == defaultValueMap["secret"] {
-		err := s.saveSetting("secret", secret)
-		if err != nil {
-			logger.Warning("save secret failed:", err)
+	if secret == "" || secret == defaultValueMap["secret"] {
+		if secret == "" {
+			secret = defaultValueMap["secret"]
+		}
+		saveErr := s.saveSetting("secret", secret)
+		if saveErr != nil {
+			logger.Warning("save secret failed:", saveErr)
 		}
 	}
 	return []byte(secret), err
@@ -1318,6 +1336,26 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
 	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
 	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
+	for name, value := range map[string]*string{
+		"Happ routing source":         &allSetting.SubRoutingRules,
+		"Clash/Mihomo routing source": &allSetting.SubClashRules,
+		"Incy routing source":         &allSetting.SubIncyRoutingRules,
+	} {
+		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateRemoteRoutingURLSetting(name string, value *string) error {
+	canonical, remote, err := common.ParseRemoteRoutingURL(*value)
+	if err != nil {
+		return common.NewError(name, err.Error())
+	}
+	if remote {
+		*value = canonical
+	}
 	return nil
 }
 
@@ -1454,4 +1492,34 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	}
 
 	return result, nil
+}
+
+var factoryDefaultSecretKeys = map[string]bool{
+	"tgBotToken":     true,
+	"twoFactorToken": true,
+	"ldapPassword":   true,
+	"smtpPassword":   true,
+}
+
+/*
+GetFactoryDefaults returns the shipped default value per setting, keyed by
+the AllSetting json field name. Unlike GetDefaultSettings (which reports
+current effective values), this is defaultValueMap projected through the
+AllSetting field set: only keys that exist as an AllSetting json tag are
+returned, minus the credential fields in factoryDefaultSecretKeys. Keys
+with no AllSetting field (secret, panelGuid, the node mTLS material,
+xrayTemplateConfig) are excluded structurally rather than by deny-list.
+*/
+func (s *SettingService) GetFactoryDefaults() map[string]string {
+	result := make(map[string]string)
+	for _, field := range reflect_util.GetFields(reflect.TypeFor[entity.AllSetting]()) {
+		key := field.Tag.Get("json")
+		if key == "" || factoryDefaultSecretKeys[key] {
+			continue
+		}
+		if value, ok := defaultValueMap[key]; ok {
+			result[key] = value
+		}
+	}
+	return result
 }

@@ -22,7 +22,7 @@ import {
 import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { Controller, FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
 
 import { HttpUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -30,10 +30,11 @@ import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
-import { TLS_FLOW_CONTROL } from '@/schemas/primitives';
+import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
 import type { ClientRecord, InboundOption, ExternalLink, ExternalLinkInput } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
+
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
@@ -49,12 +50,27 @@ interface ExternalLinkRow {
   kind: 'link' | 'subscription';
   value: string;
   remark: string;
+  enable: boolean;
+  expiryTime: number;
+  namePrefix: string;
+  lastFetchAt: number;
+  lastFetchError: string;
 }
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
   msg?: string;
   obj?: T;
+}
+
+interface ClientHwidInfo {
+  id: number;
+  firstSeen: number;
+  lastSeen: number;
+  userAgent: string;
+  deviceOs: string;
+  osVersion: string;
+  deviceModel: string;
 }
 
 type Mode = 'add' | 'edit';
@@ -98,6 +114,7 @@ interface ClientFormModalProps {
 
 type Values = ClientFormValues & {
   expiryDate: number;
+  limitHwid: number;
   externalLinks: ExternalLinkRow[];
   wgPrivateKey: string;
   wgPublicKey: string;
@@ -123,9 +140,14 @@ const EMPTY: Values = {
   delayedStart: false,
   delayedDays: 0,
   reset: 0,
+  resetDay: 0,
+  resetMax: 0,
+  trafficReset: 'never' as const,
+  trafficResetDay: 1,
   limitIp: 0,
   speedDown: 0,
   speedUp: 0,
+  limitHwid: 0,
   tgId: 0,
   group: '',
   comment: '',
@@ -145,6 +167,11 @@ function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[
     kind: l.kind === 'subscription' ? 'subscription' : 'link',
     value: l.value || '',
     remark: l.remark || '',
+    enable: l.enable !== false,
+    expiryTime: Number(l.expiryTime) || 0,
+    namePrefix: l.namePrefix || '',
+    lastFetchAt: Number(l.lastFetchAt) || 0,
+    lastFetchError: l.lastFetchError || '',
   }));
 }
 
@@ -193,8 +220,10 @@ export default function ClientFormModal({
   const secret = useWatch({ control: methods.control, name: 'secret' });
   const email = useWatch({ control: methods.control, name: 'email' });
   const uuid = useWatch({ control: methods.control, name: 'uuid' });
+  const trafficReset = useWatch({ control: methods.control, name: 'trafficReset' });
   const password = useWatch({ control: methods.control, name: 'password' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
+  const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
@@ -210,17 +239,31 @@ export default function ClientFormModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const [clientHwids, setClientHwids] = useState<ClientHwidInfo[]>([]);
+  const [hwidsLoading, setHwidsLoading] = useState(false);
+  const [hwidsClearing, setHwidsClearing] = useState(false);
+  const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const fail2ban = useFail2banStatusQuery();
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
   function addExternalLinkRow(kind: 'link' | 'subscription') {
-    appendExternalLink({ kind, value: '', remark: '' });
+    appendExternalLink({
+      kind,
+      value: '',
+      remark: '',
+      enable: true,
+      expiryTime: 0,
+      namePrefix: '',
+      lastFetchAt: 0,
+      lastFetchError: '',
+    });
   }
 
   useEffect(() => {
     if (!open) return;
     setIpsModalOpen(false);
+    setHwidsModalOpen(false);
 
     if (isEdit && client) {
       const et = Number(client.expiryTime) || 0;
@@ -238,9 +281,14 @@ export default function ClientFormModal({
         reverseTag: client.reverse?.tag || '',
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
+        resetDay: Number(client.resetDay) || 0,
+        resetMax: Number(client.resetMax) || 0,
+        trafficReset: (client.trafficReset as ClientFormValues['trafficReset']) || 'never',
+        trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
         speedDown: client.speedDown || 0,
         speedUp: client.speedUp || 0,
+        limitHwid: client.limitHwid || 0,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -265,6 +313,7 @@ export default function ClientFormModal({
       }
       methods.reset(seed);
       void loadIps();
+      void loadHwids();
     } else {
       const wgKeypair = Wireguard.generateKeypair();
       methods.reset({
@@ -470,6 +519,34 @@ export default function ClientFormModal({
     }
   }
 
+  async function loadHwids() {
+    if (!isEdit || !client?.email) return;
+    setHwidsLoading(true);
+    try {
+      const msg = await HttpUtil.post(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
+      if (!msg?.success || !Array.isArray(msg.obj)) { setClientHwids([]); return; }
+      setClientHwids(msg.obj.filter((x): x is ClientHwidInfo => !!x && typeof x === 'object' && typeof (x as ClientHwidInfo).id === 'number'));
+    } finally {
+      setHwidsLoading(false);
+    }
+  }
+
+  function openHwidsModal() {
+    setHwidsModalOpen(true);
+    if (clientHwids.length === 0) void loadHwids();
+  }
+
+  async function clearHwids() {
+    if (!isEdit || !client?.email) return;
+    setHwidsClearing(true);
+    try {
+      const msg = await HttpUtil.delete(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg;
+      if (msg?.success) setClientHwids([]);
+    } finally {
+      setHwidsClearing(false);
+    }
+  }
+
   function close() {
     onOpenChange(false);
   }
@@ -493,7 +570,7 @@ export default function ClientFormModal({
     const values = methods.getValues();
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
-      email: values.email,
+email: values.email,
       subId: values.subId,
       uuid: values.uuid,
       password: values.password,
@@ -505,9 +582,14 @@ export default function ClientFormModal({
       delayedStart: values.delayedStart,
       delayedDays: values.delayedDays,
       reset: values.reset,
+      resetDay: values.resetDay,
+      resetMax: values.resetMax,
+      trafficReset: values.trafficReset,
+      trafficResetDay: values.trafficResetDay,
       limitIp: values.limitIp,
       speedDown: values.speedDown,
       speedUp: values.speedUp,
+      limitHwid: values.limitHwid,
       tgId: values.tgId,
       group: values.group,
       comment: values.comment,
@@ -533,10 +615,15 @@ export default function ClientFormModal({
       security: showSecurity ? (values.security || 'auto') : 'auto',
       totalGB: totalBytes,
       expiryTime,
-      reset: Number(values.reset) || 0,
+reset: Number(values.reset) || 0,
+      resetDay: Number(values.resetDay) || 0,
+      resetMax: Number(values.resetMax) || 0,
+      trafficReset: values.trafficReset || 'never',
+      trafficResetDay: Number(values.trafficResetDay) || 1,
       limitIp: Number(values.limitIp) || 0,
       speedDown: Number(values.speedDown) || 0,
       speedUp: Number(values.speedUp) || 0,
+      limitHwid: Number(values.limitHwid) || 0,
       tgId: Number(values.tgId) || 0,
       group: values.group,
       comment: values.comment,
@@ -573,7 +660,14 @@ export default function ClientFormModal({
     }
 
     const externalLinks: ExternalLinkInput[] = values.externalLinks
-      .map((r) => ({ kind: r.kind, value: r.value.trim(), remark: (r.remark || '').trim() }))
+      .map((r) => ({
+        kind: r.kind,
+        value: r.value.trim(),
+        remark: (r.remark || '').trim(),
+        enable: r.enable !== false,
+        expiryTime: Number(r.expiryTime) || 0,
+        namePrefix: (r.namePrefix || '').trim(),
+      }))
       .filter((r) => r.value !== '');
 
     setSubmitting(true);
@@ -640,7 +734,7 @@ export default function ClientFormModal({
           </div>
         }
       >
-        <FormProvider {...methods}>
+<FormProvider {...methods}>
           <Form layout="vertical">
             <Tabs
               defaultActiveKey="basic"
@@ -694,6 +788,21 @@ export default function ClientFormModal({
                                 </Space.Compact>
                               </span>
                             </Tooltip>
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <Form.Item label={t('pages.clients.limitHwid')} tooltip={t('pages.clients.limitHwidDesc')}>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <InputNumber value={limitHwid} min={0} style={{ flex: 1 }}
+                                onChange={(v) => methods.setValue('limitHwid', Number(v) || 0)} />
+                              {isEdit && (
+                                <Tooltip title={t('pages.clients.hwidLog')}>
+                                  <Button aria-label={t('pages.clients.hwidLog')} icon={<EyeOutlined />} loading={hwidsLoading} onClick={openHwidsModal}>
+                                    {clientHwids.length > 0 ? clientHwids.length : ''}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </Space.Compact>
                           </Form.Item>
                         </Col>
                       </Row>
@@ -764,6 +873,50 @@ export default function ClientFormModal({
                             <InputNumber min={0} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetDay"
+                            label={t('pages.clients.renewOnDay')}
+                            tooltip={t('pages.clients.renewOnDayDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} max={31} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="resetMax"
+                            label={t('pages.clients.renewMax')}
+                            tooltip={t('pages.clients.renewMaxDesc')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                        <Col xs={12} md={6}>
+                          <FormField
+                            name="trafficReset"
+                            label={t('pages.inbounds.periodicTrafficResetTitle')}
+                          >
+                            <Select
+                              options={TRAFFIC_RESETS.map((r) => ({
+                                value: r,
+                                label: t(`pages.inbounds.periodicTrafficReset.${r}`),
+                              }))}
+                            />
+                          </FormField>
+                        </Col>
+                        {trafficReset === 'monthly' && (
+                          <Col xs={12} md={6}>
+                            <FormField
+                              name="trafficResetDay"
+                              label={t('pages.inbounds.periodicTrafficResetDay')}
+                              transform={{ output: (v) => Number(v) || 1 }}
+                            >
+                              <InputNumber min={1} max={31} style={{ width: '100%' }} />
+                            </FormField>
+                          </Col>
+                        )}
                       </Row>
 
                       <Row gutter={16}>
@@ -960,24 +1113,40 @@ export default function ClientFormModal({
                         {linkRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalLinks')}</Typography.Text>
                         ) : linkRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                                placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                  placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details two-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <FormField name={`externalLinks.${index}.remark`} noStyle>
-                              <Input
-                                style={{ width: 140 }}
-                                aria-label={t('remark')}
-                                placeholder={t('remark')}
-                              />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -989,17 +1158,50 @@ export default function ClientFormModal({
                         {subscriptionRows.length === 0 ? (
                           <Typography.Text type="secondary">{t('pages.clients.noExternalSubscriptions')}</Typography.Text>
                         ) : subscriptionRows.map(({ field, index }) => (
-                          <div key={field.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <FormField name={`externalLinks.${index}.value`} noStyle>
-                              <Input
-                                style={{ flex: 1 }}
-                                aria-label="https://provider.example/sub/…"
-                                placeholder="https://provider.example/sub/…"
+                          <div key={field.id} className="external-link-card">
+                            <div className="external-link-row">
+                              <div className="external-link-enable">
+                                <FormField name={`externalLinks.${index}.enable`} valueProp="checked" noStyle>
+                                  <Switch size="small" />
+                                </FormField>
+                                <span>{t('enable')}</span>
+                              </div>
+                              <FormField name={`externalLinks.${index}.value`} noStyle>
+                                <Input
+                                  aria-label="https://provider.example/sub/…"
+                                  placeholder="https://provider.example/sub/…"
+                                />
+                              </FormField>
+                              <Tooltip title={t('delete')}>
+                                <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
+                              </Tooltip>
+                            </div>
+                            <div className="external-link-details three-cols">
+                              <FormField name={`externalLinks.${index}.remark`} noStyle>
+                                <Input aria-label={t('remark')} placeholder={t('remark')} />
+                              </FormField>
+                              <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
+                                <Input aria-label={t('pages.clients.namePrefix')} placeholder={t('pages.clients.namePrefix')} />
+                              </FormField>
+                              <Controller
+                                control={methods.control}
+                                name={`externalLinks.${index}.expiryTime`}
+                                render={({ field: expiryField }) => (
+                                  <DateTimePicker
+                                    value={Number(expiryField.value) > 0 ? dayjs(Number(expiryField.value)) : null}
+                                    onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                    placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                  />
+                                )}
                               />
-                            </FormField>
-                            <Tooltip title={t('delete')}>
-                              <Button aria-label={t('delete')} danger icon={<DeleteOutlined />} onClick={() => removeExternalLink(index)} />
-                            </Tooltip>
+                            </div>
+                            <Typography.Text type={field.lastFetchError ? 'danger' : 'secondary'} className="external-link-fetch-status">
+                              {field.lastFetchError
+                                ? `${t('pages.clients.lastFetchError')}: ${field.lastFetchError}`
+                                : field.lastFetchAt > 0
+                                  ? `${t('pages.clients.lastFetchAt')}: ${dayjs(field.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
+                                  : t('pages.clients.neverFetched')}
+                            </Typography.Text>
                           </div>
                         ))}
                       </div>
@@ -1054,6 +1256,55 @@ export default function ClientFormModal({
           </div>
         ) : (
           <Tag>{t('tgbot.noIpRecord')}</Tag>
+        )}
+      </Modal>
+
+      <Modal
+        open={hwidsModalOpen}
+        title={`${t('pages.clients.hwidLog')}${client?.email ? ` — ${client.email}` : ''}`}
+        width={520}
+        zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+        onCancel={() => setHwidsModalOpen(false)}
+        footer={[
+          <Button key="refresh" icon={<ReloadOutlined />} loading={hwidsLoading} onClick={loadHwids}>
+            {t('refresh')}
+          </Button>,
+          <Button key="clear" danger loading={hwidsClearing} disabled={clientHwids.length === 0} onClick={clearHwids}>
+            {t('pages.clients.clearAll')}
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setHwidsModalOpen(false)}>
+            {t('close')}
+          </Button>,
+        ]}
+      >
+        {clientHwids.length > 0 ? (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {clientHwids.map((entry) => (
+              <div key={entry.id} style={{ borderBottom: '1px solid var(--ant-color-border-secondary)', padding: '8px 0' }}>
+                <Typography.Text strong>{entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}</Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
+                </Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {t('pages.clients.firstSeen')}: {entry.firstSeen ? dayjs(entry.firstSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                </Typography.Text>
+                <br />
+                <Typography.Text type="secondary">
+                  {t('pages.clients.lastSeen')}: {entry.lastSeen ? dayjs(entry.lastSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                </Typography.Text>
+                {entry.userAgent && (
+                  <>
+                    <br />
+                    <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>{entry.userAgent}</Typography.Text>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Tag>{t('pages.clients.noHwids')}</Tag>
         )}
       </Modal>
     </>

@@ -48,3 +48,34 @@ func TestNormalizeApiTokenCreatedAtSeconds(t *testing.T) {
 		}
 	}
 }
+
+func TestMigrateApiTokenScopeAndExpiryFromLegacyTable(t *testing.T) {
+	originalDB := db
+	t.Cleanup(func() { db = originalDB })
+	var err error
+	db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.Exec(`CREATE TABLE api_tokens (
+		id integer primary key autoincrement, name text, token text, enabled numeric, created_at integer
+	)`).Error; err != nil {
+		t.Fatalf("create legacy table: %v", err)
+	}
+	if err := db.Exec("INSERT INTO api_tokens(name, token, enabled, created_at) VALUES ('legacy','hash',1,1)").Error; err != nil {
+		t.Fatalf("seed legacy row: %v", err)
+	}
+	if err := migrateApiTokenScopeAndExpiry(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := migrateApiTokenScopeAndExpiry(); err != nil {
+		t.Fatalf("idempotent migrate: %v", err)
+	}
+	var row model.ApiToken
+	if err := db.First(&row).Error; err != nil {
+		t.Fatalf("read migrated row: %v", err)
+	}
+	if row.Scope != model.ApiScopeAdmin || row.ExpiresAt != 0 {
+		t.Fatalf("legacy defaults = %q/%d, want admin/0", row.Scope, row.ExpiresAt)
+	}
+}

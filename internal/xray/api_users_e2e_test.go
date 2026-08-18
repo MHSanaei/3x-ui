@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -138,9 +139,7 @@ func panelUser(email string, fields map[string]any) map[string]any {
 		"preSharedKey": "",
 		"keepAlive":    "",
 	}
-	for k, v := range fields {
-		user[k] = v
-	}
+	maps.Copy(user, fields)
 	return user
 }
 

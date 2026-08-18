@@ -36,6 +36,7 @@ type CheckClientIpJob struct {
 	bannedSeen    map[string]int64
 	xrayService   service.XrayService
 	tcShaper      *service.TcShaper
+	allowlist     ipLimitAllowlist
 }
 
 var job *CheckClientIpJob
@@ -69,7 +70,13 @@ func (j *CheckClientIpJob) Run() {
 		if hasLimit {
 			f2bInstalled = j.checkFail2BanInstalled()
 		}
-		j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
+		// Read only when the limit is actually applied: this runs every 10s and
+		// most panels carry no IP limit at all.
+		enforce := j.resolveEnforce(hasLimit, f2bInstalled)
+		if enforce {
+			j.allowlist = j.loadAllowlist()
+		}
+		j.processObserved(observed, enforce, true)
 	}
 
 	if j.tcShaper != nil {
@@ -146,6 +153,18 @@ func (j *CheckClientIpJob) hasSpeedLimit() bool {
 		Limit(1).
 		Scan(&id).Error
 	return err == nil && id > 0
+}
+
+// loadAllowlist reads the operator's trusted addresses once per scan; a bad
+// read leaves the list empty, which enforces the limit as before rather than
+// silently exempting everyone.
+func (j *CheckClientIpJob) loadAllowlist() ipLimitAllowlist {
+	raw, err := (&service.SettingService{}).GetIpLimitAllowlist()
+	if err != nil {
+		logger.Warning("[LimitIP] could not read the allowlist, enforcing without it:", err)
+		return ipLimitAllowlist{}
+	}
+	return parseIpLimitAllowlist(raw)
 }
 
 const ipScanChunk = 400
@@ -532,7 +551,11 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 	j.disAllowedIps = []string{}
 
 	// historical db-only ips are excluded from this count on purpose.
-	keptLive, bannedLive := selectIpsToBan(liveIps, limitIp)
+	limitedIps, allowedIps := j.allowlist.split(liveIps)
+	keptLive, bannedLive := selectIpsToBan(limitedIps, limitIp)
+	// Allowlisted addresses stay connected and out of the count: charging them
+	// against the limit would still cut the shared network the entry protects.
+	keptLive = append(keptLive, allowedIps...)
 	actionable := j.filterAdvancedSinceLastBan(clientEmail, bannedLive)
 	if len(actionable) > 0 {
 		shouldCleanLog = true

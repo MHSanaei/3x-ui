@@ -93,7 +93,7 @@ export default function GroupsPage() {
   useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients();
+  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients({ list: false });
 
   const groupsQuery = useQuery({
     queryKey: keys.clients.groups(),

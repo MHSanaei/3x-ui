@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import type { Decorator, Preview } from '@storybook/react-vite';
 import { ConfigProvider } from 'antd';
 import i18next from 'i18next';
@@ -17,11 +17,12 @@ if (!i18next.isInitialized) {
   });
 }
 
-const withTheme: Decorator = (Story, context) => {
+export const withTheme: Decorator = (Story, context) => {
   const dark = context.globals.theme === 'dark';
-  useEffect(() => {
-    document.body.setAttribute('class', dark ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  useLayoutEffect(() => {
+    document.body.classList.remove('dark', 'light');
+    document.body.classList.add(dark ? 'dark' : 'light');
+    document.documentElement.removeAttribute('data-theme');
   }, [dark]);
   return (
     <ConfigProvider theme={buildAntdThemeConfig(dark, false)}>

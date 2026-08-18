@@ -41,11 +41,13 @@ export interface RawInboundRow {
   enable?: boolean;
   expiryTime?: number;
   trafficReset?: string;
+  trafficResetDay?: number;
   lastTrafficResetTime?: number;
   nodeId?: number | null;
   shareAddrStrategy?: string;
   shareAddr?: string;
   subSortIndex?: number;
+  disableFlow?: boolean;
   clientStats?: unknown;
 }
 
@@ -60,6 +62,7 @@ export interface WireInboundPayload {
   enable: boolean;
   expiryTime: number;
   trafficReset: TrafficReset;
+  trafficResetDay: number;
   lastTrafficResetTime: number;
   listen: string;
   port: number;
@@ -73,6 +76,7 @@ export interface WireInboundPayload {
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
+  disableFlow: boolean;
 }
 
 function coerceJsonObject(value: unknown): Record<string, unknown> {
@@ -202,11 +206,13 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     down: row.down ?? 0,
     total: row.total ?? 0,
     trafficReset: coerceTrafficReset(row.trafficReset),
+    trafficResetDay: Math.min(31, Math.max(1, row.trafficResetDay ?? 1)),
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
   } as InboundFormValues;
@@ -344,6 +350,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     enable: values.enable,
     expiryTime: values.expiryTime,
     trafficReset: values.trafficReset,
+    trafficResetDay: values.trafficResetDay,
     lastTrafficResetTime: values.lastTrafficResetTime,
     listen: values.listen,
     port: values.port,
@@ -357,6 +364,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
     subSortIndex: values.subSortIndex,
+    disableFlow: values.disableFlow,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;

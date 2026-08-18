@@ -1,5 +1,10 @@
 import { NumberFormatter } from '@/utils';
 
+export const USAGE_WARN_PERCENT = 80;
+export const USAGE_CRIT_PERCENT = 90;
+export const USAGE_WARN_COLOR = '#faad14';
+export const USAGE_CRIT_COLOR = '#ff4d4f';
+
 export class CurTotal {
   current: number;
   total: number;
@@ -16,9 +21,9 @@ export class CurTotal {
 
   get color(): string {
     const p = this.percent;
-    if (p < 80) return '#1677ff';
-    if (p < 90) return '#faad14';
-    return '#ff4d4f';
+    if (p < USAGE_WARN_PERCENT) return '#1677ff';
+    if (p < USAGE_CRIT_PERCENT) return USAGE_WARN_COLOR;
+    return USAGE_CRIT_COLOR;
   }
 }
 

@@ -24,6 +24,24 @@ func TestRewriteFreedomFinalRulesPrivateEgress(t *testing.T) {
 			wantRules:   hardened,
 		},
 		{
+			name:        "missing finalRules is hardened",
+			raw:         `{"outbounds":[{"protocol":"freedom","settings":{"domainStrategy":"AsIs"},"tag":"direct"}]}`,
+			wantChanged: true,
+			wantRules:   hardened,
+		},
+		{
+			name:        "null finalRules is hardened",
+			raw:         `{"outbounds":[{"protocol":"freedom","settings":{"domainStrategy":"AsIs","finalRules":null},"tag":"direct"}]}`,
+			wantChanged: true,
+			wantRules:   hardened,
+		},
+		{
+			name:        "empty finalRules is hardened",
+			raw:         `{"outbounds":[{"protocol":"freedom","settings":{"domainStrategy":"AsIs","finalRules":[]},"tag":"direct"}]}`,
+			wantChanged: true,
+			wantRules:   hardened,
+		},
+		{
 			name:        "legacy private-only allow is hardened",
 			raw:         `{"outbounds":[{"protocol":"freedom","settings":{"finalRules":[{"action":"allow","ip":["geoip:private"]}]},"tag":"direct"}]}`,
 			wantChanged: true,
@@ -73,6 +91,40 @@ func TestRewriteFreedomFinalRulesPrivateEgress(t *testing.T) {
 				t.Fatalf("finalRules = %s, want %s", gotRules, wantRules)
 			}
 		})
+	}
+}
+
+func TestRewriteFreedomFinalRulesPreservesSplitRouting(t *testing.T) {
+	const raw = `{
+		"outbounds":[{"protocol":"freedom","settings":{"domainStrategy":"AsIs"},"tag":"direct"}],
+		"routing":{"domainStrategy":"AsIs","rules":[
+			{"type":"field","domain":["regexp:.*\\.ru$"],"outboundTag":"direct"},
+			{"type":"field","network":"tcp,udp","outboundTag":"proxy"}
+		]}
+	}`
+	updated, changed, err := rewriteFreedomFinalRulesPrivateEgress(raw)
+	if err != nil {
+		t.Fatalf("rewrite: %v", err)
+	}
+	if !changed {
+		t.Fatal("missing finalRules must be hardened")
+	}
+	var before, after map[string]any
+	if err := json.Unmarshal([]byte(raw), &before); err != nil {
+		t.Fatalf("decode before: %v", err)
+	}
+	if err := json.Unmarshal([]byte(updated), &after); err != nil {
+		t.Fatalf("decode after: %v", err)
+	}
+	beforeRouting, _ := json.Marshal(before["routing"])
+	afterRouting, _ := json.Marshal(after["routing"])
+	if string(afterRouting) != string(beforeRouting) {
+		t.Fatalf("split routing changed:\n got %s\nwant %s", afterRouting, beforeRouting)
+	}
+	outbound := after["outbounds"].([]any)[0].(map[string]any)
+	settings := outbound["settings"].(map[string]any)
+	if settings["domainStrategy"] != "AsIs" {
+		t.Fatalf("freedom domainStrategy=%v want AsIs", settings["domainStrategy"])
 	}
 }
 

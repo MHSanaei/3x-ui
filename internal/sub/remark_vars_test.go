@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
@@ -99,6 +100,41 @@ func TestExpandRemarkVars_EdgeCases(t *testing.T) {
 	delayed := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, ExpiryTime: -864_000_000}, nil)
 	if got := expandRemarkVars("{{DAYS_LEFT}}", delayed); got != "10" {
 		t.Errorf("delayed-start DAYS_LEFT = %q, want 10", got)
+	}
+}
+
+// defaultRemarkTemplate mirrors the panel's shipped remark template, the one an
+// inbound with no remark used to render with a leading hyphen.
+const defaultRemarkTemplate = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+
+func TestExpandRemarkVars_DropsHyphenBetweenEmptyTokens(t *testing.T) {
+	cases := []struct {
+		name    string
+		tmpl    string
+		inbound string
+		email   string
+		want    string
+	}{
+		{name: "both values", tmpl: "{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "Germany-john"},
+		{name: "empty inbound", tmpl: "{{INBOUND}}-{{EMAIL}}", email: "john", want: "john"},
+		{name: "empty email", tmpl: "{{INBOUND}} - {{EMAIL}}", inbound: "Germany", want: "Germany"},
+		{name: "literal leading hyphen", tmpl: "-{{EMAIL}}", email: "john", want: "-john"},
+		{name: "literal leading hyphen before an empty token", tmpl: "-{{INBOUND}}-{{EMAIL}}", email: "john", want: "-john"},
+		{name: "empty var between two values keeps one separator", tmpl: "{{EMAIL}}-{{INBOUND}}-{{EMAIL}}", email: "john", want: "john-john"},
+		{name: "emoji decoration before an empty token", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", email: "john", want: "🌐john"},
+		{name: "literal word before an empty token", tmpl: "Sub {{INBOUND}}-{{EMAIL}}", email: "john", want: "Sub john"},
+		{name: "decoration kept when both tokens resolve", tmpl: "🌐{{INBOUND}}-{{EMAIL}}", inbound: "Germany", email: "john", want: "🌐Germany-john"},
+		{name: "default template, empty inbound", tmpl: defaultRemarkTemplate, email: "john", want: "john"},
+		{name: "default template, empty email", tmpl: defaultRemarkTemplate, inbound: "Germany", want: "Germany"},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := expandCtx(model.Client{Email: tt.email}, xray.ClientTraffic{Enable: true}, &model.Inbound{Remark: tt.inbound})
+			if got := expandRemarkVars(tt.tmpl, ctx); got != tt.want {
+				t.Errorf("expandRemarkVars(%q) = %q, want %q", tt.tmpl, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -445,18 +481,33 @@ func TestStatusEmoji(t *testing.T) {
 }
 
 func TestUsagePercentage(t *testing.T) {
-	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb}); got != "50.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 25 * gb, Down: 25 * gb}); got != "50.0％" {
 		t.Errorf("usagePercentage 50%% = %q", got)
 	}
 	if got := usagePercentage(xray.ClientTraffic{Total: 0}); got != "" {
 		t.Errorf("usagePercentage unlimited = %q, want empty", got)
 	}
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0%" {
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 10 * gb}); got != "100.0％" {
 		t.Errorf("usagePercentage 100%% = %q", got)
 	}
 	// Over-quota usage clamps to 100%, consistent with TRAFFIC_LEFT.
-	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0%" {
-		t.Errorf("usagePercentage over-quota = %q, want 100.0%%", got)
+	if got := usagePercentage(xray.ClientTraffic{Total: 10 * gb, Up: 25 * gb}); got != "100.0％" {
+		t.Errorf("usagePercentage over-quota = %q, want 100.0％", got)
+	}
+}
+
+func TestUsagePercentageSurvivesFragmentEncoding(t *testing.T) {
+	remark := "node " + usagePercentage(xray.ClientTraffic{Total: 100 * gb, Up: 50 * gb})
+	link := buildLinkWithParams("vless://id@example.test:443", nil, remark)
+	if strings.Contains(link, "%25") {
+		t.Fatalf("encoded remark contains %%25, Happ drops such remarks: %s", link)
+	}
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if u.Fragment != remark {
+		t.Fatalf("fragment = %q, want %q", u.Fragment, remark)
 	}
 }
 
@@ -511,7 +562,7 @@ func TestExpandNewTokensInTemplate(t *testing.T) {
 
 	cases := []struct{ tmpl, want string }{
 		{"{{STATUS_EMOJI}}", "✅"},
-		{"{{USAGE_PERCENTAGE}}", "50.0%"},
+		{"{{USAGE_PERCENTAGE}}", "50.0％"},
 		{"{{PROTOCOL}}", "VLESS"},
 		{"{{TRANSPORT}}", "ws"},
 		{"{{SECURITY}}", "REALITY"},
@@ -584,7 +635,7 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 		{"{DATA_USAGE}", "50.00GB"},
 		{"{DATA_LIMIT}", "100.00GB"},
 		{"{STATUS_EMOJI}", "✅"},
-		{"{USAGE_PERCENTAGE}", "50.0%"},
+		{"{USAGE_PERCENTAGE}", "50.0％"},
 		{"{PROTOCOL}", "VLESS"},
 		{"{TRANSPORT}", "ws"},
 		{"{SECURITY}", "TLS"},
@@ -614,7 +665,6 @@ func TestUsageOnFirstLinkOnly_SingleBracket(t *testing.T) {
 	}
 	client := model.Client{Email: "alice@x"}
 	first := s.genTemplatedRemark(inbound, client, "", "ws")
-	s.usageShown["alice@x"] = true
 	second := s.genTemplatedRemark(inbound, client, "", "ws")
 	if !strings.Contains(first, "📊") {
 		t.Fatalf("first link should carry usage: %q", first)
@@ -640,7 +690,6 @@ func TestEmailOnFirstLinkOnly(t *testing.T) {
 	}
 	client := model.Client{Email: "alice@x"}
 	first := s.genTemplatedRemark(inbound, client, "", "ws")
-	s.usageShown["alice@x"] = true
 	second := s.genTemplatedRemark(inbound, client, "", "ws")
 	if !strings.Contains(first, "alice@x") {
 		t.Fatalf("first link should carry email: %q", first)
@@ -687,5 +736,30 @@ func TestIdentityOnAllLinks(t *testing.T) {
 				t.Fatalf("second link = %q, want %q", got, tt.wantSecond)
 			}
 		})
+	}
+}
+
+func TestSharedSubIDRemark_FullInfoOncePerSubscription(t *testing.T) {
+	const tmpl = "{{INBOUND}}-{{EMAIL}}"
+	s := &SubService{
+		remarkTemplate:   tmpl,
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	first := model.Client{Email: "first@example", SubID: "shared-sub"}
+	second := model.Client{Email: "second@example", SubID: "shared-sub"}
+	if got := s.genTemplatedRemark(&model.Inbound{Remark: "DE"}, first, "", "tcp"); got != "DE-first@example" {
+		t.Fatalf("first credential remark = %q", got)
+	}
+	if got := s.genTemplatedRemark(&model.Inbound{Remark: "FI"}, second, "", "tcp"); got != "FI" {
+		t.Fatalf("second credential with shared subId remark = %q, want identity suppressed", got)
+	}
+}
+
+func TestGenTemplatedRemarkPreservesConfiguredOuterWhitespace(t *testing.T) {
+	s := &SubService{remarkTemplate: "  {{INBOUND}}  ", subscriptionBody: true, usageShown: map[string]bool{}}
+	got := s.genTemplatedRemark(&model.Inbound{Remark: "DE"}, model.Client{Email: "user@example.test"}, "", "tcp")
+	if got != "  DE  " {
+		t.Fatalf("remark = %q, want configured outer whitespace preserved", got)
 	}
 }

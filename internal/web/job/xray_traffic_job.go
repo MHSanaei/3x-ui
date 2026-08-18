@@ -29,6 +29,31 @@ type XrayTrafficJob struct {
 // refetch for the rest.
 const clientStatsSnapshotMaxClients = 5000
 
+// splitMovedClientTraffics keeps the rows that actually moved bytes this poll,
+// alongside the active-email list and set derived from the same pass.
+//
+// Xray reports a row for every known email whether or not it transferred
+// anything, so on a large panel nearly every delta is zero. The database writes
+// and the external-API inform consume the full slice before this point; the
+// WebSocket frame only feeds the dashboard's live speed column, where an absent
+// row and a zero row render identically. Broadcasting just the movers keeps that
+// frame from growing with the client count — at 5k clients it was carrying about
+// a megabyte of zeros every five seconds.
+func splitMovedClientTraffics(clientTraffics []*xray.ClientTraffic) ([]*xray.ClientTraffic, []string, map[string]bool) {
+	moved := make([]*xray.ClientTraffic, 0, len(clientTraffics))
+	emails := make([]string, 0, len(clientTraffics))
+	active := make(map[string]bool, len(clientTraffics))
+	for _, ct := range clientTraffics {
+		if ct == nil || ct.Up+ct.Down <= 0 {
+			continue
+		}
+		moved = append(moved, ct)
+		emails = append(emails, ct.Email)
+		active[ct.Email] = true
+	}
+	return moved, emails, active
+}
+
 const externalInformTimeout = 3 * time.Second
 
 var externalInformClient = &fasthttp.Client{
@@ -88,14 +113,7 @@ func (j *XrayTrafficJob) Run() {
 	// than the shared last_online column, which remote-node syncs also bump
 	// and would otherwise make a client active only on a remote node appear
 	// online on local inbounds.
-	activeEmails := make([]string, 0, len(clientTraffics))
-	deltaActive := make(map[string]bool, len(clientTraffics))
-	for _, ct := range clientTraffics {
-		if ct != nil && ct.Up+ct.Down > 0 {
-			activeEmails = append(activeEmails, ct.Email)
-			deltaActive[ct.Email] = true
-		}
-	}
+	movedTraffics, activeEmails, deltaActive := splitMovedClientTraffics(clientTraffics)
 	// When the core supports the online-stats API, union in connection-based
 	// onlines. Neither signal alone covers everything: an idle-but-connected
 	// client moves no bytes between polls (the delta heuristic's blind spot),
@@ -179,7 +197,7 @@ func (j *XrayTrafficJob) Run() {
 	}
 	websocket.BroadcastTraffic(map[string]any{
 		"traffics":       traffics,
-		"clientTraffics": clientTraffics,
+		"clientTraffics": movedTraffics,
 		"onlineClients":  onlineClients,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),

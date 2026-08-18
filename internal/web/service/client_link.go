@@ -65,6 +65,16 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	}
 	row.Comment = incoming.Comment
 	row.Reset = incoming.Reset
+	row.ResetDay = incoming.ResetDay
+	row.ResetMax = incoming.ResetMax
+	// Guarded like Group and AdTag: a node snapshot rebuilt from settings that
+	// predate the cycle would otherwise silently erase it.
+	if incoming.TrafficReset != "" {
+		row.TrafficReset = incoming.TrafficReset
+	}
+	if incoming.TrafficResetDay > 0 {
+		row.TrafficResetDay = incoming.TrafficResetDay
+	}
 	if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 		row.CreatedAt = incoming.CreatedAt
 	}
@@ -117,6 +127,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 
 		incoming := clients[i].ToRecord()
+		// ToRecord copies the raw email; store the trimmed key this function
+		// looks up by, or a padded email is inserted and never found again.
+		incoming.Email = email
 		row, ok := existing[email]
 		if !ok {
 			if _, dup := pending[email]; !dup {

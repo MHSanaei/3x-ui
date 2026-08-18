@@ -245,10 +245,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	controller.SetDistFS(distFS)
 
 	g := engine.Group(basePath)
+	g.GET("/manifest.webmanifest", controller.ServePWAManifest)
+	g.GET("/pwa-register.js", controller.ServePWARegister)
+	g.GET("/service-worker.js", controller.ServePWAServiceWorker)
+	g.GET("/icons/:name", controller.ServePWAIcon)
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	g.GET("/panel/api/openapi.json", controller.ServeOpenAPISpec)
 	s.api = controller.NewAPIController(g)
 
 	// Initialize WebSocket hub
@@ -293,6 +296,8 @@ const (
 	cadenceNodeHeartbeat = "@every 5s"
 	cadenceNodeTraffic   = "@every 5s"
 	cadenceOutboundSub   = "@every 5m"
+	cadenceReapOrphans   = "@every 5m"
+	cadenceRemoteRouting = "@every 5m"
 	cadenceXrayLogPrune  = "@every 10m"
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
@@ -303,7 +308,7 @@ const (
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
-func (s *Server) startTask(restartXray bool) {
+func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	if restartXray {
 		err := s.xrayService.RestartXray(true)
 		if err != nil {
@@ -342,6 +347,14 @@ func (s *Server) startTask(restartXray bool) {
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	_, _ = s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
+	_, _ = s.cron.AddJob(cadenceReapOrphans, job.NewReapSyncOrphansJob())
+
+	// Warm permanent routing URLs immediately and refresh them outside the
+	// latency-sensitive subscription request path.
+	remoteRoutingJob := job.NewRemoteRoutingJob()
+	_, _ = s.cron.AddJob(cadenceRemoteRouting, remoteRoutingJob)
+	common.GoRecover("remote-routing-warm", remoteRoutingJob.Run)
+
 	// check client ips from log file every day
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
 	_, _ = s.cron.AddJob(cadenceXrayLogPrune, job.NewPruneXrayLogsJob())
@@ -349,13 +362,13 @@ func (s *Server) startTask(restartXray bool) {
 
 	// Inbound traffic reset jobs
 	// Run every hour
-	_, _ = s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
+	_, _ = s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly", loc))
 	// Run once a day, midnight
-	_, _ = s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
+	_, _ = s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily", loc))
 	// Run once a week, midnight between Sat/Sun
-	_, _ = s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
-	// Run once a month, midnight, first of month
-	_, _ = s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+	_, _ = s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly", loc))
+	// Check monthly reset days at midnight
+	_, _ = s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("monthly", loc))
 
 	// LDAP sync scheduling
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {
@@ -594,9 +607,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	go func() {
-		_ = s.httpServer.Serve(listener)
-	}()
+	go network.ServeHTTP(s.httpServer, listener, "Web server")
 
 	// Create event bus before startTask so jobs can use it
 	s.bus = eventbus.New(eventbus.DefaultBufferSize)
@@ -669,7 +680,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
-	s.startTask(restartXray)
+	s.startTask(restartXray, loc)
 
 	if startTgBot {
 		isTgbotenabled, err := s.settingService.GetTgbotEnabled()

@@ -30,6 +30,7 @@ export type DBInboundInit = Partial<{
     enable: boolean;
     expiryTime: number;
     trafficReset: string;
+    trafficResetDay: number;
     lastTrafficResetTime: number;
     listen: string;
     port: number;
@@ -43,6 +44,7 @@ export type DBInboundInit = Partial<{
     shareAddrStrategy: string;
     shareAddr: string;
     subSortIndex: number;
+    disableFlow: boolean;
     originNodeGuid: string;
     fallbackParent: FallbackParentRef | null;
 }>;
@@ -76,6 +78,7 @@ export class DBInbound {
     enable: boolean;
     expiryTime: number;
     trafficReset: string;
+    trafficResetDay: number;
     lastTrafficResetTime: number;
 
     listen: string;
@@ -90,6 +93,7 @@ export class DBInbound {
     shareAddrStrategy: string;
     shareAddr: string;
     subSortIndex: number;
+    disableFlow: boolean;
     originNodeGuid: string;
     fallbackParent: FallbackParentRef | null;
 
@@ -105,6 +109,7 @@ export class DBInbound {
         this.enable = true;
         this.expiryTime = 0;
         this.trafficReset = "never";
+        this.trafficResetDay = 1;
         this.lastTrafficResetTime = 0;
 
         this.listen = "";
@@ -119,6 +124,7 @@ export class DBInbound {
         this.shareAddrStrategy = "node";
         this.shareAddr = "";
         this.subSortIndex = 1;
+        this.disableFlow = false;
         this.originNodeGuid = "";
         this.fallbackParent = null;
         if (data == null) {

@@ -1,11 +1,17 @@
 import { useState } from 'react';
+import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Descriptions, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import { FormField } from '@/components/form/rhf';
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
-import { validateRealityTarget } from '@/lib/xray/stream-wire-normalize';
+import {
+  validateRealityClientVer,
+  validateRealityMaxClientVer,
+  validateRealityTarget,
+} from '@/lib/xray/stream-wire-normalize';
 import type { RealityScanResult } from '@/generated/types';
 import RealityTargetScannerModal from './RealityTargetScannerModal';
 
@@ -13,9 +19,9 @@ interface RealityFormProps {
   saving: boolean;
   scanning: boolean;
   scanResult: RealityScanResult | null;
-  scanRealityTarget: () => void;
+  scanRealityTarget: (allowPrivate?: boolean) => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
-  applyRealityScanResult: (result: RealityScanResult) => void;
+  applyRealityScanResult: (result: RealityScanResult, replaceServerNames?: boolean) => void;
   randomizeShortIds: () => void;
   randomizeSpiderX: () => void;
   genRealityKeypair: () => void;
@@ -39,7 +45,25 @@ export default function RealityForm({
   clearMldsa65,
 }: RealityFormProps) {
   const { t } = useTranslation();
+  const { getFieldState, trigger } = useFormContext();
   const [scannerOpen, setScannerOpen] = useState(false);
+  /*
+   * An untrusted certificate (self-signed fronting service on the LAN) is still
+   * worth reading, so subject/issuer stay visible and only the verdict is added.
+   */
+  const certSummary = (r: RealityScanResult) => {
+    const who = r.certSubject && r.certIssuer
+      ? `${r.certSubject} (${r.certIssuer})`
+      : r.certSubject || r.certIssuer;
+    if (!who) return '—';
+    return r.certValid ? who : `${who} — ${t('pages.inbounds.form.scanCertInvalid')}`;
+  };
+  const maxClientVerPath = 'streamSettings.realitySettings.maxClientVer';
+  const revalidateMaxClientVer = () => {
+    if (getFieldState(maxClientVerPath).error) {
+      void trigger(maxClientVerPath);
+    }
+  };
   return (
     <>
       <FormField
@@ -77,7 +101,7 @@ export default function RealityForm({
           >
             <Input style={{ flex: 1 }} placeholder="example.com:443" />
           </FormField>
-          <Button icon={<RadarChartOutlined />} loading={scanning} onClick={scanRealityTarget}>
+          <Button icon={<RadarChartOutlined />} loading={scanning} onClick={() => scanRealityTarget()}>
             {t('pages.inbounds.form.scan')}
           </Button>
           <Button icon={<SearchOutlined />} onClick={() => setScannerOpen(true)}>
@@ -88,30 +112,39 @@ export default function RealityForm({
       {scanResult && (
         <Form.Item label=" " colon={false}>
           <Alert
-            type={scanResult.feasible ? 'success' : 'warning'}
+            type={scanResult.feasible && !scanResult.privateTarget ? 'success' : 'warning'}
             showIcon
             title={
               scanResult.feasible
                 ? t('pages.inbounds.form.scanFeasible')
                 : scanResult.reason || t('pages.inbounds.form.scanNotFeasible')
             }
-            description={
-              <Descriptions size="small" column={1}>
-                <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
-                <Descriptions.Item label="ALPN">{scanResult.alpn || '—'}</Descriptions.Item>
-                <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
-                  {scanResult.curveID || '—'}
-                </Descriptions.Item>
-                <Descriptions.Item label={t('pages.inbounds.form.scanCert')}>
-                  {scanResult.certValid
-                    ? `${scanResult.certSubject} (${scanResult.certIssuer})`
-                    : t('pages.inbounds.form.scanCertInvalid')}
-                </Descriptions.Item>
-                <Descriptions.Item label={t('pages.inbounds.form.scanLatency')}>
-                  {scanResult.latencyMs > 0 ? `${scanResult.latencyMs} ms` : '—'}
-                </Descriptions.Item>
-              </Descriptions>
-            }
+            description={(
+              <>
+                {scanResult.privateTarget && (
+                  <div style={{ marginBottom: 8 }}>{t('pages.inbounds.form.scanPrivateNote')}</div>
+                )}
+                <Descriptions size="small" column={1}>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanSniUsed')}>
+                    {scanResult.host || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="ALPN">{scanResult.alpn || '—'}</Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
+                    {scanResult.curveID || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanCert')}>
+                    {certSummary(scanResult)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanCertExpiry')}>
+                    {scanResult.notAfter ? dayjs(scanResult.notAfter).format('YYYY-MM-DD HH:mm') : '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanLatency')}>
+                    {scanResult.latencyMs > 0 ? `${scanResult.latencyMs} ms` : '—'}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
           />
         </Form.Item>
       )}
@@ -128,6 +161,13 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'minClientVer']}
         label={t('pages.inbounds.form.minClientVer')}
         tooltip={t('pages.inbounds.form.minClientVerHint')}
+        onAfterChange={revalidateMaxClientVer}
+        rules={{
+          validate: (value) => {
+            const errKey = validateRealityClientVer(typeof value === 'string' ? value : '');
+            return errKey ? errKey : true;
+          },
+        }}
       >
         <Input placeholder="26.3.27" />
       </FormField>
@@ -135,6 +175,14 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'maxClientVer']}
         label={t('pages.inbounds.form.maxClientVer')}
         tooltip={t('pages.inbounds.form.maxClientVerHint')}
+        rules={{
+          validate: (value, formValues) => {
+            const max = typeof value === 'string' ? value : '';
+            const min = formValues?.streamSettings?.realitySettings?.minClientVer;
+            const errKey = validateRealityMaxClientVer(max, typeof min === 'string' ? min : '');
+            return errKey ? errKey : true;
+          },
+        }}
       >
         <Input placeholder="x.y.z" />
       </FormField>
@@ -255,7 +303,7 @@ export default function RealityForm({
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
-        onPick={applyRealityScanResult}
+        onPick={(r) => applyRealityScanResult(r, true)}
       />
     </>
   );

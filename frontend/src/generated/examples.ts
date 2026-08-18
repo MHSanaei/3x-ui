@@ -5,6 +5,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "expireDiff": 0,
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
+    "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
     "ldapBaseDN": "",
@@ -118,6 +119,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,
+    "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
     "ldapBaseDN": "",
@@ -222,15 +224,19 @@ export const EXAMPLES: Record<string, unknown> = {
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
+    "expiresAt": 0,
     "id": 0,
     "name": "",
+    "scope": "",
     "token": ""
   },
   "ApiTokenView": {
     "createdAt": 1736000000,
     "enabled": true,
+    "expiresAt": 0,
     "id": 2,
     "name": "central-panel-a",
+    "scope": "admin",
     "token": "new-token-string"
   },
   "Client": {
@@ -254,6 +260,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "privateKey": "",
     "publicKey": "",
     "reset": 0,
+    "resetDay": 0,
+    "resetMax": 0,
     "reverse": null,
     "secret": "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d",
     "security": "",
@@ -262,6 +270,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficReset": "never",
+    "trafficResetDay": 1,
     "updated_at": 0
   },
   "ClientInbound": {
@@ -283,12 +293,15 @@ export const EXAMPLES: Record<string, unknown> = {
     "group": "",
     "id": 0,
     "keepAlive": 0,
+    "limitHwid": 0,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",
     "privateKey": "",
     "publicKey": "",
     "reset": 0,
+    "resetDay": 0,
+    "resetMax": 0,
     "reverse": null,
     "secret": "",
     "security": "",
@@ -297,6 +310,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subId": "",
     "tgId": 0,
     "totalGB": 0,
+    "trafficReset": "",
+    "trafficResetDay": 0,
     "updatedAt": 0,
     "uuid": ""
   },
@@ -311,7 +326,11 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 14825,
     "inboundId": 1,
     "lastOnline": 1735680000000,
+    "lastSubFetch": 1735680000000,
     "reset": 0,
+    "resetCount": 0,
+    "resetDay": 0,
+    "resetMax": 0,
     "subId": "i7tvdpeffi0hvvf1",
     "total": 10737418240,
     "up": 1048576,
@@ -320,6 +339,54 @@ export const EXAMPLES: Record<string, unknown> = {
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""
+  },
+  "GeoCategory": {
+    "attributes": [
+      "ads",
+      "cn"
+    ],
+    "code": "google",
+    "entries": 1284
+  },
+  "GeoCategoryPage": {
+    "items": [
+      {
+        "attributes": [
+          "ads",
+          "cn"
+        ],
+        "code": "google",
+        "entries": 1284
+      }
+    ],
+    "total": 1043
+  },
+  "GeoEntry": {
+    "kind": "domain",
+    "value": "google.com"
+  },
+  "GeoEntryPage": {
+    "items": [
+      {
+        "kind": "domain",
+        "value": "google.com"
+      }
+    ],
+    "total": 1284
+  },
+  "GeoFile": {
+    "categories": 1043,
+    "error": "",
+    "kind": "site",
+    "modifiedAt": 1769558400000,
+    "name": "geosite.dat",
+    "size": 1467392
+  },
+  "GeodataTokenIssue": {
+    "code": "blabla",
+    "file": "geosite.dat",
+    "reason": "categoryMissing",
+    "token": "geosite:blabla"
   },
   "HistoryOfSeeders": {
     "id": 0,
@@ -428,13 +495,18 @@ export const EXAMPLES: Record<string, unknown> = {
         "id": 14825,
         "inboundId": 1,
         "lastOnline": 1735680000000,
+        "lastSubFetch": 1735680000000,
         "reset": 0,
+        "resetCount": 0,
+        "resetDay": 0,
+        "resetMax": 0,
         "subId": "i7tvdpeffi0hvvf1",
         "total": 10737418240,
         "up": 1048576,
         "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
       }
     ],
+    "disableFlow": false,
     "down": 0,
     "enable": true,
     "expiryTime": 0,
@@ -456,6 +528,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "tag": "in-443-tcp",
     "total": 0,
     "trafficReset": "never",
+    "trafficResetDay": 1,
     "up": 0
   },
   "InboundClientIps": {
@@ -634,6 +707,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "RealityScanResult": {
     "alpn": "h2",
+    "certChainValid": true,
     "certIssuer": "Google Trust Services",
     "certSubject": "cloudflare.com",
     "certValid": true,
@@ -645,6 +719,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "latencyMs": 180,
     "notAfter": "2026-08-01T00:00:00Z",
     "port": 443,
+    "privateTarget": false,
     "reason": "",
     "serverNames": [
       ""

@@ -163,7 +163,5 @@ func (a *IndexController) csrfToken(c *gin.Context) {
 // getTwoFactorEnable retrieves the current status of two-factor authentication.
 func (a *IndexController) getTwoFactorEnable(c *gin.Context) {
 	status, err := a.settingService.GetTwoFactorEnable()
-	if err == nil {
-		jsonObj(c, status, nil)
-	}
+	jsonObj(c, status, err)
 }
