@@ -6,7 +6,16 @@ import type { Status } from '@/models/status';
 const OVERVIEW_WINDOW = 72;
 const SEED_BUCKET_SECONDS = 2;
 
-const SERIES_KEYS = ['cpu', 'mem', 'swap', 'diskUsage', 'netUp', 'netDown', 'tcpCount', 'udpCount'] as const;
+const SERIES_KEYS = [
+  'cpu',
+  'mem',
+  'swap',
+  'diskUsage',
+  'netUp',
+  'netDown',
+  'tcpCount',
+  'udpCount',
+] as const;
 
 export type OverviewSeriesKey = (typeof SERIES_KEYS)[number];
 
@@ -26,7 +35,10 @@ interface HistoryWindow {
 }
 
 function emptySeries(): Record<OverviewSeriesKey, number[]> {
-  return Object.fromEntries(SERIES_KEYS.map((key) => [key, [] as number[]])) as Record<OverviewSeriesKey, number[]>;
+  return Object.fromEntries(SERIES_KEYS.map((key) => [key, [] as number[]])) as Record<
+    OverviewSeriesKey,
+    number[]
+  >;
 }
 
 function emptyWindow(): HistoryWindow {

@@ -16,7 +16,9 @@ export const TunnelInboundSettingsSchema = z.object({
   // validation with "Invalid input" (issue #5516). The trailing .optional()
   // keeps the key optional in the inferred type (a bare .transform() would
   // make it required).
-  rewritePort: PortSchema.nullable().transform((v) => v ?? undefined).optional(),
+  rewritePort: PortSchema.nullable()
+    .transform((v) => v ?? undefined)
+    .optional(),
   portMap: z.record(z.string(), z.string()).default({}),
   allowedNetwork: TunnelNetworkSchema.default('tcp,udp'),
   followRedirect: z.boolean().default(false),

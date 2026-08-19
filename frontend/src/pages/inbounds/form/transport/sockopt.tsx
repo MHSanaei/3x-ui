@@ -37,7 +37,9 @@ export default function SockoptForm({
   const sockTrusted = useWatch({ control, name: 'streamSettings.sockopt.trustedXForwardedFor' });
   const transportAcceptPP = useWatch({
     control,
-    name: transportField ? `streamSettings.${transportField}.acceptProxyProtocol` : 'streamSettings.__noTransportProxyField',
+    name: transportField
+      ? `streamSettings.${transportField}.acceptProxyProtocol`
+      : 'streamSettings.__noTransportProxyField',
   });
 
   /* Presets write the same sockopt fields the user could set by hand below,
@@ -103,7 +105,10 @@ export default function SockoptForm({
               onChange={(v) => applyRealClientIpPreset(v as RealClientIpPreset)}
               options={[
                 { value: 'off', label: t('pages.inbounds.form.realClientIpPresetOff') },
-                { value: 'cloudflare', label: t('pages.inbounds.form.realClientIpPresetCloudflare') },
+                {
+                  value: 'cloudflare',
+                  label: t('pages.inbounds.form.realClientIpPresetCloudflare'),
+                },
                 { value: 'proxy', label: t('pages.inbounds.form.realClientIpPresetProxyProtocol') },
               ]}
             />
@@ -124,7 +129,10 @@ export default function SockoptForm({
               title={t('pages.inbounds.form.realClientIpProxyProtocolTransportWarn')}
             />
           )}
-          <FormField name={['streamSettings', 'sockopt', 'mark']} label={t('pages.inbounds.form.routeMark')}>
+          <FormField
+            name={['streamSettings', 'sockopt', 'mark']}
+            label={t('pages.inbounds.form.routeMark')}
+          >
             <InputNumber min={0} />
           </FormField>
           <FormField
@@ -139,7 +147,10 @@ export default function SockoptForm({
           >
             <InputNumber min={0} />
           </FormField>
-          <FormField name={['streamSettings', 'sockopt', 'tcpMaxSeg']} label={t('pages.inbounds.form.tcpMaxSeg')}>
+          <FormField
+            name={['streamSettings', 'sockopt', 'tcpMaxSeg']}
+            label={t('pages.inbounds.form.tcpMaxSeg')}
+          >
             <InputNumber min={0} />
           </FormField>
           <FormField

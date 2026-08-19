@@ -22,7 +22,15 @@ interface TextModalProps {
   tabs?: TextModalTab[];
 }
 
-export default function TextModal({ open, onClose, title, content, fileName = '', json = false, tabs }: TextModalProps) {
+export default function TextModal({
+  open,
+  onClose,
+  title,
+  content,
+  fileName = '',
+  json = false,
+  tabs,
+}: TextModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [activeKey, setActiveKey] = useState('');
@@ -55,37 +63,41 @@ export default function TextModal({ open, onClose, title, content, fileName = ''
         title={title}
         onCancel={onClose}
         destroyOnHidden
-      footer={(
-        <>
-          {fileName && (
-            <Button icon={<DownloadOutlined />} onClick={download}>{fileName}</Button>
-          )}
-          <Button type="primary" icon={<CopyOutlined />} onClick={copy}>{t('copy')}</Button>
-        </>
-      )}
-    >
-      {tabs && tabs.length > 0 && (
-        <Tabs
-          activeKey={activeTab?.key}
-          onChange={setActiveKey}
-          items={tabs.map((tab) => ({ key: tab.key, label: tab.label }))}
-        />
-      )}
-      {json ? (
-        <JsonEditor value={activeContent} readOnly minHeight="240px" maxHeight="60vh" />
-      ) : (
-        <Input.TextArea
-          aria-label={title}
-          value={activeContent}
-          readOnly
-          autoSize={{ minRows: 10, maxRows: 20 }}
-          style={{
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            fontSize: 12,
-            overflowY: 'auto',
-          }}
-        />
-      )}
+        footer={
+          <>
+            {fileName && (
+              <Button icon={<DownloadOutlined />} onClick={download}>
+                {fileName}
+              </Button>
+            )}
+            <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
+              {t('copy')}
+            </Button>
+          </>
+        }
+      >
+        {tabs && tabs.length > 0 && (
+          <Tabs
+            activeKey={activeTab?.key}
+            onChange={setActiveKey}
+            items={tabs.map((tab) => ({ key: tab.key, label: tab.label }))}
+          />
+        )}
+        {json ? (
+          <JsonEditor value={activeContent} readOnly minHeight="240px" maxHeight="60vh" />
+        ) : (
+          <Input.TextArea
+            aria-label={title}
+            value={activeContent}
+            readOnly
+            autoSize={{ minRows: 10, maxRows: 20 }}
+            style={{
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              fontSize: 12,
+              overflowY: 'auto',
+            }}
+          />
+        )}
       </Modal>
     </>
   );

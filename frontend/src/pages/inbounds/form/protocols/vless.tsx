@@ -56,7 +56,9 @@ export default function VlessFields({
           <Button type="primary" loading={saving} onClick={() => getNewVlessEnc(authKind)}>
             {t('pages.inbounds.vlessAuthGenerateButton')}
           </Button>
-          <Button danger onClick={clearVlessEnc}>{t('clear')}</Button>
+          <Button danger onClick={clearVlessEnc}>
+            {t('clear')}
+          </Button>
         </Space>
         <Typography.Text type="secondary" className="vless-auth-state">
           {t('pages.inbounds.vlessAuthSelected', { auth: selectedVlessAuth })}

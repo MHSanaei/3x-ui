@@ -89,9 +89,14 @@ describe('outbound default factories: shape snapshots', () => {
 
   it('shadowsocks defaults to 2022-blake3-aes-128-gcm', () => {
     expect(createDefaultShadowsocksOutboundSettings()).toEqual({
-      servers: [{
-        address: '', port: 443, password: '', method: '2022-blake3-aes-128-gcm',
-      }],
+      servers: [
+        {
+          address: '',
+          port: 443,
+          password: '',
+          method: '2022-blake3-aes-128-gcm',
+        },
+      ],
     });
   });
 
@@ -113,9 +118,13 @@ describe('outbound default factories: shape snapshots', () => {
     expect(out.mtu).toBe(1420);
     expect(out.address).toEqual([]);
     expect(out.noKernelTun).toBe(false);
-    expect(out.peers).toEqual([{
-      publicKey: '', allowedIPs: ['0.0.0.0/0', '::/0'], endpoint: '',
-    }]);
+    expect(out.peers).toEqual([
+      {
+        publicKey: '',
+        allowedIPs: ['0.0.0.0/0', '::/0'],
+        endpoint: '',
+      },
+    ]);
   });
 
   it('wireguard generates a secretKey when none is seeded', () => {
@@ -126,34 +135,36 @@ describe('outbound default factories: shape snapshots', () => {
 
   it('hysteria defaults to port 443 version 2', () => {
     expect(createDefaultHysteriaOutboundSettings()).toEqual({
-      address: '', port: 443, version: 2,
+      address: '',
+      port: 443,
+      version: 2,
     });
   });
 });
 
 describe('outbound default factories: schema acceptance after stub fill-in', () => {
   it('freedom default parses (no required fields)', () => {
-    expect(FreedomOutboundSettingsSchema.safeParse(
-      createDefaultFreedomOutboundSettings(),
-    ).success).toBe(true);
+    expect(
+      FreedomOutboundSettingsSchema.safeParse(createDefaultFreedomOutboundSettings()).success,
+    ).toBe(true);
   });
 
   it('blackhole default parses (no required fields)', () => {
-    expect(BlackholeOutboundSettingsSchema.safeParse(
-      createDefaultBlackholeOutboundSettings(),
-    ).success).toBe(true);
+    expect(
+      BlackholeOutboundSettingsSchema.safeParse(createDefaultBlackholeOutboundSettings()).success,
+    ).toBe(true);
   });
 
   it('loopback default parses (no required fields)', () => {
-    expect(LoopbackOutboundSettingsSchema.safeParse(
-      createDefaultLoopbackOutboundSettings(),
-    ).success).toBe(true);
+    expect(
+      LoopbackOutboundSettingsSchema.safeParse(createDefaultLoopbackOutboundSettings()).success,
+    ).toBe(true);
   });
 
   it('dns default parses', () => {
-    expect(DNSOutboundSettingsSchema.safeParse(
-      createDefaultDNSOutboundSettings(),
-    ).success).toBe(true);
+    expect(DNSOutboundSettingsSchema.safeParse(createDefaultDNSOutboundSettings()).success).toBe(
+      true,
+    );
   });
 
   it('vmess parses once vnext fields are filled', () => {
@@ -214,8 +225,18 @@ describe('outbound default factories: schema acceptance after stub fill-in', () 
 
 describe('createDefaultOutboundSettings dispatcher', () => {
   const PROTOCOLS = [
-    'freedom', 'blackhole', 'dns', 'vmess', 'vless', 'trojan', 'shadowsocks',
-    'socks', 'http', 'wireguard', 'hysteria', 'loopback',
+    'freedom',
+    'blackhole',
+    'dns',
+    'vmess',
+    'vless',
+    'trojan',
+    'shadowsocks',
+    'socks',
+    'http',
+    'wireguard',
+    'hysteria',
+    'loopback',
   ];
 
   for (const protocol of PROTOCOLS) {

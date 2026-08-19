@@ -45,15 +45,123 @@ interface MetricDef {
 }
 
 const METRICS: MetricDef[] = [
-  { key: 'cpu', tab: 'CPU', tabKey: 'pages.index.cpu', title: 'pages.index.historyTitleCpu', icon: <DashboardOutlined />, valueMax: 100, unit: '%', stroke: '' },
-  { key: 'mem', tab: 'RAM', tabKey: 'pages.index.memory', title: 'pages.index.historyTitleMem', icon: <DatabaseOutlined />, valueMax: 100, unit: '%', stroke: '#7c4dff', key2: 'swap', stroke2: '#ffa940', name1: 'pages.index.memory', name2: 'pages.index.swap' },
-  { key: 'netUp', tab: 'Bandwidth', tabKey: 'pages.index.historyTabBandwidth', title: 'pages.index.historyTitleNetwork', icon: <GlobalOutlined />, valueMax: null, unit: 'B/s', stroke: '#1890ff', key2: 'netDown', stroke2: '#13c2c2', name1: 'Up', name2: 'Down' },
-  { key: 'pktUp', tab: 'Packets', tabKey: 'pages.index.historyTabPackets', title: 'pages.index.historyTitlePackets', icon: <DeploymentUnitOutlined />, valueMax: null, unit: 'pkt/s', stroke: '#2f54eb', key2: 'pktDown', stroke2: '#36cfc9', name1: 'Up', name2: 'Down' },
-  { key: 'tcpCount', tab: 'Connections', tabKey: 'pages.index.historyTabConnections', title: 'pages.index.historyTitleConnections', icon: <ApiOutlined />, valueMax: null, unit: '', stroke: '#597ef7', key2: 'udpCount', stroke2: '#73d13d', name1: 'TCP', name2: 'UDP' },
-  { key: 'diskRead', tab: 'Disk I/O', tabKey: 'pages.index.historyTabDisk', title: 'pages.index.historyTitleDisk', icon: <HddOutlined />, valueMax: null, unit: 'B/s', stroke: '#eb2f96', key2: 'diskWrite', stroke2: '#722ed1', name1: 'Read', name2: 'Write' },
-  { key: 'diskUsage', tab: 'Disk Usage', tabKey: 'pages.index.historyTabDiskUsage', title: 'pages.index.historyTitleDiskUsage', icon: <PieChartOutlined />, valueMax: 100, unit: '%', stroke: '#13c2c2' },
-  { key: 'online', tab: 'Online', tabKey: 'pages.index.historyTabOnline', title: 'pages.index.historyTitleOnline', icon: <TeamOutlined />, valueMax: null, unit: '', stroke: '#52c41a' },
-  { key: 'load1', tab: 'Load', tabKey: 'pages.index.historyTabLoad', title: 'pages.index.historyTitleLoad', icon: <LineChartOutlined />, valueMax: null, unit: '', stroke: '#fa8c16', key2: 'load5', stroke2: '#f5222d', name1: '1m', name2: '5m', key3: 'load15', stroke3: '#a0d911', name3: '15m' },
+  {
+    key: 'cpu',
+    tab: 'CPU',
+    tabKey: 'pages.index.cpu',
+    title: 'pages.index.historyTitleCpu',
+    icon: <DashboardOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '',
+  },
+  {
+    key: 'mem',
+    tab: 'RAM',
+    tabKey: 'pages.index.memory',
+    title: 'pages.index.historyTitleMem',
+    icon: <DatabaseOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '#7c4dff',
+    key2: 'swap',
+    stroke2: '#ffa940',
+    name1: 'pages.index.memory',
+    name2: 'pages.index.swap',
+  },
+  {
+    key: 'netUp',
+    tab: 'Bandwidth',
+    tabKey: 'pages.index.historyTabBandwidth',
+    title: 'pages.index.historyTitleNetwork',
+    icon: <GlobalOutlined />,
+    valueMax: null,
+    unit: 'B/s',
+    stroke: '#1890ff',
+    key2: 'netDown',
+    stroke2: '#13c2c2',
+    name1: 'Up',
+    name2: 'Down',
+  },
+  {
+    key: 'pktUp',
+    tab: 'Packets',
+    tabKey: 'pages.index.historyTabPackets',
+    title: 'pages.index.historyTitlePackets',
+    icon: <DeploymentUnitOutlined />,
+    valueMax: null,
+    unit: 'pkt/s',
+    stroke: '#2f54eb',
+    key2: 'pktDown',
+    stroke2: '#36cfc9',
+    name1: 'Up',
+    name2: 'Down',
+  },
+  {
+    key: 'tcpCount',
+    tab: 'Connections',
+    tabKey: 'pages.index.historyTabConnections',
+    title: 'pages.index.historyTitleConnections',
+    icon: <ApiOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#597ef7',
+    key2: 'udpCount',
+    stroke2: '#73d13d',
+    name1: 'TCP',
+    name2: 'UDP',
+  },
+  {
+    key: 'diskRead',
+    tab: 'Disk I/O',
+    tabKey: 'pages.index.historyTabDisk',
+    title: 'pages.index.historyTitleDisk',
+    icon: <HddOutlined />,
+    valueMax: null,
+    unit: 'B/s',
+    stroke: '#eb2f96',
+    key2: 'diskWrite',
+    stroke2: '#722ed1',
+    name1: 'Read',
+    name2: 'Write',
+  },
+  {
+    key: 'diskUsage',
+    tab: 'Disk Usage',
+    tabKey: 'pages.index.historyTabDiskUsage',
+    title: 'pages.index.historyTitleDiskUsage',
+    icon: <PieChartOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '#13c2c2',
+  },
+  {
+    key: 'online',
+    tab: 'Online',
+    tabKey: 'pages.index.historyTabOnline',
+    title: 'pages.index.historyTitleOnline',
+    icon: <TeamOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#52c41a',
+  },
+  {
+    key: 'load1',
+    tab: 'Load',
+    tabKey: 'pages.index.historyTabLoad',
+    title: 'pages.index.historyTitleLoad',
+    icon: <LineChartOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#fa8c16',
+    key2: 'load5',
+    stroke2: '#f5222d',
+    name1: '1m',
+    name2: '5m',
+    key3: 'load15',
+    stroke3: '#a0d911',
+    name3: '15m',
+  },
 ];
 
 function unitFormatter(unit: string, activeKey: string): (v: number) => string {
@@ -78,9 +186,10 @@ function unitFormatter(unit: string, activeKey: string): (v: number) => string {
 function formatFullTimestamp(unixSec: number): string {
   const d = new Date(unixSec * 1000);
   const today = new Date();
-  const sameDay = d.getFullYear() === today.getFullYear()
-    && d.getMonth() === today.getMonth()
-    && d.getDate() === today.getDate();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   const ss = String(d.getSeconds()).padStart(2, '0');
@@ -142,7 +251,12 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
           const hh = String(d.getHours()).padStart(2, '0');
           const mm = String(d.getMinutes()).padStart(2, '0');
           const ss = String(d.getSeconds()).padStart(2, '0');
-          const lab = bucket >= 2880 ? `${MM}-${DD} ${hh}:${mm}` : bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
+          const lab =
+            bucket >= 2880
+              ? `${MM}-${DD} ${hh}:${mm}`
+              : bucket >= 60
+                ? `${hh}:${mm}`
+                : `${hh}:${mm}:${ss}`;
           labs.push(lab);
           vals.push(Number(p.v) || 0);
           tss.push(Number(p.t) || 0);
@@ -232,7 +346,13 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
           const tabLabel = m.tabKey ? t(m.tabKey) : m.tab;
           return {
             key: m.key,
-            label: isMobile ? <span title={tabLabel} aria-label={tabLabel}>{m.icon}</span> : tabLabel,
+            label: isMobile ? (
+              <span title={tabLabel} aria-label={tabLabel}>
+                {m.icon}
+              </span>
+            ) : (
+              tabLabel
+            ),
           };
         })}
       />

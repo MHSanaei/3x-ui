@@ -10,7 +10,13 @@ interface InputAddonProps {
   ariaLabel?: string;
 }
 
-export default function InputAddon({ children, className = '', style, onClick, ariaLabel }: InputAddonProps) {
+export default function InputAddon({
+  children,
+  className = '',
+  style,
+  onClick,
+  ariaLabel,
+}: InputAddonProps) {
   return (
     // oxlint cannot see through the conditional role/tabIndex/onKeyDown below,
     // which is exactly what makes the clickable variant accessible.

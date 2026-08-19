@@ -33,7 +33,15 @@ export interface GeoTokenInputProps {
   ref?: Ref<InputRef>;
 }
 
-export default function GeoTokenInput({ value = '', onChange, onBlur, kind, placeholder, id, ref }: GeoTokenInputProps) {
+export default function GeoTokenInput({
+  value = '',
+  onChange,
+  onBlur,
+  kind,
+  placeholder,
+  id,
+  ref,
+}: GeoTokenInputProps) {
   const { t } = useTranslation();
   const [browsing, setBrowsing] = useState(false);
   const [issues, setIssues] = useState<GeodataTokenIssue[]>([]);

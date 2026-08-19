@@ -43,7 +43,12 @@ describe('clients table row cells', () => {
         {(doBump) => {
           bump = doBump;
           return (
-            <ClientInboundChips ids={ids} inboundsById={proxy} protocolColors={PROTOCOL_COLORS} chipLimit={1} />
+            <ClientInboundChips
+              ids={ids}
+              inboundsById={proxy}
+              protocolColors={PROTOCOL_COLORS}
+              chipLimit={1}
+            />
           );
         }}
       </Harness>,
@@ -66,8 +71,15 @@ describe('clients table row cells', () => {
       const [ids, setIds] = useState<number[]>([1]);
       return (
         <>
-          <button type="button" onClick={() => setIds([1, 2])}>swap</button>
-          <ClientInboundChips ids={ids} inboundsById={proxy} protocolColors={PROTOCOL_COLORS} chipLimit={1} />
+          <button type="button" onClick={() => setIds([1, 2])}>
+            swap
+          </button>
+          <ClientInboundChips
+            ids={ids}
+            inboundsById={proxy}
+            protocolColors={PROTOCOL_COLORS}
+            chipLimit={1}
+          />
         </>
       );
     }

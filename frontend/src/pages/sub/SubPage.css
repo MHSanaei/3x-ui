@@ -61,7 +61,9 @@
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .sub-link-row:hover {
@@ -127,4 +129,3 @@
 .toolbar-btn .anticon {
   font-size: 18px;
 }
-

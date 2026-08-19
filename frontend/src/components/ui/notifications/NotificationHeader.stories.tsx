@@ -22,7 +22,9 @@ const meta = {
     total: { description: 'Total number of events the group offers.' },
     allSelected: { description: 'Checks the master checkbox when every event is selected.' },
     indeterminate: { description: 'Shows the dash state when only some events are selected.' },
-    onToggleAll: { description: 'Called when the master checkbox is clicked to select or clear all events.' },
+    onToggleAll: {
+      description: 'Called when the master checkbox is clicked to select or clear all events.',
+    },
   },
 } satisfies Meta<typeof NotificationHeader>;
 

@@ -13,7 +13,12 @@ interface NordModalProps {
   templateSettings: { outbounds?: { tag?: string }[] } | null;
   onClose: () => void;
   onAddOutbound: (outbound: Record<string, unknown>) => void;
-  onResetOutbound: (payload: { index: number; outbound: Record<string, unknown>; oldTag?: string; newTag: string }) => void;
+  onResetOutbound: (payload: {
+    index: number;
+    outbound: Record<string, unknown>;
+    oldTag?: string;
+    newTag: string;
+  }) => void;
   onRemoveOutbound: (index: number) => void;
   onRemoveRoutingRules: (payload: { prefix: string }) => void;
 }
@@ -129,7 +134,9 @@ export default function NordModal({
   async function login() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/reg', { token: methods.getValues('token') });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/reg', {
+        token: methods.getValues('token'),
+      });
       if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
@@ -142,7 +149,9 @@ export default function NordModal({
   async function saveKey() {
     setLoading(true);
     try {
-      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/setKey', { key: methods.getValues('manualKey') });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/setKey', {
+        key: methods.getValues('manualKey'),
+      });
       if (msg?.success && msg.obj) {
         setNordData(JSON.parse(msg.obj));
         await fetchCountries();
@@ -177,7 +186,9 @@ export default function NordModal({
     methods.setValue('serverId', null);
     methods.setValue('cityId', null);
     try {
-      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/servers', { countryId: newCountryId });
+      const msg = await HttpUtil.post<string>('/panel/api/xray/nord/servers', {
+        countryId: newCountryId,
+      });
       if (!msg?.success || !msg.obj) return;
       const data = JSON.parse(msg.obj);
       const locations = data.locations || [];
@@ -256,147 +267,173 @@ export default function NordModal({
     <>
       {messageContextHolder}
       <Modal open={open} title="NordVPN NordLynx" footer={null} onCancel={onClose}>
-      <FormProvider {...methods}>
-      {nordData == null ? (
-        <Tabs
-          defaultActiveKey="token"
-          items={[
-            {
-              key: 'token',
-              label: t('pages.xray.nord.accessToken'),
-              children: (
-                <Form
-                  colon={false}
-                  labelCol={{ md: { span: 6 } }}
-                  wrapperCol={{ md: { span: 18 } }}
-                  className="mt-20"
-                >
-                  <FormField name="token" label={t('pages.xray.nord.accessToken')}>
-                    <Input placeholder={t('pages.xray.nord.accessToken')} />
-                  </FormField>
-                  <Button type="primary" className="mt-10" loading={loading} icon={<LoginOutlined />} onClick={login}>
-                    {t('login')}
-                  </Button>
-                </Form>
-              ),
-            },
-            {
-              key: 'key',
-              label: t('pages.xray.nord.privateKey'),
-              children: (
-                <Form
-                  colon={false}
-                  labelCol={{ md: { span: 6 } }}
-                  wrapperCol={{ md: { span: 18 } }}
-                  className="mt-20"
-                >
-                  <FormField name="manualKey" label={t('pages.xray.nord.privateKey')}>
-                    <Input placeholder={t('pages.xray.nord.privateKey')} />
-                  </FormField>
-                  <Button type="primary" className="mt-10" loading={loading} icon={<SaveOutlined />} onClick={saveKey}>
-                    {t('save')}
-                  </Button>
-                </Form>
-              ),
-            },
-          ]}
-        />
-      ) : (
-        <>
-          <table className="nord-data-table">
-            <tbody>
-              {nordData.token && (
-                <tr className="row-odd">
-                  <td>{t('pages.xray.nord.accessToken')}</td>
-                  <td>{nordData.token}</td>
-                </tr>
-              )}
-              <tr>
-                <td>{t('pages.xray.nord.privateKey')}</td>
-                <td>{nordData.private_key}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <Button loading={loading} type="primary" danger className="mt-8" onClick={logout}>
-            {t('logout')}
-          </Button>
-
-          <Divider className="zero-margin">{t('pages.xray.warp.settings')}</Divider>
-
-          <Form colon={false} labelCol={{ md: { span: 6 } }} wrapperCol={{ md: { span: 18 } }} className="mt-10">
-            <FormField
-              name="countryId"
-              label={t('pages.xray.outbound.country')}
-              transform={{ input: (v) => v ?? undefined }}
-              onAfterChange={(v) => fetchServers(v as number)}
-            >
-              <Select
-                showSearch={{ optionFilterProp: 'label' }}
-                options={countries.map((c) => ({
-                  value: c.id,
-                  label: `${c.name} (${c.code})`,
-                }))}
-              />
-            </FormField>
-
-            {cities.length > 0 && (
-              <FormField name="cityId" label={t('pages.xray.outbound.city')}>
-                <Select
-                  showSearch={{ optionFilterProp: 'label' }}
-                  options={[{ value: null, label: t('pages.xray.outbound.allCities') }, ...cities.map((c) => ({ value: c.id, label: c.name }))]}
-                />
-              </FormField>
-            )}
-
-            {filteredServers.length > 0 && (
-              <FormField name="serverId" label={t('pages.xray.outbound.server')}>
-                <Select
-                  showSearch={{ optionFilterProp: 'label' }}
-                  options={filteredServers.map((s) => ({
-                    value: s.id,
-                    label: `${s.cityName} ${s.name} ${s.hostname}`,
-                    children: (
-                      <span className="server-row">
-                        <span className="server-name">
-                          {s.cityName} - {s.name}
-                        </span>
-                        <Tag color={loadColor(s.load)} className="server-load-tag">
-                          {s.load}%
-                        </Tag>
-                      </span>
-                    ),
-                  }))}
-                />
-              </FormField>
-            )}
-          </Form>
-
-          <Divider className="my-10">{t('pages.xray.outbound.outboundStatus')}</Divider>
-          {nordOutboundIndex >= 0 ? (
-            <>
-              <Tag color="green">{t('enabled')}</Tag>
-              <Button type="primary" danger loading={loading} className="ml-8" onClick={resetOutbound}>
-                {t('reset')}
-              </Button>
-            </>
+        <FormProvider {...methods}>
+          {nordData == null ? (
+            <Tabs
+              defaultActiveKey="token"
+              items={[
+                {
+                  key: 'token',
+                  label: t('pages.xray.nord.accessToken'),
+                  children: (
+                    <Form
+                      colon={false}
+                      labelCol={{ md: { span: 6 } }}
+                      wrapperCol={{ md: { span: 18 } }}
+                      className="mt-20"
+                    >
+                      <FormField name="token" label={t('pages.xray.nord.accessToken')}>
+                        <Input placeholder={t('pages.xray.nord.accessToken')} />
+                      </FormField>
+                      <Button
+                        type="primary"
+                        className="mt-10"
+                        loading={loading}
+                        icon={<LoginOutlined />}
+                        onClick={login}
+                      >
+                        {t('login')}
+                      </Button>
+                    </Form>
+                  ),
+                },
+                {
+                  key: 'key',
+                  label: t('pages.xray.nord.privateKey'),
+                  children: (
+                    <Form
+                      colon={false}
+                      labelCol={{ md: { span: 6 } }}
+                      wrapperCol={{ md: { span: 18 } }}
+                      className="mt-20"
+                    >
+                      <FormField name="manualKey" label={t('pages.xray.nord.privateKey')}>
+                        <Input placeholder={t('pages.xray.nord.privateKey')} />
+                      </FormField>
+                      <Button
+                        type="primary"
+                        className="mt-10"
+                        loading={loading}
+                        icon={<SaveOutlined />}
+                        onClick={saveKey}
+                      >
+                        {t('save')}
+                      </Button>
+                    </Form>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <>
-              <Tag color="orange">{t('disabled')}</Tag>
-              <Button
-                type="primary"
-                className="ml-8"
-                disabled={!serverId}
-                loading={loading}
-                onClick={addOutbound}
-              >
-                {t('pages.xray.warp.addOutbound')}
+              <table className="nord-data-table">
+                <tbody>
+                  {nordData.token && (
+                    <tr className="row-odd">
+                      <td>{t('pages.xray.nord.accessToken')}</td>
+                      <td>{nordData.token}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td>{t('pages.xray.nord.privateKey')}</td>
+                    <td>{nordData.private_key}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <Button loading={loading} type="primary" danger className="mt-8" onClick={logout}>
+                {t('logout')}
               </Button>
+
+              <Divider className="zero-margin">{t('pages.xray.warp.settings')}</Divider>
+
+              <Form
+                colon={false}
+                labelCol={{ md: { span: 6 } }}
+                wrapperCol={{ md: { span: 18 } }}
+                className="mt-10"
+              >
+                <FormField
+                  name="countryId"
+                  label={t('pages.xray.outbound.country')}
+                  transform={{ input: (v) => v ?? undefined }}
+                  onAfterChange={(v) => fetchServers(v as number)}
+                >
+                  <Select
+                    showSearch={{ optionFilterProp: 'label' }}
+                    options={countries.map((c) => ({
+                      value: c.id,
+                      label: `${c.name} (${c.code})`,
+                    }))}
+                  />
+                </FormField>
+
+                {cities.length > 0 && (
+                  <FormField name="cityId" label={t('pages.xray.outbound.city')}>
+                    <Select
+                      showSearch={{ optionFilterProp: 'label' }}
+                      options={[
+                        { value: null, label: t('pages.xray.outbound.allCities') },
+                        ...cities.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                    />
+                  </FormField>
+                )}
+
+                {filteredServers.length > 0 && (
+                  <FormField name="serverId" label={t('pages.xray.outbound.server')}>
+                    <Select
+                      showSearch={{ optionFilterProp: 'label' }}
+                      options={filteredServers.map((s) => ({
+                        value: s.id,
+                        label: `${s.cityName} ${s.name} ${s.hostname}`,
+                        children: (
+                          <span className="server-row">
+                            <span className="server-name">
+                              {s.cityName} - {s.name}
+                            </span>
+                            <Tag color={loadColor(s.load)} className="server-load-tag">
+                              {s.load}%
+                            </Tag>
+                          </span>
+                        ),
+                      }))}
+                    />
+                  </FormField>
+                )}
+              </Form>
+
+              <Divider className="my-10">{t('pages.xray.outbound.outboundStatus')}</Divider>
+              {nordOutboundIndex >= 0 ? (
+                <>
+                  <Tag color="green">{t('enabled')}</Tag>
+                  <Button
+                    type="primary"
+                    danger
+                    loading={loading}
+                    className="ml-8"
+                    onClick={resetOutbound}
+                  >
+                    {t('reset')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Tag color="orange">{t('disabled')}</Tag>
+                  <Button
+                    type="primary"
+                    className="ml-8"
+                    disabled={!serverId}
+                    loading={loading}
+                    onClick={addOutbound}
+                  >
+                    {t('pages.xray.warp.addOutbound')}
+                  </Button>
+                </>
+              )}
             </>
           )}
-        </>
-      )}
-      </FormProvider>
+        </FormProvider>
       </Modal>
     </>
   );

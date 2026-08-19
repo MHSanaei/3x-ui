@@ -45,8 +45,9 @@ function buildDarkTheme({ bg, panelBg, activeBg, border, selection }: DarkPalett
       },
       '.cm-activeLine': { backgroundColor: activeBg },
       '.cm-activeLineGutter': { backgroundColor: activeBg, color: '#dcdcdc' },
-      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
-        { backgroundColor: selection },
+      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+        backgroundColor: selection,
+      },
       '.cm-panels': { backgroundColor: panelBg, color: '#dcdcdc' },
       '.cm-panels.cm-panels-top': { borderBottom: `1px solid ${border}` },
       '.cm-panels.cm-panels-bottom': { borderTop: `1px solid ${border}` },

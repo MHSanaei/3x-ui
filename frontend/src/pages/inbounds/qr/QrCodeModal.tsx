@@ -57,7 +57,10 @@ export default function QrCodeModal({
   useEffect(() => {
     if (!open || !dbInbound) return;
     const inbound = inboundFromDb(dbInbound);
-    const fallbackHostname = preferPublicHost(window.location.hostname, subSettings?.publicHost ?? '');
+    const fallbackHostname = preferPublicHost(
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+    );
     if (inbound.protocol === Protocols.WIREGUARD) {
       const peerRemark = client?.email
         ? `${dbInbound.remark}-${client.email}`
@@ -110,7 +113,11 @@ export default function QrCodeModal({
       items.push({ key: 'sub', header: t('subscription.title'), value: subLink });
     }
     if (subJsonLink) {
-      items.push({ key: 'sub-json', header: `${t('subscription.title')} (JSON)`, value: subJsonLink });
+      items.push({
+        key: 'sub-json',
+        header: `${t('subscription.title')} (JSON)`,
+        value: subJsonLink,
+      });
     }
     links.forEach((link, idx) => {
       items.push({ key: `l${idx}`, header: link.remark || `Link ${idx + 1}`, value: link.link });
@@ -123,25 +130,31 @@ export default function QrCodeModal({
         downloadName: `peer-${idx + 1}.conf`,
       });
       if (wireguardLinks[idx]) {
-        items.push({ key: `wl${idx}`, header: `Peer ${idx + 1} link`, value: wireguardLinks[idx], showQr: false });
+        items.push({
+          key: `wl${idx}`,
+          header: `Peer ${idx + 1} link`,
+          value: wireguardLinks[idx],
+          showQr: false,
+        });
       }
     });
     return items;
   }, [subLink, subJsonLink, links, wireguardConfigs, wireguardLinks, t]);
 
   const collapseItems: CollapseProps['items'] = useMemo(
-    () => qrItems.map((item) => ({
-      key: item.key,
-      label: item.header,
-      children: (
-        <QrPanel
-          value={item.value}
-          remark={item.header}
-          downloadName={item.downloadName || ''}
-          showQr={item.showQr !== false && !isPostQuantumLink(item.value)}
-        />
-      ),
-    })),
+    () =>
+      qrItems.map((item) => ({
+        key: item.key,
+        label: item.header,
+        children: (
+          <QrPanel
+            value={item.value}
+            remark={item.header}
+            downloadName={item.downloadName || ''}
+            showQr={item.showQr !== false && !isPostQuantumLink(item.value)}
+          />
+        ),
+      })),
     [qrItems],
   );
 
@@ -154,7 +167,14 @@ export default function QrCodeModal({
   }, [open, qrItems]);
 
   return (
-    <Modal open={open} onCancel={onClose} title={t('qrCode')} footer={null} width={420} destroyOnHidden>
+    <Modal
+      open={open}
+      onCancel={onClose}
+      title={t('qrCode')}
+      footer={null}
+      width={420}
+      destroyOnHidden
+    >
       {dbInbound && collapseItems && collapseItems.length > 0 && (
         <Collapse
           ghost

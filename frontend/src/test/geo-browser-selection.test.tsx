@@ -13,9 +13,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const FILES = [{ name: 'geosite.dat', kind: 'site', size: 1024, modifiedAt: 1785428467270, categories: 3 }];
+const FILES = [
+  { name: 'geosite.dat', kind: 'site', size: 1024, modifiedAt: 1785428467270, categories: 3 },
+];
 
-const IP_FILE = { name: 'geoip.dat', kind: 'ip', size: 2048, modifiedAt: 1785428467270, categories: 1 };
+const IP_FILE = {
+  name: 'geoip.dat',
+  kind: 'ip',
+  size: 2048,
+  modifiedAt: 1785428467270,
+  categories: 1,
+};
 
 const IP_CATEGORIES = { total: 1, items: [{ code: 'private', entries: 1, attributes: [] }] };
 
@@ -29,15 +37,17 @@ const CATEGORIES = {
 };
 
 function mockGeodata(files: unknown[] = FILES) {
-  const get = vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string, params?: unknown) => {
-    const requestedFile = (params as { file?: string } | undefined)?.file;
-    if (url.includes('/geodata/files')) return new Msg(true, '', files);
-    if (url.includes('/geodata/categories')) {
-      return new Msg(true, '', requestedFile === 'geoip.dat' ? IP_CATEGORIES : CATEGORIES);
-    }
-    if (url.includes('/geodata/entries')) return new Msg(true, '', { total: 0, items: [] });
-    return new Msg(true, '', null);
-  });
+  const get = vi
+    .spyOn(HttpUtil, 'get')
+    .mockImplementation(async (url: string, params?: unknown) => {
+      const requestedFile = (params as { file?: string } | undefined)?.file;
+      if (url.includes('/geodata/files')) return new Msg(true, '', files);
+      if (url.includes('/geodata/categories')) {
+        return new Msg(true, '', requestedFile === 'geoip.dat' ? IP_CATEGORIES : CATEGORIES);
+      }
+      if (url.includes('/geodata/entries')) return new Msg(true, '', { total: 0, items: [] });
+      return new Msg(true, '', null);
+    });
   vi.spyOn(HttpUtil, 'post').mockImplementation(async () => new Msg(true, '', []));
   return get;
 }
@@ -65,17 +75,35 @@ describe('GeoBrowserModal selection', () => {
   it('seeds the selection from the field every time it opens', async () => {
     mockGeodata();
     const view = render(
-      <GeoBrowserModal open kind="site" value="geosite:google" onApply={vi.fn()} onClose={vi.fn()} />,
+      <GeoBrowserModal
+        open
+        kind="site"
+        value="geosite:google"
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+      />,
       { wrapper },
     );
 
     await waitFor(async () => expect((await checkboxFor('google')).checked).toBe(true));
 
     view.rerender(
-      <GeoBrowserModal open={false} kind="site" value="geosite:google" onApply={vi.fn()} onClose={vi.fn()} />,
+      <GeoBrowserModal
+        open={false}
+        kind="site"
+        value="geosite:google"
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     view.rerender(
-      <GeoBrowserModal open kind="site" value="geosite:google" onApply={vi.fn()} onClose={vi.fn()} />,
+      <GeoBrowserModal
+        open
+        kind="site"
+        value="geosite:google"
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
 
     await waitFor(async () => expect((await checkboxFor('google')).checked).toBe(true));
@@ -86,7 +114,9 @@ describe('GeoBrowserModal selection', () => {
     mockGeodata();
     const user = userEvent.setup();
     const onApply = vi.fn();
-    render(<GeoBrowserModal open kind="site" value="" onApply={onApply} onClose={vi.fn()} />, { wrapper });
+    render(<GeoBrowserModal open kind="site" value="" onApply={onApply} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     await user.click(await checkboxFor('google'));
     await user.type(screen.getByPlaceholderText(/search category|поиск категории/i), 'cn');
@@ -97,7 +127,12 @@ describe('GeoBrowserModal selection', () => {
 
     expect(onApply).toHaveBeenCalledTimes(1);
     const applied = String(onApply.mock.calls[0][0]);
-    expect(applied.split(',').map((token) => token.trim()).sort()).toEqual(['geosite:cn', 'geosite:google']);
+    expect(
+      applied
+        .split(',')
+        .map((token) => token.trim())
+        .sort(),
+    ).toEqual(['geosite:cn', 'geosite:google']);
   });
 
   it('drops a category from the field when its checkbox is cleared', async () => {
@@ -105,7 +140,13 @@ describe('GeoBrowserModal selection', () => {
     const user = userEvent.setup();
     const onApply = vi.fn();
     render(
-      <GeoBrowserModal open kind="site" value="google.com, geosite:google, geosite:blabla" onApply={onApply} onClose={vi.fn()} />,
+      <GeoBrowserModal
+        open
+        kind="site"
+        value="google.com, geosite:google, geosite:blabla"
+        onApply={onApply}
+        onClose={vi.fn()}
+      />,
       { wrapper },
     );
 
@@ -118,7 +159,9 @@ describe('GeoBrowserModal selection', () => {
 
   it('offers only databases matching the field kind', async () => {
     mockGeodata([...FILES, IP_FILE]);
-    render(<GeoBrowserModal open kind="ip" value="" onApply={vi.fn()} onClose={vi.fn()} />, { wrapper });
+    render(<GeoBrowserModal open kind="ip" value="" onApply={vi.fn()} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     await screen.findByText('private');
     expect(screen.getByTitle('geoip.dat')).toBeTruthy();
@@ -142,7 +185,9 @@ describe('GeoBrowserModal selection', () => {
   it('waits for the entry filter to settle instead of querying every keystroke', async () => {
     const get = mockGeodata();
     const user = userEvent.setup({ delay: null });
-    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, { wrapper });
+    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     await user.click(await screen.findByText('cn'));
     await waitFor(() => expect(entryFilters(get)).toEqual(['']));
@@ -156,7 +201,9 @@ describe('GeoBrowserModal selection', () => {
   it('drops the pending filter when another category is opened', async () => {
     const get = mockGeodata();
     const user = userEvent.setup({ delay: null });
-    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, { wrapper });
+    render(<GeoBrowserModal open kind="site" value="" onApply={vi.fn()} onClose={vi.fn()} />, {
+      wrapper,
+    });
 
     await user.click(await screen.findByText('cn'));
     await user.type(screen.getByPlaceholderText('Filter inside category'), 'abcd');
@@ -193,7 +240,9 @@ describe('GeoTokenInput validation feedback', () => {
   it('says the check failed instead of dropping the warnings silently', async () => {
     vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
     vi.spyOn(HttpUtil, 'post')
-      .mockResolvedValueOnce(new Msg(true, '', [{ token: 'geosite:nope', reason: 'categoryMissing' }]))
+      .mockResolvedValueOnce(
+        new Msg(true, '', [{ token: 'geosite:nope', reason: 'categoryMissing' }]),
+      )
       .mockResolvedValue(new Msg(false, 'too many tokens'));
 
     const view = render(<GeoTokenInput kind="domain" value="geosite:nope" />, { wrapper });
@@ -201,7 +250,11 @@ describe('GeoTokenInput validation feedback', () => {
 
     view.rerender(<GeoTokenInput kind="domain" value="geosite:nope, geosite:other" />);
 
-    await screen.findByText('Could not check these values against the geo databases', {}, { timeout: 3000 });
+    await screen.findByText(
+      'Could not check these values against the geo databases',
+      {},
+      { timeout: 3000 },
+    );
     expect(screen.queryByText(/Not in the database/)).toBeNull();
   });
 });

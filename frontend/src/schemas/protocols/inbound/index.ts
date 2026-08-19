@@ -30,16 +30,16 @@ export * from './wireguard';
 // Consumers narrow on `.protocol` and TypeScript narrows `.settings` to the
 // matching leaf type.
 export const InboundSettingsSchema = z.discriminatedUnion('protocol', [
-  z.object({ protocol: z.literal('vmess'),       settings: VmessInboundSettingsSchema }),
-  z.object({ protocol: z.literal('vless'),       settings: VlessInboundSettingsSchema }),
-  z.object({ protocol: z.literal('trojan'),      settings: TrojanInboundSettingsSchema }),
+  z.object({ protocol: z.literal('vmess'), settings: VmessInboundSettingsSchema }),
+  z.object({ protocol: z.literal('vless'), settings: VlessInboundSettingsSchema }),
+  z.object({ protocol: z.literal('trojan'), settings: TrojanInboundSettingsSchema }),
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksInboundSettingsSchema }),
-  z.object({ protocol: z.literal('wireguard'),   settings: WireguardInboundSettingsSchema }),
-  z.object({ protocol: z.literal('hysteria'),    settings: HysteriaInboundSettingsSchema }),
-  z.object({ protocol: z.literal('http'),        settings: HttpInboundSettingsSchema }),
-  z.object({ protocol: z.literal('mixed'),       settings: MixedInboundSettingsSchema }),
-  z.object({ protocol: z.literal('tunnel'),      settings: TunnelInboundSettingsSchema }),
-  z.object({ protocol: z.literal('tun'),         settings: TunInboundSettingsSchema }),
-  z.object({ protocol: z.literal('mtproto'),     settings: MtprotoInboundSettingsSchema }),
+  z.object({ protocol: z.literal('wireguard'), settings: WireguardInboundSettingsSchema }),
+  z.object({ protocol: z.literal('hysteria'), settings: HysteriaInboundSettingsSchema }),
+  z.object({ protocol: z.literal('http'), settings: HttpInboundSettingsSchema }),
+  z.object({ protocol: z.literal('mixed'), settings: MixedInboundSettingsSchema }),
+  z.object({ protocol: z.literal('tunnel'), settings: TunnelInboundSettingsSchema }),
+  z.object({ protocol: z.literal('tun'), settings: TunInboundSettingsSchema }),
+  z.object({ protocol: z.literal('mtproto'), settings: MtprotoInboundSettingsSchema }),
 ]);
 export type InboundSettings = z.infer<typeof InboundSettingsSchema>;

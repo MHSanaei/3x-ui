@@ -38,7 +38,15 @@ describe('ClientFormModal — Vision flow preservation', () => {
     render(
       <ThemeProvider>
         <QueryClientProvider client={qc}>
-          <ClientFormModal open mode="edit" client={CLIENT} inbounds={[REALITY_INBOUND]} attachedIds={[4]} save={save} onOpenChange={() => {}} />
+          <ClientFormModal
+            open
+            mode="edit"
+            client={CLIENT}
+            inbounds={[REALITY_INBOUND]}
+            attachedIds={[4]}
+            save={save}
+            onOpenChange={() => {}}
+          />
         </QueryClientProvider>
       </ThemeProvider>,
     );
@@ -53,7 +61,15 @@ describe('ClientFormModal — Vision flow preservation', () => {
     const tree = (inbounds: InboundOption[]) => (
       <ThemeProvider>
         <QueryClientProvider client={qc}>
-          <ClientFormModal open mode="edit" client={CLIENT} inbounds={inbounds} attachedIds={[4]} save={save} onOpenChange={() => {}} />
+          <ClientFormModal
+            open
+            mode="edit"
+            client={CLIENT}
+            inbounds={inbounds}
+            attachedIds={[4]}
+            save={save}
+            onOpenChange={() => {}}
+          />
         </QueryClientProvider>
       </ThemeProvider>
     );

@@ -35,6 +35,8 @@ production-style links work without round-tripping through Go.
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
 | `npm run lint` | oxlint (`.oxlintrc.json`: typescript + react-hooks + jsx-a11y) |
 | `npm run lint:deprecated` | Type-aware sweep for JSDoc `@deprecated` APIs (on demand) |
+| `npm run format` | oxfmt (`.oxfmtrc.json`) — rewrites `src/` in place |
+| `npm run format:check` | oxfmt in check mode (no writes) |
 | `npm run test` | Vitest single run (schema fixtures, link parsers, …) |
 | `npm run test:watch` | Vitest watch mode |
 | `npm run storybook` | Storybook dev server on `:6006` (component workbench + autodocs) |
@@ -88,6 +90,7 @@ frontend/
 ├── index.html, login.html, subpage.html  # 3 Vite entries
 ├── tsconfig.json
 ├── .oxlintrc.json                        # oxlint config (replaces the ESLint flat config)
+├── .oxfmtrc.json                         # oxfmt config (Prettier-compatible settings)
 ├── tools/oxlint/
 │   └── input-number-guard.mjs            # oxlint JS plugin: the #6121/#6127 cleared-
 │                                         #   InputNumber guard (oxlint has no

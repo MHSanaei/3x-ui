@@ -95,7 +95,9 @@
   color: var(--ant-color-primary);
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--ant-color-primary) 40%, transparent);
-  transition: background 120ms ease, text-decoration-color 120ms ease;
+  transition:
+    background 120ms ease,
+    text-decoration-color 120ms ease;
 }
 
 .link-panel-anchor:hover {

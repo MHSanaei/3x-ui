@@ -36,7 +36,11 @@ export function formatInboundIssue(issue: IssueLike, values: unknown, t: TFuncti
  * Builds the single-line toast for a failed inbound save: the first issue,
  * fully described, plus a "(+N more)" tail when several fields failed.
  */
-export function formatInboundValidation(issues: IssueLike[], values: unknown, t: TFunction): string {
+export function formatInboundValidation(
+  issues: IssueLike[],
+  values: unknown,
+  t: TFunction,
+): string {
   const first = formatInboundIssue(issues[0], values, t);
   if (issues.length <= 1) return first;
   return t('pages.inbounds.toasts.moreIssues', { message: first, count: issues.length - 1 });

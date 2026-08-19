@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Collapse, Descriptions, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Descriptions,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Switch,
+} from 'antd';
 import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -52,9 +64,10 @@ export default function RealityForm({
    * worth reading, so subject/issuer stay visible and only the verdict is added.
    */
   const certSummary = (r: RealityScanResult) => {
-    const who = r.certSubject && r.certIssuer
-      ? `${r.certSubject} (${r.certIssuer})`
-      : r.certSubject || r.certIssuer;
+    const who =
+      r.certSubject && r.certIssuer
+        ? `${r.certSubject} (${r.certIssuer})`
+        : r.certSubject || r.certIssuer;
     if (!who) return '—';
     return r.certValid ? who : `${who} — ${t('pages.inbounds.form.scanCertInvalid')}`;
   };
@@ -73,16 +86,17 @@ export default function RealityForm({
       >
         <Switch />
       </FormField>
-      <FormField name={['streamSettings', 'realitySettings', 'xver']} label={t('pages.inbounds.form.xver')}>
+      <FormField
+        name={['streamSettings', 'realitySettings', 'xver']}
+        label={t('pages.inbounds.form.xver')}
+      >
         <InputNumber min={0} />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
         label="uTLS"
       >
-        <Select
-          options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))}
-        />
+        <Select options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))} />
       </FormField>
       <Form.Item
         label={t('pages.inbounds.form.target')}
@@ -101,7 +115,11 @@ export default function RealityForm({
           >
             <Input style={{ flex: 1 }} placeholder="example.com:443" />
           </FormField>
-          <Button icon={<RadarChartOutlined />} loading={scanning} onClick={() => scanRealityTarget()}>
+          <Button
+            icon={<RadarChartOutlined />}
+            loading={scanning}
+            onClick={() => scanRealityTarget()}
+          >
             {t('pages.inbounds.form.scan')}
           </Button>
           <Button icon={<SearchOutlined />} onClick={() => setScannerOpen(true)}>
@@ -119,7 +137,7 @@ export default function RealityForm({
                 ? t('pages.inbounds.form.scanFeasible')
                 : scanResult.reason || t('pages.inbounds.form.scanNotFeasible')
             }
-            description={(
+            description={
               <>
                 {scanResult.privateTarget && (
                   <div style={{ marginBottom: 8 }}>{t('pages.inbounds.form.scanPrivateNote')}</div>
@@ -137,14 +155,16 @@ export default function RealityForm({
                     {certSummary(scanResult)}
                   </Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanCertExpiry')}>
-                    {scanResult.notAfter ? dayjs(scanResult.notAfter).format('YYYY-MM-DD HH:mm') : '—'}
+                    {scanResult.notAfter
+                      ? dayjs(scanResult.notAfter).format('YYYY-MM-DD HH:mm')
+                      : '—'}
                   </Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanLatency')}>
                     {scanResult.latencyMs > 0 ? `${scanResult.latencyMs} ms` : '—'}
                   </Descriptions.Item>
                 </Descriptions>
               </>
-            )}
+            }
           />
         </Form.Item>
       )}
@@ -188,13 +208,14 @@ export default function RealityForm({
       </FormField>
       <Form.Item label={t('pages.inbounds.form.shortIds')}>
         <Space.Compact block style={{ display: 'flex' }}>
-          <FormField
-            name={['streamSettings', 'realitySettings', 'shortIds']}
-            noStyle
-          >
+          <FormField name={['streamSettings', 'realitySettings', 'shortIds']} noStyle>
             <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={randomizeShortIds} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={randomizeShortIds}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -202,13 +223,14 @@ export default function RealityForm({
         tooltip={t('pages.inbounds.form.spiderXHint')}
       >
         <Space.Compact block style={{ display: 'flex' }}>
-          <FormField
-            name={['streamSettings', 'realitySettings', 'settings', 'spiderX']}
-            noStyle
-          >
+          <FormField name={['streamSettings', 'realitySettings', 'settings', 'spiderX']} noStyle>
             <Input style={{ flex: 1 }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={randomizeSpiderX} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={randomizeSpiderX}
+          />
         </Space.Compact>
       </Form.Item>
       <FormField
@@ -228,7 +250,9 @@ export default function RealityForm({
           <Button type="primary" loading={saving} onClick={genRealityKeypair}>
             {t('pages.inbounds.form.getNewCert')}
           </Button>
-          <Button danger onClick={clearRealityKeypair}>{t('clear')}</Button>
+          <Button danger onClick={clearRealityKeypair}>
+            {t('clear')}
+          </Button>
         </Space>
       </Form.Item>
       <FormField
@@ -248,7 +272,9 @@ export default function RealityForm({
           <Button type="primary" loading={saving} onClick={genMldsa65}>
             {t('pages.inbounds.form.getNewSeed')}
           </Button>
-          <Button danger onClick={clearMldsa65}>{t('clear')}</Button>
+          <Button danger onClick={clearMldsa65}>
+            {t('clear')}
+          </Button>
         </Space>
       </Form.Item>
       <FormField

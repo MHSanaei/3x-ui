@@ -30,10 +30,7 @@ describe('useAllSettings', () => {
   });
 
   it('keeps an edited setting when a refetch returns older server data', async () => {
-    const values = [
-      { webPort: 2053 },
-      { webPort: 2054 },
-    ];
+    const values = [{ webPort: 2053 }, { webPort: 2054 }];
     let index = 0;
     vi.spyOn(HttpUtil, 'post').mockImplementation(async () => new Msg(true, '', values[index++]));
     const queryClient = makeTestQueryClient();
@@ -56,7 +53,11 @@ describe('useAllSettings', () => {
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/setting/all') {
         fetchCount += 1;
-        return new Msg(true, '', fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' });
+        return new Msg(
+          true,
+          '',
+          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+        );
       }
       return new Msg(true, '');
     });
@@ -83,7 +84,11 @@ describe('useAllSettings', () => {
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/setting/all') {
         fetchCount += 1;
-        return new Msg(true, '', fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' });
+        return new Msg(
+          true,
+          '',
+          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+        );
       }
       return new Msg(true, '');
     });
@@ -96,7 +101,11 @@ describe('useAllSettings', () => {
     await waitFor(() => expect(result.current.fetched).toBe(true));
     act(() => result.current.updateSetting({ tgBotToken: 'secret' }));
     await act(async () => {
-      await result.current.savePayload({ ...result.current.allSetting, twoFactorEnable: false, twoFactorToken: '' });
+      await result.current.savePayload({
+        ...result.current.allSetting,
+        twoFactorEnable: false,
+        twoFactorToken: '',
+      });
     });
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(3));

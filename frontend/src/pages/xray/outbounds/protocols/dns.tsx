@@ -13,7 +13,10 @@ export default function DnsFields() {
   const { fields, append, remove } = useFieldArray({ control, name: 'settings.rules' });
   return (
     <>
-      <FormField label={t('pages.xray.outboundForm.rewriteNetwork')} name={['settings', 'rewriteNetwork']}>
+      <FormField
+        label={t('pages.xray.outboundForm.rewriteNetwork')}
+        name={['settings', 'rewriteNetwork']}
+      >
         <Select
           allowClear
           placeholder={t('pages.xray.outboundForm.unchanged')}
@@ -23,7 +26,10 @@ export default function DnsFields() {
           ]}
         />
       </FormField>
-      <FormField label={t('pages.inbounds.form.rewriteAddress')} name={['settings', 'rewriteAddress']}>
+      <FormField
+        label={t('pages.inbounds.form.rewriteAddress')}
+        name={['settings', 'rewriteAddress']}
+      >
         <Input placeholder={t('pages.xray.outboundForm.unchangedAddress')} />
       </FormField>
       <FormField label={t('pages.inbounds.form.rewritePort')} name={['settings', 'rewritePort']}>
@@ -56,10 +62,11 @@ export default function DnsFields() {
               />
             </div>
           </Form.Item>
-          <FormField label={t('pages.xray.outboundForm.action')} name={['settings', 'rules', index, 'action']}>
-            <Select
-              options={DNSRuleActions.map((a) => ({ value: a, label: a }))}
-            />
+          <FormField
+            label={t('pages.xray.outboundForm.action')}
+            name={['settings', 'rules', index, 'action']}
+          >
+            <Select options={DNSRuleActions.map((a) => ({ value: a, label: a }))} />
           </FormField>
           <FormField label="QType" name={['settings', 'rules', index, 'qType']}>
             <Input placeholder="1,3,23-24" />

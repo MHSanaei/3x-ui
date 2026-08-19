@@ -23,11 +23,23 @@ type Raw = Record<string, unknown>;
 // the same set of advanced fields when present. Keep order ~stable to
 // match the schema's authoring order so diffs read naturally.
 const XHTTP_STRING_KEYS = [
-  'xPaddingBytes', 'xPaddingKey', 'xPaddingHeader', 'xPaddingPlacement',
-  'xPaddingMethod', 'sessionIDPlacement', 'sessionIDKey', 'sessionIDTable',
-  'sessionIDLength', 'seqPlacement', 'seqKey', 'uplinkDataPlacement',
-  'uplinkDataKey', 'scMaxEachPostBytes', 'scMinPostsIntervalMs',
-  'scStreamUpServerSecs', 'uplinkHTTPMethod',
+  'xPaddingBytes',
+  'xPaddingKey',
+  'xPaddingHeader',
+  'xPaddingPlacement',
+  'xPaddingMethod',
+  'sessionIDPlacement',
+  'sessionIDKey',
+  'sessionIDTable',
+  'sessionIDLength',
+  'seqPlacement',
+  'seqKey',
+  'uplinkDataPlacement',
+  'uplinkDataKey',
+  'scMaxEachPostBytes',
+  'scMinPostsIntervalMs',
+  'scStreamUpServerSecs',
+  'uplinkHTTPMethod',
 ] as const;
 // Legacy share links (pre xray-core #6258) carry sessionPlacement/sessionKey.
 // Map them onto the renamed keys so old links still import. Mirrors the
@@ -37,11 +49,11 @@ const XHTTP_LEGACY_ALIASES: Record<string, string> = {
   sessionKey: 'sessionIDKey',
 };
 const XHTTP_NUMBER_KEYS = [
-  'scMaxBufferedPosts', 'serverMaxHeaderBytes', 'uplinkChunkSize',
+  'scMaxBufferedPosts',
+  'serverMaxHeaderBytes',
+  'uplinkChunkSize',
 ] as const;
-const XHTTP_BOOL_KEYS = [
-  'xPaddingObfsMode', 'noSSEHeader', 'noGRPCHeader',
-] as const;
+const XHTTP_BOOL_KEYS = ['xPaddingObfsMode', 'noSSEHeader', 'noGRPCHeader'] as const;
 // Nested objects the inbound link bundles into the `extra` JSON blob
 // (and vmess JSON carries inline). The outbound form adapter expands
 // xmux into the XMUX sub-form (enableXmux) on load.
@@ -127,8 +139,12 @@ function buildStream(network: string, security: string): Raw {
       break;
     case 'kcp':
       stream.kcpSettings = {
-        mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
-        cwndMultiplier: 1, maxSendingWindow: 2097152,
+        mtu: 1350,
+        tti: 20,
+        uplinkCapacity: 5,
+        downlinkCapacity: 20,
+        cwndMultiplier: 1,
+        maxSendingWindow: 2097152,
       };
       break;
     case 'ws':
@@ -142,7 +158,10 @@ function buildStream(network: string, security: string): Raw {
       break;
     case 'xhttp':
       stream.xhttpSettings = {
-        path: '/', host: '', mode: 'auto', headers: {},
+        path: '/',
+        host: '',
+        mode: 'auto',
+        headers: {},
         xPaddingBytes: '100-1000',
       };
       break;
@@ -151,13 +170,21 @@ function buildStream(network: string, security: string): Raw {
   }
   if (security === 'tls') {
     stream.tlsSettings = {
-      serverName: '', alpn: [], fingerprint: '',
-      echConfigList: '', verifyPeerCertByName: '', pinnedPeerCertSha256: '',
+      serverName: '',
+      alpn: [],
+      fingerprint: '',
+      echConfigList: '',
+      verifyPeerCertByName: '',
+      pinnedPeerCertSha256: '',
     };
   } else if (security === 'reality') {
     stream.realitySettings = {
-      publicKey: '', fingerprint: 'chrome', serverName: '',
-      shortId: '', spiderX: '', mldsa65Verify: '',
+      publicKey: '',
+      fingerprint: 'chrome',
+      serverName: '',
+      shortId: '',
+      spiderX: '',
+      mldsa65Verify: '',
     };
   }
   return stream;
@@ -241,12 +268,17 @@ function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
   if (!password) return;
   const finalmask = ensureFinalMask(stream);
   const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as Raw[]) : [];
-  const existing = udp.find((m) => m && typeof m === 'object' && (m as Raw).type === 'salamander') as Raw | undefined;
+  const existing = udp.find(
+    (m) => m && typeof m === 'object' && (m as Raw).type === 'salamander',
+  ) as Raw | undefined;
   if (existing) {
-    const settings = (existing.settings && typeof existing.settings === 'object'
-      ? existing.settings
-      : (existing.settings = {})) as Raw;
-    if (typeof settings.password !== 'string' || settings.password.length === 0) settings.password = password;
+    const settings = (
+      existing.settings && typeof existing.settings === 'object'
+        ? existing.settings
+        : (existing.settings = {})
+    ) as Raw;
+    if (typeof settings.password !== 'string' || settings.password.length === 0)
+      settings.password = password;
     return;
   }
   finalmask.udp = [...udp, { type: 'salamander', settings: { password } }];
@@ -259,9 +291,11 @@ function applyHysteria2Hop(stream: Raw, params: URLSearchParams): void {
   const ports = firstParam(params, 'mport');
   if (!ports) return;
   const finalmask = ensureFinalMask(stream);
-  const quicParams = (finalmask.quicParams && typeof finalmask.quicParams === 'object'
-    ? finalmask.quicParams
-    : (finalmask.quicParams = {})) as Raw;
+  const quicParams = (
+    finalmask.quicParams && typeof finalmask.quicParams === 'object'
+      ? finalmask.quicParams
+      : (finalmask.quicParams = {})
+  ) as Raw;
   const existingHop = quicParams.udpHop as Raw | undefined;
   if (existingHop && typeof existingHop.ports === 'string' && existingHop.ports.length > 0) return;
   quicParams.udpHop = { ports, interval: '5-10' };
@@ -371,8 +405,9 @@ export function parseVmessLink(link: string): Raw | null {
       (stream.tcpSettings as Raw).header = {
         type: 'http',
         request: {
-          version: '1.1', method: 'GET',
-          path: (json.path as string ?? '/').split(',').filter(Boolean),
+          version: '1.1',
+          method: 'GET',
+          path: ((json.path as string) ?? '/').split(',').filter(Boolean),
           headers: json.host ? { Host: (json.host as string).split(',').filter(Boolean) } : {},
         },
       };
@@ -407,11 +442,13 @@ export function parseVmessLink(link: string): Raw | null {
       protocol: 'vmess',
       tag: typeof json.ps === 'string' ? json.ps : '',
       settings: {
-        vnext: [{
-          address: json.add ?? '',
-          port,
-          users: [{ id: json.id ?? '', security: userSecurity }],
-        }],
+        vnext: [
+          {
+            address: json.add ?? '',
+            port,
+            users: [{ id: json.id ?? '', security: userSecurity }],
+          },
+        ],
       },
       streamSettings: stream,
     };
@@ -493,7 +530,11 @@ export function parseShadowsocksLink(link: string): Raw | null {
   const hashIndex = link.indexOf('#');
   const linkNoHash = hashIndex >= 0 ? link.slice(0, hashIndex) : link;
   if (hashIndex >= 0) {
-    try { remark = decodeURIComponent(link.slice(hashIndex + 1)); } catch { remark = ''; }
+    try {
+      remark = decodeURIComponent(link.slice(hashIndex + 1));
+    } catch {
+      remark = '';
+    }
   }
   const queryIndex = linkNoHash.indexOf('?');
   const core = queryIndex >= 0 ? linkNoHash.slice(0, queryIndex) : linkNoHash;
@@ -503,10 +544,17 @@ export function parseShadowsocksLink(link: string): Raw | null {
     if (rawUserInfo.includes(':')) {
       // SIP022 (2022-blake3-*) userinfo is percent-encoded, never base64
       // (a literal ':' can't appear in a base64/base64url string).
-      try { userInfo = decodeURIComponent(rawUserInfo); } catch { userInfo = rawUserInfo; }
+      try {
+        userInfo = decodeURIComponent(rawUserInfo);
+      } catch {
+        userInfo = rawUserInfo;
+      }
     } else {
-      try { userInfo = Base64.decode(rawUserInfo); }
-      catch { userInfo = rawUserInfo; }
+      try {
+        userInfo = Base64.decode(rawUserInfo);
+      } catch {
+        userInfo = rawUserInfo;
+      }
     }
     const hostPort = core.slice(atIndex + 1);
     const colon = hostPort.lastIndexOf(':');
@@ -515,8 +563,11 @@ export function parseShadowsocksLink(link: string): Raw | null {
     port = Number(hostPort.slice(colon + 1)) || 443;
   } else {
     let decoded: string;
-    try { decoded = Base64.decode(core.slice('ss://'.length)); }
-    catch { return null; }
+    try {
+      decoded = Base64.decode(core.slice('ss://'.length));
+    } catch {
+      return null;
+    }
     const at = decoded.indexOf('@');
     if (at < 0) return null;
     userInfo = decoded.slice(0, at);
@@ -554,7 +605,9 @@ export function parseHysteria2Link(link: string): Raw | null {
     network: 'hysteria',
     security: 'tls',
     hysteriaSettings: {
-      version: 2, auth, udpIdleTimeout: 60,
+      version: 2,
+      auth,
+      udpIdleTimeout: 60,
     },
     tlsSettings: {
       serverName: params.get('sni') ?? '',
@@ -599,11 +652,17 @@ export function parseWireguardLink(link: string): Raw | null {
   const endpoint = host ? (port ? `${host}:${port}` : host) : '';
 
   const addressRaw = firstParam(params, 'address', 'ip') ?? '';
-  const address = addressRaw.split(',').map((s) => s.trim()).filter(Boolean);
+  const address = addressRaw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const allowedRaw = firstParam(params, 'allowedips', 'allowed_ips');
   const allowedIPs = allowedRaw
-    ? allowedRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    ? allowedRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     : ['0.0.0.0/0', '::/0'];
 
   const peer: Raw = {
@@ -613,7 +672,12 @@ export function parseWireguardLink(link: string): Raw | null {
   };
   const psk = firstParam(params, 'presharedkey', 'preshared_key', 'pre-shared-key', 'psk');
   if (psk) peer.preSharedKey = psk;
-  const keepAliveRaw = firstParam(params, 'keepalive', 'persistentkeepalive', 'persistent_keepalive');
+  const keepAliveRaw = firstParam(
+    params,
+    'keepalive',
+    'persistentkeepalive',
+    'persistent_keepalive',
+  );
   if (keepAliveRaw !== null) {
     const k = Number(keepAliveRaw);
     if (Number.isFinite(k)) peer.keepAlive = k;
@@ -627,7 +691,8 @@ export function parseWireguardLink(link: string): Raw | null {
   }
   const reservedRaw = firstParam(params, 'reserved');
   if (reservedRaw) {
-    const reserved = reservedRaw.split(',')
+    const reserved = reservedRaw
+      .split(',')
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n));
     if (reserved.length > 0) settings.reserved = reserved;
@@ -646,11 +711,11 @@ export function parseOutboundLink(link: string): Raw | null {
   const trimmed = link.trim();
   if (!trimmed) return null;
   return (
-    parseVmessLink(trimmed)
-    ?? parseVlessLink(trimmed)
-    ?? parseTrojanLink(trimmed)
-    ?? parseShadowsocksLink(trimmed)
-    ?? parseHysteria2Link(trimmed)
-    ?? parseWireguardLink(trimmed)
+    parseVmessLink(trimmed) ??
+    parseVlessLink(trimmed) ??
+    parseTrojanLink(trimmed) ??
+    parseShadowsocksLink(trimmed) ??
+    parseHysteria2Link(trimmed) ??
+    parseWireguardLink(trimmed)
   );
 }

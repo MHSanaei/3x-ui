@@ -44,7 +44,9 @@ function deactivate(routes: GeoRoutes): void {
 function GeoApi({ routes, children }: { routes: GeoRoutes; children: ReactNode }) {
   const [client] = useState(() => {
     activate(routes);
-    return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    return new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
   });
   useEffect(() => {
     activate(routes);
@@ -58,25 +60,55 @@ const cidr = (value: string): GeoEntry => ({ kind: 'cidr', value });
 
 const SITE_ENTRIES: Record<string, GeoEntry[]> = {
   'category-ads-all': [
-    domain('doubleclick.net'), domain('googleadservices.com'), domain('googlesyndication.com'),
-    domain('criteo.com'), domain('taboola.com'), domain('outbrain.com'),
+    domain('doubleclick.net'),
+    domain('googleadservices.com'),
+    domain('googlesyndication.com'),
+    domain('criteo.com'),
+    domain('taboola.com'),
+    domain('outbrain.com'),
   ],
-  cn: [domain('baidu.com'), domain('qq.com'), domain('taobao.com'), domain('weibo.com'), domain('bilibili.com')],
+  cn: [
+    domain('baidu.com'),
+    domain('qq.com'),
+    domain('taobao.com'),
+    domain('weibo.com'),
+    domain('bilibili.com'),
+  ],
   google: [
-    domain('google.com'), domain('googleapis.com'), domain('gstatic.com'),
-    domain('googleusercontent.com'), domain('ggpht.com'), domain('android.com'),
+    domain('google.com'),
+    domain('googleapis.com'),
+    domain('gstatic.com'),
+    domain('googleusercontent.com'),
+    domain('ggpht.com'),
+    domain('android.com'),
   ],
-  netflix: [domain('netflix.com'), domain('nflximg.net'), domain('nflxvideo.net'), domain('fast.com')],
+  netflix: [
+    domain('netflix.com'),
+    domain('nflximg.net'),
+    domain('nflxvideo.net'),
+    domain('fast.com'),
+  ],
   telegram: [domain('telegram.org'), domain('t.me'), domain('telesco.pe'), domain('telegra.ph')],
-  youtube: [domain('youtube.com'), domain('youtu.be'), domain('ytimg.com'), domain('googlevideo.com')],
+  youtube: [
+    domain('youtube.com'),
+    domain('youtu.be'),
+    domain('ytimg.com'),
+    domain('googlevideo.com'),
+  ],
 };
 
 const IP_ENTRIES: Record<string, GeoEntry[]> = {
   cloudflare: ['104.16.0.0/13', '172.64.0.0/13', '2606:4700::/32'].map(cidr),
   cn: ['1.0.1.0/24', '36.0.0.0/22', '116.0.0.0/9', '2408:8000::/20'].map(cidr),
   private: [
-    '10.0.0.0/8', '127.0.0.0/8', '169.254.0.0/16', '172.16.0.0/12', '192.168.0.0/16',
-    '::1/128', 'fc00::/7', 'fe80::/10',
+    '10.0.0.0/8',
+    '127.0.0.0/8',
+    '169.254.0.0/16',
+    '172.16.0.0/12',
+    '192.168.0.0/16',
+    '::1/128',
+    'fc00::/7',
+    'fe80::/10',
   ].map(cidr),
   telegram: ['91.108.4.0/22', '149.154.160.0/20', '2001:b28:f23d::/48'].map(cidr),
 };
@@ -95,10 +127,14 @@ function categoriesOf(
     .map((code) => ({ code, entries: entries[code].length, attributes: attributes[code] ?? [] }));
 }
 
-const DATASETS: Record<string, { categories: GeoCategory[]; entries: Record<string, GeoEntry[]> }> = {
-  'geosite.dat': { categories: categoriesOf(SITE_ENTRIES, SITE_ATTRIBUTES), entries: SITE_ENTRIES },
-  'geoip.dat': { categories: categoriesOf(IP_ENTRIES), entries: IP_ENTRIES },
-};
+const DATASETS: Record<string, { categories: GeoCategory[]; entries: Record<string, GeoEntry[]> }> =
+  {
+    'geosite.dat': {
+      categories: categoriesOf(SITE_ENTRIES, SITE_ATTRIBUTES),
+      entries: SITE_ENTRIES,
+    },
+    'geoip.dat': { categories: categoriesOf(IP_ENTRIES), entries: IP_ENTRIES },
+  };
 
 const UPDATED_AT = Date.UTC(2026, 6, 24, 3, 12);
 
@@ -125,7 +161,9 @@ function referenceOf(token: string, isIP: boolean): { file: string; code: string
   if (prefix === 'geosite') return { file: 'geosite.dat', code: code(rest.join(':')) };
   if (prefix === 'geoip') return { file: 'geoip.dat', code: code(rest.join(':')) };
   if (prefix === 'ext') return { file: rest[0] ?? '', code: code(rest.slice(1).join(':')) };
-  return isIP && prefix === 'ext-ip' ? { file: rest[0] ?? '', code: code(rest.slice(1).join(':')) } : null;
+  return isIP && prefix === 'ext-ip'
+    ? { file: rest[0] ?? '', code: code(rest.slice(1).join(':')) }
+    : null;
 }
 
 function validate(tokens: string[], isIP: boolean): GeodataTokenIssue[] {
@@ -209,10 +247,15 @@ const meta = {
   args: { kind: 'domain' },
   argTypes: {
     value: { description: 'Comma separated rule string held by the parent form.' },
-    onChange: { description: 'Called with the full rule string on every edit and on Apply from the browser.' },
-    onBlur: { description: 'Forwarded to the input; used by React Hook Form to mark the field touched.' },
+    onChange: {
+      description: 'Called with the full rule string on every edit and on Apply from the browser.',
+    },
+    onBlur: {
+      description: 'Forwarded to the input; used by React Hook Form to mark the field touched.',
+    },
     kind: {
-      description: 'Which database the tokens are validated against: `domain` for geosite, `ip` for geoip.',
+      description:
+        'Which database the tokens are validated against: `domain` for geosite, `ip` for geoip.',
       control: 'inline-radio',
       options: ['domain', 'ip'],
     },
@@ -242,6 +285,8 @@ export const UnknownCategory: Story = {
   args: { kind: 'domain', value: 'geosite:blabla, geosite:google' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText(/geosite:blabla/, undefined, { timeout: 3000 })).toBeVisible();
+    await expect(
+      await canvas.findByText(/geosite:blabla/, undefined, { timeout: 3000 }),
+    ).toBeVisible();
   },
 };

@@ -35,7 +35,10 @@ type DBInboundInstance = InstanceType<typeof DBInbound>;
 // while recent, so returning to the page shows the last throughput immediately
 // and the next poll refreshes it.
 const SPEED_CACHE_TTL_MS = 15000;
-let inboundSpeedCache: { at: number; data: Record<number, InboundSpeedEntry> } = { at: 0, data: {} };
+let inboundSpeedCache: { at: number; data: Record<number, InboundSpeedEntry> } = {
+  at: 0,
+  data: {},
+};
 
 interface TrafficDelta {
   Tag: string;
@@ -86,7 +89,9 @@ async function fetchOnlineClientsByGuid(): Promise<Record<string, string[]>> {
   const msg = await HttpUtil.post('/panel/api/clients/onlinesByGuid', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch onlinesByGuid');
   const validated = parseMsg(msg, OnlineByNodeSchema, 'clients/onlinesByGuid');
-  return (validated.obj && typeof validated.obj === 'object') ? (validated.obj as Record<string, string[]>) : {};
+  return validated.obj && typeof validated.obj === 'object'
+    ? (validated.obj as Record<string, string[]>)
+    : {};
 }
 
 // Inbound tags that carried traffic recently, grouped by node (local = key 0).
@@ -97,7 +102,9 @@ async function fetchActiveInboundsByNode(): Promise<Record<string, string[]>> {
   const msg = await HttpUtil.post('/panel/api/clients/activeInbounds', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch activeInbounds');
   const validated = parseMsg(msg, ActiveInboundsByNodeSchema, 'clients/activeInbounds');
-  return (validated.obj && typeof validated.obj === 'object') ? (validated.obj as Record<string, string[]>) : {};
+  return validated.obj && typeof validated.obj === 'object'
+    ? (validated.obj as Record<string, string[]>)
+    : {};
 }
 
 function toGuidOnlineMap(data: Record<string, string[]>): Map<string, Set<string>> {
@@ -113,11 +120,13 @@ async function fetchLastOnlineMap(): Promise<Record<string, number>> {
   const msg = await HttpUtil.post('/panel/api/clients/lastOnline', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch lastOnline');
   const validated = parseMsg(msg, LastOnlineMapSchema, 'clients/lastOnline');
-  return (validated.obj && typeof validated.obj === 'object') ? validated.obj : {};
+  return validated.obj && typeof validated.obj === 'object' ? validated.obj : {};
 }
 
 async function fetchDefaultSettings(): Promise<DefaultsPayload> {
-  const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, {
+    silent: true,
+  });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
   const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
   return validated.obj ?? {};
@@ -170,14 +179,25 @@ export function useInbounds() {
   const pageSize = defaults.pageSize ?? 0;
   const datepicker = (defaults.datepicker as 'gregorian' | 'jalalian') || 'gregorian';
 
-  const subSettings: SubSettings = useMemo(() => ({
-    enable: !!defaults.subEnable,
-    subTitle: defaults.subTitle || '',
-    subURI: defaults.subURI || '',
-    subJsonURI: defaults.subJsonURI || '',
-    subJsonEnable: !!defaults.subJsonEnable,
-    publicHost: defaults.subDomain || defaults.webDomain || '',
-  }), [defaults.subEnable, defaults.subTitle, defaults.subURI, defaults.subJsonURI, defaults.subJsonEnable, defaults.subDomain, defaults.webDomain]);
+  const subSettings: SubSettings = useMemo(
+    () => ({
+      enable: !!defaults.subEnable,
+      subTitle: defaults.subTitle || '',
+      subURI: defaults.subURI || '',
+      subJsonURI: defaults.subJsonURI || '',
+      subJsonEnable: !!defaults.subJsonEnable,
+      publicHost: defaults.subDomain || defaults.webDomain || '',
+    }),
+    [
+      defaults.subEnable,
+      defaults.subTitle,
+      defaults.subURI,
+      defaults.subJsonURI,
+      defaults.subJsonEnable,
+      defaults.subDomain,
+      defaults.webDomain,
+    ],
+  );
 
   useEffect(() => {
     if (defaults.datepicker) setDatepicker(datepicker);
@@ -224,9 +244,22 @@ export function useInbounds() {
   const [lastOnlineMap, setLastOnlineMap] = useState<Record<string, number>>({});
 
   const rollupClients = useCallback(
-    (dbInbound: DBInboundInstance, inbound: { clients?: { email?: string; enable?: boolean; comment?: string }[] }): ClientRollup => {
+    (
+      dbInbound: DBInboundInstance,
+      inbound: { clients?: { email?: string; enable?: boolean; comment?: string }[] },
+    ): ClientRollup => {
       const clientStats = Array.isArray((dbInbound as { clientStats?: unknown }).clientStats)
-        ? (dbInbound as unknown as { clientStats: { email: string; total: number; up: number; down: number; expiryTime: number }[] }).clientStats
+        ? (
+            dbInbound as unknown as {
+              clientStats: {
+                email: string;
+                total: number;
+                up: number;
+                down: number;
+                expiryTime: number;
+              }[];
+            }
+          ).clientStats
         : [];
       const clients = inbound?.clients || [];
       const active: string[] = [];
@@ -241,17 +274,22 @@ export function useInbounds() {
       // inbound. Local inbounds carry the panel's own GUID (filled server-side);
       // a node-managed inbound carries its origin node's GUID, or falls back to
       // the master-local synthetic id for an old-build node without one (#4983).
-      const guid = dbInbound.originNodeGuid || (dbInbound.nodeId != null ? `node:${dbInbound.nodeId}` : '');
+      const guid =
+        dbInbound.originNodeGuid || (dbInbound.nodeId != null ? `node:${dbInbound.nodeId}` : '');
       const nodeOnline = onlineByGuidRef.current.get(guid);
       // A node absent from the active map reports no per-inbound activity, so
       // leave its inbounds ungated. When present, only mark a client online on
       // this inbound if its tag actually carried traffic — that's what stops a
       // multi-inbound client lighting up every inbound it's attached to.
       const activeForNode = activeByGuidRef.current.get(guid);
-      const inboundActive = activeForNode === undefined || !dbInbound.tag || activeForNode.has(dbInbound.tag);
+      const inboundActive =
+        activeForNode === undefined || !dbInbound.tag || activeForNode.has(dbInbound.tag);
 
       if (dbInbound.enable) {
-        const statsByEmail = new Map<string, { email: string; total: number; up: number; down: number; expiryTime: number }>();
+        const statsByEmail = new Map<
+          string,
+          { email: string; total: number; up: number; down: number; expiryTime: number }
+        >();
         for (const stats of clientStats) {
           if (stats.email) statsByEmail.set(stats.email.toLowerCase(), stats);
         }
@@ -259,7 +297,8 @@ export function useInbounds() {
           if (client.comment && client.email) comments.set(client.email, client.comment);
           if (!client.email) continue;
           const stats = statsByEmail.get(client.email.toLowerCase());
-          const exhausted = stats != null && stats.total > 0 && stats.up + stats.down >= stats.total;
+          const exhausted =
+            stats != null && stats.total > 0 && stats.up + stats.down >= stats.total;
           const expired = stats != null && stats.expiryTime > 0 && stats.expiryTime <= now;
           if (expired || exhausted) {
             depleted.push(client.email);
@@ -326,7 +365,11 @@ export function useInbounds() {
           method?: string;
           clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
         };
-        if (row.protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol: row.protocol, settings })) continue;
+        if (
+          row.protocol === Protocols.SHADOWSOCKS &&
+          !isSSMultiUser({ protocol: row.protocol, settings })
+        )
+          continue;
         counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
       }
     }
@@ -360,7 +403,9 @@ export function useInbounds() {
     if (lastOnlineQuery.data) setLastOnlineMap(lastOnlineQuery.data);
   }, [lastOnlineQuery.data]);
 
-  const fetched = (slimQuery.data !== undefined || slimQuery.isError) && (defaultsQuery.data !== undefined || defaultsQuery.isError);
+  const fetched =
+    (slimQuery.data !== undefined || slimQuery.isError) &&
+    (defaultsQuery.data !== undefined || defaultsQuery.isError);
   const fetchErrorSource = slimQuery.error || defaultsQuery.error;
   const fetchError = fetchErrorSource ? (fetchErrorSource as Error).message : '';
 
@@ -385,22 +430,25 @@ export function useInbounds() {
   // uuid/password/flow/etc.) and swaps it into the cached list. Use this
   // before opening edit / info / qr / export / clone flows — refresh() loads
   // the slim list which doesn't carry per-client secrets.
-  const hydrateInbound = useCallback(async (id: number) => {
-    const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
-    if (!msg?.success || !msg.obj) return null;
-    const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
-    if (!validated.obj) return null;
-    const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
-    setDbInbounds((prev) => {
-      const next = prev.map((row) => (
-        (row as unknown as { id: number }).id === id ? dbInbound : row
-      ));
-      dbInboundsRef.current = next;
-      return next;
-    });
-    rebuildClientCount();
-    return dbInbound;
-  }, [rebuildClientCount]);
+  const hydrateInbound = useCallback(
+    async (id: number) => {
+      const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
+      if (!msg?.success || !msg.obj) return null;
+      const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
+      if (!validated.obj) return null;
+      const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
+      setDbInbounds((prev) => {
+        const next = prev.map((row) =>
+          (row as unknown as { id: number }).id === id ? dbInbound : row,
+        );
+        dbInboundsRef.current = next;
+        return next;
+      });
+      rebuildClientCount();
+      return dbInbound;
+    },
+    [rebuildClientCount],
+  );
 
   const applyTrafficEvent = useCallback(
     (payload: unknown) => {
@@ -470,19 +518,34 @@ export function useInbounds() {
       if (!payload || typeof payload !== 'object') return;
       const p = payload as {
         inbounds?: { id: number; up?: number; down?: number; total?: number; enable?: boolean }[];
-        clients?: { email: string; up?: number; down?: number; total?: number; expiryTime?: number; enable?: boolean }[];
+        clients?: {
+          email: string;
+          up?: number;
+          down?: number;
+          total?: number;
+          expiryTime?: number;
+          enable?: boolean;
+        }[];
       };
       let touched = false;
 
       if (Array.isArray(p.inbounds) && p.inbounds.length > 0) {
-        const byId = new Map<number, { id: number; up?: number; down?: number; total?: number; enable?: boolean }>();
+        const byId = new Map<
+          number,
+          { id: number; up?: number; down?: number; total?: number; enable?: boolean }
+        >();
         for (const row of p.inbounds) {
           if (row && row.id != null) byId.set(row.id, row);
         }
         for (const ib of dbInboundsRef.current) {
           const upd = byId.get((ib as unknown as { id: number }).id);
           if (!upd) continue;
-          const ibRec = ib as unknown as { up: number; down: number; total: number; enable: boolean };
+          const ibRec = ib as unknown as {
+            up: number;
+            down: number;
+            total: number;
+            enable: boolean;
+          };
           if (typeof upd.up === 'number') ibRec.up = upd.up;
           if (typeof upd.down === 'number') ibRec.down = upd.down;
           if (typeof upd.total === 'number') ibRec.total = upd.total;
@@ -492,12 +555,33 @@ export function useInbounds() {
       }
 
       if (Array.isArray(p.clients) && p.clients.length > 0) {
-        const byEmail = new Map<string, { email: string; up?: number; down?: number; total?: number; expiryTime?: number; enable?: boolean }>();
+        const byEmail = new Map<
+          string,
+          {
+            email: string;
+            up?: number;
+            down?: number;
+            total?: number;
+            expiryTime?: number;
+            enable?: boolean;
+          }
+        >();
         for (const row of p.clients) {
           if (row && row.email) byEmail.set(row.email, row);
         }
         for (const ib of dbInboundsRef.current) {
-          const stats = (ib as unknown as { clientStats: { email: string; up: number; down: number; total: number; expiryTime: number; enable: boolean }[] }).clientStats;
+          const stats = (
+            ib as unknown as {
+              clientStats: {
+                email: string;
+                up: number;
+                down: number;
+                total: number;
+                expiryTime: number;
+                enable: boolean;
+              }[];
+            }
+          ).clientStats;
           if (!Array.isArray(stats)) continue;
           for (let i = 0; i < stats.length; i++) {
             const stat = stats[i];

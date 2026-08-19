@@ -72,10 +72,9 @@ describe('inbound transport forms', () => {
     /* The inbound sockopt form shows only server/listening-side fields;
        outbound-only fields (dialerProxy, domainStrategy, interface,
        addressPortStrategy, happyEyeballs, tcpMptcp) live in the outbound form. */
-    renderInForm(
-      <SockoptForm toggleSockopt={noop} network="tcp" />,
-      { streamSettings: { sockopt: { mark: 0 } } },
-    );
+    renderInForm(<SockoptForm toggleSockopt={noop} network="tcp" />, {
+      streamSettings: { sockopt: { mark: 0 } },
+    });
     expect(fieldLabels()).toMatchSnapshot();
   });
 });

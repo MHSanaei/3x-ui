@@ -7,7 +7,15 @@ import type { InboundOption } from '@/hooks/useClients';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { BulkAttachResult } from '@/schemas/client';
 
-const MULTI_USER_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'hysteria', 'shadowsocks', 'wireguard', 'mtproto']);
+const MULTI_USER_PROTOCOLS = new Set([
+  'vmess',
+  'vless',
+  'trojan',
+  'hysteria',
+  'shadowsocks',
+  'wireguard',
+  'mtproto',
+]);
 
 interface BulkAttachInboundsModalProps {
   open: boolean;

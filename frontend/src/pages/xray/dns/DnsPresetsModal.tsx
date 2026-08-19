@@ -93,7 +93,10 @@ export default function DnsPresetsModal({ open, onClose, onInstall }: DnsPresets
           <div key={preset.name} className="preset-row">
             <Space size="small" align="center">
               {preset.tags.map((tag) => (
-                <Tag key={tag} color={tag === 'Family' ? 'purple' : tag === 'UDP' ? 'orange' : 'green'}>
+                <Tag
+                  key={tag}
+                  color={tag === 'Family' ? 'purple' : tag === 'UDP' ? 'orange' : 'green'}
+                >
                   {tagLabel(tag, t)}
                 </Tag>
               ))}

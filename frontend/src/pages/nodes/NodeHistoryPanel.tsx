@@ -55,7 +55,7 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
     const fetchSeries = async (metric: string, kind: 'pct' | 'rate') => {
       try {
         const url = `/panel/api/nodes/history/${node.id}/${metric}/${bucket}`;
-        const msg = await HttpUtil.get(url) as ApiMsg<SeriesPoint[]>;
+        const msg = (await HttpUtil.get(url)) as ApiMsg<SeriesPoint[]>;
         if (msg?.success && Array.isArray(msg.obj)) {
           const vals: number[] = [];
           const labs: string[] = [];

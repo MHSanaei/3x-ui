@@ -29,20 +29,20 @@ export default function RawForm() {
               'streamSettings.tcpSettings.header',
               v
                 ? {
-                  type: 'http',
-                  request: {
-                    version: '1.1',
-                    method: 'GET',
-                    path: ['/'],
-                    headers: {},
-                  },
-                  response: {
-                    version: '1.1',
-                    status: '200',
-                    reason: 'OK',
-                    headers: {},
-                  },
-                }
+                    type: 'http',
+                    request: {
+                      version: '1.1',
+                      method: 'GET',
+                      path: ['/'],
+                      headers: {},
+                    },
+                    response: {
+                      version: '1.1',
+                      status: '200',
+                      reason: 'OK',
+                      headers: {},
+                    },
+                  }
                 : { type: 'none' },
             );
           }}
