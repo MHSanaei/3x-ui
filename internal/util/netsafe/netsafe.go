@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"regexp"
 	"strings"
 	"time"
@@ -15,9 +16,40 @@ import (
 // ordinary connection failure.
 var ErrPrivateAddressBlocked = errors.New("blocked private/internal address")
 
+// Ranges Go's net.IP predicates do not treat as internal. The transition
+// mechanisms here are deprecated (RFC 7526) or local-use, so none carry public traffic.
+var blockedPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("100.64.0.0/10"),  // CGNAT (RFC 6598)
+	netip.MustParsePrefix("2002::/16"),      // 6to4 (RFC 3056)
+	netip.MustParsePrefix("2001::/32"),      // Teredo (RFC 4380)
+	netip.MustParsePrefix("64:ff9b:1::/48"), // NAT64 local-use (RFC 8215)
+	netip.MustParsePrefix("fec0::/10"),      // site-local (RFC 3879)
+}
+
+// Judged by the IPv4 it embeds rather than blocked outright: on a DNS64 network
+// every public IPv4 host resolves into this prefix (RFC 6052 mandates /96 here).
+var nat64WellKnown = netip.MustParsePrefix("64:ff9b::/96")
+
 func IsBlockedIP(ip net.IP) bool {
-	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	addr = addr.Unmap()
+	for _, prefix := range blockedPrefixes {
+		if prefix.Contains(addr) {
+			return true
+		}
+	}
+	if nat64WellKnown.Contains(addr) {
+		embedded := addr.As16()
+		return IsBlockedIP(net.IP(embedded[12:16]))
+	}
+	return false
 }
 
 type allowPrivateCtxKey struct{}
