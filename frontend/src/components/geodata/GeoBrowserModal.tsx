@@ -203,7 +203,7 @@ export default function GeoBrowserModal({
             {category.attributes?.length > 0 && (
               <span className="geo-attrs">
                 {category.attributes.map((attribute) => (
-                  <Tag key={attribute} bordered={false}>
+                  <Tag key={attribute} variant="filled">
                     @{attribute}
                   </Tag>
                 ))}
@@ -228,7 +228,7 @@ export default function GeoBrowserModal({
         dataIndex: 'kind',
         width: 88,
         render: (entryKind: string) => (
-          <Tag bordered={false} className={`geo-kind geo-kind-${entryKind}`}>
+          <Tag variant="filled" className={`geo-kind geo-kind-${entryKind}`}>
             {entryKind}
           </Tag>
         ),

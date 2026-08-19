@@ -752,7 +752,7 @@ function BrowserDemo(props: GeoBrowserModalProps) {
   useEffect(() => setOpen(props.open), [props.open]);
   useEffect(() => setValue(props.value), [props.value]);
   return (
-    <Space direction="vertical" size={12}>
+    <Space orientation="vertical" size={12}>
       <Space size={8}>
         <Button onClick={() => setOpen(true)}>Open geo browser</Button>
         <Typography.Text code>{value || 'no rule yet'}</Typography.Text>

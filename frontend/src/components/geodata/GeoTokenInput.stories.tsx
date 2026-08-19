@@ -218,7 +218,7 @@ function ControlledTokenInput({ value = '', id = 'geo-rule', ...rest }: GeoToken
   const [current, setCurrent] = useState(value);
   useEffect(() => setCurrent(value), [value]);
   return (
-    <Space direction="vertical" size={4} style={{ width: 460 }}>
+    <Space orientation="vertical" size={4} style={{ width: 460 }}>
       <label htmlFor={id}>{rest.kind === 'ip' ? 'Target IP' : 'Target domain'}</label>
       <GeoTokenInput {...rest} id={id} value={current} onChange={setCurrent} />
     </Space>
