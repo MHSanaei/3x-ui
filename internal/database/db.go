@@ -1085,10 +1085,11 @@ func isIgnorableDuplicateColumnErr(gdb *gorm.DB, err error, mdl any) bool {
 // *model.ClientHwid (#5802): GORM's SQLite migrator can decide to redo the
 // composite-uniqueIndex table on a re-run even though nothing actually
 // changed, and re-issues a bare CREATE TABLE instead of its usual
-// copy-and-rename dance. Verifying HasTable (rather than trusting the error
-// text alone) keeps this narrow: a table collision against something
-// genuinely wrong would still need HasTable to agree before being waved
-// through.
+// copy-and-rename dance. The table name is extracted from the error text and
+// cross-checked against mdl's own resolved table name, not just its
+// existence -- otherwise a table-shaped error about some other, genuinely
+// broken table would be waved through just because mdl's own table happens
+// to already exist too.
 func isIgnorableTableExistsErr(gdb *gorm.DB, err error, mdl any) bool {
 	if err == nil || gdb == nil {
 		return false
@@ -1097,7 +1098,33 @@ func isIgnorableTableExistsErr(gdb *gorm.DB, err error, mdl any) bool {
 	if !strings.Contains(errMsg, "already exists") || strings.Contains(errMsg, "column ") {
 		return false
 	}
-	return strings.Contains(errMsg, "table ") && gdb.Migrator().HasTable(mdl)
+	if !strings.Contains(errMsg, "table ") {
+		return false
+	}
+	name := extractQuotedTableName(errMsg)
+	if name == "" {
+		return false
+	}
+	stmt := &gorm.Statement{DB: gdb}
+	if err := stmt.Parse(mdl); err != nil || stmt.Schema == nil {
+		return false
+	}
+	return strings.EqualFold(name, stmt.Schema.Table) && gdb.Migrator().HasTable(mdl)
+}
+
+// extractQuotedTableName pulls the table name out of a lowercased
+// "table `name` already exists" / `table "name" already exists` style
+// error, whichever quoting the active driver uses. Returns "" when no
+// quoted name can be found -- the caller must then refuse to guess.
+func extractQuotedTableName(errMsg string) string {
+	for _, quote := range []string{"`", `"`} {
+		if _, after, ok := strings.Cut(errMsg, quote); ok {
+			if end := strings.Index(after, quote); end > 0 {
+				return after[:end]
+			}
+		}
+	}
+	return ""
 }
 
 func initUser() error {

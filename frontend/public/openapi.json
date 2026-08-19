@@ -11293,6 +11293,47 @@
         }
       }
     },
+    "/panel/api/xray/tor/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage the panel-hosted Tor sidecar. The action parameter selects the operation.",
+        "operationId": "post_panel_api_xray_tor_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/resetOutboundsTraffic": {
       "post": {
         "tags": [
